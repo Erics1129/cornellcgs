@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import gsap from 'gsap'
 import { flipThemeAt } from '../lib/theme'
+import { isPaging } from '../lib/scroll'
 import { prefersReducedMotion, isTouchDevice } from '../lib/motion'
 
 /**
@@ -30,7 +31,28 @@ export default function HeroCard() {
   const phase = useRef<Phase>('blue')
   const wiped = useRef(false)
   const raf = useRef(0)
+  const flipRef = useRef<() => void>(() => {})
+  const autoTimer = useRef(0)
   const [videoOk, setVideoOk] = useState(true)
+
+  /** Restart the 10 s auto-flip clock (manual clicks reset it). */
+  const armAuto = () => {
+    window.clearInterval(autoTimer.current)
+    if (prefersReducedMotion()) return
+    autoTimer.current = window.setInterval(() => {
+      // Skip a tick rather than freeze-frame an in-flight page glide or a
+      // hidden tab; the next tick catches up.
+      if (document.hidden || isPaging()) return
+      flipRef.current()
+    }, 10000)
+  }
+
+  // The card flips itself every 10 s; the whole site's world shifts with it.
+  useEffect(() => {
+    armAuto()
+    return () => window.clearInterval(autoTimer.current)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // Park the video on the blue back frame once data is in
   useEffect(() => {
@@ -50,13 +72,11 @@ export default function HeroCard() {
     if (prefersReducedMotion()) return
     const wrap = wrapRef.current
     if (!wrap) return
-    const tween = gsap.from(wrap, {
-      scale: 0.55,
-      opacity: 0,
-      duration: 1.5,
-      ease: 'power3.out',
-      delay: 0.15,
-    })
+    const tween = gsap.fromTo(
+      wrap,
+      { scale: 0.55, opacity: 0 },
+      { scale: 1, opacity: 1, duration: 1.5, ease: 'power3.out', delay: 0.15 },
+    )
     return () => {
       tween.kill()
     }
@@ -103,7 +123,7 @@ export default function HeroCard() {
     if (!v) return
     v.style.transition = 'filter 0.9s ease'
     v.style.filter =
-      next === 'red' ? 'hue-rotate(192deg) saturate(0.55) brightness(1.12)' : ''
+      next === 'red' ? 'hue-rotate(225deg) saturate(0.72) brightness(0.94)' : ''
   }
 
   const flip = () => {
@@ -161,6 +181,8 @@ export default function HeroCard() {
     }
   }
 
+  flipRef.current = flip
+
   return (
     <div
       ref={wrapRef}
@@ -190,7 +212,10 @@ export default function HeroCard() {
       <button
         ref={btnRef}
         data-interactive
-        onClick={flip}
+        onClick={() => {
+          flip()
+          armAuto()
+        }}
         aria-label="Flip the card — switches the site between the blue and red world"
         className="pointer-events-auto absolute left-1/2 top-1/2 aspect-[5/7] h-[min(48vh,430px)] -translate-x-1/2 -translate-y-1/2 cursor-pointer rounded-3xl"
       />

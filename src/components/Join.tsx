@@ -42,7 +42,7 @@ export default function Join() {
             <a
               data-reveal="para"
               href={join.cta.href}
-              className="btn btn-primary neon relative rounded-full text-[max(1.05rem,17px)]"
+              className="btn btn-primary relative text-[max(1.05rem,17px)]"
               data-interactive
             >
               {join.cta.label} <span aria-hidden="true">♠</span>

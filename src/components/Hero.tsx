@@ -19,21 +19,16 @@ export default function Hero() {
   useEffect(() => {
     if (prefersReducedMotion()) return
     const ctx = gsap.context(() => {
-      gsap.from('[data-hero-line] > span', {
-        yPercent: 112,
-        duration: 1.15,
-        ease: 'power3.out',
-        stagger: 0.09,
-        delay: 0.25,
-      })
-      gsap.from('[data-hero-fade]', {
-        opacity: 0,
-        y: 18,
-        duration: 0.9,
-        ease: 'power2.out',
-        stagger: 0.12,
-        delay: 0.85,
-      })
+      gsap.fromTo(
+        '[data-hero-line] > span',
+        { yPercent: 112 },
+        { yPercent: 0, duration: 1.15, ease: 'power3.out', stagger: 0.09, delay: 0.25 },
+      )
+      gsap.fromTo(
+        '[data-hero-fade]',
+        { opacity: 0, y: 18 },
+        { opacity: 1, y: 0, duration: 0.9, ease: 'power2.out', stagger: 0.12, delay: 0.85 },
+      )
     }, root)
     return () => ctx.revert()
   }, [])
@@ -83,7 +78,7 @@ export default function Hero() {
                 e.preventDefault()
                 scrollToId('join')
               }}
-              className="btn btn-primary neon rounded-full"
+              className="btn btn-primary"
             >
               {hero.ctaPrimary.label}
             </a>
@@ -93,7 +88,7 @@ export default function Hero() {
                 e.preventDefault()
                 scrollToId('what-we-do')
               }}
-              className="btn neon rounded-full"
+              className="btn"
             >
               {hero.ctaSecondary.label}
             </a>

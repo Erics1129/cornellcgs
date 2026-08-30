@@ -305,12 +305,16 @@ export default function CodeLayer() {
       for (const col of cols) drawColumn(col, 0)
     }
 
-    // --- Cursor spotlight: code near the mouse lights up (user request) ---
+    // --- Cursor lens: a clean, READABLE window of code under the mouse.
+    // A soft wash of the page background fades the ambient clutter inside the
+    // circle, then ONE column — the one under the cursor — is redrawn bright,
+    // so what you see in the lens is actual legible code, not stacked noise.
     const SPOT_R = 160
     let mx = -9999
     let my = -9999
     let sx = -9999
     let sy = -9999
+    let bg = hexToRgb(cssVar('--bg-top'))
 
     const drawSpotlight = () => {
       if (mx < -999) {
@@ -324,28 +328,50 @@ export default function CodeLayer() {
         sx += (mx - sx) * 0.22
         sy += (my - sy) * 0.22
       }
+
+      // The lens wash
+      const grad = ctx.createRadialGradient(sx, sy, 0, sx, sy, SPOT_R)
+      const bgs = `${bg[0] | 0},${bg[1] | 0},${bg[2] | 0}`
+      grad.addColorStop(0, `rgba(${bgs},0.85)`)
+      grad.addColorStop(0.72, `rgba(${bgs},0.55)`)
+      grad.addColorStop(1, `rgba(${bgs},0)`)
+      ctx.fillStyle = grad
+      ctx.beginPath()
+      ctx.arc(sx, sy, SPOT_R, 0, Math.PI * 2)
+      ctx.fill()
+
+      // The one column under the cursor (brightest wins ties)
+      let best: Column | null = null
+      let bestScore = -Infinity
       for (const col of cols) {
-        const total = col.count * LINE_H
-        const eff = col.off + window.scrollY * PARALLAX
-        const colW = Math.min(atlasW, MAX_LINE_W)
-        if (col.x > sx + SPOT_R || col.x + colW < sx - SPOT_R) continue
-        for (let j = 0; j < col.count; j++) {
-          const line = lines[(col.start + j) % lines.length]
-          if (line.row < 0) continue
-          const y = mod(j * LINE_H - eff, total) - LINE_H
-          const dy = y + LINE_H / 2 - sy
-          if (dy < -SPOT_R || dy > SPOT_R) continue
-          const half = Math.sqrt(SPOT_R * SPOT_R - dy * dy)
-          const x0 = Math.max(sx - half, col.x)
-          const x1 = Math.min(sx + half, col.x + Math.min(line.width, atlasW))
-          if (x1 <= x0) continue
-          ctx.globalAlpha = Math.min(0.92, 0.95 * (1 - (Math.abs(dy) / SPOT_R) * 0.55))
-          ctx.drawImage(
-            atlas,
-            (x0 - col.x) * dpr, line.row * LINE_H * dpr, (x1 - x0) * dpr, LINE_H * dpr,
-            x0, y, x1 - x0, LINE_H,
-          )
+        const wch = Math.min(atlasW, MAX_LINE_W)
+        if (sx < col.x - 24 || sx > col.x + wch + 24) continue
+        const score = col.alpha - Math.abs(col.x + 140 - sx) / 2400
+        if (score > bestScore) {
+          bestScore = score
+          best = col
         }
+      }
+      if (!best) return
+
+      const total = best.count * LINE_H
+      const eff = best.off + window.scrollY * PARALLAX
+      for (let j = 0; j < best.count; j++) {
+        const line = lines[(best.start + j) % lines.length]
+        if (line.row < 0) continue
+        const y = mod(j * LINE_H - eff, total) - LINE_H
+        const dy = y + LINE_H / 2 - sy
+        if (dy < -SPOT_R || dy > SPOT_R) continue
+        const half = Math.sqrt(SPOT_R * SPOT_R - dy * dy)
+        const x0 = Math.max(sx - half, best.x)
+        const x1 = Math.min(sx + half, best.x + Math.min(line.width, atlasW))
+        if (x1 <= x0) continue
+        ctx.globalAlpha = 0.95 * (1 - (Math.abs(dy) / SPOT_R) * 0.3)
+        ctx.drawImage(
+          atlas,
+          (x0 - best.x) * dpr, line.row * LINE_H * dpr, (x1 - x0) * dpr, LINE_H * dpr,
+          x0, y, x1 - x0, LINE_H,
+        )
       }
       ctx.globalAlpha = 1
     }
@@ -421,6 +447,7 @@ export default function CodeLayer() {
       .catch(() => {}) // fallback mono metrics are already on screen
 
     const offTheme = onTheme(() => {
+      bg = hexToRgb(cssVar('--bg-top'))
       lerpFrom = palette
       lerpTo = readPalette()
       if (reduced) {

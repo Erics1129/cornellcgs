@@ -7,12 +7,13 @@ import { nav } from '../content'
 gsap.registerPlugin(ScrollTrigger, ScrollToPlugin)
 
 /**
- * Forced paging — the site is a deck. One wheel gesture / swipe / key press
- * moves exactly one page; the screen never rests on half of two chapters.
- * Inside pinned scenes (the poker board, the black hole) a gesture advances
- * one beat of the scrubbed timeline instead, so the choreography still plays.
- * All movement is a single interruptible tween of the real scroll position,
- * which keeps every ScrollTrigger (pins, scrubs, reveals) working untouched.
+ * Forced paging — the site is a deck driven by an explicit BEAT MAP.
+ * Every possible landing position is precomputed: each chapter's start, plus
+ * evenly spaced beats through the pinned scenes ending exactly on the pin
+ * release (which is itself a full-screen frame of that chapter). One gesture
+ * moves one beat in either direction, so paging is perfectly symmetric, the
+ * screen always lands on a position some chapter fully covers, and scrolling
+ * back is always the exact reverse of scrolling forward.
  */
 
 let tween: gsap.core.Tween | null = null
@@ -20,36 +21,52 @@ let lastTarget: number | null = null
 let busy = false
 let gen = 0
 
-const STEP = 0.88 // beat size inside pinned scenes, in viewport heights
-
-function chapterStops(): number[] {
-  // A pinned section slides inside its pin-spacer, so its rect is only right
-  // before the pin starts — use the pin trigger's own start position instead.
-  const pinStarts = new Map<Element, number>()
-  for (const st of ScrollTrigger.getAll()) {
-    if (st.pin && st.start >= 0) pinStarts.set(st.trigger as Element, st.start)
-  }
-  const ids = ['top', ...nav.map((n) => n.id)]
-  const ys: number[] = []
-  for (const id of ids) {
-    const el = document.getElementById(id)
-    if (!el) continue
-    const pinned = pinStarts.get(el)
-    ys.push(
-      pinned !== undefined
-        ? Math.round(pinned)
-        : Math.round(el.getBoundingClientRect().top + window.scrollY),
-    )
-  }
-  ys.push(ScrollTrigger.maxScroll(window))
-  return [...new Set(ys)].sort((a, b) => a - b)
-}
+/** Stops closer together than this collapse into one. */
+const MERGE_PX = 60
 
 function pinRanges(): Array<{ start: number; end: number }> {
   return ScrollTrigger.getAll()
-    .filter((st) => !!st.pin)
+    .filter((st) => !!st.pin && st.start >= 0)
     .map((st) => ({ start: st.start, end: st.end }))
     .sort((a, b) => a.start - b.start)
+}
+
+/** Pin-aware chapter top: a pinned chapter starts where its trigger starts. */
+function chapterTop(el: HTMLElement): number {
+  for (const st of ScrollTrigger.getAll()) {
+    if (st.pin && st.trigger === el && st.start >= 0) return Math.round(st.start)
+  }
+  return Math.round(el.getBoundingClientRect().top + window.scrollY)
+}
+
+/** The full beat map: chapter starts + pinned-scene beats + the page bottom. */
+function beatStops(): number[] {
+  const vh = window.innerHeight || 1
+  const ranges = pinRanges()
+  const ys: number[] = []
+
+  for (const id of ['top', ...nav.map((n) => n.id)]) {
+    const el = document.getElementById(id)
+    if (!el) continue
+    const top = chapterTop(el)
+    ys.push(top)
+    const r = ranges.find((r) => Math.abs(r.start - top) < 8)
+    if (r) {
+      // Beats through the pin, landing exactly on the release. The released
+      // position still shows this chapter full-screen, so no gap can appear.
+      const len = r.end - r.start
+      const n = Math.max(1, Math.round(len / (vh * 0.85)))
+      for (let k = 1; k <= n; k++) ys.push(Math.round(r.start + (len * k) / n))
+    }
+  }
+  ys.push(ScrollTrigger.maxScroll(window))
+
+  ys.sort((a, b) => a - b)
+  const merged: number[] = []
+  for (const y of ys) {
+    if (!merged.length || y - merged[merged.length - 1] > MERGE_PX) merged.push(y)
+  }
+  return merged
 }
 
 function glide(y: number) {
@@ -62,7 +79,7 @@ function glide(y: number) {
   lastTarget = target
   tween = gsap.to(window, {
     scrollTo: { y: target, autoKill: false },
-    duration: prefersReducedMotion() ? 0.05 : 1.05,
+    duration: prefersReducedMotion() ? 0.05 : 1.0,
     ease: 'power3.out',
     onComplete: () => {
       if (g === gen) busy = false
@@ -73,37 +90,40 @@ function glide(y: number) {
   })
 }
 
-/** Advance one page (or one beat of a pinned scene) in direction d = ±1. */
+/** Advance exactly one beat in direction d = ±1. */
 function page(d: 1 | -1) {
-  const vh = window.innerHeight
+  const stops = beatStops()
   const from = busy && lastTarget !== null ? lastTarget : window.scrollY
-  const ranges = pinRanges()
-
-  // A beat inside a pinned scene?
-  const cand = from + d * vh * STEP
-  const withinPin = ranges.find((r) => cand > r.start + 6 && cand < r.end - 6)
-  if (withinPin && from >= withinPin.start - vh && from <= withinPin.end + vh) {
-    glide(cand)
-    return
-  }
-
-  const stops = chapterStops()
   if (d > 0) {
-    const next = stops.find((s) => s > from + 12)
+    const next = stops.find((s) => s > from + 40)
     if (next !== undefined) glide(next)
-    return
+  } else {
+    const below = stops.filter((s) => s < from - 40)
+    if (below.length) glide(below[below.length - 1])
+    else if (from > 20) glide(0)
   }
+}
 
-  // Going up: if a pinned scene ends between here and the previous chapter
-  // start, re-enter it at its last beat so the timeline scrubs backwards.
-  const below = stops.filter((s) => s < from - 12)
-  const prev = below.length ? below[below.length - 1] : 0
-  const pinAbove = ranges.filter((r) => r.end < from - 12 && r.end > prev).pop()
-  if (pinAbove) {
-    glide(pinAbove.end - 6)
-    return
+/**
+ * If the viewport somehow rests between beats (a resize, a font reflow, a
+ * restored scroll position), glide onto the nearest one — self-healing, so a
+ * "half of two chapters" or empty-gap frame can never persist.
+ */
+function settleToNearest() {
+  if (busy) return
+  const stops = beatStops()
+  if (!stops.length) return
+  const y = window.scrollY
+  let best = stops[0]
+  let bd = Infinity
+  for (const s of stops) {
+    const dist = Math.abs(s - y)
+    if (dist < bd) {
+      bd = dist
+      best = s
+    }
   }
-  glide(prev)
+  if (bd > 40) glide(best)
 }
 
 function isEditable(el: EventTarget | null): boolean {
@@ -118,11 +138,17 @@ function isEditable(el: EventTarget | null): boolean {
 
 /** Boot the pager. The old name is kept so App.tsx stays untouched. */
 export function initSmoothScroll(): () => void {
+  // A deck always opens on its first page — never on a restored mid-scroll.
+  if ('scrollRestoration' in history) history.scrollRestoration = 'manual'
+  window.scrollTo(0, 0)
+
   // One page per gesture: fire when armed and the accumulated delta crosses
-  // the threshold, then stay disarmed until the wheel goes quiet (a trackpad
-  // flick's momentum tail must not turn extra pages).
+  // the threshold, then stay disarmed until the wheel goes quiet — EXCEPT
+  // that reversing direction re-arms instantly, so a quick "back up" swipe
+  // during a trackpad flick's momentum tail is never swallowed.
   let acc = 0
   let armed = true
+  let lastDir = 0
   let quietTimer = 0
 
   const onWheel = (e: WheelEvent) => {
@@ -132,7 +158,16 @@ export function initSmoothScroll(): () => void {
     quietTimer = window.setTimeout(() => {
       armed = true
       acc = 0
+      lastDir = 0
     }, 170)
+
+    const dir = Math.sign(e.deltaY)
+    if (dir !== 0 && lastDir !== 0 && dir !== lastDir) {
+      armed = true
+      acc = 0
+    }
+    if (dir !== 0) lastDir = dir
+
     if (!armed) return
     acc += e.deltaY
     if (Math.abs(acc) < 40) return
@@ -167,13 +202,36 @@ export function initSmoothScroll(): () => void {
   window.addEventListener('wheel', onWheel, { passive: false })
   window.addEventListener('keydown', onKey)
 
-  // Late webfonts and viewport changes shift chapter tops — remeasure pins.
-  document.fonts?.ready.then(() => ScrollTrigger.refresh()).catch(() => {})
+  // Late webfonts and viewport changes shift chapter tops — remeasure the
+  // pins, then heal the resting position if it fell between beats.
+  // Pins must refresh in document order no matter which mounted first.
+  window.setTimeout(() => {
+    ScrollTrigger.sort()
+    ScrollTrigger.refresh()
+  }, 60)
+  document.fonts?.ready
+    .then(() => {
+      ScrollTrigger.sort()
+      ScrollTrigger.refresh()
+    })
+    .catch(() => {})
+  const onRefresh = () => settleToNearest()
+  ScrollTrigger.addEventListener('refresh', onRefresh)
+
+  let resizeTimer = 0
+  const onResize = () => {
+    window.clearTimeout(resizeTimer)
+    resizeTimer = window.setTimeout(settleToNearest, 250)
+  }
+  window.addEventListener('resize', onResize)
 
   return () => {
     window.clearTimeout(quietTimer)
+    window.clearTimeout(resizeTimer)
     window.removeEventListener('wheel', onWheel)
     window.removeEventListener('keydown', onKey)
+    window.removeEventListener('resize', onResize)
+    ScrollTrigger.removeEventListener('refresh', onRefresh)
     tween?.kill()
   }
 }
@@ -181,14 +239,21 @@ export function initSmoothScroll(): () => void {
 // Dev-only introspection for the pager
 if (import.meta.env.DEV) {
   ;(window as unknown as Record<string, unknown>).__cgsStops = () => ({
-    stops: chapterStops(),
+    stops: beatStops(),
     pins: pinRanges(),
+    busy,
+    lastTarget,
   })
 }
 
-/** Glide to an in-page anchor (nav, side rail, CTAs). */
+/** True while a page glide is in flight (the auto-flip waits it out). */
+export function isPaging(): boolean {
+  return busy
+}
+
+/** Glide to a chapter (nav, side rail, CTAs) — always onto its exact beat. */
 export function scrollToId(id: string) {
   const el = document.getElementById(id)
   if (!el) return
-  glide(el.getBoundingClientRect().top + window.scrollY)
+  glide(chapterTop(el))
 }

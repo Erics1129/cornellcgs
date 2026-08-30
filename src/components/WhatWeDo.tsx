@@ -42,10 +42,16 @@ export default function WhatWeDo() {
           end: '+=250%',
           pin: true,
           scrub: 0.6,
+          // Refresh strictly before the ML pin: its useLayoutEffect creates
+          // its trigger first, and out-of-order refreshes measure ML's start
+          // without this pin's spacer (the can't-scroll-back bug).
+          refreshPriority: 2,
         },
       })
 
-      // Deal: every card starts stacked on the deck spot, face down
+      // Deal: every card starts stacked on the deck spot, face down.
+      // The paging beats rest at progress 1/3, 2/3 and 1 — every deal and
+      // flip finishes strictly BEFORE a beat so no card ever freezes edge-on.
       cards.forEach((card, i) => {
         tl.from(
           card,
@@ -62,16 +68,16 @@ export default function WhatWeDo() {
             },
             rotation: 8 - i * 4,
             scale: 0.12,
-            duration: 0.09,
+            duration: 0.07,
           },
-          i * 0.014,
+          i * 0.012,
         )
       })
 
-      // Flop, turn, river — scrubbed to fixed progress marks
-      const marks = [0.22, 0.33, 0.44, 0.65, 0.85]
+      // Beat 1 (1/3): the flop is fully up. Beat 2 (2/3): the turn. End: river.
+      const marks = [0.13, 0.2, 0.26, 0.46, 0.8]
       flips.forEach((inner, i) => {
-        tl.to(inner, { rotationY: 180, duration: 0.09, ease: 'power2.inOut' }, marks[i])
+        tl.to(inner, { rotationY: 180, duration: 0.07, ease: 'power2.inOut' }, marks[i])
       })
 
       return () => {

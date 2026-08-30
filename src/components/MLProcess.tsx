@@ -32,7 +32,8 @@ const HOLE_MOBILE = { x: 0.5, y: 0.44 }
 
 const GHOST_COUNT = 4
 const TITLE_GHOST_ALPHA = [0.28, 0.16, 0.08]
-const TITLE_SIZE = 'clamp(2.2rem, 3vw, 3.4rem)'
+const TITLE_SIZE = 'clamp(2.1rem, 2.9vw, 3.3rem)'
+const LATEX_FONT = "'STIX Two Text', 'Times New Roman', serif"
 
 export default function MLProcess() {
   const root = useRef<HTMLElement>(null)
@@ -86,7 +87,7 @@ export default function MLProcess() {
       const mw = Math.min(W, H * frame.aspect)
       const mh = mw / frame.aspect
       const left = (W - mw) / 2
-      const top = Math.max(0, (H - mh) * 0.38)
+      const top = Math.max(0, (H - mh) * (W <= 768 ? 0.08 : 0.38))
       wrap.style.left = `${left}px`
       wrap.style.top = `${top}px`
       wrap.style.width = `${mw}px`
@@ -293,7 +294,7 @@ export default function MLProcess() {
             title,
             { x: -36, opacity: 0 },
             { x: 0, opacity: 1, duration: 0.6, ease: 'power3.out' },
-            1.3,
+            1.85,
           )
 
           // 600–1400 ms: the five cards shoot out on curved paths — x rides
@@ -304,7 +305,7 @@ export default function MLProcess() {
               card,
               { x: -26, opacity: 0 },
               { x: 0, opacity: 1, duration: 0.5, ease: 'power3.out' },
-              1.5 + i * cardStagger,
+              2.0 + i * cardStagger,
             )
           })
 
@@ -322,6 +323,7 @@ export default function MLProcess() {
             end: '+=150%',
             pin: true,
             anticipatePin: 1,
+            refreshPriority: 1,
             onEnterBack: fire,
           })
         }
@@ -469,7 +471,7 @@ export default function MLProcess() {
           <h2
             ref={titleRef}
             className="h-section text-left text-[var(--ivory)] will-change-transform"
-            style={{ fontSize: TITLE_SIZE }}
+            style={{ fontSize: TITLE_SIZE, fontFamily: LATEX_FONT, fontWeight: 600, textShadow: '0 2px 22px rgba(0,0,0,0.9)' }}
           >
             {mlProcess.heading}
           </h2>
@@ -481,7 +483,7 @@ export default function MLProcess() {
               }}
               aria-hidden="true"
               className="h-section pointer-events-none absolute inset-0 text-left text-[var(--ivory)] opacity-0 will-change-transform"
-              style={{ fontSize: TITLE_SIZE }}
+              style={{ fontSize: TITLE_SIZE, fontFamily: LATEX_FONT, fontWeight: 600 }}
             >
               {mlProcess.heading}
             </div>
@@ -495,12 +497,15 @@ export default function MLProcess() {
               key={s.n}
               className="flex items-baseline gap-3 will-change-transform"
             >
-              <span className="font-display text-2xl leading-none text-[var(--neon-mid)] md:text-3xl">
+              <span
+                className="text-2xl leading-none text-[#9db8ff] md:text-3xl"
+                style={{ fontFamily: LATEX_FONT, fontStyle: 'italic', fontWeight: 500 }}
+              >
                 {s.n}
               </span>
               <h3
-                className="h-card text-[var(--ivory)]"
-                style={{ textShadow: '0 1px 18px rgba(0,0,0,0.85)' }}
+                className="text-[clamp(1.35rem,1.9vw,1.9rem)] leading-tight text-[#f5f1e6]"
+                style={{ fontFamily: LATEX_FONT, fontWeight: 600, textShadow: '0 2px 18px rgba(0,0,0,0.9)' }}
               >
                 {s.title}
               </h3>

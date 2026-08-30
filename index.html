@@ -12,13 +12,29 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:ital,wght@0,400..800;1,400..700&family=JetBrains+Mono:wght@500;600;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:ital,wght@0,400..800;1,400..700&family=STIX+Two+Text:ital,wght@0,400..700;1,400..700&family=JetBrains+Mono:wght@500;600;700&display=swap"
       rel="stylesheet"
     />
+    <script>
+      // If this HTML was cached across a deploy, its bundle URL may be dead
+      // and the app would never boot. Recover with ONE cache-busting reload.
+      ;(function () {
+        try {
+          var u = new URL(location.href)
+          window.__cgsBootTimer = setTimeout(function () {
+            if (window.__cgsBooted || u.searchParams.has('rl')) return
+            u.searchParams.set('rl', String(Date.now()))
+            location.replace(u.toString())
+          }, 4000)
+        } catch (e) {
+          /* very old browser — nothing to do */
+        }
+      })()
+    </script>
     <style>
       /* Paint the world color before any JS or CSS loads — no white flash. */
-      html { background: #ffffff; }
-      html[data-theme='red'] { background: #dbeafe; }
+      html { background: #04081c; }
+      html[data-theme='red'] { background: #060427; }
     </style>
   </head>
   <body>
