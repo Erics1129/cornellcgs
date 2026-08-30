@@ -392,6 +392,8 @@ em,
   aspect-ratio: 16 / 9;
   max-width: none;
   object-fit: cover;
+  will-change: transform, filter;
+  transform: translateZ(0);
   -webkit-mask-image: radial-gradient(ellipse 40% 56% at 50% 50%, #000 46%, transparent 74%);
   mask-image: radial-gradient(ellipse 40% 56% at 50% 50%, #000 46%, transparent 74%);
 }

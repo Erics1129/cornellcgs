@@ -212,6 +212,7 @@ export default function MLProcess() {
         }
 
         const reset = () => {
+          mlLog('reset (tl ' + (tl ? 'killed@' + (tl.progress() * 100).toFixed(0) + '%' : 'none') + ')')
           tl?.kill()
           tl = null
           burst.stop()
@@ -226,9 +227,17 @@ export default function MLProcess() {
           armed = true
         }
 
+        const mlLog = (ev: string) => {
+          if (import.meta.env.DEV) {
+            const w = window as unknown as { __mlLog?: string[] }
+            ;(w.__mlLog ??= []).push(`${Math.round(performance.now())}ms ${ev}`)
+          }
+        }
         const fire = () => {
+          mlLog('fire ' + (armed ? 'ARMED' : 'blocked'))
           if (!armed) return
           armed = false
+          tl?.kill() // never let two bursts interleave
 
           const rect = section.getBoundingClientRect()
           const hx = rect.left + holePx.x
@@ -293,7 +302,15 @@ export default function MLProcess() {
           tl.fromTo(
             title,
             { x: -36, opacity: 0 },
-            { x: 0, opacity: 1, duration: 0.5, ease: 'power3.out' },
+            {
+              x: 0,
+              opacity: 1,
+              duration: 0.5,
+              ease: 'power3.out',
+              overwrite: 'auto',
+              onStart: () => mlLog('title tween start'),
+              onComplete: () => mlLog('title tween done'),
+            },
             1.1,
           )
 
@@ -304,10 +321,14 @@ export default function MLProcess() {
             tl!.fromTo(
               card,
               { x: -26, opacity: 0 },
-              { x: 0, opacity: 1, duration: 0.45, ease: 'power3.out' },
+              { x: 0, opacity: 1, duration: 0.45, ease: 'power3.out', overwrite: 'auto' },
               1.25 + i * cardStagger,
             )
           })
+
+          // End-state guarantee: whatever raced or was killed mid-flight,
+          // the words ARE on screen once the burst window has passed.
+          tl.set([title, ...cards], { opacity: 1, x: 0 }, 2.3)
 
           // After: dim the equation wall so the card text reads.
           tl.to(scrim, { opacity: 0.22, duration: 0.5, ease: 'power2.inOut' }, 0.9)

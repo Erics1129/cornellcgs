@@ -148,8 +148,10 @@ export function initSmoothScroll(): () => void {
   // that reversing direction re-arms instantly, so a quick "back up" swipe
   // during a trackpad flick's momentum tail is never swallowed.
   let acc = 0
+  let heldAcc = 0
   let armed = true
   let lastDir = 0
+  let lastFire = 0
   let quietTimer = 0
 
   const onWheel = (e: WheelEvent) => {
@@ -160,22 +162,37 @@ export function initSmoothScroll(): () => void {
     quietTimer = window.setTimeout(() => {
       armed = true
       acc = 0
+      heldAcc = 0
       lastDir = 0
-    }, 170)
+    }, 120)
 
     const dir = Math.sign(e.deltaY)
     if (dir !== 0 && lastDir !== 0 && dir !== lastDir) {
       armed = true
       acc = 0
+      heldAcc = 0
     }
     if (dir !== 0) lastDir = dir
 
-    if (!armed) return
+    if (!armed) {
+      // Cruise: a long, hard, continuous scroll keeps turning pages at a
+      // steady clip instead of stopping after the first one.
+      heldAcc += e.deltaY
+      if (Math.abs(heldAcc) > 180 && performance.now() - lastFire > 460) {
+        const d = heldAcc > 0 ? 1 : -1
+        heldAcc = 0
+        lastFire = performance.now()
+        page(d as 1 | -1)
+      }
+      return
+    }
     acc += e.deltaY
     if (Math.abs(acc) < 40) return
     const d = acc > 0 ? 1 : -1
     acc = 0
+    heldAcc = 0
     armed = false
+    lastFire = performance.now()
     page(d as 1 | -1)
   }
 

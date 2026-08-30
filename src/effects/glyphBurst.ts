@@ -11,6 +11,8 @@
 
 const MAX_GLYPHS = 500
 const DPR_CAP = 2
+/** Sprites are rasterized once at this size and scaled per particle. */
+const BASE_PX = 24
 
 /** Full equations — written as unicode math strings. */
 const EQUATIONS = [
@@ -51,7 +53,10 @@ const FRAGMENTS = [
 interface Glyph {
   active: boolean
   text: string
-  font: string
+  sprite: HTMLCanvasElement | null
+  hw: number
+  hh: number
+  scale: number
   color: string
   baseAlpha: number
   x0: number
@@ -75,6 +80,38 @@ export interface GlyphBurst {
   destroy(): void
 }
 
+/**
+ * One rasterization per (text, color); every frame is then a plain drawImage —
+ * ctx.font swaps + fillText per particle were the burst's Safari lag.
+ */
+const spriteCache = new Map<string, { cv: HTMLCanvasElement; hw: number; hh: number }>()
+const scratch = typeof document !== 'undefined' ? document.createElement('canvas').getContext('2d') : null
+
+function getSprite(text: string, color: string) {
+  const key = text + '|' + color
+  const hit = spriteCache.get(key)
+  if (hit || !scratch) return hit ?? null
+  const sd = Math.min(window.devicePixelRatio || 1, 2)
+  const font = `600 ${BASE_PX}px "JetBrains Mono", ui-monospace, monospace`
+  scratch.font = font
+  const tw = Math.ceil(scratch.measureText(text).width) + 8
+  const th = Math.ceil(BASE_PX * 1.6)
+  const cv = document.createElement('canvas')
+  cv.width = Math.max(1, Math.round(tw * sd))
+  cv.height = Math.max(1, Math.round(th * sd))
+  const c2 = cv.getContext('2d')
+  if (!c2) return null
+  c2.scale(sd, sd)
+  c2.font = font
+  c2.textAlign = 'center'
+  c2.textBaseline = 'middle'
+  c2.fillStyle = color
+  c2.fillText(text, tw / 2, th / 2)
+  const made = { cv, hw: tw / 2, hh: th / 2 }
+  spriteCache.set(key, made)
+  return made
+}
+
 const easeOutQuart = (t: number) => 1 - (1 - t) ** 4
 const easeOutCubic = (t: number) => 1 - (1 - t) ** 3
 const rand = (a: number, b: number) => a + Math.random() * (b - a)
@@ -85,7 +122,10 @@ export function createGlyphBurst(canvas: HTMLCanvasElement): GlyphBurst {
   const pool: Glyph[] = Array.from({ length: MAX_GLYPHS }, () => ({
     active: false,
     text: '',
-    font: '',
+    sprite: null,
+    hw: 0,
+    hh: 0,
+    scale: 1,
     color: '#fff',
     baseAlpha: 1,
     x0: 0,
@@ -147,14 +187,18 @@ export function createGlyphBurst(canvas: HTMLCanvasElement): GlyphBurst {
       const a = g.baseAlpha * Math.min(1, t / 0.07) * (1 - t * t) * edgeFade
       if (a <= 0.012) continue
 
+      if (!g.sprite) {
+        g.active = false
+        alive--
+        continue
+      }
       const rot = g.rot0 + g.spin * easeOutCubic(t)
+      const k = g.scale
       const c = Math.cos(rot)
       const s = Math.sin(rot)
-      ctx.setTransform(dpr * c, dpr * s, -dpr * s, dpr * c, x * dpr, y * dpr)
+      ctx.setTransform(dpr * c * k, dpr * s * k, -dpr * s * k, dpr * c * k, x * dpr, y * dpr)
       ctx.globalAlpha = a
-      ctx.font = g.font
-      ctx.fillStyle = g.color
-      ctx.fillText(g.text, 0, 0)
+      ctx.drawImage(g.sprite, -g.hw, -g.hh, g.hw * 2, g.hh * 2)
     }
 
     ctx.globalAlpha = 1
@@ -210,8 +254,13 @@ export function createGlyphBurst(canvas: HTMLCanvasElement): GlyphBurst {
         const full = Math.random() < 0.4
         g.text = full ? pick(EQUATIONS) : pick(FRAGMENTS)
         const px = Math.round(g.text.length > 16 ? rand(12, 18) : rand(15, 28))
-        g.font = `${Math.random() < 0.5 ? 500 : 600} ${px}px "JetBrains Mono", ui-monospace, monospace`
+        g.scale = px / BASE_PX
         g.color = pick(colors)
+        const sprite = getSprite(g.text, g.color)
+        if (!sprite) continue
+        g.sprite = sprite.cv
+        g.hw = sprite.hw
+        g.hh = sprite.hh
         g.baseAlpha = rand(0.55, 0.95)
         g.angle = rand(0, Math.PI * 2)
         const r0 = rand(0, 26)
