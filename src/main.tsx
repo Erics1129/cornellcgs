@@ -11,6 +11,8 @@ if (location.search.includes('rl=')) {
 }
 import ReactDOM from 'react-dom/client'
 import App from './App'
+import { pages } from './content'
+import { bootPathPage } from './lib/router'
 import './styles/global.css'
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
@@ -18,3 +20,6 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
     <App />
   </React.StrictMode>,
 )
+
+// Crawler stubs live at /<id>/ — humans landing there get the page overlay.
+window.setTimeout(() => bootPathPage(new Set(Object.keys(pages))), 50)

@@ -32,17 +32,32 @@ export default function Footer() {
           </ul>
         </div>
 
-        {/* Stacked chapter links, Citadel-style */}
+        {/* Stacked chapter links, Citadel-style. Real hrefs so crawlers can
+            walk to every sub-page; a human click stays on the deck. */}
         <nav aria-label="Footer" className="flex flex-col items-start gap-4 md:items-end" data-interactive>
           {nav.map(({ id, label }) => (
-            <button
+            <a
               key={id}
-              onClick={() => scrollToId(id)}
+              href={`/${id}/`}
+              onClick={(e) => {
+                e.preventDefault()
+                scrollToId(id)
+              }}
               className="text-[max(1.05rem,17px)] font-[550] text-[#e8eefb] transition-colors hover:text-white hover:underline hover:underline-offset-4"
             >
               {label}
-            </button>
+            </a>
           ))}
+          <a
+            href="/contact/"
+            onClick={(e) => {
+              e.preventDefault()
+              scrollToId('contact')
+            }}
+            className="text-[max(1.05rem,17px)] font-[550] text-[#e8eefb] transition-colors hover:text-white hover:underline hover:underline-offset-4"
+          >
+            Contact
+          </a>
         </nav>
       </div>
 

@@ -33,6 +33,20 @@ export function closePage() {
   window.dispatchEvent(new CustomEvent(PAGE_EVENT, { detail: { id: null } }))
 }
 
+/**
+ * Path-entry boot: the deploy emits real /<id>/index.html stubs for crawlers,
+ * each declaring window.__cgsPage. When a person lands on one, normalize the
+ * URL back to the root and slide the page open over the deck.
+ */
+export function bootPathPage(known: ReadonlySet<string>) {
+  const declared = (window as { __cgsPage?: string }).__cgsPage
+  const m = window.location.pathname.match(/^\/([a-z-]+)\/?$/)
+  const id = declared ?? (m ? m[1] : null)
+  if (!id || !known.has(id)) return
+  history.replaceState(null, '', '/' + window.location.search)
+  openPage(id)
+}
+
 /** Subscribe to page changes (driven by hashchange); returns unsubscribe. */
 export function onPage(cb: (id: string | null) => void): () => void {
   const emit = () => cb(idFromHash())

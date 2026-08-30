@@ -6,6 +6,7 @@ set -e
 export PATH="$HOME/.local/node/bin:$PATH"
 cd "$(dirname "$0")/.."
 npm run build
+node scripts/stubs.mjs
 
 # GitHub Pages caches index.html for ~10 minutes; a force-replaced bundle
 # would 404 for anyone holding the cached HTML ("nothing shows" bug). Keep
