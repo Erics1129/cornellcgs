@@ -1,52 +1,92 @@
-import { useRef } from 'react'
+import { useEffect, useRef } from 'react'
+import gsap from 'gsap'
+import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import SectionIndex from './SectionIndex'
 import GlobeVideo from './GlobeVideo'
 import { world } from '../content'
-import { useSectionReveals } from '../lib/reveal'
+import { prefersReducedMotion } from '../lib/motion'
+
+gsap.registerPlugin(ScrollTrigger)
 
 function renderEmphasis(text: string) {
-  // *word* becomes an italic display word
   const parts = text.split('*')
   return parts.map((p, i) => (i % 2 === 1 ? <em key={i}>{p}</em> : <span key={i}>{p}</span>))
 }
 
 /**
- * World (9♠) — the earth IS the page (§5.9 + the full-page override). The
- * globe video covers the entire chapter; GlobeVideo owns the seamless
- * two-element loop, drag-to-scrub and the still-image fallback. The copy sits
- * on the left over a scrim gradient (plus a soft glyph shadow) so the light
- * text keeps ≥7:1 contrast against the starfield at any video frame.
+ * World (9♠) — the earth IS the page. Arriving at the chapter, the globe is
+ * born as a dot in the void and swells until it fills the screen — colossal,
+ * a little too big, then settling (巨物对比震惊感). The words wait for the
+ * planet to finish arriving, then rise on the left. Replays on every return.
  */
 export default function WorldSection() {
   const root = useRef<HTMLElement>(null)
-  useSectionReveals(root)
+  const globeWrap = useRef<HTMLDivElement>(null)
+  const wordsRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const section = root.current
+    const globe = globeWrap.current
+    const words = wordsRef.current
+    if (!section || !globe || !words) return
+
+    if (prefersReducedMotion()) return
+
+    const ctx = gsap.context(() => {
+      const tl = gsap.timeline({ paused: true })
+      // A dot in the void…
+      tl.set(globe, { clipPath: 'circle(0.8% at 50% 50%)', scale: 1.6, transformOrigin: '50% 50%' })
+      tl.set(words, { opacity: 0, y: 28 })
+      // …swells into a colossus…
+      tl.to(globe, {
+        clipPath: 'circle(8% at 50% 50%)',
+        scale: 1.5,
+        duration: 0.55,
+        ease: 'power2.in',
+      })
+      tl.to(globe, {
+        clipPath: 'circle(75% at 50% 50%)',
+        scale: 1.08,
+        duration: 1.15,
+        ease: 'power3.inOut',
+      })
+      // …and settles, massive and calm. Then the words.
+      tl.to(globe, { scale: 1, duration: 0.9, ease: 'power2.out' }, '>-0.1')
+      tl.to(words, { opacity: 1, y: 0, duration: 0.8, ease: 'power3.out' }, '<+0.15')
+
+      ScrollTrigger.create({
+        trigger: section,
+        start: 'top 55%',
+        end: 'bottom 45%',
+        onEnter: () => tl.restart(),
+        onEnterBack: () => tl.restart(),
+        onLeave: () => tl.pause(0),
+        onLeaveBack: () => tl.pause(0),
+      })
+    }, section)
+
+    return () => ctx.revert()
+  }, [])
 
   return (
     <section ref={root} id="world" className="section overflow-clip">
       <SectionIndex rank="9" />
-      <GlobeVideo />
 
-      {/* Left scrim behind the copy; pointer events fall through to the globe */}
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-y-0 left-0 w-full md:w-[52%]"
-        style={{
-          background:
-            'linear-gradient(to right, color-mix(in srgb, var(--bg-top) 82%, transparent) 0%, color-mix(in srgb, var(--bg-top) 62%, transparent) 38%, color-mix(in srgb, var(--bg-top) 30%, transparent) 72%, transparent 100%)',
-        }}
-      />
+      {/* Space behind the planet while it is still a dot */}
+      <div aria-hidden="true" className="absolute inset-0 bg-[#02040d]" />
 
-      <div className="container-site pointer-events-none relative z-10">
+      <div ref={globeWrap} className="absolute inset-0 will-change-transform">
+        <GlobeVideo />
+      </div>
+
+      {/* The words arrive after the planet does */}
+      <div ref={wordsRef} className="container-site pointer-events-none relative z-10">
         <div
           className="pointer-events-auto max-w-[34rem] lg:max-w-[40rem]"
           style={{ textShadow: '0 1px 24px rgba(2, 6, 20, 0.85), 0 1px 6px rgba(2, 6, 20, 0.6)' }}
         >
-          <h2 data-reveal="heading" className="h-section mb-6">
-            {renderEmphasis(world.heading)}
-          </h2>
-          <p data-reveal="para" className="body-muted max-w-[46ch]">
-            {world.text}
-          </p>
+          <h2 className="h-section mb-6 text-white">{renderEmphasis(world.heading)}</h2>
+          <p className="max-w-[40ch] text-[rgba(233,240,255,0.85)]">{world.text}</p>
         </div>
       </div>
     </section>

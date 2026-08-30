@@ -179,7 +179,19 @@ export default function MLProcess() {
         gsap.set([flare, shock], { opacity: 0 })
         gsap.set(shock, { scale: 0.02 })
         gsap.set(scrim, { opacity: 0 })
-        gsap.set(wrap, { scale: 1, transformOrigin: '50% 50%' })
+        // 巨物对比震惊感 — the hole arrives tiny and distant, then swells to
+        // full size as the chapter takes the screen; the burst comes after.
+        const holeOrigin = `${frame.hx * 100}% ${frame.hy * 100}%`
+        gsap.set(wrap, { scale: 0.2, transformOrigin: holeOrigin })
+        const grow = gsap.timeline({ paused: true })
+        grow.to(wrap, { scale: 1, duration: 1.6, ease: 'power3.inOut' })
+        ScrollTrigger.create({
+          trigger: section,
+          start: 'top 80%',
+          onEnter: () => grow.restart(),
+          onEnterBack: () => grow.progress(1),
+          onLeaveBack: () => grow.pause(0),
+        })
 
         const drift = gsap.timeline({ repeat: -1, yoyo: true, defaults: { ease: 'sine.inOut' } })
         drift.to(wrap, { x: 6, y: -4, duration: 9 }).to(wrap, { x: -5, y: 3, duration: 11 })
