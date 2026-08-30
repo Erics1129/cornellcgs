@@ -32,7 +32,7 @@ const HOLE_MOBILE = { x: 0.5, y: 0.44 }
 
 const GHOST_COUNT = 4
 const TITLE_GHOST_ALPHA = [0.28, 0.16, 0.08]
-const TITLE_SIZE = 'clamp(3.2rem, 7.5vw, 7.5rem)'
+const TITLE_SIZE = 'clamp(2.2rem, 3vw, 3.4rem)'
 
 export default function MLProcess() {
   const root = useRef<HTMLElement>(null)
@@ -140,7 +140,7 @@ export default function MLProcess() {
           gsap.set([glow, flare, shock], { xPercent: -50, yPercent: -50 })
           gsap.set([flare, shock], { opacity: 0 })
           gsap.set(glow, { opacity: 0.45 })
-          gsap.set(scrim, { opacity: 0.55 })
+          gsap.set(scrim, { opacity: 0.22 })
           gsap.set(titleGhosts, { opacity: 0 })
           ;[title, ...cards].forEach((el, i) => {
             gsap.fromTo(
@@ -275,36 +275,29 @@ export default function MLProcess() {
 
           // 500–900 ms: the title scales 0.2 → 1 out of the hole, three ghost
           // copies trailing to fake motion blur.
-          const tr = title.getBoundingClientRect()
-          const tdx = hx - (tr.left + tr.width / 2)
-          const tdy = hy - (tr.top + tr.height / 2)
-          ;[title, ...titleGhosts].forEach((el, i) => {
-            tl!.fromTo(
-              el,
-              { x: tdx, y: tdy, scale: 0.2, opacity: 0 },
-              { x: 0, y: 0, scale: 1, opacity: i === 0 ? 1 : TITLE_GHOST_ALPHA[i - 1], duration: 0.4 },
-              0.5 + i * 0.05,
-            )
-          })
-          tl.to(titleGhosts, { opacity: 0, duration: 0.22, ease: 'power2.out' }, 1.05)
+          // Words wait for the burst to finish, then slide in on the left —
+          // they never cross the hole or cover the equation wall.
+          tl.fromTo(
+            title,
+            { x: -36, opacity: 0 },
+            { x: 0, opacity: 1, duration: 0.6, ease: 'power3.out' },
+            1.3,
+          )
 
           // 600–1400 ms: the five cards shoot out on curved paths — x rides
           // power4.out while y overshoots on back.out, so each flight bends,
           // overshoots and settles (the two-tween bezier fake).
           cards.forEach((card, i) => {
-            const r = card.getBoundingClientRect()
-            const dx = hx - (r.left + r.width / 2)
-            const dy = hy - (r.top + r.height / 2)
-            const t0 = 0.6 + i * cardStagger
-            tl!.set(card, { x: dx, y: dy, scale: 0.25, rotation: gsap.utils.random(-16, 16) }, t0)
-            tl!.to(card, { opacity: 1, duration: 0.1, ease: 'power1.out' }, t0)
-            tl!.to(card, { x: 0, duration: 0.5 }, t0)
-            tl!.to(card, { y: 0, duration: 0.5, ease: 'back.out(1.4)' }, t0)
-            tl!.to(card, { scale: 1, rotation: 0, duration: 0.5 }, t0)
+            tl!.fromTo(
+              card,
+              { x: -26, opacity: 0 },
+              { x: 0, opacity: 1, duration: 0.5, ease: 'power3.out' },
+              1.5 + i * cardStagger,
+            )
           })
 
           // After: dim the equation wall so the card text reads.
-          tl.to(scrim, { opacity: 0.55, duration: 0.5, ease: 'power2.inOut' }, 0.9)
+          tl.to(scrim, { opacity: 0.22, duration: 0.5, ease: 'power2.inOut' }, 0.9)
         }
 
         // Pin for ~1.5 viewport heights (desktop; on mobile the stacked cards
@@ -458,11 +451,12 @@ export default function MLProcess() {
       {/* Glyph particle layer (under the title and cards) */}
       <canvas ref={canvasRef} aria-hidden="true" className="pointer-events-none absolute inset-0" />
 
-      <div className="container-site relative z-10 mt-auto pb-[3vh] md:pb-[5vh]">
+      <div className="container-site relative z-10 mt-auto pb-[4vh] md:mt-0 md:pb-0">
+        <div className="md:max-w-[400px]">
         <div className="relative mb-6 md:mb-8">
           <h2
             ref={titleRef}
-            className="h-section text-center text-[var(--ivory)] will-change-transform"
+            className="h-section text-left text-[var(--ivory)] will-change-transform"
             style={{ fontSize: TITLE_SIZE }}
           >
             {mlProcess.heading}
@@ -474,7 +468,7 @@ export default function MLProcess() {
                 titleGhostsRef.current[i] = el
               }}
               aria-hidden="true"
-              className="h-section pointer-events-none absolute inset-0 text-center text-[var(--ivory)] opacity-0 will-change-transform"
+              className="h-section pointer-events-none absolute inset-0 text-left text-[var(--ivory)] opacity-0 will-change-transform"
               style={{ fontSize: TITLE_SIZE }}
             >
               {mlProcess.heading}
@@ -483,11 +477,11 @@ export default function MLProcess() {
         </div>
 
         {/* The roadmap, just in words — no boxes over the animation */}
-        <div ref={cardsRef} className="mx-auto grid w-full grid-cols-1 gap-2 md:max-w-[1100px] md:grid-cols-5 md:gap-6">
+        <div ref={cardsRef} className="mt-5 grid w-full grid-cols-1 gap-2 md:mt-7 md:gap-3">
           {mlProcess.steps.map((s) => (
             <div
               key={s.n}
-              className="flex items-baseline gap-3 will-change-transform md:flex-col md:items-center md:gap-1.5 md:text-center"
+              className="flex items-baseline gap-3 will-change-transform"
             >
               <span className="font-display text-2xl leading-none text-[var(--neon-mid)] md:text-3xl">
                 {s.n}
@@ -500,6 +494,7 @@ export default function MLProcess() {
               </h3>
             </div>
           ))}
+        </div>
         </div>
       </div>
     </section>

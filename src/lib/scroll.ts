@@ -23,11 +23,24 @@ let gen = 0
 const STEP = 0.88 // beat size inside pinned scenes, in viewport heights
 
 function chapterStops(): number[] {
+  // A pinned section slides inside its pin-spacer, so its rect is only right
+  // before the pin starts — use the pin trigger's own start position instead.
+  const pinStarts = new Map<Element, number>()
+  for (const st of ScrollTrigger.getAll()) {
+    if (st.pin && st.start >= 0) pinStarts.set(st.trigger as Element, st.start)
+  }
   const ids = ['top', ...nav.map((n) => n.id)]
-  const ys = ids
-    .map((id) => document.getElementById(id))
-    .filter((el): el is HTMLElement => !!el)
-    .map((el) => Math.round(el.getBoundingClientRect().top + window.scrollY))
+  const ys: number[] = []
+  for (const id of ids) {
+    const el = document.getElementById(id)
+    if (!el) continue
+    const pinned = pinStarts.get(el)
+    ys.push(
+      pinned !== undefined
+        ? Math.round(pinned)
+        : Math.round(el.getBoundingClientRect().top + window.scrollY),
+    )
+  }
   ys.push(ScrollTrigger.maxScroll(window))
   return [...new Set(ys)].sort((a, b) => a - b)
 }
@@ -163,6 +176,14 @@ export function initSmoothScroll(): () => void {
     window.removeEventListener('keydown', onKey)
     tween?.kill()
   }
+}
+
+// Dev-only introspection for the pager
+if (import.meta.env.DEV) {
+  ;(window as unknown as Record<string, unknown>).__cgsStops = () => ({
+    stops: chapterStops(),
+    pins: pinRanges(),
+  })
 }
 
 /** Glide to an in-page anchor (nav, side rail, CTAs). */
