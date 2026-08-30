@@ -52,6 +52,7 @@ export default function SubPage() {
     <div
       data-subpage
       data-interactive
+      data-lenis-prevent
       role="dialog"
       aria-label={def.title}
       className={`fixed inset-0 z-[70] overflow-y-auto bg-white text-[#0a1e3f] transition-transform duration-[560ms] ease-[cubic-bezier(0.22,1,0.36,1)] ${

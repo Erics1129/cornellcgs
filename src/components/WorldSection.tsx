@@ -79,6 +79,16 @@ export default function WorldSection() {
         <GlobeVideo />
       </div>
 
+      {/* Blend the chapter's edges into the page — no hard seams (交界处) */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-x-0 top-0 z-[5] h-[24%] bg-[linear-gradient(to_bottom,var(--bg-top)_0%,color-mix(in_srgb,var(--bg-top)_55%,transparent)_45%,transparent_100%)]"
+      />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-x-0 bottom-0 z-[5] h-[24%] bg-[linear-gradient(to_top,var(--bg-top)_0%,color-mix(in_srgb,var(--bg-top)_55%,transparent)_45%,transparent_100%)]"
+      />
+
       {/* The words arrive after the planet does */}
       <div ref={wordsRef} className="container-site pointer-events-none relative z-10">
         <div

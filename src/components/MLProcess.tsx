@@ -444,11 +444,11 @@ export default function MLProcess() {
       {/* Blend the full-bleed chapter into the site background above and below */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-x-0 top-0 h-[16%] bg-[linear-gradient(to_bottom,var(--bg-top),transparent)] opacity-80"
+        className="pointer-events-none absolute inset-x-0 top-0 h-[28%] bg-[linear-gradient(to_bottom,var(--bg-top)_0%,color-mix(in_srgb,var(--bg-top)_55%,transparent)_45%,transparent_100%)]"
       />
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-x-0 bottom-0 h-[16%] bg-[linear-gradient(to_top,var(--bg-top),transparent)] opacity-80"
+        className="pointer-events-none absolute inset-x-0 bottom-0 h-[28%] bg-[linear-gradient(to_top,var(--bg-top)_0%,color-mix(in_srgb,var(--bg-top)_55%,transparent)_45%,transparent_100%)]"
       />
 
       {/* Pulsing glow ring on the hole; the flare and shockwave fire from it */}

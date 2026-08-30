@@ -8,6 +8,11 @@ import { scrollToId } from '../lib/scroll'
 export default function Footer() {
   return (
     <footer id="contact" className="relative bg-[#0a1e3f] text-[#e8eefb]">
+      {/* The page melts into the bar — no hard seam */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-x-0 -top-40 h-40 bg-[linear-gradient(to_bottom,transparent,#0a1e3f)]"
+      />
       <div className="container-site grid gap-14 py-[9vh] md:grid-cols-2 md:gap-8">
         {/* Wordmark + contacts */}
         <div className="flex flex-col justify-between gap-12">
