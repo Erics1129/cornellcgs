@@ -212,7 +212,8 @@ export default function MLProcess() {
         }
 
         const reset = () => {
-          mlLog('reset (tl ' + (tl ? 'killed@' + (tl.progress() * 100).toFixed(0) + '%' : 'none') + ')')
+          const r = section.getBoundingClientRect()
+          mlLog('reset (tl ' + (tl ? 'killed@' + (tl.progress() * 100).toFixed(0) + '%' : 'none') + ') rect=' + Math.round(r.top) + '/' + Math.round(r.bottom) + ' vh=' + window.innerHeight + ' y=' + Math.round(scrollY))
           tl?.kill()
           tl = null
           burst.stop()
@@ -233,10 +234,18 @@ export default function MLProcess() {
             ;(w.__mlLog ??= []).push(`${Math.round(performance.now())}ms ${ev}`)
           }
         }
+        let lastFireT = 0
+        /** Trust geometry, not possibly-stale IntersectionObserver entries. */
+        const reallyOffScreen = () => {
+          const r = section.getBoundingClientRect()
+          const vh2 = window.innerHeight
+          return r.bottom < -vh2 * 0.2 || r.top > vh2 * 1.2
+        }
         const fire = () => {
           mlLog('fire ' + (armed ? 'ARMED' : 'blocked'))
           if (!armed) return
           armed = false
+          lastFireT = performance.now()
           tl?.kill() // never let two bursts interleave
 
           const rect = section.getBoundingClientRect()
@@ -368,6 +377,13 @@ export default function MLProcess() {
               video?.play().catch(() => {})
               drift.play()
             } else {
+              // A stale leave-entry delivered right after a re-fire would kill
+              // the fresh burst and hide the words forever. Two shields: a
+              // fresh burst is untouchable for 3 s, and geometry must confirm
+              // (rects go transiently garbage during ScrollTrigger refreshes,
+              // which is exactly when stale entries arrive).
+              if (performance.now() - lastFireT < 3000) return
+              if (!reallyOffScreen()) return
               video?.pause()
               drift.pause()
               if (!armed) reset()
@@ -377,7 +393,32 @@ export default function MLProcess() {
         )
         io.observe(section)
 
+        // The binding guarantee: whenever this chapter is steadily on screen
+        // with hidden words and no burst in flight, converge — re-fire the
+        // burst if it was reset out from under us, or force the words on.
+        let onScreenStreak = 0
+        const guard = window.setInterval(() => {
+          if (reallyOffScreen()) {
+            onScreenStreak = 0
+            return
+          }
+          onScreenStreak++
+          if (onScreenStreak < 2) return
+          if (tl && tl.isActive()) return
+          if (performance.now() - lastFireT < 2600) return
+          if (parseFloat(getComputedStyle(title).opacity) >= 0.9) return
+          if (armed) {
+            mlLog('guard: re-firing missed burst')
+            fire()
+          } else {
+            mlLog('guard: forcing words visible')
+            gsap.set([title, ...cards], { opacity: 1, x: 0 })
+            gsap.set(scrim, { opacity: 0.22 })
+          }
+        }, 900)
+
         return () => {
+          window.clearInterval(guard)
           io.disconnect()
           tl?.kill()
           burst.stop()
