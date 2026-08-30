@@ -41,18 +41,18 @@ export default function WorldSection() {
       tl.to(globe, {
         clipPath: 'circle(8% at 50% 50%)',
         scale: 1.5,
-        duration: 0.55,
+        duration: 0.4,
         ease: 'power2.in',
       })
       tl.to(globe, {
         clipPath: 'circle(75% at 50% 50%)',
         scale: 1.08,
-        duration: 1.15,
+        duration: 0.9,
         ease: 'power3.inOut',
       })
       // …and settles, massive and calm. Then the words.
-      tl.to(globe, { scale: 1, duration: 0.9, ease: 'power2.out' }, '>-0.1')
-      tl.to(words, { opacity: 1, y: 0, duration: 0.8, ease: 'power3.out' }, '<+0.15')
+      tl.to(globe, { scale: 1, duration: 0.7, ease: 'power2.out' }, '>-0.1')
+      tl.to(words, { opacity: 1, y: 0, duration: 0.6, ease: 'power3.out' }, '<')
 
       ScrollTrigger.create({
         trigger: section,

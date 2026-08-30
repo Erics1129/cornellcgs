@@ -293,8 +293,8 @@ export default function MLProcess() {
           tl.fromTo(
             title,
             { x: -36, opacity: 0 },
-            { x: 0, opacity: 1, duration: 0.6, ease: 'power3.out' },
-            1.85,
+            { x: 0, opacity: 1, duration: 0.5, ease: 'power3.out' },
+            1.1,
           )
 
           // 600–1400 ms: the five cards shoot out on curved paths — x rides
@@ -304,8 +304,8 @@ export default function MLProcess() {
             tl!.fromTo(
               card,
               { x: -26, opacity: 0 },
-              { x: 0, opacity: 1, duration: 0.5, ease: 'power3.out' },
-              2.0 + i * cardStagger,
+              { x: 0, opacity: 1, duration: 0.45, ease: 'power3.out' },
+              1.25 + i * cardStagger,
             )
           })
 

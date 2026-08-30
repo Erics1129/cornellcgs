@@ -28,7 +28,7 @@ export function useSectionReveals(rootRef: React.RefObject<HTMLElement | null>) 
         const kind = el.dataset.reveal
         const trigger = {
           trigger: el,
-          start: 'top 82%',
+          start: 'top 86%',
           once: true,
         }
 
@@ -48,7 +48,7 @@ export function useSectionReveals(rootRef: React.RefObject<HTMLElement | null>) 
           gsap.from(split.lines, {
             yPercent: 110,
             filter: 'blur(8px)',
-            duration: 1.1,
+            duration: 0.85,
             ease: 'power3.out',
             stagger: 0.06,
             scrollTrigger: trigger,
@@ -61,9 +61,9 @@ export function useSectionReveals(rootRef: React.RefObject<HTMLElement | null>) 
               opacity: 1,
               scale: 1,
               y: 0,
-              duration: 1.5,
+              duration: 1.05,
               ease: 'power3.inOut',
-              scrollTrigger: { trigger: el, start: 'top 74%', once: true },
+              scrollTrigger: { trigger: el, start: 'top 82%', once: true },
             },
           )
         } else if (kind === 'card') {
@@ -75,7 +75,7 @@ export function useSectionReveals(rootRef: React.RefObject<HTMLElement | null>) 
               scale: 1,
               rotateX: 0,
               y: 0,
-              duration: 1.1,
+              duration: 0.8,
               ease: 'power3.out',
               scrollTrigger: trigger,
             },
@@ -84,7 +84,7 @@ export function useSectionReveals(rootRef: React.RefObject<HTMLElement | null>) 
           gsap.fromTo(
             el,
             { opacity: 0, y: 24 },
-            { opacity: 1, y: 0, duration: 0.9, ease: 'power2.out', scrollTrigger: trigger },
+            { opacity: 1, y: 0, duration: 0.65, ease: 'power2.out', scrollTrigger: trigger },
           )
         }
       })

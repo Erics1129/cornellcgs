@@ -19,6 +19,22 @@ export default function WhoWeAre() {
   const root = useRef<HTMLElement>(null)
   useSectionReveals(root)
 
+  // The robot clip only decodes while this chapter is near the viewport
+  useEffect(() => {
+    const section = root.current
+    const video = section?.querySelector('video')
+    if (!section || !video) return
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) void video.play().catch(() => {})
+        else video.pause()
+      },
+      { rootMargin: '30% 0px' },
+    )
+    io.observe(section)
+    return () => io.disconnect()
+  }, [])
+
   const countersRef = useRef<HTMLDivElement>(null)
   useEffect(() => {
     const wrap = countersRef.current

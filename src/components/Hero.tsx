@@ -22,12 +22,12 @@ export default function Hero() {
       gsap.fromTo(
         '[data-hero-line] > span',
         { yPercent: 112 },
-        { yPercent: 0, duration: 1.15, ease: 'power3.out', stagger: 0.09, delay: 0.25 },
+        { yPercent: 0, duration: 0.95, ease: 'power3.out', stagger: 0.07, delay: 0.05 },
       )
       gsap.fromTo(
         '[data-hero-fade]',
         { opacity: 0, y: 18 },
-        { opacity: 1, y: 0, duration: 0.9, ease: 'power2.out', stagger: 0.12, delay: 0.85 },
+        { opacity: 1, y: 0, duration: 0.7, ease: 'power2.out', stagger: 0.08, delay: 0.4 },
       )
     }, root)
     return () => ctx.revert()

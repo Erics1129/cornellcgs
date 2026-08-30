@@ -40,9 +40,27 @@ export default function HeroCard() {
     window.clearInterval(autoTimer.current)
     if (prefersReducedMotion()) return
     autoTimer.current = window.setInterval(() => {
+      if (import.meta.env.DEV) {
+        const w = window as unknown as { __autoTicks?: number[] }
+        ;(w.__autoTicks ??= []).push(Math.round(performance.now() / 1000))
+      }
       // Skip a tick rather than freeze-frame an in-flight page glide or a
       // hidden tab; the next tick catches up.
       if (document.hidden || isPaging()) return
+      // A flip wedged mid-flight (frozen tab) force-completes before toggling
+      const v = videoRef.current
+      if (phase.current === 'flipping' && v) {
+        v.pause()
+        v.currentTime = T_RED
+        phase.current = 'red'
+        if (!wiped.current) {
+          wiped.current = true
+          const { x, y } = centerOfCard()
+          flipThemeAt(x, y)
+          tintForPhase('red')
+        }
+        return
+      }
       flipRef.current()
     }, 10000)
   }
@@ -153,9 +171,14 @@ export default function HeroCard() {
       }
 
       v.play().catch(() => {
-        /* autoplay refusal can't happen post-gesture; ignore */
+        /* muted playback can't be refused; ignore */
       })
-      const watch = () => {
+      // Drive the wipe from BOTH rAF (frame-precise in the foreground) and
+      // the video's own media events (which keep firing when rAF is frozen
+      // in occluded/background tabs) — otherwise a flip started right before
+      // the user tabs away would wedge at 'flipping' forever.
+      const step = () => {
+        if (phase.current !== 'flipping') return
         if (!wiped.current && v.currentTime >= T_WIPE) {
           wiped.current = true
           const { x, y } = centerOfCard()
@@ -164,10 +187,23 @@ export default function HeroCard() {
         }
         if (v.currentTime >= T_RED || v.ended) {
           v.pause()
+          v.removeEventListener('timeupdate', step)
+          v.removeEventListener('ended', step)
           phase.current = 'red'
-          return
+          if (!wiped.current) {
+            // stalled past the wipe frame (throttled tab) — catch up now
+            wiped.current = true
+            const { x, y } = centerOfCard()
+            flipThemeAt(x, y)
+            tintForPhase('red')
+          }
         }
-        raf.current = requestAnimationFrame(watch)
+      }
+      v.addEventListener('timeupdate', step)
+      v.addEventListener('ended', step)
+      const watch = () => {
+        step()
+        if (phase.current === 'flipping') raf.current = requestAnimationFrame(watch)
       }
       raf.current = requestAnimationFrame(watch)
     } else {
