@@ -205,3 +205,91 @@ export const memberCountries = [
   'Turkey',
   'Vietnam',
 ]
+
+/**
+ * Citadel-style sub-pages — one per dropdown item, opened at #p/<id>.
+ * Every piece of information is TBD until the club fills it in. TODO all.
+ */
+export type SubPageDef = {
+  title: string
+  lead: string
+  sections: Array<{ heading: string; body: string }>
+}
+
+export const pages: Record<string, SubPageDef> = {
+  'who-we-are': {
+    title: 'Who We Are',
+    lead: 'TBD', // TODO
+    sections: [
+      { heading: 'Our Culture', body: 'TBD' },
+      { heading: 'Leadership Team', body: 'TBD' },
+      { heading: 'Where We Are', body: 'TBD' },
+    ],
+  },
+  'what-we-do': {
+    title: 'What We Do',
+    lead: 'TBD', // TODO
+    sections: [
+      { heading: 'Study Nights', body: 'TBD' },
+      { heading: 'Research', body: 'TBD' },
+      { heading: 'Build', body: 'TBD' },
+      { heading: 'Tournaments', body: 'TBD' },
+      { heading: 'Talks', body: 'TBD' },
+    ],
+  },
+  'ml-process': {
+    title: 'Our Machine Learning Process',
+    lead: 'TBD', // TODO
+    sections: [
+      { heading: '01 — Frame the game', body: 'TBD' },
+      { heading: '02 — Build the environment', body: 'TBD' },
+      { heading: '03 — Train', body: 'TBD' },
+      { heading: '04 — Evaluate', body: 'TBD' },
+      { heading: '05 — Ship', body: 'TBD' },
+    ],
+  },
+  events: {
+    title: 'Events',
+    lead: 'TBD', // TODO
+    sections: [
+      { heading: 'Fall Kickoff', body: 'TBD' },
+      { heading: 'Solver Workshop', body: 'TBD' },
+      { heading: 'Alumni Night', body: 'TBD' },
+      { heading: 'Charity Tournament', body: 'TBD' },
+      { heading: 'Spring Banquet', body: 'TBD' },
+    ],
+  },
+  world: {
+    title: 'World',
+    lead: 'TBD', // TODO
+    sections: [
+      { heading: 'Our Members', body: 'TBD' },
+      { heading: 'Countries', body: 'TBD' },
+    ],
+  },
+  people: {
+    title: 'People',
+    lead: 'TBD', // TODO
+    sections: [
+      { heading: 'Board', body: 'TBD' },
+      { heading: 'Members', body: 'TBD' },
+    ],
+  },
+  join: {
+    title: 'Join CGS',
+    lead: 'TBD', // TODO
+    sections: [
+      { heading: 'How to Apply', body: 'TBD' },
+      { heading: 'Who Can Join', body: 'TBD' },
+    ],
+  },
+  contact: {
+    title: 'Contact',
+    lead: 'TBD', // TODO
+    sections: [
+      { heading: 'Email', body: 'TBD' },
+      { heading: 'Instagram', body: 'TBD' },
+      { heading: 'WeChat', body: 'TBD' },
+    ],
+  },
+}

@@ -3,6 +3,7 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { ScrollToPlugin } from 'gsap/ScrollToPlugin'
 import { prefersReducedMotion } from './motion'
 import { nav } from '../content'
+import { isPageOpen } from './router'
 
 gsap.registerPlugin(ScrollTrigger, ScrollToPlugin)
 
@@ -79,8 +80,8 @@ function glide(y: number) {
   lastTarget = target
   tween = gsap.to(window, {
     scrollTo: { y: target, autoKill: false },
-    duration: prefersReducedMotion() ? 0.05 : 0.7,
-    ease: 'expo.out',
+    duration: prefersReducedMotion() ? 0.05 : 0.8,
+    ease: 'power2.out',
     onComplete: () => {
       if (g === gen) busy = false
     },
@@ -152,6 +153,7 @@ export function initSmoothScroll(): () => void {
   let quietTimer = 0
 
   const onWheel = (e: WheelEvent) => {
+    if (isPageOpen()) return // a sub-page is up — let it scroll natively
     if (e.ctrlKey) return // pinch-zoom gesture on trackpads
     e.preventDefault()
     window.clearTimeout(quietTimer)
@@ -178,6 +180,7 @@ export function initSmoothScroll(): () => void {
   }
 
   const onKey = (e: KeyboardEvent) => {
+    if (isPageOpen()) return
     if (isEditable(e.target)) return
     const t = e.target as HTMLElement | null
     if (t && (t.tagName === 'BUTTON' || t.tagName === 'A') && (e.key === ' ' || e.key === 'Enter'))

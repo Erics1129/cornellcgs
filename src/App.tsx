@@ -16,6 +16,7 @@ import WorldSection from './components/WorldSection'
 import People from './components/People'
 import Join from './components/Join'
 import Footer from './components/Footer'
+import SubPage from './components/SubPage'
 
 /** Quick riffle of three cards, under 900 ms, then the hero (§6). */
 function Loader({ done }: { done: boolean }) {
@@ -101,6 +102,7 @@ export default function App() {
           becomes the containing block for position:fixed and breaks it. */}
       <Nav />
       <SideRail />
+      <SubPage />
       <div ref={shakeRef} className="relative z-10">
         <main>
           <Hero />

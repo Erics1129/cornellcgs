@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import gsap from 'gsap'
 import { flipThemeAt } from '../lib/theme'
 import { isPaging } from '../lib/scroll'
+import { isPageOpen } from '../lib/router'
 import { prefersReducedMotion, isTouchDevice } from '../lib/motion'
 
 /**
@@ -46,7 +47,7 @@ export default function HeroCard() {
       }
       // Skip a tick rather than freeze-frame an in-flight page glide or a
       // hidden tab; the next tick catches up.
-      if (document.hidden || isPaging()) return
+      if (document.hidden || isPaging() || isPageOpen()) return
       // A flip wedged mid-flight (frozen tab) force-completes before toggling
       const v = videoRef.current
       if (phase.current === 'flipping' && v) {

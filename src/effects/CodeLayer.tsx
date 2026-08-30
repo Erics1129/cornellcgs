@@ -17,6 +17,7 @@
 import { useEffect, useRef } from 'react'
 import { cssVar, onTheme } from '../lib/theme'
 import { onReducedMotionChange, prefersReducedMotion } from '../lib/motion'
+import { isPaging } from '../lib/scroll'
 import { CODE_LINES } from './codeSnippets'
 
 const FONT = '600 13px "JetBrains Mono", monospace'
@@ -317,7 +318,7 @@ export default function CodeLayer() {
     let bg = hexToRgb(cssVar('--bg-top'))
 
     const drawSpotlight = () => {
-      if (mx < -999) {
+      if (mx < -999 || isPaging()) {
         sx = -9999
         return
       }
@@ -411,7 +412,7 @@ export default function CodeLayer() {
     }
 
     const resize = () => {
-      const nextDpr = Math.min(window.devicePixelRatio || 1, 1.5)
+      const nextDpr = Math.min(window.devicePixelRatio || 1, 2)
       w = window.innerWidth
       h = window.innerHeight
       canvas.width = w * nextDpr
@@ -429,7 +430,7 @@ export default function CodeLayer() {
 
     // --- Boot ------------------------------------------------------------
     measure()
-    dpr = Math.min(window.devicePixelRatio || 1, 1.5)
+    dpr = Math.min(window.devicePixelRatio || 1, 2)
     renderAtlas(palette)
     resize()
     if (!reduced) raf = requestAnimationFrame(frame)

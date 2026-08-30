@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { scrollToId } from '../lib/scroll'
+import { openPage } from '../lib/router'
 
 /**
  * Citadel-style navigation: a clean top bar — wordmark left, top-level links
@@ -80,6 +81,12 @@ export default function Nav() {
     scrollToId(id)
   }
 
+  /** Dropdown items open their own Citadel-style page (#p/<id>). */
+  const goPage = (id: string) => {
+    setOpen(null)
+    openPage(id)
+  }
+
   const active = open !== null ? GROUPS[open] : null
 
   return (
@@ -153,7 +160,7 @@ export default function Nav() {
                 {active.label}
               </p>
               <button
-                onClick={() => go(active.target)}
+                onClick={() => goPage(active.target)}
                 className="bg-[#0a1e3f] px-8 py-4 text-[max(0.95rem,16px)] font-[600] text-white transition-colors hover:bg-[#1e5eff]"
               >
                 Learn More
@@ -166,7 +173,7 @@ export default function Nav() {
                 <button
                   key={s.id + s.label}
                   role="menuitem"
-                  onClick={() => go(s.id)}
+                  onClick={() => goPage(s.id)}
                   className="text-[max(1.05rem,18px)] font-[550] text-[#0a1e3f] transition-colors hover:text-[#1e5eff] hover:underline hover:underline-offset-4"
                 >
                   {s.label}
