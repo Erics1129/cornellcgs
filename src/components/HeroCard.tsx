@@ -1,0 +1,165 @@
+import { useEffect, useRef, useState } from 'react'
+import gsap from 'gsap'
+import { flipThemeAt } from '../lib/theme'
+import { prefersReducedMotion, isTouchDevice } from '../lib/motion'
+
+/**
+ * The hero centerpiece — the provided card animation (card.mp4), masked so its
+ * baked gradient melts into the site background. The video *is* the theme
+ * flip: it opens paused on the ornate back (blue world); clicking plays the
+ * rotate-and-zoom, and the site wipes to the Red world the instant the card
+ * passes edge-on. Clicking again seeks back to the start and wipes to Blue.
+ *
+ * Timeline of card.mp4 (10 s, 24 fps):
+ *   0.0–1.2   card back, blue gradient           → blue idle frame ~0.55
+ *   1.2–3.4   zoom in, background warms
+ *   ~3.6      edge-on — the flip moment          → theme wipe fires here
+ *   4.0–8.0   ace revealed, zooms back out
+ *   8.0–10.0  ace settled on red gradient        → red idle frame ~9.7
+ */
+const T_BLUE = 0.55
+const T_WIPE = 3.6
+const T_RED = 9.7
+
+type Phase = 'blue' | 'flipping' | 'red'
+
+export default function HeroCard() {
+  const wrapRef = useRef<HTMLDivElement>(null)
+  const videoRef = useRef<HTMLVideoElement>(null)
+  const btnRef = useRef<HTMLButtonElement>(null)
+  const phase = useRef<Phase>('blue')
+  const wiped = useRef(false)
+  const raf = useRef(0)
+  const [videoOk, setVideoOk] = useState(true)
+
+  // Park the video on the blue back frame once data is in
+  useEffect(() => {
+    const v = videoRef.current
+    if (!v) return
+    const park = () => {
+      if (phase.current === 'blue') v.currentTime = T_BLUE
+    }
+    if (v.readyState >= 2) park()
+    v.addEventListener('loadeddata', park)
+    return () => v.removeEventListener('loadeddata', park)
+  }, [])
+
+  // Cursor tilt on the whole hero (subtle parallax on the flat video)
+  useEffect(() => {
+    if (prefersReducedMotion() || isTouchDevice()) return
+    const wrap = wrapRef.current
+    if (!wrap) return
+    gsap.set(wrap, { transformPerspective: 1100 })
+    const rx = gsap.quickTo(wrap, 'rotationX', { duration: 0.9, ease: 'power2.out' })
+    const ry = gsap.quickTo(wrap, 'rotationY', { duration: 0.9, ease: 'power2.out' })
+    const onMove = (e: PointerEvent) => {
+      const nx = e.clientX / window.innerWidth - 0.5
+      const ny = e.clientY / window.innerHeight - 0.5
+      ry(nx * 10)
+      rx(-ny * 8)
+    }
+    window.addEventListener('pointermove', onMove, { passive: true })
+    return () => {
+      window.removeEventListener('pointermove', onMove)
+      rx(0)
+      ry(0)
+    }
+  }, [])
+
+  useEffect(() => () => cancelAnimationFrame(raf.current), [])
+
+  const centerOfCard = () => {
+    const el = btnRef.current
+    if (!el) return { x: window.innerWidth / 2, y: window.innerHeight / 2 }
+    const r = el.getBoundingClientRect()
+    return { x: r.left + r.width / 2, y: r.top + r.height / 2 }
+  }
+
+  const flip = () => {
+    const v = videoRef.current
+    if (!v || !videoOk) {
+      // Fallback card: no video — just wipe the world
+      const { x, y } = centerOfCard()
+      flipThemeAt(x, y)
+      phase.current = phase.current === 'blue' ? 'red' : 'blue'
+      return
+    }
+
+    if (phase.current === 'flipping') return
+
+    if (phase.current === 'blue') {
+      // Play the rotate-and-zoom; wipe the theme at the edge-on moment
+      phase.current = 'flipping'
+      wiped.current = false
+
+      if (prefersReducedMotion()) {
+        v.currentTime = T_RED
+        const { x, y } = centerOfCard()
+        flipThemeAt(x, y)
+        phase.current = 'red'
+        return
+      }
+
+      v.play().catch(() => {
+        /* autoplay refusal can't happen post-gesture; ignore */
+      })
+      const watch = () => {
+        if (!wiped.current && v.currentTime >= T_WIPE) {
+          wiped.current = true
+          const { x, y } = centerOfCard()
+          flipThemeAt(x, y)
+        }
+        if (v.currentTime >= T_RED || v.ended) {
+          v.pause()
+          phase.current = 'red'
+          return
+        }
+        raf.current = requestAnimationFrame(watch)
+      }
+      raf.current = requestAnimationFrame(watch)
+    } else {
+      // Back to the top of the deal: seek to the back, wipe to blue
+      v.pause()
+      v.currentTime = T_BLUE
+      phase.current = 'blue'
+      const { x, y } = centerOfCard()
+      flipThemeAt(x, y)
+    }
+  }
+
+  return (
+    <div
+      ref={wrapRef}
+      aria-hidden={videoOk ? undefined : 'true'}
+      className="hero-card-stage pointer-events-none absolute inset-0 z-0 flex items-center justify-center"
+    >
+      {videoOk ? (
+        <video
+          ref={videoRef}
+          className="hero-card-video animate-[hero-float_7s_ease-in-out_infinite]"
+          src="/assets/card.mp4"
+          muted
+          playsInline
+          preload="auto"
+          onError={() => setVideoOk(false)}
+          tabIndex={-1}
+          aria-hidden="true"
+        />
+      ) : (
+        <div className="card-back-surface flex aspect-[5/7] h-[min(52vh,460px)] items-center justify-center">
+          <span aria-hidden="true" className="text-6xl text-[var(--silver)] opacity-80">
+            ♠
+          </span>
+        </div>
+      )}
+      {/* Hit area over the card itself */}
+      <button
+        ref={btnRef}
+        data-interactive
+        onClick={flip}
+        aria-label="Flip the card — switches the site between the blue and red world"
+        className="pointer-events-auto absolute left-1/2 top-1/2 aspect-[5/7] h-[min(48vh,430px)] -translate-x-1/2 -translate-y-1/2 cursor-pointer rounded-3xl"
+      />
+    </div>
+  )
+}
