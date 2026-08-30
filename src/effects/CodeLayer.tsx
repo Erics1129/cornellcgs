@@ -411,7 +411,7 @@ export default function CodeLayer() {
     }
 
     const resize = () => {
-      const nextDpr = Math.min(window.devicePixelRatio || 1, 2)
+      const nextDpr = Math.min(window.devicePixelRatio || 1, 1.5)
       w = window.innerWidth
       h = window.innerHeight
       canvas.width = w * nextDpr
@@ -429,7 +429,7 @@ export default function CodeLayer() {
 
     // --- Boot ------------------------------------------------------------
     measure()
-    dpr = Math.min(window.devicePixelRatio || 1, 2)
+    dpr = Math.min(window.devicePixelRatio || 1, 1.5)
     renderAtlas(palette)
     resize()
     if (!reduced) raf = requestAnimationFrame(frame)

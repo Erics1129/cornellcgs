@@ -85,7 +85,7 @@ export default function Nav() {
   return (
     <div ref={rootRef} data-interactive className="fixed inset-x-0 top-0 z-50">
       {/* The bar */}
-      <div className="relative z-10 border-b border-[color-mix(in_srgb,var(--neon-dim)_55%,transparent)] bg-[color-mix(in_srgb,var(--bg-top)_88%,transparent)] backdrop-blur-md">
+      <div className="relative z-10 border-b border-[color-mix(in_srgb,var(--neon-dim)_55%,transparent)] bg-[color-mix(in_srgb,var(--bg-top)_97%,transparent)]">
         <div className="container-site flex h-16 items-center justify-between">
           <button
             onClick={() => go('top')}

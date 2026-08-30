@@ -1,14 +1,23 @@
 /**
- * Theme system. Blue world = hero card face down, Red world = face up.
- * The flip is a radial wipe: we set the wipe origin custom props, then swap
- * data-theme inside a View Transition so the new world is revealed by an
- * expanding circle (see global.css). Browsers without the View Transitions
- * API get an 800 ms cross-transition of every themed color instead.
+ * Theme system. World 1 (card face down) is dark blue, World 2 (face up) is
+ * deep indigo. The flip is a radial wipe: a single flat-colored disc expands
+ * from the card, the variables swap the instant the screen is covered, and
+ * the disc fades off while the canvas layers lerp their own colors (§5.3).
+ *
+ * Deliberately NOT the View Transitions API: startViewTransition rasterizes
+ * the whole page (videos, canvases and all) into snapshots — a visible hitch
+ * every time the card auto-flips. One composited clip-path disc costs nothing.
  */
 
 export type Theme = 'blue' | 'red'
 
 export const THEME_EVENT = 'cgs:theme'
+
+/** The covering disc paints the NEXT world's mid color (values from global.css). */
+const WORLD_MID: Record<Theme, string> = {
+  blue: '#0b2a6b',
+  red: '#1a1670',
+}
 
 export function currentTheme(): Theme {
   return document.documentElement.dataset.theme === 'red' ? 'red' : 'blue'
@@ -29,27 +38,48 @@ function setTheme(theme: Theme) {
  */
 export function flipThemeAt(x: number, y: number): Theme {
   const next: Theme = currentTheme() === 'blue' ? 'red' : 'blue'
-  const root = document.documentElement
-  root.style.setProperty('--wipe-x', `${((x / window.innerWidth) * 100).toFixed(2)}%`)
-  root.style.setProperty('--wipe-y', `${((y / window.innerHeight) * 100).toFixed(2)}%`)
 
   const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-  const doc = document as Document & {
-    startViewTransition?: (cb: () => void) => { finished: Promise<void> }
-  }
-
-  if (!reduced && typeof doc.startViewTransition === 'function') {
-    doc.startViewTransition(() => {
-      setTheme(next)
-      announce(next)
-    })
-  } else {
-    // Fallback: transition every themed color over 800 ms.
-    root.classList.add('theme-anim')
+  if (reduced || typeof HTMLElement.prototype.animate !== 'function') {
     setTheme(next)
     announce(next)
-    window.setTimeout(() => root.classList.remove('theme-anim'), 850)
+    return next
   }
+
+  const disc = document.createElement('div')
+  disc.setAttribute('aria-hidden', 'true')
+  disc.style.cssText = `position:fixed;inset:0;z-index:95;pointer-events:none;background:${WORLD_MID[next]};clip-path:circle(0px at ${x}px ${y}px);will-change:clip-path`
+  document.body.appendChild(disc)
+
+  // Far enough to cover the most distant screen corner
+  const r =
+    Math.hypot(
+      Math.max(x, window.innerWidth - x),
+      Math.max(y, window.innerHeight - y),
+    ) * 1.06
+
+  const grow = disc.animate(
+    [
+      { clipPath: `circle(0px at ${x}px ${y}px)` },
+      { clipPath: `circle(${Math.round(r)}px at ${x}px ${y}px)` },
+    ],
+    { duration: 500, easing: 'cubic-bezier(0.4, 0, 0.2, 1)', fill: 'forwards' },
+  )
+
+  const finish = () => {
+    setTheme(next)
+    announce(next)
+    const fade = disc.animate([{ opacity: 1 }, { opacity: 0 }], {
+      duration: 280,
+      easing: 'ease-out',
+      fill: 'forwards',
+    })
+    fade.onfinish = () => disc.remove()
+    fade.oncancel = () => disc.remove()
+  }
+  grow.onfinish = finish
+  grow.oncancel = finish
+
   return next
 }
 

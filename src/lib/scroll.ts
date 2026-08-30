@@ -79,8 +79,8 @@ function glide(y: number) {
   lastTarget = target
   tween = gsap.to(window, {
     scrollTo: { y: target, autoKill: false },
-    duration: prefersReducedMotion() ? 0.05 : 0.62,
-    ease: 'power3.out',
+    duration: prefersReducedMotion() ? 0.05 : 0.7,
+    ease: 'expo.out',
     onComplete: () => {
       if (g === gen) busy = false
     },

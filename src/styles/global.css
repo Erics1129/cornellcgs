@@ -44,18 +44,6 @@ html[data-theme='red'] {
   --accent-amber: #ffd08a;
 }
 
-/* Colors transition on theme flip; the wipe overlay handles the reveal shape. */
-html.theme-anim,
-html.theme-anim body,
-html.theme-anim *:not(canvas):not(video) {
-  transition:
-    color 0.8s ease,
-    background-color 0.8s ease,
-    border-color 0.8s ease,
-    fill 0.8s ease,
-    stroke 0.8s ease;
-}
-
 /* ---------------------------------------------------------------------------
    Base
 --------------------------------------------------------------------------- */
@@ -395,28 +383,6 @@ em,
 }
 
 /* ---------------------------------------------------------------------------
-   Theme wipe — a radial reveal driven by the View Transitions API.
-   theme.ts sets --wipe-x/--wipe-y at the hero card and toggles data-theme.
---------------------------------------------------------------------------- */
-
-::view-transition-old(root),
-::view-transition-new(root) {
-  animation: none;
-  mix-blend-mode: normal;
-}
-
-::view-transition-new(root) {
-  clip-path: circle(0% at var(--wipe-x, 50%) var(--wipe-y, 50%));
-  animation: theme-wipe 0.8s ease-out forwards;
-}
-
-@keyframes theme-wipe {
-  to {
-    clip-path: circle(150% at var(--wipe-x, 50%) var(--wipe-y, 50%));
-  }
-}
-
-/* ---------------------------------------------------------------------------
    Hero card video — masked so its baked gradient melts into the site's own
    background, floating gently in the middle of the page
 --------------------------------------------------------------------------- */
@@ -541,12 +507,6 @@ em,
   .neon::before,
   .neon::after {
     animation: none;
-  }
-
-  ::view-transition-old(root),
-  ::view-transition-new(root) {
-    animation: none;
-    clip-path: none;
   }
 
   html:focus-within {

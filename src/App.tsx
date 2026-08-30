@@ -76,7 +76,16 @@ export default function App() {
           y: gsap.utils.random(-amp, amp),
           rotation: gsap.utils.random(-0.2, 0.2) * intensity,
         },
-        { x: 0, y: 0, rotation: 0, duration: 0.25, ease: 'power2.out' },
+        {
+          x: 0,
+          y: 0,
+          rotation: 0,
+          duration: 0.25,
+          ease: 'power2.out',
+          // A leftover identity transform would turn the wrapper into a
+          // containing block and silently un-fix every fixed descendant.
+          onComplete: () => gsap.set(el, { clearProps: 'transform' }),
+        },
       )
     }
     window.addEventListener(SHAKE_EVENT, onShake)
@@ -88,9 +97,11 @@ export default function App() {
       <Loader done={loaded} />
       <GradientBG />
       <CodeLayer />
+      {/* Fixed chrome lives OUTSIDE the shake wrapper: a transformed ancestor
+          becomes the containing block for position:fixed and breaks it. */}
+      <Nav />
+      <SideRail />
       <div ref={shakeRef} className="relative z-10">
-        <Nav />
-        <SideRail />
         <main>
           <Hero />
           <WhoWeAre />
