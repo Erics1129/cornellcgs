@@ -305,6 +305,59 @@ export default function CodeLayer() {
       for (const col of cols) drawColumn(col, 0)
     }
 
+    // --- Cursor spotlight: code near the mouse lights up (user request) ---
+    const SPOT_R = 160
+    let mx = -9999
+    let my = -9999
+    let sx = -9999
+    let sy = -9999
+
+    const drawSpotlight = () => {
+      if (mx < -999) {
+        sx = -9999
+        return
+      }
+      if (sx < -999) {
+        sx = mx
+        sy = my
+      } else {
+        sx += (mx - sx) * 0.22
+        sy += (my - sy) * 0.22
+      }
+      for (const col of cols) {
+        const total = col.count * LINE_H
+        const eff = col.off + window.scrollY * PARALLAX
+        const colW = Math.min(atlasW, MAX_LINE_W)
+        if (col.x > sx + SPOT_R || col.x + colW < sx - SPOT_R) continue
+        for (let j = 0; j < col.count; j++) {
+          const line = lines[(col.start + j) % lines.length]
+          if (line.row < 0) continue
+          const y = mod(j * LINE_H - eff, total) - LINE_H
+          const dy = y + LINE_H / 2 - sy
+          if (dy < -SPOT_R || dy > SPOT_R) continue
+          const half = Math.sqrt(SPOT_R * SPOT_R - dy * dy)
+          const x0 = Math.max(sx - half, col.x)
+          const x1 = Math.min(sx + half, col.x + Math.min(line.width, atlasW))
+          if (x1 <= x0) continue
+          ctx.globalAlpha = Math.min(0.92, 0.95 * (1 - (Math.abs(dy) / SPOT_R) * 0.55))
+          ctx.drawImage(
+            atlas,
+            (x0 - col.x) * dpr, line.row * LINE_H * dpr, (x1 - x0) * dpr, LINE_H * dpr,
+            x0, y, x1 - x0, LINE_H,
+          )
+        }
+      }
+      ctx.globalAlpha = 1
+    }
+
+    const onPointer = (e: PointerEvent) => {
+      mx = e.clientX
+      my = e.clientY
+    }
+    const onPointerGone = () => {
+      mx = -9999
+    }
+
     const frame = (now: number) => {
       raf = requestAnimationFrame(frame)
       const dt = Math.min(0.1, (now - last) / 1000)
@@ -328,6 +381,7 @@ export default function CodeLayer() {
         nextFlash = now + 2400 + Math.random() * 2800
       }
       drawFlash(now, scroll)
+      drawSpotlight()
     }
 
     const resize = () => {
@@ -404,12 +458,16 @@ export default function CodeLayer() {
 
     window.addEventListener('resize', resize)
     document.addEventListener('visibilitychange', onVis)
+    window.addEventListener('pointermove', onPointer, { passive: true })
+    document.documentElement.addEventListener('pointerleave', onPointerGone)
 
     return () => {
       alive = false
       cancelAnimationFrame(raf)
       window.removeEventListener('resize', resize)
       document.removeEventListener('visibilitychange', onVis)
+      window.removeEventListener('pointermove', onPointer)
+      document.documentElement.removeEventListener('pointerleave', onPointerGone)
       offTheme()
       offRM()
     }
