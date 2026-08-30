@@ -18,7 +18,7 @@ export const nav = [
   { id: 'ml-process', label: 'ML', rank: 'J' },
   { id: 'events', label: 'Events', rank: '10' },
   { id: 'world', label: 'World', rank: '9' },
-  { id: 'people', label: 'People', rank: '8' },
+  { id: 'people', label: 'Our Team', rank: '8' },
   { id: 'join', label: 'Join', rank: '★' },
 ]
 
@@ -268,7 +268,7 @@ export const pages: Record<string, SubPageDef> = {
     ],
   },
   people: {
-    title: 'People',
+    title: 'Our Team',
     lead: 'TBD', // TODO
     sections: [
       { heading: 'Board', body: 'TBD' },
@@ -284,7 +284,7 @@ export const pages: Record<string, SubPageDef> = {
     ],
   },
   contact: {
-    title: 'Contact',
+    title: 'Contact Us',
     lead: 'TBD', // TODO
     sections: [
       { heading: 'Email', body: 'TBD' },

@@ -32,15 +32,15 @@ const PAGES = {
     desc: 'The worldwide community of the Cornell Computational Game Society.',
   },
   people: {
-    title: 'People — Cornell Computational Game Society',
-    desc: 'Board and members of the Cornell Computational Game Society (Cornell CGS).',
+    title: 'Our Team — Cornell Computational Game Society',
+    desc: 'The team — board and members of the Cornell Computational Game Society (Cornell CGS).',
   },
   join: {
     title: 'Join — Cornell Computational Game Society',
     desc: 'How to join the Cornell Computational Game Society (Cornell CGS).',
   },
   contact: {
-    title: 'Contact — Cornell Computational Game Society',
+    title: 'Contact Us — Cornell Computational Game Society',
     desc: 'Contact the Cornell Computational Game Society (Cornell CGS).',
   },
 }

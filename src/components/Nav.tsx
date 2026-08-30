@@ -22,7 +22,7 @@ const GROUPS: Group[] = [
     target: 'who-we-are',
     subs: [
       { label: 'Who we are', id: 'who-we-are' },
-      { label: 'People', id: 'people' },
+      { label: 'Our Team', id: 'people' },
       { label: 'World', id: 'world' },
     ],
   },
@@ -48,7 +48,7 @@ const GROUPS: Group[] = [
     target: 'join',
     subs: [
       { label: 'Pull up a chair', id: 'join' },
-      { label: 'Contact', id: 'contact' },
+      { label: 'Contact Us', id: 'contact' },
     ],
   },
 ]

@@ -56,7 +56,7 @@ export default function Footer() {
             }}
             className="text-[max(1.05rem,17px)] font-[550] text-[#e8eefb] transition-colors hover:text-white hover:underline hover:underline-offset-4"
           >
-            Contact
+            Contact Us
           </a>
         </nav>
       </div>
