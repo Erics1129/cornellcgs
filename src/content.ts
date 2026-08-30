@@ -13,30 +13,28 @@ export const site = {
 }
 
 export const nav = [
-  { id: 'who-we-are', label: 'Who we are' },
-  { id: 'what-we-do', label: 'What we do' },
-  { id: 'ml-process', label: 'ML' },
-  { id: 'events', label: 'Events' },
-  { id: 'world', label: 'World' },
-  { id: 'people', label: 'People' },
-  { id: 'join', label: 'Join' },
+  { id: 'who-we-are', label: 'Who we are', rank: 'K' },
+  { id: 'what-we-do', label: 'What we do', rank: 'Q' },
+  { id: 'ml-process', label: 'ML', rank: 'J' },
+  { id: 'events', label: 'Events', rank: '10' },
+  { id: 'world', label: 'World', rank: '9' },
+  { id: 'people', label: 'People', rank: '8' },
+  { id: 'join', label: 'Join', rank: '★' },
 ]
 
 /** Hero title, broken over three lines per the design. */
 export const heroTitle = ['Cornell', 'Computational', 'Game Society']
 
+/** Hero typing line — the lead changes too. TODO real topics. */
 export const typing = {
-  prefix: 'We do research in ',
-  // TODO real research topics
-  words: [
-    'computational game theory',
-    'poker solvers',
-    'counterfactual regret minimization',
-    'reinforcement learning for games',
-    'imperfect information games',
-    'multi agent learning',
-    'equilibrium computation',
-    'mechanism design',
+  pairs: [
+    { lead: 'We do research in', tail: 'computational game theory' },
+    { lead: 'We study', tail: 'imperfect information games' },
+    { lead: 'We build', tail: 'poker solvers' },
+    { lead: 'We train', tail: 'reinforcement learning agents' },
+    { lead: 'We compute', tail: 'equilibria' },
+    { lead: 'We collaborate on', tail: 'multi agent learning' },
+    { lead: 'We play', tail: 'anything with payoffs' },
   ],
 }
 
@@ -50,8 +48,7 @@ export const whoWeAre = {
   heading: 'Games, *solved* with computers.',
   // TODO real copy
   paragraphs: [
-    'We are Cornell students who study games with code. Poker, board games, auctions — anything with players and payoffs is fair game, and we treat every one of them as a problem worth solving properly.',
-    'We build the solvers, train the agents and run the math. Some of us come for the game theory, some for the machine learning, some just to finally understand why that river call was wrong.',
+    'Cornell students who solve games with code — poker, board games, auctions. We build the solvers, train the agents, run the math.',
   ],
   photoPlaceholder: 'TODO team photo',
   counters: [
@@ -70,31 +67,31 @@ export const whatWeDo = {
       rank: 'A',
       suit: '♠',
       title: 'Study nights',
-      text: 'Weekly sessions on game theory, ranges and equilibrium.',
+      text: 'Game theory, ranges, equilibrium.',
     },
     {
       rank: 'K',
       suit: '♠',
       title: 'Research',
-      text: 'Projects on solvers, agents and equity math.',
+      text: 'Solvers, agents, equity math.',
     },
     {
       rank: 'Q',
       suit: '♠',
       title: 'Build',
-      text: 'Bots that actually play, tools and papers.',
+      text: 'Bots that play. Tools. Papers.',
     },
     {
       rank: 'J',
       suit: '♠',
       title: 'Tournaments',
-      text: 'Friendly events with real structure and zero buy in.',
+      text: 'Real structure, zero buy in.',
     },
     {
       rank: '10',
       suit: '♠',
       title: 'Talks',
-      text: 'Guests from quant, poker and academia.',
+      text: 'Quant, poker, academia.',
     },
   ],
 }
@@ -138,32 +135,27 @@ export const events = {
     {
       title: 'Fall Kickoff',
       date: 'September', // TODO date
-      blurb:
-        'First deal of the year. Meet the club, see the projects, get a seat at the table.',
+      blurb: 'First deal of the year.',
     },
     {
       title: 'Solver Workshop',
       date: 'October', // TODO date
-      blurb:
-        'Hands on with CFR. Bring a laptop, leave with a toy solver that actually converges.',
+      blurb: 'Hands on with CFR.',
     },
     {
       title: 'Alumni Night',
       date: 'November', // TODO date
-      blurb:
-        'CGS alumni from quant desks and research labs come back and tell the truth about both.',
+      blurb: 'The truth about quant and research.',
     },
     {
       title: 'Charity Tournament',
       date: 'February', // TODO date
-      blurb:
-        'Real structure, zero buy in, every chip counted for a good cause.',
+      blurb: 'Every chip for a good cause.',
     },
     {
       title: 'Spring Banquet',
       date: 'April', // TODO date
-      blurb:
-        'The year in review, awards for the boldest bluffs and the cleanest proofs.',
+      blurb: 'The year in review.',
     },
   ],
 }
@@ -171,7 +163,7 @@ export const events = {
 export const world = {
   heading: 'Wherever you are from, you have a seat at this *table*.',
   // TODO real country count
-  text: 'We welcome members from every country and every skill level. CGS speaks fourteen nationalities and one common language: expected value.',
+  text: 'Fourteen countries. One common language: expected value.',
 }
 
 export const people = {
@@ -189,7 +181,7 @@ export const people = {
 
 export const join = {
   heading: 'Pull up a *chair*.',
-  text: 'New members join at the start of each semester, and curious people are welcome any time.',
+  text: 'New members every semester. The curious, any time.',
   cta: { label: 'Apply to CGS', href: '#' }, // TODO form url
 }
 

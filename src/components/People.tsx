@@ -38,10 +38,10 @@ export default function People() {
     <section ref={root} id="people" className="section">
       <SectionIndex rank="8" />
       <div className="container-site">
-        <h2 data-reveal="heading" className="h-section mb-14 max-w-[16ch]">
+        <h2 data-reveal="heading" className="h-section mb-10 max-w-[16ch] md:mb-14">
           {renderEmphasis(people.heading)}
         </h2>
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:gap-6" data-interactive>
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6 lg:gap-4" data-interactive>
           {people.members.map((m, i) => (
             <div key={m.name} data-reveal="card" className="[perspective:1100px]">
               <CardShell
@@ -56,32 +56,32 @@ export default function People() {
                   }`}
                 >
                   {/* Front — portrait side */}
-                  <span className="card-face-surface neon absolute inset-0 flex flex-col justify-between p-5 [backface-visibility:hidden]">
+                  <span className="card-face-surface neon absolute inset-0 flex flex-col justify-between overflow-hidden p-3 [backface-visibility:hidden] md:p-4">
                     <span className="flex flex-col items-start leading-none" aria-hidden="true">
-                      <span className="font-display text-xl text-[var(--ink)]">8</span>
-                      <span className="text-sm text-[var(--ink)]">♠</span>
+                      <span className="font-display text-base text-[var(--ink)] md:text-xl">8</span>
+                      <span className="text-xs text-[var(--ink)] md:text-sm">♠</span>
                     </span>
                     {/* TODO portrait photo */}
-                    <span className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-[radial-gradient(circle_at_35%_30%,#1c2c52,#0b0b0f)] md:h-24 md:w-24">
-                      <span className="font-display text-2xl text-[var(--ivory)]">
+                    <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[radial-gradient(circle_at_35%_30%,#1c2c52,#0b0b0f)] sm:h-14 sm:w-14 md:h-16 md:w-16">
+                      <span className="font-display text-sm text-[var(--ivory)] sm:text-base md:text-lg">
                         {initials(m.name)}
                       </span>
                     </span>
                     <span className="block text-center">
-                      <span className="h-card block text-[1.2rem] text-[var(--ink)] md:text-[1.4rem]">
+                      <span className="h-card block text-[0.95rem] leading-tight text-[var(--ink)] sm:text-[1rem] md:text-[1.1rem]">
                         {m.name}
                       </span>
-                      <span className="mono mt-1 block text-[max(0.8rem,13px)] text-[color-mix(in_srgb,var(--ink)_65%,#7a6a4a)]">
+                      <span className="mono mt-0.5 block text-[11px] text-[color-mix(in_srgb,var(--ink)_65%,#7a6a4a)] sm:text-[12px] md:text-[12px]">
                         {m.role}
                       </span>
                     </span>
                   </span>
                   {/* Back — bio side */}
-                  <span className="card-back-surface absolute inset-0 flex [transform:rotateY(180deg)] flex-col items-center justify-center gap-3 p-6 text-center [backface-visibility:hidden]">
-                    <span aria-hidden="true" className="text-2xl text-[var(--silver)]">
+                  <span className="card-back-surface absolute inset-0 flex [transform:rotateY(180deg)] flex-col items-center justify-center gap-2 overflow-hidden p-3 text-center [backface-visibility:hidden] md:gap-3 md:p-6">
+                    <span aria-hidden="true" className="text-xl text-[var(--silver)] md:text-2xl">
                       ♠
                     </span>
-                    <span className="text-[max(0.95rem,15px)] leading-relaxed text-[var(--silver)]">
+                    <span className="text-[12px] leading-snug text-[var(--silver)] sm:text-[13px]">
                       {m.bio}
                     </span>
                   </span>

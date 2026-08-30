@@ -3,7 +3,7 @@ import gsap from 'gsap'
 import SectionIndex from './SectionIndex'
 import TypeLine from './TypeLine'
 import HeroCard from './HeroCard'
-import { site, hero } from '../content'
+import { hero } from '../content'
 import { scrollToId } from '../lib/scroll'
 import { prefersReducedMotion } from '../lib/motion'
 
@@ -53,9 +53,6 @@ export default function Hero() {
       <div className="container-site pointer-events-none relative z-10 grid min-h-[100svh] grid-cols-1 content-end gap-8 pb-24 pt-[46svh] md:min-h-0 md:grid-cols-[1fr_minmax(260px,30vw)_1fr] md:content-center md:items-center md:gap-0 md:py-28">
         {/* Left side — the name */}
         <div className="md:pr-6">
-          <p data-hero-fade className="eyebrow pointer-events-auto mb-5">
-            {site.eyebrow}
-          </p>
           <h1 className="font-display pointer-events-auto text-[clamp(2.5rem,4.6vw,4.8rem)] leading-[0.98] tracking-[-0.02em] text-[var(--text)]">
             <span data-hero-line className="block overflow-hidden">
               <span className="block">Cornell</span>

@@ -29,8 +29,8 @@ export default function Events() {
         <h2 data-reveal="heading" className="h-section mb-6 max-w-[16ch]">
           {renderEmphasis(events.heading)}
         </h2>
-        <p data-reveal="para" className="body-muted mb-4 max-w-[46ch]">
-          Hover the hand, pick a card. {/* TODO real events */}
+        <p data-reveal="para" className="mono mb-4 text-[var(--muted)]">
+          Pick a card. {/* TODO real events */}
         </p>
 
         {/* Detail panel */}

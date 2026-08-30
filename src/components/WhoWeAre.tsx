@@ -11,8 +11,9 @@ function renderEmphasis(text: string) {
 }
 
 /**
- * Who we are (K♠) — two hole cards laid side by side like a player peeking,
- * with four count-up counters styled as card corner indices beneath.
+ * Who we are (K♠) — two portrait hole cards laid side by side, slightly
+ * rotated toward each other like a player peeking, with four count-up
+ * counters styled as card corner indices beneath.
  */
 export default function WhoWeAre() {
   const root = useRef<HTMLElement>(null)
@@ -32,36 +33,48 @@ export default function WhoWeAre() {
     <section ref={root} id="who-we-are" className="section">
       <SectionIndex rank="K" />
       <div className="container-site">
-        <div className="grid gap-8 md:grid-cols-2 md:gap-10">
-          {/* Left hole card — the text card */}
-          <div data-reveal="card" className="md:rotate-[-2.5deg] md:translate-y-2">
+        <h2 data-reveal="heading" className="h-section mx-auto mb-10 max-w-[18ch] text-center md:mb-12">
+          {renderEmphasis(whoWeAre.heading)}
+        </h2>
+
+        {/* The hole cards */}
+        <div className="flex flex-col items-center justify-center gap-8 sm:flex-row sm:items-stretch md:gap-12">
+          {/* Left hole card — the words */}
+          <div data-reveal="card" className="sm:rotate-[-3.5deg] sm:translate-y-2">
             <CardShell
-              className="card-face-surface neon relative flex min-h-[440px] flex-col justify-center px-8 py-12 md:px-12"
-              tiltMax={3}
+              className="card-face-surface neon relative flex aspect-[5/7] w-[min(76vw,300px)] flex-col justify-center px-7 py-8 md:w-[min(24vw,320px)] md:px-8"
+              tiltMax={4}
             >
               <span
                 aria-hidden="true"
-                className="absolute left-5 top-5 flex flex-col items-center leading-none"
+                className="absolute left-4 top-4 flex flex-col items-center leading-none md:left-5 md:top-5"
               >
-                <span className="font-display text-2xl text-[var(--ink)]">K</span>
-                <span className="text-lg text-[var(--ink)]">♠</span>
+                <span className="font-display text-xl text-[var(--ink)] md:text-2xl">K</span>
+                <span className="text-base text-[var(--ink)] md:text-lg">♠</span>
               </span>
-              <h2 className="h-section mb-6 text-[var(--ink)]">
-                {renderEmphasis(whoWeAre.heading)}
-              </h2>
               {whoWeAre.paragraphs.map((p) => (
-                <p key={p.slice(0, 18)} className="mb-4 max-w-[52ch] text-[color-mix(in_srgb,var(--ink)_82%,#5a4a30)]">
+                <p
+                  key={p.slice(0, 18)}
+                  className="font-display text-[clamp(1.15rem,1.6vw,1.55rem)] leading-[1.45] text-[color-mix(in_srgb,var(--ink)_88%,#5a4a30)]"
+                >
                   {p}
                 </p>
               ))}
+              <span
+                aria-hidden="true"
+                className="absolute bottom-4 right-4 flex rotate-180 flex-col items-center leading-none md:bottom-5 md:right-5"
+              >
+                <span className="font-display text-xl text-[var(--ink)] md:text-2xl">K</span>
+                <span className="text-base text-[var(--ink)] md:text-lg">♠</span>
+              </span>
             </CardShell>
           </div>
 
           {/* Right hole card — photo placeholder */}
-          <div data-reveal="card" className="md:rotate-[2.5deg]">
+          <div data-reveal="card" className="sm:rotate-[3.5deg]">
             <CardShell
-              className="card-back-surface neon relative flex min-h-[440px] items-center justify-center overflow-hidden"
-              tiltMax={3}
+              className="card-back-surface neon relative flex aspect-[5/7] w-[min(76vw,300px)] items-center justify-center overflow-hidden md:w-[min(24vw,320px)]"
+              tiltMax={4}
             >
               <div
                 aria-hidden="true"
@@ -81,18 +94,18 @@ export default function WhoWeAre() {
         {/* Counters — card corner indices that count up */}
         <div
           ref={countersRef}
-          className="mt-16 grid grid-cols-2 gap-4 md:mt-20 md:grid-cols-4 md:gap-6"
+          className="mx-auto mt-10 grid max-w-4xl grid-cols-2 gap-4 md:mt-14 md:grid-cols-4 md:gap-6"
         >
           {whoWeAre.counters.map((c) => (
             <div
               key={c.label}
               data-reveal="para"
-              className="panel neon flex flex-col items-start gap-1 rounded-2xl px-6 py-7"
+              className="panel neon flex flex-col items-start gap-1 rounded-2xl px-6 py-5"
             >
               <span
                 data-counter={c.value}
                 data-no-separator={c.noSeparator ? 'true' : 'false'}
-                className="font-display text-[clamp(2.6rem,4.5vw,4rem)] leading-none text-[var(--ivory)]"
+                className="font-display text-[clamp(2rem,3.4vw,3rem)] leading-none text-[var(--ivory)]"
               >
                 0
               </span>

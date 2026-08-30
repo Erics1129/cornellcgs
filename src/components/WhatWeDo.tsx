@@ -113,12 +113,12 @@ export default function WhatWeDo() {
           />
         </div>
 
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-5 md:gap-5">
+        <div className="grid grid-cols-1 items-start gap-6 sm:grid-cols-2 md:grid-cols-5 md:gap-5">
           {whatWeDo.threads.map((t, i) => (
             <div
               key={t.title}
               data-community-card
-              className="aspect-[5/7] w-full [perspective:1100px]"
+              className="mx-auto aspect-[5/7] w-full max-w-[300px] self-start [perspective:1100px]"
             >
               <div
                 data-flip-inner

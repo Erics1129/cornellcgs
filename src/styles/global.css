@@ -160,19 +160,20 @@ em,
    Layout
 --------------------------------------------------------------------------- */
 
-/* Every chapter of the site is its own full-viewport part. */
+/* Every chapter of the site is its own full-viewport part — one screen, one
+   chapter, never half of two. Content is sized to fit inside 100svh. */
 .section {
   position: relative;
   min-height: 100svh;
   display: flex;
   flex-direction: column;
   justify-content: center;
-  padding-block: 14vh;
+  padding-block: 8vh;
 }
 
 @media (max-width: 768px) {
   .section {
-    padding-block: 10vh;
+    padding-block: 9vh;
   }
 }
 

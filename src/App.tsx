@@ -7,6 +7,7 @@ import GradientBG from './effects/GradientBG'
 import CodeLayer from './effects/CodeLayer'
 import ShatterLayer from './effects/ShatterLayer'
 import Nav from './components/Nav'
+import SideRail from './components/SideRail'
 import Hero from './components/Hero'
 import WhoWeAre from './components/WhoWeAre'
 import WhatWeDo from './components/WhatWeDo'
@@ -91,6 +92,7 @@ export default function App() {
       <ShatterLayer />
       <div ref={shakeRef} className="relative z-10">
         <Nav />
+        <SideRail />
         <main>
           <Hero />
           <WhoWeAre />

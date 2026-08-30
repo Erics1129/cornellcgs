@@ -16,13 +16,21 @@ export default function MLProcess() {
   return (
     <section ref={root} id="ml-process" className="section relative overflow-clip">
       <SectionIndex rank="J" />
-      <div
+      {/* The black hole animation IS the background of this chapter */}
+      <video
         aria-hidden="true"
-        className="absolute inset-0 -z-10 bg-[url('/assets/blackhole_math.jpg')] bg-cover bg-center opacity-60"
+        className="absolute inset-0 -z-10 h-full w-full object-cover"
+        src="/assets/blackhole.mp4"
+        poster="/assets/blackhole_math.jpg"
+        autoPlay
+        muted
+        loop
+        playsInline
+        preload="metadata"
       />
       <div
         aria-hidden="true"
-        className="absolute inset-0 -z-10 bg-[linear-gradient(to_bottom,var(--bg-top),transparent_30%,transparent_70%,var(--bg-top))] opacity-90"
+        className="absolute inset-0 -z-10 bg-[linear-gradient(to_bottom,rgba(0,0,0,0.55),rgba(0,0,0,0.15)_30%,rgba(0,0,0,0.15)_70%,rgba(0,0,0,0.55))]"
       />
       <div className="container-site relative">
         <h2 data-reveal="heading" className="h-section mb-16 text-center text-[var(--ivory)]">
