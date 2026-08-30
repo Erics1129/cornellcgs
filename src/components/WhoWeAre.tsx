@@ -40,7 +40,7 @@ export default function WhoWeAre() {
         {/* The hole cards */}
         <div className="flex flex-col items-center justify-center gap-8 sm:flex-row sm:items-stretch md:gap-12">
           {/* Left hole card — the words */}
-          <div data-reveal="card" className="sm:rotate-[-3.5deg] sm:translate-y-2">
+          <div data-reveal="colossal" className="sm:rotate-[-3.5deg] sm:translate-y-2">
             <CardShell
               className="card-face-surface neon relative flex aspect-[5/7] w-[min(76vw,300px)] flex-col justify-center px-7 py-8 md:w-[min(24vw,320px)] md:px-8"
               tiltMax={4}
@@ -71,7 +71,7 @@ export default function WhoWeAre() {
           </div>
 
           {/* Right hole card — the bot we train, dealing */}
-          <div data-reveal="card" className="sm:rotate-[3.5deg]">
+          <div data-reveal="colossal" className="sm:rotate-[3.5deg]">
             <CardShell
               className="card-back-surface neon relative aspect-[5/7] w-[min(76vw,300px)] overflow-hidden md:w-[min(24vw,320px)]"
               tiltMax={4}

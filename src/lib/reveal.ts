@@ -9,9 +9,10 @@ gsap.registerPlugin(ScrollTrigger, SplitText)
 /**
  * Scroll-entrance choreography (§5.8). Any element inside the watched root can
  * opt in with data-reveal:
- *   data-reveal="heading" — split into lines, each masked, rising with blur
- *   data-reveal="para"    — fade up 24px
- *   data-reveal="card"    — settle from a 6° 3D tilt, scale 0.94 → 1
+ *   data-reveal="heading"  — split into lines, each masked, rising with blur
+ *   data-reveal="para"     — fade up 24px
+ *   data-reveal="card"     — settle from a 6° 3D tilt, scale 0.94 → 1
+ *   data-reveal="colossal" — born tiny, swells to full size (巨物对比震惊感)
  * Reduced motion turns everything into a simple fade.
  */
 export function useSectionReveals(rootRef: React.RefObject<HTMLElement | null>) {
@@ -52,6 +53,19 @@ export function useSectionReveals(rootRef: React.RefObject<HTMLElement | null>) 
             stagger: 0.06,
             scrollTrigger: trigger,
           })
+        } else if (kind === 'colossal') {
+          gsap.fromTo(
+            el,
+            { opacity: 0, scale: 0.22, y: 70 },
+            {
+              opacity: 1,
+              scale: 1,
+              y: 0,
+              duration: 1.5,
+              ease: 'power3.inOut',
+              scrollTrigger: { trigger: el, start: 'top 74%', once: true },
+            },
+          )
         } else if (kind === 'card') {
           gsap.fromTo(
             el,

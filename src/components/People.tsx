@@ -41,7 +41,7 @@ export default function People() {
         <h2 data-reveal="heading" className="h-section mb-10 max-w-[16ch] md:mb-14">
           {renderEmphasis(people.heading)}
         </h2>
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6 lg:gap-4" data-interactive>
+        <div data-reveal="colossal" className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6 lg:gap-4" data-interactive>
           {people.members.map((m, i) => (
             <div key={i} data-reveal="card" className="[perspective:1100px]">
               <CardShell

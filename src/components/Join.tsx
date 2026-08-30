@@ -23,7 +23,7 @@ export default function Join() {
         <span className="suit">★</span>
       </div>
       <div className="container-site">
-        <div data-reveal="card">
+        <div data-reveal="colossal">
           <CardShell
             className="panel neon relative mx-auto flex max-w-3xl flex-col items-center gap-6 overflow-hidden rounded-[2rem] px-8 py-20 text-center md:py-24"
             tiltMax={2}

@@ -56,7 +56,7 @@ export default function Events() {
 
         {/* Desktop fan */}
         <div
-          data-reveal="para"
+          data-reveal="colossal"
           className="group relative mx-auto hidden h-[380px] max-w-4xl md:block"
           data-interactive
         >

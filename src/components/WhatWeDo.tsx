@@ -61,6 +61,7 @@ export default function WhatWeDo() {
               return d.top + d.height / 2 - (c.top + c.height / 2)
             },
             rotation: 8 - i * 4,
+            scale: 0.12,
             duration: 0.09,
           },
           i * 0.014,
