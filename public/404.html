@@ -7,12 +7,12 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,650&family=JetBrains+Mono:wght@600&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@650&family=JetBrains+Mono:wght@600&display=swap"
       rel="stylesheet"
     />
     <style>
       * { margin: 0; box-sizing: border-box; }
-      html { background: #03071a; }
+      html { background: #ffffff; }
       body {
         min-height: 100svh;
         display: flex;
@@ -21,10 +21,10 @@
         justify-content: center;
         gap: 2rem;
         font-family: 'JetBrains Mono', monospace;
-        color: #a9b4d6;
+        color: #46587a;
         background:
-          radial-gradient(120% 55% at 50% 110%, rgba(47, 107, 255, 0.5), transparent 70%),
-          linear-gradient(to bottom, #03071a 0%, #0b2a6b 70%, #3b5fb8 100%);
+          radial-gradient(120% 55% at 50% 110%, rgba(185, 205, 243, 0.7), transparent 70%),
+          linear-gradient(to bottom, #ffffff 0%, #f0f4fb 70%, #dde7f7 100%);
         perspective: 1100px;
       }
       .card {
@@ -64,15 +64,15 @@
         color: #0b0b0f;
         transform: rotateY(180deg);
         box-shadow: 0 24px 60px -16px rgba(0, 0, 0, 0.65);
-        font-family: 'Fraunces', serif;
+        font-family: 'Hanken Grotesk', sans-serif;
       }
       .front .word { font-size: 2.6rem; font-weight: 650; }
       .front .sub { font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; color: #7a6a4a; }
       @keyframes flip {
         to { transform: rotateY(180deg); }
       }
-      a { color: #e8fbff; text-decoration: none; border-bottom: 1px solid #4ea8ff; padding-bottom: 2px; }
-      a:hover { color: #fff; }
+      a { color: #0a1e3f; text-decoration: none; border-bottom: 1px solid #1e5eff; padding-bottom: 2px; }
+      a:hover { color: #1e5eff; }
       p { font-size: 15px; }
       @media (prefers-reduced-motion: reduce) {
         .card { animation: none; transform: rotateY(180deg); }
