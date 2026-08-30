@@ -144,8 +144,33 @@ export default function Nav() {
             : 'pointer-events-none max-h-0 opacity-0'
         }`}
       >
+        {/* Mobile: one list with every page (the bar links are hidden there) */}
         {active && (
-          <div className="container-site relative grid gap-10 py-14 md:grid-cols-2 md:py-20">
+          <div className="container-site relative flex flex-col gap-1 py-10 md:hidden">
+            <button
+              onClick={() => setOpen(null)}
+              aria-label="Close menu"
+              className="absolute right-0 top-4 p-2 text-2xl leading-none text-[#0a1e3f]"
+            >
+              ✕
+            </button>
+            {GROUPS.flatMap((g) => g.subs)
+              .filter((s, i, arr) => arr.findIndex((x) => x.id === s.id) === i)
+              .map((s) => (
+                <button
+                  key={s.id}
+                  role="menuitem"
+                  onClick={() => goPage(s.id)}
+                  className="py-3 text-left text-[max(1.15rem,19px)] font-[600] text-[#0a1e3f]"
+                >
+                  {s.label}
+                </button>
+              ))}
+          </div>
+        )}
+
+        {active && (
+          <div className="container-site relative hidden gap-10 py-14 md:grid md:grid-cols-2 md:py-20">
             <button
               onClick={() => setOpen(null)}
               aria-label="Close menu"

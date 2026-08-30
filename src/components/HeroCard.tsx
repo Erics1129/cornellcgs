@@ -254,7 +254,7 @@ export default function HeroCard() {
           armAuto()
         }}
         aria-label="Flip the card — switches the site between the blue and red world"
-        className="pointer-events-auto absolute left-1/2 top-1/2 aspect-[5/7] h-[min(48vh,430px)] -translate-x-1/2 -translate-y-1/2 cursor-pointer rounded-3xl"
+        className="pointer-events-auto absolute left-1/2 top-[30svh] aspect-[5/7] h-[min(44svh,430px)] -translate-x-1/2 -translate-y-1/2 cursor-pointer rounded-3xl md:top-1/2 md:h-[min(48vh,430px)]"
       />
     </div>
   )

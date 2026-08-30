@@ -177,8 +177,12 @@ em,
 --------------------------------------------------------------------------- */
 
 .card-index {
+  /* clear the 4rem fixed bar at every size */
   position: absolute;
-  top: clamp(1.2rem, 4vh, 3rem);
+  top: calc(4rem + clamp(0.6rem, 2.2vh, 1.8rem));
+}
+
+.card-index {
   left: clamp(1.1rem, 4vw, 3rem);
   display: flex;
   flex-direction: column;
