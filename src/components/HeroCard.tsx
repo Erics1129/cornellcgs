@@ -75,6 +75,19 @@ export default function HeroCard() {
     return { x: r.left + r.width / 2, y: r.top + r.height / 2 }
   }
 
+  /**
+   * The clip's baked backdrop turns red as the ace comes up, but the site's
+   * face-up world is light blue — so the video hue-shifts in sync with the
+   * theme wipe (reds → blues; the ivory/ink card itself barely moves).
+   */
+  const tintForPhase = (next: 'blue' | 'red') => {
+    const v = videoRef.current
+    if (!v) return
+    v.style.transition = 'filter 0.9s ease'
+    v.style.filter =
+      next === 'red' ? 'hue-rotate(192deg) saturate(0.55) brightness(1.12)' : ''
+  }
+
   const flip = () => {
     const v = videoRef.current
     if (!v || !videoOk) {
@@ -96,6 +109,7 @@ export default function HeroCard() {
         v.currentTime = T_RED
         const { x, y } = centerOfCard()
         flipThemeAt(x, y)
+        tintForPhase('red')
         phase.current = 'red'
         return
       }
@@ -108,6 +122,7 @@ export default function HeroCard() {
           wiped.current = true
           const { x, y } = centerOfCard()
           flipThemeAt(x, y)
+          tintForPhase('red')
         }
         if (v.currentTime >= T_RED || v.ended) {
           v.pause()
@@ -124,6 +139,7 @@ export default function HeroCard() {
       phase.current = 'blue'
       const { x, y } = centerOfCard()
       flipThemeAt(x, y)
+      tintForPhase('blue')
     }
   }
 

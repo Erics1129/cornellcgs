@@ -1,7 +1,7 @@
 import { useRef } from 'react'
 import SectionIndex from './SectionIndex'
 import GlobeVideo from './GlobeVideo'
-import { memberCountries, world } from '../content'
+import { world } from '../content'
 import { useSectionReveals } from '../lib/reveal'
 
 function renderEmphasis(text: string) {
@@ -29,10 +29,10 @@ export default function WorldSection() {
       {/* Left scrim behind the copy; pointer events fall through to the globe */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-y-0 left-0 w-full md:w-[68%]"
+        className="pointer-events-none absolute inset-y-0 left-0 w-full md:w-[52%]"
         style={{
           background:
-            'linear-gradient(to right, color-mix(in srgb, var(--bg-top) 94%, transparent) 0%, color-mix(in srgb, var(--bg-top) 80%, transparent) 38%, color-mix(in srgb, var(--bg-top) 45%, transparent) 72%, transparent 100%)',
+            'linear-gradient(to right, color-mix(in srgb, var(--bg-top) 82%, transparent) 0%, color-mix(in srgb, var(--bg-top) 62%, transparent) 38%, color-mix(in srgb, var(--bg-top) 30%, transparent) 72%, transparent 100%)',
         }}
       />
 
@@ -46,12 +46,6 @@ export default function WorldSection() {
           </h2>
           <p data-reveal="para" className="body-muted max-w-[46ch]">
             {world.text}
-          </p>
-          <p
-            data-reveal="para"
-            className="mono mt-9 max-w-[52ch] uppercase leading-relaxed text-[var(--muted)] opacity-75"
-          >
-            {memberCountries.join(' · ')}
           </p>
         </div>
       </div>

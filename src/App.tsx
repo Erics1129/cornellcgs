@@ -5,7 +5,6 @@ import { useNeonEdges } from './lib/neon'
 import { SHAKE_EVENT, prefersReducedMotion } from './lib/motion'
 import GradientBG from './effects/GradientBG'
 import CodeLayer from './effects/CodeLayer'
-import ShatterLayer from './effects/ShatterLayer'
 import Nav from './components/Nav'
 import SideRail from './components/SideRail'
 import Hero from './components/Hero'
@@ -89,7 +88,6 @@ export default function App() {
       <Loader done={loaded} />
       <GradientBG />
       <CodeLayer />
-      <ShatterLayer />
       <div ref={shakeRef} className="relative z-10">
         <Nav />
         <SideRail />

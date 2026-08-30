@@ -70,23 +70,22 @@ export default function WhoWeAre() {
             </CardShell>
           </div>
 
-          {/* Right hole card — photo placeholder */}
+          {/* Right hole card — the bot we train, dealing */}
           <div data-reveal="card" className="sm:rotate-[3.5deg]">
             <CardShell
-              className="card-back-surface neon relative flex aspect-[5/7] w-[min(76vw,300px)] items-center justify-center overflow-hidden md:w-[min(24vw,320px)]"
+              className="card-back-surface neon relative aspect-[5/7] w-[min(76vw,300px)] overflow-hidden md:w-[min(24vw,320px)]"
               tiltMax={4}
             >
-              <div
-                aria-hidden="true"
-                className="absolute inset-0 bg-[radial-gradient(80%_60%_at_50%_35%,color-mix(in_srgb,var(--neon-mid)_22%,transparent),transparent_70%)]"
+              <video
+                className="absolute inset-0 h-full w-full rounded-[inherit] object-cover [object-position:62%_50%]"
+                src="/assets/robot.mp4"
+                autoPlay
+                muted
+                loop
+                playsInline
+                preload="metadata"
+                aria-label="A robot hand dealing playing cards at a table"
               />
-              <div className="relative flex flex-col items-center gap-3 text-center">
-                <span className="text-5xl" aria-hidden="true">
-                  ♠
-                </span>
-                {/* TODO team photo */}
-                <span className="mono text-[var(--muted)]">TODO team photo</span>
-              </div>
             </CardShell>
           </div>
         </div>
@@ -102,13 +101,19 @@ export default function WhoWeAre() {
               data-reveal="para"
               className="panel neon flex flex-col items-start gap-1 rounded-2xl px-6 py-5"
             >
-              <span
-                data-counter={c.value}
-                data-no-separator={c.noSeparator ? 'true' : 'false'}
-                className="font-display text-[clamp(2rem,3.4vw,3rem)] leading-none text-[var(--ivory)]"
-              >
-                0
-              </span>
+              {c.value === null ? (
+                <span className="font-display text-[clamp(2rem,3.4vw,3rem)] leading-none text-[var(--muted)]">
+                  TBA
+                </span>
+              ) : (
+                <span
+                  data-counter={c.value}
+                  data-no-separator={'noSeparator' in c && c.noSeparator ? 'true' : 'false'}
+                  className="font-display text-[clamp(2rem,3.4vw,3rem)] leading-none text-[var(--text)]"
+                >
+                  0
+                </span>
+              )}
               <span className="mt-1 flex items-center gap-1.5">
                 <span aria-hidden="true" className="text-[max(0.9rem,14px)] text-[var(--neon-mid)]">
                   ♠

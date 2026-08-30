@@ -8,8 +8,8 @@ export const site = {
   fullName: 'Cornell Computational Game Society',
   domain: 'cornellcgs.org',
   eyebrow: 'Cornell University · Registered student organization',
-  footerLine: (year: number) =>
-    `This organization is a registered student organization of Cornell University. © ${year} Cornell CGS.`,
+  // TODO official registration line
+  footerLine: (year: number) => `© ${year} Cornell CGS · cornellcgs.org`,
 }
 
 export const nav = [
@@ -47,15 +47,14 @@ export const hero = {
 export const whoWeAre = {
   heading: 'Games, *solved* with computers.',
   // TODO real copy
-  paragraphs: [
-    'Cornell students who solve games with code — poker, board games, auctions. We build the solvers, train the agents, run the math.',
-  ],
+  paragraphs: ['We solve games with code. Solvers, agents, and the math.'],
   photoPlaceholder: 'TODO team photo',
+  // TODO real numbers — null shows as "TBA" until they exist
   counters: [
-    { label: 'Members', value: 48, suffix: '' }, // TODO real member count
-    { label: 'Countries', value: 14, suffix: '' }, // TODO real country count
-    { label: 'Projects', value: 9, suffix: '' }, // TODO real project count
-    { label: 'Founded', value: 2024, suffix: '', noSeparator: true }, // TODO real founding year
+    { label: 'Members', value: null as number | null },
+    { label: 'Countries', value: null as number | null },
+    { label: 'Projects', value: null as number | null },
+    { label: 'Founded', value: null as number | null, noSeparator: true },
   ],
 }
 
@@ -134,27 +133,27 @@ export const events = {
   items: [
     {
       title: 'Fall Kickoff',
-      date: 'September', // TODO date
+      date: 'Date TBA', // TODO date
       blurb: 'First deal of the year.',
     },
     {
       title: 'Solver Workshop',
-      date: 'October', // TODO date
+      date: 'Date TBA', // TODO date
       blurb: 'Hands on with CFR.',
     },
     {
       title: 'Alumni Night',
-      date: 'November', // TODO date
+      date: 'Date TBA', // TODO date
       blurb: 'The truth about quant and research.',
     },
     {
       title: 'Charity Tournament',
-      date: 'February', // TODO date
+      date: 'Date TBA', // TODO date
       blurb: 'Every chip for a good cause.',
     },
     {
       title: 'Spring Banquet',
-      date: 'April', // TODO date
+      date: 'Date TBA', // TODO date
       blurb: 'The year in review.',
     },
   ],
@@ -163,20 +162,17 @@ export const events = {
 export const world = {
   heading: 'Wherever you are from, you have a seat at this *table*.',
   // TODO real country count
-  text: 'Fourteen countries. One common language: expected value.',
+  text: 'Every country. One common language: expected value.',
 }
 
 export const people = {
   heading: 'The *hands* behind CGS.',
-  // TODO real people
-  members: [
-    { name: 'Alex Chen', role: 'President', bio: 'CS ’26. Writes solvers by day, folds aces by night.' },
-    { name: 'Priya Raman', role: 'VP Research', bio: 'ORIE ’27. Thinks in regret minimization.' },
-    { name: 'Daniel Okafor', role: 'Treasurer', bio: 'Econ ’26. Keeps the bankroll strictly positive.' },
-    { name: 'Sofia Martinez', role: 'Events', bio: 'InfoSci ’27. Deals every tournament in under a minute.' },
-    { name: 'Kenji Watanabe', role: 'ML Lead', bio: 'CS ’25. Trains agents that bluff better than he does.' },
-    { name: 'Emma Liu', role: 'Outreach', bio: 'AEM ’28. Recruited half the club over dinner.' },
-  ],
+  // TODO real people — every entry is a placeholder until the roster exists
+  members: Array.from({ length: 6 }, () => ({
+    name: 'To be added',
+    role: 'Role TBA',
+    bio: 'Bio to be added.',
+  })),
 }
 
 export const join = {
@@ -186,10 +182,10 @@ export const join = {
 }
 
 export const contact = {
-  email: 'hello@cornellcgs.org', // TODO real email
-  instagram: '@cornellcgs', // TODO real instagram
-  instagramUrl: 'https://instagram.com/cornellcgs', // TODO real instagram url
-  wechat: 'CornellCGS', // TODO real wechat
+  email: 'To be added', // TODO real email
+  instagram: 'To be added', // TODO real instagram
+  instagramUrl: '', // TODO real instagram url
+  wechat: 'To be added', // TODO real wechat
 }
 
 /** Country markers for the World section. TODO real member country list. */

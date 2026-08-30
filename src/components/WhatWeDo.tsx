@@ -154,10 +154,6 @@ export default function WhatWeDo() {
             </div>
           ))}
         </div>
-
-        <p className="mono mt-10 text-center text-[var(--muted)] md:mt-14" data-reveal="para">
-          flop · turn · river — keep scrolling
-        </p>
       </div>
     </section>
   )

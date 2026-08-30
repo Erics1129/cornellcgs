@@ -98,9 +98,6 @@ export default function Hero() {
               {hero.ctaSecondary.label}
             </a>
           </div>
-          <p data-hero-fade className="mono pointer-events-auto text-[max(0.8rem,13px)] text-[var(--muted)]">
-            Click the card. See what happens.
-          </p>
         </div>
       </div>
 

@@ -62,7 +62,10 @@ export default function TypeLine() {
   }, [])
 
   return (
-    <p className="mono text-[max(1.05rem,17px)] md:text-[max(1.35rem,22px)]" aria-live="off">
+    <p
+      className="mono text-[max(1.2rem,19px)] md:text-[clamp(1.6rem,2vw,2.2rem)]"
+      aria-live="off"
+    >
       <span className="body-muted">{text.slice(0, leadLen)}</span>
       <span className="text-[var(--text)]">{text.slice(leadLen)}</span>
       <span

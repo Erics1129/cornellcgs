@@ -227,7 +227,9 @@ export default function CodeLayer() {
         return {
           x: i * slot + slot * (0.1 + Math.random() * 0.55),
           speed: 8 + depth * 22,
-          alpha: 0.06 + depth * 0.1 + Math.random() * 0.02,
+          // Visible but calm — on the light worlds the ink-blue code competes
+          // with headings much harder than it did on navy
+          alpha: 0.09 + depth * 0.12 + Math.random() * 0.03,
           start: Math.floor(Math.random() * lines.length),
           count,
           off: Math.random() * count * LINE_H,

@@ -43,7 +43,7 @@ export default function People() {
         </h2>
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6 lg:gap-4" data-interactive>
           {people.members.map((m, i) => (
-            <div key={m.name} data-reveal="card" className="[perspective:1100px]">
+            <div key={i} data-reveal="card" className="[perspective:1100px]">
               <CardShell
                 as="button"
                 onClick={() => toggle(i)}
@@ -64,7 +64,7 @@ export default function People() {
                     {/* TODO portrait photo */}
                     <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[radial-gradient(circle_at_35%_30%,#1c2c52,#0b0b0f)] sm:h-14 sm:w-14 md:h-16 md:w-16">
                       <span className="font-display text-sm text-[var(--ivory)] sm:text-base md:text-lg">
-                        {initials(m.name)}
+                        {m.name === 'To be added' ? '♠' : initials(m.name)}
                       </span>
                     </span>
                     <span className="block text-center">
