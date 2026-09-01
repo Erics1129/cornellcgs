@@ -28,6 +28,14 @@
   --font-display: 'Hanken Grotesk', 'Helvetica Neue', system-ui, sans-serif;
   --font-body: 'Hanken Grotesk', 'Helvetica Neue', system-ui, sans-serif;
   --font-mono: 'JetBrains Mono', 'SF Mono', ui-monospace, monospace;
+  --font-serif: 'STIX Two Text', 'Times New Roman', serif;
+
+  /* Motion signature — MUST stay numerically identical to src/lib/eases.ts */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.83, 0, 0.17, 1);
+  --dur-fast: 0.3s;
+  --dur: 0.6s;
+  --dur-slow: 0.9s;
 }
 
 /* World 2 (card face up): deep indigo blue — never red. */
@@ -120,9 +128,15 @@ body {
   line-height: 1.1;
 }
 
+/* Emphasis is the site's serif voice — the LaTeX accent from the ML chapter,
+   promoted site-wide. Slightly undersized so x-heights agree with Hanken. */
 em,
 .italic-display {
+  font-family: var(--font-serif);
   font-style: italic;
+  font-weight: 480;
+  font-size: 0.97em;
+  letter-spacing: 0;
 }
 
 .mono {
@@ -236,7 +250,7 @@ em,
   border-radius: inherit;
   pointer-events: none;
   opacity: 0;
-  transition: opacity 0.3s ease;
+  transition: opacity 0.3s var(--ease-out);
   background: conic-gradient(
     from calc(var(--na) + var(--neon-from, 0deg)),
     var(--neon-dim) 0deg,
@@ -365,13 +379,23 @@ em,
   color: var(--text);
   background: transparent;
   cursor: pointer;
-  transition: background-color 0.25s ease, color 0.25s ease, border-color 0.25s ease;
+  transition:
+    background-color var(--dur-fast) var(--ease-out),
+    color var(--dur-fast) var(--ease-out),
+    border-color var(--dur-fast) var(--ease-out),
+    transform var(--dur-fast) var(--ease-out);
 }
 
 .btn:hover {
   background: color-mix(in srgb, var(--neon-mid) 12%, transparent);
   border-color: var(--neon-mid);
   color: var(--neon-mid);
+  transform: translateY(-2px);
+}
+
+.btn:active {
+  transform: translateY(0) scale(0.98);
+  transition-duration: 0.12s;
 }
 
 .btn-primary {
@@ -384,6 +408,50 @@ em,
   background: var(--neon-mid);
   border-color: var(--neon-mid);
   color: #ffffff;
+}
+
+/* Dual-label slide hover — markup: <span class="btn-label"><span>Text</span
+   ><span aria-hidden="true">Text</span></span>. The second copy rises in as
+   the first leaves; both travel on the site curve. */
+.btn-label {
+  position: relative;
+  display: inline-block;
+  overflow: hidden;
+  line-height: 1.35;
+}
+
+.btn-label > span {
+  display: inline-block;
+  transition: transform 0.5s var(--ease-in-out);
+  white-space: nowrap;
+}
+
+.btn-label > span + span {
+  position: absolute;
+  left: 0;
+  top: 100%;
+}
+
+.btn:hover .btn-label > span,
+a:hover .btn-label > span {
+  transform: translateY(-100%);
+}
+
+/* Directional underline wipe for text links — in from the left, out to the
+   right. Replaces every hover:underline (text-decoration can't animate). */
+.link-wipe {
+  background-image: linear-gradient(currentColor, currentColor);
+  background-repeat: no-repeat;
+  background-size: 0% 1px;
+  background-position: 100% calc(100% - 0.05em);
+  transition: background-size 0.35s var(--ease-out);
+  text-decoration: none;
+}
+
+.link-wipe:hover,
+.link-wipe:focus-visible {
+  background-size: 100% 1px;
+  background-position: 0% calc(100% - 0.05em);
 }
 
 /* ---------------------------------------------------------------------------
@@ -475,6 +543,72 @@ em,
 }
 
 /* ---------------------------------------------------------------------------
+   Atmosphere — film grain. One 140px SVG-noise tile on a fixed layer twice
+   the viewport, jumped between whole-tile offsets with steps() so it always
+   moves by full frames (transform-only, composited, zero per-frame JS).
+--------------------------------------------------------------------------- */
+
+.film-grain {
+  position: fixed;
+  inset: -50%;
+  width: 200%;
+  height: 200%;
+  pointer-events: none;
+  opacity: 0.05;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 140px 140px;
+  animation: grain-shift 0.7s steps(6) infinite;
+}
+
+@keyframes grain-shift {
+  0% { transform: translate3d(0, 0, 0); }
+  16.6% { transform: translate3d(-5%, -8%, 0); }
+  33.3% { transform: translate3d(3%, 5%, 0); }
+  50% { transform: translate3d(-8%, 3%, 0); }
+  66.6% { transform: translate3d(6%, -4%, 0); }
+  83.3% { transform: translate3d(-3%, 7%, 0); }
+  100% { transform: translate3d(0, 0, 0); }
+}
+
+/* Static grain for the white Citadel sheets (Nav dropdown, sub-pages) —
+   subtler, no animation, multiply so it reads as paper, not dirt. */
+.grain-light {
+  position: relative;
+}
+
+.grain-light::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.028;
+  mix-blend-mode: multiply;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 140px 140px;
+  border-radius: inherit;
+}
+
+/* ---------------------------------------------------------------------------
+   Light sheets — the white surfaces need their own selection/focus colors
+   (the sitewide ones assume the dark world) and get the paper grain.
+--------------------------------------------------------------------------- */
+
+.sheet-light ::selection {
+  background: #0a1e3f;
+  color: #ffffff;
+}
+
+.sheet-light :focus-visible {
+  outline-color: #1e5eff;
+}
+
+/* Counters must not wiggle while counting */
+[data-counter] {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------------------------------------------------------------------------
    Events hand fan — cards rotate around a point below the hand; hovering the
    hand widens the fan, hovering a card lifts it (§4 Events)
 --------------------------------------------------------------------------- */
@@ -488,7 +622,7 @@ em,
   transform: translateX(-50%) rotate(calc(var(--off) * var(--fan-step)))
     translateY(calc(var(--abs) * var(--fan-drop) + var(--lift)))
     scale(var(--lift-scale));
-  transition: transform 0.55s cubic-bezier(0.22, 1, 0.36, 1);
+  transition: transform 0.55s var(--ease-out);
   cursor: pointer;
 }
 
@@ -511,7 +645,8 @@ em,
 
 @media (prefers-reduced-motion: reduce) {
   .neon::before,
-  .neon::after {
+  .neon::after,
+  .film-grain {
     animation: none;
   }
 

@@ -95,7 +95,7 @@ function ripple(x: number, y: number, color: string) {
       { clipPath: `circle(${Math.round(r)}px at ${x}px ${y}px)`, opacity: 0.16, offset: 0.7 },
       { clipPath: `circle(${Math.round(r)}px at ${x}px ${y}px)`, opacity: 0 },
     ],
-    { duration: 900, easing: 'cubic-bezier(0.4, 0, 0.2, 1)' },
+    { duration: 900, easing: 'cubic-bezier(0.16, 1, 0.3, 1)' },
   )
   const done = () => d.remove()
   anim.onfinish = done

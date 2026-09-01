@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import gsap from 'gsap'
+import './lib/eases'
 import { initSmoothScroll } from './lib/scroll'
 import { useNeonEdges } from './lib/neon'
 import { SHAKE_EVENT, prefersReducedMotion } from './lib/motion'
@@ -103,6 +104,8 @@ export default function App() {
       <Nav />
       <SideRail />
       <SubPage />
+      {/* Cinematic grain over the whole world; sits under the loader only */}
+      <div aria-hidden="true" className="film-grain z-[80]" />
       <div ref={shakeRef} className="relative z-10">
         <main>
           <Hero />
