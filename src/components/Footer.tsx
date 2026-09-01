@@ -3,6 +3,7 @@ import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { site, contact, nav } from '../content'
 import { scrollToId } from '../lib/scroll'
+import { pagePath } from '../lib/router'
 import { EASE } from '../lib/eases'
 import { prefersReducedMotion } from '../lib/motion'
 
@@ -105,7 +106,7 @@ export default function Footer() {
           {nav.map(({ id, label }) => (
             <a
               key={id}
-              href={`/${id}/`}
+              href={pagePath(id)}
               data-f-link
               onClick={(e) => {
                 e.preventDefault()
@@ -117,7 +118,7 @@ export default function Footer() {
             </a>
           ))}
           <a
-            href="/contact/"
+            href={pagePath('contact')}
             data-f-link
             onClick={(e) => {
               e.preventDefault()

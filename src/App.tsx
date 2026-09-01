@@ -17,7 +17,6 @@ import WorldSection from './components/WorldSection'
 import People from './components/People'
 import Join from './components/Join'
 import Footer from './components/Footer'
-import SubPage from './components/SubPage'
 
 /**
  * Loader — the riffle plus a dealing count. It holds until the display fonts
@@ -164,7 +163,6 @@ export default function App() {
           becomes the containing block for position:fixed and breaks it. */}
       <Nav />
       <SideRail />
-      <SubPage />
       {/* Cinematic grain over the whole world; sits under the loader only */}
       <div aria-hidden="true" className="film-grain z-[80]" />
       <div ref={shakeRef} className="relative z-10">

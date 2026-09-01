@@ -4,7 +4,7 @@ import { EASE } from '../lib/eases'
 import { attachMagnetic } from '../lib/magnetic'
 import { prefersReducedMotion } from '../lib/motion'
 import { scrollToId } from '../lib/scroll'
-import { openPage } from '../lib/router'
+import { pagePath } from '../lib/router'
 
 /**
  * Citadel-style navigation: a clean top bar — wordmark left, top-level links
@@ -85,7 +85,7 @@ export default function Nav() {
   const rootRef = useRef<HTMLDivElement>(null)
   const panelRef = useRef<HTMLDivElement>(null)
   const closeRef = useRef<HTMLButtonElement>(null)
-  const learnMoreRef = useRef<HTMLButtonElement>(null)
+  const learnMoreRef = useRef<HTMLAnchorElement>(null)
 
   useEffect(() => {
     if (open === null) return
@@ -137,11 +137,6 @@ export default function Nav() {
     scrollToId(id)
   }
 
-  /** Dropdown items open their own Citadel-style page (#p/<id>). */
-  const goPage = (id: string) => {
-    setOpen(null)
-    openPage(id)
-  }
 
   const active = open !== null ? GROUPS[open] : null
 
@@ -232,15 +227,15 @@ export default function Nav() {
             {GROUPS.flatMap((g) => g.subs)
               .filter((s, i, arr) => arr.findIndex((x) => x.id === s.id) === i)
               .map((s) => (
-                <button
+                <a
                   key={s.id}
                   data-panel-item
                   role="menuitem"
-                  onClick={() => goPage(s.id)}
+                  href={pagePath(s.id)}
                   className="py-3 text-left text-[max(1.15rem,19px)] font-[600] text-[#0a1e3f]"
                 >
                   {s.label}
-                </button>
+                </a>
               ))}
           </div>
         )}
@@ -267,31 +262,31 @@ export default function Nav() {
               {/* Wrapper takes the stagger so GSAP never fights the magnetic
                   transform on the button itself */}
               <div data-panel-item>
-                <button
+                <a
                   ref={learnMoreRef}
-                  onClick={() => goPage(active.target)}
-                  className="roll-hover group bg-[#0a1e3f] px-8 py-4 text-[max(0.95rem,16px)] font-[600] text-white transition-colors duration-300 [transition-timing-function:var(--ease-out)] hover:bg-[#1e5eff]"
+                  href={pagePath(active.target)}
+                  className="roll-hover group inline-block bg-[#0a1e3f] px-8 py-4 text-[max(0.95rem,16px)] font-[600] text-white transition-colors duration-300 [transition-timing-function:var(--ease-out)] hover:bg-[#1e5eff]"
                 >
                   <span className="btn-label transition-transform duration-300 [transition-timing-function:var(--ease-out)] group-hover:-translate-y-0.5">
                     <span>Learn More</span>
                     <span aria-hidden="true">Learn More</span>
                   </span>
-                </button>
+                </a>
               </div>
             </div>
 
             {/* Right: stacked sub-links */}
             <div className="flex flex-col items-start gap-5 md:pt-2">
               {active.subs.map((s) => (
-                <button
+                <a
                   key={s.id + s.label}
                   data-panel-item
                   role="menuitem"
-                  onClick={() => goPage(s.id)}
+                  href={pagePath(s.id)}
                   className="link-wipe text-[max(1.05rem,18px)] font-[550] text-[#0a1e3f] hover:text-[#1e5eff]"
                 >
                   {s.label}
-                </button>
+                </a>
               ))}
             </div>
           </div>

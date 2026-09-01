@@ -242,6 +242,16 @@ em,
   position: relative;
 }
 
+/* This unlayered rule outranks Tailwind's layered position utilities, which
+   silently un-anchored absolute card faces — restore them explicitly. */
+.neon.absolute {
+  position: absolute;
+}
+
+.neon.fixed {
+  position: fixed;
+}
+
 .neon::before,
 .neon::after {
   content: '';
@@ -615,6 +625,11 @@ a:hover .btn-label > span {
 --------------------------------------------------------------------------- */
 
 .event-card {
+  /* Explicit: the unlayered .neon rule (position: relative) outranks
+     Tailwind's layered `absolute` utility and un-anchors the fan. */
+  position: absolute;
+  bottom: 0;
+  left: 50%;
   --fan-step: 9deg;
   --fan-drop: 16px;
   --lift: 0px;

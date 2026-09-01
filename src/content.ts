@@ -225,12 +225,25 @@ export type SubPageDef = {
   sections: Array<{ heading: string; body: string }>
 }
 
+/** Public URL slug for each page id — camelCase paths, e.g. /whoWeAre/. */
+export const pageSlugs: Record<string, string> = {
+  'who-we-are': 'whoWeAre',
+  'what-we-do': 'whatWeDo',
+  'ml-process': 'mlProcess',
+  events: 'events',
+  world: 'world',
+  people: 'ourTeam',
+  advisors: 'advisors',
+  join: 'join',
+  contact: 'contact',
+}
+
 export const pages: Record<string, SubPageDef> = {
   'who-we-are': {
     title: 'Who We Are',
     lead: 'A Cornell student organization that solves games with code.',
     sections: [
-      { heading: 'Our Culture', body: 'Curiosity over credentials. Rigor over vibes. Any person, any study.' },
+      { heading: 'Our Culture', body: 'Open, rigorous, beginner-friendly. Any person, any study.' },
       { heading: 'What We Build', body: 'Game AI — the AlphaGo kind. Agents that learn a game and outgrow us.' },
       { heading: 'Where We Are', body: 'Ithaca, NY. Members from around the world.' },
     ],
@@ -269,7 +282,7 @@ export const pages: Record<string, SubPageDef> = {
   },
   events: {
     title: 'Events',
-    lead: 'Five marked cards on this year\u2019s calendar. Dates TBA.',
+    lead: 'This year\u2019s events. Dates TBA.',
     sections: [
       { heading: 'Fall Kickoff', body: 'First deal of the year. Date TBA.' },
       { heading: 'Solver Workshop', body: 'Hands-on with CFR. Date TBA.' },
@@ -280,25 +293,25 @@ export const pages: Record<string, SubPageDef> = {
   },
   world: {
     title: 'World',
-    lead: 'Wherever you are from, you have a seat at this table.',
+    lead: 'Our members come from around the world.',
     sections: [
-      { heading: 'Our Members', body: 'Students from around the world. One common language: expected value.' },
-      { heading: 'Countries', body: 'Count TBA \u2014 the map is still filling in.' },
+      { heading: 'Our Members', body: 'Students from around the world.' },
+      { heading: 'Countries', body: 'Count TBA.' },
     ],
   },
   people: {
     title: 'Our Team',
-    lead: 'The hands behind CGS.',
+    lead: 'Board and members of Cornell CGS.',
     sections: [
       { heading: 'Board', body: 'Roster TBA.' },
-      { heading: 'Members', body: 'Roster TBA \u2014 join us and be on it.' },
+      { heading: 'Members', body: 'Roster TBA.' },
       { heading: 'Advisors', body: 'TBA \u2014 see Advisors.' },
     ],
   },
   advisors: {
     title: 'Advisors',
     // TODO(club): advisor + member roster (names, roles, photos)
-    lead: 'The people who keep us honest.',
+    lead: 'Advisors and mentors of Cornell CGS.',
     sections: [
       { heading: 'Faculty Advisors', body: 'TBA.' },
       { heading: 'Board', body: 'TBA.' },
@@ -317,7 +330,7 @@ export const pages: Record<string, SubPageDef> = {
   },
   contact: {
     title: 'Contact Us',
-    lead: 'Five doors, one table. Mail the one that fits.',
+    lead: 'Email the team that fits your question.',
     sections: [
       { heading: 'Recruitment', body: 'recruitment@cornellcgs.org' },
       { heading: 'Tech', body: 'tech@cornellcgs.org' },
