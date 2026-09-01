@@ -3,6 +3,7 @@ import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import SectionIndex from './SectionIndex'
 import { mlProcess } from '../content'
+import { EASE } from '../lib/eases'
 import { cssVar } from '../lib/theme'
 import { shake } from '../lib/motion'
 import { createGlyphBurst } from '../effects/glyphBurst'
@@ -17,9 +18,9 @@ gsap.registerPlugin(ScrollTrigger)
  * ring are visible. At ~60% in view the burst fires once (<1.6 s, power4.out
  * everywhere): ring flare + chromatic shockwave, a zoom-blur fake built from
  * four scaled ghost snapshots of the backdrop, 300–500 equation glyphs out of
- * the hole (effects/glyphBurst), shake(0.6) at 100 ms, the title scaling out
- * of the hole with three trailing ghosts, then the five step cards on curved
- * two-tween paths. Scrolling fully away re-arms it. Reduced motion: no pin,
+ * the hole (effects/glyphBurst), shake(0.6) at 100 ms, then the title and
+ * the five step rows rising out of overflow-hidden masks on the left.
+ * Scrolling fully away re-arms it. Reduced motion: no pin,
  * no burst — everything just fades in over the calm backdrop.
  */
 
@@ -31,7 +32,6 @@ const HOLE_DESKTOP = { x: 0.38, y: 0.52 }
 const HOLE_MOBILE = { x: 0.5, y: 0.44 }
 
 const GHOST_COUNT = 4
-const TITLE_GHOST_ALPHA = [0.28, 0.16, 0.08]
 const TITLE_SIZE = 'clamp(2.1rem, 2.9vw, 3.3rem)'
 const LATEX_FONT = "'STIX Two Text', 'Times New Roman', serif"
 
@@ -48,7 +48,6 @@ export default function MLProcess() {
   const flareRef = useRef<HTMLDivElement>(null)
   const shockRef = useRef<HTMLDivElement>(null)
   const titleRef = useRef<HTMLHeadingElement>(null)
-  const titleGhostsRef = useRef<Array<HTMLDivElement | null>>([])
   const cardsRef = useRef<HTMLDivElement>(null)
   const [videoFailed, setVideoFailed] = useState(false)
 
@@ -66,9 +65,11 @@ export default function MLProcess() {
     if (!section || !wrap || !canvas || !scrim || !glowWrap || !glow || !flare || !shock || !title || !cardsGrid) {
       return
     }
-    const titleGhosts = titleGhostsRef.current.filter((el): el is HTMLDivElement => el !== null)
     const ghosts = ghostsRef.current.filter((el): el is HTMLCanvasElement => el !== null)
-    const cards = Array.from(cardsGrid.children).filter((el): el is HTMLElement => el instanceof HTMLElement)
+    // Each grid child is an overflow-hidden mask; the animated row is inside.
+    const cards = Array.from(cardsGrid.children)
+      .map((el) => el.firstElementChild)
+      .filter((el): el is HTMLElement => el instanceof HTMLElement)
 
     const frame = videoFailed ? IMAGE_FRAME : VIDEO_FRAME
     const burst = createGlyphBurst(canvas)
@@ -142,7 +143,6 @@ export default function MLProcess() {
           gsap.set([flare, shock], { opacity: 0 })
           gsap.set(glow, { opacity: 0.45 })
           gsap.set(scrim, { opacity: 0.22 })
-          gsap.set(titleGhosts, { opacity: 0 })
           ;[title, ...cards].forEach((el, i) => {
             gsap.fromTo(
               el,
@@ -175,7 +175,7 @@ export default function MLProcess() {
         let armed = true
         let tl: gsap.core.Timeline | null = null
 
-        gsap.set([title, ...titleGhosts, ...cards], { opacity: 0 })
+        gsap.set([title, ...cards], { opacity: 0 })
         gsap.set([glow, flare, shock], { xPercent: -50, yPercent: -50 })
         gsap.set([flare, shock], { opacity: 0 })
         gsap.set(shock, { scale: 0.02 })
@@ -217,8 +217,8 @@ export default function MLProcess() {
           tl?.kill()
           tl = null
           burst.stop()
-          gsap.set([title, ...titleGhosts, ...cards], { clearProps: 'transform' })
-          gsap.set([title, ...titleGhosts, ...cards], { opacity: 0 })
+          gsap.set([title, ...cards], { clearProps: 'transform' })
+          gsap.set([title, ...cards], { opacity: 0 })
           gsap.set(scrim, { opacity: 0 })
           gsap.set(shock, { opacity: 0, scale: 0.02 })
           gsap.set(flare, { opacity: 0 })
@@ -304,18 +304,18 @@ export default function MLProcess() {
           tl.call(() => burst.fire(holePx.x, holePx.y, count, colors), undefined, 0.05)
           tl.call(() => shake(0.6), undefined, 0.1)
 
-          // 500–900 ms: the title scales 0.2 → 1 out of the hole, three ghost
-          // copies trailing to fake motion blur.
-          // Words wait for the burst to finish, then slide in on the left —
-          // they never cross the hole or cover the equation wall.
+          // 1.1 s+: masked rises. Words wait for the burst to finish, then
+          // swing up out of their overflow-hidden boxes (bottom-left hinge,
+          // 2° settle) — they never cross the hole or cover the equation wall.
+          // Opacity flips in the from(): the mask does the reveal work.
           tl.fromTo(
             title,
-            { x: -36, opacity: 0 },
+            { yPercent: 120, rotation: 2, transformOrigin: '0% 100%', opacity: 1 },
             {
-              x: 0,
-              opacity: 1,
-              duration: 0.5,
-              ease: 'power3.out',
+              yPercent: 0,
+              rotation: 0,
+              duration: 0.6,
+              ease: EASE.out,
               overwrite: 'auto',
               onStart: () => mlLog('title tween start'),
               onComplete: () => mlLog('title tween done'),
@@ -323,21 +323,19 @@ export default function MLProcess() {
             1.1,
           )
 
-          // 600–1400 ms: the five cards shoot out on curved paths — x rides
-          // power4.out while y overshoots on back.out, so each flight bends,
-          // overshoots and settles (the two-tween bezier fake).
+          // 1.25 s+: the step rows follow the title up out of their masks.
           cards.forEach((card, i) => {
             tl!.fromTo(
               card,
-              { x: -26, opacity: 0 },
-              { x: 0, opacity: 1, duration: 0.45, ease: 'power3.out', overwrite: 'auto' },
+              { yPercent: 120, rotation: 2, transformOrigin: '0% 100%', opacity: 1 },
+              { yPercent: 0, rotation: 0, duration: 0.6, ease: EASE.out, overwrite: 'auto' },
               1.25 + i * cardStagger,
             )
           })
 
           // End-state guarantee: whatever raced or was killed mid-flight,
           // the words ARE on screen once the burst window has passed.
-          tl.set([title, ...cards], { opacity: 1, x: 0 }, 2.3)
+          tl.set([title, ...cards], { opacity: 1, yPercent: 0, rotation: 0 }, 2.4)
 
           // After: dim the equation wall so the card text reads.
           tl.to(scrim, { opacity: 0.22, duration: 0.5, ease: 'power2.inOut' }, 0.9)
@@ -412,7 +410,7 @@ export default function MLProcess() {
             fire()
           } else {
             mlLog('guard: forcing words visible')
-            gsap.set([title, ...cards], { opacity: 1, x: 0 })
+            gsap.set([title, ...cards], { opacity: 1, yPercent: 0, rotation: 0 })
             gsap.set(scrim, { opacity: 0.22 })
           }
         }, 900)
@@ -529,7 +527,8 @@ export default function MLProcess() {
 
       <div className="container-site relative z-10 mt-auto pb-[4vh] md:mt-0 md:pb-0">
         <div className="md:max-w-[400px]">
-        <div className="relative mb-6 md:mb-8">
+        {/* overflow-hidden: the reveal mask for the title's rise */}
+        <div className="mb-6 overflow-hidden md:mb-8">
           <h2
             ref={titleRef}
             className="h-section text-left text-[var(--ivory)] will-change-transform"
@@ -537,40 +536,27 @@ export default function MLProcess() {
           >
             {mlProcess.heading}
           </h2>
-          {TITLE_GHOST_ALPHA.map((_, i) => (
-            <div
-              key={i}
-              ref={(el) => {
-                titleGhostsRef.current[i] = el
-              }}
-              aria-hidden="true"
-              className="h-section pointer-events-none absolute inset-0 text-left text-[var(--ivory)] opacity-0 will-change-transform"
-              style={{ fontSize: TITLE_SIZE, fontFamily: LATEX_FONT, fontWeight: 600 }}
-            >
-              {mlProcess.heading}
-            </div>
-          ))}
         </div>
 
         {/* The roadmap, just in words — no boxes over the animation */}
         <div ref={cardsRef} className="mt-5 grid w-full grid-cols-1 gap-2 md:mt-7 md:gap-3">
           {mlProcess.steps.map((s) => (
-            <div
-              key={s.n}
-              className="flex items-baseline gap-3 will-change-transform"
-            >
-              <span
-                className="text-2xl leading-none text-[#9db8ff] md:text-3xl"
-                style={{ fontFamily: LATEX_FONT, fontStyle: 'italic', fontWeight: 500 }}
-              >
-                {s.n}
-              </span>
-              <h3
-                className="text-[clamp(1.35rem,1.9vw,1.9rem)] leading-tight text-[#f5f1e6]"
-                style={{ fontFamily: LATEX_FONT, fontWeight: 600, textShadow: '0 2px 18px rgba(0,0,0,0.9)' }}
-              >
-                {s.title}
-              </h3>
+            /* overflow-hidden: the reveal mask for each row's rise */
+            <div key={s.n} className="overflow-hidden">
+              <div className="flex items-baseline gap-3 will-change-transform">
+                <span
+                  className="text-2xl leading-none text-[#9db8ff] md:text-3xl"
+                  style={{ fontFamily: LATEX_FONT, fontStyle: 'italic', fontWeight: 500 }}
+                >
+                  {s.n}
+                </span>
+                <h3
+                  className="text-[clamp(1.35rem,1.9vw,1.9rem)] leading-tight text-[#f5f1e6]"
+                  style={{ fontFamily: LATEX_FONT, fontWeight: 600, textShadow: '0 2px 18px rgba(0,0,0,0.9)' }}
+                >
+                  {s.title}
+                </h3>
+              </div>
             </div>
           ))}
         </div>

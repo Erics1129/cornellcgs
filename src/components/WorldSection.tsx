@@ -5,6 +5,7 @@ import SectionIndex from './SectionIndex'
 import GlobeVideo from './GlobeVideo'
 import { world } from '../content'
 import { prefersReducedMotion } from '../lib/motion'
+import { useSectionDepth } from '../lib/reveal'
 
 gsap.registerPlugin(ScrollTrigger)
 
@@ -23,6 +24,8 @@ export default function WorldSection() {
   const root = useRef<HTMLElement>(null)
   const globeWrap = useRef<HTMLDivElement>(null)
   const wordsRef = useRef<HTMLDivElement>(null)
+  // Depth rides the inner block; the birth timeline owns wordsRef's y/opacity
+  useSectionDepth(root)
 
   useEffect(() => {
     const section = root.current
@@ -92,6 +95,7 @@ export default function WorldSection() {
       {/* The words arrive after the planet does */}
       <div ref={wordsRef} className="container-site pointer-events-none relative z-10">
         <div
+          data-depth="30"
           className="pointer-events-auto max-w-[34rem] lg:max-w-[40rem]"
           style={{ textShadow: '0 1px 24px rgba(2, 6, 20, 0.85), 0 1px 6px rgba(2, 6, 20, 0.6)' }}
         >

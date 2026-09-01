@@ -3,7 +3,7 @@ import gsap from 'gsap'
 import { flipThemeAt } from '../lib/theme'
 import { isPaging } from '../lib/scroll'
 import { isPageOpen } from '../lib/router'
-import { prefersReducedMotion, isTouchDevice } from '../lib/motion'
+import { BOOTED_EVENT, prefersReducedMotion, isTouchDevice } from '../lib/motion'
 
 /**
  * The hero centerpiece — the provided card animation (card.mp4), masked so its
@@ -85,19 +85,29 @@ export default function HeroCard() {
     return () => v.removeEventListener('loadeddata', park)
   }, [])
 
-  // The card arrives small and grows to size — same colossal-contrast beat
-  // as the globe and the black hole.
+  // The card is DEALT in — it arrives from below with a resolving rotation,
+  // continuing the loader's riffle motif, and only once the curtain lifts.
   useEffect(() => {
     if (prefersReducedMotion()) return
     const wrap = wrapRef.current
     if (!wrap) return
-    const tween = gsap.fromTo(
-      wrap,
-      { scale: 0.55, opacity: 0 },
-      { scale: 1, opacity: 1, duration: 1.5, ease: 'power3.out', delay: 0.15 },
-    )
+    gsap.set(wrap, { yPercent: 16, scale: 0.82, rotation: -5, opacity: 0 })
+    let tween: gsap.core.Tween | null = null
+    const play = () => {
+      tween = gsap.to(wrap, {
+        yPercent: 0,
+        scale: 1,
+        rotation: 0,
+        opacity: 1,
+        duration: 1.4,
+        ease: 'site.out',
+      })
+    }
+    if ((window as { __cgsShown?: boolean }).__cgsShown) play()
+    else window.addEventListener(BOOTED_EVENT, play, { once: true })
     return () => {
-      tween.kill()
+      window.removeEventListener(BOOTED_EVENT, play)
+      tween?.kill()
     }
   }, [])
 
@@ -107,13 +117,14 @@ export default function HeroCard() {
     const wrap = wrapRef.current
     if (!wrap) return
     gsap.set(wrap, { transformPerspective: 1100 })
-    const rx = gsap.quickTo(wrap, 'rotationX', { duration: 0.9, ease: 'power2.out' })
-    const ry = gsap.quickTo(wrap, 'rotationY', { duration: 0.9, ease: 'power2.out' })
+    // ±4°/±3° — a breath, not a carnival; the side columns counter-drift.
+    const rx = gsap.quickTo(wrap, 'rotationX', { duration: 1.2, ease: 'power2.out' })
+    const ry = gsap.quickTo(wrap, 'rotationY', { duration: 1.2, ease: 'power2.out' })
     const onMove = (e: PointerEvent) => {
       const nx = e.clientX / window.innerWidth - 0.5
       const ny = e.clientY / window.innerHeight - 0.5
-      ry(nx * 10)
-      rx(-ny * 8)
+      ry(nx * 4)
+      rx(-ny * 3)
     }
     window.addEventListener('pointermove', onMove, { passive: true })
     return () => {
@@ -140,7 +151,8 @@ export default function HeroCard() {
   const tintForPhase = (next: 'blue' | 'red') => {
     const v = videoRef.current
     if (!v) return
-    v.style.transition = 'filter 0.9s ease'
+    // Rides the theme-flip clock (theme.ts DURATION_MS) with matching curvature
+    v.style.transition = 'filter 1.2s cubic-bezier(0.45, 0, 0.55, 1)'
     v.style.filter =
       next === 'red' ? 'hue-rotate(225deg) saturate(0.72) brightness(0.94)' : ''
   }
@@ -229,6 +241,7 @@ export default function HeroCard() {
       {videoOk ? (
         <video
           ref={videoRef}
+          data-hero-video
           className="hero-card-video animate-[hero-float_7s_ease-in-out_infinite]"
           src="/assets/card.mp4"
           muted

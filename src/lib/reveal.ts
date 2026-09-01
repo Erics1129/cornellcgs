@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { SplitText } from 'gsap/SplitText'
+import { EASE } from './eases'
 import { prefersReducedMotion } from './motion'
 
 gsap.registerPlugin(ScrollTrigger, SplitText)
@@ -9,11 +10,13 @@ gsap.registerPlugin(ScrollTrigger, SplitText)
 /**
  * Scroll-entrance choreography (§5.8). Any element inside the watched root can
  * opt in with data-reveal:
- *   data-reveal="heading"  — split into lines, each masked, rising with blur
+ *   data-reveal="heading"  — split into masked lines rising with a slight uncurl
  *   data-reveal="para"     — fade up 24px
  *   data-reveal="card"     — settle from a 6° 3D tilt, scale 0.94 → 1
- *   data-reveal="colossal" — born tiny, swells to full size (巨物对比震惊感)
- * Reduced motion turns everything into a simple fade.
+ *   data-reveal="colossal" — scrubbed swell tied to scroll, both directions
+ * Elements sharing a .section ancestor ride ONE section timeline so co-viewport
+ * elements arrive as a phrase: heading at 0, paras at 0.12, cards and counter
+ * panels staggered from 0.2. Reduced motion turns everything into a simple fade.
  */
 export function useSectionReveals(rootRef: React.RefObject<HTMLElement | null>) {
   useEffect(() => {
@@ -22,71 +25,165 @@ export function useSectionReveals(rootRef: React.RefObject<HTMLElement | null>) 
 
     const ctx = gsap.context(() => {
       const reduced = prefersReducedMotion()
-      const targets = root.querySelectorAll<HTMLElement>('[data-reveal]')
+      const targets = Array.from(root.querySelectorAll<HTMLElement>('[data-reveal]'))
 
-      targets.forEach((el) => {
-        const kind = el.dataset.reveal
-        const trigger = {
-          trigger: el,
-          start: 'top 86%',
-          once: true,
-        }
+      if (reduced) {
+        targets.forEach((el) => {
+          gsap.fromTo(
+            el,
+            { opacity: 0 },
+            {
+              opacity: 1,
+              duration: 0.6,
+              scrollTrigger: { trigger: el, start: 'top 86%', once: true },
+            },
+          )
+        })
+        return
+      }
 
-        if (reduced) {
-          gsap.fromTo(el, { opacity: 0 }, { opacity: 1, duration: 0.6, scrollTrigger: trigger })
+      // Masked lines; the whole cascade must land inside 1.2 s
+      const headingLines = (el: HTMLElement) => {
+        const split = SplitText.create(el, {
+          type: 'lines',
+          mask: 'lines',
+          autoSplit: true,
+          linesClass: 'reveal-line',
+        })
+        gsap.set(el, { opacity: 1 })
+        return split.lines
+      }
+      const headingVars = (lines: Element[]) => ({
+        yPercent: 112,
+        rotation: 2.5,
+        transformOrigin: '0% 100%',
+        duration: 0.95,
+        ease: EASE.out,
+        stagger: {
+          each: lines.length > 1 ? Math.min(0.06, (1.2 - 0.95) / (lines.length - 1)) : 0.06,
+          from: 'start' as const,
+        },
+      })
+
+      const paraFrom = { opacity: 0, y: 24 }
+      const paraTo = { opacity: 1, y: 0, duration: 0.65, ease: EASE.out }
+      const cardFrom = { opacity: 0, scale: 0.94, rotateX: 6, transformPerspective: 900, y: 30 }
+      const cardTo = { opacity: 1, scale: 1, rotateX: 0, y: 0, duration: 0.8, ease: EASE.out }
+
+      // Siblings of one grid/row read as a unit — tighter stagger
+      const groupEach = (els: HTMLElement[]) =>
+        els.length > 1 && els.every((el) => el.parentElement === els[0].parentElement)
+          ? 0.06
+          : 0.08
+
+      // Counter panels group with cards, not with prose
+      const isCounterPanel = (el: HTMLElement) =>
+        !!el.parentElement?.querySelector('[data-counter]')
+
+      // Colossal breathes with the scroll in both directions — never `once`
+      targets
+        .filter((el) => el.dataset.reveal === 'colossal')
+        .forEach((el) => {
+          gsap.fromTo(
+            el,
+            { scale: 0.82, yPercent: 14, autoAlpha: 0 },
+            {
+              scale: 1,
+              yPercent: 0,
+              autoAlpha: 1,
+              ease: 'none',
+              scrollTrigger: { trigger: el, start: 'top 96%', end: 'top 42%', scrub: true },
+            },
+          )
+        })
+
+      const flow = targets.filter((el) => el.dataset.reveal !== 'colossal')
+      const bySection = new Map<HTMLElement | null, HTMLElement[]>()
+      flow.forEach((el) => {
+        const section = el.closest<HTMLElement>('.section')
+        bySection.set(section, [...(bySection.get(section) ?? []), el])
+      })
+
+      bySection.forEach((els, section) => {
+        if (!section) {
+          // Outside any .section — per-element entrance
+          els.forEach((el) => {
+            const trigger = { trigger: el, start: 'top 86%', once: true }
+            const kind = el.dataset.reveal
+            if (kind === 'heading') {
+              const lines = headingLines(el)
+              gsap.from(lines, { ...headingVars(lines), scrollTrigger: trigger })
+            } else if (kind === 'card') {
+              gsap.fromTo(el, cardFrom, { ...cardTo, scrollTrigger: trigger })
+            } else {
+              gsap.fromTo(el, paraFrom, { ...paraTo, scrollTrigger: trigger })
+            }
+          })
           return
         }
 
-        if (kind === 'heading') {
-          const split = SplitText.create(el, {
-            type: 'lines',
-            mask: 'lines',
-            autoSplit: true,
-            linesClass: 'reveal-line',
-          })
-          gsap.set(el, { opacity: 1 })
-          gsap.from(split.lines, {
-            yPercent: 110,
-            filter: 'blur(8px)',
-            duration: 0.85,
-            ease: 'power3.out',
-            stagger: 0.06,
-            scrollTrigger: trigger,
-          })
-        } else if (kind === 'colossal') {
-          gsap.fromTo(
-            el,
-            { opacity: 0, scale: 0.22, y: 70 },
-            {
-              opacity: 1,
-              scale: 1,
-              y: 0,
-              duration: 1.05,
-              ease: 'power3.inOut',
-              scrollTrigger: { trigger: el, start: 'top 82%', once: true },
-            },
-          )
-        } else if (kind === 'card') {
-          gsap.fromTo(
-            el,
-            { opacity: 0, scale: 0.94, rotateX: 6, transformPerspective: 900, y: 30 },
-            {
-              opacity: 1,
-              scale: 1,
-              rotateX: 0,
-              y: 0,
-              duration: 0.8,
-              ease: 'power3.out',
-              scrollTrigger: trigger,
-            },
-          )
-        } else {
-          gsap.fromTo(
-            el,
-            { opacity: 0, y: 24 },
-            { opacity: 1, y: 0, duration: 0.65, ease: 'power2.out', scrollTrigger: trigger },
-          )
-        }
+        const tl = gsap.timeline({
+          defaults: { ease: EASE.out },
+          scrollTrigger: {
+            trigger: section,
+            start: 'top 78%',
+            once: true,
+            fastScrollEnd: true,
+          },
+        })
+
+        const headings = els.filter((el) => el.dataset.reveal === 'heading')
+        const paras = els.filter((el) => el.dataset.reveal === 'para' && !isCounterPanel(el))
+        const counters = els.filter((el) => el.dataset.reveal === 'para' && isCounterPanel(el))
+        const cards = els.filter((el) => el.dataset.reveal === 'card')
+        const rest = els.filter(
+          (el) => el.dataset.reveal !== 'heading' && el.dataset.reveal !== 'para' && el.dataset.reveal !== 'card',
+        )
+
+        // Start states must paint at build time, not when the trigger fires
+        const now = { immediateRender: true }
+        headings.forEach((el) => {
+          const lines = headingLines(el)
+          tl.from(lines, { ...headingVars(lines), ...now }, 0)
+        })
+        if (paras.length)
+          tl.fromTo(paras, paraFrom, { ...paraTo, ...now, stagger: groupEach(paras) }, 0.12)
+        if (counters.length)
+          tl.fromTo(counters, paraFrom, { ...paraTo, ...now, stagger: groupEach(counters) }, 0.2)
+        if (cards.length)
+          tl.fromTo(cards, cardFrom, { ...cardTo, ...now, stagger: groupEach(cards) }, 0.2)
+        if (rest.length)
+          tl.fromTo(rest, paraFrom, { ...paraTo, ...now, stagger: groupEach(rest) }, 0.2)
+      })
+    }, root)
+
+    return () => ctx.revert()
+  }, [rootRef])
+}
+
+/**
+ * Scrubbed depth pass — [data-depth="N"] drifts y +N → −N px across the
+ * section's full viewport transit. Transforms only; fixed elements are skipped.
+ */
+export function useSectionDepth(rootRef: React.RefObject<HTMLElement | null>) {
+  useEffect(() => {
+    const root = rootRef.current
+    if (!root) return
+    if (prefersReducedMotion()) return
+
+    const ctx = gsap.context(() => {
+      root.querySelectorAll<HTMLElement>('[data-depth]').forEach((el) => {
+        const depth = Number(el.dataset.depth)
+        if (!depth || getComputedStyle(el).position === 'fixed') return
+        gsap.fromTo(
+          el,
+          { y: depth },
+          {
+            y: -depth,
+            ease: 'none',
+            scrollTrigger: { trigger: root, start: 'top bottom', end: 'bottom top', scrub: true },
+          },
+        )
       })
     }, root)
 

@@ -54,6 +54,11 @@ const PALETTES: Record<Theme, Record<(typeof VARS)[number], string>> = {
 
 const DURATION_MS = 1200
 
+/** Every layer of the flip (DOM tokens, code rain, WebGL sky, video tint,
+    ripple) rides this one clock with the same smoothstep curvature. */
+export const THEME_LERP_MS = DURATION_MS
+export const themeLerpEase = (t: number) => t * t * (3 - 2 * t)
+
 let raf = 0
 
 export function currentTheme(): Theme {
@@ -95,7 +100,7 @@ function ripple(x: number, y: number, color: string) {
       { clipPath: `circle(${Math.round(r)}px at ${x}px ${y}px)`, opacity: 0.16, offset: 0.7 },
       { clipPath: `circle(${Math.round(r)}px at ${x}px ${y}px)`, opacity: 0 },
     ],
-    { duration: 900, easing: 'cubic-bezier(0.16, 1, 0.3, 1)' },
+    { duration: DURATION_MS, easing: 'cubic-bezier(0.83, 0, 0.17, 1)' },
   )
   const done = () => d.remove()
   anim.onfinish = done
@@ -136,7 +141,7 @@ export function flipThemeAt(x: number, y: number): Theme {
   if (Number.isFinite(x) && Number.isFinite(y)) ripple(x, y, PALETTES[next]['--bg-mid'])
 
   const t0 = performance.now()
-  const ease = (t: number) => (t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2)
+  const ease = themeLerpEase
   const step = (now: number) => {
     const t = Math.min(1, (now - t0) / DURATION_MS)
     const e = ease(t)

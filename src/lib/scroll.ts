@@ -20,6 +20,11 @@ export function isPaging(): boolean {
   return !!lenis && Math.abs(lenis.velocity) > 0.6
 }
 
+/** Signed scroll momentum for layers that express it (code rain, skew). */
+export function scrollVelocity(): number {
+  return lenis ? lenis.velocity : 0
+}
+
 /** Pin-aware chapter top: a pinned chapter starts where its trigger starts. */
 function chapterTop(el: HTMLElement): number {
   for (const st of ScrollTrigger.getAll()) {
@@ -49,7 +54,11 @@ export function initSmoothScroll(): () => void {
 
   if (prefersReducedMotion()) return () => {}
 
-  lenis = new Lenis({ lerp: 0.09 })
+  // 120Hz-safe pin behavior; a mobile URL-bar resize must not re-measure pins
+  ScrollTrigger.config({ ignoreMobileResize: true })
+
+  // wheelMultiplier 0.9: a slightly heavier, more deliberate page
+  lenis = new Lenis({ lerp: 0.09, wheelMultiplier: 0.9 })
   lenis.on('scroll', ScrollTrigger.update)
   const tick = (time: number) => lenis?.raf(time * 1000)
   gsap.ticker.add(tick)
@@ -62,11 +71,20 @@ export function initSmoothScroll(): () => void {
   }
 }
 
-/** Glide to a chapter (nav, side rail, CTAs). */
+/** Glide to a chapter (nav, side rail, CTAs) on the free-scroll physics. */
 export function scrollToId(id: string) {
   const el = document.getElementById(id)
   if (!el) return
   const y = chapterTop(el)
-  if (lenis) lenis.scrollTo(y, { duration: 1.2, easing: (t: number) => 1 - Math.pow(1 - t, 3) })
-  else window.scrollTo(0, y)
+  if (lenis) {
+    // easeOutExpo decays like the Lenis inertia, so glides and flicks feel
+    // like one physics engine; long jumps get a longer runway.
+    const far = Math.abs(y - window.scrollY) > window.innerHeight * 1.5
+    lenis.scrollTo(y, {
+      duration: far ? 1.6 : 1.2,
+      easing: (t: number) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+    })
+  } else {
+    window.scrollTo(0, y)
+  }
 }

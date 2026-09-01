@@ -2,7 +2,7 @@ import { useRef, useState } from 'react'
 import SectionIndex from './SectionIndex'
 import CardShell from './CardShell'
 import { people } from '../content'
-import { useSectionReveals } from '../lib/reveal'
+import { useSectionReveals, useSectionDepth } from '../lib/reveal'
 
 function renderEmphasis(text: string) {
   const parts = text.split('*')
@@ -23,6 +23,7 @@ function initials(name: string) {
 export default function People() {
   const root = useRef<HTMLElement>(null)
   useSectionReveals(root)
+  useSectionDepth(root)
   const [flipped, setFlipped] = useState<Set<number>>(new Set())
 
   const toggle = (i: number) => {
@@ -41,14 +42,14 @@ export default function People() {
         <h2 data-reveal="heading" className="h-section mb-10 max-w-[16ch] md:mb-14">
           {renderEmphasis(people.heading)}
         </h2>
-        <div data-reveal="colossal" className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6 lg:gap-4" data-interactive>
+        <div data-reveal="colossal" data-depth="16" className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6 lg:gap-4" data-interactive>
           {people.members.map((m, i) => (
             <div key={i} data-reveal="card" className="[perspective:1100px]">
               <CardShell
                 as="button"
                 onClick={() => toggle(i)}
                 ariaLabel={`${m.name}, ${m.role} — press to flip for bio`}
-                className="group relative block aspect-[5/7] w-full cursor-pointer [transform-style:preserve-3d]"
+                className="group relative block aspect-[5/7] w-full cursor-pointer [perspective:1100px] [transform-style:preserve-3d]"
               >
                 <span
                   className={`absolute inset-0 block transition-transform duration-700 [transform-style:preserve-3d] ${

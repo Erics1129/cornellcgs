@@ -26,6 +26,10 @@ export const SHAKE_EVENT = 'cgs:shake'
 export const SOUND_EVENT = 'cgs:sound'
 export const SOUND_KEY = 'cgs-sound'
 
+/** Fired once when the loader curtain lifts; entrances start on it.
+    window.__cgsShown is set at the same moment for late subscribers. */
+export const BOOTED_EVENT = 'cgs:shown'
+
 export function soundEnabled(): boolean {
   try {
     return localStorage.getItem(SOUND_KEY) === 'on'

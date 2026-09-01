@@ -16,7 +16,7 @@ function renderEmphasis(text: string) {
  * What we do (Q♠) — the poker board. The section pins for ~2.5 viewport
  * heights; five community cards are dealt from the deck spot (where the 3D
  * hero card parks and fades out), then flip face up scrubbed to scroll:
- * flop across 0.2–0.5, turn at 0.65, river at 0.85 (§5.8).
+ * deals fill 0–0.34, flop flips 0.34–0.63, turn at 0.68, river at 0.85 (§5.8).
  */
 export default function WhatWeDo() {
   const root = useRef<HTMLElement>(null)
@@ -41,6 +41,7 @@ export default function WhatWeDo() {
           start: 'top top',
           end: '+=250%',
           pin: true,
+          anticipatePin: 1,
           scrub: 0.6,
           // Refresh strictly before the ML pin: its useLayoutEffect creates
           // its trigger first, and out-of-order refreshes measure ML's start
@@ -49,36 +50,44 @@ export default function WhatWeDo() {
         },
       })
 
-      // Deal: every card starts stacked on the deck spot, face down.
-      // The paging beats rest at progress 1/3, 2/3 and 1 — every deal and
-      // flip finishes strictly BEFORE a beat so no card ever freezes edge-on.
+      // Deal: every card starts stacked on the deck spot, face down. Flights
+      // fill the first third of the pin (positions i*0.055, 0.12 each — last
+      // lands at 0.34) and lob: y bows ~40px above the straight-line path
+      // while rotation and scale resolve over the whole flight.
       cards.forEach((card, i) => {
-        tl.from(
+        const at = i * 0.055
+        let dy = 0
+        // One rect read resolves both axes — y must be captured here, before
+        // any transform lands on this card (scale/x don't move the center,
+        // but a re-measure inside the arc tweens would read a moved card).
+        const measure = () => {
+          const d = deck!.getBoundingClientRect()
+          const c = card.getBoundingClientRect()
+          dy = d.top + d.height / 2 - (c.top + c.height / 2)
+          return d.left + d.width / 2 - (c.left + c.width / 2)
+        }
+        tl.from(card, { x: measure, rotation: 8 - i * 4, scale: 0.12, duration: 0.12 }, at)
+        // Arc: decelerate up to the apex, accelerate down onto the row.
+        tl.fromTo(
           card,
-          {
-            x: () => {
-              const d = deck!.getBoundingClientRect()
-              const c = card.getBoundingClientRect()
-              return d.left + d.width / 2 - (c.left + c.width / 2)
-            },
-            y: () => {
-              const d = deck!.getBoundingClientRect()
-              const c = card.getBoundingClientRect()
-              return d.top + d.height / 2 - (c.top + c.height / 2)
-            },
-            rotation: 8 - i * 4,
-            scale: 0.12,
-            duration: 0.07,
-          },
-          i * 0.012,
+          { y: () => dy },
+          { y: () => dy * 0.45 - 40, duration: 0.06, ease: 'power2.out' },
+          at,
         )
+        tl.to(card, { y: 0, duration: 0.06, ease: 'power2.in' }, at + 0.06)
       })
 
-      // Beat 1 (1/3): the flop is fully up. Beat 2 (2/3): the turn. End: river.
-      const marks = [0.13, 0.2, 0.26, 0.46, 0.8]
+      // Flip marks are pin-progress fractions: flop 0.34–0.63, turn 0.68–0.77,
+      // river 0.85–0.94 — each run clears the paging beats (1/3, 2/3, 1) so
+      // no card ever freezes edge-on at a rest point.
+      const marks = [0.34, 0.44, 0.54, 0.68, 0.85]
       flips.forEach((inner, i) => {
-        tl.to(inner, { rotationY: 180, duration: 0.07, ease: 'power2.inOut' }, marks[i])
+        tl.to(inner, { rotationY: 180, duration: 0.09, ease: 'power2.inOut' }, marks[i])
       })
+
+      // Zero-length pad: total duration is exactly 1, so every position above
+      // maps 1:1 onto the 250% pin's progress.
+      tl.set({}, {}, 1)
 
       return () => {
         tl.scrollTrigger?.kill()

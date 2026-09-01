@@ -250,7 +250,8 @@ em,
   border-radius: inherit;
   pointer-events: none;
   opacity: 0;
-  transition: opacity 0.3s var(--ease-out);
+  /* Phosphor model: light appears instantly, decays slowly */
+  transition: opacity 0.25s ease;
   background: conic-gradient(
     from calc(var(--na) + var(--neon-from, 0deg)),
     var(--neon-dim) 0deg,
@@ -287,7 +288,7 @@ em,
 .neon:focus-within::before,
 .neon.neon-on::before {
   opacity: 1;
-  transition: opacity 0.15s ease;
+  transition: opacity 0.1s ease-out;
   animation-play-state: running;
 }
 
@@ -296,7 +297,7 @@ em,
 .neon:focus-within::after,
 .neon.neon-on::after {
   opacity: 0.45;
-  transition: opacity 0.15s ease;
+  transition: opacity 0.1s ease-out;
   animation-play-state: running;
 }
 

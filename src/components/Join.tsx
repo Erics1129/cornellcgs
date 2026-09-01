@@ -1,7 +1,7 @@
 import { useRef } from 'react'
 import CardShell from './CardShell'
 import { join } from '../content'
-import { useSectionReveals } from '../lib/reveal'
+import { useSectionReveals, useSectionDepth } from '../lib/reveal'
 
 function renderEmphasis(text: string) {
   const parts = text.split('*')
@@ -12,6 +12,7 @@ function renderEmphasis(text: string) {
 export default function Join() {
   const root = useRef<HTMLElement>(null)
   useSectionReveals(root)
+  useSectionDepth(root)
 
   return (
     <section ref={root} id="join" className="section">
@@ -23,7 +24,7 @@ export default function Join() {
         <span className="suit">★</span>
       </div>
       <div className="container-site">
-        <div data-reveal="colossal">
+        <div data-reveal="colossal" data-depth="20">
           <CardShell
             className="panel neon relative mx-auto flex max-w-3xl flex-col items-center gap-6 overflow-hidden rounded-[2rem] px-8 py-20 text-center md:py-24"
             tiltMax={2}

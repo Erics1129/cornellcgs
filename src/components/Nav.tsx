@@ -1,4 +1,8 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import gsap from 'gsap'
+import { EASE } from '../lib/eases'
+import { attachMagnetic } from '../lib/magnetic'
+import { prefersReducedMotion } from '../lib/motion'
 import { scrollToId } from '../lib/scroll'
 import { openPage } from '../lib/router'
 
@@ -23,6 +27,7 @@ const GROUPS: Group[] = [
     subs: [
       { label: 'Who we are', id: 'who-we-are' },
       { label: 'Our Team', id: 'people' },
+      { label: 'Advisors', id: 'advisors' },
       { label: 'World', id: 'world' },
     ],
   },
@@ -53,9 +58,34 @@ const GROUPS: Group[] = [
   },
 ]
 
+/* .btn-label's roll only keys off .btn/a ancestors — these triggers are
+   <button>s, so they need their own hover hook. */
+const localCss = `
+.roll-hover:hover .btn-label > span,
+.roll-hover:focus-visible .btn-label > span { transform: translateY(-100%); }
+`
+
+function IconX() {
+  return (
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 16 16"
+      fill="none"
+      aria-hidden="true"
+      className="transition-transform duration-[400ms] [transition-timing-function:var(--ease-out)] group-hover:rotate-90"
+    >
+      <path d="M2 2l12 12M14 2L2 14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+    </svg>
+  )
+}
+
 export default function Nav() {
   const [open, setOpen] = useState<number | null>(null)
   const rootRef = useRef<HTMLDivElement>(null)
+  const panelRef = useRef<HTMLDivElement>(null)
+  const closeRef = useRef<HTMLButtonElement>(null)
+  const learnMoreRef = useRef<HTMLButtonElement>(null)
 
   useEffect(() => {
     if (open === null) return
@@ -76,6 +106,32 @@ export default function Nav() {
     }
   }, [open])
 
+  // Panel content rises in behind the clip wipe; close needs no tween — the
+  // clip swallows it. Layout effect so items never paint un-hidden first.
+  useLayoutEffect(() => {
+    if (open === null || prefersReducedMotion()) return
+    const items = panelRef.current?.querySelectorAll<HTMLElement>('[data-panel-item]')
+    if (!items || items.length === 0) return
+    const tween = gsap.fromTo(
+      items,
+      { autoAlpha: 0, y: 18 },
+      { autoAlpha: 1, y: 0, duration: 0.5, ease: EASE.out, stagger: 0.05, delay: 0.12, clearProps: 'all' },
+    )
+    return () => {
+      tween.kill()
+      gsap.set(items, { clearProps: 'all' })
+    }
+  }, [open])
+
+  // Magnetic pull on the panel's ✕ and Learn More (fine pointers only).
+  useEffect(() => {
+    if (open === null) return
+    const cleanups: Array<() => void> = []
+    if (closeRef.current) cleanups.push(attachMagnetic(closeRef.current, 3))
+    if (learnMoreRef.current) cleanups.push(attachMagnetic(learnMoreRef.current, 5))
+    return () => cleanups.forEach((fn) => fn())
+  }, [open])
+
   const go = (id: string) => {
     setOpen(null)
     scrollToId(id)
@@ -91,6 +147,8 @@ export default function Nav() {
 
   return (
     <div ref={rootRef} data-interactive className="fixed inset-x-0 top-0 z-50">
+      <style>{localCss}</style>
+
       {/* The bar */}
       <div className="relative z-10 border-b border-[color-mix(in_srgb,var(--neon-dim)_55%,transparent)] bg-[color-mix(in_srgb,var(--bg-top)_97%,transparent)]">
         <div className="container-site flex h-16 items-center justify-between">
@@ -111,13 +169,16 @@ export default function Nav() {
                 key={g.label}
                 onClick={() => setOpen(open === i ? null : i)}
                 aria-expanded={open === i}
-                className={`relative pb-1 text-[max(0.95rem,16px)] font-[550] transition-colors ${
+                className={`roll-hover relative pb-1 text-[max(0.95rem,16px)] font-[550] transition-colors duration-300 [transition-timing-function:var(--ease-out)] after:absolute after:inset-x-0 after:bottom-0 after:h-[2px] after:origin-left after:bg-[var(--neon-mid)] after:transition-transform after:duration-[350ms] after:[transition-timing-function:var(--ease-out)] ${
                   open === i
-                    ? 'text-[var(--neon-mid)] after:absolute after:inset-x-0 after:bottom-0 after:h-[2px] after:bg-[var(--neon-mid)]'
-                    : 'text-[var(--text)] hover:text-[var(--neon-mid)]'
+                    ? 'text-[var(--neon-mid)] after:scale-x-100'
+                    : 'text-[var(--text)] after:scale-x-0 hover:text-[var(--neon-mid)]'
                 }`}
               >
-                {g.label}
+                <span className="btn-label">
+                  <span>{g.label}</span>
+                  <span aria-hidden="true">{g.label}</span>
+                </span>
               </button>
             ))}
           </nav>
@@ -127,21 +188,35 @@ export default function Nav() {
             onClick={() => setOpen(open === null ? 0 : null)}
             aria-expanded={open !== null}
             aria-label="Menu"
-            className="text-[max(0.95rem,16px)] font-[550] text-[var(--text)] md:hidden"
+            className="flex items-center gap-2.5 text-[max(0.95rem,16px)] font-[550] text-[var(--text)] md:hidden"
           >
-            Menu {open !== null ? '▲' : '▼'}
+            Menu
+            <span aria-hidden="true" className="relative h-3 w-4">
+              <span
+                className={`absolute left-0 top-[2.75px] h-[1.5px] w-4 bg-current transition-transform duration-[400ms] [transition-timing-function:var(--ease-out)] ${
+                  open !== null ? 'translate-y-[2.5px] rotate-45' : ''
+                }`}
+              />
+              <span
+                className={`absolute left-0 top-[7.75px] h-[1.5px] w-4 bg-current transition-transform duration-[400ms] [transition-timing-function:var(--ease-out)] ${
+                  open !== null ? '-translate-y-[2.5px] -rotate-45' : ''
+                }`}
+              />
+            </span>
           </button>
         </div>
       </div>
 
-      {/* The overlay panel */}
+      {/* The overlay panel — natural height, revealed by a clip wipe
+          (clip-path animates on the compositor; no layout per frame) */}
       <div
+        ref={panelRef}
         role="menu"
         aria-hidden={open === null}
-        className={`absolute inset-x-0 top-16 origin-top overflow-hidden bg-white shadow-[0_40px_80px_-30px_rgba(10,30,63,0.35)] transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+        className={`sheet-light grain-light absolute inset-x-0 top-16 bg-white shadow-[0_40px_80px_-30px_rgba(10,30,63,0.35)] transition-[clip-path] duration-[600ms] [transition-timing-function:var(--ease-out)] ${
           open !== null
-            ? 'pointer-events-auto max-h-[70vh] opacity-100'
-            : 'pointer-events-none max-h-0 opacity-0'
+            ? 'pointer-events-auto [clip-path:inset(0_0_0%_0)]'
+            : 'pointer-events-none [clip-path:inset(0_0_100%_0)]'
         }`}
       >
         {/* Mobile: one list with every page (the bar links are hidden there) */}
@@ -150,15 +225,16 @@ export default function Nav() {
             <button
               onClick={() => setOpen(null)}
               aria-label="Close menu"
-              className="absolute right-0 top-4 p-2 text-2xl leading-none text-[#0a1e3f]"
+              className="group absolute right-0 top-4 p-2 text-[#0a1e3f]"
             >
-              ✕
+              <IconX />
             </button>
             {GROUPS.flatMap((g) => g.subs)
               .filter((s, i, arr) => arr.findIndex((x) => x.id === s.id) === i)
               .map((s) => (
                 <button
                   key={s.id}
+                  data-panel-item
                   role="menuitem"
                   onClick={() => goPage(s.id)}
                   className="py-3 text-left text-[max(1.15rem,19px)] font-[600] text-[#0a1e3f]"
@@ -172,24 +248,36 @@ export default function Nav() {
         {active && (
           <div className="container-site relative hidden gap-10 py-14 md:grid md:grid-cols-2 md:py-20">
             <button
+              ref={closeRef}
               onClick={() => setOpen(null)}
               aria-label="Close menu"
-              className="absolute right-0 top-6 p-2 text-2xl leading-none text-[#0a1e3f] transition-transform hover:rotate-90 md:top-8"
+              className="group absolute right-0 top-6 p-2 text-[#0a1e3f] md:top-8"
             >
-              ✕
+              <IconX />
             </button>
 
             {/* Left: the big name + Learn More, like citadel.com */}
             <div>
-              <p className="font-display mb-8 text-[clamp(2.4rem,4.5vw,4.2rem)] font-[640] leading-[1.05] tracking-[-0.02em] text-[#0a1e3f]">
+              <p
+                data-panel-item
+                className="font-display mb-8 text-[clamp(2.4rem,4.5vw,4.2rem)] font-[640] leading-[1.05] tracking-[-0.02em] text-[#0a1e3f]"
+              >
                 {active.label}
               </p>
-              <button
-                onClick={() => goPage(active.target)}
-                className="bg-[#0a1e3f] px-8 py-4 text-[max(0.95rem,16px)] font-[600] text-white transition-colors hover:bg-[#1e5eff]"
-              >
-                Learn More
-              </button>
+              {/* Wrapper takes the stagger so GSAP never fights the magnetic
+                  transform on the button itself */}
+              <div data-panel-item>
+                <button
+                  ref={learnMoreRef}
+                  onClick={() => goPage(active.target)}
+                  className="roll-hover group bg-[#0a1e3f] px-8 py-4 text-[max(0.95rem,16px)] font-[600] text-white transition-colors duration-300 [transition-timing-function:var(--ease-out)] hover:bg-[#1e5eff]"
+                >
+                  <span className="btn-label transition-transform duration-300 [transition-timing-function:var(--ease-out)] group-hover:-translate-y-0.5">
+                    <span>Learn More</span>
+                    <span aria-hidden="true">Learn More</span>
+                  </span>
+                </button>
+              </div>
             </div>
 
             {/* Right: stacked sub-links */}
@@ -197,9 +285,10 @@ export default function Nav() {
               {active.subs.map((s) => (
                 <button
                   key={s.id + s.label}
+                  data-panel-item
                   role="menuitem"
                   onClick={() => goPage(s.id)}
-                  className="text-[max(1.05rem,18px)] font-[550] text-[#0a1e3f] transition-colors hover:text-[#1e5eff] hover:underline hover:underline-offset-4"
+                  className="link-wipe text-[max(1.05rem,18px)] font-[550] text-[#0a1e3f] hover:text-[#1e5eff]"
                 >
                   {s.label}
                 </button>

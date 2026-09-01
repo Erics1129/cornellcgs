@@ -15,15 +15,14 @@
  * The canvas carries id="code-layer-canvas" so the shatter layer can sample it.
  */
 import { useEffect, useRef } from 'react'
-import { cssVar, onTheme } from '../lib/theme'
+import { cssVar, onTheme, THEME_LERP_MS, themeLerpEase } from '../lib/theme'
 import { onReducedMotionChange, prefersReducedMotion } from '../lib/motion'
-import { isPaging } from '../lib/scroll'
+import { isPaging, scrollVelocity } from '../lib/scroll'
 import { CODE_LINES } from './codeSnippets'
 
 const FONT = '600 13px "JetBrains Mono", monospace'
 const LINE_H = 20
 const PARALLAX = 0.3
-const THEME_LERP_MS = 800
 const FLASH_MS = 700
 const MAX_LINE_W = 640
 
@@ -392,15 +391,18 @@ export default function CodeLayer() {
 
       if (lerpStart >= 0) {
         const t = Math.min(1, (now - lerpStart) / THEME_LERP_MS)
-        palette = mixPalette(lerpFrom, lerpTo, t * (2 - t))
+        palette = mixPalette(lerpFrom, lerpTo, themeLerpEase(t))
         renderAtlas(palette)
         if (t >= 1) lerpStart = -1
       }
 
       const scroll = window.scrollY
+      // The rain feels the page's momentum: columns run faster while the
+      // reader is in motion, easing back as the scroll settles.
+      const vBoost = 1 + Math.min(Math.abs(scrollVelocity()), 8) * 0.3
       ctx.clearRect(0, 0, w, h)
       for (const col of cols) {
-        col.off = mod(col.off + col.speed * dt, col.count * LINE_H)
+        col.off = mod(col.off + col.speed * vBoost * dt, col.count * LINE_H)
         drawColumn(col, scroll)
       }
       if (!flash && now >= nextFlash) {

@@ -17,7 +17,7 @@ const PAGES = {
   },
   'what-we-do': {
     title: 'What We Do — Cornell Computational Game Society',
-    desc: 'Study nights, research, building, tournaments and talks at the Cornell Computational Game Society.',
+    desc: 'We build game AI \u2014 the AlphaGo kind. Now playing: GuanDan. Study nights, research, tournaments and talks.',
   },
   'ml-process': {
     title: 'Our Machine Learning Process — Cornell CGS',
@@ -31,17 +31,21 @@ const PAGES = {
     title: 'World — Cornell Computational Game Society',
     desc: 'The worldwide community of the Cornell Computational Game Society.',
   },
+  advisors: {
+    title: 'Advisors \u2014 Cornell Computational Game Society',
+    desc: 'Advisors and team of the Cornell Computational Game Society (Cornell CGS).',
+  },
   people: {
     title: 'Our Team — Cornell Computational Game Society',
     desc: 'The team — board and members of the Cornell Computational Game Society (Cornell CGS).',
   },
   join: {
     title: 'Join — Cornell Computational Game Society',
-    desc: 'How to join the Cornell Computational Game Society (Cornell CGS).',
+    desc: 'Any person, any study \u2014 how to join the Cornell Computational Game Society. Email recruitment@cornellcgs.org.',
   },
   contact: {
     title: 'Contact Us — Cornell Computational Game Society',
-    desc: 'Contact the Cornell Computational Game Society (Cornell CGS).',
+    desc: 'Contact Cornell CGS \u2014 recruitment, tech, finance, marketing and social inboxes at cornellcgs.org.',
   },
 }
 

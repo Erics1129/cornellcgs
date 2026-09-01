@@ -34,6 +34,8 @@ export const typing = {
     { lead: 'We train', tail: 'reinforcement learning agents' },
     { lead: 'We compute', tail: 'equilibria' },
     { lead: 'We collaborate on', tail: 'multi agent learning' },
+    { lead: 'We build', tail: 'AlphaGo style agents' },
+    { lead: 'We are training', tail: 'a GuanDan AI' },
     { lead: 'We play', tail: 'anything with payoffs' },
   ],
 }
@@ -46,8 +48,7 @@ export const hero = {
 
 export const whoWeAre = {
   heading: 'Games, *solved* with computers.',
-  // TODO real copy
-  paragraphs: ['We solve games with code. Solvers, agents, and the math.'],
+  paragraphs: ['We build game AI — the AlphaGo kind. Solvers, agents, and the math.'],
   photoPlaceholder: 'TODO team photo',
   // TODO real numbers — null shows as "TBA" until they exist
   counters: [
@@ -78,7 +79,7 @@ export const whatWeDo = {
       rank: 'Q',
       suit: '♠',
       title: 'Build',
-      text: 'Bots that play. Tools. Papers.',
+      text: 'Bots that play. Right now: GuanDan.',
     },
     {
       rank: 'J',
@@ -178,14 +179,22 @@ export const people = {
 export const join = {
   heading: 'Pull up a *chair*.',
   text: 'New members every semester. The curious, any time.',
-  cta: { label: 'Apply to CGS', href: '#' }, // TODO form url
+  cta: { label: 'Apply to CGS', href: 'mailto:recruitment@cornellcgs.org' }, // TODO form url when one exists
 }
 
 export const contact = {
-  email: 'To be added', // TODO real email
+  email: 'recruitment@cornellcgs.org',
   instagram: 'To be added', // TODO real instagram
   instagramUrl: '', // TODO real instagram url
   wechat: 'To be added', // TODO real wechat
+  /** Forward inboxes at cornellcgs.org — one per door. */
+  inboxes: [
+    { label: 'Recruitment', address: 'recruitment@cornellcgs.org' },
+    { label: 'Tech', address: 'tech@cornellcgs.org' },
+    { label: 'Finance & Sponsors', address: 'finance@cornellcgs.org' },
+    { label: 'Marketing', address: 'marketing@cornellcgs.org' },
+    { label: 'Social', address: 'social@cornellcgs.org' },
+  ],
 }
 
 /** Country markers for the World section. TODO real member country list. */
@@ -219,77 +228,102 @@ export type SubPageDef = {
 export const pages: Record<string, SubPageDef> = {
   'who-we-are': {
     title: 'Who We Are',
-    lead: 'TBD', // TODO
+    lead: 'A Cornell student organization that solves games with code.',
     sections: [
-      { heading: 'Our Culture', body: 'TBD' },
-      { heading: 'Leadership Team', body: 'TBD' },
-      { heading: 'Where We Are', body: 'TBD' },
+      { heading: 'Our Culture', body: 'Curiosity over credentials. Rigor over vibes. Any person, any study.' },
+      { heading: 'What We Build', body: 'Game AI — the AlphaGo kind. Agents that learn a game and outgrow us.' },
+      { heading: 'Where We Are', body: 'Ithaca, NY. Members from around the world.' },
     ],
   },
   'what-we-do': {
     title: 'What We Do',
-    lead: 'TBD', // TODO
+    lead: 'We build game AI — the AlphaGo kind. Now playing: GuanDan.',
     sections: [
-      { heading: 'Study Nights', body: 'TBD' },
-      { heading: 'Research', body: 'TBD' },
-      { heading: 'Build', body: 'TBD' },
-      { heading: 'Tournaments', body: 'TBD' },
-      { heading: 'Talks', body: 'TBD' },
+      {
+        heading: 'GuanDan, In 20 Seconds',
+        body: '4 players, 2 teams, partners across the table, 108 cards. Shed your hand first. Singles, pairs, straights, full houses — and bombs beat everything.',
+      },
+      {
+        heading: 'How You Win',
+        body: 'Finish before the other team. Wins climb your team up card levels, 2 through Ace. First team past Ace takes the match.',
+      },
+      {
+        // TODO(club): replace with real, current capabilities + numbers
+        heading: 'Our GuanDan AI',
+        body: 'In training. It learns by playing itself, and it gets better every run. Benchmarks when we have numbers worth bragging about.',
+      },
+      { heading: 'Study Nights', body: 'Game theory, ranges, equilibrium — weekly.' },
+      { heading: 'Tournaments & Talks', body: 'Real structure, zero buy-in. Speakers from quant, poker, academia.' },
     ],
   },
   'ml-process': {
     title: 'Our Machine Learning Process',
-    lead: 'TBD', // TODO
+    lead: 'From rules to superhuman — the same loop AlphaGo ran.',
     sections: [
-      { heading: '01 — Frame the game', body: 'TBD' },
-      { heading: '02 — Build the environment', body: 'TBD' },
-      { heading: '03 — Train', body: 'TBD' },
-      { heading: '04 — Evaluate', body: 'TBD' },
-      { heading: '05 — Ship', body: 'TBD' },
+      { heading: '01 — Frame the game', body: 'States, actions, payoffs.' },
+      { heading: '02 — Build the environment', body: 'A simulator, and self-play.' },
+      { heading: '03 — Train', body: 'Counterfactual regret minimization and deep RL.' },
+      { heading: '04 — Evaluate', body: 'Exploitability and head-to-head matches.' },
+      { heading: '05 — Ship', body: 'Bots that play, tools people use, papers.' },
     ],
   },
   events: {
     title: 'Events',
-    lead: 'TBD', // TODO
+    lead: 'Five marked cards on this year\u2019s calendar. Dates TBA.',
     sections: [
-      { heading: 'Fall Kickoff', body: 'TBD' },
-      { heading: 'Solver Workshop', body: 'TBD' },
-      { heading: 'Alumni Night', body: 'TBD' },
-      { heading: 'Charity Tournament', body: 'TBD' },
-      { heading: 'Spring Banquet', body: 'TBD' },
+      { heading: 'Fall Kickoff', body: 'First deal of the year. Date TBA.' },
+      { heading: 'Solver Workshop', body: 'Hands-on with CFR. Date TBA.' },
+      { heading: 'Alumni Night', body: 'The truth about quant and research. Date TBA.' },
+      { heading: 'Charity Tournament', body: 'Every chip for a good cause. Date TBA.' },
+      { heading: 'Spring Banquet', body: 'The year in review. Date TBA.' },
     ],
   },
   world: {
     title: 'World',
-    lead: 'TBD', // TODO
+    lead: 'Wherever you are from, you have a seat at this table.',
     sections: [
-      { heading: 'Our Members', body: 'TBD' },
-      { heading: 'Countries', body: 'TBD' },
+      { heading: 'Our Members', body: 'Students from around the world. One common language: expected value.' },
+      { heading: 'Countries', body: 'Count TBA \u2014 the map is still filling in.' },
     ],
   },
   people: {
     title: 'Our Team',
-    lead: 'TBD', // TODO
+    lead: 'The hands behind CGS.',
     sections: [
-      { heading: 'Board', body: 'TBD' },
-      { heading: 'Members', body: 'TBD' },
+      { heading: 'Board', body: 'Roster TBA.' },
+      { heading: 'Members', body: 'Roster TBA \u2014 join us and be on it.' },
+      { heading: 'Advisors', body: 'TBA \u2014 see Advisors.' },
+    ],
+  },
+  advisors: {
+    title: 'Advisors',
+    // TODO(club): advisor + member roster (names, roles, photos)
+    lead: 'The people who keep us honest.',
+    sections: [
+      { heading: 'Faculty Advisors', body: 'TBA.' },
+      { heading: 'Board', body: 'TBA.' },
+      { heading: 'Members', body: 'TBA.' },
     ],
   },
   join: {
     title: 'Join CGS',
-    lead: 'TBD', // TODO
+    lead: '\u201CI would found an institution where any person can find instruction in any study.\u201D \u2014 Ezra Cornell. We take him at his word.',
     sections: [
-      { heading: 'How to Apply', body: 'TBD' },
-      { heading: 'Who Can Join', body: 'TBD' },
+      { heading: 'Who Can Join', body: 'Any person, any study. Every school, every major, every background \u2014 all are welcome to apply.' },
+      { heading: 'Helpful Math', body: 'MATH 1110 or beyond \u2014 or relevant experience.' },
+      { heading: 'Helpful CS', body: 'CS 1110 or 1112 \u2014 enough to read and write code.' },
+      { heading: 'How to Apply', body: 'Email recruitment@cornellcgs.org. New members every semester.' },
     ],
   },
   contact: {
     title: 'Contact Us',
-    lead: 'TBD', // TODO
+    lead: 'Five doors, one table. Mail the one that fits.',
     sections: [
-      { heading: 'Email', body: 'TBD' },
-      { heading: 'Instagram', body: 'TBD' },
-      { heading: 'WeChat', body: 'TBD' },
+      { heading: 'Recruitment', body: 'recruitment@cornellcgs.org' },
+      { heading: 'Tech', body: 'tech@cornellcgs.org' },
+      { heading: 'Finance & Sponsors', body: 'finance@cornellcgs.org' },
+      { heading: 'Marketing', body: 'marketing@cornellcgs.org' },
+      { heading: 'Social', body: 'social@cornellcgs.org' },
     ],
   },
 }

@@ -12,11 +12,10 @@
  * unavailable, the CSS-gradient stub markup takes over.
  */
 import { useEffect, useRef, useState } from 'react'
-import { cssVar, onTheme } from '../lib/theme'
+import { cssVar, onTheme, THEME_LERP_MS, themeLerpEase } from '../lib/theme'
 import { onReducedMotionChange, prefersReducedMotion } from '../lib/motion'
 
 const DPR_CAP = 1.75
-const THEME_LERP_MS = 800
 
 const VERT = `
 attribute vec2 a_pos;
@@ -190,7 +189,7 @@ export default function GradientBG() {
     gl.uniform3fv(uTo, to)
     gl.uniform1f(uMix, 1)
 
-    const ease = (t: number) => t * t * (3 - 2 * t)
+    const ease = themeLerpEase
 
     const frame = (now: number) => {
       raf = 0

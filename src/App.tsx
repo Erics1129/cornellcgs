@@ -3,7 +3,7 @@ import gsap from 'gsap'
 import './lib/eases'
 import { initSmoothScroll } from './lib/scroll'
 import { useNeonEdges } from './lib/neon'
-import { SHAKE_EVENT, prefersReducedMotion } from './lib/motion'
+import { BOOTED_EVENT, SHAKE_EVENT, prefersReducedMotion } from './lib/motion'
 import GradientBG from './effects/GradientBG'
 import CodeLayer from './effects/CodeLayer'
 import Nav from './components/Nav'
@@ -19,13 +19,38 @@ import Join from './components/Join'
 import Footer from './components/Footer'
 import SubPage from './components/SubPage'
 
-/** Quick riffle of three cards, under 900 ms, then the hero (§6). */
+/**
+ * Loader — the riffle plus a dealing count. It holds until the display fonts
+ * and the hero video are actually ready (2.4s hard cap), then lifts and hands
+ * the entrance to the hero via BOOTED_EVENT. The curtain scales up slightly
+ * as it fades so the reveal reads as a push into the room, not a cut.
+ */
 function Loader({ done }: { done: boolean }) {
+  const [count, setCount] = useState(0)
+  useEffect(() => {
+    if (prefersReducedMotion()) {
+      setCount(100)
+      return
+    }
+    const state = { v: 0 }
+    const tween = gsap.to(state, {
+      v: 100,
+      duration: 1.4,
+      ease: 'power2.inOut',
+      onUpdate: () => setCount(Math.round(state.v)),
+    })
+    return () => {
+      tween.kill()
+    }
+  }, [])
+
   return (
     <div
       aria-hidden="true"
-      className={`fixed inset-0 z-[100] flex items-center justify-center bg-[var(--bg-top)] transition-opacity duration-300 ${
-        done ? 'pointer-events-none opacity-0' : 'opacity-100'
+      className={`fixed inset-0 z-[100] flex items-center justify-center bg-[var(--bg-top)] transition-[clip-path,opacity] duration-700 [transition-timing-function:var(--ease-in-out)] ${
+        done
+          ? 'pointer-events-none opacity-90 [clip-path:inset(0_0_100%_0)]'
+          : 'opacity-100 [clip-path:inset(0_0_0%_0)]'
       }`}
     >
       <div className="relative h-28 w-20">
@@ -43,6 +68,12 @@ function Loader({ done }: { done: boolean }) {
           </div>
         ))}
       </div>
+      <span
+        data-counter
+        className="mono absolute bottom-8 left-8 text-[max(0.8rem,13px)] text-[var(--muted)]"
+      >
+        {String(count).padStart(3, '0')}
+      </span>
     </div>
   )
 }
@@ -56,10 +87,40 @@ export default function App() {
 
   useEffect(() => {
     const cleanup = initSmoothScroll()
-    const t = window.setTimeout(() => setLoaded(true), 850)
+
+    // Lift the curtain when fonts + hero video are truly ready — capped at
+    // 2.4s, floored at 950ms so the riffle always completes its motion.
+    let lifted = false
+    const timers: number[] = []
+    const lift = () => {
+      if (lifted) return
+      lifted = true
+      ;(window as unknown as { __cgsShown?: boolean }).__cgsShown = true
+      setLoaded(true)
+      window.dispatchEvent(new Event(BOOTED_EVENT))
+    }
+    const ready = Promise.race([
+      Promise.all([
+        document.fonts?.ready ?? Promise.resolve(),
+        new Promise<void>((res) => {
+          const probe = () => {
+            const v = document.querySelector<HTMLVideoElement>('video[data-hero-video]')
+            if (!v) return res() // hero not mounted with a video — don't block
+            if (v.readyState >= 3) return res()
+            v.addEventListener('canplay', () => res(), { once: true })
+            timers.push(window.setTimeout(() => res(), 1800))
+          }
+          timers.push(window.setTimeout(probe, 100))
+        }),
+      ]),
+      new Promise<void>((res) => timers.push(window.setTimeout(() => res(), 2400))),
+    ])
+    const minShow = new Promise<void>((res) => timers.push(window.setTimeout(() => res(), 950)))
+    Promise.all([ready, minShow]).then(lift)
+
     return () => {
       cleanup()
-      window.clearTimeout(t)
+      timers.forEach((t) => window.clearTimeout(t))
     }
   }, [])
 
