@@ -91,12 +91,7 @@ export default function Footer() {
             CORNELL CGS
           </p>
           <ul className="mono flex flex-col gap-2 text-[max(0.85rem,13px)] text-[#93a6cc]">
-            {/* TODO real email */}
             <li data-f-row>Email — {contact.email}</li>
-            {/* TODO real instagram */}
-            <li data-f-row>Instagram — {contact.instagram}</li>
-            {/* TODO real wechat */}
-            <li data-f-row>WeChat — {contact.wechat}</li>
           </ul>
         </div>
 

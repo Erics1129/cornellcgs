@@ -210,6 +210,41 @@ export function useSectionDepth(rootRef: React.RefObject<HTMLElement | null>) {
   }, [rootRef])
 }
 
+/**
+ * Chapter hand-off: as a chapter leaves through the top, its content settles
+ * back and dims — the next chapter arrives over it, the way a page turns,
+ * instead of a hard cut at the boundary. Scrubbed, transform/opacity only.
+ * Pinned chapters own their motion and are skipped.
+ */
+export function useChapterTransitions(mainRef: React.RefObject<HTMLElement | null>) {
+  useEffect(() => {
+    const main = mainRef.current
+    if (!main || prefersReducedMotion()) return
+
+    const ctx = gsap.context(() => {
+      main.querySelectorAll<HTMLElement>(':scope > section').forEach((section) => {
+        if (section.parentElement?.classList.contains('pin-spacer')) return
+        const inner = section.querySelector<HTMLElement>('.container-site')
+        if (!inner) return
+        gsap.fromTo(
+          inner,
+          { scale: 1, opacity: 1, y: 0 },
+          {
+            scale: 0.94,
+            opacity: 0.45,
+            y: -40,
+            ease: 'none',
+            transformOrigin: '50% 30%',
+            scrollTrigger: { trigger: section, start: 'bottom 72%', end: 'bottom top', scrub: true },
+          },
+        )
+      })
+    }, main)
+
+    return () => ctx.revert()
+  }, [mainRef])
+}
+
 /** Count-up counters over 1.4 s when they enter the viewport. */
 export function animateCounter(el: HTMLElement, value: number, noSeparator = false) {
   const format = (v: number) =>

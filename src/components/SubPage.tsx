@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import { pages } from '../content'
+import { advisors, pages } from '../content'
 import { PAGE_THEME } from '../lib/pageTheme'
 import type { PageTheme } from '../lib/pageTheme'
 import { theme as technical } from './themes/Technical'
@@ -13,12 +13,6 @@ import { theme as cinematic } from './themes/Cinematic'
  * nothing overlays anything. Content that isn't already on the one-pager.
  * Each page wears one motion personality (src/lib/pageTheme.ts).
  */
-
-/** Which deck chapter the navy band links back to. */
-const CHAPTER: Record<string, string> = {
-  advisors: 'people',
-  contact: 'join',
-}
 
 const THEMES: Record<PageTheme['name'], PageTheme> = { technical, organic, kinetic, cinematic }
 
@@ -35,7 +29,6 @@ export default function SubPage({ id }: { id: string }) {
   }, [])
 
   if (!def) return null
-  const chapter = CHAPTER[id] ?? id
   const Backdrop = theme.Backdrop
 
   return (
@@ -85,6 +78,40 @@ export default function SubPage({ id }: { id: string }) {
         </p>
       </div>
 
+      {/* Advisors — photo, name, title, research line */}
+      {id === 'advisors' && (
+        <div className="container-site border-t border-[#e3e9f4] py-16 md:py-20">
+          <h2 data-page-item className="font-display mb-8 text-[clamp(1.4rem,2vw,1.9rem)] font-[640]">
+            Faculty Advisors
+          </h2>
+          <div className="grid gap-10 md:grid-cols-2">
+            {advisors.map((a) => (
+              <div key={a.name} data-page-item className="flex gap-6">
+                <img
+                  src={a.photo}
+                  alt={a.name}
+                  width={144}
+                  height={144}
+                  className="h-28 w-28 shrink-0 rounded-full object-cover md:h-36 md:w-36"
+                />
+                <div className="flex flex-col gap-2">
+                  <p className="font-display text-[clamp(1.25rem,1.8vw,1.6rem)] font-[640] leading-tight">
+                    <a href={a.url} className="link-wipe" target="_blank" rel="noreferrer">
+                      {a.name}
+                    </a>
+                  </p>
+                  <p className="mono text-[max(0.8rem,12px)] uppercase tracking-[0.14em] text-[#1e5eff]">
+                    {a.role}
+                  </p>
+                  <p className="text-[max(0.95rem,15px)] text-[#0a1e3f]">{a.title}</p>
+                  <p className="text-[max(0.95rem,15px)] leading-relaxed text-[#46587a]">{a.bio}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Sections */}
       <div className="container-site grid gap-x-10 gap-y-12 border-t border-[#e3e9f4] py-16 md:grid-cols-2 md:py-20">
         {def.sections.map((sec) => (
@@ -97,21 +124,13 @@ export default function SubPage({ id }: { id: string }) {
         ))}
       </div>
 
-      {/* Navy band back to the deck */}
+      {/* Quiet navy foot — no call to action, just the wordmark */}
       <div className="bg-[#0a1e3f] text-white">
-        <div className="container-site flex flex-col items-start justify-between gap-6 py-14 md:flex-row md:items-center">
-          <p className="font-display max-w-[24ch] text-[clamp(1.5rem,2.6vw,2.3rem)] font-[640] leading-tight">
-            See it live on the main page.
-          </p>
-          <a
-            href={`/#${chapter}`}
-            className="bg-white px-8 py-4 text-[max(0.95rem,16px)] font-[600] text-[#0a1e3f] transition-colors [transition-timing-function:var(--ease-out)] hover:bg-[#1e5eff] hover:text-white"
-          >
-            <span className="btn-label">
-              <span>Take me there</span>
-              <span aria-hidden="true">Take me there</span>
-            </span>
+        <div className="container-site flex items-center justify-between py-8">
+          <a href="/" className="font-display flex items-center gap-2.5 text-[max(0.85rem,13px)] font-[700] tracking-[0.26em] text-white">
+            <span aria-hidden="true" className="text-[#7a85ff]">♠</span> CORNELL CGS
           </a>
+          <span className="mono text-[max(0.8rem,12px)] text-[#93a6cc]">cornellcgs.org</span>
         </div>
       </div>
     </div>

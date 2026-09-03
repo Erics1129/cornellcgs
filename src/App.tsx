@@ -17,6 +17,8 @@ import WorldSection from './components/WorldSection'
 import People from './components/People'
 import Join from './components/Join'
 import Footer from './components/Footer'
+import ZoomWord from './components/ZoomWord'
+import { useChapterTransitions } from './lib/reveal'
 
 /**
  * Loader — the riffle plus a dealing count. It holds until the display fonts
@@ -80,9 +82,11 @@ function Loader({ done }: { done: boolean }) {
 export default function App() {
   const shakeRef = useRef<HTMLDivElement>(null)
   const appRef = useRef<HTMLDivElement>(null)
+  const mainRef = useRef<HTMLElement>(null)
   const [loaded, setLoaded] = useState(false)
 
   useNeonEdges(appRef)
+  useChapterTransitions(mainRef)
 
   useEffect(() => {
     const cleanup = initSmoothScroll()
@@ -166,14 +170,32 @@ export default function App() {
       {/* Cinematic grain over the whole world; sits under the loader only */}
       <div aria-hidden="true" className="film-grain z-[80]" />
       <div ref={shakeRef} className="relative z-10">
-        <main>
+        <main ref={mainRef}>
           <Hero />
           <WhoWeAre />
+          <ZoomWord
+            id="alphago"
+            word="AlphaGo"
+            rest=". The kind of AI we build."
+            lead="Solvers, agents, and the math behind every hand."
+          />
           <WhatWeDo />
+          <ZoomWord
+            id="guandan"
+            word="GuanDan"
+            rest=". Our current project."
+            lead="4 players, 2 teams, 108 cards."
+          />
           <MLProcess />
           <Events />
           <WorldSection />
           <People />
+          <ZoomWord
+            id="anyone"
+            word="Anyone"
+            rest=". Any person, any study."
+            lead="Every school, every major, every background."
+          />
           <Join />
         </main>
         <Footer />

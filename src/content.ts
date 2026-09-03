@@ -197,6 +197,18 @@ export const contact = {
   ],
 }
 
+/** Advisors — name, title and research line as published on their own pages. */
+export const advisors = [
+  {
+    name: 'Robert D. Kleinberg',
+    role: 'Faculty Advisor',
+    title: 'Professor of Computer Science, Cornell University',
+    bio: 'Algorithms and theoretical computer science \u2014 economic aspects of algorithms, online learning and its applications, random processes in networks.',
+    photo: '/assets/advisors/kleinberg.jpg',
+    url: 'https://www.cs.cornell.edu/~rdk/',
+  },
+]
+
 /** Country markers for the World section. TODO real member country list. */
 export const memberCountries = [
   'China',
@@ -313,7 +325,6 @@ export const pages: Record<string, SubPageDef> = {
     // TODO(club): advisor + member roster (names, roles, photos)
     lead: 'Advisors and mentors of Cornell CGS.',
     sections: [
-      { heading: 'Faculty Advisors', body: 'TBA.' },
       { heading: 'Board', body: 'TBA.' },
       { heading: 'Members', body: 'TBA.' },
     ],
