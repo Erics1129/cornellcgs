@@ -1,13 +1,17 @@
 import { useEffect, useRef } from 'react'
-import gsap from 'gsap'
 import { pages } from '../content'
-import { EASE } from '../lib/eases'
-import { prefersReducedMotion } from '../lib/motion'
+import { PAGE_THEME } from '../lib/pageTheme'
+import type { PageTheme } from '../lib/pageTheme'
+import { theme as technical } from './themes/Technical'
+import { theme as organic } from './themes/Organic'
+import { theme as kinetic } from './themes/Kinetic'
+import { theme as cinematic } from './themes/Cinematic'
 
 /**
  * A standalone info page — a REAL page at /<slug>/ (camelCase), rendered
  * instead of the deck (main.tsx decides). White, navy type, native scroll,
  * nothing overlays anything. Content that isn't already on the one-pager.
+ * Each page wears one motion personality (src/lib/pageTheme.ts).
  */
 
 /** Which deck chapter the navy band links back to. */
@@ -16,28 +20,27 @@ const CHAPTER: Record<string, string> = {
   contact: 'join',
 }
 
+const THEMES: Record<PageTheme['name'], PageTheme> = { technical, organic, kinetic, cinematic }
+
 export default function SubPage({ id }: { id: string }) {
   const root = useRef<HTMLDivElement>(null)
   const def = pages[id]
+  const theme = THEMES[PAGE_THEME[id] ?? 'cinematic']
 
   useEffect(() => {
     document.documentElement.style.background = '#ffffff'
-    if (prefersReducedMotion() || !root.current) return
-    const ctx = gsap.context(() => {
-      gsap.fromTo(
-        '[data-page-item]',
-        { autoAlpha: 0, y: 22 },
-        { autoAlpha: 1, y: 0, duration: 0.65, ease: EASE.out, stagger: 0.07, delay: 0.1 },
-      )
-    }, root)
-    return () => ctx.revert()
+    if (!root.current) return
+    return theme.enter(root.current)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   if (!def) return null
   const chapter = CHAPTER[id] ?? id
+  const Backdrop = theme.Backdrop
 
   return (
-    <div ref={root} className="sheet-light grain-light min-h-svh bg-white text-[#0a1e3f]">
+    <div ref={root} className="sheet-light grain-light relative min-h-svh bg-white text-[#0a1e3f]">
+      <Backdrop />
       {/* Site bar */}
       <div className="sticky top-0 z-10 border-b border-[#e3e9f4] bg-white">
         <div className="container-site flex h-16 items-center justify-between">
@@ -72,6 +75,7 @@ export default function SubPage({ id }: { id: string }) {
         </p>
         <h1
           data-page-item
+          data-page-title
           className="font-display max-w-[16ch] text-[clamp(3rem,6.5vw,5.8rem)] font-[680] leading-[1.02] tracking-[-0.02em]"
         >
           {def.title}

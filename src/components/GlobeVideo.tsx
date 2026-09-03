@@ -1,27 +1,33 @@
 import { useEffect, useRef, useState } from 'react'
+import gsap from 'gsap'
 import { prefersReducedMotion } from '../lib/motion'
+import { attachVideoScrub } from '../lib/videoScrub'
 
 /**
- * The full-page globe (§5.9, simplified per user direction — no drag).
- * Two stacked video elements crossfade 0.6 s before the clip's end so the
- * 8 s AI loop never visibly jumps. Videos mount lazily when the chapter is
- * near the viewport and pause when it leaves. If the file is missing, the
- * reference still drifts slowly instead; reduced motion shows the poster.
+ * The full-page globe (§5.9) as a scroll-scrubbed film: the reader's scroll
+ * through the World chapter is the playhead. ONE paused video; seeks are
+ * throttled by attachVideoScrub and its ScrollTrigger only updates while the
+ * chapter is in range, so off-screen it costs nothing. Mounts lazily when the
+ * chapter is near; the poster paints until the first frame decodes. Missing
+ * file → the reference drifts slowly (transform only); reduced motion → poster.
  */
 
 const SRC = '/assets/globe.mp4'
 const POSTER = '/assets/globe_reference.png'
-const FADE_S = 0.6
+// The clip is an 8 s loop — stop short so the last frame never wraps to frame 0
+const TAIL_S = 0.2
+const FALLBACK_DURATION_S = 8
 
 export default function GlobeVideo() {
   const rootRef = useRef<HTMLDivElement>(null)
-  const vA = useRef<HTMLVideoElement>(null)
-  const vB = useRef<HTMLVideoElement>(null)
+  const videoRef = useRef<HTMLVideoElement>(null)
+  const stillRef = useRef<HTMLDivElement>(null)
   const [mounted, setMounted] = useState(false)
   const [failed, setFailed] = useState(false)
   const reduced = prefersReducedMotion()
+  const drifting = failed && !reduced
 
-  // Lazy mount when the chapter approaches
+  // Lazy mount a full viewport early — a seek into an unbuffered range stalls
   useEffect(() => {
     const el = rootRef.current
     if (!el) return
@@ -32,82 +38,64 @@ export default function GlobeVideo() {
           io.disconnect()
         }
       },
-      { rootMargin: '60% 0px' },
+      { rootMargin: '100% 0px' },
     )
     io.observe(el)
     return () => io.disconnect()
   }, [])
 
-  // Crossfade loop + visibility pausing
+  // Scroll is the playhead: section top-at-bottom → 0 s, bottom-at-top → end
   useEffect(() => {
     if (!mounted || failed || reduced) return
     const root = rootRef.current
-    const a = vA.current
-    const b = vB.current
-    if (!root || !a || !b) return
+    const video = videoRef.current
+    if (!root || !video) return
+    const trigger = root.closest('section') ?? root
 
-    const pair = [a, b]
-    let active = 0
-    let fading = false
-    let inView = true
-    let raf = 0
-
-    b.style.opacity = '0'
-
-    const tick = () => {
-      raf = requestAnimationFrame(tick)
-      const cur = pair[active]
-      const other = pair[1 - active]
-      if (!fading && cur.duration > 0 && cur.duration - cur.currentTime <= FADE_S) {
-        fading = true
-        other.currentTime = 0
-        void other.play().catch(() => {})
-      }
-      if (fading) {
-        const remain = Math.max(0, pair[active].duration - pair[active].currentTime)
-        const k = 1 - Math.min(1, remain / FADE_S)
-        other.style.opacity = String(k)
-        if (k >= 1) {
-          cur.pause()
-          cur.style.opacity = '0'
-          other.style.opacity = '1'
-          active = 1 - active
-          fading = false
-        }
-      }
+    let detach: (() => void) | undefined
+    const attach = () => {
+      if (detach) return
+      const duration =
+        Number.isFinite(video.duration) && video.duration > 0 ? video.duration : FALLBACK_DURATION_S
+      detach = attachVideoScrub(video, {
+        trigger,
+        start: 'top bottom',
+        end: 'bottom top',
+        from: 0,
+        to: Math.max(0, duration - TAIL_S),
+      })
     }
+    if (video.readyState >= 1) attach()
+    else video.addEventListener('loadedmetadata', attach, { once: true })
 
-    const play = () => {
-      if (inView && !document.hidden) {
-        void pair[active].play().catch(() => {})
-        if (!raf) raf = requestAnimationFrame(tick)
-      }
-    }
-    const pause = () => {
-      pair.forEach((v) => v.pause())
-      cancelAnimationFrame(raf)
-      raf = 0
-    }
-
-    const io = new IntersectionObserver(
-      (entries) => {
-        inView = entries[0]?.isIntersecting ?? false
-        if (inView) play()
-        else pause()
-      },
-      { rootMargin: '15% 0px' },
-    )
-    io.observe(root)
-
-    const onVis = () => (document.hidden ? pause() : play())
-    document.addEventListener('visibilitychange', onVis)
+    // iOS ignores preload="auto" until playback is requested once; the scrub
+    // pauses it again on its first seek
+    void video
+      .play()
+      .then(() => video.pause())
+      .catch(() => {})
 
     return () => {
-      io.disconnect()
-      document.removeEventListener('visibilitychange', onVis)
-      pause()
+      video.removeEventListener('loadedmetadata', attach)
+      detach?.()
+      video.pause()
     }
   }, [mounted, failed, reduced])
+
+  // Missing file: the reference drifts slowly — transform only, so it composites
+  useEffect(() => {
+    if (!drifting) return
+    const el = stillRef.current
+    if (!el) return
+    const tween = gsap.fromTo(
+      el,
+      { xPercent: -5 },
+      { xPercent: 5, duration: 60, ease: 'sine.inOut', yoyo: true, repeat: -1 },
+    )
+    return () => {
+      tween.kill()
+    }
+  }, [drifting])
 
   const onError = () => {
     if (!failed) {
@@ -120,32 +108,21 @@ export default function GlobeVideo() {
     <div ref={rootRef} aria-hidden="true" className="absolute inset-0 overflow-hidden">
       {failed || reduced || !mounted ? (
         <div
-          className={`h-full w-full bg-cover bg-center ${
-            failed && !reduced ? 'animate-[globe-drift_60s_ease-in-out_infinite_alternate]' : ''
-          }`}
+          ref={stillRef}
+          className={`absolute inset-y-0 bg-cover bg-center ${drifting ? '-inset-x-[6%]' : 'inset-x-0'}`}
           style={{ backgroundImage: `url(${POSTER})` }}
         />
       ) : (
-        <>
-          <video
-            ref={vA}
-            className="absolute inset-0 h-full w-full object-cover"
-            src={SRC}
-            poster={POSTER}
-            muted
-            playsInline
-            preload="auto"
-            onError={onError}
-          />
-          <video
-            ref={vB}
-            className="absolute inset-0 h-full w-full object-cover"
-            src={SRC}
-            muted
-            playsInline
-            preload="auto"
-          />
-        </>
+        <video
+          ref={videoRef}
+          className="absolute inset-0 h-full w-full object-cover"
+          src={SRC}
+          poster={POSTER}
+          muted
+          playsInline
+          preload="auto"
+          onError={onError}
+        />
       )}
     </div>
   )

@@ -33,6 +33,8 @@ uniform float u_scroll;
 uniform float u_mix;
 uniform vec3 u_from[4];
 uniform vec3 u_to[4];
+uniform vec2 u_pointer;
+uniform float u_pstr;
 
 float hash(vec2 p) {
   return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453);
@@ -40,6 +42,13 @@ float hash(vec2 p) {
 
 void main() {
   vec2 uv = gl_FragCoord.xy / u_res;
+
+  // The field notices the pointer: space bends gently toward it and the
+  // glow pools there. u_pstr eases 0→1 on enter, →0 on leave.
+  vec2 pd = uv - u_pointer;
+  pd.x *= u_res.x / u_res.y;
+  float pf = exp(-dot(pd, pd) * 14.0) * u_pstr;
+  uv -= pd * pf * 0.16;
 
   vec3 top = mix(u_from[0], u_to[0], u_mix);
   vec3 mid = mix(u_from[1], u_to[1], u_mix);
@@ -57,6 +66,9 @@ void main() {
   d.y *= 1.4;
   float g = exp(-dot(d, d) / (r * r));
   col = 1.0 - (1.0 - col) * (1.0 - glo * g * 0.62);
+
+  // Pointer pool of light
+  col = 1.0 - (1.0 - col) * (1.0 - glo * pf * 0.35);
 
   // Corner vignette
   vec2 v = uv - 0.5;
@@ -176,12 +188,24 @@ export default function GradientBG() {
     const uMix = gl.getUniformLocation(program, 'u_mix')
     const uFrom = gl.getUniformLocation(program, 'u_from[0]')
     const uTo = gl.getUniformLocation(program, 'u_to[0]')
+    const uPointer = gl.getUniformLocation(program, 'u_pointer')
+    const uPstr = gl.getUniformLocation(program, 'u_pstr')
 
     let animated = !prefersReducedMotion()
     let raf = 0
     let last = -1
     let timeS = 0
     let mixStart = -1
+
+    // Pointer field: target (raw) and smoothed position in 0..1 uv space,
+    // strength fading in/out so leaving the window never snaps the sky.
+    const finePointer = window.matchMedia('(pointer: fine)').matches && animated
+    let ptx = 0.5
+    let pty = 0.5
+    let psx = 0.5
+    let psy = 0.5
+    let pstrTarget = 0
+    let pstr = 0
 
     let from = readPalette()
     let to = from
@@ -207,13 +231,35 @@ export default function GradientBG() {
         if (t >= 1) mixStart = -1
       }
 
+      // Smooth the pointer (~180 ms settle) and its strength (~400 ms)
+      psx += (ptx - psx) * 0.1
+      psy += (pty - psy) * 0.1
+      pstr += (pstrTarget - pstr) * 0.06
+
       gl.uniform1f(uTime, timeS)
       gl.uniform1f(uScroll, scroll)
       gl.uniform1f(uMix, mix)
+      gl.uniform2f(uPointer, psx, psy)
+      gl.uniform1f(uPstr, pstr)
       gl.drawArrays(gl.TRIANGLES, 0, 3)
 
       // Keep looping while animating or mid theme-lerp; otherwise on demand
-      if (!document.hidden && (animated || mixStart >= 0)) raf = requestAnimationFrame(frame)
+      if (!document.hidden && (animated || mixStart >= 0 || pstr > 0.005)) raf = requestAnimationFrame(frame)
+    }
+
+    const onPointerMove = (e: PointerEvent) => {
+      ptx = e.clientX / window.innerWidth
+      pty = 1 - e.clientY / window.innerHeight
+      pstrTarget = 1
+      schedule()
+    }
+    const onPointerLeave = () => {
+      pstrTarget = 0
+      schedule()
+    }
+    if (finePointer) {
+      window.addEventListener('pointermove', onPointerMove, { passive: true })
+      document.addEventListener('pointerleave', onPointerLeave)
     }
 
     const schedule = () => {
@@ -284,6 +330,8 @@ export default function GradientBG() {
       if (raf) cancelAnimationFrame(raf)
       window.removeEventListener('resize', resize)
       window.removeEventListener('scroll', onScroll)
+      window.removeEventListener('pointermove', onPointerMove)
+      document.removeEventListener('pointerleave', onPointerLeave)
       document.removeEventListener('visibilitychange', onVisibility)
       canvas.removeEventListener('webglcontextlost', onContextLost)
       offTheme()

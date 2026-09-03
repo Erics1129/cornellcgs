@@ -22,10 +22,42 @@ function renderEmphasis(text: string) {
  */
 export default function WorldSection() {
   const root = useRef<HTMLElement>(null)
+  const fieldRef = useRef<HTMLDivElement>(null)
   const globeWrap = useRef<HTMLDivElement>(null)
   const wordsRef = useRef<HTMLDivElement>(null)
   // Depth rides the inner block; the birth timeline owns wordsRef's y/opacity
   useSectionDepth(root)
+
+  // Pointer parallax lives on the outer field layer — the birth timeline owns
+  // globeWrap's clipPath/scale, so the two never share an element. Desktop
+  // fine pointers only; transform only. The colossus drifts against the
+  // cursor: the viewer moves, not the planet.
+  useEffect(() => {
+    if (prefersReducedMotion()) return
+    if (!window.matchMedia('(pointer: fine)').matches) return
+    const section = root.current
+    const field = fieldRef.current
+    if (!section || !field) return
+
+    const qx = gsap.quickTo(field, 'x', { duration: 1.2, ease: 'power2.out' })
+    const qy = gsap.quickTo(field, 'y', { duration: 1.2, ease: 'power2.out' })
+    const onMove = (e: PointerEvent) => {
+      qx((0.5 - e.clientX / window.innerWidth) * 20)
+      qy((0.5 - e.clientY / window.innerHeight) * 20)
+    }
+    const onLeave = () => {
+      qx(0)
+      qy(0)
+    }
+    section.addEventListener('pointermove', onMove)
+    section.addEventListener('pointerleave', onLeave)
+    return () => {
+      section.removeEventListener('pointermove', onMove)
+      section.removeEventListener('pointerleave', onLeave)
+      gsap.killTweensOf(field)
+      gsap.set(field, { clearProps: 'transform' })
+    }
+  }, [])
 
   useEffect(() => {
     const section = root.current
@@ -78,8 +110,11 @@ export default function WorldSection() {
       {/* Space behind the planet while it is still a dot */}
       <div aria-hidden="true" className="absolute inset-0 bg-[#02040d]" />
 
-      <div ref={globeWrap} className="absolute inset-0 will-change-transform">
-        <GlobeVideo />
+      {/* Field bleeds 12px past the section so the ±10px parallax never shows the void */}
+      <div ref={fieldRef} className="absolute -inset-3 will-change-transform">
+        <div ref={globeWrap} className="absolute inset-0 will-change-transform">
+          <GlobeVideo />
+        </div>
       </div>
 
       {/* Blend the chapter's edges into the page — no hard seams (交界处) */}

@@ -52,13 +52,13 @@ export default function CardShell({
     if (prefersReducedMotion() || isTouchDevice()) return
     const el = ref.current
     if (!el) return
-    gsap.to(el, { y: -6, scale: 1.02, duration: 0.4, ease: 'power3.out', overwrite: 'auto' })
+    gsap.to(el, { y: -6, scale: 1.02, duration: 0.35, ease: EASE.out, overwrite: 'auto' })
     if (shadowRef.current)
       gsap.to(shadowRef.current, {
         opacity: 0.8,
         scale: 0.94,
-        duration: 0.4,
-        ease: 'power3.out',
+        duration: 0.35,
+        ease: EASE.out,
         overwrite: 'auto',
       })
   }

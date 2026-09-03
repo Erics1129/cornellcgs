@@ -6,6 +6,7 @@ import { mlProcess } from '../content'
 import { EASE } from '../lib/eases'
 import { cssVar } from '../lib/theme'
 import { shake } from '../lib/motion'
+import { attachVideoScrub } from '../lib/videoScrub'
 import { createGlyphBurst } from '../effects/glyphBurst'
 
 gsap.registerPlugin(ScrollTrigger)
@@ -15,7 +16,10 @@ gsap.registerPlugin(ScrollTrigger)
  * Full-bleed chapter on the blackhole.mp4 backdrop (poster/fallback:
  * blackhole_math.jpg with the slow drift). The section pins for ~1.5 viewport
  * heights; before the burst only the drifting backdrop and a pulsing glow
- * ring are visible. At ~60% in view the burst fires once (<1.6 s, power4.out
+ * ring are visible. The approach is scroll-scrubbed: while armed, the
+ * section's climb from the fold to the pin line drives the clip's first 4 s
+ * (lib/videoScrub); the burst hands the playhead back to normal playback and
+ * re-arming hands it back to the scroll. At ~60% in view the burst fires once (<1.6 s, power4.out
  * everywhere): ring flare + chromatic shockwave, a zoom-blur fake built from
  * four scaled ghost snapshots of the backdrop, 300–500 equation glyphs out of
  * the hole (effects/glyphBurst), shake(0.6) at 100 ms, then the title and
@@ -175,6 +179,31 @@ export default function MLProcess() {
         let armed = true
         let tl: gsap.core.Timeline | null = null
 
+        // Approach = scroll. While armed the scrub owns the playhead: the
+        // section's climb from the fold to the pin line maps onto the clip's
+        // first 4 s. fire() detaches and lets the video run; reset() re-attaches.
+        // Declared before any ScrollTrigger below — those can call fire()
+        // synchronously at creation when the page loads mid-chapter.
+        let scrubOff: (() => void) | null = null
+        let scrubTo = 0
+        const scrubEnd = () =>
+          video && Number.isFinite(video.duration) && video.duration > 0 ? Math.min(video.duration, 4) : 4
+        const attach = () => {
+          if (!video || scrubOff) return
+          scrubTo = scrubEnd()
+          scrubOff = attachVideoScrub(video, {
+            trigger: section,
+            start: 'top bottom',
+            end: 'top top',
+            from: 0,
+            to: scrubTo,
+          })
+        }
+        const detach = () => {
+          scrubOff?.()
+          scrubOff = null
+        }
+
         gsap.set([title, ...cards], { opacity: 0 })
         gsap.set([glow, flare, shock], { xPercent: -50, yPercent: -50 })
         gsap.set([flare, shock], { opacity: 0 })
@@ -226,6 +255,7 @@ export default function MLProcess() {
           gsap.set(wrap, { scale: 1 })
           applyGhosts(0)
           armed = true
+          attach()
         }
 
         const mlLog = (ev: string) => {
@@ -245,6 +275,10 @@ export default function MLProcess() {
           mlLog('fire ' + (armed ? 'ARMED' : 'blocked'))
           if (!armed) return
           armed = false
+          // The scrub left the video paused and the IO won't re-fire without
+          // an intersection change, so the playhead is handed back here.
+          detach()
+          video?.play().catch(() => {})
           lastFireT = performance.now()
           tl?.kill() // never let two bursts interleave
 
@@ -372,7 +406,8 @@ export default function MLProcess() {
           (entries) => {
             const onScreen = entries[0]?.isIntersecting ?? false
             if (onScreen) {
-              video?.play().catch(() => {})
+              // The scrub owns the playhead while attached.
+              if (!scrubOff) video?.play().catch(() => {})
               drift.play()
             } else {
               // A stale leave-entry delivered right after a re-fire would kill
@@ -382,7 +417,7 @@ export default function MLProcess() {
               // which is exactly when stale entries arrive).
               if (performance.now() - lastFireT < 3000) return
               if (!reallyOffScreen()) return
-              video?.pause()
+              if (!scrubOff) video?.pause()
               drift.pause()
               if (!armed) reset()
             }
@@ -415,9 +450,24 @@ export default function MLProcess() {
           }
         }, 900)
 
+        // Mount: the fire trigger above may already have burst (page loaded
+        // mid-chapter), so the scrub is armed only while it is still ours.
+        if (armed) attach()
+        // preload="metadata": duration can land after attach; re-range the
+        // scrub only if the 4 s cap actually moves.
+        const onMeta = () => {
+          if (scrubOff && scrubEnd() !== scrubTo) {
+            detach()
+            attach()
+          }
+        }
+        video?.addEventListener('loadedmetadata', onMeta)
+
         return () => {
           window.clearInterval(guard)
           io.disconnect()
+          video?.removeEventListener('loadedmetadata', onMeta)
+          detach()
           tl?.kill()
           burst.stop()
         }

@@ -67,6 +67,20 @@ export function useSectionReveals(rootRef: React.RefObject<HTMLElement | null>) 
 
       const paraFrom = { opacity: 0, y: 24 }
       const paraTo = { opacity: 1, y: 0, duration: 0.65, ease: EASE.out }
+
+      // Prose leads arrive a word at a time — the whole phrase inside ~0.6 s
+      const paraWords = (el: HTMLElement) => {
+        const split = SplitText.create(el, { type: 'words', autoSplit: true })
+        gsap.set(el, { opacity: 1 })
+        return split.words
+      }
+      const wordVars = (words: Element[]) => ({
+        autoAlpha: 0,
+        y: 10,
+        duration: 0.55,
+        ease: EASE.out,
+        stagger: { amount: Math.min(0.6, words.length * 0.028), from: 'start' as const },
+      })
       const cardFrom = { opacity: 0, scale: 0.94, rotateX: 6, transformPerspective: 900, y: 30 }
       const cardTo = { opacity: 1, scale: 1, rotateX: 0, y: 0, duration: 0.8, ease: EASE.out }
 
@@ -115,6 +129,9 @@ export function useSectionReveals(rootRef: React.RefObject<HTMLElement | null>) 
               gsap.from(lines, { ...headingVars(lines), scrollTrigger: trigger })
             } else if (kind === 'card') {
               gsap.fromTo(el, cardFrom, { ...cardTo, scrollTrigger: trigger })
+            } else if (kind === 'para' && !isCounterPanel(el)) {
+              const words = paraWords(el)
+              gsap.from(words, { ...wordVars(words), scrollTrigger: trigger })
             } else {
               gsap.fromTo(el, paraFrom, { ...paraTo, scrollTrigger: trigger })
             }
@@ -146,8 +163,10 @@ export function useSectionReveals(rootRef: React.RefObject<HTMLElement | null>) 
           const lines = headingLines(el)
           tl.from(lines, { ...headingVars(lines), ...now }, 0)
         })
-        if (paras.length)
-          tl.fromTo(paras, paraFrom, { ...paraTo, ...now, stagger: groupEach(paras) }, 0.12)
+        paras.forEach((el, i) => {
+          const words = paraWords(el)
+          tl.from(words, { ...wordVars(words), ...now }, 0.12 + i * 0.1)
+        })
         if (counters.length)
           tl.fromTo(counters, paraFrom, { ...paraTo, ...now, stagger: groupEach(counters) }, 0.2)
         if (cards.length)

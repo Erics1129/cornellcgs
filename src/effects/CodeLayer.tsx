@@ -237,9 +237,17 @@ export default function CodeLayer() {
       })
     }
 
+    // The rain parts around the pointer: each line near the smoothed lens
+    // position slides away from it horizontally with a soft falloff, and
+    // brightens a little — the field noticing the reader. Per-line hypot
+    // over ~20 columns is a few hundred ops; nothing is re-rasterized.
+    const PART_R = 260
+    const PART_PX = 30
     const drawColumn = (col: Column, scroll: number) => {
       const total = col.count * LINE_H
       const eff = col.off + scroll * PARALLAX
+      const lensOn = sx > -999
+      const cx = col.x + 90
       ctx.globalAlpha = col.alpha
       for (let j = 0; j < col.count; j++) {
         const line = lines[(col.start + j) % lines.length]
@@ -248,10 +256,23 @@ export default function CodeLayer() {
         if (y > h) continue
         const cw = Math.min(line.width, atlasW)
         if (cw <= 0 || col.x + cw < 0 || col.x > w) continue
+        let x = col.x
+        if (lensOn) {
+          const dxc = cx - sx
+          const dyc = y + LINE_H / 2 - sy
+          const dist = Math.hypot(dxc, dyc)
+          if (dist < PART_R) {
+            const f = 1 - dist / PART_R
+            x += Math.sign(dxc || 1) * f * f * PART_PX
+            ctx.globalAlpha = Math.min(1, col.alpha * (1 + f * 1.6))
+          } else {
+            ctx.globalAlpha = col.alpha
+          }
+        }
         ctx.drawImage(
           atlas,
           0, line.row * LINE_H * dpr, cw * dpr, LINE_H * dpr,
-          col.x, y, cw, LINE_H,
+          x, y, cw, LINE_H,
         )
       }
       ctx.globalAlpha = 1

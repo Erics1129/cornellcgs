@@ -1,8 +1,12 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import SectionIndex from './SectionIndex'
 import CardShell from './CardShell'
 import { whoWeAre } from '../content'
 import { useSectionReveals, useSectionDepth, animateCounter } from '../lib/reveal'
+import { attachVideoScrub } from '../lib/videoScrub'
+import { prefersReducedMotion } from '../lib/motion'
+
+const ROBOT_SRC = '/assets/robot.mp4'
 
 function renderEmphasis(text: string) {
   // *word* becomes an italic display word
@@ -13,28 +17,60 @@ function renderEmphasis(text: string) {
 /**
  * Who we are (K♠) — two portrait hole cards laid side by side, slightly
  * rotated toward each other like a player peeking, with four count-up
- * counters styled as card corner indices beneath.
+ * counters styled as card corner indices beneath. The right card's robot
+ * clip is scroll-scrubbed: reading down the chapter deals the hand forward,
+ * scrolling back rewinds it. Reduced motion holds the clip on its first
+ * frame; a missing file leaves the plain navy card back.
  */
 export default function WhoWeAre() {
   const root = useRef<HTMLElement>(null)
   useSectionReveals(root)
   useSectionDepth(root)
 
-  // The robot clip only decodes while this chapter is near the viewport
+  const videoRef = useRef<HTMLVideoElement>(null)
+  const [mounted, setMounted] = useState(false)
+  const [ready, setReady] = useState(false)
+  const [failed, setFailed] = useState(false)
+  const reduced = prefersReducedMotion()
+
+  // The clip (1.6 MB) only downloads once the chapter is a viewport away
   useEffect(() => {
     const section = root.current
-    const video = section?.querySelector('video')
-    if (!section || !video) return
+    if (!section) return
     const io = new IntersectionObserver(
       (entries) => {
-        if (entries[0]?.isIntersecting) void video.play().catch(() => {})
-        else video.pause()
+        if (entries[0]?.isIntersecting) {
+          setMounted(true)
+          io.disconnect()
+        }
       },
-      { rootMargin: '30% 0px' },
+      { rootMargin: '100% 0px' },
     )
     io.observe(section)
     return () => io.disconnect()
   }, [])
+
+  // Scroll is the playhead across the chapter's full transit
+  useEffect(() => {
+    if (!mounted || failed || reduced) return
+    const section = root.current
+    const video = videoRef.current
+    if (!section || !video) return
+
+    const detach = attachVideoScrub(video, {
+      trigger: section,
+      start: 'top 90%',
+      end: 'bottom 10%',
+    })
+    return () => detach()
+  }, [mounted, failed, reduced])
+
+  const onError = () => {
+    if (!failed) {
+      console.warn(`[who-we-are] robot clip missing — expected ${ROBOT_SRC}; showing the card back`)
+      setFailed(true)
+    }
+  }
 
   const countersRef = useRef<HTMLDivElement>(null)
   useEffect(() => {
@@ -93,16 +129,30 @@ export default function WhoWeAre() {
               className="card-back-surface neon relative aspect-[5/7] w-[min(76vw,300px)] overflow-hidden md:w-[min(24vw,320px)]"
               tiltMax={4}
             >
-              <video
-                className="absolute inset-0 h-full w-full rounded-[inherit] object-cover [object-position:62%_50%]"
-                src="/assets/robot.mp4"
-                autoPlay
-                muted
-                loop
-                playsInline
-                preload="metadata"
-                aria-label="A robot hand dealing playing cards at a table"
-              />
+              {mounted && !failed && (
+                <video
+                  ref={videoRef}
+                  className={`absolute inset-0 h-full w-full rounded-[inherit] object-cover [object-position:62%_50%] transition-opacity duration-[var(--dur)] [transition-timing-function:var(--ease-out)] ${
+                    ready ? 'opacity-100' : 'opacity-0'
+                  }`}
+                  src={ROBOT_SRC}
+                  muted
+                  playsInline
+                  preload={reduced ? 'metadata' : 'auto'}
+                  onLoadedMetadata={
+                    reduced
+                      ? (e) => {
+                          // A nudge off zero makes the first frame paint without a poster
+                          e.currentTarget.currentTime = 0.04
+                        }
+                      : undefined
+                  }
+                  onLoadedData={() => setReady(true)}
+                  onSeeked={() => setReady(true)}
+                  onError={onError}
+                  aria-label="A robot hand dealing playing cards at a table"
+                />
+              )}
             </CardShell>
           </div>
         </div>
