@@ -177,28 +177,35 @@ export default function MLProcess() {
         // the rest of the clip — stop scrolling and the hole holds its frame.
         // Declared before any ScrollTrigger below — those can call fire()
         // synchronously at creation when the page loads mid-chapter.
-        let scrubOff: (() => void) | null = null
-        let scrubTo = 0
+        // Both ranges are measured at mount (a trigger created mid-pin reads
+        // a pinned rect and lands its range short); `phase` says which one
+        // seeks. Approach: fold → pin line = the clip's first 4 s. After: the
+        // pin = the rest of the clip (its end is read from the file lazily).
+        const APPROACH_S = 4
         let phase: 'approach' | 'after' = 'approach'
-        const scrubEnd = () =>
-          video && Number.isFinite(video.duration) && video.duration > 0 ? Math.min(video.duration, 4) : 4
+        const scrubOffs: Array<() => void> = []
         const attach = () => {
-          if (!video || scrubOff) return
-          scrubTo = scrubEnd()
-          const full = Number.isFinite(video.duration) && video.duration > 0 ? video.duration : scrubTo + 8
-          scrubOff =
-            phase === 'approach'
-              ? attachVideoScrub(video, { trigger: section, start: 'top bottom', end: 'top top', from: 0, to: scrubTo })
-              : attachVideoScrub(video, { trigger: section, start: 'top top', end: '+=150%', from: scrubTo, to: full })
-        }
-        const rescrub = (next: 'approach' | 'after') => {
-          phase = next
-          detach()
-          attach()
+          if (!video || scrubOffs.length) return
+          scrubOffs.push(
+            attachVideoScrub(video, {
+              trigger: section,
+              start: 'top bottom',
+              end: 'top top',
+              from: 0,
+              to: APPROACH_S,
+              active: () => phase === 'approach',
+            }),
+            attachVideoScrub(video, {
+              trigger: section,
+              start: 'top top',
+              end: '+=150%',
+              from: APPROACH_S,
+              active: () => phase === 'after',
+            }),
+          )
         }
         const detach = () => {
-          scrubOff?.()
-          scrubOff = null
+          scrubOffs.splice(0).forEach((off) => off())
         }
 
         gsap.set([title, ...cards], { opacity: 0 })
@@ -260,7 +267,7 @@ export default function MLProcess() {
           gsap.set(wrap, { scale: 1 })
           applyGhosts(0)
           armed = true
-          rescrub('approach')
+          phase = 'approach'
         }
 
         const mlLog = (ev: string) => {
@@ -282,7 +289,7 @@ export default function MLProcess() {
           armed = false
           // Past the burst the film still only moves with the scroll: the
           // rest of the pin drives the rest of the clip.
-          rescrub('after')
+          phase = 'after'
           lastFireT = performance.now()
           tl?.kill() // never let two bursts interleave
 
@@ -452,24 +459,20 @@ export default function MLProcess() {
 
         // Mount: the fire trigger above may already have burst (page loaded
         // mid-chapter), so the scrub is armed only while it is still ours.
-        if (armed) attach()
+        // Mount: the fire trigger above may already have burst (page loaded
+        // mid-chapter) — then the pin range drives from the start.
+        if (!armed) phase = 'after'
+        attach()
         // iOS ignores preload until playback is requested once; the scrub
         // pauses it again on its first seek
         void video
           ?.play()
           .then(() => video.pause())
           .catch(() => {})
-        // preload="metadata": duration can land after attach; re-range the
-        // scrub only if the 4 s cap actually moves.
-        const onMeta = () => {
-          if (scrubOff && scrubEnd() !== scrubTo) rescrub(phase)
-        }
-        video?.addEventListener('loadedmetadata', onMeta)
 
         return () => {
           window.clearInterval(guard)
           io.disconnect()
-          video?.removeEventListener('loadedmetadata', onMeta)
           detach()
           tl?.kill()
           burst.stop()

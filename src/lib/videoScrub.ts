@@ -14,6 +14,12 @@ export interface ScrubOptions {
   to?: number
   /** Called with the mapped progress on every update (0..1) */
   onProgress?: (p: number) => void
+  /**
+   * Gate: several scrubs may share one film (one range per chapter phase).
+   * Each keeps tracking its target; only the active one seeks — so the
+   * ranges are all measured at mount, never mid-pin.
+   */
+  active?: () => boolean
 }
 
 /**
@@ -52,6 +58,10 @@ export function attachVideoScrub(video: HTMLVideoElement, opts: ScrubOptions): (
   })
 
   const tick = () => {
+    if (opts.active && !opts.active()) {
+      last = -1 // re-seek to our target the moment we take over
+      return
+    }
     if (video.readyState < 2 || video.seeking) return
     const now = performance.now()
     if (now - lastSeekAt < MIN_GAP_MS) return
