@@ -165,10 +165,8 @@ export default function SubPage({ id }: { id: string }) {
           </div>
           <div className="grid gap-10 md:grid-cols-2">
             {advisors.map((a, i) => (
-              <div key={a.name} data-page-item className="relative flex flex-col gap-6 py-6">
-                {/* The network runs under the person, never over them */}
-                <NetworkFlow className="pointer-events-none absolute inset-0 -z-10 h-full w-full opacity-60" />
-                <div className="relative flex gap-6">
+              <div key={a.name} data-page-item className="flex flex-col gap-8">
+                <div className="flex gap-6">
                   <img
                     src={a.photo}
                     alt={a.name}
@@ -197,20 +195,16 @@ export default function SubPage({ id }: { id: string }) {
                     <LiveBody design={words.b} text={a.bio} index={i + 1} className="text-[max(0.95rem,0.9375rem)] leading-relaxed" />
                   </div>
                 </div>
+                <NetworkFlow className="h-[clamp(180px,26vw,320px)] w-full" />
               </div>
             ))}
           </div>
         </div>
       )}
 
-      {/* Sections — the page's algorithm runs on a fresh graph beneath the words, forever */}
-      <div className="container-site relative border-t border-[#e3e9f4] py-16 md:py-20">
-        {ALGO[id] ? (
-          <GraphAlgo algo={ALGO[id]} className="pointer-events-none absolute inset-x-0 top-8 bottom-8 -z-10 h-[calc(100%-4rem)] w-full opacity-55" />
-        ) : (
-          <NetworkFlow className="pointer-events-none absolute inset-x-0 top-8 bottom-8 -z-10 h-[calc(100%-4rem)] w-full opacity-55" />
-        )}
-        <div className="relative grid gap-x-10 gap-y-12 md:grid-cols-2">
+      {/* Sections */}
+      <div className="container-site border-t border-[#e3e9f4] py-16 md:py-20">
+        <div className="grid gap-x-10 gap-y-12 md:grid-cols-2">
         {def.sections.map((sec, i) => (
           <div key={sec.heading} data-page-item>
             {/* The heading keeps moving between its two lines in the page's own design. Life rides the wrapper — the block is what the themes tilt. */}
@@ -225,6 +219,17 @@ export default function SubPage({ id }: { id: string }) {
             <LiveBody design={words.b} text={sec.body} index={i} className="text-[max(1rem,1.0625rem)] leading-relaxed text-[#46587a]" />
           </div>
         ))}
+        </div>
+      </div>
+
+      {/* The page's algorithm, in its own room under the words — a fresh graph every run, forever */}
+      <div className="container-site pb-16 md:pb-20">
+        <div data-page-item>
+          {ALGO[id] ? (
+            <GraphAlgo algo={ALGO[id]} className="h-[clamp(220px,34vw,420px)] w-full" />
+          ) : (
+            <NetworkFlow className="h-[clamp(200px,30vw,360px)] w-full" />
+          )}
         </div>
       </div>
 
