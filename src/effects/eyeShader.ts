@@ -36,6 +36,7 @@ uniform float u_time;
 uniform float u_blink;      // 0 open → 1 closed
 uniform vec2 u_gaze;        // yaw (+ = camera left), pitch (+ = up)
 uniform vec2 u_head;        // the head's drift, eye units
+uniform float u_lash;       // lash bend from the lid's motion (radians), springs back
 uniform float u_pupil;      // pupil radius / iris radius
 uniform float u_seed;
 uniform sampler2D u_screen; // the editor
@@ -71,7 +72,7 @@ float fbm3(vec2 p) {
 }
 
 // ---------------------------------------------------------------- scene
-const vec3 CAM = vec3(0.0, 0.05, -5.0);
+const vec3 CAM = vec3(0.0, 0.05, -4.3);
 const float FOCAL = 2.0;
 const float R_COR = 0.66;
 const float BULGE = 0.075;
@@ -82,9 +83,9 @@ const vec3 L_SCREEN = normalize(vec3(-0.4, 0.3, -1.0));   // the monitor, above-
 const vec3 C_SCREEN = vec3(0.46, 0.70, 1.10);
 const vec3 L_FILL = normalize(vec3(-0.6, 0.8, -0.35));
 const vec3 C_FILL = vec3(0.18, 0.26, 0.42);
-const float SCREEN_Z = -4.2;
-const vec2 SCREEN_C = vec2(-0.8, 0.7);   // camera-left, where its light comes from
-const vec2 SCREEN_H = vec2(2.6, 1.1);
+const float SCREEN_Z = -7.2;
+const vec2 SCREEN_C = vec2(-1.1, 1.0);   // camera-left, where its light comes from
+const vec2 SCREEN_H = vec2(2.4, 1.5);     // 16:10, far enough that all of it fits in the pupil
 const float LID_R = 1.13;
 
 float sphere(vec3 ro, vec3 rd, vec3 c, float r) {
@@ -274,7 +275,7 @@ float hair(vec2 p, vec2 base, vec2 dir, float len, float curl, float rootW, floa
     prev = pt;
   }
   float w = mix(rootW, rootW * 0.12, bt);
-  return smoothstep(aa * 1.2, -aa * 0.6, best - w);
+  return smoothstep(aa * 1.6, -aa * 0.6, best - w) * (1.0 - 0.35 * smoothstep(0.75, 1.0, bt));
 }
 
 void main() {
@@ -373,7 +374,8 @@ void main() {
     // the inner corner in shadow, the caruncle's dark pink
     float car = smoothstep(0.22, 0.05, length((pos.xy - vec2(-1.0, -0.01)) * vec2(1.0, 1.5)));
     col = mix(col, SRGB(vec3(0.5, 0.3, 0.3)) * (C_SCREEN * 0.7 + 0.05), car * 0.7);
-  } else if (tF > 0.0) {
+  } else if (tF > 0.0 && u_debug > 1.5) {
+    // (kept for the lit variant — u_debug 2 — the site runs the all-black eye)
     vec3 pos = ro + rd * tF;
     vec3 n = faceNormal(pos);
     vec2 sp = pos.xy + pos.z * 0.35;
@@ -409,7 +411,7 @@ void main() {
   // region gates: hair setup is the cost, so whole loops skip where no hair can reach
   vec2 c0 = project(vec3(0.0, 0.0, -1.05));
   float hairs = 0.0;
-  if (p.y > c0.y + 0.14 && p.y < c0.y + 0.62) for (int i = 0; i < 300; i++) {
+  if (u_debug > 1.5 && p.y > c0.y + 0.14 && p.y < c0.y + 0.62) for (int i = 0; i < 300; i++) {
     float fi = float(i);
     float h = hash21(vec2(fi * 0.71, u_seed + 5.0));
     float h2 = hash21(vec2(fi * 1.93, u_seed + 6.0));
@@ -452,12 +454,13 @@ void main() {
     vec2 nrm = normalize(vec2(-slope, 1.0));
     float outerness = smoothstep(-0.6, 0.95, x);
     vec2 dir = normalize(nrm + vec2(0.1 + 0.75 * outerness + (h2 - 0.5) * 0.3, 0.0));
-    float ang = atan(dir.y, dir.x) - u_blink * 1.3;
+    // the lash follows the lid, then whips and settles (u_lash is a spring driven by the lid's speed)
+    float ang = atan(dir.y, dir.x) - u_blink * 1.3 + u_lash * (0.6 + 0.6 * h);
     dir = vec2(cos(ang), sin(ang));
     float lenC = 0.085 + 0.11 * outerness * (0.6 + 0.8 * hc);
     float len = lenC * (0.6 + 0.6 * h) * (1.0 - 0.25 * row);
-    float curl = 0.7 + 0.7 * hc + (h2 - 0.5) * 0.25;
-    lashes = max(lashes, hair(p, base, dir, len, curl, 0.0046 - 0.0014 * row, aa));
+    float curl = 0.7 + 0.7 * hc + (h2 - 0.5) * 0.25 + u_lash * 0.8;
+    lashes = max(lashes, hair(p, base, dir, len, curl, 0.0052 - 0.0016 * row, aa));
   }
   if (p.y > c0.y - 0.36 && p.y < c0.y + 0.02) for (int i = 0; i < 30; i++) {
     float fi = float(i);
@@ -471,7 +474,9 @@ void main() {
     vec2 nrm = -normalize(vec2(-slope, 1.0));
     vec2 dir = normalize(nrm + vec2(0.1 + 0.5 * smoothstep(-0.5, 0.9, x), 0.0));
     float len = (0.026 + 0.04 * smoothstep(-0.6, 0.9, x)) * (0.6 + 0.7 * h2);
-    lashes = max(lashes, hair(p, base, dir, len, -0.35 - 0.3 * h, 0.0026, aa));
+    float angL = atan(dir.y, dir.x) - u_lash * 0.4;
+    dir = vec2(cos(angL), sin(angL));
+    lashes = max(lashes, hair(p, base, dir, len, -0.35 - 0.3 * h, 0.0028, aa));
   }
   // the lash line: the dark fuzz where they root
   {
@@ -481,7 +486,7 @@ void main() {
     float line = smoothstep(0.014, 0.0, abs(p.y - m.y)) * smoothstep(0.55, 0.45, abs(p.x - cx0)) * (0.5 + 0.5 * vnoise(p * 400.0));
     col *= 1.0 - 0.6 * line;
   }
-  vec3 lashCol = SRGB(vec3(0.10, 0.07, 0.06)) * (0.4 + 0.6 * vnoise(p * 300.0)) + C_SCREEN * 0.015;
+  vec3 lashCol = SRGB(vec3(0.06, 0.045, 0.04)) * (0.4 + 0.6 * vnoise(p * 300.0)) + cScreen * 0.03 * smoothstep(0.0, 0.6, -p.x);
   col = mix(col, lashCol, lashes * 0.97);
 
   // ---------------------------------------------------------------- the dark

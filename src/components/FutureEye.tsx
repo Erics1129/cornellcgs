@@ -239,7 +239,7 @@ export default function FutureEye() {
       const loc = gl.getAttribLocation(program, 'a_pos')
       gl.enableVertexAttribArray(loc)
       gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0)
-      for (const name of ['u_res', 'u_time', 'u_blink', 'u_gaze', 'u_head', 'u_pupil', 'u_seed', 'u_screen', 'u_screenTint', 'u_vignette', 'u_debug']) {
+      for (const name of ['u_res', 'u_time', 'u_blink', 'u_gaze', 'u_head', 'u_lash', 'u_pupil', 'u_seed', 'u_screen', 'u_screenTint', 'u_vignette', 'u_debug']) {
         U[name] = gl.getUniformLocation(program, name)
       }
       tex = gl.createTexture()!
@@ -293,6 +293,9 @@ export default function FutureEye() {
     // blink
     let blink = 0
     let lidV = 0
+    // the lashes: a light spring driven by the lid's speed — whip on the way down, wobble back
+    let lash = 0
+    let lashV = 0
     let blinkStart = -1
     let nextBlink = t0 + 1400 + Math.random() * 2000
     let lastBlinkEnd = t0
@@ -439,6 +442,18 @@ export default function FutureEye() {
         }
       }
 
+      // -- lashes ride the lid's velocity and settle on their own spring
+      {
+        const k = 260, c = 2 * Math.sqrt(k) * 0.42
+        const drive = -lidV * 0.016
+        const h = Math.min(dt, 1 / 240)
+        for (let tt = 0; tt < dt; tt += h) {
+          lashV += (k * (drive - lash) - c * lashV) * h
+          lash += lashV * h
+        }
+        lash = Math.max(-0.25, Math.min(0.25, lash))
+      }
+
       // -- pupil
       const tint = screen.tint
       const lum = 0.2126 * tint[0] + 0.7152 * tint[1] + 0.0722 * tint[2]
@@ -448,7 +463,7 @@ export default function FutureEye() {
       pupil += (want - pupil) * (1 - Math.exp(-dt * 4))
     }
 
-    const draw = (now: number, over?: { blink?: number; gaze?: [number, number]; pupil?: number; head?: [number, number]; vignette?: number; debug?: number }) => {
+    const draw = (now: number, over?: { blink?: number; gaze?: [number, number]; pupil?: number; head?: [number, number]; vignette?: number; debug?: number; lash?: number }) => {
       if (!program) return
       gl.useProgram(program)
       gl.uniform2f(U.u_res, w, h)
@@ -457,6 +472,7 @@ export default function FutureEye() {
       gl.uniform2f(U.u_gaze, over?.gaze?.[0] ?? gaze.x, over?.gaze?.[1] ?? gaze.y)
       gl.uniform2f(U.u_head, over?.head?.[0] ?? head.x, over?.head?.[1] ?? head.y + Math.sin(now * 0.0011) * 0.012)
       gl.uniform1f(U.u_pupil, over?.pupil ?? pupil)
+      gl.uniform1f(U.u_lash, over?.lash ?? lash)
       gl.uniform1f(U.u_vignette, over?.vignette ?? 1)
       gl.uniform1f(U.u_debug, over?.debug ?? 0)
       const t = screen.tint
@@ -533,7 +549,7 @@ export default function FutureEye() {
     if (import.meta.env.DEV) {
       // one frame with overrides — for screenshots when the tab can't animate
       ;(window as unknown as { __cgsEye?: unknown }).__cgsEye = {
-        frame: (over?: { blink?: number; gaze?: [number, number]; pupil?: number; head?: [number, number]; vignette?: number; debug?: number; advance?: number }) => {
+        frame: (over?: { blink?: number; gaze?: [number, number]; pupil?: number; head?: [number, number]; vignette?: number; debug?: number; lash?: number; advance?: number }) => {
           const now = performance.now()
           if (over?.advance) {
             for (let i = 0; i < over.advance; i++) screen.tick(now + i * 30, 30)
@@ -555,11 +571,11 @@ export default function FutureEye() {
         resize,
         // run the life on a fake clock (ms) and sample it — the tab may not animate
         sim: (ms: number, dtMs = 16, every = 100) => {
-          const out: Array<{ t: number; blink: number; gaze: [number, number]; head: [number, number]; pupil: number; file: number; line: number; bs: number; nb: number; lbe: number }> = []
+          const out: Array<{ t: number; blink: number; gaze: [number, number]; head: [number, number]; pupil: number; file: number; line: number; bs: number; nb: number; lbe: number; lash: number }> = []
           const t0 = last
           for (let t = 0; t <= ms; t += dtMs) {
             step(t0 + t)
-            if (t % every === 0) out.push({ t, blink: +blink.toFixed(3), gaze: [+gaze.x.toFixed(3), +gaze.y.toFixed(3)], head: [+head.x.toFixed(3), +head.y.toFixed(3)], pupil: +pupil.toFixed(3), file: screen.file, line: screen.line, bs: Math.round(blinkStart - t0), nb: Math.round(nextBlink - t0), lbe: Math.round(lastBlinkEnd - t0) })
+            if (t % every === 0) out.push({ t, blink: +blink.toFixed(3), gaze: [+gaze.x.toFixed(3), +gaze.y.toFixed(3)], head: [+head.x.toFixed(3), +head.y.toFixed(3)], pupil: +pupil.toFixed(3), file: screen.file, line: screen.line, bs: Math.round(blinkStart - t0), nb: Math.round(nextBlink - t0), lbe: Math.round(lastBlinkEnd - t0), lash: +lash.toFixed(3) })
           }
           return out
         },
