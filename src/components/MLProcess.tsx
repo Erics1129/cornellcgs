@@ -506,7 +506,6 @@ export default function MLProcess() {
               src="/assets/blackhole.mp4"
               poster="/assets/blackhole_math.jpg"
               muted
-              loop
               playsInline
               preload="metadata"
               onError={() => setVideoFailed(true)}
