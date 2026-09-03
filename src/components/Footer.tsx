@@ -138,6 +138,16 @@ export default function Footer() {
           </p>
           <p className="mono text-[max(0.8rem,0.75rem)] text-[#93a6cc]">{site.domain}</p>
         </div>
+        <div className="container-site border-t border-[rgba(147,166,204,0.18)] py-4">
+          <p className="mono text-[max(0.75rem,0.75rem)] text-[#93a6cc]">
+            <span
+              className="life-glow inline-block"
+              style={{ ['--life-delay' as string]: '-2.2s', ['--life-dur' as string]: '5s' }}
+            >
+              {site.credit}
+            </span>
+          </p>
+        </div>
       </div>
     </footer>
   )

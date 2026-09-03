@@ -7,6 +7,8 @@ export const site = {
   name: 'Cornell CGS',
   fullName: 'Cornell Computational Game Society',
   domain: 'cornellcgs.org',
+  /** the last line of every page */
+  credit: 'Website developed by Eric Shi',
   eyebrow: 'Cornell University · Registered student organization',
   // TODO official registration line
   footerLine: (year: number) => `© ${year} Cornell CGS · cornellcgs.org`,
@@ -235,8 +237,8 @@ export const memberCountries = [
 export type SubPageDef = {
   title: string
   lead: string
-  /** `alt` is the second line the heading types between — the page keeps talking. */
-  sections: Array<{ heading: string; body: string; alt?: string }>
+  /** `alt` is the second line the heading moves between — the page keeps talking; `link` is an optional button under the body. */
+  sections: Array<{ heading: string; body: string; alt?: string; link?: { label: string; href: string } }>
 }
 
 /** Public URL slug for each page id — camelCase paths, e.g. /whoWeAre/. */
@@ -339,6 +341,15 @@ export const pages: Record<string, SubPageDef> = {
       { heading: 'Helpful Math', alt: 'MATH 1110 Or Beyond', body: 'MATH 1110 or beyond \u2014 or relevant experience.' },
       { heading: 'Helpful CS', alt: 'CS 1110 / 1112', body: 'CS 1110 or 1112 \u2014 enough to read and write code.' },
       { heading: 'How to Apply', alt: 'Email Us', body: 'Email recruitment@cornellcgs.org. New members every semester.' },
+      {
+        heading: 'Coffee Chat',
+        alt: 'Talk To Us First',
+        body: 'Not sure yet? Grab a coffee with a member \u2014 twenty minutes, no commitment.',
+        link: {
+          label: 'Book a coffee chat',
+          href: 'https://docs.google.com/forms/d/e/1FAIpQLSfCJEW9kdTEYV41YZZCt4MQRg8c9KdNSbrw9IGmSgCRF9eglw/viewform',
+        },
+      },
     ],
   },
   contact: {

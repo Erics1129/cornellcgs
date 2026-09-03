@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 import type { CSSProperties } from 'react'
-import { advisors, pages } from '../content'
+import { advisors, pages, site } from '../content'
 import { PAGE_THEME } from '../lib/pageTheme'
 import type { PageTheme } from '../lib/pageTheme'
 import { theme as technical } from './themes/Technical'
@@ -214,6 +214,17 @@ export default function SubPage({ id }: { id: string }) {
               />
             </div>
             <LiveBody design={words.b} text={sec.body} index={i} className="text-[max(1rem,1.0625rem)] leading-relaxed text-[#46587a]" />
+            {sec.link && (
+              <a
+                href={sec.link.href}
+                target="_blank"
+                rel="noreferrer"
+                className="neon neon-idle btn-label mt-5 inline-block rounded-[6px] bg-[#0a1e3f] px-6 py-3 text-[max(0.95rem,1rem)] font-[600] text-white transition-colors duration-300 [transition-timing-function:var(--ease-out)] hover:bg-[#1e5eff]"
+              >
+                <span>{sec.link.label} {'\u2197'}</span>
+                <span aria-hidden="true">{sec.link.label} {'\u2197'}</span>
+              </a>
+            )}
           </div>
         ))}
         </div>
@@ -235,6 +246,13 @@ export default function SubPage({ id }: { id: string }) {
             <Dice size={18} className="[--dice-face:#f5f1e6] [--dice-pip:#1e5eff] [--dice-edge:rgba(10,30,63,0.35)]" /> CORNELL CGS
           </a>
           <span className="mono text-[max(0.8rem,0.75rem)] text-[#93a6cc]">cornellcgs.org</span>
+        </div>
+        <div className="container-site border-t border-[rgba(147,166,204,0.25)] py-4">
+          <p className="mono text-[max(0.75rem,0.75rem)] text-[#93a6cc]">
+            <span className="life-glow inline-block" style={life(3, 5)}>
+              {site.credit}
+            </span>
+          </p>
         </div>
       </div>
     </div>
