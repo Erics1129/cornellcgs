@@ -173,6 +173,8 @@ class Screen {
   paint() {
     const c = this.ctx
     const f = FILES[this.file]
+    // painted mirrored: the cornea mirrors it back, so the reader reads it the right way round
+    c.setTransform(-1, 0, 0, 1, SCREEN_W, 0)
     c.fillStyle = '#cfd9ee'
     c.fillRect(0, 0, SCREEN_W, SCREEN_H)
     // title bar
@@ -227,6 +229,7 @@ class Screen {
     c.fillText(`TypeScript   UTF-8   Ln ${this.line + 1}, Col ${this.col + 1}`, 14, SCREEN_H - 9)
     c.fillStyle = '#1e5eff'
     c.fillText('● main', SCREEN_W - 96, SCREEN_H - 9)
+    c.setTransform(1, 0, 0, 1, 0, 0)
     this.dirty = false
   }
 

@@ -193,7 +193,7 @@ vec3 env(vec3 pos, vec3 r) {
     if (t > 0.0) {
       vec2 q = pos.xy + t * r.xy;
       vec2 uv = (q - SCREEN_C) / (2.0 * SCREEN_H) + 0.5;
-      // not mirrored: legible to the reader (a real cornea would flip it)
+      uv.x = 1.0 - uv.x;   // a mirror, as a cornea is; the editor paints itself mirrored so it still reads
       vec2 e = abs(uv - 0.5);
       float inside = step(max(e.x, e.y), 0.5);
       float bezel = step(max(e.x, e.y), 0.53) - inside;
