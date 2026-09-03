@@ -42,6 +42,13 @@
       rel="stylesheet"
     />
     <script>
+      // dev forensics: keep every early error's full stack (the console truncates them)
+      if (location.hostname === 'localhost') {
+        window.__bootErrors = []
+        window.addEventListener('error', function (e) { window.__bootErrors.push(String((e.error && e.error.stack) || e.message)) })
+      }
+    </script>
+    <script>
       // If this HTML was cached across a deploy, its bundle URL may be dead
       // and the app would never boot. Recover with ONE cache-busting reload.
       ;(function () {

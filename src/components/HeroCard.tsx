@@ -21,6 +21,9 @@ import { BOOTED_EVENT, prefersReducedMotion, isTouchDevice } from '../lib/motion
  *   8.0–10.0  ace settled on red gradient        → red idle frame ~9.7
  */
 const T_BLUE = 0.55
+/** the film's zoom: the card grows past the frame between these seconds (measured) */
+const ZOOM_IN: [number, number] = [2.3, 2.7]
+const ZOOM_OUT: [number, number] = [5.9, 6.9]
 const T_WIPE = 3.6
 const T_RED = 9.7
 
@@ -31,6 +34,17 @@ export default function HeroCard() {
   const videoRef = useRef<HTMLVideoElement>(null)
   const btnRef = useRef<HTMLButtonElement>(null)
   const phase = useRef<Phase>('blue')
+  const frameRef = useRef<HTMLDivElement>(null)
+  /** the in-flight flip's media listeners, so a force-complete can drop them */
+  const stepRef = useRef<(() => void) | null>(null)
+  const detachStep = () => {
+    const v = videoRef.current
+    if (v && stepRef.current) {
+      v.removeEventListener('timeupdate', stepRef.current)
+      v.removeEventListener('ended', stepRef.current)
+    }
+    stepRef.current = null
+  }
   const wiped = useRef(false)
   const raf = useRef(0)
   const flipRef = useRef<() => void>(() => {})
@@ -55,6 +69,8 @@ export default function HeroCard() {
         v.pause()
         v.currentTime = T_RED
         phase.current = 'red'
+        cropForTime(T_RED)
+        detachStep()
         if (!wiped.current) {
           wiped.current = true
           const { x, y } = centerOfCard()
@@ -177,6 +193,17 @@ export default function HeroCard() {
     v.style.filter = TINT[currentTheme()][next]
   }
 
+  /** 0 = tight on the card, 1 = the full frame (the film zooms the card past its edges) */
+  const cropForTime = (t: number) => {
+    const sm = (a: number, b: number, x: number) => {
+      const u = Math.max(0, Math.min(1, (x - a) / (b - a)))
+      return u * u * (3 - 2 * u)
+    }
+    const k = sm(ZOOM_IN[0], ZOOM_IN[1], t) * (1 - sm(ZOOM_OUT[0], ZOOM_OUT[1], t))
+    frameRef.current?.style.setProperty('--card-k', k.toFixed(3))
+    videoRef.current?.style.setProperty('--card-k', k.toFixed(3))
+  }
+
   const flip = () => {
     const v = videoRef.current
     if (!v || !videoOk) {
@@ -212,6 +239,7 @@ export default function HeroCard() {
       // the user tabs away would wedge at 'flipping' forever.
       const step = () => {
         if (phase.current !== 'flipping') return
+        cropForTime(v.currentTime)
         if (!wiped.current && v.currentTime >= T_WIPE) {
           wiped.current = true
           const { x, y } = centerOfCard()
@@ -220,9 +248,9 @@ export default function HeroCard() {
         }
         if (v.currentTime >= T_RED || v.ended) {
           v.pause()
-          v.removeEventListener('timeupdate', step)
-          v.removeEventListener('ended', step)
+          detachStep()
           phase.current = 'red'
+          cropForTime(T_RED)
           if (!wiped.current) {
             // stalled past the wipe frame (throttled tab) — catch up now
             wiped.current = true
@@ -232,6 +260,8 @@ export default function HeroCard() {
           }
         }
       }
+      detachStep()
+      stepRef.current = step
       v.addEventListener('timeupdate', step)
       v.addEventListener('ended', step)
       const watch = () => {
@@ -244,6 +274,7 @@ export default function HeroCard() {
       v.pause()
       v.currentTime = T_BLUE
       phase.current = 'blue'
+      cropForTime(T_BLUE)
       const { x, y } = centerOfCard()
       flipThemeAt(x, y)
       tintForPhase('blue')
@@ -259,18 +290,22 @@ export default function HeroCard() {
       className="hero-card-stage pointer-events-none absolute inset-0 z-0 flex items-center justify-center"
     >
       {videoOk ? (
-        <video
-          ref={videoRef}
-          data-hero-video
-          className="hero-card-video animate-[hero-float_7s_ease-in-out_infinite]"
-          src="/assets/card.mp4"
-          muted
-          playsInline
-          preload="auto"
-          onError={() => setVideoOk(false)}
-          tabIndex={-1}
-          aria-hidden="true"
-        />
+        /* frame = the video's box; the float rides it so the shadow floats with the card */
+        <div ref={frameRef} className="hero-card-frame relative animate-[hero-float_7s_ease-in-out_infinite] motion-reduce:animate-none">
+          <div aria-hidden="true" className="hero-card-shadow" />
+          <video
+            ref={videoRef}
+            data-hero-video
+            className="hero-card-video relative"
+            src="/assets/card.mp4"
+            muted
+            playsInline
+            preload="auto"
+            onError={() => setVideoOk(false)}
+            tabIndex={-1}
+            aria-hidden="true"
+          />
+        </div>
       ) : (
         /* The stage above is dealt and tilted by GSAP — only the fallback sways */
         <div

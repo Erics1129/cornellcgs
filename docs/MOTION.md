@@ -240,3 +240,13 @@ reduced motion.
   or `__cgsDevice.force()` in dev.
 - **Lesson**: a child's `useLayoutEffect` runs before its PARENT's ref is attached — a prop ref from a parent is null there
   (StrictMode's double run hid it in dev; production never typed). CodePanel builds in `useEffect`.
+
+## The eye (#vision, 2026-09-03)
+The deck's last chapter is one fragment shader (`effects/eyeShader.ts`, driven by `components/FutureEye.tsx`): a
+ray-marched face (socket, lids as shells with rounded margins, hood, brow ridge, cheek, nose bridge, temple) lit by one
+blue monitor, around an analytic eyeball whose cornea refracts onto a procedural iris and reflects a canvas-rendered
+editor that never stops typing the club's code. Life: gaze follows the cursor (a stiff under-damped spring — a saccade),
+otherwise reads the screen; the head drifts on a heavier spring; lids blink on a spring (stiff down, softer up) every
+2.5–7 s with a double now and then; the pupil breathes and answers the screen's brightness. Render size is capped
+(1400 px laptops / 900 px phones) and halves itself when frames run long. Dev hooks: `__cgsEye.frame/sim/snapshot`, the
+`u_debug` uniform paints ray misses magenta; `index.html` keeps early error stacks in `__bootErrors` on localhost.

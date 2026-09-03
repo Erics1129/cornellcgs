@@ -7,6 +7,7 @@ import { BOOTED_EVENT, SHAKE_EVENT, prefersReducedMotion } from './lib/motion'
 import { dealCard, shadowStyle } from './lib/cardMotion'
 import GradientBG from './effects/GradientBG'
 import CodeLayer from './effects/CodeLayer'
+import FutureEye from './components/FutureEye'
 import Nav from './components/Nav'
 import SideRail from './components/SideRail'
 import Hero from './components/Hero'
@@ -256,6 +257,7 @@ export default function App() {
           <StatsSlide />
           <AnyoneSlide />
           <Join />
+          <FutureEye />
         </main>
         <Footer />
       </div>

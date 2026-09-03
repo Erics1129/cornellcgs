@@ -24,6 +24,19 @@ export const REFERENCE: Record<DeviceClass, number> = {
   tv: 1920,
 }
 
+/**
+ * Design zoom per class, on top of the width ratio: the deck is built at
+ * 1440 but reads "packed" at 1:1 on a laptop, so laptops and desktops run
+ * larger (the user's call); phones keep their density, tvs already scale.
+ */
+const ZOOM: Record<DeviceClass, number> = {
+  phone: 1.0,
+  tablet: 1.06,
+  laptop: 1.16,
+  desktop: 1.16,
+  tv: 1.0,
+}
+
 /** how far the scale may stray from 1 before we stop trusting the class */
 const CLAMP: Record<DeviceClass, [number, number]> = {
   phone: [0.72, 1.15],
@@ -46,13 +59,13 @@ export function classify(w = window.innerWidth, h = window.innerHeight): DeviceC
   if ((coarse && !hover) || (navigator.maxTouchPoints > 1 && /Macintosh|iPad/.test(ua) && short < 1100)) return 'tablet'
   // pointer devices split by width: a 4K living-room screen counts as a tv
   if (long >= 2560 && window.devicePixelRatio <= 1.25) return 'tv'
-  if (w >= 1680) return 'desktop'
+  if (w >= 1920) return 'desktop'
   return 'laptop'
 }
 
 export function designScale(cls: DeviceClass, w = window.innerWidth): number {
   const [lo, hi] = CLAMP[cls]
-  return Math.min(hi, Math.max(lo, w / REFERENCE[cls]))
+  return Math.min(hi, Math.max(lo, w / REFERENCE[cls])) * ZOOM[cls]
 }
 
 let applied: { cls: DeviceClass; scale: number } | null = null

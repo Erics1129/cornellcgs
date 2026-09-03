@@ -200,6 +200,16 @@ export const contact = {
   ],
 }
 
+/** The last chapter — what we envision. TODO(club): make these your own. */
+export const vision = {
+  title: 'What we envision',
+  next: [
+    'A Throwing Eggs agent that beats its makers.',
+    'Open tables: our bots against anyone who sits down.',
+    'The tools and papers behind them, in the open.',
+  ],
+}
+
 /** Advisors — name, title and research line as published on their own pages. */
 export const advisors = [
   {

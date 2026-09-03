@@ -16,7 +16,8 @@ export function useActiveSection(): string {
     )
     const top = document.getElementById('top')
     if (top) io.observe(top)
-    nav.forEach(({ id }) => {
+    // the last chapter is not a nav item, but it owns the viewport at the end
+    ;[...nav.map(({ id }) => id), 'vision'].forEach((id) => {
       const el = document.getElementById(id)
       if (el) io.observe(el)
     })

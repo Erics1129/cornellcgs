@@ -92,10 +92,11 @@ html[data-theme='black'] {
   --accent-amber: #ffd08a;
 }
 
-/* Chapters that sit on dark video (the black hole, the globe) keep light
+/* Chapters that sit on dark video (the black hole, the globe, the eye) keep light
    type in every world — the world colors the sky, not the film. */
 #ml-process,
-#world {
+#world,
+#vision {
   --text: #f2f5ff;
   --muted: #a9b4d6;
   --neon-core: #e8fbff;
@@ -525,10 +526,30 @@ a:hover .btn-label > span {
   aspect-ratio: 16 / 9;
   max-width: none;
   object-fit: cover;
-  will-change: transform, filter;
+  will-change: transform, filter, clip-path;
   transform: translateZ(0);
-  -webkit-mask-image: radial-gradient(ellipse 40% 56% at 50% 50%, #000 46%, transparent 74%);
-  mask-image: radial-gradient(ellipse 40% 56% at 50% 50%, #000 46%, transparent 74%);
+  /* only the card: its rectangle in the frame (measured), rounded like a card;
+     HeroCard opens this to the full frame while the film zooms */
+  --card-k: 0;
+  clip-path: inset(
+    calc(17.2% * (1 - var(--card-k))) calc(37.5% * (1 - var(--card-k))) calc(16.1% * (1 - var(--card-k)))
+      calc(37.5% * (1 - var(--card-k))) round calc(3.2% * (1 - var(--card-k)))
+  );
+}
+
+/* the table shadow under the card — a sibling, so the clip never cuts it */
+.hero-card-shadow {
+  position: absolute;
+  left: 37.5%;
+  top: 17.2%;
+  width: 25%;
+  height: 66.7%;
+  border-radius: 3.2%;
+  box-shadow:
+    0 2.5rem 5rem -1.5rem rgba(0, 0, 0, 0.75),
+    0 0.5rem 1.2rem -0.4rem rgba(0, 0, 0, 0.5);
+  opacity: calc(1 - var(--card-k, 0));
+  pointer-events: none;
 }
 
 @media (max-width: 768px) {
@@ -536,11 +557,11 @@ a:hover .btn-label > span {
     align-items: flex-start;
   }
 
+  .hero-card-frame {
+    margin-top: 2svh;
+  }
   .hero-card-video {
     height: 56svh;
-    margin-top: 2svh;
-    -webkit-mask-image: radial-gradient(ellipse 48% 54% at 50% 50%, #000 42%, transparent 72%);
-    mask-image: radial-gradient(ellipse 48% 54% at 50% 50%, #000 42%, transparent 72%);
   }
 }
 
