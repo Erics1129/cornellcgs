@@ -72,7 +72,7 @@ float fbm3(vec2 p) {
 }
 
 // ---------------------------------------------------------------- scene
-const vec3 CAM = vec3(0.0, 0.05, -4.3);
+const vec3 CAM = vec3(0.0, 0.05, -3.7);
 const float FOCAL = 2.0;
 const float R_COR = 0.66;
 const float BULGE = 0.075;
@@ -85,7 +85,7 @@ const vec3 L_FILL = normalize(vec3(-0.6, 0.8, -0.35));
 const vec3 C_FILL = vec3(0.18, 0.26, 0.42);
 const float SCREEN_Z = -7.2;
 const vec2 SCREEN_C = vec2(-1.1, 1.0);   // camera-left, where its light comes from
-const vec2 SCREEN_H = vec2(2.4, 1.5);     // 16:10, far enough that all of it fits in the pupil
+const vec2 SCREEN_H = vec2(3.2, 2.0);     // 16:10, far enough that all of it fits in the pupil
 const float LID_R = 1.13;
 
 float sphere(vec3 ro, vec3 rd, vec3 c, float r) {
@@ -114,15 +114,17 @@ mat3 gazeMat(vec2 g) {
 
 // the lid margins, in eye units across x (front of the ball)
 float edgeU(float x) {
-  float u = clamp((x + 0.07) / 1.02, -1.0, 1.0);
-  float open = 0.285 * pow(max(0.0, 1.0 - u * u), 0.6) + 0.07 * u_gaze.y;
-  float closedLine = -0.05 - 0.08 * sqrt(max(0.0, 1.0 - u * u));
-  return mix(0.02 + open, closedLine, u_blink) + 0.045 * x;
+  float u = clamp((x + 0.10) / 0.84, -1.0, 1.0);
+  // the upper lid peaks a little toward the nose and falls away in a long curve to the temple
+  float open = 0.42 * pow(max(0.0, 1.0 - u * u), 0.62) * (1.0 - 0.12 * smoothstep(0.0, 1.0, u)) + 0.07 * u_gaze.y;
+  float closedLine = -0.04 - 0.07 * sqrt(max(0.0, 1.0 - u * u));
+  return mix(0.03 + open, closedLine, u_blink) + 0.05 * x;
 }
 float edgeL(float x) {
-  float u = clamp((x + 0.03) / 1.02, -1.0, 1.0);
-  float open = 0.30 * pow(max(0.0, 1.0 - u * u), 0.7);
-  return -open * (1.0 - 0.35 * u_blink) + 0.03 * x + 0.02 * u_gaze.y;
+  float u = clamp((x + 0.10) / 0.84, -1.0, 1.0);
+  // the lower lid is flatter, its lowest point under the outer half of the iris
+  float open = 0.25 * pow(max(0.0, 1.0 - u * u), 0.5) * (1.0 + 0.1 * smoothstep(-1.0, 1.0, u));
+  return 0.03 - open * (1.0 - 0.35 * u_blink) + 0.05 * x + 0.02 * u_gaze.y;
 }
 
 float mapFace(vec3 p) {
@@ -132,7 +134,7 @@ float mapFace(vec3 p) {
   float lidUp = smax(shell, (yU - p.y) - 0.012, 0.03);
   float lidLo = smax(shell, (p.y - yL) - 0.012, 0.03);
   float lids = min(lidUp, lidLo);
-  lids = mix(lids, shell, smoothstep(0.96, 1.05, abs(p.x + 0.03)));   // closed past the corners
+  lids = mix(lids, shell, smoothstep(0.78, 0.86, abs(p.x + 0.10)));   // closed past the corners
   lids = max(lids, p.z - 0.75);
   float hood = sdEllipsoid(p - vec3(0.05, 0.66, -0.96), vec3(1.3, 0.24, 0.34));
   float brow = sdEllipsoid(p - vec3(0.15, 1.1, -1.02), vec3(1.75, 0.38, 0.6));
@@ -191,16 +193,16 @@ vec3 env(vec3 pos, vec3 r) {
     if (t > 0.0) {
       vec2 q = pos.xy + t * r.xy;
       vec2 uv = (q - SCREEN_C) / (2.0 * SCREEN_H) + 0.5;
-      uv.x = 1.0 - uv.x;
+      // not mirrored: legible to the reader (a real cornea would flip it)
       vec2 e = abs(uv - 0.5);
       float inside = step(max(e.x, e.y), 0.5);
       float bezel = step(max(e.x, e.y), 0.53) - inside;
       // explicit LODs: this lookup sits inside a branch, where derivatives are undefined
-      float lod = log2(max(1.0, 5800.0 / u_res.y));
+      float lod = log2(max(1.0, 2400.0 / u_res.y));   // sharp enough to read the lines
       vec3 tex = textureLod(u_screen, uv, lod).rgb;
       vec3 halo = textureLod(u_screen, clamp(uv, 0.02, 0.98), lod + 3.0).rgb;
       float near = smoothstep(0.62, 0.5, max(e.x, e.y));
-      col += inside * SRGB(tex) * vec3(0.85, 0.95, 1.15) * 2.2 + near * SRGB(halo) * 0.5 + bezel * vec3(0.02, 0.025, 0.035);
+      col += inside * SRGB(tex) * vec3(0.85, 0.95, 1.15) * 2.4 + near * SRGB(halo) * 0.45 + bezel * vec3(0.02, 0.025, 0.035);
     }
   }
   return col;
@@ -210,7 +212,7 @@ vec3 irisColor(vec2 q, float pupil) {
   float r = length(q) / IRIS_R;
   float a = dot(q, q) < 1e-12 ? 0.0 : atan(q.y, q.x);
   // polar noise has a seam at ±π: blend a second evaluation across it
-  float seamW = smoothstep(2.6, 3.14159, abs(a));
+  float seamW = 0.5 * smoothstep(2.6, 3.14159, abs(a));
   float a2 = a - 6.2831853 * sign(a + 1e-6);
   float warp = mix(fbm(vec2(a * 2.0, r * 3.0) + u_seed), fbm(vec2(a2 * 2.0, r * 3.0) + u_seed), seamW) * 2.0;
   float fib = mix(fbm(vec2(a * 11.0 + warp, r * 4.5 + u_seed)), fbm(vec2(a2 * 11.0 + warp, r * 4.5 + u_seed)), seamW);
@@ -235,7 +237,7 @@ vec3 irisColor(vec2 q, float pupil) {
 
 vec3 scleraColor(vec3 nl, float theta) {
   float phi = dot(nl.xy, nl.xy) < 1e-12 ? 0.0 : atan(nl.y, nl.x);
-  float seamW = smoothstep(2.6, 3.14159, abs(phi));
+  float seamW = 0.5 * smoothstep(2.6, 3.14159, abs(phi));
   float phi2 = phi - 6.2831853 * sign(phi + 1e-6);
   vec3 base = mix(SRGB(vec3(0.84, 0.88, 0.96)), SRGB(vec3(0.66, 0.60, 0.66)), smoothstep(0.7, 1.5, theta));
   float v1 = mix(fbm(vec2(phi * 2.2, theta * 5.0) + u_seed * 3.0), fbm(vec2(phi2 * 2.2, theta * 5.0) + u_seed * 3.0), seamW);
@@ -351,8 +353,8 @@ void main() {
       lit *= 0.7 + 0.3 * smoothstep(1.0, 0.7, r2);
       float F = 0.025 + 0.975 * pow(1.0 - max(dot(V, n), 0.0), 5.0);
       vec3 refl = reflect(rd, n);
-      float overPupil = smoothstep(u_pupil + 0.1, u_pupil - 0.02, r2);
-      col = lit * (1.0 - F) + env(pos, refl) * (0.5 + 0.5 * F) * (0.5 + 0.8 * overPupil);
+      float overPupil = smoothstep(u_pupil + 0.14, u_pupil - 0.02, r2);
+      col = lit * (1.0 - F) + env(pos, refl) * (0.5 + 0.5 * F) * (0.55 + 0.85 * overPupil);
       float limb = smoothstep(limitCos, limitCos + 0.03, dot(normalize(pos), axis));
       col = mix(SRGB(vec3(0.4, 0.46, 0.58)) * 0.5, col, limb);
     } else {
@@ -444,7 +446,7 @@ void main() {
     float hc = hash21(vec2(clump * 1.7, u_seed));
     float h = hash21(vec2(fi * 0.37, u_seed + 1.0));
     float h2 = hash21(vec2(fi * 2.13, u_seed + 2.0));
-    float cx = -0.95 + 1.9 * (clump + 0.5 + (hc - 0.5) * 0.5) / 16.0;
+    float cx = -0.9 + 1.6 * (clump + 0.5 + (hc - 0.5) * 0.5) / 16.0;
     float x = cx + (h - 0.5) * 0.07;
     float row = step(0.55, h2);
     float y = edgeU(x) - 0.006 - row * 0.014;
@@ -453,26 +455,28 @@ void main() {
     float slope = (edgeU(x + 0.02) - edgeU(x - 0.02)) / 0.04;
     vec2 nrm = normalize(vec2(-slope, 1.0));
     float outerness = smoothstep(-0.6, 0.95, x);
-    vec2 dir = normalize(nrm + vec2(0.1 + 0.75 * outerness + (h2 - 0.5) * 0.3, 0.0));
+    // they lean toward the temple — a little toward the nose at the inner corner — and forward, not up
+    float lean = mix(-0.35, 1.6, smoothstep(-0.8, 0.8, x)) + (hc - 0.5) * 0.7 + (h2 - 0.5) * 0.35;
+    vec2 dir = normalize(nrm * 0.75 + vec2(lean, -0.05));
     // the lash follows the lid, then whips and settles (u_lash is a spring driven by the lid's speed)
     float ang = atan(dir.y, dir.x) - u_blink * 1.3 + u_lash * (0.6 + 0.6 * h);
     dir = vec2(cos(ang), sin(ang));
     float lenC = 0.085 + 0.11 * outerness * (0.6 + 0.8 * hc);
     float len = lenC * (0.6 + 0.6 * h) * (1.0 - 0.25 * row);
-    float curl = 0.7 + 0.7 * hc + (h2 - 0.5) * 0.25 + u_lash * 0.8;
+    float curl = 0.45 + 0.5 * hc + (h2 - 0.5) * 0.25 + u_lash * 0.8;
     lashes = max(lashes, hair(p, base, dir, len, curl, 0.0052 - 0.0016 * row, aa));
   }
   if (p.y > c0.y - 0.36 && p.y < c0.y + 0.02) for (int i = 0; i < 30; i++) {
     float fi = float(i);
     float h = hash21(vec2(fi + 100.0, u_seed));
     float h2 = hash21(vec2(fi * 5.1 + 7.0, u_seed));
-    float x = -0.85 + 1.72 * (fi + 0.5 + (h - 0.5) * 0.9) / 30.0;
+    float x = -0.8 + 1.4 * (fi + 0.5 + (h - 0.5) * 0.9) / 30.0;
     float y = edgeL(x) + 0.004;
     float z = -sqrt(max(0.0, LID_R * LID_R + 0.03 - x * x - y * y));
     vec2 base = project(vec3(x, y, z));
     float slope = (edgeL(x + 0.02) - edgeL(x - 0.02)) / 0.04;
     vec2 nrm = -normalize(vec2(-slope, 1.0));
-    vec2 dir = normalize(nrm + vec2(0.1 + 0.5 * smoothstep(-0.5, 0.9, x), 0.0));
+    vec2 dir = normalize(nrm * 0.8 + vec2(mix(-0.2, 1.1, smoothstep(-1.0, 1.0, x)), 0.0));
     float len = (0.026 + 0.04 * smoothstep(-0.6, 0.9, x)) * (0.6 + 0.7 * h2);
     float angL = atan(dir.y, dir.x) - u_lash * 0.4;
     dir = vec2(cos(angL), sin(angL));

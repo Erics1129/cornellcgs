@@ -31,10 +31,11 @@ const FILES = [
   { name: 'site.tsx', lines: SITE_SNIPPETS },
 ]
 const KW = /\b(const|let|function|return|if|else|for|while|new|type|number|boolean|string|export|import|from|interface|class|extends|async|await|true|false|null)\b/
-const SCREEN_W = 760
-const SCREEN_H = 400
-const LINE_H = 26
-const VISIBLE = 13
+const SCREEN_W = 1024
+const SCREEN_H = 640
+const LINE_H = 66
+const VISIBLE = 8
+const COLS = 36   // soft-wrap width at the editor's type size
 
 type Uniforms = Record<string, WebGLUniformLocation | null>
 
@@ -73,6 +74,12 @@ class Screen {
     this.probe.height = 4
   }
 
+  /** a slip: wrong characters typed, then backspaced */
+  typo = ''
+  typoLeft = 0
+  /** wiping: the finished file is deleted from the end, fast, before the next begins */
+  wiping = false
+
   /** Advance the typist; returns true when a new file started (a beat for the pupil). */
   tick(now: number, dt: number): boolean {
     let started = false
@@ -80,23 +87,50 @@ class Screen {
     if (this.hold > 0) {
       this.hold -= dt
       if (this.hold <= 0) {
-        this.file = (this.file + 1) % FILES.length
-        this.line = 0
-        this.col = 0
-        started = true
+        this.wiping = true
+        this.nextChar = now
+      }
+    } else if (this.wiping) {
+      // backspace through the file, several characters a beat
+      if (now >= this.nextChar) {
+        for (let k = 0; k < 6; k++) {
+          if (this.col > 0) this.col--
+          else if (this.line > 0) {
+            this.line--
+            this.col = lines[this.line].length
+          } else {
+            this.wiping = false
+            this.file = (this.file + 1) % FILES.length
+            started = true
+            break
+          }
+        }
+        this.nextChar = now + 24
         this.dirty = true
       }
     } else if (now >= this.nextChar) {
       const cur = lines[this.line] ?? ''
-      if (this.col < cur.length) {
+      if (this.typoLeft > 0) {
+        // the slip: type a wrong character, or take it back
+        if (this.typo.length < this.typoLeft) {
+          this.typo += 'qwertasdfg'[Math.floor(Math.random() * 10)]
+          this.nextChar = now + 40 + Math.random() * 40
+          if (this.typo.length === this.typoLeft) this.nextChar = now + 260
+        } else {
+          this.typo = this.typo.slice(0, -1)
+          this.nextChar = now + 55
+          if (this.typo.length === 0) this.typoLeft = 0
+        }
+      } else if (this.col < cur.length) {
         this.col++
-        this.nextChar = now + 22 + Math.random() * 40 + (cur[this.col - 1] === ' ' ? 30 : 0)
+        this.nextChar = now + 26 + Math.random() * 44 + (cur[this.col - 1] === ' ' ? 30 : 0)
+        if (Math.random() < 0.03 && this.col > 2) this.typoLeft = 1 + Math.floor(Math.random() * 3)
       } else if (this.line < lines.length - 1) {
         this.line++
         this.col = 0
-        this.nextChar = now + 140 + Math.random() * 160
+        this.nextChar = now + 160 + Math.random() * 180
       } else {
-        this.hold = 2600
+        this.hold = 2200
       }
       this.dirty = true
     }
@@ -143,49 +177,56 @@ class Screen {
     c.fillRect(0, 0, SCREEN_W, SCREEN_H)
     // title bar
     c.fillStyle = '#eef2fb'
-    c.fillRect(0, 0, SCREEN_W, 26)
-    c.fillStyle = '#ff5f57'
-    c.beginPath()
-    c.arc(14, 13, 4.5, 0, Math.PI * 2)
-    c.fill()
-    c.fillStyle = '#febc2e'
-    c.beginPath()
-    c.arc(28, 13, 4.5, 0, Math.PI * 2)
-    c.fill()
-    c.fillStyle = '#28c840'
-    c.beginPath()
-    c.arc(42, 13, 4.5, 0, Math.PI * 2)
-    c.fill()
-    c.font = '500 12px "JetBrains Mono", ui-monospace, monospace'
+    c.fillRect(0, 0, SCREEN_W, 40)
+    for (const [x, colr] of [[22, '#ff5f57'], [44, '#febc2e'], [66, '#28c840']] as Array<[number, string]>) {
+      c.fillStyle = colr
+      c.beginPath()
+      c.arc(x, 20, 7, 0, Math.PI * 2)
+      c.fill()
+    }
+    c.font = '600 20px "JetBrains Mono", ui-monospace, monospace'
     c.fillStyle = '#5b6a88'
-    c.fillText(`${f.name} — cornellcgs`, 60, 17)
+    c.fillText(`${f.name} — cornellcgs`, 92, 27)
     // gutter + code, scrolled so the cursor line stays in view
-    c.font = '600 17px "JetBrains Mono", ui-monospace, monospace'
-    const first = Math.max(0, this.line - VISIBLE + 3)
+    c.font = '600 44px "JetBrains Mono", ui-monospace, monospace'
+    // rows: every line soft-wrapped at COLS; the cursor sits at the end of the current line's text (+ any slip)
+    const rows: Array<{ text: string; cursor: boolean }> = []
+    for (let li = 0; li <= this.line; li++) {
+      const full = li < this.line ? f.lines[li] : f.lines[li].slice(0, this.col) + this.typo
+      const chunks: string[] = []
+      for (let k = 0; k < Math.max(1, full.length); k += COLS) chunks.push(full.slice(k, k + COLS))
+      chunks.forEach((t, k) => rows.push({ text: t, cursor: li === this.line && k === chunks.length - 1 }))
+    }
+    const firstRow = Math.max(0, rows.length - VISIBLE)
+    c.save()
+    c.beginPath()
+    c.rect(0, 40, SCREEN_W, SCREEN_H - 70)
+    c.clip()
     for (let i = 0; i < VISIBLE; i++) {
-      const li = first + i
-      const y = 26 + 24 + i * LINE_H
-      if (li > this.line) break
-      c.fillStyle = li === this.line ? '#dde6f7' : 'transparent'
-      if (li === this.line) c.fillRect(0, y - 19, SCREEN_W, LINE_H)
-      c.fillStyle = '#7d8bb0'
-      c.fillText(String(li + 1).padStart(2, ' '), 8, y)
-      const text = li < this.line ? f.lines[li] : f.lines[li].slice(0, this.col)
-      this.paintLine(text, 44, y)
-      if (li === this.line && this.cursorOn) {
-        const w = c.measureText(text).width
+      const row = rows[firstRow + i]
+      if (!row) break
+      const y = 40 + 52 + i * LINE_H
+      if (row.cursor) {
+        c.fillStyle = '#dde6f7'
+        c.fillRect(0, y - 48, SCREEN_W, LINE_H)
+      }
+      this.paintLine(row.text, 28, y)
+      if (row.cursor && this.cursorOn) {
+        const w = c.measureText(row.text).width
         c.fillStyle = '#1b3fb8'
-        c.fillRect(44 + w + 1, y - 15, 9, 20)
+        c.fillRect(28 + w + 4, y - 40, 20, 52)
       }
     }
+    c.restore()
     // status bar
     c.fillStyle = '#b9c6e2'
-    c.fillRect(0, SCREEN_H - 20, SCREEN_W, 20)
+    c.fillRect(0, SCREEN_H - 30, SCREEN_W, 30)
     c.font = '500 11px "JetBrains Mono", ui-monospace, monospace'
     c.fillStyle = '#5b6a88'
-    c.fillText(`TypeScript   UTF-8   Ln ${this.line + 1}, Col ${this.col + 1}`, 10, SCREEN_H - 6)
+    c.font = '500 18px "JetBrains Mono", ui-monospace, monospace'
+    c.fillText(`TypeScript   UTF-8   Ln ${this.line + 1}, Col ${this.col + 1}`, 14, SCREEN_H - 9)
     c.fillStyle = '#1e5eff'
-    c.fillText('● main', SCREEN_W - 62, SCREEN_H - 6)
+    c.fillText('● main', SCREEN_W - 96, SCREEN_H - 9)
     this.dirty = false
   }
 
@@ -532,11 +573,17 @@ export default function FutureEye() {
       if (raf) cancelAnimationFrame(raf)
       raf = 0
     }
+    const uploadScreen = () => {
+      screen.paint()
+      gl.bindTexture(gl.TEXTURE_2D, tex)
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, screen.canvas)
+      gl.generateMipmap(gl.TEXTURE_2D)
+      lastUpload = performance.now()
+    }
     const onRestored = () => {
       try {
         setup()
-        screen.dirty = true
-        lastUpload = 0
+        uploadScreen()
         resize()
         start()
       } catch (err) {

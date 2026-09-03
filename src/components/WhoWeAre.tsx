@@ -160,7 +160,7 @@ export default function WhoWeAre() {
     <section ref={root} id="who-we-are" className="section">
       <SectionIndex rank="K" />
       <div className="container-site">
-        <h2 data-reveal="heading" className="h-section mx-auto mb-10 max-w-[18ch] text-center md:mb-12">
+        <h2 data-reveal="heading" className="h-section mx-auto mb-[min(2.5rem,4svh)] max-w-[18ch] text-center md:mb-[min(3rem,4svh)]">
           {renderEmphasis(whoWeAre.heading)}
         </h2>
 
@@ -175,7 +175,7 @@ export default function WhoWeAre() {
             <div ref={leftCard} className="relative">
              <div className="life-float" style={{ ['--life-dur' as string]: '8.2s', ['--life-delay' as string]: '-2.1s' }}>
               <CardShell
-                className="card-face-surface neon relative flex aspect-[5/7] w-[min(76vw,18.75rem)] flex-col justify-center px-7 py-8 md:w-[min(24vw,20rem)] md:px-8"
+                className="card-face-surface neon relative flex aspect-[5/7] w-[min(76vw,18.75rem)] flex-col justify-center px-7 py-8 md:w-[min(24vw,20rem,34svh)] md:px-8"
                 tiltMax={4}
                 shadowEl={leftShadow}
               >
@@ -212,7 +212,7 @@ export default function WhoWeAre() {
             <div ref={rightCard} className="relative">
              <div className="life-float" style={{ ['--life-dur' as string]: '9.1s', ['--life-delay' as string]: '-5.6s' }}>
               <CardShell
-                className="card-back-surface neon relative aspect-[5/7] w-[min(76vw,18.75rem)] overflow-hidden md:w-[min(24vw,20rem)]"
+                className="card-back-surface neon relative aspect-[5/7] w-[min(76vw,18.75rem)] overflow-hidden md:w-[min(24vw,20rem,34svh)]"
                 tiltMax={4}
                 shadowEl={rightShadow}
               >
