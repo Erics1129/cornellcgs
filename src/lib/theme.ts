@@ -1,14 +1,21 @@
 /**
- * Theme system. World 1 (card face down) is dark blue, World 2 (face up) is
- * deep indigo. The flip is a GRADUAL color migration (藤蔓渐变): every theme
+ * Theme system. Five worlds cycle with the hero card's flips — dark blue,
+ * light blue, light purple, dark purple, black — and every change is a
+ * GRADUAL color migration (藤蔓渐变), never a cut: every theme
  * token is interpolated over ~1.2 s with an eased ramp, so the whole site's
  * colors flow from one world into the other — no covering disc, no flash.
  * The canvas layers hear the theme event and run their own matching lerps.
  *
- * The palettes here MUST mirror :root / html[data-theme='red'] in global.css.
+ * The palettes here MUST mirror :root / html[data-theme='…'] in global.css.
  */
 
-export type Theme = 'blue' | 'red'
+/** The five worlds, in cycle order: dark blue → light blue → light purple →
+    dark purple → black → dark blue. Every flip advances one step. */
+export const WORLDS = ['blue', 'sky', 'lilac', 'violet', 'black'] as const
+export type Theme = (typeof WORLDS)[number]
+
+/** Worlds whose backgrounds are light — chrome and text go dark on them. */
+export const LIGHT_WORLDS: ReadonlySet<Theme> = new Set<Theme>(['sky', 'lilac'])
 
 export const THEME_EVENT = 'cgs:theme'
 
@@ -38,16 +45,52 @@ const PALETTES: Record<Theme, Record<(typeof VARS)[number], string>> = {
     '--neon-dim': '#12336b',
     '--accent-amber': '#ffc46b',
   },
-  red: {
-    '--bg-top': '#060427',
-    '--bg-mid': '#1a1670',
-    '--bg-bot': '#4a43c4',
-    '--glow': '#5a5aff',
-    '--text': '#f0f0ff',
-    '--muted': '#a9a9dc',
-    '--neon-core': '#ededff',
-    '--neon-mid': '#7a85ff',
-    '--neon-dim': '#1b1b5e',
+  sky: {
+    '--bg-top': '#dfeeff',
+    '--bg-mid': '#b9d6ff',
+    '--bg-bot': '#7fb0ff',
+    '--glow': '#4ea8ff',
+    '--text': '#0a1e3f',
+    '--muted': '#3e5680',
+    '--neon-core': '#0b2a6b',
+    '--neon-mid': '#1e5eff',
+    '--neon-dim': '#c7dbff',
+    '--accent-amber': '#b86e00',
+  },
+  lilac: {
+    '--bg-top': '#efe6ff',
+    '--bg-mid': '#d6c4ff',
+    '--bg-bot': '#a98cf5',
+    '--glow': '#8f6cff',
+    '--text': '#1a1040',
+    '--muted': '#4a3d7a',
+    '--neon-core': '#2a1a6e',
+    '--neon-mid': '#6a3dff',
+    '--neon-dim': '#dccfff',
+    '--accent-amber': '#a85f00',
+  },
+  violet: {
+    '--bg-top': '#0e0620',
+    '--bg-mid': '#2a1364',
+    '--bg-bot': '#5a34b8',
+    '--glow': '#7a4dff',
+    '--text': '#f3eeff',
+    '--muted': '#b7a9dc',
+    '--neon-core': '#f0e8ff',
+    '--neon-mid': '#a07cff',
+    '--neon-dim': '#2a1a5e',
+    '--accent-amber': '#ffcf8a',
+  },
+  black: {
+    '--bg-top': '#000000',
+    '--bg-mid': '#0a0a0f',
+    '--bg-bot': '#1a1a24',
+    '--glow': '#3a3a55',
+    '--text': '#f2f2f5',
+    '--muted': '#9a9aa8',
+    '--neon-core': '#ffffff',
+    '--neon-mid': '#8c8cff',
+    '--neon-dim': '#22222e',
     '--accent-amber': '#ffd08a',
   },
 }
@@ -62,7 +105,13 @@ export const themeLerpEase = (t: number) => t * t * (3 - 2 * t)
 let raf = 0
 
 export function currentTheme(): Theme {
-  return document.documentElement.dataset.theme === 'red' ? 'red' : 'blue'
+  const v = document.documentElement.dataset.theme as Theme | undefined
+  return v && (WORLDS as readonly string[]).includes(v) ? v : 'blue'
+}
+
+/** The world after `t` in the cycle. */
+export function nextTheme(t: Theme = currentTheme()): Theme {
+  return WORLDS[(WORLDS.indexOf(t) + 1) % WORLDS.length]
 }
 
 function announce(theme: Theme) {
@@ -112,7 +161,7 @@ function ripple(x: number, y: number, color: string) {
  * translucent ripple expanding from (x, y) — the card.
  */
 export function flipThemeAt(x: number, y: number): Theme {
-  const next: Theme = currentTheme() === 'blue' ? 'red' : 'blue'
+  const next = nextTheme()
   const root = document.documentElement
 
   cancelAnimationFrame(raf)
@@ -173,4 +222,9 @@ export function onTheme(cb: (theme: Theme) => void): () => void {
 /** Read a CSS custom property off <html> (current theme's value). */
 export function cssVar(name: string): string {
   return getComputedStyle(document.documentElement).getPropertyValue(name).trim()
+}
+
+// Dev-only: lets automated probes step the world cycle without the 10 s clock
+if (import.meta.env.DEV) {
+  ;(window as unknown as { __cgsTheme?: unknown }).__cgsTheme = { flipThemeAt, currentTheme, nextTheme, WORLDS }
 }

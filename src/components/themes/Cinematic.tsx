@@ -1,4 +1,4 @@
-import type { ReactElement } from 'react'
+import type { CSSProperties, ReactElement } from 'react'
 import gsap from 'gsap'
 import { EASE } from '../../lib/eases'
 import { prefersReducedMotion } from '../../lib/motion'
@@ -28,7 +28,13 @@ function Backdrop(): ReactElement {
             color: 'rgba(10, 30, 63, 0.045)',
           }}
         >
-          CGS
+          {/* The outer span carries the scroll parallax (GSAP y); the idle breathe lives one level in. */}
+          <span
+            className="life-breathe inline-block"
+            style={{ '--life-dur': '13s', '--life-delay': '-5s' } as CSSProperties}
+          >
+            CGS
+          </span>
         </span>
       </div>
     </div>
@@ -94,9 +100,10 @@ function enter(root: HTMLElement): () => void {
     return () => ctx.revert()
   }
 
-  const next = title?.nextElementSibling
-  const lead =
-    next instanceof HTMLParagraphElement && next.hasAttribute('data-page-item') ? next : null
+  // The item right after the h1 — not its DOM sibling: the title and the lead
+  // each sit inside an idle-life wrapper (SubPage).
+  const next = title ? items[items.indexOf(title) + 1] : undefined
+  const lead = next instanceof HTMLParagraphElement ? next : null
   const rest = items.filter((el) => el !== title && el !== lead)
   const splits: Split[] = []
 

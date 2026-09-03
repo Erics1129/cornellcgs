@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import gsap from 'gsap'
-import { flipThemeAt } from '../lib/theme'
+import { currentTheme, flipThemeAt } from '../lib/theme'
+import type { Theme } from '../lib/theme'
 import { isPaging } from '../lib/scroll'
 import { isPageOpen } from '../lib/router'
 import { BOOTED_EVENT, prefersReducedMotion, isTouchDevice } from '../lib/motion'
@@ -148,13 +149,32 @@ export default function HeroCard() {
    * face-up world is light blue — so the video hue-shifts in sync with the
    * theme wipe (reds → blues; the ivory/ink card itself barely moves).
    */
+  /**
+   * The clip's baked backdrop is blue on the back and red on the face; each
+   * world re-tints whichever face is showing so the card belongs to its sky.
+   * Rides the theme-flip clock (theme.ts DURATION_MS) with matching curvature.
+   */
+  const TINT: Record<Theme, { blue: string; red: string }> = {
+    blue: { blue: '', red: 'hue-rotate(225deg) saturate(0.72) brightness(0.94)' },
+    sky: {
+      blue: 'brightness(1.55) saturate(0.6)',
+      red: 'hue-rotate(200deg) brightness(1.5) saturate(0.55)',
+    },
+    lilac: {
+      blue: 'hue-rotate(50deg) brightness(1.55) saturate(0.55)',
+      red: 'hue-rotate(290deg) brightness(1.45) saturate(0.5)',
+    },
+    violet: {
+      blue: 'hue-rotate(45deg) saturate(0.9)',
+      red: 'hue-rotate(280deg) saturate(0.8) brightness(0.9)',
+    },
+    black: { blue: 'saturate(0.15) brightness(0.62)', red: 'saturate(0.2) brightness(0.55)' },
+  }
   const tintForPhase = (next: 'blue' | 'red') => {
     const v = videoRef.current
     if (!v) return
-    // Rides the theme-flip clock (theme.ts DURATION_MS) with matching curvature
     v.style.transition = 'filter 1.2s cubic-bezier(0.45, 0, 0.55, 1)'
-    v.style.filter =
-      next === 'red' ? 'hue-rotate(225deg) saturate(0.72) brightness(0.94)' : ''
+    v.style.filter = TINT[currentTheme()][next]
   }
 
   const flip = () => {
@@ -252,8 +272,16 @@ export default function HeroCard() {
           aria-hidden="true"
         />
       ) : (
-        <div className="card-back-surface flex aspect-[5/7] h-[min(52vh,460px)] items-center justify-center">
-          <span aria-hidden="true" className="text-6xl text-[var(--silver)] opacity-80">
+        /* The stage above is dealt and tilted by GSAP — only the fallback sways */
+        <div
+          className="card-back-surface life-sway flex aspect-[5/7] h-[min(52vh,28.75rem)] items-center justify-center"
+          style={{ ['--life-dur' as string]: '9.5s', ['--life-delay' as string]: '-3.3s' }}
+        >
+          <span
+            aria-hidden="true"
+            className="life-glow text-6xl text-[var(--silver)] opacity-80"
+            style={{ ['--life-dur' as string]: '4.8s', ['--life-delay' as string]: '-1.7s' }}
+          >
             ♠
           </span>
         </div>
@@ -267,7 +295,7 @@ export default function HeroCard() {
           armAuto()
         }}
         aria-label="Flip the card — switches the site between the blue and red world"
-        className="pointer-events-auto absolute left-1/2 top-[30svh] aspect-[5/7] h-[min(44svh,430px)] -translate-x-1/2 -translate-y-1/2 cursor-pointer rounded-3xl md:top-1/2 md:h-[min(48vh,430px)]"
+        className="pointer-events-auto absolute left-1/2 top-[30svh] aspect-[5/7] h-[min(44svh,26.875rem)] -translate-x-1/2 -translate-y-1/2 cursor-pointer rounded-3xl md:top-1/2 md:h-[min(48vh,26.875rem)]"
       />
     </div>
   )

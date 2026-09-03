@@ -10,6 +10,14 @@ import { useActiveSection } from '../lib/useActiveSection'
  * are in. Each stop is the chapter's card rank; the active stop shows its
  * name. Desktop only.
  */
+
+/* Idle-life phases for the rank marks — 6–8 s periods, starts spread so the
+   column never moves as one */
+const railLife = (i: number) => ({
+  ['--life-dur' as string]: `${[7, 6, 8, 6.4, 7.6][i % 5]}s`,
+  ['--life-delay' as string]: `-${((i * 2.3) % 6).toFixed(1)}s`,
+})
+
 export default function SideRail() {
   const active = useActiveSection()
   const fillRef = useRef<HTMLDivElement>(null)
@@ -44,11 +52,14 @@ export default function SideRail() {
     >
       {/* Progress line */}
       <div aria-hidden="true" className="relative w-px bg-[color-mix(in_srgb,var(--neon-dim)_80%,transparent)]">
-        <div ref={fillRef} className="absolute inset-0 bg-[var(--neon-mid)]" />
+        {/* Glow on a wrapper — the fill itself is GSAP's scaleY */}
+        <div className="life-glow absolute inset-0" style={{ ['--life-dur' as string]: '5.2s' }}>
+          <div ref={fillRef} className="absolute inset-0 bg-[var(--neon-mid)]" />
+        </div>
       </div>
 
       <nav aria-label="Chapter list" className="flex flex-col justify-between gap-4 py-1">
-        {nav.map(({ id, label, rank }) => {
+        {nav.map(({ id, label, rank }, i) => {
           const isActive = active === id
           return (
             <button
@@ -58,13 +69,17 @@ export default function SideRail() {
               aria-current={isActive ? 'true' : undefined}
               className="group relative flex items-center gap-3 text-left"
             >
-              <span
-                aria-hidden="true"
-                className={`font-display w-6 text-center text-[15px] leading-none transition-[transform,color,opacity] duration-300 [transition-timing-function:var(--ease-out)] ${
-                  isActive ? 'scale-125 text-[var(--neon-mid)]' : 'text-[var(--muted)] opacity-60 group-hover:opacity-100'
-                }`}
-              >
-                {rank}
+              {/* Float on a wrapper — the mark's own transform is the active
+                  scale (block keeps w-6 now that it is no longer a flex item) */}
+              <span className="life-float block" style={railLife(i)}>
+                <span
+                  aria-hidden="true"
+                  className={`font-display block w-6 text-center text-[0.9375rem] leading-none transition-[transform,color,opacity] duration-300 [transition-timing-function:var(--ease-out)] ${
+                    isActive ? 'scale-125 text-[var(--neon-mid)]' : 'text-[var(--muted)] opacity-60 group-hover:opacity-100'
+                  }`}
+                >
+                  {rank}
+                </span>
               </span>
               {/* Label lives in a fixed clip box outside flow — the rail's
                   hit area and width never change, and the reveal is
@@ -74,7 +89,7 @@ export default function SideRail() {
                 className="pointer-events-none absolute left-9 top-1/2 w-40 -translate-y-1/2 overflow-hidden"
               >
                 <span
-                  className={`mono block whitespace-nowrap text-[max(0.78rem,12px)] transition-[transform,opacity,color] duration-[350ms] [transition-timing-function:var(--ease-out)] ${
+                  className={`mono block whitespace-nowrap text-[max(0.78rem,0.75rem)] transition-[transform,opacity,color] duration-[350ms] [transition-timing-function:var(--ease-out)] ${
                     isActive
                       ? 'translate-x-0 text-[var(--text)] opacity-100'
                       : '-translate-x-2 opacity-0 group-hover:translate-x-0 group-hover:text-[var(--muted)] group-hover:opacity-100'

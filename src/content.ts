@@ -35,7 +35,7 @@ export const typing = {
     { lead: 'We compute', tail: 'equilibria' },
     { lead: 'We collaborate on', tail: 'multi agent learning' },
     { lead: 'We build', tail: 'AlphaGo style agents' },
-    { lead: 'We are training', tail: 'a GuanDan AI' },
+    { lead: 'We are training', tail: 'a Throwing Eggs AI' },
     { lead: 'We play', tail: 'anything with payoffs' },
   ],
 }
@@ -79,7 +79,7 @@ export const whatWeDo = {
       rank: 'Q',
       suit: '♠',
       title: 'Build',
-      text: 'Bots that play. Right now: GuanDan.',
+      text: 'Bots that play. Right now: Throwing Eggs.',
     },
     {
       rank: 'J',
@@ -182,6 +182,7 @@ export const join = {
   cta: { label: 'Apply to CGS', href: 'mailto:recruitment@cornellcgs.org' }, // TODO form url when one exists
 }
 
+/** Facts row under the Join card — one threshold per column, big value in the middle. */
 export const contact = {
   email: 'recruitment@cornellcgs.org',
   instagram: 'To be added', // TODO real instagram
@@ -234,7 +235,8 @@ export const memberCountries = [
 export type SubPageDef = {
   title: string
   lead: string
-  sections: Array<{ heading: string; body: string }>
+  /** `alt` is the second line the heading types between — the page keeps talking. */
+  sections: Array<{ heading: string; body: string; alt?: string }>
 }
 
 /** Public URL slug for each page id — camelCase paths, e.g. /whoWeAre/. */
@@ -255,69 +257,69 @@ export const pages: Record<string, SubPageDef> = {
     title: 'Who We Are',
     lead: 'A Cornell student organization that solves games with code.',
     sections: [
-      { heading: 'Our Culture', body: 'Open, rigorous, beginner-friendly. Any person, any study.' },
-      { heading: 'What We Build', body: 'Game AI — the AlphaGo kind. Agents that learn a game and outgrow us.' },
-      { heading: 'Where We Are', body: 'Ithaca, NY. Members from around the world.' },
+      { heading: 'Our Culture', alt: 'How We Work', body: 'Open, rigorous, beginner-friendly. Any person, any study.' },
+      { heading: 'What We Build', alt: 'Why We Build It', body: 'Game AI — the AlphaGo kind. Agents that learn a game and outgrow us.' },
+      { heading: 'Where We Are', alt: 'Where We Come From', body: 'Ithaca, NY. Members from around the world.' },
     ],
   },
   'what-we-do': {
     title: 'What We Do',
-    lead: 'We build game AI — the AlphaGo kind. Now playing: GuanDan.',
+    lead: 'We build game AI — the AlphaGo kind. Now playing: Throwing Eggs.',
     sections: [
       {
-        heading: 'GuanDan, In 20 Seconds',
+        heading: 'Throwing Eggs, In 20 Seconds', alt: 'The Rules, Fast',
         body: '4 players, 2 teams, partners across the table, 108 cards. Shed your hand first. Singles, pairs, straights, full houses — and bombs beat everything.',
       },
       {
-        heading: 'How You Win',
+        heading: 'How You Win', alt: 'Climb To Ace',
         body: 'Finish before the other team. Wins climb your team up card levels, 2 through Ace. First team past Ace takes the match.',
       },
       {
         // TODO(club): replace with real, current capabilities + numbers
-        heading: 'Our GuanDan AI',
+        heading: 'Our Throwing Eggs AI', alt: 'The Bot In Training',
         body: 'In training. It learns by playing itself, and it gets better every run. Benchmarks when we have numbers worth bragging about.',
       },
-      { heading: 'Study Nights', body: 'Game theory, ranges, equilibrium — weekly.' },
-      { heading: 'Tournaments & Talks', body: 'Real structure, zero buy-in. Speakers from quant, poker, academia.' },
+      { heading: 'Study Nights', alt: 'Every Week', body: 'Game theory, ranges, equilibrium — weekly.' },
+      { heading: 'Tournaments & Talks', alt: 'Play. Listen. Argue.', body: 'Real structure, zero buy-in. Speakers from quant, poker, academia.' },
     ],
   },
   'ml-process': {
     title: 'Our Machine Learning Process',
     lead: 'From rules to superhuman — the same loop AlphaGo ran.',
     sections: [
-      { heading: '01 — Frame the game', body: 'States, actions, payoffs.' },
-      { heading: '02 — Build the environment', body: 'A simulator, and self-play.' },
-      { heading: '03 — Train', body: 'Counterfactual regret minimization and deep RL.' },
-      { heading: '04 — Evaluate', body: 'Exploitability and head-to-head matches.' },
-      { heading: '05 — Ship', body: 'Bots that play, tools people use, papers.' },
+      { heading: '01 — Frame the game', alt: '01 — Define the state', body: 'States, actions, payoffs.' },
+      { heading: '02 — Build the environment', alt: '02 — Simulate at scale', body: 'A simulator, and self-play.' },
+      { heading: '03 — Train', alt: '03 — Self-play', body: 'Counterfactual regret minimization and deep RL.' },
+      { heading: '04 — Evaluate', alt: '04 — Measure exploitability', body: 'Exploitability and head-to-head matches.' },
+      { heading: '05 — Ship', alt: '05 — Release', body: 'Bots that play, tools people use, papers.' },
     ],
   },
   events: {
     title: 'Events',
     lead: 'This year\u2019s events. Dates TBA.',
     sections: [
-      { heading: 'Fall Kickoff', body: 'First deal of the year. Date TBA.' },
-      { heading: 'Solver Workshop', body: 'Hands-on with CFR. Date TBA.' },
-      { heading: 'Alumni Night', body: 'The truth about quant and research. Date TBA.' },
-      { heading: 'Charity Tournament', body: 'Every chip for a good cause. Date TBA.' },
-      { heading: 'Spring Banquet', body: 'The year in review. Date TBA.' },
+      { heading: 'Fall Kickoff', alt: 'First Deal', body: 'First deal of the year. Date TBA.' },
+      { heading: 'Solver Workshop', alt: 'Build A Solver', body: 'Hands-on with CFR. Date TBA.' },
+      { heading: 'Alumni Night', alt: 'Ask Them Anything', body: 'The truth about quant and research. Date TBA.' },
+      { heading: 'Charity Tournament', alt: 'Chips For Good', body: 'Every chip for a good cause. Date TBA.' },
+      { heading: 'Spring Banquet', alt: 'The Year, Reviewed', body: 'The year in review. Date TBA.' },
     ],
   },
   world: {
     title: 'World',
     lead: 'Our members come from around the world.',
     sections: [
-      { heading: 'Our Members', body: 'Students from around the world.' },
-      { heading: 'Countries', body: 'Count TBA.' },
+      { heading: 'Our Members', alt: 'Who Plays Here', body: 'Students from around the world.' },
+      { heading: 'Countries', alt: 'How Far We Reach', body: 'Count TBA.' },
     ],
   },
   people: {
     title: 'Our Team',
     lead: 'Board and members of Cornell CGS.',
     sections: [
-      { heading: 'Board', body: 'Roster TBA.' },
-      { heading: 'Members', body: 'Roster TBA.' },
-      { heading: 'Advisors', body: 'TBA \u2014 see Advisors.' },
+      { heading: 'Board', alt: 'Leadership', body: 'Roster TBA.' },
+      { heading: 'Members', alt: 'The Table', body: 'Roster TBA.' },
+      { heading: 'Advisors', alt: 'Our Mentors', body: 'TBA \u2014 see Advisors.' },
     ],
   },
   advisors: {
@@ -325,29 +327,29 @@ export const pages: Record<string, SubPageDef> = {
     // TODO(club): advisor + member roster (names, roles, photos)
     lead: 'Advisors and mentors of Cornell CGS.',
     sections: [
-      { heading: 'Board', body: 'TBA.' },
-      { heading: 'Members', body: 'TBA.' },
+      { heading: 'Board', alt: 'Leadership', body: 'TBA.' },
+      { heading: 'Members', alt: 'The Table', body: 'TBA.' },
     ],
   },
   join: {
     title: 'Join CGS',
     lead: '\u201CI would found an institution where any person can find instruction in any study.\u201D \u2014 Ezra Cornell. We take him at his word.',
     sections: [
-      { heading: 'Who Can Join', body: 'Any person, any study. Every school, every major, every background \u2014 all are welcome to apply.' },
-      { heading: 'Helpful Math', body: 'MATH 1110 or beyond \u2014 or relevant experience.' },
-      { heading: 'Helpful CS', body: 'CS 1110 or 1112 \u2014 enough to read and write code.' },
-      { heading: 'How to Apply', body: 'Email recruitment@cornellcgs.org. New members every semester.' },
+      { heading: 'Who Can Join', alt: 'Any Person, Any Study', body: 'Any person, any study. Every school, every major, every background \u2014 all are welcome to apply.' },
+      { heading: 'Helpful Math', alt: 'MATH 1110 Or Beyond', body: 'MATH 1110 or beyond \u2014 or relevant experience.' },
+      { heading: 'Helpful CS', alt: 'CS 1110 / 1112', body: 'CS 1110 or 1112 \u2014 enough to read and write code.' },
+      { heading: 'How to Apply', alt: 'Email Us', body: 'Email recruitment@cornellcgs.org. New members every semester.' },
     ],
   },
   contact: {
     title: 'Contact Us',
     lead: 'Email the team that fits your question.',
     sections: [
-      { heading: 'Recruitment', body: 'recruitment@cornellcgs.org' },
-      { heading: 'Tech', body: 'tech@cornellcgs.org' },
-      { heading: 'Finance & Sponsors', body: 'finance@cornellcgs.org' },
-      { heading: 'Marketing', body: 'marketing@cornellcgs.org' },
-      { heading: 'Social', body: 'social@cornellcgs.org' },
+      { heading: 'Recruitment', alt: 'Join The Table', body: 'recruitment@cornellcgs.org' },
+      { heading: 'Tech', alt: 'Code And Infra', body: 'tech@cornellcgs.org' },
+      { heading: 'Finance & Sponsors', alt: 'Back The Club', body: 'finance@cornellcgs.org' },
+      { heading: 'Marketing', alt: 'Spread The Word', body: 'marketing@cornellcgs.org' },
+      { heading: 'Social', alt: 'Say Hello', body: 'social@cornellcgs.org' },
     ],
   },
 }

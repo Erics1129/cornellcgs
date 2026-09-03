@@ -108,7 +108,7 @@ export default function Hero() {
       <HeroCard />
 
       {/* Words at the sides */}
-      <div className="container-site pointer-events-none relative z-10 grid min-h-[100svh] grid-cols-1 content-end gap-8 pb-24 pt-[46svh] md:min-h-0 md:grid-cols-[1fr_minmax(260px,30vw)_1fr] md:content-center md:items-center md:gap-0 md:py-28">
+      <div className="container-site pointer-events-none relative z-10 grid min-h-[100svh] grid-cols-1 content-end gap-8 pb-24 pt-[46svh] md:min-h-0 md:grid-cols-[1fr_minmax(16.25rem,30vw)_1fr] md:content-center md:items-center md:gap-0 md:py-28">
         {/* Left side — the name */}
         <div data-hero-left className="md:pr-6">
           <h1 className="font-display pointer-events-auto text-[clamp(2.5rem,4.8vw,5.4rem)] leading-[0.98] tracking-[-0.028em] text-[var(--text)]">
@@ -120,7 +120,16 @@ export default function Hero() {
             </span>
             <span data-hero-line className="-mb-[0.12em] block overflow-hidden pb-[0.12em]">
               <span className="block">
-                Game <em>Society</em>
+                {/* Breathe on an inner wrapper — the masked line span is GSAP's */}
+                Game{' '}
+                <em>
+                  <span
+                    className="life-breathe inline-block"
+                    style={{ ['--life-dur' as string]: '8.6s', ['--life-delay' as string]: '-2.9s' }}
+                  >
+                    Society
+                  </span>
+                </em>
               </span>
             </span>
           </h1>
@@ -135,27 +144,35 @@ export default function Hero() {
           <div data-hero-fade className="pointer-events-auto min-h-[3.4em] md:w-[24ch] md:text-left">
             <TypeLine />
           </div>
-          <div data-hero-fade className="pointer-events-auto flex flex-wrap gap-4 md:justify-end">
-            <a
-              href={hero.ctaPrimary.href}
-              onClick={(e) => {
-                e.preventDefault()
-                scrollToId('join')
-              }}
-              className="btn btn-primary"
+          <div data-hero-fade className="pointer-events-auto">
+            {/* Float on a wrapper — the fade above is GSAP's. The neon laps at
+                a whisper at rest; the second comet starts half a turn away. */}
+            <div
+              className="life-float flex flex-wrap gap-4 md:justify-end"
+              style={{ ['--life-dur' as string]: '12s', ['--life-delay' as string]: '-4.1s' }}
             >
-              <RollLabel text={hero.ctaPrimary.label} />
-            </a>
-            <a
-              href={hero.ctaSecondary.href}
-              onClick={(e) => {
-                e.preventDefault()
-                scrollToId('what-we-do')
-              }}
-              className="btn"
-            >
-              <RollLabel text={hero.ctaSecondary.label} />
-            </a>
+              <a
+                href={hero.ctaPrimary.href}
+                onClick={(e) => {
+                  e.preventDefault()
+                  scrollToId('join')
+                }}
+                className="btn btn-primary neon neon-idle"
+              >
+                <RollLabel text={hero.ctaPrimary.label} />
+              </a>
+              <a
+                href={hero.ctaSecondary.href}
+                onClick={(e) => {
+                  e.preventDefault()
+                  scrollToId('what-we-do')
+                }}
+                className="btn neon neon-idle"
+                style={{ ['--neon-from' as string]: '180deg' }}
+              >
+                <RollLabel text={hero.ctaSecondary.label} />
+              </a>
+            </div>
           </div>
         </div>
       </div>
@@ -166,8 +183,13 @@ export default function Hero() {
         aria-hidden="true"
         className="absolute bottom-6 left-1/2 z-10 flex -translate-x-1/2 flex-col items-center gap-2"
       >
-        <div className="h-9 w-[26px] animate-[card-tip_2.6s_ease-in-out_infinite] rounded-[4px] border border-[color-mix(in_srgb,var(--silver)_50%,transparent)] bg-[var(--ink)]" />
-        <span className="mono text-[max(0.75rem,12px)] text-[var(--muted)]">{hero.scrollHint}</span>
+        <div className="h-9 w-[1.625rem] animate-[card-tip_2.6s_ease-in-out_infinite] rounded-[0.25rem] border border-[color-mix(in_srgb,var(--silver)_50%,transparent)] bg-[var(--ink)]" />
+        <span
+          className="life-glow mono text-[max(0.75rem,0.75rem)] text-[var(--muted)]"
+          style={{ ['--life-dur' as string]: '4.4s', ['--life-delay' as string]: '-1.6s' }}
+        >
+          {hero.scrollHint}
+        </span>
       </div>
     </section>
   )

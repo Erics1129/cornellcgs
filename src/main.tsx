@@ -16,7 +16,13 @@ import { pages } from './content'
 import { currentPage, pagePath } from './lib/router'
 import { BOOTED_EVENT } from './lib/motion'
 import { scrollToId } from './lib/scroll'
+import { installNeonClick } from './lib/neonClick'
+import { installDevice } from './lib/device'
 import './styles/global.css'
+
+// Device class + design scale first: everything below measures in rem.
+installDevice()
+installNeonClick()
 
 // Legacy hash routes (#p/<id>) now live at real paths — forward old links.
 const legacy = location.hash.match(/^#p\/([a-z-]+)$/)
@@ -32,9 +38,17 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>{standalone ? <SubPage id={page} /> : <App />}</React.StrictMode>,
 )
 
-// Deck loads addressed to a chapter (/#events, the info pages' "Take me
-// there") glide there once the curtain lifts and the pins have measured.
-if (!standalone) {
+// Deck loads addressed to a chapter (/#events, a sub-page's Back link) glide
+// there once the curtain lifts and the pins have measured — unless the reader
+// is coming back from a sub-page, in which case scroll.ts restores the exact
+// spot they left and the glide must stay out of the way.
+let returningToSpot = false
+try {
+  returningToSpot = sessionStorage.getItem('cgs-return') !== null
+} catch {
+  /* private mode */
+}
+if (!standalone && !returningToSpot) {
   const chapter = location.hash.match(/^#([a-z-]+)$/)?.[1]
   if (chapter) {
     const go = () => window.setTimeout(() => scrollToId(chapter), 650)

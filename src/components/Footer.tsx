@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react'
+import Dice from './Dice'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { site, contact, nav } from '../content'
@@ -27,7 +28,7 @@ export default function Footer() {
       const wordmark = gsap.utils.toArray<HTMLElement>('[data-f-wordmark]', footer)
       const rows = gsap.utils.toArray<HTMLElement>('[data-f-row]', footer)
       const links = gsap.utils.toArray<HTMLElement>('[data-f-link]', footer)
-      const trigger = { trigger: footer, start: 'top 85%', once: true }
+      const trigger = { trigger: footer, start: 'top 85%', once: true, fastScrollEnd: true }
 
       if (reduced) {
         gsap.fromTo(
@@ -71,26 +72,30 @@ export default function Footer() {
         aria-hidden="true"
         className="pointer-events-none absolute inset-0 z-0 flex select-none items-center justify-center overflow-hidden"
       >
-        <span
-          data-f-mark
-          className="font-display leading-none text-[clamp(9rem,24vw,22rem)] text-[color-mix(in_srgb,var(--neon-dim)_30%,transparent)]"
-        >
-          ♠
-        </span>
+        {/* The mark is scroll-scrubbed (y), so the sway rides a wrapper; inline-block keeps the scrub's transform valid */}
+        <div className="life-sway" style={{ ['--life-dur' as string]: '14s', ['--life-delay' as string]: '-5s' }}>
+          <span
+            data-f-mark
+            className="inline-block leading-none opacity-40"
+          >
+            <Dice size={220} className="[--dice-face:color-mix(in_srgb,var(--neon-dim)_55%,transparent)] [--dice-pip:color-mix(in_srgb,var(--neon-mid)_45%,transparent)] [--dice-edge:transparent]" />
+          </span>
+        </div>
       </div>
       <div className="container-site relative z-10 grid gap-14 py-[9vh] md:grid-cols-2 md:gap-8">
         {/* Wordmark + contacts */}
         <div className="flex flex-col justify-between gap-12">
-          <p
-            data-f-wordmark
-            className="font-display flex items-center gap-4 text-[clamp(1.4rem,2.2vw,2.1rem)] font-[650] tracking-[0.28em]"
-          >
-            <span aria-hidden="true" className="text-[var(--neon-core)]">
-              ♠
-            </span>
-            CORNELL CGS
-          </p>
-          <ul className="mono flex flex-col gap-2 text-[max(0.85rem,13px)] text-[#93a6cc]">
+          {/* The wordmark is GSAP-risen, so the breath rides a wrapper */}
+          <div className="life-breathe origin-left" style={{ ['--life-delay' as string]: '-2.4s' }}>
+            <p
+              data-f-wordmark
+              className="font-display flex items-center gap-4 text-[clamp(1.4rem,2.2vw,2.1rem)] font-[650] tracking-[0.28em]"
+            >
+              <Dice size={28} />
+              CORNELL CGS
+            </p>
+          </div>
+          <ul className="mono flex flex-col gap-2 text-[max(0.85rem,0.8125rem)] text-[#93a6cc]">
             <li data-f-row>Email — {contact.email}</li>
           </ul>
         </div>
@@ -107,7 +112,7 @@ export default function Footer() {
                 e.preventDefault()
                 scrollToId(id)
               }}
-              className="link-wipe text-[max(1.05rem,17px)] font-[550] text-[#e8eefb] transition-colors [transition-timing-function:var(--ease-out)] hover:text-white"
+              className="link-wipe text-[max(1.05rem,1.0625rem)] font-[550] text-[#e8eefb] transition-colors [transition-timing-function:var(--ease-out)] hover:text-white"
             >
               {label}
             </a>
@@ -119,7 +124,7 @@ export default function Footer() {
               e.preventDefault()
               scrollToId('contact')
             }}
-            className="link-wipe text-[max(1.05rem,17px)] font-[550] text-[#e8eefb] transition-colors [transition-timing-function:var(--ease-out)] hover:text-white"
+            className="link-wipe text-[max(1.05rem,1.0625rem)] font-[550] text-[#e8eefb] transition-colors [transition-timing-function:var(--ease-out)] hover:text-white"
           >
             Contact Us
           </a>
@@ -128,10 +133,10 @@ export default function Footer() {
 
       <div className="relative z-10 border-t border-[rgba(147,166,204,0.25)]">
         <div className="container-site flex flex-col gap-2 py-6 md:flex-row md:items-center md:justify-between">
-          <p className="mono text-[max(0.8rem,12px)] text-[#93a6cc]">
+          <p className="mono text-[max(0.8rem,0.75rem)] text-[#93a6cc]">
             {site.footerLine(new Date().getFullYear())}
           </p>
-          <p className="mono text-[max(0.8rem,12px)] text-[#93a6cc]">{site.domain}</p>
+          <p className="mono text-[max(0.8rem,0.75rem)] text-[#93a6cc]">{site.domain}</p>
         </div>
       </div>
     </footer>

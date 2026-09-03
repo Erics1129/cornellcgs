@@ -1,4 +1,4 @@
-import { useRef, type ReactNode, type CSSProperties } from 'react'
+import { useEffect, useRef, type ReactNode, type CSSProperties } from 'react'
 import gsap from 'gsap'
 import { EASE } from '../lib/eases'
 import { prefersReducedMotion, isTouchDevice } from '../lib/motion'
@@ -7,19 +7,46 @@ type Props = {
   children: ReactNode
   className?: string
   style?: CSSProperties
-  /** max tilt toward the cursor, degrees */
+  /** max tilt toward the cursor, degrees (full tilt at the card's edge) */
   tiltMax?: number
   as?: 'div' | 'button' | 'article'
   onClick?: () => void
   ariaLabel?: string
+  /** how far the card rises under the pointer, px (negative = up) */
+  lift?: number
+  /** render the built-in ground shadow (default true) */
+  shadow?: boolean
+  /**
+   * An external shadow element to drive instead of the built-in one — for
+   * callers that keep the table shadow outside the element they deal or flip
+   * (see lib/cardMotion shadowStyle()). When given, the built-in shadow is
+   * not rendered.
+   */
+  shadowEl?: React.RefObject<HTMLElement | null>
+}
+
+/** hoverLift semantics (lib/cardMotion): rise, tilt toward the pointer, shadow spreads */
+const HOVER = { scale: 1.03, shadowScale: 1.08, shadowOpacity: 0.7 }
+const REST = { scale: 1, shadowScale: 1, shadowOpacity: 0.55 }
+const FOLLOW = { duration: 0.45, ease: EASE.out }
+
+type Writers = {
+  rx: ReturnType<typeof gsap.quickTo>
+  ry: ReturnType<typeof gsap.quickTo>
+  y: ReturnType<typeof gsap.quickTo>
+  s: ReturnType<typeof gsap.quickTo>
+  ss: ReturnType<typeof gsap.quickTo> | null
+  so: ReturnType<typeof gsap.quickTo> | null
 }
 
 /**
- * A DOM playing card that tilts toward the cursor like a card lifted from a
- * table (§6). Visual style (ivory face / navy back) comes from className.
- * Pointer hover lifts the card off the table; a ground-shadow div beneath it
- * (gradient falloff, never box-shadow) tightens as the card rises —
- * transform/opacity only on both.
+ * A DOM playing card lifted from the table under the pointer (§6): it rises,
+ * tilts toward the cursor with real perspective, and its ground shadow
+ * spreads and softens as it comes up — the hoverLift semantics of
+ * lib/cardMotion, written through quickTo so a quick re-entry never fights a
+ * leave tween. Visual style (ivory face / navy back) comes from className.
+ * Transform/opacity only on both card and shadow; the shadow is a gradient
+ * div, never box-shadow. Fine pointers only; reduced motion → inert.
  */
 export default function CardShell({
   children,
@@ -29,79 +56,86 @@ export default function CardShell({
   as = 'div',
   onClick,
   ariaLabel,
+  lift = -10,
+  shadow = true,
+  shadowEl,
 }: Props) {
   const ref = useRef<HTMLDivElement | HTMLButtonElement>(null)
-  const shadowRef = useRef<HTMLDivElement>(null)
-  const quick = useRef<{
-    rx: ReturnType<typeof gsap.quickTo>
-    ry: ReturnType<typeof gsap.quickTo>
-  } | null>(null)
+  const ownShadowRef = useRef<HTMLDivElement>(null)
+  const writers = useRef<Writers | null>(null)
 
-  const ensureQuick = () => {
-    if (!quick.current && ref.current) {
-      gsap.set(ref.current, { transformPerspective: 900 })
-      quick.current = {
-        rx: gsap.quickTo(ref.current, 'rotationX', { duration: 0.5, ease: 'power2.out' }),
-        ry: gsap.quickTo(ref.current, 'rotationY', { duration: 0.5, ease: 'power2.out' }),
+  const shadowNode = () => shadowEl?.current ?? ownShadowRef.current
+
+  // One writer per property, created on the first pointer event so resting
+  // cards carry no transform until they are actually touched.
+  const ensure = () => {
+    const el = ref.current
+    if (!writers.current && el) {
+      gsap.set(el, { transformPerspective: 900, transformOrigin: '50% 50%' })
+      const sh = shadowNode()
+      if (sh) gsap.set(sh, { transformOrigin: '50% 50%' })
+      writers.current = {
+        rx: gsap.quickTo(el, 'rotationX', FOLLOW),
+        ry: gsap.quickTo(el, 'rotationY', FOLLOW),
+        y: gsap.quickTo(el, 'y', FOLLOW),
+        s: gsap.quickTo(el, 'scale', FOLLOW),
+        ss: sh ? gsap.quickTo(sh, 'scale', FOLLOW) : null,
+        so: sh ? gsap.quickTo(sh, 'opacity', FOLLOW) : null,
       }
     }
-    return quick.current
+    return writers.current
   }
 
+  // Writers hold tweens on the DOM node — drop them with the node
+  useEffect(() => () => {
+    writers.current = null
+  }, [])
+
+  const active = () => !prefersReducedMotion() && !isTouchDevice()
+
   const onEnter = () => {
-    if (prefersReducedMotion() || isTouchDevice()) return
-    const el = ref.current
-    if (!el) return
-    gsap.to(el, { y: -6, scale: 1.02, duration: 0.35, ease: EASE.out, overwrite: 'auto' })
-    if (shadowRef.current)
-      gsap.to(shadowRef.current, {
-        opacity: 0.8,
-        scale: 0.94,
-        duration: 0.35,
-        ease: EASE.out,
-        overwrite: 'auto',
-      })
+    if (!active()) return
+    const w = ensure()
+    if (!w) return
+    w.y(lift)
+    w.s(HOVER.scale)
+    w.ss?.(HOVER.shadowScale)
+    w.so?.(HOVER.shadowOpacity)
   }
 
   const onMove = (e: React.PointerEvent) => {
-    if (prefersReducedMotion() || isTouchDevice()) return
+    if (!active()) return
     const el = ref.current
-    const q = ensureQuick()
-    if (!el || !q) return
+    const w = ensure()
+    if (!el || !w) return
     const r = el.getBoundingClientRect()
     const nx = (e.clientX - r.left) / r.width - 0.5
     const ny = (e.clientY - r.top) / r.height - 0.5
-    q.ry(nx * tiltMax * 2)
-    q.rx(-ny * tiltMax * 2)
+    w.ry(nx * tiltMax * 2)
+    w.rx(-ny * tiltMax * 2)
   }
 
   const onLeave = () => {
-    const q = quick.current
-    if (q) {
-      q.rx(0)
-      q.ry(0)
-    }
-    const el = ref.current
-    if (!el) return
-    gsap.to(el, { y: 0, scale: 1, duration: 0.6, ease: EASE.out, overwrite: 'auto' })
-    if (shadowRef.current)
-      gsap.to(shadowRef.current, {
-        opacity: 0.55,
-        scale: 1,
-        duration: 0.6,
-        ease: EASE.out,
-        overwrite: 'auto',
-      })
+    const w = writers.current
+    if (!w) return
+    w.rx(0)
+    w.ry(0)
+    w.y(0)
+    w.s(REST.scale)
+    w.ss?.(REST.shadowScale)
+    w.so?.(REST.shadowOpacity)
   }
 
   const Tag = as as 'div'
   return (
     <div className="relative">
-      <div
-        ref={shadowRef}
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-x-[7%] bottom-[-12px] h-7 rounded-[100%] bg-[radial-gradient(50%_50%_at_50%_50%,rgba(2,5,16,0.6),rgba(2,5,16,0.28)_52%,transparent_76%)] opacity-55"
-      />
+      {shadow && !shadowEl && (
+        <div
+          ref={ownShadowRef}
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-x-[7%] bottom-[-0.75rem] h-7 rounded-[100%] bg-[radial-gradient(50%_50%_at_50%_50%,rgba(2,5,16,0.6),rgba(2,5,16,0.28)_52%,transparent_76%)] opacity-55"
+        />
+      )}
       <Tag
         ref={ref as React.RefObject<HTMLDivElement>}
         className={className}

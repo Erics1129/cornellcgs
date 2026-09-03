@@ -38,18 +38,68 @@
   --dur-slow: 0.9s;
 }
 
-/* World 2 (card face up): deep indigo blue — never red. */
-html[data-theme='red'] {
-  --bg-top: #060427;
-  --bg-mid: #1a1670;
-  --bg-bot: #4a43c4;
-  --glow: #5a5aff;
-  --text: #f0f0ff;
-  --muted: #a9a9dc;
-  --neon-core: #ededff;
-  --neon-mid: #7a85ff;
-  --neon-dim: #1b1b5e;
+/* The other four worlds — MUST mirror PALETTES in src/lib/theme.ts. Light
+   worlds flip the text/chrome to navy so everything stays readable. */
+html[data-theme='sky'] {
+  --bg-top: #dfeeff;
+  --bg-mid: #b9d6ff;
+  --bg-bot: #7fb0ff;
+  --glow: #4ea8ff;
+  --text: #0a1e3f;
+  --muted: #3e5680;
+  --neon-core: #0b2a6b;
+  --neon-mid: #1e5eff;
+  --neon-dim: #c7dbff;
+  --accent-amber: #b86e00;
+}
+
+html[data-theme='lilac'] {
+  --bg-top: #efe6ff;
+  --bg-mid: #d6c4ff;
+  --bg-bot: #a98cf5;
+  --glow: #8f6cff;
+  --text: #1a1040;
+  --muted: #4a3d7a;
+  --neon-core: #2a1a6e;
+  --neon-mid: #6a3dff;
+  --neon-dim: #dccfff;
+  --accent-amber: #a85f00;
+}
+
+html[data-theme='violet'] {
+  --bg-top: #0e0620;
+  --bg-mid: #2a1364;
+  --bg-bot: #5a34b8;
+  --glow: #7a4dff;
+  --text: #f3eeff;
+  --muted: #b7a9dc;
+  --neon-core: #f0e8ff;
+  --neon-mid: #a07cff;
+  --neon-dim: #2a1a5e;
+  --accent-amber: #ffcf8a;
+}
+
+html[data-theme='black'] {
+  --bg-top: #000000;
+  --bg-mid: #0a0a0f;
+  --bg-bot: #1a1a24;
+  --glow: #3a3a55;
+  --text: #f2f2f5;
+  --muted: #9a9aa8;
+  --neon-core: #ffffff;
+  --neon-mid: #8c8cff;
+  --neon-dim: #22222e;
   --accent-amber: #ffd08a;
+}
+
+/* Chapters that sit on dark video (the black hole, the globe) keep light
+   type in every world — the world colors the sky, not the film. */
+#ml-process,
+#world {
+  --text: #f2f5ff;
+  --muted: #a9b4d6;
+  --neon-core: #e8fbff;
+  --neon-mid: #4ea8ff;
 }
 
 /* ---------------------------------------------------------------------------
@@ -72,7 +122,7 @@ body {
   color: var(--text);
   font-family: var(--font-body);
   font-weight: 500;
-  font-size: 19px;
+  font-size: 1.1875rem;
   line-height: 1.6;
   overflow-x: clip;
   -webkit-font-smoothing: antialiased;
@@ -142,14 +192,14 @@ em,
 .mono {
   font-family: var(--font-mono);
   font-weight: 600;
-  font-size: max(0.875rem, 14px);
+  font-size: max(0.875rem, 0.875rem);
   letter-spacing: 0.04em;
 }
 
 .eyebrow {
   font-family: var(--font-mono);
   font-weight: 600;
-  font-size: max(0.9rem, 14px);
+  font-size: max(0.9rem, 0.875rem);
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--muted);
@@ -182,7 +232,7 @@ em,
 }
 
 .container-site {
-  width: min(100% - 3rem, 1280px);
+  width: min(100% - 3rem, 80rem);
   margin-inline: auto;
 }
 
@@ -324,7 +374,7 @@ em,
 .glass {
   background: color-mix(in srgb, var(--bg-top) 62%, transparent);
   backdrop-filter: blur(16px) saturate(1.3);
-  -webkit-backdrop-filter: blur(16px) saturate(1.3);
+  -webkit-backdrop-filter: blur(1rem) saturate(1.3);
 }
 
 .panel {
@@ -346,8 +396,8 @@ em,
   border-radius: clamp(10px, 1.2vw, 18px);
   box-shadow:
     0 1px 0 rgba(255, 255, 255, 0.5) inset,
-    0 -2px 12px rgba(64, 41, 12, 0.14) inset,
-    0 18px 50px -12px rgba(0, 0, 0, 0.55);
+    0 -2px 0.75rem rgba(64, 41, 12, 0.14) inset,
+    0 1.125rem 3.125rem -12px rgba(0, 0, 0, 0.55);
 }
 
 /* A navy card back with a silver frame for DOM cards (backs) */
@@ -382,7 +432,7 @@ em,
   gap: 0.6rem;
   font-family: var(--font-body);
   font-weight: 600;
-  font-size: max(0.95rem, 16px);
+  font-size: max(0.95rem, 1rem);
   letter-spacing: 0.01em;
   padding: 0.95rem 2rem;
   border-radius: 2px;
@@ -471,7 +521,7 @@ a:hover .btn-label > span {
 --------------------------------------------------------------------------- */
 
 .hero-card-video {
-  height: min(92vh, 860px);
+  height: min(92vh, 53.75rem);
   aspect-ratio: 16 / 9;
   max-width: none;
   object-fit: cover;
@@ -526,16 +576,16 @@ a:hover .btn-label > span {
 @keyframes card-tip {
   0%,
   100% {
-    transform: perspective(300px) rotateX(0deg);
+    transform: perspective(18.75rem) rotateX(0deg);
   }
   50% {
-    transform: perspective(300px) rotateX(38deg);
+    transform: perspective(18.75rem) rotateX(38deg);
   }
 }
 
 @keyframes riffle {
   0% {
-    transform: translateY(60px) rotate(-14deg);
+    transform: translateY(3.75rem) rotate(-14deg);
     opacity: 0;
   }
   55% {
@@ -554,7 +604,91 @@ a:hover .btn-label > span {
 }
 
 /* ---------------------------------------------------------------------------
-   Atmosphere — film grain. One 140px SVG-noise tile on a fixed layer twice
+   Idle life — nothing on the site sits still. Composited-only micro-motions
+   any element can wear: transform / opacity / background-position. Give each
+   its own phase with style="--life-delay: -3.2s" so a row never moves in
+   lockstep. All of them stop under reduced motion.
+--------------------------------------------------------------------------- */
+
+.life-float {
+  animation: life-float var(--life-dur, 7s) ease-in-out var(--life-delay, 0s) infinite;
+}
+
+.life-bob {
+  animation: life-bob var(--life-dur, 6s) ease-in-out var(--life-delay, 0s) infinite;
+}
+
+.life-sway {
+  transform-origin: 50% 110%;
+  animation: life-sway var(--life-dur, 9s) ease-in-out var(--life-delay, 0s) infinite;
+}
+
+.life-breathe {
+  animation: life-breathe var(--life-dur, 8s) ease-in-out var(--life-delay, 0s) infinite;
+}
+
+.life-glow {
+  animation: life-glow var(--life-dur, 4s) ease-in-out var(--life-delay, 0s) infinite;
+}
+
+/* For gradient-painted text: the highlight travels through the words */
+.life-shimmer {
+  background-size: 250% 100%;
+  animation: life-shimmer var(--life-dur, 7s) ease-in-out var(--life-delay, 0s) infinite;
+}
+
+/* A slow, low neon lap on resting controls — the hover state at a whisper */
+.neon-idle::before {
+  opacity: 0.32;
+  animation-play-state: running;
+}
+
+@keyframes life-float {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  50% { transform: translate3d(0, -5px, 0); }
+}
+
+@keyframes life-bob {
+  0%, 100% { transform: translate3d(0, 0, 0) rotate(0deg); }
+  33% { transform: translate3d(0, -2px, 0) rotate(-1.2deg); }
+  66% { transform: translate3d(0, 1px, 0) rotate(1deg); }
+}
+
+@keyframes life-sway {
+  0%, 100% { transform: rotate(-1.4deg); }
+  50% { transform: rotate(1.4deg); }
+}
+
+@keyframes life-breathe {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.015); }
+}
+
+@keyframes life-glow {
+  0%, 100% { opacity: 0.72; }
+  50% { opacity: 1; }
+}
+
+@keyframes life-shimmer {
+  0% { background-position: 100% 0; }
+  50% { background-position: 0% 0; }
+  100% { background-position: 100% 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .life-float,
+  .life-bob,
+  .life-sway,
+  .life-breathe,
+  .life-glow,
+  .life-shimmer,
+  .neon-idle::before {
+    animation: none;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Atmosphere — film grain. One 8.75rem SVG-noise tile on a fixed layer twice
    the viewport, jumped between whole-tile offsets with steps() so it always
    moves by full frames (transform-only, composited, zero per-frame JS).
 --------------------------------------------------------------------------- */
@@ -631,7 +765,7 @@ a:hover .btn-label > span {
   bottom: 0;
   left: 50%;
   --fan-step: 9deg;
-  --fan-drop: 16px;
+  --fan-drop: 1rem;
   --lift: 0px;
   --lift-scale: 1;
   transform-origin: 50% 135%;
@@ -645,7 +779,7 @@ a:hover .btn-label > span {
 .group:hover .event-card,
 .group:focus-within .event-card {
   --fan-step: 13.5deg;
-  --fan-drop: 22px;
+  --fan-drop: 1.375rem;
 }
 
 .event-card:hover,
@@ -668,5 +802,427 @@ a:hover .btn-label > span {
 
   html:focus-within {
     scroll-behavior: auto;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Neon words — hover puts a moving-colour box around a word (the comet lap
+   from .neon, padded out so the ring clears the glyphs); a click fires a
+   burst: the ring flashes to full, a shock ring expands and fades, and the
+   word presses down and back. Light sheets remap the neon to sky blue.
+--------------------------------------------------------------------------- */
+.neon-word {
+  position: relative;
+  display: inline-block;
+  padding: 0.08em 0.32em;
+  margin: -0.08em -0.32em;
+  border-radius: 0.45em;
+  /* own stacking context so the blurred twin (z-index -1) paints behind the word, not behind the page */
+  isolation: isolate;
+  --neon-dur: 2.4s;
+}
+
+.neon-light {
+  --neon-core: #0b2a6b;
+  --neon-mid: #1e5eff;
+  --neon-dim: #c7dbff;
+}
+
+.neon-burst {
+  animation: neon-press 0.55s var(--ease-out);
+}
+
+.neon-burst::before {
+  opacity: 1 !important;
+  animation:
+    neon-lap 0.6s linear infinite,
+    neon-flash 0.55s var(--ease-out);
+}
+
+.neon-burst::after {
+  opacity: 0.9 !important;
+  animation:
+    neon-lap 0.6s linear infinite,
+    neon-shock 0.7s var(--ease-out) forwards;
+}
+
+@keyframes neon-press {
+  0% {
+    transform: scale(1);
+  }
+  18% {
+    transform: scale(0.955);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes neon-flash {
+  0% {
+    filter: brightness(2.2) saturate(1.4);
+  }
+  100% {
+    filter: brightness(1) saturate(1);
+  }
+}
+
+@keyframes neon-shock {
+  0% {
+    transform: scale(1);
+    opacity: 0.9;
+    filter: blur(6px);
+  }
+  100% {
+    transform: scale(1.7);
+    opacity: 0;
+    filter: blur(18px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .neon-burst,
+  .neon-burst::before,
+  .neon-burst::after {
+    animation: none;
+  }
+}
+
+/* Wave letters (advisors page): each glyph rides its own phase of a slow swell */
+.wave-letter {
+  display: inline-block;
+  animation: life-wave var(--life-dur, 3.2s) ease-in-out infinite;
+  animation-delay: var(--life-delay, 0s);
+  will-change: transform;
+}
+
+@keyframes life-wave {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-0.14em) rotate(-2deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wave-letter {
+    animation: none;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Live words (sub-pages) — one design per page, see LiveText.tsx
+--------------------------------------------------------------------------- */
+.flip-letter {
+  display: inline-block;
+  transform-origin: 50% 50%;
+  backface-visibility: hidden;
+  will-change: transform;
+}
+
+.ticker-clip {
+  display: block;
+  overflow: hidden;
+}
+
+.tilt-letter {
+  display: inline-block;
+  transform-origin: 50% 80%;
+  animation: tilt-letter var(--life-dur, 5.4s) ease-in-out infinite;
+  animation-delay: var(--life-delay, 0s);
+  will-change: transform;
+}
+
+@keyframes tilt-letter {
+  0%,
+  100% {
+    transform: rotate(-4deg) translateY(0);
+  }
+  50% {
+    transform: rotate(4deg) translateY(-0.05em);
+  }
+}
+
+.weight-breathe {
+  animation: weight-breathe var(--life-dur, 7s) ease-in-out infinite;
+  animation-delay: var(--life-delay, 0s);
+}
+
+@keyframes weight-breathe {
+  0%,
+  100% {
+    font-weight: 520;
+    letter-spacing: -0.01em;
+  }
+  50% {
+    font-weight: 780;
+    letter-spacing: 0.03em;
+  }
+}
+
+.outline-fill {
+  -webkit-text-stroke: 1px #0a1e3f;
+  animation: outline-fill var(--life-dur, 6.5s) ease-in-out infinite;
+  animation-delay: var(--life-delay, 0s);
+}
+
+@keyframes outline-fill {
+  0%,
+  100% {
+    -webkit-text-fill-color: transparent;
+    -webkit-text-stroke-color: #0a1e3f;
+  }
+  35% {
+    -webkit-text-fill-color: #0a1e3f;
+    -webkit-text-stroke-color: #0a1e3f;
+  }
+  62% {
+    -webkit-text-fill-color: #1e5eff;
+    -webkit-text-stroke-color: #1e5eff;
+  }
+}
+
+.glitch-word {
+  position: relative;
+  display: inline-block;
+}
+
+.glitch-word::before,
+.glitch-word::after {
+  content: attr(data-text);
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.glitch-word.glitch-on {
+  animation: glitch-shake 0.5s steps(2, end) 1;
+}
+
+.glitch-word.glitch-on::before {
+  color: #1e5eff;
+  clip-path: inset(0 0 55% 0);
+  animation: glitch-a 0.5s steps(2, end) 1;
+}
+
+.glitch-word.glitch-on::after {
+  color: #ff3b6b;
+  clip-path: inset(50% 0 0 0);
+  animation: glitch-b 0.5s steps(2, end) 1;
+}
+
+@keyframes glitch-shake {
+  0%,
+  100% {
+    transform: translate(0);
+  }
+  25% {
+    transform: translate(-3px, 1px);
+  }
+  50% {
+    transform: translate(2px, -1px);
+  }
+  75% {
+    transform: translate(-1px, 2px);
+  }
+}
+
+@keyframes glitch-a {
+  0%,
+  100% {
+    opacity: 0;
+    transform: translate(0);
+  }
+  20%,
+  80% {
+    opacity: 0.9;
+    transform: translate(-6px, -2px);
+  }
+  50% {
+    opacity: 0.9;
+    transform: translate(5px, 1px);
+  }
+}
+
+@keyframes glitch-b {
+  0%,
+  100% {
+    opacity: 0;
+    transform: translate(0);
+  }
+  20%,
+  80% {
+    opacity: 0.9;
+    transform: translate(6px, 2px);
+  }
+  50% {
+    opacity: 0.9;
+    transform: translate(-4px, -1px);
+  }
+}
+
+.converge-letter {
+  display: inline-block;
+  will-change: transform, filter;
+}
+
+.focus-word {
+  display: inline;
+  animation: focus-word var(--life-dur, 5s) ease-in-out infinite;
+  animation-delay: var(--life-delay, 0s);
+}
+
+@keyframes focus-word {
+  0%,
+  100% {
+    filter: blur(0px);
+    opacity: 1;
+  }
+  50% {
+    filter: blur(1.6px);
+    opacity: 0.55;
+  }
+}
+
+.glow-word {
+  display: inline;
+  animation: glow-word var(--life-dur, 4.2s) ease-in-out infinite;
+  animation-delay: var(--life-delay, 0s);
+}
+
+@keyframes glow-word {
+  0%,
+  100% {
+    opacity: 0.58;
+    color: #46587a;
+  }
+  50% {
+    opacity: 1;
+    color: #0a1e3f;
+  }
+}
+
+.underline-run {
+  display: inline;
+  padding-bottom: 2px;
+  background-image: linear-gradient(90deg, #1e5eff, #7fb0ff);
+  background-size: 26% 2px;
+  background-repeat: no-repeat;
+  background-position: -30% 100%;
+  animation: underline-run var(--life-dur, 5.5s) ease-in-out infinite;
+  animation-delay: var(--life-delay, 0s);
+}
+
+@keyframes underline-run {
+  0% {
+    background-position: -30% 100%;
+  }
+  100% {
+    background-position: 130% 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tilt-letter,
+  .weight-breathe,
+  .outline-fill,
+  .focus-word,
+  .glow-word,
+  .underline-run,
+  .glitch-word.glitch-on,
+  .glitch-word.glitch-on::before,
+  .glitch-word.glitch-on::after {
+    animation: none;
+  }
+  .outline-fill {
+    -webkit-text-fill-color: #0a1e3f;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   The die — the site's mark (Dice.tsx). A tumbling CSS cube; a press throws it.
+--------------------------------------------------------------------------- */
+.dice {
+  --dice-face: #f5f1e6;
+  --dice-pip: #1e5eff;
+  --dice-edge: rgba(10, 30, 63, 0.35);
+  perspective: calc(var(--dice-size) * 6);
+  position: relative;
+  flex: none;
+}
+
+.neon-light .dice,
+.sheet-light .dice {
+  --dice-face: #0a1e3f;
+  --dice-pip: #ffffff;
+  --dice-edge: rgba(255, 255, 255, 0.25);
+}
+
+.dice-cube {
+  position: absolute;
+  inset: 0;
+  transform-style: preserve-3d;
+  animation: dice-tumble 9s linear infinite;
+  will-change: transform;
+}
+
+.dice-roll .dice-cube {
+  animation:
+    dice-tumble 9s linear infinite,
+    dice-throw 0.8s var(--ease-out);
+}
+
+.dice-face {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+  padding: 14%;
+  border-radius: 18%;
+  background: var(--dice-face);
+  box-shadow: inset 0 0 0 1px var(--dice-edge);
+  backface-visibility: hidden;
+}
+
+.dice-pip {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: var(--dice-pip);
+  transform: scale(0.72);
+}
+
+@keyframes dice-tumble {
+  to {
+    transform: rotateX(360deg) rotateY(720deg) rotateZ(180deg);
+  }
+}
+
+/* The throw is a second animation on the same element: with two animations
+   the later one composes on top, so this adds a fast spin and lift. */
+@keyframes dice-throw {
+  0% {
+    translate: 0 0;
+    scale: 1;
+  }
+  40% {
+    translate: 0 -0.35em;
+    scale: 1.25;
+  }
+  100% {
+    translate: 0 0;
+    scale: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dice-cube,
+  .dice-roll .dice-cube {
+    animation: none;
+    transform: rotateX(-20deg) rotateY(30deg);
   }
 }

@@ -13,18 +13,47 @@
  * line — no per-frame string parsing. DPR capped at 2, rAF paused while the
  * tab is hidden, and with reduced motion the columns draw once, static.
  * The canvas carries id="code-layer-canvas" so the shatter layer can sample it.
+ *
+ * The rain is a fluid. A coarse stable-fluids solver (fluid.ts, ~15 px cells)
+ * takes the pointer's motion and the page's scroll momentum as its only
+ * forces, and every drawn line rides the velocity field as a tracer: a
+ * per-slot offset integrates the local flow and relaxes home, so glyphs
+ * swirl, bunch and settle instead of parting on a fixed radius. Dye splatted
+ * with the pointer brightens the energetic regions. Coarse pointers get the
+ * scroll force only; reduced motion runs no fluid at all.
  */
 import { useEffect, useRef } from 'react'
 import { cssVar, onTheme, THEME_LERP_MS, themeLerpEase } from '../lib/theme'
-import { onReducedMotionChange, prefersReducedMotion } from '../lib/motion'
+import { isTouchDevice, onReducedMotionChange, prefersReducedMotion } from '../lib/motion'
 import { isPaging, scrollVelocity } from '../lib/scroll'
 import { CODE_LINES } from './codeSnippets'
+import { Fluid, gridFor } from './fluid'
 
 const FONT = '600 13px "JetBrains Mono", monospace'
 const LINE_H = 20
 const PARALLAX = 0.3
 const FLASH_MS = 700
 const MAX_LINE_W = 640
+
+// Fluid coupling — the glyphs are tracers with a weak spring home
+/** px/s of fluid velocity per px of pointer travel */
+const POINTER_K = 2.5
+const POINTER_R = 100
+/** longest pointer step that counts (a wake-up jump is not a gesture) */
+const POINTER_STEP = 40
+/** ms without a move after which the next one starts fresh, no push */
+const POINTER_IDLE = 120
+/** fluid px/s² per px/frame of Lenis velocity (page down pushes the code up) */
+const SCROLL_K = 3
+const SCROLL_V_MAX = 80
+/** how much of the flow a line takes on (1 = a perfect tracer) */
+const FLOW_GAIN = 0.7
+/** 1/s pull back to the column */
+const FLOW_RELAX = 1.6
+const FLOW_MAX = 48
+const FLOW_INV2 = 1 / (FLOW_MAX * FLOW_MAX)
+/** px/s of local speed that reads as fully energetic */
+const GLOW_SPEED = 220
 
 const KEYWORDS = new Set([
   'const', 'let', 'var', 'function', 'return', 'if', 'else', 'for', 'of', 'in',
@@ -65,6 +94,8 @@ interface Column {
   start: number
   count: number
   off: number
+  /** per-slot fluid displacement, [ox, oy] pairs in canvas px */
+  ofs: Float32Array
 }
 
 interface Palette {
@@ -167,6 +198,9 @@ export default function CodeLayer() {
     let dpr = 1
     let atlasW = 1
     let cols: Column[] = []
+    const g0 = gridFor(window.innerWidth, window.innerHeight)
+    let fluid = new Fluid(g0.W, g0.H, window.innerWidth, window.innerHeight)
+    const coarse = isTouchDevice()
     let palette = readPalette()
     let lerpFrom = palette
     let lerpTo = palette
@@ -233,42 +267,57 @@ export default function CodeLayer() {
           start: Math.floor(Math.random() * lines.length),
           count,
           off: Math.random() * count * LINE_H,
+          ofs: new Float32Array(count * 2),
         }
       })
     }
 
-    // The rain parts around the pointer: each line near the smoothed lens
-    // position slides away from it horizontally with a soft falloff, and
-    // brightens a little — the field noticing the reader. Per-line hypot
-    // over ~20 columns is a few hundred ops; nothing is re-rasterized.
-    const PART_R = 260
-    const PART_PX = 30
-    const drawColumn = (col: Column, scroll: number) => {
+    // Every line is a tracer in the fluid: its slot keeps an offset that
+    // integrates the local velocity (sampled where the line actually is) and
+    // relaxes back to the column, easing to a stop before FLOW_MAX so nothing
+    // hits a wall. One velocity sample and one dye sample per line, ~1000
+    // lines a frame — a fraction of the drawImage cost. Energetic lines
+    // brighten. `live` is false on the reduced-motion static frame.
+    let fdt = 0 // this frame's fluid dt (≤ 1/30)
+    let relax = 1 // exp(−FLOW_RELAX·fdt)
+    const drawColumn = (col: Column, scroll: number, live: boolean) => {
       const total = col.count * LINE_H
       const eff = col.off + scroll * PARALLAX
-      const lensOn = sx > -999
-      const cx = col.x + 90
+      const ofs = col.ofs
       ctx.globalAlpha = col.alpha
       for (let j = 0; j < col.count; j++) {
         const line = lines[(col.start + j) % lines.length]
         if (line.row < 0) continue
-        const y = mod(j * LINE_H - eff, total) - LINE_H
-        if (y > h) continue
         const cw = Math.min(line.width, atlasW)
-        if (cw <= 0 || col.x + cw < 0 || col.x > w) continue
+        if (cw <= 0) continue
         let x = col.x
-        if (lensOn) {
-          const dxc = cx - sx
-          const dyc = y + LINE_H / 2 - sy
-          const dist = Math.hypot(dxc, dyc)
-          if (dist < PART_R) {
-            const f = 1 - dist / PART_R
-            x += Math.sign(dxc || 1) * f * f * PART_PX
-            ctx.globalAlpha = Math.min(1, col.alpha * (1 + f * 1.6))
-          } else {
-            ctx.globalAlpha = col.alpha
-          }
+        let y = mod(j * LINE_H - eff, total) - LINE_H
+        if (live) {
+          let ox = ofs[j * 2]
+          let oy = ofs[j * 2 + 1]
+          const px = x + cw * 0.5 + ox
+          const py = y + LINE_H * 0.5 + oy
+          const s = fluid.sampleVelocity(px, py)
+          const dx = s.vx * fdt * FLOW_GAIN
+          const dy = s.vy * fdt * FLOW_GAIN
+          // outward motion fades as the offset nears the cap; homeward is free
+          ox += dx * (dx * ox > 0 ? Math.max(0, 1 - ox * ox * FLOW_INV2) : 1)
+          oy += dy * (dy * oy > 0 ? Math.max(0, 1 - oy * oy * FLOW_INV2) : 1)
+          ox *= relax
+          oy *= relax
+          if (ox > FLOW_MAX) ox = FLOW_MAX
+          else if (ox < -FLOW_MAX) ox = -FLOW_MAX
+          if (oy > FLOW_MAX) oy = FLOW_MAX
+          else if (oy < -FLOW_MAX) oy = -FLOW_MAX
+          ofs[j * 2] = ox
+          ofs[j * 2 + 1] = oy
+          x += ox
+          y += oy
+          const speed = Math.sqrt(s.vx * s.vx + s.vy * s.vy)
+          const e = Math.min(1, fluid.sampleDye(px, py) + speed / GLOW_SPEED)
+          ctx.globalAlpha = Math.min(1, col.alpha * (1 + 0.6 * e))
         }
+        if (y > h || y < -LINE_H || x + cw < 0 || x > w) continue
         ctx.drawImage(
           atlas,
           0, line.row * LINE_H * dpr, cw * dpr, LINE_H * dpr,
@@ -307,7 +356,9 @@ export default function CodeLayer() {
       const v = Math.pow(t < 0.16 ? t / 0.16 : 1 - (t - 0.16) / 0.84, 0.8)
       const col = cols[flash.col]
       const line = lines[(col.start + flash.slot) % lines.length]
-      const y = lineYIn(col, flash.slot, scroll) + LINE_H / 2
+      // Ride the same fluid offset as the line underneath, or it ghosts
+      const x = col.x + col.ofs[flash.slot * 2]
+      const y = lineYIn(col, flash.slot, scroll) + LINE_H / 2 + col.ofs[flash.slot * 2 + 1]
       ctx.save()
       ctx.globalCompositeOperation = 'lighter'
       ctx.globalAlpha = 0.85 * v
@@ -316,14 +367,14 @@ export default function CodeLayer() {
       for (const tok of line.toks) {
         if (tok.text.trim() === '') continue
         ctx.fillStyle = css(mix(colorFor(tok.kind, palette), palette.core, 0.7))
-        ctx.fillText(tok.text, col.x + tok.x, y)
+        ctx.fillText(tok.text, x + tok.x, y)
       }
       ctx.restore()
     }
 
     const drawStatic = () => {
       ctx.clearRect(0, 0, w, h)
-      for (const col of cols) drawColumn(col, 0)
+      for (const col of cols) drawColumn(col, 0, false)
     }
 
     // --- Cursor lens: a clean, READABLE window of code under the mouse.
@@ -375,34 +426,66 @@ export default function CodeLayer() {
       }
       if (!best) return
 
+      // The lens shows the lines where the fluid has carried them — the
+      // same offsets as the ambient pass, so nothing doubles at the rim
       const total = best.count * LINE_H
       const eff = best.off + window.scrollY * PARALLAX
+      const ofs = best.ofs
       for (let j = 0; j < best.count; j++) {
         const line = lines[(best.start + j) % lines.length]
         if (line.row < 0) continue
-        const y = mod(j * LINE_H - eff, total) - LINE_H
+        const lx = best.x + ofs[j * 2]
+        const y = mod(j * LINE_H - eff, total) - LINE_H + ofs[j * 2 + 1]
         const dy = y + LINE_H / 2 - sy
         if (dy < -SPOT_R || dy > SPOT_R) continue
         const half = Math.sqrt(SPOT_R * SPOT_R - dy * dy)
-        const x0 = Math.max(sx - half, best.x)
-        const x1 = Math.min(sx + half, best.x + Math.min(line.width, atlasW))
+        const x0 = Math.max(sx - half, lx)
+        const x1 = Math.min(sx + half, lx + Math.min(line.width, atlasW))
         if (x1 <= x0) continue
         ctx.globalAlpha = 0.95 * (1 - (Math.abs(dy) / SPOT_R) * 0.3)
         ctx.drawImage(
           atlas,
-          (x0 - best.x) * dpr, line.row * LINE_H * dpr, (x1 - x0) * dpr, LINE_H * dpr,
+          (x0 - lx) * dpr, line.row * LINE_H * dpr, (x1 - x0) * dpr, LINE_H * dpr,
           x0, y, x1 - x0, LINE_H,
         )
       }
       ctx.globalAlpha = 1
     }
 
+    // The pointer stirs the fluid along its motion: an impulse per px of
+    // travel (frame-rate independent, however often the events arrive) and a
+    // little dye where it moved fast. A first move after idle, or the jump
+    // in from the window edge, pushes nothing — that is not a gesture.
+    let pmx = -9999
+    let pmy = -9999
+    let pmt = 0
     const onPointer = (e: PointerEvent) => {
       mx = e.clientX
       my = e.clientY
+      if (coarse || reduced) return
+      const t = e.timeStamp
+      if (pmx > -999 && t - pmt < POINTER_IDLE) {
+        let dx = mx - pmx
+        let dy = my - pmy
+        const m = Math.hypot(dx, dy)
+        if (m > POINTER_STEP) {
+          dx *= POINTER_STEP / m
+          dy *= POINTER_STEP / m
+        }
+        if (m > 0) {
+          fluid.addForce(
+            mx, my, dx * POINTER_K, dy * POINTER_K, POINTER_R,
+            Math.min(1, m / 24) * 0.6,
+          )
+        }
+      }
+      pmx = mx
+      pmy = my
+      pmt = t
     }
     const onPointerGone = () => {
       mx = -9999
+      pmx = -9999
     }
 
     const frame = (now: number) => {
@@ -419,12 +502,22 @@ export default function CodeLayer() {
 
       const scroll = window.scrollY
       // The rain feels the page's momentum: columns run faster while the
-      // reader is in motion, easing back as the scroll settles.
-      const vBoost = 1 + Math.min(Math.abs(scrollVelocity()), 8) * 0.3
+      // reader is in motion, easing back as the scroll settles — and the
+      // fluid takes the same momentum as a uniform push (page down → code
+      // up, the parallax direction), so the field streams and settles with
+      // inertia instead of stopping dead with the scrollbar. The solver
+      // sleeps on its own once the field is calm (the rAF is already off
+      // while the tab is hidden).
+      const sv = Math.max(-SCROLL_V_MAX, Math.min(SCROLL_V_MAX, scrollVelocity()))
+      const vBoost = 1 + Math.min(Math.abs(sv), 8) * 0.3
+      fdt = Math.min(dt, 1 / 30)
+      relax = Math.exp(-FLOW_RELAX * fdt)
+      if (Math.abs(sv) > 0.05) fluid.addUniform(0, -sv * SCROLL_K * fdt)
+      fluid.step(fdt)
       ctx.clearRect(0, 0, w, h)
       for (const col of cols) {
         col.off = mod(col.off + col.speed * vBoost * dt, col.count * LINE_H)
-        drawColumn(col, scroll)
+        drawColumn(col, scroll, true)
       }
       if (!flash && now >= nextFlash) {
         pickFlash(now, scroll)
@@ -448,6 +541,11 @@ export default function CodeLayer() {
         renderAtlas(palette)
       }
       buildColumns()
+      // New grid only when the cell count changes (a URL-bar resize keeps
+      // the field); otherwise just re-map px onto the same cells
+      const g = gridFor(w, h)
+      if (g.W !== fluid.W || g.H !== fluid.H) fluid = new Fluid(g.W, g.H, w, h)
+      else fluid.setSize(w, h)
       if (reduced) drawStatic()
     }
 
@@ -489,6 +587,8 @@ export default function CodeLayer() {
         cancelAnimationFrame(raf)
         raf = 0
         flash = null
+        fluid.clear()
+        for (const col of cols) col.ofs.fill(0) // the static frame sits at rest
         drawStatic()
       } else if (!document.hidden && !raf) {
         last = performance.now()

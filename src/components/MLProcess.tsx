@@ -2,6 +2,7 @@ import { useLayoutEffect, useRef, useState } from 'react'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import SectionIndex from './SectionIndex'
+import { TypedHeading } from './TypedText'
 import { mlProcess } from '../content'
 import { EASE } from '../lib/eases'
 import { cssVar } from '../lib/theme'
@@ -576,7 +577,7 @@ export default function MLProcess() {
       <canvas ref={canvasRef} aria-hidden="true" className="pointer-events-none absolute inset-0" />
 
       <div className="container-site relative z-10 mt-auto pb-[4vh] md:mt-0 md:pb-0">
-        <div className="md:max-w-[400px]">
+        <div className="md:max-w-[25rem]">
         {/* overflow-hidden: the reveal mask for the title's rise */}
         <div className="mb-6 overflow-hidden md:mb-8">
           <h2
@@ -590,22 +591,32 @@ export default function MLProcess() {
 
         {/* The roadmap, just in words — no boxes over the animation */}
         <div ref={cardsRef} className="mt-5 grid w-full grid-cols-1 gap-2 md:mt-7 md:gap-3">
-          {mlProcess.steps.map((s) => (
+          {mlProcess.steps.map((s, i) => (
             /* overflow-hidden: the reveal mask for each row's rise */
             <div key={s.n} className="overflow-hidden">
               <div className="flex items-baseline gap-3 will-change-transform">
+                {/* Idle glow on the number only — the row is the guarded/risen element */}
                 <span
-                  className="text-2xl leading-none text-[#9db8ff] md:text-3xl"
-                  style={{ fontFamily: LATEX_FONT, fontStyle: 'italic', fontWeight: 500 }}
+                  className="life-glow text-2xl leading-none text-[#9db8ff] md:text-3xl"
+                  style={{
+                    fontFamily: LATEX_FONT,
+                    fontStyle: 'italic',
+                    fontWeight: 500,
+                    ['--life-delay' as string]: `${-(0.6 + i * 0.9)}s`,
+                    ['--life-dur' as string]: `${4 + (i % 3) * 0.6}s`,
+                  }}
                 >
                   {s.n}
                 </span>
-                <h3
-                  className="text-[clamp(1.35rem,1.9vw,1.9rem)] leading-tight text-[#f5f1e6]"
-                  style={{ fontFamily: LATEX_FONT, fontWeight: 600, textShadow: '0 2px 18px rgba(0,0,0,0.9)' }}
-                >
-                  {s.title}
-                </h3>
+                {/* Types like the hero line: the step, then what it means, forever */}
+                <TypedHeading
+                  as="h3"
+                  text={s.title}
+                  alt={s.text}
+                  hold={2200}
+                  caret="bg-[#9db8ff]"
+                  className="text-[clamp(1.35rem,1.9vw,1.9rem)] leading-tight text-[#f5f1e6] [font-family:var(--font-serif)] font-[600] [text-shadow:0_2px_18px_rgba(0,0,0,0.9)]"
+                />
               </div>
             </div>
           ))}

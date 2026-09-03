@@ -30,7 +30,7 @@ const PAGES = {
   },
   'what-we-do': {
     title: 'What We Do — Cornell Computational Game Society',
-    desc: 'We build game AI \u2014 the AlphaGo kind. Now playing: GuanDan. Study nights, research, tournaments and talks.',
+    desc: 'We build game AI \u2014 the AlphaGo kind. Now playing: Throwing Eggs. Study nights, research, tournaments and talks.',
   },
   'ml-process': {
     title: 'Our Machine Learning Process — Cornell CGS',

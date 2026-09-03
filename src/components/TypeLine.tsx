@@ -63,7 +63,8 @@ export default function TypeLine() {
 
   return (
     <p
-      className="mono text-[max(1.2rem,19px)] md:text-[clamp(1.6rem,2vw,2.2rem)]"
+      className="life-float mono text-[max(1.2rem,1.1875rem)] md:text-[clamp(1.6rem,2vw,2.2rem)]"
+      style={{ ['--life-dur' as string]: '10.5s', ['--life-delay' as string]: '-3.4s' }}
       aria-live="off"
     >
       <span className="body-muted">{text.slice(0, leadLen)}</span>

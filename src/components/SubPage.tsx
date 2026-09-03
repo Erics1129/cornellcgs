@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react'
+import type { CSSProperties } from 'react'
 import { advisors, pages } from '../content'
 import { PAGE_THEME } from '../lib/pageTheme'
 import type { PageTheme } from '../lib/pageTheme'
@@ -6,6 +7,12 @@ import { theme as technical } from './themes/Technical'
 import { theme as organic } from './themes/Organic'
 import { theme as kinetic } from './themes/Kinetic'
 import { theme as cinematic } from './themes/Cinematic'
+import { LiveBody, LiveHeading } from './LiveText'
+import type { BodyDesign, HeadingDesign } from './LiveText'
+import NetworkFlow from './NetworkFlow'
+import GraphAlgo from './GraphAlgo'
+import type { Algo } from './GraphAlgo'
+import Dice from './Dice'
 
 /**
  * A standalone info page — a REAL page at /<slug>/ (camelCase), rendered
@@ -16,10 +23,50 @@ import { theme as cinematic } from './themes/Cinematic'
 
 const THEMES: Record<PageTheme['name'], PageTheme> = { technical, organic, kinetic, cinematic }
 
+/** Leaving a page returns the reader to the chapter it belongs to. */
+const CHAPTER: Record<string, string> = { advisors: 'people', contact: 'join' }
+
+/* One word design per page (LiveText.tsx). No typing here — that is the deck's. */
+const WORDS: Record<string, { h: HeadingDesign; b: BodyDesign }> = {
+  'who-we-are': { h: 'flip', b: 'glow' },
+  'what-we-do': { h: 'scramble', b: 'shimmer' },
+  'ml-process': { h: 'converge', b: 'focus' },
+  events: { h: 'ticker', b: 'underline' },
+  world: { h: 'wave', b: 'shimmer' },
+  people: { h: 'weight', b: 'glow' },
+  advisors: { h: 'outline', b: 'shimmer' },
+  join: { h: 'glitch', b: 'underline' },
+  contact: { h: 'tilt', b: 'underline' },
+}
+
+/* The algorithm each page runs live under its title (GraphAlgo.tsx); the
+   advisors and join pages run the layered network instead (NetworkFlow). */
+const ALGO: Record<string, Algo> = {
+  'who-we-are': 'bfs',
+  'what-we-do': 'dijkstra',
+  'ml-process': 'astar',
+  events: 'dfs',
+  world: 'kruskal',
+  people: 'prim',
+  contact: 'bfs',
+}
+
+/* Idle-life phase for the i-th sibling (global.css .life-*): a negative delay
+   spread over the period plus a ±20% duration jitter, so neighbours never
+   move in lockstep. Life classes ride wrappers, never the [data-page-item]
+   elements themselves — those carry the themes' entrance transforms. */
+const JITTER = [1, 0.84, 1.16, 0.92, 1.08, 0.8, 1.2]
+function life(i: number, base: number): CSSProperties {
+  const dur = base * JITTER[i % JITTER.length]
+  const delay = (i * 0.382 * base) % base
+  return { '--life-dur': `${dur.toFixed(2)}s`, '--life-delay': `-${delay.toFixed(2)}s` } as CSSProperties
+}
+
 export default function SubPage({ id }: { id: string }) {
   const root = useRef<HTMLDivElement>(null)
   const def = pages[id]
   const theme = THEMES[PAGE_THEME[id] ?? 'cinematic']
+  const words = WORDS[id] ?? { h: 'wave', b: 'shimmer' }
 
   useEffect(() => {
     document.documentElement.style.background = '#ffffff'
@@ -30,27 +77,46 @@ export default function SubPage({ id }: { id: string }) {
 
   if (!def) return null
   const Backdrop = theme.Backdrop
+  const back = `/#${CHAPTER[id] ?? id}`
+
+  // Came here from the deck? Step back through history so the browser can
+  // restore the deck from its page cache — no reload, no curtain, same spot.
+  // Otherwise (a direct visit, a search result) the href takes over.
+  const goBack = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    let fromDeck = false
+    try {
+      fromDeck = new URL(document.referrer).origin === location.origin && history.length > 1
+    } catch {
+      fromDeck = false
+    }
+    if (fromDeck) {
+      e.preventDefault()
+      history.back()
+    }
+  }
 
   return (
-    <div ref={root} className="sheet-light grain-light relative min-h-svh bg-white text-[#0a1e3f]">
+    <div ref={root} className="sheet-light grain-light neon-light relative isolate min-h-svh bg-white text-[#0a1e3f]">
       <Backdrop />
       {/* Site bar */}
       <div className="sticky top-0 z-10 border-b border-[#e3e9f4] bg-white">
         <div className="container-site flex h-16 items-center justify-between">
           <a
-            href="/"
-            className="link-wipe flex items-center gap-2 text-[max(0.95rem,15px)] font-[600] text-[#0a1e3f]"
+            href={back}
+            onClick={goBack}
+            className="link-wipe flex items-center gap-2 text-[max(0.95rem,0.9375rem)] font-[600] text-[#0a1e3f]"
           >
             <span aria-hidden="true">←</span> Back
           </a>
           <a
             href="/"
-            className="font-display flex items-center gap-2.5 text-[max(0.85rem,13px)] font-[700] tracking-[0.26em] text-[#0a1e3f]"
+            className="font-display flex items-center gap-2.5 text-[max(0.85rem,0.8125rem)] font-[700] tracking-[0.26em] text-[#0a1e3f]"
           >
-            <span aria-hidden="true" className="text-[#1e5eff]">♠</span> CORNELL CGS
+            <Dice size={18} /> CORNELL CGS
           </a>
           <a
-            href="/"
+            href={back}
+            onClick={goBack}
             aria-label="Back to the main page"
             className="p-2 text-[#0a1e3f] transition-transform duration-[400ms] [transition-timing-function:var(--ease-out)] hover:rotate-90"
           >
@@ -63,48 +129,73 @@ export default function SubPage({ id }: { id: string }) {
 
       {/* Title block */}
       <div className="container-site pb-16 pt-16 md:pb-24 md:pt-24">
-        <p data-page-item className="mono mb-5 text-[max(0.85rem,13px)] uppercase tracking-[0.18em] text-[#1e5eff]">
-          Cornell Computational Game Society
+        <p data-page-item className="mono mb-5 text-[max(0.85rem,0.8125rem)] uppercase tracking-[0.18em] text-[#1e5eff]">
+          <span className="life-glow" style={life(2, 4)}>
+            Cornell Computational Game Society
+          </span>
         </p>
-        <h1
-          data-page-item
-          data-page-title
-          className="font-display max-w-[16ch] text-[clamp(3rem,6.5vw,5.8rem)] font-[680] leading-[1.02] tracking-[-0.02em]"
-        >
-          {def.title}
-        </h1>
-        <p data-page-item className="mt-8 max-w-[52ch] text-[max(1.15rem,19px)] leading-relaxed text-[#46587a]">
-          {def.lead}
-        </p>
+        {/* The breathe sits on a wrapper: the h1 itself is scrambled/split/tweened by the themes. Left origin keeps the margin edge still. */}
+        <div className="life-breathe" style={{ ...life(2, 9), transformOrigin: '0% 50%' }}>
+          <h1
+            data-page-item
+            data-page-title
+            className="font-display max-w-[16ch] text-[clamp(3rem,6.5vw,5.8rem)] font-[680] leading-[1.02] tracking-[-0.02em]"
+          >
+            {def.title}
+          </h1>
+        </div>
+        {/* Wrapper, not an inner span: Cinematic splits the lead's own children into words. */}
+        <div className="life-float" style={life(1, 12)}>
+          <p data-page-item className="mt-8 max-w-[52ch] text-[max(1.15rem,1.1875rem)] leading-relaxed text-[#46587a]">
+            {def.lead}
+          </p>
+        </div>
       </div>
 
       {/* Advisors — photo, name, title, research line */}
       {id === 'advisors' && (
         <div className="container-site border-t border-[#e3e9f4] py-16 md:py-20">
-          <h2 data-page-item className="font-display mb-8 text-[clamp(1.4rem,2vw,1.9rem)] font-[640]">
-            Faculty Advisors
-          </h2>
+          <div data-page-item className="mb-8">
+            <LiveHeading
+              design={words.h}
+              text="Faculty Advisors"
+              alt="Who Keeps Us Honest"
+              className="neon neon-word font-display text-[clamp(1.4rem,2vw,1.9rem)] font-[640]"
+            />
+          </div>
           <div className="grid gap-10 md:grid-cols-2">
-            {advisors.map((a) => (
-              <div key={a.name} data-page-item className="flex gap-6">
-                <img
-                  src={a.photo}
-                  alt={a.name}
-                  width={144}
-                  height={144}
-                  className="h-28 w-28 shrink-0 rounded-full object-cover md:h-36 md:w-36"
-                />
-                <div className="flex flex-col gap-2">
-                  <p className="font-display text-[clamp(1.25rem,1.8vw,1.6rem)] font-[640] leading-tight">
-                    <a href={a.url} className="link-wipe" target="_blank" rel="noreferrer">
-                      {a.name}
-                    </a>
-                  </p>
-                  <p className="mono text-[max(0.8rem,12px)] uppercase tracking-[0.14em] text-[#1e5eff]">
-                    {a.role}
-                  </p>
-                  <p className="text-[max(0.95rem,15px)] text-[#0a1e3f]">{a.title}</p>
-                  <p className="text-[max(0.95rem,15px)] leading-relaxed text-[#46587a]">{a.bio}</p>
+            {advisors.map((a, i) => (
+              <div key={a.name} data-page-item className="relative flex flex-col gap-6 py-6">
+                {/* The network runs under the person, never over them */}
+                <NetworkFlow className="pointer-events-none absolute inset-0 -z-10 h-full w-full opacity-60" />
+                <div className="relative flex gap-6">
+                  <img
+                    src={a.photo}
+                    alt={a.name}
+                    width={144}
+                    height={144}
+                    className="life-float h-28 w-28 shrink-0 rounded-full object-cover md:h-36 md:w-36"
+                    style={life(i, 8)}
+                  />
+                  <div className="flex flex-col gap-2">
+                    <p
+                      className="life-glow font-display text-[clamp(1.25rem,1.8vw,1.6rem)] font-[640] leading-tight"
+                      style={life(i + 3, 4)}
+                    >
+                      <a href={a.url} className="neon neon-word" target="_blank" rel="noreferrer">
+                        {a.name}
+                      </a>
+                    </p>
+                    <p className="mono text-[max(0.8rem,0.75rem)] uppercase tracking-[0.14em] text-[#1e5eff]">
+                      <span className="life-glow inline-block" style={life(i + 1, 4)}>
+                        {a.role}
+                      </span>
+                    </p>
+                    <p className="weight-breathe text-[max(0.95rem,0.9375rem)] text-[#0a1e3f]" style={life(i + 2, 7)}>
+                      {a.title}
+                    </p>
+                    <LiveBody design={words.b} text={a.bio} index={i + 1} className="text-[max(0.95rem,0.9375rem)] leading-relaxed" />
+                  </div>
                 </div>
               </div>
             ))}
@@ -112,25 +203,38 @@ export default function SubPage({ id }: { id: string }) {
         </div>
       )}
 
-      {/* Sections */}
-      <div className="container-site grid gap-x-10 gap-y-12 border-t border-[#e3e9f4] py-16 md:grid-cols-2 md:py-20">
-        {def.sections.map((sec) => (
+      {/* Sections — the page's algorithm runs on a fresh graph beneath the words, forever */}
+      <div className="container-site relative border-t border-[#e3e9f4] py-16 md:py-20">
+        {ALGO[id] ? (
+          <GraphAlgo algo={ALGO[id]} className="pointer-events-none absolute inset-x-0 top-8 bottom-8 -z-10 h-[calc(100%-4rem)] w-full opacity-55" />
+        ) : (
+          <NetworkFlow className="pointer-events-none absolute inset-x-0 top-8 bottom-8 -z-10 h-[calc(100%-4rem)] w-full opacity-55" />
+        )}
+        <div className="relative grid gap-x-10 gap-y-12 md:grid-cols-2">
+        {def.sections.map((sec, i) => (
           <div key={sec.heading} data-page-item>
-            <h2 className="font-display mb-3 text-[clamp(1.4rem,2vw,1.9rem)] font-[640]">
-              {sec.heading}
-            </h2>
-            <p className="text-[max(1rem,17px)] leading-relaxed text-[#46587a]">{sec.body}</p>
+            {/* The heading keeps moving between its two lines in the page's own design. Life rides the wrapper — the block is what the themes tilt. */}
+            <div className="life-float mb-3" style={{ ...life(i, 7), transformOrigin: '0% 50%' }}>
+              <LiveHeading
+                design={words.h}
+                text={sec.heading}
+                alt={sec.alt}
+                className="neon neon-word font-display text-[clamp(1.4rem,2vw,1.9rem)] font-[640]"
+              />
+            </div>
+            <LiveBody design={words.b} text={sec.body} index={i} className="text-[max(1rem,1.0625rem)] leading-relaxed text-[#46587a]" />
           </div>
         ))}
+        </div>
       </div>
 
       {/* Quiet navy foot — no call to action, just the wordmark */}
       <div className="bg-[#0a1e3f] text-white">
         <div className="container-site flex items-center justify-between py-8">
-          <a href="/" className="font-display flex items-center gap-2.5 text-[max(0.85rem,13px)] font-[700] tracking-[0.26em] text-white">
-            <span aria-hidden="true" className="text-[#7a85ff]">♠</span> CORNELL CGS
+          <a href="/" className="font-display flex items-center gap-2.5 text-[max(0.85rem,0.8125rem)] font-[700] tracking-[0.26em] text-white">
+            <Dice size={18} className="[--dice-face:#f5f1e6] [--dice-pip:#1e5eff] [--dice-edge:rgba(10,30,63,0.35)]" /> CORNELL CGS
           </a>
-          <span className="mono text-[max(0.8rem,12px)] text-[#93a6cc]">cornellcgs.org</span>
+          <span className="mono text-[max(0.8rem,0.75rem)] text-[#93a6cc]">cornellcgs.org</span>
         </div>
       </div>
     </div>

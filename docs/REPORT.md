@@ -85,3 +85,50 @@ All in `src/content.ts` unless noted:
 npm run deploy
 ```
 (Node lives at `~/.local/node/bin`; the script handles PATH itself.)
+
+## 2026-09-02 — systems added since the 08-30 build
+
+Details, numbers and the add-a-slide recipe live in `docs/MOTION.md` ("Systems reference").
+
+- **Free scroll** replaced the forced page-per-gesture deck (user request; supersedes the
+  "Forced page-per-gesture scroll" line above). Lenis (`lerp 0.09`, `wheelMultiplier 0.9`)
+  + ScrollTrigger; chapter boundaries are blended by `useChapterTransitions` (the leaving
+  chapter settles back and dims under the next) instead of hard cuts.
+- **Five deck slides** pinned between chapters: AlphaGo (the one zoom, STIX Two Text italic),
+  Throwing Eggs (light sweep, Bricolage Grotesque 800), Lab (laptop + scroll-typed CFR
+  update), Stats (panned strip), Anyone (gathering letters, Instrument Serif italic). One
+  shared `PIN` config, `refreshPriority 1`, ICE/WARM gradient-text tokens.
+- **Info pages are real routes** (`/<camelCase>/`, static stubs from `scripts/stubs.mjs`),
+  each wearing one motion personality — technical / organic / kinetic / cinematic
+  (`src/lib/pageTheme.ts`, `src/components/themes/`). Back links return to the owning
+  chapter (`advisors → /#people`, `contact → /#join`, else `/#<id>`); the deck glides there
+  650 ms after boot.
+- **Scroll-scrubbed video** (`src/lib/videoScrub.ts`): the World globe, the Who-we-are robot
+  card and the ML approach are seeked by scroll — throttled exact seeks (≤ 25/s, ≥ 1/30 s
+  delta, never while seeking); `fastSeek` is banned (keyframe snap → Safari lands on 0).
+- **Cursor field**: the WebGL gradient bends toward and pools light under the pointer
+  (`u_pointer` / `u_pstr`, fine pointer only); the code rain parts around the lens
+  (260 px radius, ≤ 30 px shift, brighter inside) and switches off while paging.
+- **Returning visitors**: `sessionStorage['cgs-seen']` skips the curtain when coming back
+  from a sub-page (400 ms readiness cap, no minimum show).
+- Fonts added to the Google Fonts request: STIX Two Text (400..700), Bricolage Grotesque
+  (800 only, opsz 12..96), Instrument Serif (italic only).
+
+### Open risks (from reading the code; not verified in a browser)
+
+- **Pin refresh order.** GSAP 3.15 `ScrollTrigger.sort()` orders by `refreshPriority` first
+  and document position second (key = docY − priority·1e6), and a full refresh swaps every
+  pin out before re-measuring in that order. The board (`WhatWeDo`, priority 2) therefore
+  refreshes BEFORE the AlphaGo pin (priority 1) that now sits above it, i.e. with AlphaGo's
+  160 vh spacer absent. The priority-2 comment predates the slides and the `sort()` call
+  (which already yields document order). If the board pins early or overlaps AlphaGo, give
+  every pin the same priority rather than adding a 3.
+- `src/lib/pageTheme.ts` docstring lists the "navy band" as a `[data-page-item]`; `SubPage`
+  never marks it (Organic's full-bleed guard is currently dead).
+- MOTION.md's easing rule vs as-built: Kinetic `back.out`, Technical ScrambleText,
+  `power*.inOut` inside scrubbed slide timelines — now listed in MOTION.md as a closed list.
+- `usePinned` and `travel` are module-local to `StatementSlides.tsx`; a new slide file has to
+  copy them or they need exporting.
+- `useChapterTransitions` is built once at mount from the pin-spacer layout of that moment; a
+  chapter whose pin appears or disappears later (the board's `matchMedia` across 768 px on
+  resize) keeps or lacks its hand-off until reload.

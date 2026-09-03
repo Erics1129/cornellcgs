@@ -14,6 +14,12 @@ export interface ScrubOptions {
   to?: number
   /** Called with the mapped progress on every update (0..1) */
   onProgress?: (p: number) => void
+  /**
+   * Idle drift: once the scroll has been still this long (ms), the film
+   * plays forward on its own at `rate` (a fraction of real time) until the
+   * next scroll — the frame is never static. Default 900 ms / 0.35.
+   */
+  idle?: { after?: number; rate?: number } | false
 }
 
 /**
@@ -29,8 +35,12 @@ export function attachVideoScrub(video: HTMLVideoElement, opts: ScrubOptions): (
   let target = 0
   let last = -1
   let lastSeekAt = 0
+  let lastScrollAt = performance.now()
+  let drifting = false
   const MIN_DELTA = 1 / 30
   const MIN_GAP_MS = 40
+  const idleAfter = opts.idle === false ? Infinity : (opts.idle?.after ?? 900)
+  const idleRate = opts.idle === false ? 0 : (opts.idle?.rate ?? 0.35)
 
   const range = () => {
     const from = opts.from ?? 0
@@ -46,6 +56,7 @@ export function attachVideoScrub(video: HTMLVideoElement, opts: ScrubOptions): (
     onUpdate: (self) => {
       const { from, to } = range()
       target = from + (to - from) * self.progress
+      lastScrollAt = performance.now()
       opts.onProgress?.(self.progress)
     },
   })
@@ -53,6 +64,22 @@ export function attachVideoScrub(video: HTMLVideoElement, opts: ScrubOptions): (
   const tick = () => {
     if (video.readyState < 2 || video.seeking) return
     const now = performance.now()
+    // Idle: the reader stopped — let the film breathe at a fraction of real
+    // time (only while its trigger is on screen); any scroll takes it back.
+    if (now - lastScrollAt > idleAfter && st.isActive) {
+      if (!drifting) {
+        drifting = true
+        video.playbackRate = idleRate
+        video.play().catch(() => {})
+      }
+      return
+    }
+    if (drifting) {
+      drifting = false
+      video.pause()
+      video.playbackRate = 1
+      last = -1 // re-seek to the scroll target immediately
+    }
     if (now - lastSeekAt < MIN_GAP_MS) return
     if (Math.abs(target - last) < MIN_DELTA) return
     if (!video.paused) video.pause()
@@ -67,5 +94,7 @@ export function attachVideoScrub(video: HTMLVideoElement, opts: ScrubOptions): (
   return () => {
     gsap.ticker.remove(tick)
     st.kill()
+    // hand the element back at real speed (the ML burst plays it normally)
+    video.playbackRate = 1
   }
 }

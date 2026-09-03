@@ -4,6 +4,7 @@ import './lib/eases'
 import { initSmoothScroll } from './lib/scroll'
 import { useNeonEdges } from './lib/neon'
 import { BOOTED_EVENT, SHAKE_EVENT, prefersReducedMotion } from './lib/motion'
+import { dealCard, shadowStyle } from './lib/cardMotion'
 import GradientBG from './effects/GradientBG'
 import CodeLayer from './effects/CodeLayer'
 import Nav from './components/Nav'
@@ -17,8 +18,9 @@ import WorldSection from './components/WorldSection'
 import People from './components/People'
 import Join from './components/Join'
 import Footer from './components/Footer'
-import ZoomWord from './components/ZoomWord'
 import { useChapterTransitions } from './lib/reveal'
+import { AlphaGoSlide, AnyoneSlide, ProjectSlide } from './components/StatementSlides'
+import { CodeSlide, StatsSlide } from './components/ShowcaseSlides'
 
 /**
  * Loader — the riffle plus a dealing count. It holds until the display fonts
@@ -26,8 +28,19 @@ import { useChapterTransitions } from './lib/reveal'
  * the entrance to the hero via BOOTED_EVENT. The curtain scales up slightly
  * as it fades so the reveal reads as a push into the room, not a cut.
  */
+const SEEN_KEY = 'cgs-seen'
+const returning = (() => {
+  try {
+    return sessionStorage.getItem(SEEN_KEY) === '1'
+  } catch {
+    return false
+  }
+})()
+
 function Loader({ done }: { done: boolean }) {
   const [count, setCount] = useState(0)
+  const deckRef = useRef<HTMLDivElement>(null)
+  const riffleRef = useRef<gsap.core.Timeline | null>(null)
   useEffect(() => {
     if (prefersReducedMotion()) {
       setCount(100)
@@ -45,6 +58,58 @@ function Loader({ done }: { done: boolean }) {
     }
   }, [])
 
+  // The riffle: three card backs dealt up from below the deck along a shallow
+  // arc — spinning with the throw, peaking closer to the eye, landing with a
+  // bounce on a separated shadow — then the top card idles, tilting ±2° on a
+  // slow sine. Reduced motion → dealCard places the rest state, no idle.
+  useEffect(() => {
+    const deck = deckRef.current
+    if (!deck) return
+    const ctx = gsap.context(() => {
+      const cards = Array.from(deck.querySelectorAll<HTMLElement>('[data-riffle-card]'))
+      const shadows = Array.from(deck.querySelectorAll<HTMLElement>('[data-riffle-shadow]'))
+      if (!cards.length) return
+      const restRotation = (i: number) => (i - 1) * 6
+      const tl = gsap.timeline()
+      cards.forEach((card, i) => {
+        tl.add(
+          dealCard(card, {
+            from: { x: (i - 1) * -60, y: 90, rotation: -28 + i * 10 },
+            rotation: restRotation(i),
+            duration: 0.7,
+            lift: -30,
+            air: 1.08,
+            shadow: shadows[i] ?? null,
+          }),
+          i * 0.11,
+        )
+      })
+      if (!prefersReducedMotion()) {
+        // Idle: ease into the sway, then ±2° around the rest angle, 2.4 s a leg
+        const top = cards[cards.length - 1]
+        const rest = restRotation(cards.length - 1)
+        tl.to(top, { rotation: rest + 2, duration: 1.2, ease: 'sine.out' }, '>')
+        tl.to(top, { rotation: rest - 2, duration: 2.4, ease: 'sine.inOut', yoyo: true, repeat: -1 }, '>')
+      }
+      riffleRef.current = tl
+    }, deck)
+    return () => {
+      riffleRef.current = null
+      ctx.revert()
+    }
+  }, [])
+
+  // The curtain's 700 ms wipe hides the deck for good — stop the idle so no
+  // per-frame transform keeps running behind it.
+  useEffect(() => {
+    if (!done) return
+    const t = window.setTimeout(() => riffleRef.current?.pause(), 750)
+    return () => window.clearTimeout(t)
+  }, [done])
+
+  // Coming back from a sub-page: no curtain, the deck is simply there
+  if (returning) return null
+
   return (
     <div
       aria-hidden="true"
@@ -54,24 +119,26 @@ function Loader({ done }: { done: boolean }) {
           : 'opacity-100 [clip-path:inset(0_0_0%_0)]'
       }`}
     >
-      <div className="relative h-28 w-20">
+      <div ref={deckRef} className="relative h-28 w-20">
         {[0, 1, 2].map((i) => (
-          <div
-            key={i}
-            className="card-back-surface absolute inset-0 flex items-center justify-center"
-            style={{
-              animation: prefersReducedMotion()
-                ? undefined
-                : `riffle 0.72s ${i * 0.12}s cubic-bezier(0.34, 1.3, 0.5, 1) both`,
-            }}
-          >
-            <span className="text-2xl text-[var(--silver)] opacity-70">♠</span>
+          // Each card rides on its own separated shadow (a sibling under it, so
+          // the shadow stays on the table while the card is in the air). Both
+          // start invisible; dealCard owns opacity from its first frame.
+          <div key={i} className="absolute inset-0">
+            <div data-riffle-shadow style={{ ...shadowStyle(), opacity: 0 }} />
+            <div
+              data-riffle-card
+              className="card-back-surface absolute inset-0 flex items-center justify-center"
+              style={{ opacity: 0, boxShadow: 'none' }}
+            >
+              <span className="text-2xl text-[var(--silver)] opacity-70">♠</span>
+            </div>
           </div>
         ))}
       </div>
       <span
         data-counter
-        className="mono absolute bottom-8 left-8 text-[max(0.8rem,13px)] text-[var(--muted)]"
+        className="mono absolute bottom-8 left-8 text-[max(0.8rem,0.8125rem)] text-[var(--muted)]"
       >
         {String(count).padStart(3, '0')}
       </span>
@@ -99,6 +166,11 @@ export default function App() {
       if (lifted) return
       lifted = true
       ;(window as unknown as { __cgsShown?: boolean }).__cgsShown = true
+      try {
+        sessionStorage.setItem(SEEN_KEY, '1')
+      } catch {
+        /* private mode — every visit gets the curtain */
+      }
       setLoaded(true)
       window.dispatchEvent(new Event(BOOTED_EVENT))
     }
@@ -116,9 +188,9 @@ export default function App() {
           timers.push(window.setTimeout(probe, 100))
         }),
       ]),
-      new Promise<void>((res) => timers.push(window.setTimeout(() => res(), 2400))),
+      new Promise<void>((res) => timers.push(window.setTimeout(() => res(), returning ? 400 : 2400))),
     ])
-    const minShow = new Promise<void>((res) => timers.push(window.setTimeout(() => res(), 950)))
+    const minShow = new Promise<void>((res) => timers.push(window.setTimeout(() => res(), returning ? 0 : 950)))
     Promise.all([ready, minShow]).then(lift)
 
     return () => {
@@ -173,29 +245,16 @@ export default function App() {
         <main ref={mainRef}>
           <Hero />
           <WhoWeAre />
-          <ZoomWord
-            id="alphago"
-            word="AlphaGo"
-            rest=". The kind of AI we build."
-            lead="Solvers, agents, and the math behind every hand."
-          />
+          <AlphaGoSlide />
           <WhatWeDo />
-          <ZoomWord
-            id="guandan"
-            word="GuanDan"
-            rest=". Our current project."
-            lead="4 players, 2 teams, 108 cards."
-          />
+          <ProjectSlide />
+          <CodeSlide />
           <MLProcess />
           <Events />
           <WorldSection />
           <People />
-          <ZoomWord
-            id="anyone"
-            word="Anyone"
-            rest=". Any person, any study."
-            lead="Every school, every major, every background."
-          />
+          <StatsSlide />
+          <AnyoneSlide />
           <Join />
         </main>
         <Footer />

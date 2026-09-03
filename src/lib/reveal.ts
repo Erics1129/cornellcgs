@@ -122,7 +122,7 @@ export function useSectionReveals(rootRef: React.RefObject<HTMLElement | null>) 
         if (!section) {
           // Outside any .section — per-element entrance
           els.forEach((el) => {
-            const trigger = { trigger: el, start: 'top 86%', once: true }
+            const trigger = { trigger: el, start: 'top 86%', once: true, fastScrollEnd: true }
             const kind = el.dataset.reveal
             if (kind === 'heading') {
               const lines = headingLines(el)
@@ -257,6 +257,6 @@ export function animateCounter(el: HTMLElement, value: number, noSeparator = fal
     onUpdate: () => {
       el.textContent = format(state.v)
     },
-    scrollTrigger: { trigger: el, start: 'top 85%', once: true },
+    scrollTrigger: { trigger: el, start: 'top 85%', once: true, fastScrollEnd: true },
   })
 }

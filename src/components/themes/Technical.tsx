@@ -10,16 +10,13 @@ gsap.registerPlugin(ScrambleTextPlugin)
 /**
  * Technical — "lab, not firm" (/whatWeDo/, /mlProcess/). A blueprint grid
  * and one slow scan band sit behind the sheet; the title decodes in once,
- * the rest arrives on a short stagger, and each section block wears a
- * hairline that turns blue under a fine pointer.
+ * the rest arrives on a short stagger; the section copy types itself.
  */
 
 const CHARS = '{}[]()<>=+*/;:#01'
 const HAIRLINE = 'rgba(10,30,63,0.06)'
-const RULE = '#e3e9f4'
-const BLUE = '#1e5eff'
 
-/* Scoped to technical-* names; the band is transform-only, the caret is static. */
+/* Scoped to technical-* names; the band is transform-only. */
 const CSS = `
 @keyframes technical-scan {
   from { transform: translate3d(0, -100%, 0); }
@@ -27,15 +24,6 @@ const CSS = `
 }
 .technical-scan {
   animation: technical-scan 7s linear infinite;
-}
-.technical-h2::after {
-  content: '';
-  display: inline-block;
-  width: 0.42em;
-  height: 0.78em;
-  margin-left: 0.28em;
-  vertical-align: -0.06em;
-  background: ${BLUE};
 }
 @media (prefers-reduced-motion: reduce) {
   .technical-scan { animation: none; display: none; }
@@ -93,24 +81,8 @@ function enter(root: HTMLElement): () => void {
   const items = Array.from(root.querySelectorAll<HTMLElement>('[data-page-item]'))
   const title = root.querySelector<HTMLElement>('[data-page-title]')
   const rest = items.filter((el) => el !== title)
-  const blocks = items.filter((el) => el.querySelector('h2'))
   const original = title?.textContent ?? ''
   const undo: Array<() => void> = []
-
-  /* Static lab dressing — present under reduced motion too. Outline (not
-     border) so the hairline costs no layout; offset outward because the
-     blocks carry no padding. */
-  for (const block of blocks) {
-    const h2 = block.querySelector('h2')
-    h2?.classList.add('technical-h2')
-    block.style.outline = `1px solid ${RULE}`
-    block.style.outlineOffset = '12px'
-    undo.push(() => {
-      h2?.classList.remove('technical-h2')
-      block.style.outline = ''
-      block.style.outlineOffset = ''
-    })
-  }
 
   const ctx = gsap.context(() => {
     if (prefersReducedMotion()) {
@@ -134,42 +106,41 @@ function enter(root: HTMLElement): () => void {
       }
       undo.push(restore)
       gsap.set(title, { autoAlpha: 1 })
-      gsap
-        .to(title, {
-          duration: 1.1,
-          ease: 'none',
-          scrambleText: {
-            text: original,
-            chars: CHARS,
-            revealDelay: 0.15,
-            tweenLength: false,
-            speed: 0.4,
-          },
-          onComplete: restore,
-        })
-        /* Write the first scrambled frame now so the real title never paints ahead of its decode. */
-        .progress(0.0001)
+      /* The title decodes on arrival and then again every few seconds — the
+         lab keeps recomputing. Each run is its own tween (the interval
+         outlives this context), so the current one is tracked and killed
+         on cleanup; restore() always leaves the real words behind. */
+      let current: gsap.core.Tween | null = null
+      const decode = () => {
+        current?.kill()
+        title.style.overflowWrap = 'anywhere'
+        current = gsap
+          .to(title, {
+            duration: 1.1,
+            ease: 'none',
+            scrambleText: {
+              text: original,
+              chars: CHARS,
+              revealDelay: 0.15,
+              tweenLength: false,
+              speed: 0.4,
+            },
+            onComplete: restore,
+          })
+          /* Write the first scrambled frame now so the real title never paints ahead of its decode. */
+          .progress(0.0001)
+      }
+      decode()
+      const loop = window.setInterval(() => {
+        if (!document.hidden) decode()
+      }, 6500)
+      undo.push(() => {
+        window.clearInterval(loop)
+        current?.kill()
+        restore()
+      })
     }
 
-    if (window.matchMedia('(pointer: fine)').matches) {
-      for (const block of blocks) {
-        block.style.transition = 'outline-color 0.25s var(--ease-out)'
-        const on = () => {
-          block.style.outlineColor = BLUE
-        }
-        const off = () => {
-          block.style.outlineColor = RULE
-        }
-        block.addEventListener('pointerenter', on)
-        block.addEventListener('pointerleave', off)
-        undo.push(() => {
-          block.removeEventListener('pointerenter', on)
-          block.removeEventListener('pointerleave', off)
-          block.style.transition = ''
-          block.style.outlineColor = ''
-        })
-      }
-    }
   }, root)
 
   return () => {

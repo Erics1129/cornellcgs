@@ -134,8 +134,16 @@ export default function WorldSection() {
           className="pointer-events-auto max-w-[34rem] lg:max-w-[40rem]"
           style={{ textShadow: '0 1px 24px rgba(2, 6, 20, 0.85), 0 1px 6px rgba(2, 6, 20, 0.6)' }}
         >
-          <h2 className="h-section mb-6 text-white">{renderEmphasis(world.heading)}</h2>
-          <p className="max-w-[40ch] text-[rgba(233,240,255,0.85)]">{world.text}</p>
+          {/* Depth owns this block's transform; the float rides inside it */}
+          <div className="life-float" style={{ ['--life-dur' as string]: '9.5s', ['--life-delay' as string]: '-3.7s' }}>
+            <h2 className="h-section mb-6 text-white">{renderEmphasis(world.heading)}</h2>
+            <p
+              className="life-glow max-w-[40ch] text-[rgba(233,240,255,0.85)]"
+              style={{ ['--life-dur' as string]: '5s', ['--life-delay' as string]: '-1.6s' }}
+            >
+              {world.text}
+            </p>
+          </div>
         </div>
       </div>
     </section>

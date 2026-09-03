@@ -5,6 +5,11 @@ import { prefersReducedMotion } from './motion'
 
 gsap.registerPlugin(ScrollTrigger)
 
+// Dev-only: lets automated probes step the clock when the tab is throttled
+if (import.meta.env.DEV) {
+  ;(window as unknown as { __gsap?: unknown }).__gsap = { gsap, ScrollTrigger }
+}
+
 /**
  * Buttery free scrolling (the hard one-page-per-gesture deck was removed at
  * the user's request — resting on half of two chapters is allowed, and the
@@ -33,22 +38,66 @@ function chapterTop(el: HTMLElement): number {
   return Math.round(el.getBoundingClientRect().top + window.scrollY)
 }
 
+/**
+ * Where the reader left the deck. Stashed on every exit (pagehide), consumed
+ * on the next deck load so coming back from a sub-page lands on the exact
+ * spot — no hero, no glide. A bfcache restore (pageshow persisted) never
+ * reloads, so the stash is cleared there instead.
+ */
+const RETURN_KEY = 'cgs-return'
+let pendingRestore: number | null = null
+
+export function hasPendingRestore(): boolean {
+  return pendingRestore !== null
+}
+
 /** Boot smooth scrolling. The old name is kept so App.tsx stays untouched. */
 export function initSmoothScroll(): () => void {
-  // The site always opens on the hero — never on a restored mid-scroll.
   if ('scrollRestoration' in history) history.scrollRestoration = 'manual'
-  window.scrollTo(0, 0)
+  try {
+    const saved = sessionStorage.getItem(RETURN_KEY)
+    if (saved !== null) {
+      sessionStorage.removeItem(RETURN_KEY)
+      const y = Number(saved)
+      if (Number.isFinite(y) && y > 0) pendingRestore = y
+    }
+  } catch {
+    /* private mode — open on the hero */
+  }
+  window.scrollTo(0, pendingRestore ?? 0)
+
+  const onPageHide = () => {
+    try {
+      sessionStorage.setItem(RETURN_KEY, String(Math.round(window.scrollY)))
+    } catch {
+      /* ignore */
+    }
+  }
+  const onPageShow = (e: PageTransitionEvent) => {
+    if (e.persisted) {
+      try {
+        sessionStorage.removeItem(RETURN_KEY)
+      } catch {
+        /* ignore */
+      }
+    }
+  }
+  window.addEventListener('pagehide', onPageHide)
+  window.addEventListener('pageshow', onPageShow)
 
   // Pins must refresh in document order no matter which mounted first
-  // (the ML pin mounts from a layout effect, before the board's).
-  window.setTimeout(() => {
+  // (the ML pin mounts from a layout effect, before the board's). A pending
+  // restore is re-applied after each refresh, once the pins have their size.
+  const settle = () => {
     ScrollTrigger.sort()
     ScrollTrigger.refresh()
-  }, 60)
+    if (pendingRestore !== null) window.scrollTo(0, pendingRestore)
+  }
+  window.setTimeout(settle, 60)
   document.fonts?.ready
     .then(() => {
-      ScrollTrigger.sort()
-      ScrollTrigger.refresh()
+      settle()
+      pendingRestore = null
     })
     .catch(() => {})
 

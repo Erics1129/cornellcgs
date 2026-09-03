@@ -5,6 +5,7 @@ import { attachMagnetic } from '../lib/magnetic'
 import { prefersReducedMotion } from '../lib/motion'
 import { scrollToId } from '../lib/scroll'
 import { pagePath } from '../lib/router'
+import Dice from './Dice'
 
 /**
  * Citadel-style navigation: a clean top bar — wordmark left, top-level links
@@ -56,6 +57,14 @@ const GROUPS: Group[] = [
       { label: 'Contact Us', id: 'contact' },
     ],
   },
+]
+
+/* Idle-life phases for the bar labels — no two share a period or a start */
+const LABEL_LIFE = [
+  { dur: '11s', delay: '-2.6s' },
+  { dur: '13.2s', delay: '-7.1s' },
+  { dur: '10.4s', delay: '-4.4s' },
+  { dur: '12.4s', delay: '-9.3s' },
 ]
 
 /* .btn-label's roll only keys off .btn/a ancestors — these triggers are
@@ -150,12 +159,15 @@ export default function Nav() {
           <button
             onClick={() => go('top')}
             aria-label="Cornell CGS — back to the top"
-            className="font-display flex items-center gap-3 text-[max(0.95rem,15px)] font-[700] tracking-[0.26em] text-[var(--text)]"
+            className="font-display flex items-center gap-3 text-[max(0.95rem,0.9375rem)] font-[700] tracking-[0.26em] text-[var(--text)]"
           >
-            <span aria-hidden="true" className="text-[1.15em] text-[var(--neon-mid)]">
-              ♠
+            <Dice size={18} />
+            <span
+              className="life-breathe inline-block"
+              style={{ ['--life-dur' as string]: '9s', ['--life-delay' as string]: '-3.1s' }}
+            >
+              CORNELL CGS
             </span>
-            CORNELL CGS
           </button>
 
           <nav aria-label="Site" className="hidden items-center gap-8 md:flex">
@@ -164,13 +176,19 @@ export default function Nav() {
                 key={g.label}
                 onClick={() => setOpen(open === i ? null : i)}
                 aria-expanded={open === i}
-                className={`roll-hover relative pb-1 text-[max(0.95rem,16px)] font-[550] transition-colors duration-300 [transition-timing-function:var(--ease-out)] after:absolute after:inset-x-0 after:bottom-0 after:h-[2px] after:origin-left after:bg-[var(--neon-mid)] after:transition-transform after:duration-[350ms] after:[transition-timing-function:var(--ease-out)] ${
+                className={`neon neon-word roll-hover relative pb-1 text-[max(0.95rem,1rem)] font-[550] transition-colors duration-300 [transition-timing-function:var(--ease-out)] after:absolute after:inset-x-0 after:bottom-0 after:h-[2px] after:origin-left after:bg-[var(--neon-mid)] after:transition-transform after:duration-[350ms] after:[transition-timing-function:var(--ease-out)] ${
                   open === i
                     ? 'text-[var(--neon-mid)] after:scale-x-100'
                     : 'text-[var(--text)] after:scale-x-0 hover:text-[var(--neon-mid)]'
                 }`}
               >
-                <span className="btn-label">
+                <span
+                  className="btn-label life-float"
+                  style={{
+                    ['--life-dur' as string]: LABEL_LIFE[i].dur,
+                    ['--life-delay' as string]: LABEL_LIFE[i].delay,
+                  }}
+                >
                   <span>{g.label}</span>
                   <span aria-hidden="true">{g.label}</span>
                 </span>
@@ -183,17 +201,27 @@ export default function Nav() {
             onClick={() => setOpen(open === null ? 0 : null)}
             aria-expanded={open !== null}
             aria-label="Menu"
-            className="flex items-center gap-2.5 text-[max(0.95rem,16px)] font-[550] text-[var(--text)] md:hidden"
+            className="flex items-center gap-2.5 text-[max(0.95rem,1rem)] font-[550] text-[var(--text)] md:hidden"
           >
-            Menu
-            <span aria-hidden="true" className="relative h-3 w-4">
+            <span
+              className="life-float inline-block"
+              style={{ ['--life-dur' as string]: '11.6s', ['--life-delay' as string]: '-5.2s' }}
+            >
+              Menu
+            </span>
+            {/* The bob rides the mark's box; its two lines keep their own open/close transforms */}
+            <span
+              aria-hidden="true"
+              className="life-bob relative h-3 w-4"
+              style={{ ['--life-dur' as string]: '6.8s', ['--life-delay' as string]: '-2.4s' }}
+            >
               <span
                 className={`absolute left-0 top-[2.75px] h-[1.5px] w-4 bg-current transition-transform duration-[400ms] [transition-timing-function:var(--ease-out)] ${
                   open !== null ? 'translate-y-[2.5px] rotate-45' : ''
                 }`}
               />
               <span
-                className={`absolute left-0 top-[7.75px] h-[1.5px] w-4 bg-current transition-transform duration-[400ms] [transition-timing-function:var(--ease-out)] ${
+                className={`absolute left-0 top-[0.4844rem] h-[1.5px] w-4 bg-current transition-transform duration-[400ms] [transition-timing-function:var(--ease-out)] ${
                   open !== null ? '-translate-y-[2.5px] -rotate-45' : ''
                 }`}
               />
@@ -208,7 +236,7 @@ export default function Nav() {
         ref={panelRef}
         role="menu"
         aria-hidden={open === null}
-        className={`sheet-light grain-light absolute inset-x-0 top-16 bg-white shadow-[0_40px_80px_-30px_rgba(10,30,63,0.35)] transition-[clip-path] duration-[600ms] [transition-timing-function:var(--ease-out)] ${
+        className={`sheet-light grain-light neon-light absolute inset-x-0 top-16 bg-white shadow-[0_40px_80px_-1.875rem_rgba(10,30,63,0.35)] transition-[clip-path] duration-[600ms] [transition-timing-function:var(--ease-out)] ${
           open !== null
             ? 'pointer-events-auto [clip-path:inset(0_0_0%_0)]'
             : 'pointer-events-none [clip-path:inset(0_0_100%_0)]'
@@ -232,7 +260,7 @@ export default function Nav() {
                   data-panel-item
                   role="menuitem"
                   href={pagePath(s.id)}
-                  className="py-3 text-left text-[max(1.15rem,19px)] font-[600] text-[#0a1e3f]"
+                  className="neon neon-word self-start py-3 text-left text-[max(1.15rem,1.1875rem)] font-[600] text-[#0a1e3f]"
                 >
                   {s.label}
                 </a>
@@ -265,7 +293,7 @@ export default function Nav() {
                 <a
                   ref={learnMoreRef}
                   href={pagePath(active.target)}
-                  className="roll-hover group inline-block bg-[#0a1e3f] px-8 py-4 text-[max(0.95rem,16px)] font-[600] text-white transition-colors duration-300 [transition-timing-function:var(--ease-out)] hover:bg-[#1e5eff]"
+                  className="neon roll-hover group inline-block rounded-[0.375rem] bg-[#0a1e3f] px-8 py-4 text-[max(0.95rem,1rem)] font-[600] text-white transition-colors duration-300 [transition-timing-function:var(--ease-out)] hover:bg-[#1e5eff]"
                 >
                   <span className="btn-label transition-transform duration-300 [transition-timing-function:var(--ease-out)] group-hover:-translate-y-0.5">
                     <span>Learn More</span>
@@ -283,7 +311,7 @@ export default function Nav() {
                   data-panel-item
                   role="menuitem"
                   href={pagePath(s.id)}
-                  className="link-wipe text-[max(1.05rem,18px)] font-[550] text-[#0a1e3f] hover:text-[#1e5eff]"
+                  className="neon neon-word text-[max(1.05rem,1.125rem)] font-[550] text-[#0a1e3f] hover:text-[#1e5eff]"
                 >
                   {s.label}
                 </a>

@@ -1,0 +1,7 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    { "name": "cgs", "runtimeExecutable": "npm", "runtimeArgs": ["run", "dev", "--", "--port", "5190"], "port": 5190 },
+    { "name": "cgs-preview", "runtimeExecutable": "npm", "runtimeArgs": ["run", "preview", "--", "--port", "5191"], "port": 5191 }
+  ]
+}
