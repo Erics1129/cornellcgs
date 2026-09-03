@@ -39,16 +39,13 @@ const WORDS: Record<string, { h: HeadingDesign; b: BodyDesign }> = {
   contact: { h: 'tilt', b: 'underline' },
 }
 
-/* The algorithm each page runs live under its title (GraphAlgo.tsx); the
-   advisors and join pages run the layered network instead (NetworkFlow). */
+/* One algorithm each, on the main pages only (GraphAlgo.tsx); the advisors
+   page runs the layered network under Kleinberg instead (NetworkFlow). */
 const ALGO: Record<string, Algo> = {
-  'who-we-are': 'bfs',
   'what-we-do': 'dijkstra',
   'ml-process': 'astar',
-  events: 'dfs',
   world: 'kruskal',
   people: 'prim',
-  contact: 'bfs',
 }
 
 /* Idle-life phase for the i-th sibling (global.css .life-*): a negative delay
@@ -223,15 +220,13 @@ export default function SubPage({ id }: { id: string }) {
       </div>
 
       {/* The page's algorithm, in its own room under the words — a fresh graph every run, forever */}
-      <div className="container-site pb-16 md:pb-20">
-        <div data-page-item>
-          {ALGO[id] ? (
+      {ALGO[id] && (
+        <div className="container-site pb-16 md:pb-20">
+          <div data-page-item>
             <GraphAlgo algo={ALGO[id]} className="h-[clamp(220px,34vw,420px)] w-full" />
-          ) : (
-            <NetworkFlow className="h-[clamp(200px,30vw,360px)] w-full" />
-          )}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Quiet navy foot — no call to action, just the wordmark */}
       <div className="bg-[#0a1e3f] text-white">
