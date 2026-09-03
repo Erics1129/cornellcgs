@@ -160,17 +160,8 @@ export default function MLProcess() {
               },
             )
           })
-          const io = new IntersectionObserver(
-            (entries) => {
-              const onScreen = entries[0]?.isIntersecting ?? false
-              if (!video) return
-              if (onScreen) video.play().catch(() => {})
-              else video.pause()
-            },
-            { rootMargin: '25% 0px' },
-          )
-          io.observe(section)
-          return () => io.disconnect()
+          video?.pause()
+          return
         }
 
         // ------------------------------------------------------------------
@@ -180,25 +171,30 @@ export default function MLProcess() {
         let armed = true
         let tl: gsap.core.Timeline | null = null
 
-        // Approach = scroll. While armed the scrub owns the playhead: the
+        // The scroll is the ONLY thing that moves the film. While armed the
         // section's climb from the fold to the pin line maps onto the clip's
-        // first 4 s. fire() detaches and lets the video run; reset() re-attaches.
+        // first 4 s; once the burst has fired, the rest of the pin maps onto
+        // the rest of the clip — stop scrolling and the hole holds its frame.
         // Declared before any ScrollTrigger below — those can call fire()
         // synchronously at creation when the page loads mid-chapter.
         let scrubOff: (() => void) | null = null
         let scrubTo = 0
+        let phase: 'approach' | 'after' = 'approach'
         const scrubEnd = () =>
           video && Number.isFinite(video.duration) && video.duration > 0 ? Math.min(video.duration, 4) : 4
         const attach = () => {
           if (!video || scrubOff) return
           scrubTo = scrubEnd()
-          scrubOff = attachVideoScrub(video, {
-            trigger: section,
-            start: 'top bottom',
-            end: 'top top',
-            from: 0,
-            to: scrubTo,
-          })
+          const full = Number.isFinite(video.duration) && video.duration > 0 ? video.duration : scrubTo + 8
+          scrubOff =
+            phase === 'approach'
+              ? attachVideoScrub(video, { trigger: section, start: 'top bottom', end: 'top top', from: 0, to: scrubTo })
+              : attachVideoScrub(video, { trigger: section, start: 'top top', end: '+=150%', from: scrubTo, to: full })
+        }
+        const rescrub = (next: 'approach' | 'after') => {
+          phase = next
+          detach()
+          attach()
         }
         const detach = () => {
           scrubOff?.()
@@ -224,8 +220,16 @@ export default function MLProcess() {
           onLeaveBack: () => grow.pause(0),
         })
 
-        const drift = gsap.timeline({ repeat: -1, yoyo: true, defaults: { ease: 'sine.inOut' } })
+        // The backdrop's sway rides the scroll too — nothing here runs on a clock
+        const drift = gsap.timeline({ paused: true, defaults: { ease: 'sine.inOut' } })
         drift.to(wrap, { x: 6, y: -4, duration: 9 }).to(wrap, { x: -5, y: 3, duration: 11 })
+        ScrollTrigger.create({
+          trigger: section,
+          start: 'top bottom',
+          end: 'bottom top',
+          scrub: true,
+          onUpdate: (self) => drift.progress(self.progress),
+        })
 
         gsap.fromTo(
           glow,
@@ -256,7 +260,7 @@ export default function MLProcess() {
           gsap.set(wrap, { scale: 1 })
           applyGhosts(0)
           armed = true
-          attach()
+          rescrub('approach')
         }
 
         const mlLog = (ev: string) => {
@@ -276,10 +280,9 @@ export default function MLProcess() {
           mlLog('fire ' + (armed ? 'ARMED' : 'blocked'))
           if (!armed) return
           armed = false
-          // The scrub left the video paused and the IO won't re-fire without
-          // an intersection change, so the playhead is handed back here.
-          detach()
-          video?.play().catch(() => {})
+          // Past the burst the film still only moves with the scroll: the
+          // rest of the pin drives the rest of the clip.
+          rescrub('after')
           lastFireT = performance.now()
           tl?.kill() // never let two bursts interleave
 
@@ -401,15 +404,12 @@ export default function MLProcess() {
           onEnterBack: fire,
         })
 
-        // Backdrop video plays only near the viewport; scrolling fully away
-        // pauses the drift and re-arms the burst.
+        // Scrolling fully away re-arms the burst.
         const io = new IntersectionObserver(
           (entries) => {
             const onScreen = entries[0]?.isIntersecting ?? false
             if (onScreen) {
-              // The scrub owns the playhead while attached.
-              if (!scrubOff) video?.play().catch(() => {})
-              drift.play()
+              // The scrub owns the playhead; nothing to start.
             } else {
               // A stale leave-entry delivered right after a re-fire would kill
               // the fresh burst and hide the words forever. Two shields: a
@@ -418,8 +418,7 @@ export default function MLProcess() {
               // which is exactly when stale entries arrive).
               if (performance.now() - lastFireT < 3000) return
               if (!reallyOffScreen()) return
-              if (!scrubOff) video?.pause()
-              drift.pause()
+              video?.pause()
               if (!armed) reset()
             }
           },
@@ -454,13 +453,16 @@ export default function MLProcess() {
         // Mount: the fire trigger above may already have burst (page loaded
         // mid-chapter), so the scrub is armed only while it is still ours.
         if (armed) attach()
+        // iOS ignores preload until playback is requested once; the scrub
+        // pauses it again on its first seek
+        void video
+          ?.play()
+          .then(() => video.pause())
+          .catch(() => {})
         // preload="metadata": duration can land after attach; re-range the
         // scrub only if the 4 s cap actually moves.
         const onMeta = () => {
-          if (scrubOff && scrubEnd() !== scrubTo) {
-            detach()
-            attach()
-          }
+          if (scrubOff && scrubEnd() !== scrubTo) rescrub(phase)
         }
         video?.addEventListener('loadedmetadata', onMeta)
 
@@ -503,7 +505,6 @@ export default function MLProcess() {
               className="h-full w-full object-fill"
               src="/assets/blackhole.mp4"
               poster="/assets/blackhole_math.jpg"
-              autoPlay
               muted
               loop
               playsInline
