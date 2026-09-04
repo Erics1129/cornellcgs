@@ -85,7 +85,7 @@ const vec3 L_FILL = normalize(vec3(-0.6, 0.8, -0.35));
 const vec3 C_FILL = vec3(0.18, 0.26, 0.42);
 const float SCREEN_Z = -7.2;
 const vec2 SCREEN_C = vec2(-1.1, 1.0);   // camera-left, where its light comes from
-const vec2 SCREEN_H = vec2(3.2, 2.0);     // 16:10, far enough that all of it fits in the pupil
+const vec2 SCREEN_H = vec2(4.2, 2.6);     // 16:10, far enough that all of it fits in the pupil
 const float LID_R = 1.13;
 
 float sphere(vec3 ro, vec3 rd, vec3 c, float r) {

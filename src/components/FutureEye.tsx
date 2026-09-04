@@ -346,7 +346,7 @@ export default function FutureEye() {
     let doubleAfter = false
 
     // pupil
-    let pupil = 0.44
+    let pupil = 0.63
     let pupilKick = 0
 
     const onMove = (e: PointerEvent) => {
@@ -503,7 +503,7 @@ export default function FutureEye() {
       const lum = 0.2126 * tint[0] + 0.7152 * tint[1] + 0.0722 * tint[2]
       pupilKick = Math.max(0, pupilKick - dt * 2.2)
       const hippus = 0.012 * Math.sin(now * 0.0007) + 0.008 * Math.sin(now * 0.0019 + 1.3)
-      const want = Math.max(0.36, Math.min(0.5, 0.52 - 0.1 * lum + hippus - 0.03 * pupilKick))
+      const want = Math.max(0.56, Math.min(0.7, 0.7 - 0.08 * lum + hippus - 0.03 * pupilKick))
       pupil += (want - pupil) * (1 - Math.exp(-dt * 4))
     }
 
