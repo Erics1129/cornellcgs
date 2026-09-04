@@ -216,6 +216,10 @@ export default function GradientBG() {
     const ease = themeLerpEase
 
     const frame = (now: number) => {
+      if (document.documentElement.classList.contains('eye-on')) {
+        raf = requestAnimationFrame(frame)
+        return
+      }
       raf = 0
       if (last < 0) last = now
       if (animated) timeS += Math.min((now - last) / 1000, 0.1)

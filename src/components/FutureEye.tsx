@@ -106,23 +106,23 @@ class Screen {
             break
           }
         }
-        this.nextChar = now + 16
+        this.nextChar = now + 12
         this.dirty = true
       }
-    } else if (now >= this.nextChar) {
+    } else for (let burst = 0; burst < 4 && now >= this.nextChar; burst++) {
       const cur = lines[this.line] ?? ''
       if (this.typoLeft > 0) {
         // the slip: wrong characters go in, a pause, then they all come back out
         if (!this.typoDeleting) {
           this.typo += 'qwertasdfg'[Math.floor(Math.random() * 10)]
-          this.nextChar = now + 24 + Math.random() * 24
+          this.nextChar = now + 14 + Math.random() * 16
           if (this.typo.length >= this.typoLeft) {
             this.typoDeleting = true
-            this.nextChar = now + 180
+            this.nextChar = now + 140
           }
         } else {
           this.typo = this.typo.slice(0, -1)
-          this.nextChar = now + 34
+          this.nextChar = now + 22
           if (this.typo.length === 0) {
             this.typoLeft = 0
             this.typoDeleting = false
@@ -130,16 +130,17 @@ class Screen {
         }
       } else if (this.col < cur.length) {
         this.col++
-        this.nextChar = now + 12 + Math.random() * 24 + (cur[this.col - 1] === ' ' ? 14 : 0)
+        this.nextChar = this.nextChar + 7 + Math.random() * 12 + (cur[this.col - 1] === ' ' ? 8 : 0)
         if (Math.random() < 0.03 && this.col > 2) this.typoLeft = 1 + Math.floor(Math.random() * 3)
       } else if (this.line < lines.length - 1) {
         this.line++
         this.col = 0
-        this.nextChar = now + 70 + Math.random() * 110
+        this.nextChar = now + 50 + Math.random() * 80
       } else {
         this.hold = 1500
       }
       this.dirty = true
+      if (this.nextChar < now - 200) this.nextChar = now
     }
     if (now - this.cursorAt > 520) {
       this.cursorOn = !this.cursorOn
@@ -387,7 +388,7 @@ export default function FutureEye() {
       const dpr = Math.min(window.devicePixelRatio || 1, 1.5)
       // the march is per pixel: phones render smaller and upscale
       const coarse = window.matchMedia('(pointer: coarse)').matches
-      const cap = (coarse ? 900 : 1400) / Math.max(1, r.width)
+      const cap = (coarse ? 800 : 1200) / Math.max(1, r.width)
       const s = Math.min(dpr, cap) * quality
       w = Math.max(2, Math.round(r.width * s))
       h = Math.max(2, Math.round(r.height * s))
@@ -553,7 +554,7 @@ export default function FutureEye() {
       // a GPU that can't keep up gets a smaller buffer (Lenis and GSAP share this rAF)
       if (dtMs > 20 && dtMs < 200) slow++
       else slow = Math.max(0, slow - 1)
-      if (slow > 50 && quality > 0.5) {
+      if (slow > 18 && quality > 0.5) {
         quality *= 0.75
         slow = 0
         resize()
@@ -570,6 +571,8 @@ export default function FutureEye() {
     const io = new IntersectionObserver(
       (es) => {
         near = es[es.length - 1]?.isIntersecting ?? false
+        // the fixed layers underneath (code rain, gradient) are invisible behind the black chapter
+        document.documentElement.classList.toggle('eye-on', near)
         if (near) start()
       },
       { rootMargin: '15% 0px' },
@@ -674,6 +677,7 @@ export default function FutureEye() {
     return () => {
       if (raf) cancelAnimationFrame(raf)
       io.disconnect()
+      document.documentElement.classList.remove('eye-on')
       ro.disconnect()
       document.removeEventListener('visibilitychange', onVis)
       window.removeEventListener('pointermove', onMove)

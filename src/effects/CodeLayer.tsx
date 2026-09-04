@@ -490,6 +490,8 @@ export default function CodeLayer() {
 
     const frame = (now: number) => {
       raf = requestAnimationFrame(frame)
+      // behind the black eye chapter nothing of this shows: skip the work
+      if (document.documentElement.classList.contains('eye-on')) return
       const dt = Math.min(0.1, (now - last) / 1000)
       last = now
 

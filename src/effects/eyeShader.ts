@@ -288,6 +288,11 @@ void main() {
   mat3 G = gazeMat(u_gaze);
   mat3 Gi = transpose(G);
   vec3 axis = G * vec3(0.0, 0.0, -1.0);
+  // nothing but the eye is ever lit: pixels well outside it are black without a single march
+  {
+    vec2 e = (p - vec2(-0.05 + u_head.x * 0.55, 0.06 + u_head.y * 0.55)) / vec2(1.05, 0.62);
+    if (dot(e, e) > 1.0) { fragColor = vec4(0.0, 0.0, 0.0, 1.0); return; }
+  }
   vec3 ro = CAM + vec3(u_head, 0.0);
   vec3 cScreen = C_SCREEN * (0.8 + 0.6 * dot(u_screenTint, vec3(0.3, 0.59, 0.11)));
   vec3 rd = normalize(vec3(p, FOCAL));
