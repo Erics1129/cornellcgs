@@ -170,12 +170,20 @@ export const world = {
 
 export const people = {
   heading: 'The *hands* behind CGS.',
-  // TODO real people — every entry is a placeholder until the roster exists
-  members: Array.from({ length: 6 }, () => ({
-    name: 'To be added',
-    role: 'Role TBA',
-    bio: 'Bio to be added.',
-  })),
+  // TODO real people — the rest of the roster is a placeholder until it exists
+  members: [
+    {
+      name: 'Yongling Lu',
+      role: 'President · Statistics',
+      bio: 'VC, medical devices, management, financial modeling.',
+      photo: '/assets/team/yongling-lu.jpg',
+    },
+    ...Array.from({ length: 5 }, () => ({
+      name: 'To be added',
+      role: 'Role TBA',
+      bio: 'Bio to be added.',
+    })),
+  ] as Array<{ name: string; role: string; bio: string; photo?: string }>,
 }
 
 export const join = {
@@ -329,7 +337,7 @@ export const pages: Record<string, SubPageDef> = {
     title: 'Our Team',
     lead: 'Board and members of Cornell CGS.',
     sections: [
-      { heading: 'Board', alt: 'Leadership', body: 'Roster TBA.' },
+      { heading: 'Board', alt: 'Leadership', body: 'Yongling Lu, President \u2014 Statistics. VC, medical devices, management, financial modeling.' },
       { heading: 'Members', alt: 'The Table', body: 'Roster TBA.' },
       { heading: 'Advisors', alt: 'Our Mentors', body: 'TBA \u2014 see Advisors.' },
     ],

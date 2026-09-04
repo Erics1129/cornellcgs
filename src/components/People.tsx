@@ -249,12 +249,21 @@ export default function People() {
                       <span className="font-display text-base text-[var(--ink)] md:text-xl">8</span>
                       <span className="text-xs text-[var(--ink)] md:text-sm">♠</span>
                     </span>
-                    {/* TODO portrait photo */}
-                    <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[radial-gradient(circle_at_35%_30%,#1c2c52,#0b0b0f)] sm:h-14 sm:w-14 md:h-16 md:w-16">
-                      <span className="font-display text-sm text-[var(--ivory)] sm:text-base md:text-lg">
-                        {m.name === 'To be added' ? '♠' : initials(m.name)}
+                    {m.photo ? (
+                      <img
+                        src={m.photo}
+                        alt=""
+                        width={160}
+                        height={160}
+                        className="mx-auto h-16 w-16 rounded-full object-cover shadow-[0_6px_14px_-6px_rgba(0,0,0,0.6)] sm:h-20 sm:w-20 md:h-24 md:w-24"
+                      />
+                    ) : (
+                      <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[radial-gradient(circle_at_35%_30%,#1c2c52,#0b0b0f)] sm:h-14 sm:w-14 md:h-16 md:w-16">
+                        <span className="font-display text-sm text-[var(--ivory)] sm:text-base md:text-lg">
+                          {m.name === 'To be added' ? '♠' : initials(m.name)}
+                        </span>
                       </span>
-                    </span>
+                    )}
                     <span className="block text-center">
                       <span className="h-card block text-[0.95rem] leading-tight text-[var(--ink)] sm:text-[1rem] md:text-[1.1rem]">
                         {m.name}
