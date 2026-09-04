@@ -77,6 +77,7 @@ class Screen {
   /** a slip: wrong characters typed, then backspaced */
   typo = ''
   typoLeft = 0
+  typoDeleting = false
   /** wiping: the finished file is deleted from the end, fast, before the next begins */
   wiping = false
 
@@ -93,7 +94,7 @@ class Screen {
     } else if (this.wiping) {
       // backspace through the file, several characters a beat
       if (now >= this.nextChar) {
-        for (let k = 0; k < 6; k++) {
+        for (let k = 0; k < 10; k++) {
           if (this.col > 0) this.col--
           else if (this.line > 0) {
             this.line--
@@ -105,32 +106,38 @@ class Screen {
             break
           }
         }
-        this.nextChar = now + 24
+        this.nextChar = now + 16
         this.dirty = true
       }
     } else if (now >= this.nextChar) {
       const cur = lines[this.line] ?? ''
       if (this.typoLeft > 0) {
-        // the slip: type a wrong character, or take it back
-        if (this.typo.length < this.typoLeft) {
+        // the slip: wrong characters go in, a pause, then they all come back out
+        if (!this.typoDeleting) {
           this.typo += 'qwertasdfg'[Math.floor(Math.random() * 10)]
-          this.nextChar = now + 40 + Math.random() * 40
-          if (this.typo.length === this.typoLeft) this.nextChar = now + 260
+          this.nextChar = now + 24 + Math.random() * 24
+          if (this.typo.length >= this.typoLeft) {
+            this.typoDeleting = true
+            this.nextChar = now + 180
+          }
         } else {
           this.typo = this.typo.slice(0, -1)
-          this.nextChar = now + 55
-          if (this.typo.length === 0) this.typoLeft = 0
+          this.nextChar = now + 34
+          if (this.typo.length === 0) {
+            this.typoLeft = 0
+            this.typoDeleting = false
+          }
         }
       } else if (this.col < cur.length) {
         this.col++
-        this.nextChar = now + 26 + Math.random() * 44 + (cur[this.col - 1] === ' ' ? 30 : 0)
+        this.nextChar = now + 12 + Math.random() * 24 + (cur[this.col - 1] === ' ' ? 14 : 0)
         if (Math.random() < 0.03 && this.col > 2) this.typoLeft = 1 + Math.floor(Math.random() * 3)
       } else if (this.line < lines.length - 1) {
         this.line++
         this.col = 0
-        this.nextChar = now + 160 + Math.random() * 180
+        this.nextChar = now + 70 + Math.random() * 110
       } else {
-        this.hold = 2200
+        this.hold = 1500
       }
       this.dirty = true
     }
@@ -233,6 +240,18 @@ class Screen {
     this.dirty = false
   }
 
+  /** Run the typist ahead on a fake clock so the first sight is a screen already full of code. */
+  warm(ms: number) {
+    // a clock of its own: right after page load performance.now() is small, and
+    // "ms ago" would be negative time the typist has to sit out
+    const t = 1e6
+    this.nextChar = t
+    this.cursorAt = t
+    for (let k = 0; k < ms; k += 20) this.tick(t + k, 20)
+    this.nextChar = performance.now()
+    this.dirty = true
+  }
+
   /** Average colour of the screen — the light it throws on the face. */
   measureTint() {
     this.probeCtx.drawImage(this.canvas, 0, 0, 4, 4)
@@ -307,6 +326,7 @@ export default function FutureEye() {
 
     // ---------------------------------------------------------------- state
     const screen = new Screen()
+    screen.warm(9000)
     screen.paint()
     screen.measureTint()
     let w = 0
@@ -619,6 +639,7 @@ export default function FutureEye() {
           return { ms: performance.now() - a, w, h, blink, gaze: [gaze.x, gaze.y], pupil, tint: screen.tint, centre: Array.from(px), corner: Array.from(corner), lost: gl.isContextLost(), err: gl.getError() }
         },
         resize,
+        screen,
         // run the life on a fake clock (ms) and sample it — the tab may not animate
         sim: (ms: number, dtMs = 16, every = 100) => {
           const out: Array<{ t: number; blink: number; gaze: [number, number]; head: [number, number]; pupil: number; file: number; line: number; bs: number; nb: number; lbe: number; lash: number }> = []
