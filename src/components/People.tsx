@@ -70,6 +70,8 @@ export default function People() {
   const dealt = useRef(false)
   const pointerType = useRef('')
   const [flipped, setFlipped] = useState<Set<number>>(new Set())
+  /** a portrait that fails to load falls back to the initials badge */
+  const [noPhoto, setNoPhoto] = useState<Set<number>>(new Set())
 
   // The deal. Cards wait hidden (visibility too, so nothing in the wings is
   // hoverable or focusable) and fly in once the grid reaches 85% of the
@@ -191,7 +193,7 @@ export default function People() {
           className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6 lg:gap-4"
           data-interactive
         >
-          {people.members.map((m, i) => (
+          {people.leaders.map((m, i) => (
             <div
               key={i}
               className="life-float relative"
@@ -249,12 +251,13 @@ export default function People() {
                       <span className="font-display text-base text-[var(--ink)] md:text-xl">8</span>
                       <span className="text-xs text-[var(--ink)] md:text-sm">♠</span>
                     </span>
-                    {m.photo ? (
+                    {m.photo && !noPhoto.has(i) ? (
                       <img
                         src={m.photo}
                         alt=""
                         width={160}
                         height={160}
+                        onError={() => setNoPhoto((s) => new Set(s).add(i))}
                         className="mx-auto h-16 w-16 rounded-full object-cover shadow-[0_6px_14px_-6px_rgba(0,0,0,0.6)] sm:h-20 sm:w-20 md:h-24 md:w-24"
                       />
                     ) : (

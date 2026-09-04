@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 import type { CSSProperties } from 'react'
-import { advisors, pages, site } from '../content'
+import { advisors, pages, site, team } from '../content'
 import { PAGE_THEME } from '../lib/pageTheme'
 import type { PageTheme } from '../lib/pageTheme'
 import { theme as technical } from './themes/Technical'
@@ -196,6 +196,36 @@ export default function SubPage({ id }: { id: string }) {
               </div>
             ))}
           </div>
+        </div>
+      )}
+
+      {/* Our Team — name and major only, so the whole club fits without scrolling */}
+      {id === 'people' && (
+        <div className="container-site border-t border-[#e3e9f4] py-16 md:py-20">
+          {team.map((group, gi) => (
+            <div key={group.label} className={gi ? 'mt-12' : ''}>
+              <div data-page-item className="mb-6">
+                <LiveHeading
+                  design={words.h}
+                  text={group.label}
+                  alt={group.alt}
+                  className="neon neon-word font-display text-[clamp(1.4rem,2vw,1.9rem)] font-[640]"
+                />
+              </div>
+              <ul className="grid grid-cols-2 gap-x-8 gap-y-6 sm:grid-cols-3 lg:grid-cols-4">
+                {group.people.map((person, i) => (
+                  <li key={person.name + i} data-page-item>
+                    <div className="life-float" style={life(i + gi, 8)}>
+                      <p className="font-display text-[max(1.05rem,1.1rem)] font-[640] leading-tight">{person.name}</p>
+                      <p className="mono mt-1 text-[max(0.75rem,0.75rem)] uppercase tracking-[0.12em] text-[#46587a]">
+                        {person.major}
+                      </p>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
         </div>
       )}
 

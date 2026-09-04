@@ -170,21 +170,33 @@ export const world = {
 
 export const people = {
   heading: 'The *hands* behind CGS.',
-  // TODO real people — the rest of the roster is a placeholder until it exists
-  members: [
+  /** A card is a leadership seat — the rest of the club lives on the Our Team page. */
+  leaders: [
     {
-      name: 'Yongling Lu',
-      role: 'President · Statistics',
+      name: 'Elsie Lu',
+      role: 'President \u00b7 Statistics',
       bio: 'VC, medical devices, management, financial modeling.',
-      photo: '/assets/team/yongling-lu.jpg',
+      photo: '/assets/team/elsie-lu.jpg',
     },
+    // TODO(club): the rest of the board
     ...Array.from({ length: 5 }, () => ({
       name: 'To be added',
-      role: 'Role TBA',
+      role: 'Seat TBA',
       bio: 'Bio to be added.',
     })),
   ] as Array<{ name: string; role: string; bio: string; photo?: string }>,
 }
+
+/** The Our Team page — name and major only, so the whole club fits on one screen. */
+export const team: Array<{ label: string; alt: string; people: Array<{ name: string; major: string }> }> = [
+  {
+    label: 'Board',
+    alt: 'Leadership',
+    people: [{ name: 'Elsie Lu', major: 'Statistics' }],
+  },
+  // TODO(club): the roster
+  { label: 'Members', alt: 'The Table', people: [{ name: 'To be added', major: 'Major TBA' }] },
+]
 
 export const join = {
   heading: 'Pull up a *chair*.',
@@ -337,8 +349,6 @@ export const pages: Record<string, SubPageDef> = {
     title: 'Our Team',
     lead: 'Board and members of Cornell CGS.',
     sections: [
-      { heading: 'Board', alt: 'Leadership', body: 'Yongling Lu, President \u2014 Statistics. VC, medical devices, management, financial modeling.' },
-      { heading: 'Members', alt: 'The Table', body: 'Roster TBA.' },
       { heading: 'Advisors', alt: 'Our Mentors', body: 'TBA \u2014 see Advisors.' },
     ],
   },
