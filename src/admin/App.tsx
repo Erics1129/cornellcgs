@@ -7,11 +7,11 @@
  * "Publish" stores it through the API and the site applies it on its next
  * load. Nothing here can change code or design.
  */
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import { api, ApiError } from './api'
 import { Field, type Path } from './fields'
-import { EDITABLE, TITLES, applyOverrides, snapshot, type EditableKey } from '../lib/liveContent'
+import { DRAFT_URL, EDITABLE, TITLES, answerDraftRequests, applyOverrides, snapshot, type EditableKey } from '../lib/liveContent'
 
 type Doc = Record<EditableKey, unknown>
 
@@ -96,6 +96,12 @@ export default function AdminApp() {
   const update = useCallback((path: Path, value: unknown) => {
     setDoc((d) => (d ? (setIn(d, path, value) as Doc) : d))
   }, [])
+
+  // Preview: the real site, in a frame over the editor, showing the draft as
+  // it stands the moment the frame loads — nothing is published by looking.
+  const docRef = useRef<Doc | null>(null)
+  docRef.current = doc
+  const [previewing, setPreviewing] = useState(false)
 
   const publish = async () => {
     if (!doc) return
@@ -182,11 +188,14 @@ export default function AdminApp() {
           <button type="button" className="a-btn" onClick={discard} disabled={!dirty || busy}>
             Discard
           </button>
+          <button type="button" className="a-btn" onClick={() => setPreviewing(true)} disabled={!doc} title="See the site with your unpublished edits">
+            Preview
+          </button>
           <button type="button" className="a-btn a-btn-primary" onClick={publish} disabled={!dirty || busy}>
             {busy ? 'Publishing…' : 'Publish'}
           </button>
-          <a className="a-btn" href="/" target="_blank" rel="noreferrer">
-            Open site ↗
+          <a className="a-btn" href="/" target="_blank" rel="noreferrer" title="The live site as everyone sees it">
+            Live site ↗
           </a>
           <button type="button" className="a-btn" onClick={signOut}>
             Sign out
@@ -226,6 +235,16 @@ export default function AdminApp() {
         </nav>
 
         <main className="min-w-0">
+          <ol className="mb-5 flex flex-wrap gap-x-5 gap-y-1 text-sm text-[#3e5680]" aria-label="How it works">
+            {['Pick a section on the left', 'Change the words or drop a photo', 'Preview to see it on the site', 'Publish when it looks right'].map(
+              (step, i) => (
+                <li key={step} className="flex items-center gap-2">
+                  <span className="grid h-5 w-5 place-items-center rounded-full bg-[#0a1e3f] text-[11px] font-bold text-white">{i + 1}</span>
+                  {step}
+                </li>
+              ),
+            )}
+          </ol>
           {doc ? (
             <section key={active} className="a-fade-in">
               <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
@@ -243,6 +262,74 @@ export default function AdminApp() {
             <p className="text-sm text-[#3e5680]">Loading the published content…</p>
           )}
         </main>
+      </div>
+
+      {previewing && (
+        <Preview
+          getDoc={() => docRef.current}
+          dirty={dirty}
+          busy={busy}
+          onPublish={publish}
+          onClose={() => setPreviewing(false)}
+        />
+      )}
+    </div>
+  )
+}
+
+/* ----------------------------------------------------------------- preview */
+
+function Preview({
+  getDoc,
+  dirty,
+  busy,
+  onPublish,
+  onClose,
+}: {
+  getDoc: () => unknown
+  dirty: boolean
+  busy: boolean
+  onPublish: () => void
+  onClose: () => void
+}) {
+  const [loaded, setLoaded] = useState(false)
+
+  useEffect(() => answerDraftRequests(getDoc), [getDoc])
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose()
+    }
+    window.addEventListener('keydown', onKey)
+    const prev = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      window.removeEventListener('keydown', onKey)
+      document.body.style.overflow = prev
+    }
+  }, [onClose])
+
+  return (
+    <div role="dialog" aria-label="Preview of the site with your edits" className="a-fade-in fixed inset-0 z-50 flex flex-col bg-[#0a1e3f]">
+      <div className="flex flex-wrap items-center gap-3 px-4 py-2.5 text-sm text-white">
+        <span className="font-bold">Preview</span>
+        <span className="opacity-80">This is the site with your edits. {dirty ? 'Nothing is published yet.' : 'Everything shown is published.'}</span>
+        <div className="ml-auto flex items-center gap-2">
+          {dirty && (
+            <button type="button" className="a-btn" onClick={onPublish} disabled={busy}>
+              {busy ? 'Publishing…' : 'Publish'}
+            </button>
+          )}
+          <button type="button" className="a-btn !border-white/50 !bg-transparent !text-white hover:!bg-white/10" onClick={onClose}>
+            Back to editing
+          </button>
+        </div>
+      </div>
+      <div className="relative min-h-0 flex-1 bg-black">
+        {!loaded && (
+          <div className="absolute inset-0 grid place-items-center text-sm text-white/70">Loading the site…</div>
+        )}
+        <iframe title="The site with your edits" src={DRAFT_URL} className="h-full w-full border-0" onLoad={() => setLoaded(true)} />
       </div>
     </div>
   )
@@ -295,7 +382,7 @@ function Gate({ apiNote, note, onOpen }: { apiNote: string | null; note: Note | 
             {error ?? note?.text}
           </p>
         )}
-        {apiNote && <p className="mt-3 text-sm text-[#3e5680]">{apiNote}</p>}
+        {apiNote && apiNote !== error && <p className="mt-3 text-sm text-[#3e5680]">{apiNote}</p>}
         <button type="submit" className="a-btn a-btn-primary mt-5 w-full justify-center" disabled={busy || !code}>
           {busy ? 'Checking…' : 'Enter'}
         </button>

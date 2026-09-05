@@ -18,7 +18,7 @@ import { BOOTED_EVENT } from './lib/motion'
 import { scrollToId } from './lib/scroll'
 import { installNeonClick } from './lib/neonClick'
 import { installDevice } from './lib/device'
-import { loadLiveContent } from './lib/liveContent'
+import { isDraftPreview, loadDraft, loadLiveContent, markDraftPreview } from './lib/liveContent'
 import './styles/global.css'
 
 // Device class + design scale first: everything below measures in rem.
@@ -37,12 +37,17 @@ const standalone = page !== null && !!pages[page]
 
 // The words and portraits the board publishes from /admin/ are written into
 // the content module before the first render; with no API (or a slow one)
-// the compiled copy renders as is. The loader curtain covers the wait.
-loadLiveContent().finally(() => {
-  ReactDOM.createRoot(document.getElementById('root')!).render(
-    <React.StrictMode>{standalone ? <SubPage id={page} /> : <App />}</React.StrictMode>,
-  )
-})
+// the compiled copy renders as is. The loader curtain covers the wait. A
+// draft preview (opened from the admin) layers the unpublished edits on top.
+const draft = isDraftPreview()
+loadLiveContent()
+  .then(() => (draft ? loadDraft() : []))
+  .finally(() => {
+    ReactDOM.createRoot(document.getElementById('root')!).render(
+      <React.StrictMode>{standalone ? <SubPage id={page} /> : <App />}</React.StrictMode>,
+    )
+    if (draft) markDraftPreview()
+  })
 
 // Deck loads addressed to a chapter (/#events, a sub-page's Back link) glide
 // there once the curtain lifts and the pins have measured — unless the reader

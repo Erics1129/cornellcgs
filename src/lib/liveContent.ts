@@ -122,6 +122,83 @@ export function applyOverrides(doc: unknown): EditableKey[] {
 /** Where the API lives — same origin in production, the same path in dev (proxied). */
 export const API = '/api'
 
+/* ---------------------------------------------------------------- drafts */
+
+/** The site opened by the admin's "Preview" button: `/?draft=1` in a named window. */
+export function isDraftPreview(): boolean {
+  return new URLSearchParams(location.search).has('draft')
+}
+
+const DRAFT_READY = 'cgs-draft-ready'
+const DRAFT_DOC = 'cgs-draft'
+
+/**
+ * In a draft preview the page asks the window that opened it (the admin, same
+ * origin) for the unpublished document and applies it on top of what is
+ * published — so an edit can be seen on the real page before anyone presses
+ * Publish. Only same-origin messages are accepted; with no answer the page
+ * simply renders what is live.
+ */
+export function loadDraft(timeoutMs = 4000): Promise<EditableKey[]> {
+  return new Promise((resolve) => {
+    // opened in a tab by the admin, or embedded by it in a frame
+    const opener = (window.opener as Window | null) ?? (window.parent !== window ? window.parent : null)
+    if (!opener) return resolve([])
+    let done = false
+    const finish = (keys: EditableKey[]) => {
+      if (done) return
+      done = true
+      window.removeEventListener('message', onMessage)
+      window.clearTimeout(timer)
+      resolve(keys)
+    }
+    const onMessage = (e: MessageEvent) => {
+      if (e.origin !== location.origin) return
+      const data = e.data as { type?: string; doc?: unknown } | null
+      if (!data || data.type !== DRAFT_DOC) return
+      finish(applyOverrides(data.doc))
+    }
+    const timer = window.setTimeout(() => finish([]), timeoutMs)
+    window.addEventListener('message', onMessage)
+    try {
+      opener.postMessage({ type: DRAFT_READY }, location.origin)
+    } catch {
+      finish([])
+    }
+  })
+}
+
+/** The url a preview frame or tab loads. */
+export const DRAFT_URL = '/?draft=1'
+
+/**
+ * The admin's side: answers every same-origin preview (a frame it embeds or a
+ * tab it opened) that asks for the draft, with the draft as it stands at that
+ * moment. Returns a function that removes the listener.
+ */
+export function answerDraftRequests(getDoc: () => unknown): () => void {
+  const onMessage = (e: MessageEvent) => {
+    if (e.origin !== location.origin) return
+    const data = e.data as { type?: string } | null
+    if (!data || data.type !== DRAFT_READY) return
+    ;(e.source as Window | null)?.postMessage({ type: DRAFT_DOC, doc: getDoc() }, location.origin)
+  }
+  window.addEventListener('message', onMessage)
+  return () => window.removeEventListener('message', onMessage)
+}
+
+/** A small fixed pill so a draft preview is never mistaken for the live site. */
+export function markDraftPreview(): void {
+  const pill = document.createElement('div')
+  pill.textContent = 'Draft preview · not published'
+  pill.setAttribute('role', 'status')
+  pill.style.cssText =
+    'position:fixed;left:50%;bottom:1rem;transform:translateX(-50%);z-index:2147483647;' +
+    'padding:.5rem .9rem;border-radius:999px;background:#b86e00;color:#fff;' +
+    'font:600 .8rem/1 system-ui,sans-serif;letter-spacing:.02em;box-shadow:0 8px 24px -8px rgba(0,0,0,.6);pointer-events:none'
+  document.body.appendChild(pill)
+}
+
 /**
  * Fetches the published document and applies it. Resolves once the content
  * exports are final, whatever happened; never throws, never waits longer

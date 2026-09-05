@@ -1,5 +1,8 @@
 /** The admin page's view of the content API (worker/src/index.js). */
 
+export const NOT_DEPLOYED =
+  'The editor is not connected yet: its API has not been deployed on this domain. Nothing can be saved until it is.'
+
 export class ApiError extends Error {
   status: number
   constructor(status: number, message: string) {
@@ -19,10 +22,12 @@ async function call<T>(path: string, init: RequestInit = {}): Promise<T> {
   const body: unknown = type.includes('json') ? await res.json().catch(() => ({})) : {}
   if (!res.ok) {
     const msg = (body as { error?: string }).error
-    if (res.status === 404 && !msg) {
-      throw new ApiError(404, 'The admin API is not deployed on this domain yet.')
+    // A static host answers where the API should be (404 for GET, 405 for
+    // POST): the Worker is not deployed on this domain.
+    if (!msg && (res.status === 404 || res.status === 405)) {
+      throw new ApiError(res.status, NOT_DEPLOYED)
     }
-    throw new ApiError(res.status, msg ?? `HTTP ${res.status}`)
+    throw new ApiError(res.status, msg ?? `The API answered with HTTP ${res.status}.`)
   }
   return body as T
 }
