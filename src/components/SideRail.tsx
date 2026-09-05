@@ -48,7 +48,7 @@ export default function SideRail() {
     <aside
       data-interactive
       aria-label="Chapters"
-      className="fixed left-7 top-1/2 z-40 hidden -translate-y-1/2 items-stretch gap-4 lg:flex"
+      className="fixed left-5 top-1/2 z-40 hidden -translate-y-1/2 items-stretch gap-3 lg:flex"
     >
       {/* Progress line */}
       <div aria-hidden="true" className="relative w-px bg-[color-mix(in_srgb,var(--neon-dim)_80%,transparent)]">
@@ -81,18 +81,20 @@ export default function SideRail() {
                   {rank}
                 </span>
               </span>
-              {/* Label lives in a fixed clip box outside flow — the rail's
-                  hit area and width never change, and the reveal is
+              {/* Label is a spine — vertical, reading upward — in a fixed
+                  clip box outside flow, so it stays inside the page gutter
+                  (see .container-site) instead of running over the copy;
+                  the rail's hit area never changes and the reveal is
                   transform/opacity only. */}
               <span
                 aria-hidden="true"
-                className="pointer-events-none absolute left-9 top-1/2 w-40 -translate-y-1/2 overflow-hidden"
+                className="pointer-events-none absolute left-7 top-1/2 flex h-40 w-4 -translate-y-1/2 items-center justify-center overflow-hidden"
               >
                 <span
-                  className={`mono block whitespace-nowrap text-[max(0.78rem,0.75rem)] transition-[transform,opacity,color] duration-[350ms] [transition-timing-function:var(--ease-out)] ${
+                  className={`mono block rotate-180 whitespace-nowrap text-[max(0.78rem,0.75rem)] [writing-mode:vertical-rl] transition-[transform,opacity,color] duration-[350ms] [transition-timing-function:var(--ease-out)] ${
                     isActive
-                      ? 'translate-x-0 text-[var(--text)] opacity-100'
-                      : '-translate-x-2 opacity-0 group-hover:translate-x-0 group-hover:text-[var(--muted)] group-hover:opacity-100'
+                      ? 'translate-y-0 text-[var(--text)] opacity-100'
+                      : 'translate-y-2 opacity-0 group-hover:translate-y-0 group-hover:text-[var(--muted)] group-hover:opacity-100'
                   }`}
                 >
                   {label}

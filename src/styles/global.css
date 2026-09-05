@@ -233,8 +233,21 @@ em,
 }
 
 .container-site {
-  width: min(100% - 3rem, 80rem);
+  --site-gutter: 1.5rem;
+  width: min(100% - 2 * var(--site-gutter), 80rem);
   margin-inline: auto;
+}
+
+/* The chapter rail (SideRail, lg:flex) lives in the left gutter: marks end
+   at ~3.6rem and its spine label at ~4.9rem from the edge, so the gutter has
+   to hold them at every design scale — at a laptop zoom the 80rem cap is
+   wider than the viewport and the 1.5rem gutter alone would sit under the
+   rail. Media queries resolve rem against the browser default, matching
+   Tailwind's `lg` (64rem) exactly. */
+@media (width >= 64rem) {
+  .container-site {
+    --site-gutter: 5.25rem;
+  }
 }
 
 /* ---------------------------------------------------------------------------
@@ -409,6 +422,13 @@ em,
   box-shadow: 0 18px 50px -12px rgba(0, 0, 0, 0.6);
   position: relative;
   color: var(--silver);
+}
+
+/* Same trap as .neon.absolute: this unlayered rule outranks Tailwind's
+   layered position utilities, so a flip-card back marked `absolute` stayed
+   in flow (the People cards could not turn). */
+.card-back-surface.absolute {
+  position: absolute;
 }
 
 .card-back-surface::before {

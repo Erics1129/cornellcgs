@@ -1,0 +1,24 @@
+# The content API behind cornellcgs.org/admin/ — a Cloudflare Worker + KV.
+#
+#   npm run api            local API for development (wrangler dev, local KV)
+#   npm run api:deploy     deploy to the cornellcgs.org zone (needs `wrangler login`)
+#
+# Secrets (set once per environment, never committed):
+#   wrangler secret put ADMIN_CODE       the passcode the admin page asks for
+#   wrangler secret put SESSION_SECRET   any long random string (signs sessions)
+# Local dev reads them from worker/.dev.vars instead.
+
+name = "cgs-content-api"
+main = "src/index.js"
+compatibility_date = "2026-08-01"
+
+# Only /api/* is routed through the Worker; every other path stays on GitHub Pages.
+routes = [{ pattern = "cornellcgs.org/api/*", zone_name = "cornellcgs.org" }]
+
+# Create with: wrangler kv namespace create CGS   → paste the id here
+[[kv_namespaces]]
+binding = "CGS"
+id = "REPLACE_WITH_KV_NAMESPACE_ID"
+
+[observability]
+enabled = true

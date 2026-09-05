@@ -94,17 +94,19 @@ export default function People() {
         }
         return
       }
-      const lo = ready.map(() => 6)
-      const hi = ready.map(() => 15)
+      // Bounds in rem (6–15px at the 16px reference) so the search scales
+      // with the design scale on every device class
+      const lo = ready.map(() => 0.375)
+      const hi = ready.map(() => 0.9375)
       for (let k = 0; k < 8; k++) {
-        ready.forEach((el, i) => (el.style.fontSize = `${(lo[i] + hi[i]) / 2}px`))
+        ready.forEach((el, i) => (el.style.fontSize = `${(lo[i] + hi[i]) / 2}rem`))
         ready.forEach((el, i) => {
           const mid = (lo[i] + hi[i]) / 2
           if (el.scrollHeight <= el.clientHeight) lo[i] = mid
           else hi[i] = mid
         })
       }
-      ready.forEach((el, i) => (el.style.fontSize = `${lo[i].toFixed(2)}px`))
+      ready.forEach((el, i) => (el.style.fontSize = `${lo[i].toFixed(4)}rem`))
     }
     fitAll()
     // Safe to observe the grid: the cards are aspect-ratio locked and both
@@ -267,7 +269,8 @@ export default function People() {
                   part(i).card = el
                 }}
                 type="button"
-                aria-label={`${m.name}, ${m.role} — press to flip for bio`}
+                aria-label={`${m.name}, ${m.role} — show details`}
+                aria-describedby={`card-back-${i}`}
                 aria-pressed={flipped.has(i)}
                 className="relative block aspect-[5/7] w-full cursor-pointer [perspective:68.75rem]"
                 onPointerEnter={(e) => {
@@ -322,10 +325,10 @@ export default function People() {
                       </span>
                     )}
                     <span className="block text-center">
-                      <span className="h-card block text-[0.95rem] leading-tight text-[var(--ink)] sm:text-[1rem] md:text-[1.1rem]">
+                      <span className="h-card block text-[0.95rem]! leading-tight text-[var(--ink)] sm:text-[1rem]! md:text-[1.1rem]!">
                         {m.name}
                       </span>
-                      <span className="mono mt-0.5 block text-[0.6875rem] text-[color-mix(in_srgb,var(--ink)_65%,#7a6a4a)] sm:text-[0.75rem] md:text-[0.75rem]">
+                      <span className="mono mt-0.5 block text-[0.6875rem]! text-[color-mix(in_srgb,var(--ink)_65%,#7a6a4a)] sm:text-[0.75rem]! md:text-[0.75rem]!">
                         {m.role}
                       </span>
                     </span>
@@ -341,19 +344,20 @@ export default function People() {
                       ♠
                     </span>
                     <span
+                      id={`card-back-${i}`}
                       ref={(el) => {
                         backText.current[i] = el
                       }}
                       className="mt-1.5 block min-h-0 flex-1 overflow-hidden leading-[1.35] text-[var(--silver)]"
                     >
-                      <span className="h-card block text-[1.25em] leading-tight text-[var(--ivory)]">{m.name}</span>
-                      <span className="mono mt-[0.15em] block text-[0.85em] uppercase tracking-[0.1em] text-[color-mix(in_srgb,var(--silver)_70%,transparent)]">
+                      <span className="h-card block text-[1.25em]! leading-tight text-[var(--ivory)]">{m.name}</span>
+                      <span className="mono mt-[0.15em] block text-[0.85em]! uppercase tracking-[0.1em] text-[color-mix(in_srgb,var(--silver)_70%,transparent)]">
                         {m.role}
                       </span>
                       {m.major && <span className="mt-[0.15em] block text-[0.95em]">{m.major}</span>}
                       {m.experience?.length ? (
                         <span className="mt-[0.7em] block">
-                          <span className="mono block text-[0.8em] uppercase tracking-[0.14em] text-[var(--gold)]">
+                          <span className="mono block text-[0.8em]! uppercase tracking-[0.14em] text-[var(--gold)]">
                             Experience
                           </span>
                           {m.experience.map((x) => (
@@ -365,7 +369,7 @@ export default function People() {
                       ) : null}
                       {m.skills?.length ? (
                         <span className="mt-[0.7em] block">
-                          <span className="mono block text-[0.8em] uppercase tracking-[0.14em] text-[var(--gold)]">
+                          <span className="mono block text-[0.8em]! uppercase tracking-[0.14em] text-[var(--gold)]">
                             Skills
                           </span>
                           <span className="mt-[0.2em] block">{m.skills.join(' · ')}</span>
