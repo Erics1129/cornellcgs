@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en" data-theme="blue">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Cornell Computational Game Society — Cornell CGS</title>
+    <meta name="description" content="The Cornell Computational Game Society (Cornell CGS). We study games with code — solvers, agents, and the math behind every hand." />
+    <meta property="og:title" content="Cornell Computational Game Society — Cornell CGS" />
+    <meta property="og:description" content="Games, solved with computers. A Cornell student organization for game theory, solvers and learning agents." />
+    <meta property="og:url" content="https://cornellcgs.org/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Cornell Computational Game Society" />
+    <link rel="canonical" href="https://cornellcgs.org/" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "Organization",
+            "@id": "https://cornellcgs.org/#org",
+            "name": "Cornell Computational Game Society",
+            "alternateName": ["Cornell CGS", "CGS", "CGS Cornell", "cornellcgs", "cgscornell", "cornellcgs.org"],
+            "url": "https://cornellcgs.org/",
+            "description": "A Cornell student organization studying games with code — game theory, solvers and learning agents."
+          },
+          {
+            "@type": "WebSite",
+            "@id": "https://cornellcgs.org/#site",
+            "name": "Cornell Computational Game Society",
+            "alternateName": ["Cornell CGS", "cornellcgs"],
+            "url": "https://cornellcgs.org/",
+            "publisher": { "@id": "https://cornellcgs.org/#org" }
+          }
+        ]
+      }
+    </script>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='18' fill='%230B0B0F'/%3E%3Ctext x='50' y='72' font-size='62' text-anchor='middle' fill='%23EFE6D2'%3E%E2%99%A0%3C/text%3E%3C/svg%3E" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:ital,wght@0,400..800;1,400..700&family=STIX+Two+Text:ital,wght@0,400..700;1,400..700&family=JetBrains+Mono:wght@500;600;700&family=Bricolage+Grotesque:opsz,wght@12..96,800&family=Instrument+Serif:ital@1&display=swap"
+      rel="stylesheet"
+    />
+    <script>
+      // dev forensics: keep every early error's full stack (the console truncates them)
+      if (location.hostname === 'localhost') {
+        window.__bootErrors = []
+        window.addEventListener('error', function (e) { window.__bootErrors.push(String((e.error && e.error.stack) || e.message)) })
+      }
+    </script>
+    <script>
+      // If this HTML was cached across a deploy, its bundle URL may be dead
+      // and the app would never boot. Recover with ONE cache-busting reload.
+      ;(function () {
+        try {
+          var u = new URL(location.href)
+          window.__cgsBootTimer = setTimeout(function () {
+            if (window.__cgsBooted || u.searchParams.has('rl')) return
+            u.searchParams.set('rl', String(Date.now()))
+            location.replace(u.toString())
+          }, 4000)
+        } catch (e) {
+          /* very old browser — nothing to do */
+        }
+      })()
+    </script>
+    <script>
+      // The published words (edited at /admin/) — asked for now so the
+      // round trip overlaps the bundle download; lib/liveContent awaits it.
+      try {
+        window.__cgsContent = fetch('/api/content', { cache: 'no-store' }).catch(function () { return null })
+      } catch (e) {
+        /* very old browser — the bundle fetches on its own */
+      }
+    </script>
+    <style>
+      /* Paint the world color before any JS or CSS loads — no white flash. */
+      html { background: #04081c; }
+      html[data-theme='sky'] { background: #dfeeff; }
+      html[data-theme='lilac'] { background: #efe6ff; }
+      html[data-theme='violet'] { background: #0e0620; }
+      html[data-theme='black'] { background: #000000; }
+    </style>
+    <script type="module" crossorigin src="/assets/main-y7FCOMeX.js"></script>
+    <link rel="modulepreload" crossorigin href="/assets/global-Dfinqzym.js">
+    <link rel="stylesheet" crossorigin href="/assets/global-Yod4Ol8R.css">
+  </head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>
