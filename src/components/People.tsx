@@ -72,6 +72,32 @@ export default function People() {
   const [flipped, setFlipped] = useState<Set<number>>(new Set())
   /** a portrait that fails to load falls back to the initials badge */
   const [noPhoto, setNoPhoto] = useState<Set<number>>(new Set())
+  /** the back's copy, per card — its type size is measured down until it fits */
+  const backText = useRef<(HTMLElement | null)[]>([])
+
+  // A card back holds as much as the member wrote, so the type size is found
+  // by measurement, not guessed: shrink until nothing overflows the face.
+  useLayoutEffect(() => {
+    const fitOne = (el: HTMLElement | null) => {
+      if (!el || el.clientHeight < 8) return
+      let lo = 6
+      let hi = 15
+      for (let k = 0; k < 8; k++) {
+        const mid = (lo + hi) / 2
+        el.style.fontSize = `${mid}px`
+        if (el.scrollHeight <= el.clientHeight) lo = mid
+        else hi = mid
+      }
+      el.style.fontSize = `${lo.toFixed(2)}px`
+    }
+    const fitAll = () => backText.current.forEach(fitOne)
+    fitAll()
+    const ro = new ResizeObserver(fitAll)
+    if (grid.current) ro.observe(grid.current)
+    // web fonts land after the first measure and change every metric
+    document.fonts?.ready.then(fitAll).catch(() => {})
+    return () => ro.disconnect()
+  }, [])
 
   // The deal. Cards wait hidden (visibility too, so nothing in the wings is
   // hoverable or focusable) and fly in once the grid reaches 85% of the
@@ -190,7 +216,7 @@ export default function People() {
         <div
           ref={grid}
           data-depth="16"
-          className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6 lg:gap-4"
+          className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 lg:gap-5"
           data-interactive
         >
           {people.leaders.map((m, i) => (
@@ -276,18 +302,50 @@ export default function People() {
                       </span>
                     </span>
                   </span>
-                  {/* Back — bio side */}
+                  {/* Back — what they bring; the type size is measured to fit */}
                   <span
                     ref={(el) => {
                       part(i).back = el
                     }}
-                    className="card-back-surface absolute inset-0 flex [transform:rotateY(180deg)] flex-col items-center justify-center gap-2 overflow-hidden p-3 text-center [backface-visibility:hidden] md:gap-3 md:p-6"
+                    className="card-back-surface absolute inset-0 flex [transform:rotateY(180deg)] flex-col overflow-hidden p-3 [backface-visibility:hidden] md:p-4"
                   >
-                    <span aria-hidden="true" className="text-xl text-[var(--silver)] md:text-2xl">
+                    <span aria-hidden="true" className="block text-center text-base text-[var(--silver)] md:text-lg">
                       ♠
                     </span>
-                    <span className="text-[0.75rem] leading-snug text-[var(--silver)] sm:text-[0.8125rem]">
-                      {m.bio}
+                    <span
+                      ref={(el) => {
+                        backText.current[i] = el
+                      }}
+                      className="mt-1.5 block min-h-0 flex-1 overflow-hidden leading-[1.35] text-[var(--silver)]"
+                    >
+                      <span className="h-card block text-[1.25em] leading-tight text-[var(--ivory)]">{m.name}</span>
+                      <span className="mono mt-[0.15em] block text-[0.85em] uppercase tracking-[0.1em] text-[color-mix(in_srgb,var(--silver)_70%,transparent)]">
+                        {m.role}
+                      </span>
+                      {m.major && <span className="mt-[0.15em] block text-[0.95em]">{m.major}</span>}
+                      {m.experience?.length ? (
+                        <span className="mt-[0.7em] block">
+                          <span className="mono block text-[0.8em] uppercase tracking-[0.14em] text-[var(--gold)]">
+                            Experience
+                          </span>
+                          {m.experience.map((x) => (
+                            <span key={x} className="mt-[0.2em] block">
+                              {x}
+                            </span>
+                          ))}
+                        </span>
+                      ) : null}
+                      {m.skills?.length ? (
+                        <span className="mt-[0.7em] block">
+                          <span className="mono block text-[0.8em] uppercase tracking-[0.14em] text-[var(--gold)]">
+                            Skills
+                          </span>
+                          <span className="mt-[0.2em] block">{m.skills.join(' · ')}</span>
+                        </span>
+                      ) : null}
+                      {!m.major && !m.experience?.length && !m.skills?.length && (
+                        <span className="mt-[0.7em] block">Bio to be added.</span>
+                      )}
                     </span>
                   </span>
                   {/* Edge shade — coplanar with the faces (both sides), so the face

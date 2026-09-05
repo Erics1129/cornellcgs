@@ -170,21 +170,38 @@ export const world = {
 
 export const people = {
   heading: 'The *hands* behind CGS.',
-  /** A card is a leadership seat — the rest of the club lives on the Our Team page. */
+  /** A card is a board seat — the rest of the club lives on the Our Team page. */
   leaders: [
     {
       name: 'Elsie Lu',
-      role: 'President \u00b7 Statistics',
-      bio: 'VC, medical devices, management, financial modeling.',
+      role: 'President',
+      major: 'Statistics',
       photo: '/assets/team/elsie-lu.jpg',
+      skills: ['VC', 'Medical devices', 'Management', 'Financial modeling'],
+    },
+    {
+      name: 'Evan Jiang',
+      role: 'Recruitment Chair',
+      major: 'Biometry & Statistics + Information Science',
+      photo: '/assets/team/evan-jiang.jpg',
+      experience: [
+        'Faircaribe LLC \u2014 financial and data analysis',
+        'Handshake AI \u2014 intern',
+        'Noon AI \u2014 operations intern',
+        'Personal website development',
+      ],
+      skills: ['Statistical modeling', 'Mathematical modeling', 'Python', 'AI reasoning & research'],
     },
     // TODO(club): the rest of the board
-    ...Array.from({ length: 5 }, () => ({
-      name: 'To be added',
-      role: 'Seat TBA',
-      bio: 'Bio to be added.',
-    })),
-  ] as Array<{ name: string; role: string; bio: string; photo?: string }>,
+    ...Array.from({ length: 2 }, () => ({ name: 'To be added', role: 'Seat TBA' })),
+  ] as Array<{
+    name: string
+    role: string
+    major?: string
+    photo?: string
+    experience?: string[]
+    skills?: string[]
+  }>,
 }
 
 /** The Our Team page — name and major only, so the whole club fits on one screen. */
@@ -192,7 +209,10 @@ export const team: Array<{ label: string; alt: string; people: Array<{ name: str
   {
     label: 'Board',
     alt: 'Leadership',
-    people: [{ name: 'Elsie Lu', major: 'Statistics' }],
+    people: [
+      { name: 'Elsie Lu', major: 'Statistics' },
+      { name: 'Evan Jiang', major: 'Biometry & Statistics + Information Science' },
+    ],
   },
   // TODO(club): the roster
   { label: 'Members', alt: 'The Table', people: [{ name: 'To be added', major: 'Major TBA' }] },
