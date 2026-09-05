@@ -10,11 +10,13 @@ import { prefersReducedMotion } from '../lib/motion'
  */
 export default function TypeLine() {
   const [text, setText] = useState('')
-  const [leadLen, setLeadLen] = useState(typing.pairs[0].lead.length)
+  // the lines are editable — an emptied list must not take the hero down
+  const [leadLen, setLeadLen] = useState(typing.pairs[0]?.lead.length ?? 0)
   const idx = useRef(0)
   const timer = useRef<number>(0)
 
   useEffect(() => {
+    if (!typing.pairs.length) return
     const phrase = (i: number) => `${typing.pairs[i].lead} ${typing.pairs[i].tail}`
 
     if (prefersReducedMotion()) {
@@ -60,6 +62,8 @@ export default function TypeLine() {
       window.clearTimeout(timer.current)
     }
   }, [])
+
+  if (!typing.pairs.length) return null
 
   return (
     <p

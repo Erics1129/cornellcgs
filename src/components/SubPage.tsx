@@ -53,6 +53,22 @@ const ALGO: Record<string, Algo> = {
    move in lockstep. Life classes ride wrappers, never the [data-page-item]
    elements themselves — those carry the themes' entrance transforms. */
 const JITTER = [1, 0.84, 1.16, 0.92, 1.08, 0.8, 1.2]
+/** "Robert D. Kleinberg" → "RK" */
+function initials(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean)
+  return ((parts[0]?.[0] ?? '') + (parts.length > 1 ? parts[parts.length - 1][0] : '')).toUpperCase() || '♠'
+}
+
+/** The circle that stands in for a portrait that failed to load. */
+function initialsBadge(name: string): HTMLElement {
+  const el = document.createElement('div')
+  el.setAttribute('aria-hidden', 'true')
+  el.className =
+    'life-float grid h-28 w-28 shrink-0 place-items-center rounded-full bg-[#e3e9f4] font-display text-2xl text-[#0a1e3f] md:h-36 md:w-36'
+  el.textContent = initials(name)
+  return el
+}
+
 function life(i: number, base: number): CSSProperties {
   const dur = base * JITTER[i % JITTER.length]
   const delay = (i * 0.382 * base) % base
@@ -162,16 +178,30 @@ export default function SubPage({ id }: { id: string }) {
           </div>
           <div className="grid gap-10 md:grid-cols-2">
             {advisors.map((a, i) => (
-              <div key={a.name} data-page-item className="flex flex-col gap-8">
+              <div key={i} data-page-item className="flex flex-col gap-8">
                 <div className="flex gap-6">
-                  <img
-                    src={a.photo}
-                    alt={a.name}
-                    width={144}
-                    height={144}
-                    className="life-float h-28 w-28 shrink-0 rounded-full object-cover md:h-36 md:w-36"
-                    style={life(i, 8)}
-                  />
+                  {a.photo ? (
+                    <img
+                      src={a.photo}
+                      alt={a.name}
+                      width={144}
+                      height={144}
+                      className="life-float h-28 w-28 shrink-0 rounded-full object-cover md:h-36 md:w-36"
+                      style={life(i, 8)}
+                      onError={(e) => {
+                        // a missing file shows the initials, never a broken-image icon
+                        e.currentTarget.replaceWith(initialsBadge(a.name))
+                      }}
+                    />
+                  ) : (
+                    <div
+                      aria-hidden="true"
+                      className="life-float grid h-28 w-28 shrink-0 place-items-center rounded-full bg-[#e3e9f4] font-display text-2xl text-[#0a1e3f] md:h-36 md:w-36"
+                      style={life(i, 8)}
+                    >
+                      {initials(a.name)}
+                    </div>
+                  )}
                   <div className="flex flex-col gap-2">
                     <p
                       className="life-glow font-display text-[clamp(1.25rem,1.8vw,1.6rem)] font-[640] leading-tight"

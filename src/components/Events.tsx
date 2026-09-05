@@ -111,7 +111,8 @@ export default function Events() {
   const n = events.items.length
   const mid = (n - 1) / 2
   const baseZ = (i: number) => 10 - Math.abs(i - mid)
-  const shown = events.items[open ?? last]
+  // the list is editable — a shorter list must not leave the panel pointing past the end
+  const shown = events.items[open ?? last] ?? events.items[0]
 
   const toggle = (i: number) => {
     if (open === i) {
@@ -269,6 +270,9 @@ export default function Events() {
     }
   }, [])
 
+  // no events published: the chapter steps aside rather than crashing
+  if (!shown) return null
+
   return (
     <section ref={root} id="events" className="section overflow-x-clip">
       <SectionIndex rank="10" />
@@ -316,7 +320,7 @@ export default function Events() {
         >
           {events.items.map((ev, i) => (
             <div
-              key={ev.title}
+              key={i}
               data-holder
               className="absolute bottom-0 left-1/2 aspect-[5/7] w-44"
               style={{ zIndex: baseZ(i), willChange: 'transform' }}

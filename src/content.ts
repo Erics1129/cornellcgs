@@ -192,8 +192,16 @@ export const people = {
       ],
       skills: ['Statistical modeling', 'Mathematical modeling', 'Python', 'AI reasoning & research'],
     },
-    // TODO(club): the rest of the board
-    ...Array.from({ length: 2 }, () => ({ name: 'To be added', role: 'Seat TBA' })),
+    // TODO(club): the rest of the board — empty seats carry every field so the
+    // admin shows a photo drop zone, major, experience and skills for them
+    ...Array.from({ length: 2 }, () => ({
+      name: 'To be added',
+      role: 'Seat TBA',
+      major: '',
+      photo: '',
+      experience: [] as string[],
+      skills: [] as string[],
+    })),
   ] as Array<{
     name: string
     role: string

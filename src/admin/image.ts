@@ -4,9 +4,25 @@
  * middle or bottom of a portrait picture — faces usually sit high.
  */
 
-export type Anchor = 'top' | 'middle' | 'bottom'
+/** Where the square window sits along the picture's long side. */
+export type Anchor = 'start' | 'middle' | 'end'
 
 export const SQUARE = 480
+
+export type Shape = 'portrait' | 'landscape' | 'square'
+
+export function shapeOf(bmp: { width: number; height: number }): Shape {
+  if (bmp.height > bmp.width * 1.08) return 'portrait'
+  if (bmp.width > bmp.height * 1.08) return 'landscape'
+  return 'square'
+}
+
+/** What the three anchor buttons say for this picture. */
+export function anchorLabels(shape: Shape): Record<Anchor, string> {
+  return shape === 'landscape'
+    ? { start: 'left', middle: 'center', end: 'right' }
+    : { start: 'top', middle: 'middle', end: 'bottom' }
+}
 
 export function loadBitmap(file: File): Promise<ImageBitmap> {
   return createImageBitmap(file, { imageOrientation: 'from-image' })
@@ -16,7 +32,7 @@ export async function squareCrop(bmp: ImageBitmap, anchor: Anchor, size = SQUARE
   const side = Math.min(bmp.width, bmp.height)
   const spareX = bmp.width - side
   const spareY = bmp.height - side
-  const f = anchor === 'top' ? 0.1 : anchor === 'bottom' ? 0.9 : 0.5
+  const f = anchor === 'start' ? 0.1 : anchor === 'end' ? 0.9 : 0.5
   // portrait pictures slide the window up and down; landscape ones side to side
   const sx = spareY > 0 ? spareX / 2 : spareX * f
   const sy = spareY > 0 ? spareY * f : 0
@@ -25,6 +41,9 @@ export async function squareCrop(bmp: ImageBitmap, anchor: Anchor, size = SQUARE
   canvas.height = size
   const ctx = canvas.getContext('2d')
   if (!ctx) throw new Error('no canvas')
+  // JPEG has no transparency — a transparent PNG lands on white, not black
+  ctx.fillStyle = '#ffffff'
+  ctx.fillRect(0, 0, size, size)
   ctx.imageSmoothingQuality = 'high'
   ctx.drawImage(bmp, sx, sy, side, side, 0, 0, size, size)
   return new Promise((resolve, reject) =>

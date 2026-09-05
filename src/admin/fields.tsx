@@ -2,78 +2,117 @@
  * A generic editor for the content document: every string, number, list and
  * object in `src/content.ts` becomes a field by its shape, so a new piece of
  * copy needs no new admin code. Photo fields (a `photo` key, or a value that
- * points at a picture) take a dropped file, crop it square and upload it.
+ * points at a picture) take a dropped or chosen file, crop it square and
+ * upload it. Everything here is written for a board member who has never
+ * seen the code.
  */
 import { useEffect, useId, useRef, useState } from 'react'
 import type { ChangeEvent, DragEvent, ReactNode } from 'react'
 import { api, ApiError } from './api'
-import { hashedName, loadBitmap, squareCrop, type Anchor } from './image'
+import { EMPHASIS_HEADINGS, isHiddenPath } from '../lib/liveContent'
+import { anchorLabels, hashedName, loadBitmap, shapeOf, squareCrop, type Anchor, type Shape } from './image'
 
 export type Path = Array<string | number>
 export type Update = (path: Path, value: unknown) => void
 
+/* ------------------------------------------------------------------ labels */
+
 const LABELS: Record<string, string> = {
-  href: 'Link (URL)',
-  url: 'Website (URL)',
+  href: 'Link (web address)',
+  url: 'Website (web address)',
   cta: 'Button',
   ctaPrimary: 'Main button',
   ctaSecondary: 'Second button',
-  alt: 'Alternate heading (the heading swaps between the two)',
-  lead: 'Lead',
+  alt: 'Second heading (the heading swaps between the two)',
   tail: 'Typed words',
   blurb: 'Blurb',
-  n: 'Step number',
+  n: 'Step number (01, 02 …)',
   bio: 'Bio',
   photo: 'Photo',
-  instagramUrl: 'Instagram (URL)',
-  wechat: 'WeChat',
-  noSeparator: 'Show without a thousands separator',
   scrollHint: 'Scroll hint',
-  eyebrow: 'Eyebrow line',
-  fullName: 'Full name',
-  credit: 'Credit line (last line of every page)',
+  credit: 'Credit line (the last line of every page)',
   major: 'Major',
   role: 'Role',
-  next: 'What comes next',
+  next: 'What comes next (one line each)',
   pairs: 'Typed lines',
-  threads: 'Cards',
-  steps: 'Steps',
-  items: 'Events',
-  leaders: 'Cards (one per board seat)',
+  threads: 'Cards (the board is designed for five)',
+  steps: 'Steps (designed for five)',
+  items: 'Events (the fan is designed for five)',
+  leaders: 'Cards (one per board seat, designed for four)',
   people: 'People',
-  inboxes: 'Inboxes',
-  counters: 'Counters (empty = TBA)',
+  counters: 'Counters (designed for four; empty = TBA)',
   paragraphs: 'Paragraphs',
-  photoPlaceholder: 'Photo placeholder note',
   sections: 'Sections',
   link: 'Button under the text',
   experience: 'Experience (one line each)',
   skills: 'Skills (one each)',
-  heading: 'Heading (*asterisks* make a word italic)',
+  heading: 'Heading',
   address: 'Email address',
+  email: 'Email address',
+  rank: 'Card corner (A, K, Q, J, 10)',
+  suit: 'Suit symbol',
+  date: 'Date (any words, e.g. Oct 12)',
+  value: 'Number',
+  label: 'Label',
+  title: 'Title',
+  text: 'Text',
+  body: 'Text',
+  noSeparator: 'Show the number without a thousands separator',
 }
 
-export function humanize(key: string | number | undefined): string {
-  if (key === undefined) return ''
-  if (typeof key === 'number') return `#${key + 1}`
-  if (LABELS[key]) return LABELS[key]
+/** The info pages, named as the site names them */
+const PAGE_NAMES: Record<string, string> = {
+  'who-we-are': 'Who We Are',
+  'what-we-do': 'What We Do',
+  'ml-process': 'Our ML Process',
+  events: 'Events',
+  world: 'World',
+  people: 'Our Team',
+  advisors: 'Advisors',
+  join: 'Join CGS',
+  contact: 'Contact Us',
+}
+
+export function humanize(key: string): string {
   return key
     .replace(/([a-z])([A-Z])/g, '$1 $2')
     .replace(/[-_]/g, ' ')
     .replace(/^./, (c) => c.toUpperCase())
 }
 
+/** The label for a field, from where it sits, not only from its key. */
+export function labelFor(path: Path, value?: unknown): string {
+  const key = path[path.length - 1]
+  if (key === undefined) return ''
+  if (typeof key === 'number') return `#${key + 1}`
+  if (path[0] === 'pages' && path.length === 2) {
+    const t = value && typeof value === 'object' ? (value as { title?: unknown }).title : undefined
+    return PAGE_NAMES[key] ?? (typeof t === 'string' && t ? t : humanize(key))
+  }
+  if (key === 'lead') return path[0] === 'typing' ? 'Lead (the words that stay)' : 'Intro line'
+  if (key === 'title' && path[0] === 'pages') return 'Page title (the big heading)'
+  if (key === 'heading' && path.length === 2 && EMPHASIS_HEADINGS.has(String(path[0]))) {
+    return 'Heading (*asterisks* make a word italic)'
+  }
+  return LABELS[key] ?? humanize(key)
+}
+
+/* ------------------------------------------------------------------ shapes */
+
 const PHOTO_KEYS = new Set(['photo', 'image', 'avatar', 'portrait'])
 const isPhoto = (path: Path, v: unknown) =>
   typeof v === 'string' &&
   (PHOTO_KEYS.has(String(path[path.length - 1])) || /^\/(assets|api\/image)\/.*\.(jpe?g|png|webp)$/i.test(v))
 
-const LONG_KEYS = new Set(['body', 'text', 'bio', 'lead', 'blurb', 'paragraphs'])
+const LONG_KEYS = new Set(['body', 'text', 'bio', 'lead', 'blurb', 'paragraphs', 'next'])
 const isLong = (path: Path, v: string) =>
-  v.length > 70 || v.includes('\n') || LONG_KEYS.has(String(path[path.length - 1])) || LONG_KEYS.has(String(path[path.length - 2]))
+  v.includes('\n') ||
+  v.length > 90 ||
+  LONG_KEYS.has(String(path[path.length - 1])) ||
+  (typeof path[path.length - 1] === 'number' && LONG_KEYS.has(String(path[path.length - 2])))
 
 /** What a new list item looks like, by the list's key */
-const TEMPLATES: Record<string, unknown> = {
+const TEMPLATES: Record<string, Record<string, unknown>> = {
   leaders: { name: '', role: '', major: '', photo: '', experience: [], skills: [] },
   people: { name: '', major: '' },
   team: { label: '', alt: '', people: [] },
@@ -83,7 +122,6 @@ const TEMPLATES: Record<string, unknown> = {
   sections: { heading: '', alt: '', body: '' },
   pairs: { lead: '', tail: '' },
   counters: { label: '', value: null },
-  inboxes: { label: '', address: '' },
   advisors: { name: '', role: '', title: '', bio: '', photo: '', url: '' },
 }
 
@@ -105,6 +143,13 @@ function newItem(path: Path, items: unknown[]): unknown {
   return ''
 }
 
+/** An object item shown with every field its siblings have — an empty seat still gets a photo box */
+function completed(path: Path, item: Record<string, unknown>): Record<string, unknown> {
+  const key = String(path[path.length - 1])
+  const template = TEMPLATES[key]
+  return template ? { ...structuredClone(template), ...item } : item
+}
+
 /** The line that names a list item in its card header */
 function itemTitle(v: unknown, i: number): string {
   if (typeof v === 'string') return v || `#${i + 1}`
@@ -118,7 +163,11 @@ function itemTitle(v: unknown, i: number): string {
 }
 
 const spansRow = (path: Path, v: unknown) =>
-  !(typeof v === 'string' && !isPhoto(path, v) && !isLong(path, v)) && !(typeof v === 'number' || v === null || typeof v === 'boolean')
+  !(typeof v === 'string' && !isPhoto(path, v) && !isLong(path, v)) &&
+  !(typeof v === 'number' || v === null || typeof v === 'boolean')
+
+let nextKey = 1
+const freshKey = () => `k${nextKey++}`
 
 /* ------------------------------------------------------------------ fields */
 
@@ -136,7 +185,8 @@ export function Field({
   /** objects: no header of their own (the page already shows one) */
   bare?: boolean
 }) {
-  const name = label ?? humanize(path[path.length - 1])
+  if (isHiddenPath(path)) return null
+  const name = label ?? labelFor(path, value)
   if (isPhoto(path, value)) return <PhotoField path={path} value={value as string} onChange={onChange} label={name} />
   if (typeof value === 'string') return <TextField path={path} value={value} onChange={onChange} label={name} />
   if (typeof value === 'number' || value === null) {
@@ -163,14 +213,15 @@ function Labeled({ id, label, children }: { id: string; label: string; children:
 
 function TextField({ path, value, onChange, label }: { path: Path; value: string; onChange: Update; label: string }) {
   const id = useId()
-  const long = isLong(path, value)
+  // decided once, so the box never changes shape under a moving caret
+  const [long] = useState(() => isLong(path, value))
   return (
     <Labeled id={id} label={label}>
       {long ? (
         <textarea
           id={id}
           className="a-input"
-          rows={Math.min(8, Math.max(2, Math.ceil(value.length / 70) + (value.match(/\n/g)?.length ?? 0)))}
+          rows={Math.min(8, Math.max(2, Math.ceil(value.length / 80) + (value.match(/\n/g)?.length ?? 0)))}
           value={value}
           onChange={(e) => onChange(path, e.target.value)}
         />
@@ -226,9 +277,10 @@ function ObjectField({
   label: string
   bare?: boolean
 }) {
+  const entries = Object.entries(value).filter(([k]) => !isHiddenPath([...path, k]))
   const body = (
     <div className="grid gap-4 sm:grid-cols-2">
-      {Object.entries(value).map(([k, v]) => (
+      {entries.map(([k, v]) => (
         <div key={k} className={spansRow([...path, k], v) ? 'sm:col-span-2' : ''}>
           <Field path={[...path, k]} value={v} onChange={onChange} />
         </div>
@@ -246,28 +298,69 @@ function ObjectField({
 
 function ListField({ path, value, onChange, label }: { path: Path; value: unknown[]; onChange: Update; label: string }) {
   const strings = value.every((v) => typeof v === 'string')
+  const objects = value.every((v) => v && typeof v === 'object' && !Array.isArray(v))
+
+  // Stable keys per item, kept in step with the list — so a card's own state
+  // (a half-cropped photo) travels with the card when the list is reordered
+  const [keys, setKeys] = useState<string[]>(() => value.map(freshKey))
+  if (keys.length !== value.length) setKeys(value.map((_, i) => keys[i] ?? freshKey()))
+
+  const lastRef = useRef<HTMLDivElement>(null)
+  const scrollToLast = useRef(false)
+  useEffect(() => {
+    if (!scrollToLast.current) return
+    scrollToLast.current = false
+    const el = lastRef.current
+    if (!el) return
+    el.scrollIntoView({ block: 'center', behavior: 'smooth' })
+    el.querySelector<HTMLElement>('input, textarea')?.focus({ preventScroll: true })
+  })
+
   const move = (i: number, d: number) => {
     const j = i + d
     if (j < 0 || j >= value.length) return
     const copy = value.slice()
     ;[copy[i], copy[j]] = [copy[j], copy[i]]
+    const k = keys.slice()
+    ;[k[i], k[j]] = [k[j], k[i]]
+    setKeys(k)
     onChange(path, copy)
   }
-  const remove = (i: number) => onChange(path, value.filter((_, k) => k !== i))
-  const add = () => onChange(path, [...value, newItem(path, value)])
+  const remove = (i: number) => {
+    if (objects && !window.confirm(`Remove "${itemTitle(value[i], i)}"? You can still press Discard to undo everything unpublished.`)) return
+    setKeys(keys.filter((_, k) => k !== i))
+    onChange(path, value.filter((_, k) => k !== i))
+  }
+  const add = () => {
+    setKeys([...keys, freshKey()])
+    scrollToLast.current = true
+    onChange(path, [...value, newItem(path, value)])
+  }
 
   const controls = (i: number) => (
     <div className="flex shrink-0 items-center gap-1">
-      <button type="button" className="a-btn a-btn-icon" title="Move up" onClick={() => move(i, -1)} disabled={i === 0}>
+      <button type="button" className="a-btn a-btn-icon" title="Move up" aria-label="Move up" onClick={() => move(i, -1)} disabled={i === 0}>
         ↑
       </button>
-      <button type="button" className="a-btn a-btn-icon" title="Move down" onClick={() => move(i, 1)} disabled={i === value.length - 1}>
+      <button
+        type="button"
+        className="a-btn a-btn-icon"
+        title="Move down"
+        aria-label="Move down"
+        onClick={() => move(i, 1)}
+        disabled={i === value.length - 1}
+      >
         ↓
       </button>
-      <button type="button" className="a-btn a-btn-icon a-btn-danger" title="Remove" onClick={() => remove(i)}>
+      <button type="button" className="a-btn a-btn-icon a-btn-danger ml-2" title="Remove" aria-label="Remove" onClick={() => remove(i)}>
         ✕
       </button>
     </div>
+  )
+  const addButton = (
+    <button type="button" className="a-btn" onClick={add}>
+      + Add
+    </button>
   )
 
   return (
@@ -276,22 +369,30 @@ function ListField({ path, value, onChange, label }: { path: Path; value: unknow
         <span className="a-label !mb-0">
           {label} <span className="font-normal opacity-60">· {value.length}</span>
         </span>
-        <button type="button" className="a-btn" onClick={add}>
-          + Add
-        </button>
+        {addButton}
       </div>
-      {value.length === 0 && <p className="text-sm text-[#3e5680]">Nothing here yet.</p>}
+      {value.length === 0 && <p className="text-sm text-[#3e5680]">Nothing here yet — press + Add.</p>}
       {strings ? (
         <div className="grid gap-2">
           {(value as string[]).map((v, i) => (
-            <div key={i} className="flex items-center gap-2">
-              <input
-                className="a-input"
-                type="text"
-                value={v}
-                aria-label={`${label} ${i + 1}`}
-                onChange={(e) => onChange([...path, i], e.target.value)}
-              />
+            <div key={keys[i]} ref={i === value.length - 1 ? lastRef : undefined} className="flex items-start gap-2">
+              {isLong([...path, i], v) ? (
+                <textarea
+                  className="a-input"
+                  rows={2}
+                  value={v}
+                  aria-label={`${label} ${i + 1}`}
+                  onChange={(e) => onChange([...path, i], e.target.value)}
+                />
+              ) : (
+                <input
+                  className="a-input"
+                  type="text"
+                  value={v}
+                  aria-label={`${label} ${i + 1}`}
+                  onChange={(e) => onChange([...path, i], e.target.value)}
+                />
+              )}
               {controls(i)}
             </div>
           ))}
@@ -299,13 +400,19 @@ function ListField({ path, value, onChange, label }: { path: Path; value: unknow
       ) : (
         <div className="grid gap-3">
           {value.map((v, i) => (
-            <div key={i} className="a-card p-4">
+            <div key={keys[i]} ref={i === value.length - 1 ? lastRef : undefined} className="a-card p-4">
               <div className="mb-3 flex items-center justify-between gap-3">
                 <span className="truncate font-semibold">{itemTitle(v, i)}</span>
                 {controls(i)}
               </div>
               {v && typeof v === 'object' && !Array.isArray(v) ? (
-                <ObjectField path={[...path, i]} value={v as Record<string, unknown>} onChange={onChange} label="" bare />
+                <ObjectField
+                  path={[...path, i]}
+                  value={completed(path, v as Record<string, unknown>)}
+                  onChange={onChange}
+                  label=""
+                  bare
+                />
               ) : (
                 <Field path={[...path, i]} value={v} onChange={onChange} />
               )}
@@ -313,6 +420,7 @@ function ListField({ path, value, onChange, label }: { path: Path; value: unknow
           ))}
         </div>
       )}
+      {value.length > 2 && <div className="mt-3 flex justify-end">{addButton}</div>}
     </div>
   )
 }
@@ -322,25 +430,47 @@ function ListField({ path, value, onChange, label }: { path: Path; value: unknow
 function PhotoField({ path, value, onChange, label }: { path: Path; value: string; onChange: Update; label: string }) {
   const id = useId()
   const input = useRef<HTMLInputElement>(null)
+  const bitmap = useRef<ImageBitmap | null>(null)
+  /** the url this field itself uploaded — anything else came from outside */
+  const uploaded = useRef<string | null>(null)
   const [over, setOver] = useState(false)
   const [busy, setBusy] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [source, setSource] = useState<{ bmp: ImageBitmap; base: string; anchor: Anchor } | null>(null)
+  const [source, setSource] = useState<{ base: string; shape: Shape; anchor: Anchor } | null>(null)
+  const [saved, setSaved] = useState(false)
+  const [touch] = useState(() => typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches)
 
-  useEffect(() => () => source?.bmp.close(), [source])
+  // A photo set from outside (Discard, Reset, a card moved here) is not ours
+  // to re-crop: drop the source and the anchor buttons.
+  useEffect(() => {
+    if (value === uploaded.current) return
+    setSource(null)
+    setSaved(false)
+    bitmap.current?.close()
+    bitmap.current = null
+  }, [value])
+  useEffect(() => () => bitmap.current?.close(), [])
 
-  const cropAndUpload = async (bmp: ImageBitmap, base: string, anchor: Anchor) => {
+  const cropAndUpload = async (base: string, anchor: Anchor) => {
+    const bmp = bitmap.current
+    if (!bmp) return
     setError(null)
     setBusy('Cropping…')
     try {
       const blob = await squareCrop(bmp, anchor)
       const name = await hashedName(base, blob)
-      setBusy('Uploading…')
+      setBusy('Saving…')
       const { url } = await api.upload(name, blob)
+      uploaded.current = url
       onChange(path, url)
+      setSaved(true)
     } catch (e) {
       const err = e as ApiError
-      setError(err.status === 401 ? 'Your session ended — sign in again, then drop the photo once more.' : err.message)
+      setError(
+        err.status === 401
+          ? 'Your session ended — sign in again, then add the photo once more.'
+          : err.message || 'Could not save the photo.',
+      )
     } finally {
       setBusy(null)
     }
@@ -348,7 +478,8 @@ function PhotoField({ path, value, onChange, label }: { path: Path; value: strin
 
   const take = async (file: File | undefined) => {
     if (!file) return
-    if (!/^image\/(jpeg|png|webp|heic|heif|gif|bmp|tiff)$/i.test(file.type) && !/\.(jpe?g|png|webp|heic)$/i.test(file.name)) {
+    const heic = /heic|heif/i.test(file.type) || /\.(heic|heif)$/i.test(file.name)
+    if (!file.type.startsWith('image/') && !/\.(jpe?g|png|webp|gif|bmp|heic|heif)$/i.test(file.name)) {
       setError('That is not a picture file.')
       return
     }
@@ -356,15 +487,21 @@ function PhotoField({ path, value, onChange, label }: { path: Path; value: strin
     setBusy('Reading…')
     try {
       const bmp = await loadBitmap(file)
-      const base = file.name.replace(/\.[^.]+$/, '')
+      bitmap.current?.close()
+      bitmap.current = bmp
+      const shape = shapeOf(bmp)
       // faces sit high in a portrait photo — start from the top
-      const anchor: Anchor = bmp.height > bmp.width * 1.15 ? 'top' : 'middle'
-      source?.bmp.close()
-      setSource({ bmp, base, anchor })
-      await cropAndUpload(bmp, base, anchor)
+      const anchor: Anchor = shape === 'portrait' ? 'start' : 'middle'
+      const base = file.name.replace(/\.[^.]+$/, '')
+      setSource({ base, shape, anchor })
+      await cropAndUpload(base, anchor)
     } catch {
       setBusy(null)
-      setError('Could not read that picture (HEIC from an iPhone? export it as JPEG first).')
+      setError(
+        heic
+          ? 'iPhone HEIC photos cannot be read here. Export it as a JPEG first (Photos → File → Export), then try again.'
+          : 'Could not read that picture. Try a JPEG or PNG.',
+      )
     }
   }
 
@@ -380,15 +517,26 @@ function PhotoField({ path, value, onChange, label }: { path: Path; value: strin
   const reAnchor = (anchor: Anchor) => {
     if (!source) return
     setSource({ ...source, anchor })
-    void cropAndUpload(source.bmp, source.base, anchor)
+    void cropAndUpload(source.base, anchor)
   }
+  const labels = source ? anchorLabels(source.shape) : null
 
   return (
     <div>
       <span className="a-label">{label}</span>
       <div
-        className="a-drop flex flex-wrap items-center gap-4 p-4"
+        className="a-drop flex cursor-pointer flex-wrap items-center gap-4 p-4"
         data-over={over}
+        role="button"
+        tabIndex={0}
+        aria-label={`${label}: ${touch ? 'tap to choose a photo' : 'drop a photo here or click to choose one'}`}
+        onClick={() => !busy && input.current?.click()}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault()
+            input.current?.click()
+          }
+        }}
         onDragOver={(e) => {
           e.preventDefault()
           setOver(true)
@@ -403,19 +551,16 @@ function PhotoField({ path, value, onChange, label }: { path: Path; value: strin
             <span className="text-xs font-semibold text-[#3e5680]">no photo</span>
           )}
         </div>
-        <div className="min-w-0 flex-1">
+        <div className="min-w-0 flex-1 basis-48">
           <p className="text-sm">
-            Drop a photo here, or{' '}
-            <button type="button" className="font-semibold underline" onClick={() => input.current?.click()}>
-              choose a file
-            </button>
-            . It is cropped to a square and shown in a circle.
+            <span className="font-semibold">{touch ? 'Tap here to choose a photo.' : 'Drop a photo here, or click to choose one.'}</span>{' '}
+            It is cropped to a square and shown in a circle.
           </p>
-          <input ref={input} id={id} type="file" accept="image/*" className="hidden" onChange={onPick} />
-          {source && (
-            <div className="mt-2 flex flex-wrap items-center gap-1.5 text-sm">
+          <input ref={input} id={id} type="file" accept="image/*" className="hidden" onChange={onPick} onClick={(e) => e.stopPropagation()} />
+          {source && labels && source.shape !== 'square' && (
+            <div className="mt-2 flex flex-wrap items-center gap-1.5 text-sm" onClick={(e) => e.stopPropagation()}>
               <span className="text-[#3e5680]">Keep the</span>
-              {(['top', 'middle', 'bottom'] as Anchor[]).map((a) => (
+              {(['start', 'middle', 'end'] as Anchor[]).map((a) => (
                 <button
                   key={a}
                   type="button"
@@ -423,15 +568,15 @@ function PhotoField({ path, value, onChange, label }: { path: Path; value: strin
                   onClick={() => reAnchor(a)}
                   disabled={!!busy}
                 >
-                  {a}
+                  {labels[a]}
                 </button>
               ))}
               <span className="text-[#3e5680]">of the picture</span>
             </div>
           )}
-          <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-[#3e5680]">
+          <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-[#3e5680]" onClick={(e) => e.stopPropagation()}>
             {busy && <span className="font-semibold text-[#1e5eff]">{busy}</span>}
-            {!busy && value && <span className="a-mono truncate">{value}</span>}
+            {!busy && saved && <span className="font-semibold text-[#1a7f37]">Photo saved ✓ — it goes live when you Publish.</span>}
             {!busy && value && (
               <button type="button" className="a-btn a-btn-icon a-btn-danger" onClick={() => onChange(path, '')}>
                 Remove photo

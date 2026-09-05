@@ -64,6 +64,15 @@
         }
       })()
     </script>
+    <script>
+      // The published words (edited at /admin/) — asked for now so the
+      // round trip overlaps the bundle download; lib/liveContent awaits it.
+      try {
+        window.__cgsContent = fetch('/api/content', { cache: 'no-store' }).catch(function () { return null })
+      } catch (e) {
+        /* very old browser — the bundle fetches on its own */
+      }
+    </script>
     <style>
       /* Paint the world color before any JS or CSS loads — no white flash. */
       html { background: #04081c; }

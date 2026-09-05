@@ -14,26 +14,55 @@
  */
 import * as content from '../content'
 
-/** The exports the admin may edit — everything that is words or pictures. */
+/**
+ * The exports the admin may edit — everything that is words or pictures and
+ * is actually rendered somewhere. Order = the admin's section list, everyday
+ * tasks first. (heroTitle and memberCountries exist in content.ts but no
+ * component reads them, so they are not offered.)
+ */
 export const EDITABLE = [
-  'site',
-  'heroTitle',
+  'people',
+  'team',
+  'events',
+  'pages',
+  'join',
+  'vision',
+  'advisors',
   'typing',
-  'hero',
   'whoWeAre',
   'whatWeDo',
   'mlProcess',
-  'events',
   'world',
-  'people',
-  'team',
-  'join',
   'contact',
-  'vision',
-  'advisors',
-  'memberCountries',
-  'pages',
+  'hero',
+  'site',
 ] as const
+
+/**
+ * Fields kept in the document (so it round-trips) but hidden from the admin:
+ * either nothing on the site reads them, or the site overrides them in code
+ * (the hero buttons scroll to fixed chapters whatever their href says).
+ */
+const HIDDEN_PATHS = new Set([
+  'site.name',
+  'site.fullName',
+  'site.eyebrow',
+  'site.domain',
+  'hero.ctaPrimary.href',
+  'hero.ctaSecondary.href',
+  'whoWeAre.photoPlaceholder',
+  'contact.instagram',
+  'contact.instagramUrl',
+  'contact.wechat',
+  'contact.inboxes',
+])
+
+export function isHiddenPath(path: Array<string | number>): boolean {
+  return HIDDEN_PATHS.has(path.filter((p): p is string => typeof p === 'string').join('.'))
+}
+
+/** Sections whose `heading` renders *asterisks* as an italic word. */
+export const EMPHASIS_HEADINGS = new Set(['whoWeAre', 'whatWeDo', 'events', 'world', 'people', 'join'])
 
 export type EditableKey = (typeof EDITABLE)[number]
 export type ContentDoc = Partial<Record<EditableKey, unknown>>
@@ -47,23 +76,21 @@ const store = content as unknown as Record<string, unknown>
 
 /** Human titles for the admin's section list. */
 export const TITLES: Record<EditableKey, string> = {
-  site: 'Site',
-  heroTitle: 'Hero title',
+  people: 'Board cards',
+  team: 'Our Team roster',
+  events: 'Events',
+  pages: 'Info pages',
+  join: 'Join',
+  vision: 'What we envision',
+  advisors: 'Advisors',
   typing: 'Hero typing line',
-  hero: 'Hero buttons',
   whoWeAre: 'Who we are',
   whatWeDo: 'What we do',
   mlProcess: 'ML process',
-  events: 'Events',
   world: 'World',
-  people: 'Board cards',
-  team: 'Our Team roster',
-  join: 'Join',
-  contact: 'Contact',
-  vision: 'What we envision',
-  advisors: 'Advisors',
-  memberCountries: 'Member countries',
-  pages: 'Info pages',
+  contact: 'Contact email',
+  hero: 'Hero buttons',
+  site: 'Credit line',
 }
 
 function isPlainObject(v: unknown): v is Record<string, unknown> {
@@ -109,8 +136,11 @@ export function applyOverrides(doc: unknown): EditableKey[] {
       const skip = new Set(PROTECTED[key] ?? [])
       for (const k of Object.keys(incoming)) {
         if (skip.has(k)) continue
-        // `pages` is keyed by page id — an id the site does not route is dropped
-        if (key === 'pages' && !(k in target)) continue
+        // every content object has a fixed set of keys (pages: the ids the
+        // site routes) — a key the code does not know is dropped
+        if (!(k in target)) continue
+        // a field cannot change kind (a list stays a list)
+        if (Array.isArray(target[k]) !== Array.isArray(incoming[k])) continue
         target[k] = jsonClone(incoming[k])
       }
       applied.push(key)
@@ -124,9 +154,15 @@ export const API = '/api'
 
 /* ---------------------------------------------------------------- drafts */
 
-/** The site opened by the admin's "Preview" button: `/?draft=1` in a named window. */
+/** The frame (or window) the admin's Preview renders the site in. */
+export const DRAFT_WINDOW_NAME = 'cgs-draft-preview'
+
+/**
+ * The site opened by the admin's "Preview": by window name first — it
+ * survives clicking around inside the preview, where `?draft=1` would not.
+ */
 export function isDraftPreview(): boolean {
-  return new URLSearchParams(location.search).has('draft')
+  return window.name === DRAFT_WINDOW_NAME || new URLSearchParams(location.search).has('draft')
 }
 
 const DRAFT_READY = 'cgs-draft-ready'
@@ -209,7 +245,13 @@ export async function loadLiveContent(timeoutMs = 1800): Promise<EditableKey[]> 
   const ctl = new AbortController()
   const timer = window.setTimeout(() => ctl.abort(), timeoutMs)
   try {
-    const res = await fetch(`${API}/content`, { cache: 'no-store', signal: ctl.signal })
+    // index.html starts this request before the bundle downloads, so the
+    // round trip overlaps the download instead of following it
+    const early = (window as { __cgsContent?: Promise<Response | null> }).__cgsContent
+    const res = await Promise.race([
+      early ? early.then((r) => r ?? Promise.reject(new Error('early fetch failed'))) : fetch(`${API}/content`, { cache: 'no-store', signal: ctl.signal }),
+      new Promise<never>((_, reject) => ctl.signal.addEventListener('abort', () => reject(new Error('timeout')))),
+    ])
     if (!res.ok) return []
     const type = res.headers.get('content-type') ?? ''
     if (!type.includes('json')) return []

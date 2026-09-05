@@ -11,7 +11,7 @@ export class ApiError extends Error {
   }
 }
 
-async function call<T>(path: string, init: RequestInit = {}): Promise<T> {
+async function request(path: string, init: RequestInit = {}): Promise<{ body: unknown; res: Response }> {
   let res: Response
   try {
     res = await fetch(`/api${path}`, { credentials: 'same-origin', cache: 'no-store', ...init })
@@ -29,11 +29,15 @@ async function call<T>(path: string, init: RequestInit = {}): Promise<T> {
     }
     throw new ApiError(res.status, msg ?? `The API answered with HTTP ${res.status}.`)
   }
-  return body as T
+  return { body, res }
 }
 
-const json = (body: unknown): RequestInit => ({
-  headers: { 'content-type': 'application/json' },
+async function call<T>(path: string, init: RequestInit = {}): Promise<T> {
+  return (await request(path, init)).body as T
+}
+
+const json = (body: unknown, extra: Record<string, string> = {}): RequestInit => ({
+  headers: { 'content-type': 'application/json', ...extra },
   body: JSON.stringify(body),
 })
 
@@ -41,8 +45,13 @@ export const api = {
   session: () => call<{ ok: true }>('/session'),
   login: (code: string) => call<{ ok: true }>('/login', { method: 'POST', ...json({ code }) }),
   logout: () => call<{ ok: true }>('/logout', { method: 'POST' }),
-  content: () => call<Record<string, unknown>>('/content'),
-  publish: (doc: unknown) => call<{ ok: true; bytes: number }>('/content', { method: 'PUT', ...json(doc) }),
+  /** the published document and its version tag (sent back on publish so two editors never overwrite each other unknowingly) */
+  content: async () => {
+    const { body, res } = await request('/content')
+    return { doc: body as Record<string, unknown>, etag: res.headers.get('etag') ?? '' }
+  },
+  publish: (doc: unknown, etag: string) =>
+    call<{ ok: true; bytes: number; etag: string }>('/content', { method: 'PUT', ...json(doc, etag ? { 'if-match': etag } : {}) }),
   reset: () => call<{ ok: true }>('/content', { method: 'DELETE' }),
   upload: (name: string, blob: Blob) =>
     call<{ ok: true; url: string }>(`/image/${name}`, {
