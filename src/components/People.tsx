@@ -78,25 +78,53 @@ export default function People() {
   // A card back holds as much as the member wrote, so the type size is found
   // by measurement, not guessed: shrink until nothing overflows the face.
   useLayoutEffect(() => {
-    const fitOne = (el: HTMLElement | null) => {
-      if (!el || el.clientHeight < 8) return
-      let lo = 6
-      let hi = 15
-      for (let k = 0; k < 8; k++) {
-        const mid = (lo + hi) / 2
-        el.style.fontSize = `${mid}px`
-        if (el.scrollHeight <= el.clientHeight) lo = mid
-        else hi = mid
+    let alive = true
+    let retried = false
+    // One binary search for every card at once — all the writes, then all
+    // the reads — so each step costs one layout flush, not one per card.
+    const fitAll = () => {
+      if (!alive) return
+      const els = backText.current.filter((e): e is HTMLElement => !!e)
+      const ready = els.filter((e) => e.clientHeight >= 8)
+      if (!ready.length) {
+        // nothing laid out yet (a hidden grid) — measure again next frame, once
+        if (!retried) {
+          retried = true
+          requestAnimationFrame(fitAll)
+        }
+        return
       }
-      el.style.fontSize = `${lo.toFixed(2)}px`
+      const lo = ready.map(() => 6)
+      const hi = ready.map(() => 15)
+      for (let k = 0; k < 8; k++) {
+        ready.forEach((el, i) => (el.style.fontSize = `${(lo[i] + hi[i]) / 2}px`))
+        ready.forEach((el, i) => {
+          const mid = (lo[i] + hi[i]) / 2
+          if (el.scrollHeight <= el.clientHeight) lo[i] = mid
+          else hi[i] = mid
+        })
+      }
+      ready.forEach((el, i) => (el.style.fontSize = `${lo[i].toFixed(2)}px`))
     }
-    const fitAll = () => backText.current.forEach(fitOne)
     fitAll()
-    const ro = new ResizeObserver(fitAll)
+    // Safe to observe the grid: the cards are aspect-ratio locked and both
+    // faces are absolutely positioned, so a type-size change inside a card
+    // can never resize the grid (no feedback loop). Only a width change can
+    // move the card box, so height-only notifications are ignored.
+    let lastW = -1
+    const ro = new ResizeObserver((entries) => {
+      const w = entries[0]?.contentRect.width ?? 0
+      if (Math.abs(w - lastW) < 0.5) return
+      lastW = w
+      fitAll()
+    })
     if (grid.current) ro.observe(grid.current)
     // web fonts land after the first measure and change every metric
     document.fonts?.ready.then(fitAll).catch(() => {})
-    return () => ro.disconnect()
+    return () => {
+      alive = false
+      ro.disconnect()
+    }
   }, [])
 
   // The deal. Cards wait hidden (visibility too, so nothing in the wings is
