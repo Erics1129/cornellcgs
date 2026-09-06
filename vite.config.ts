@@ -22,14 +22,5 @@ export default defineConfig({
   server: {
     port: 5190,
     strictPort: true,
-    // The content API is a Cloudflare Worker on the live domain. In dev it
-    // runs locally (`npm run api` → wrangler dev on :8787) and is proxied here
-    // so /api/* is same-origin, exactly as in production.
-    proxy: {
-      '/api': {
-        target: 'http://127.0.0.1:8787',
-        changeOrigin: false,
-      },
-    },
   },
 })

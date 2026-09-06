@@ -8,8 +8,7 @@
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "deploy": "sh scripts/deploy.sh",
-    "api": "wrangler dev --config worker/wrangler.toml --port 8787",
-    "api:deploy": "wrangler deploy --config worker/wrangler.toml"
+    "admin:connect": "node scripts/admin-connect.mjs"
   },
   "dependencies": {
     "gsap": "^3.13.0",
@@ -24,10 +23,6 @@
     "@vitejs/plugin-react": "^5.1.0",
     "tailwindcss": "^4.1.14",
     "typescript": "^5.9.3",
-    "vite": "^7.1.11",
-    "wrangler": "^4.129.0"
-  },
-  "allowScripts": {
-    "workerd@1.20260903.1": true
+    "vite": "^7.1.11"
   }
 }

@@ -179,7 +179,7 @@ export default function AdminApp() {
       const { etag: tag } = await api.publish(diff, etag)
       setEtag(tag)
       setSaved(doc)
-      setNote({ kind: 'ok', text: 'Published ✓ The site shows it on its next load — a tab that is already open keeps the old words until it reloads.' })
+      setNote({ kind: 'ok', text: 'Published ✓ The site picks it up within about a minute — reload the site tab to see it.' })
     } catch (e) {
       const err = e as ApiError
       if (err.status === 401) {

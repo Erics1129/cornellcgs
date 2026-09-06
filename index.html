@@ -64,11 +64,17 @@
         }
       })()
     </script>
+    <link rel="preconnect" href="https://raw.githubusercontent.com" crossorigin />
     <script>
-      // The published words (edited at /admin/) — asked for now so the
-      // round trip overlaps the bundle download; lib/liveContent awaits it.
+      // The published words (edited at /admin/, kept in the public repo
+      // Erics1129/cornellcgs-content) — asked for now so the round trip
+      // overlaps the bundle download; lib/liveContent awaits it. Must match
+      // src/lib/contentRepo.ts.
       try {
-        window.__cgsContent = fetch('/api/content', { cache: 'no-store' }).catch(function () { return null })
+        window.__cgsContent = fetch(
+          'https://raw.githubusercontent.com/Erics1129/cornellcgs-content/main/content.json?t=' + Math.floor(Date.now() / 60000),
+          { cache: 'no-store' },
+        ).catch(function () { return null })
       } catch (e) {
         /* very old browser — the bundle fetches on its own */
       }

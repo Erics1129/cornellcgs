@@ -102,7 +102,7 @@ export function labelFor(path: Path, value?: unknown): string {
 const PHOTO_KEYS = new Set(['photo', 'image', 'avatar', 'portrait'])
 const isPhoto = (path: Path, v: unknown) =>
   typeof v === 'string' &&
-  (PHOTO_KEYS.has(String(path[path.length - 1])) || /^\/(assets|api\/image)\/.*\.(jpe?g|png|webp)$/i.test(v))
+  (PHOTO_KEYS.has(String(path[path.length - 1])) || /^(\/|https?:\/\/)\S+\.(jpe?g|png|webp)$/i.test(v))
 
 const LONG_KEYS = new Set(['body', 'text', 'bio', 'lead', 'blurb', 'paragraphs', 'next'])
 const isLong = (path: Path, v: string) =>

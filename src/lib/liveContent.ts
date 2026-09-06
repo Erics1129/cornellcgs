@@ -13,6 +13,7 @@
  * published document is whatever the admin last saved.
  */
 import * as content from '../content'
+import { contentMirrorUrl, contentUrl } from './contentRepo'
 
 /**
  * The exports the admin may edit — everything that is words or pictures and
@@ -149,8 +150,8 @@ export function applyOverrides(doc: unknown): EditableKey[] {
   return applied
 }
 
-/** Where the API lives — same origin in production, the same path in dev (proxied). */
-export const API = '/api'
+/** The published document's sources, in order: GitHub's raw host, then the jsDelivr mirror. */
+const SOURCES = () => [contentUrl(), contentMirrorUrl()]
 
 /* ---------------------------------------------------------------- drafts */
 
@@ -238,28 +239,34 @@ export function markDraftPreview(): void {
 /**
  * Fetches the published document and applies it. Resolves once the content
  * exports are final, whatever happened; never throws, never waits longer
- * than `timeoutMs` (the loader curtain covers the wait).
+ * than `timeoutMs` in all (the loader curtain covers the wait). The raw host
+ * is asked first (fresh within a minute); the mirror is the fallback when it
+ * is slow or blocked on this network.
  */
-export async function loadLiveContent(timeoutMs = 1800): Promise<EditableKey[]> {
+export async function loadLiveContent(timeoutMs = 2600): Promise<EditableKey[]> {
   if (typeof fetch !== 'function') return []
-  const ctl = new AbortController()
-  const timer = window.setTimeout(() => ctl.abort(), timeoutMs)
-  try {
-    // index.html starts this request before the bundle downloads, so the
-    // round trip overlaps the download instead of following it
-    const early = (window as { __cgsContent?: Promise<Response | null> }).__cgsContent
-    const res = await Promise.race([
-      early ? early.then((r) => r ?? Promise.reject(new Error('early fetch failed'))) : fetch(`${API}/content`, { cache: 'no-store', signal: ctl.signal }),
-      new Promise<never>((_, reject) => ctl.signal.addEventListener('abort', () => reject(new Error('timeout')))),
-    ])
-    if (!res.ok) return []
-    const type = res.headers.get('content-type') ?? ''
-    if (!type.includes('json')) return []
-    const doc: unknown = await res.json()
-    return applyOverrides(doc)
-  } catch {
-    return []
-  } finally {
-    window.clearTimeout(timer)
+  const deadline = Date.now() + timeoutMs
+  // index.html starts the first request before the bundle downloads, so the
+  // round trip overlaps the download instead of following it
+  const early = (window as { __cgsContent?: Promise<Response | null> }).__cgsContent
+  const attempts: Array<() => Promise<Response | null>> = [
+    ...(early ? [() => early] : []),
+    ...SOURCES().map((url) => () => fetch(url, { cache: 'no-store' }).catch(() => null)),
+  ]
+  for (const attempt of attempts) {
+    const left = deadline - Date.now()
+    if (left <= 0) break
+    try {
+      const res = await Promise.race([
+        attempt(),
+        new Promise<null>((resolve) => window.setTimeout(() => resolve(null), Math.min(left, 1600))),
+      ])
+      if (!res || !res.ok) continue
+      const doc: unknown = JSON.parse(await res.text())
+      return applyOverrides(doc)
+    } catch {
+      /* next source */
+    }
   }
+  return []
 }
