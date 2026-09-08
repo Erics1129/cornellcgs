@@ -21,12 +21,7 @@ export default function TypeLine() {
 
     if (prefersReducedMotion()) {
       setText(phrase(0))
-      const cycle = window.setInterval(() => {
-        idx.current = (idx.current + 1) % typing.pairs.length
-        setLeadLen(typing.pairs[idx.current].lead.length)
-        setText(phrase(idx.current))
-      }, 3200)
-      return () => window.clearInterval(cycle)
+
     }
 
     let alive = true

@@ -135,19 +135,23 @@ export default function HeroCard() {
     if (!wrap) return
     gsap.set(wrap, { transformPerspective: 1100 })
     // ±4°/±3° — a breath, not a carnival; the side columns counter-drift.
-    const rx = gsap.quickTo(wrap, 'rotationX', { duration: 1.2, ease: 'power2.out' })
-    const ry = gsap.quickTo(wrap, 'rotationY', { duration: 1.2, ease: 'power2.out' })
+    const rx = gsap.quickTo(wrap, 'rotationX', { duration: 0.35, ease: 'power3.out' })
+    const ry = gsap.quickTo(wrap, 'rotationY', { duration: 0.35, ease: 'power3.out' })
     const onMove = (e: PointerEvent) => {
       const nx = e.clientX / window.innerWidth - 0.5
       const ny = e.clientY / window.innerHeight - 0.5
       ry(nx * 4)
       rx(-ny * 3)
     }
-    window.addEventListener('pointermove', onMove, { passive: true })
+    const section = wrap.closest('section')
+    const rest = () => { rx(0); ry(0) }
+    section?.addEventListener('pointermove', onMove, { passive: true })
+    section?.addEventListener('pointerleave', rest)
     return () => {
-      window.removeEventListener('pointermove', onMove)
-      rx(0)
-      ry(0)
+      section?.removeEventListener('pointermove', onMove)
+      section?.removeEventListener('pointerleave', rest)
+      rx.tween.kill(); ry.tween.kill()
+      gsap.set(wrap, { rotationX: 0, rotationY: 0 })
     }
   }, [])
 
@@ -329,7 +333,7 @@ export default function HeroCard() {
           flip()
           armAuto()
         }}
-        aria-label="Flip the card — switches the site between the blue and red world"
+        aria-label="Flip the card — change the color world"
         className="pointer-events-auto absolute left-1/2 top-[30svh] aspect-[5/7] h-[min(44svh,26.875rem)] -translate-x-1/2 -translate-y-1/2 cursor-pointer rounded-3xl md:top-1/2 md:h-[min(48vh,26.875rem)]"
       />
     </div>

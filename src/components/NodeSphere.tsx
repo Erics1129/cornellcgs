@@ -1,21 +1,12 @@
 import { useEffect, useRef } from 'react'
-import { prefersReducedMotion } from '../lib/motion'
+import { createSceneLoop } from './GraphAlgo'
 import { isPaging } from '../lib/scroll'
 
-/**
- * A wireframe sphere of nodes — a Fibonacci lattice joined to its nearest
- * neighbours — turning slowly and leaning toward the pointer. Every few
- * seconds a gradient arc (magenta → the world's blue) draws itself along a
- * great circle between two nodes, holds, and fades: connections being made.
- *
- * Canvas 2D, DPR capped at 2, ~220 nodes / ~330 edges per frame; the loop
- * only runs while the sphere is near the viewport and idles while the page
- * is flung. Reduced motion draws one still frame.
- */
+/** A stationary Fibonacci lattice after one establishing turn and connection.
+ * Local pointer lean settles on demand; no global pointer listener or idle loop. */
 
-const N = 220
+const N = 144
 const K = 3
-const ARC_EVERY_MS = 2600
 const ARC_DRAW_MS = 1300
 const ARC_HOLD_MS = 900
 const ARC_FADE_MS = 700
@@ -73,15 +64,12 @@ export default function NodeSphere({ className = '' }: { className?: string }) {
 
     const pts = lattice(N)
     const edges = neighbours(pts, K)
-    const reduced = prefersReducedMotion()
     const fine = window.matchMedia('(pointer: fine)').matches
 
     let w = 0
     let h = 0
     let dpr = 1
-    let raf = 0
-    let near = false
-    let last = performance.now()
+    let sceneTime = 0
     let rotY = 0.4
     let rotX = -0.35
     let leanX = 0
@@ -89,7 +77,7 @@ export default function NodeSphere({ className = '' }: { className?: string }) {
     let targetLeanX = 0
     let targetLeanY = 0
     let arc: { a: Vec; b: Vec; t0: number } | null = null
-    let nextArc = performance.now() + 1200
+    let nextArc = 700
 
     const resize = () => {
       dpr = Math.min(window.devicePixelRatio || 1, 2)
@@ -99,7 +87,7 @@ export default function NodeSphere({ className = '' }: { className?: string }) {
       canvas.width = w * dpr
       canvas.height = h * dpr
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
-      if (reduced) draw(performance.now())
+      draw(sceneTime)
     }
 
     const project = (p: Vec, cy: number, sy: number, cx: number, sx: number) => {
@@ -114,8 +102,8 @@ export default function NodeSphere({ className = '' }: { className?: string }) {
     }
 
     const draw = (now: number) => {
-      const cy = Math.cos(rotY)
-      const sy = Math.sin(rotY)
+      const cy = Math.cos(rotY + leanY)
+      const sy = Math.sin(rotY + leanY)
       const cx = Math.cos(rotX + leanX)
       const sx = Math.sin(rotX + leanX)
       const proj = pts.map((p) => project(p, cy, sy, cx, sx))
@@ -186,64 +174,59 @@ export default function NodeSphere({ className = '' }: { className?: string }) {
       }
     }
 
-    const frame = (now: number) => {
-      raf = 0
-      const dt = Math.min(0.1, (now - last) / 1000)
-      last = now
-      if (!isPaging()) {
-        rotY += dt * 0.12
-        leanX += (targetLeanX - leanX) * 0.04
-        leanY += (targetLeanY - leanY) * 0.04
-        rotY += (leanY - 0) * 0.002
-        if (!arc && now >= nextArc) {
-          const i = Math.floor(Math.random() * N)
-          let j = Math.floor(Math.random() * N)
-          if (j === i) j = (j + 37) % N
-          arc = { a: pts[i], b: pts[j], t0: now }
-          nextArc = now + ARC_DRAW_MS + ARC_HOLD_MS + ARC_FADE_MS + ARC_EVERY_MS * (0.6 + Math.random() * 0.8)
+    // A brief establishing turn and one connection, then stillness. Pointer
+    // accents are local to the canvas and only schedule frames while settling.
+    let intro = true
+    let pointerActive = false
+    let bounds = canvas.getBoundingClientRect()
+    const loop = createSceneLoop(canvas, {
+      tick: (_elapsed, delta) => {
+        sceneTime += delta
+        if (!isPaging()) {
+          if (intro) rotY += delta * 0.00005
+          const smoothing = 1 - Math.exp(-delta / 130)
+          leanX += (targetLeanX - leanX) * smoothing
+          leanY += (targetLeanY - leanY) * smoothing
+          if (intro && !arc && sceneTime >= nextArc) {
+            arc = { a: pts[12], b: pts[100], t0: sceneTime }
+            nextArc = Infinity
+          }
         }
-      }
-      draw(now)
-      if (near && !document.hidden) raf = requestAnimationFrame(frame)
-    }
-    const start = () => {
-      if (!raf && near && !reduced && !document.hidden) {
-        last = performance.now()
-        raf = requestAnimationFrame(frame)
-      }
-    }
-
-    const io = new IntersectionObserver(
-      (entries) => {
-        near = entries[0]?.isIntersecting ?? false
-        if (near) start()
+        draw(sceneTime)
+        if (sceneTime > 4200) intro = false
+        const settling = Math.abs(targetLeanX - leanX) + Math.abs(targetLeanY - leanY) > .001
+        return intro || !!arc || settling
       },
-      { rootMargin: '30% 0px' },
-    )
-    io.observe(canvas)
-
-    const onPointer = (e: PointerEvent) => {
-      targetLeanX = (e.clientY / window.innerHeight - 0.5) * 0.5
-      targetLeanY = (e.clientX / window.innerWidth - 0.5) * 0.8
+      still: () => {
+        intro = false; leanX = 0; leanY = 0; targetLeanX = 0; targetLeanY = 0
+        arc = { a: pts[12], b: pts[100], t0: sceneTime - ARC_DRAW_MS }
+        draw(sceneTime)
+      },
+    })
+    const onEnter = () => { bounds = canvas.getBoundingClientRect(); pointerActive = true }
+    const onPointer = (event: PointerEvent) => {
+      if (!fine || loop.reduced() || !pointerActive || event.pointerType === 'touch') return
+      targetLeanX = ((event.clientY - bounds.top) / bounds.height - .5) * .12
+      targetLeanY = ((event.clientX - bounds.left) / bounds.width - .5) * .18
+      loop.play()
     }
-    if (fine && !reduced) window.addEventListener('pointermove', onPointer, { passive: true })
-    const onVis = () => start()
-    document.addEventListener('visibilitychange', onVis)
-    const ro = new ResizeObserver(resize)
+    const onLeave = () => {
+      pointerActive = false; targetLeanX = 0; targetLeanY = 0
+      if (!loop.reduced()) loop.play()
+    }
+    canvas.addEventListener('pointerenter', onEnter)
+    canvas.addEventListener('pointermove', onPointer, { passive: true })
+    canvas.addEventListener('pointerleave', onLeave)
+    canvas.addEventListener('pointercancel', onLeave)
+    const ro = new ResizeObserver(() => { resize(); bounds = canvas.getBoundingClientRect() })
     ro.observe(canvas)
     resize()
-    if (reduced) {
-      // One still frame with a finished arc so the idea still reads
-      arc = { a: pts[12], b: pts[140], t0: performance.now() - ARC_DRAW_MS }
-      draw(performance.now())
-    }
-
     return () => {
-      if (raf) cancelAnimationFrame(raf)
-      io.disconnect()
-      ro.disconnect()
-      window.removeEventListener('pointermove', onPointer)
-      document.removeEventListener('visibilitychange', onVis)
+      loop.dispose(); ro.disconnect()
+      canvas.removeEventListener('pointerenter', onEnter)
+      canvas.removeEventListener('pointermove', onPointer)
+      canvas.removeEventListener('pointerleave', onLeave)
+      canvas.removeEventListener('pointercancel', onLeave)
     }
   }, [])
 

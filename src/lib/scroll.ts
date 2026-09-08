@@ -93,27 +93,36 @@ export function initSmoothScroll(): () => void {
     ScrollTrigger.refresh()
     if (pendingRestore !== null) window.scrollTo(0, pendingRestore)
   }
-  window.setTimeout(settle, 60)
+  let alive = true
+  const settleTimer = window.setTimeout(() => { if (alive) settle() }, 60)
   document.fonts?.ready
     .then(() => {
+      if (!alive) return
       settle()
       pendingRestore = null
     })
     .catch(() => {})
 
-  if (prefersReducedMotion()) return () => {}
+  const cleanupBase = () => {
+    alive = false
+    window.clearTimeout(settleTimer)
+    window.removeEventListener('pagehide', onPageHide)
+    window.removeEventListener('pageshow', onPageShow)
+  }
+  if (prefersReducedMotion()) return cleanupBase
 
   // 120Hz-safe pin behavior; a mobile URL-bar resize must not re-measure pins
   ScrollTrigger.config({ ignoreMobileResize: true })
 
   // wheelMultiplier 0.9: a slightly heavier, more deliberate page
-  lenis = new Lenis({ lerp: 0.09, wheelMultiplier: 0.9 })
+  lenis = new Lenis({ lerp: 0.13, wheelMultiplier: 1, syncTouch: false })
   lenis.on('scroll', ScrollTrigger.update)
   const tick = (time: number) => lenis?.raf(time * 1000)
   gsap.ticker.add(tick)
   gsap.ticker.lagSmoothing(0)
 
   return () => {
+    cleanupBase()
     gsap.ticker.remove(tick)
     lenis?.destroy()
     lenis = null

@@ -29,16 +29,16 @@ import { isPaging, scrollVelocity } from '../lib/scroll'
 import { CODE_LINES } from './codeSnippets'
 import { Fluid, gridFor } from './fluid'
 
-const FONT = '600 13px "JetBrains Mono", monospace'
-const LINE_H = 20
-const PARALLAX = 0.3
+const FONT = '500 14px "JetBrains Mono", monospace'
+const LINE_H = 25
+const PARALLAX = 0.18
 const FLASH_MS = 700
 const MAX_LINE_W = 640
 
 // Fluid coupling — the glyphs are tracers with a weak spring home
 /** px/s of fluid velocity per px of pointer travel */
 const POINTER_K = 2.5
-const POINTER_R = 100
+const POINTER_R = 150
 /** longest pointer step that counts (a wake-up jump is not a gesture) */
 const POINTER_STEP = 40
 /** ms without a move after which the next one starts fresh, no push */
@@ -47,7 +47,7 @@ const POINTER_IDLE = 120
 const SCROLL_K = 3
 const SCROLL_V_MAX = 80
 /** how much of the flow a line takes on (1 = a perfect tracer) */
-const FLOW_GAIN = 0.7
+const FLOW_GAIN = 0.9
 /** 1/s pull back to the column */
 const FLOW_RELAX = 1.6
 const FLOW_MAX = 48
@@ -253,17 +253,17 @@ export default function CodeLayer() {
     }
 
     const buildColumns = () => {
-      const n = Math.max(12, Math.min(20, Math.round(w / 96)))
+      const n = Math.max(2, Math.min(5, Math.round(w / 440)))
       const slot = w / n
       const count = Math.ceil((h + LINE_H * 2) / LINE_H) + 1
       cols = Array.from({ length: n }, (_, i) => {
         const depth = Math.random() // slow columns sit deeper and dimmer
         return {
           x: i * slot + slot * (0.1 + Math.random() * 0.55),
-          speed: 8 + depth * 22,
+          speed: 3 + depth * 8,
           // Visible but calm — on the light worlds the ink-blue code competes
           // with headings much harder than it did on navy
-          alpha: 0.09 + depth * 0.12 + Math.random() * 0.03,
+          alpha: 0.07 + depth * 0.09 + Math.random() * 0.02,
           start: Math.floor(Math.random() * lines.length),
           count,
           off: Math.random() * count * LINE_H,
@@ -288,7 +288,7 @@ export default function CodeLayer() {
       for (let j = 0; j < col.count; j++) {
         const line = lines[(col.start + j) % lines.length]
         if (line.row < 0) continue
-        const cw = Math.min(line.width, atlasW)
+        const cw = Math.min(line.width, atlasW, w / Math.max(1, cols.length) - 36)
         if (cw <= 0) continue
         let x = col.x
         let y = mod(j * LINE_H - eff, total) - LINE_H
@@ -440,7 +440,7 @@ export default function CodeLayer() {
         if (dy < -SPOT_R || dy > SPOT_R) continue
         const half = Math.sqrt(SPOT_R * SPOT_R - dy * dy)
         const x0 = Math.max(sx - half, lx)
-        const x1 = Math.min(sx + half, lx + Math.min(line.width, atlasW))
+        const x1 = Math.min(sx + half, lx + Math.min(line.width, atlasW, w / Math.max(1, cols.length) - 36))
         if (x1 <= x0) continue
         ctx.globalAlpha = 0.95 * (1 - (Math.abs(dy) / SPOT_R) * 0.3)
         ctx.drawImage(
@@ -491,7 +491,7 @@ export default function CodeLayer() {
     const frame = (now: number) => {
       raf = requestAnimationFrame(frame)
       // behind the black eye chapter nothing of this shows: skip the work
-      if (document.documentElement.classList.contains('eye-on')) return
+      if (document.documentElement.classList.contains('eye-on') || document.documentElement.classList.contains('cinema-on')) { last = now; return }
       const dt = Math.min(0.1, (now - last) / 1000)
       last = now
 

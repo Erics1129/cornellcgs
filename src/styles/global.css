@@ -1267,3 +1267,13 @@ a:hover .btn-label > span {
     transform: rotateX(-20deg) rotateY(30deg);
   }
 }
+
+/* Motion rebuild: movement belongs to the scene and the interaction.
+   Readable copy and controls stay stable after their entrance. */
+.life-float,.life-bob,.life-sway,.life-breathe,.life-glow,.life-shimmer {
+  animation:none !important;
+}
+.film-grain { animation:none !important; opacity:.025; }
+.neon-idle::before,.neon-idle::after { animation-play-state:paused; opacity:0; }
+.neon-idle:hover::before,.neon-idle:focus-visible::before { animation-play-state:running; opacity:.65; }
+html.cinema-on #code-layer-canvas { visibility:hidden; }

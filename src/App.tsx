@@ -3,7 +3,7 @@ import gsap from 'gsap'
 import './lib/eases'
 import { initSmoothScroll } from './lib/scroll'
 import { useNeonEdges } from './lib/neon'
-import { BOOTED_EVENT, SHAKE_EVENT, prefersReducedMotion } from './lib/motion'
+import { BOOTED_EVENT, prefersReducedMotion } from './lib/motion'
 import { dealCard, shadowStyle } from './lib/cardMotion'
 import GradientBG from './effects/GradientBG'
 import CodeLayer from './effects/CodeLayer'
@@ -19,7 +19,6 @@ import WorldSection from './components/WorldSection'
 import People from './components/People'
 import Join from './components/Join'
 import Footer from './components/Footer'
-import { useChapterTransitions } from './lib/reveal'
 import { AlphaGoSlide, AnyoneSlide, ProjectSlide } from './components/StatementSlides'
 import { CodeSlide, StatsSlide } from './components/ShowcaseSlides'
 
@@ -154,7 +153,6 @@ export default function App() {
   const [loaded, setLoaded] = useState(false)
 
   useNeonEdges(appRef)
-  useChapterTransitions(mainRef)
 
   useEffect(() => {
     const cleanup = initSmoothScroll()
@@ -162,9 +160,10 @@ export default function App() {
     // Lift the curtain when fonts + hero video are truly ready — capped at
     // 2.4s, floored at 950ms so the riffle always completes its motion.
     let lifted = false
+    let alive = true
     const timers: number[] = []
     const lift = () => {
-      if (lifted) return
+      if (lifted || !alive) return
       lifted = true
       ;(window as unknown as { __cgsShown?: boolean }).__cgsShown = true
       try {
@@ -191,45 +190,16 @@ export default function App() {
       ]),
       new Promise<void>((res) => timers.push(window.setTimeout(() => res(), returning ? 400 : 2400))),
     ])
-    const minShow = new Promise<void>((res) => timers.push(window.setTimeout(() => res(), returning ? 0 : 950)))
+    const minShow = new Promise<void>((res) => timers.push(window.setTimeout(() => res(), returning ? 0 : 350)))
     Promise.all([ready, minShow]).then(lift)
 
     return () => {
+      alive = false
       cleanup()
       timers.forEach((t) => window.clearTimeout(t))
     }
   }, [])
 
-  // Screen shake — dispatched by the shatter layer and the black hole burst
-  useEffect(() => {
-    const el = shakeRef.current
-    if (!el) return
-    const onShake = (e: Event) => {
-      if (prefersReducedMotion()) return
-      const intensity = Math.min(1, (e as CustomEvent<{ intensity: number }>).detail?.intensity ?? 0.5)
-      const amp = 3 + intensity * 3
-      gsap.fromTo(
-        el,
-        {
-          x: gsap.utils.random(-amp, amp),
-          y: gsap.utils.random(-amp, amp),
-          rotation: gsap.utils.random(-0.2, 0.2) * intensity,
-        },
-        {
-          x: 0,
-          y: 0,
-          rotation: 0,
-          duration: 0.25,
-          ease: 'power2.out',
-          // A leftover identity transform would turn the wrapper into a
-          // containing block and silently un-fix every fixed descendant.
-          onComplete: () => gsap.set(el, { clearProps: 'transform' }),
-        },
-      )
-    }
-    window.addEventListener(SHAKE_EVENT, onShake)
-    return () => window.removeEventListener(SHAKE_EVENT, onShake)
-  }, [])
 
   return (
     <div ref={appRef}>

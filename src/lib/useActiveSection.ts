@@ -1,28 +1,31 @@
 import { useEffect, useState } from 'react'
-import { nav } from '../content'
 
-/** Which chapter currently owns the viewport (id from content.nav, '' at the hero). */
+/** Follow every chapter, including interludes, so the rail never labels the wrong scene. */
 export function useActiveSection(): string {
   const [active, setActive] = useState('')
-
   useEffect(() => {
-    const io = new IntersectionObserver(
-      (entries) => {
-        for (const e of entries) {
-          if (e.isIntersecting) setActive(e.target.id)
-        }
-      },
-      { rootMargin: '-45% 0px -45% 0px' },
-    )
-    const top = document.getElementById('top')
-    if (top) io.observe(top)
-    // the last chapter is not a nav item, but it owns the viewport at the end
-    ;[...nav.map(({ id }) => id), 'vision'].forEach((id) => {
-      const el = document.getElementById(id)
-      if (el) io.observe(el)
-    })
-    return () => io.disconnect()
+    let frame = 0, alive = true
+    const chapters = Array.from(document.querySelectorAll<HTMLElement>('main section[id]'))
+    const update = () => {
+      frame = 0
+      if (!alive) return
+      const middle = innerHeight * .5
+      let current = ''
+      for (const section of chapters) {
+        const rect = section.getBoundingClientRect()
+        if (rect.top <= middle && rect.bottom > middle) current = section.id
+      }
+      setActive(current === 'top' ? '' : current)
+    }
+    const schedule = () => { if (!frame && alive) frame = requestAnimationFrame(update) }
+    window.addEventListener('scroll', schedule, { passive: true })
+    window.addEventListener('resize', schedule)
+    document.fonts?.ready.then(schedule).catch(() => {})
+    schedule()
+    return () => {
+      alive = false; cancelAnimationFrame(frame)
+      window.removeEventListener('scroll', schedule); window.removeEventListener('resize', schedule)
+    }
   }, [])
-
-  return active === 'top' ? '' : active
+  return active
 }

@@ -1,22 +1,15 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import SectionIndex from './SectionIndex'
 import CardShell from './CardShell'
 import { whoWeAre } from '../content'
-import { useSectionReveals, useSectionDepth, animateCounter } from '../lib/reveal'
-import { attachVideoScrub } from '../lib/videoScrub'
-import { prefersReducedMotion } from '../lib/motion'
-import { dealCard, shadowStyle } from '../lib/cardMotion'
+import { useSectionReveals, animateCounter } from '../lib/reveal'
+import { dealCard, observeCardLayout, shadowStyle } from '../lib/cardMotion'
 
 gsap.registerPlugin(ScrollTrigger)
 
 const ROBOT_SRC = '/assets/robot.mp4'
-
-/** resting "peek" tilt of each hole card, degrees — side by side only */
-const PEEK_TILT = 3.5
-/** the right card leaves the dealer's hand this long after the left, seconds */
-const DEAL_STAGGER = 0.18
 
 function renderEmphasis(text: string) {
   // *word* becomes an italic display word
@@ -24,32 +17,14 @@ function renderEmphasis(text: string) {
   return parts.map((p, i) => (i % 2 === 1 ? <em key={i}>{p}</em> : <span key={i}>{p}</span>))
 }
 
-/**
- * Who we are (K♠) — two portrait hole cards dealt onto the table as the
- * chapter enters: each flies in from its own side along a shallow arc,
- * spinning off the throw, and lands with a small bounce at its peeking
- * tilt (lib/cardMotion dealCard), a soft table shadow pooling under it.
- * Four count-up counters styled as card corner indices sit beneath. The
- * right card's robot clip is scroll-scrubbed: reading down the chapter deals
- * the hand forward, scrolling back rewinds it. Reduced motion places both
- * cards at rest and holds the clip on its first frame; a missing file
- * leaves the plain navy card back.
- *
- * Transform ownership: the [data-depth] wrapper carries the scrubbed
- * parallax (and the entrance opacity), the inner card element carries the
- * deal, and CardShell's own element carries the hover lift — never two
- * writers on one node.
- */
 export default function WhoWeAre() {
   const root = useRef<HTMLElement>(null)
   useSectionReveals(root)
-  useSectionDepth(root)
 
   const videoRef = useRef<HTMLVideoElement>(null)
   const [mounted, setMounted] = useState(false)
   const [ready, setReady] = useState(false)
   const [failed, setFailed] = useState(false)
-  const reduced = prefersReducedMotion()
 
   // The clip (1.6 MB) only downloads once the chapter is a viewport away
   useEffect(() => {
@@ -68,20 +43,53 @@ export default function WhoWeAre() {
     return () => io.disconnect()
   }, [])
 
-  // Scroll is the playhead across the chapter's full transit
+  // No playback clock: a seek is requested only by scroll, refresh or media
+  // readiness. While a decoder is busy, keep only the latest scroll target.
   useEffect(() => {
-    if (!mounted || failed || reduced) return
+    if (!mounted || failed) return
     const section = root.current
     const video = videoRef.current
     if (!section || !video) return
-
-    const detach = attachVideoScrub(video, {
-      trigger: section,
-      start: 'top 90%',
-      end: 'bottom 10%',
+    const mm = gsap.matchMedia()
+    mm.add({ all: 'all', reduce: '(prefers-reduced-motion: reduce)' }, (context) => {
+      let frame = 0
+      let alive = true
+      let progress = 0
+      const reduced = context.conditions?.reduce
+      const seek = () => {
+        frame = 0
+        if (!alive || video.readyState < 1 || video.seeking || !Number.isFinite(video.duration)) return
+        const target = reduced ? 0 : Math.max(0, video.duration - 1 / 30) * progress
+        if (Math.abs(video.currentTime - target) < 1 / 30) return
+        try { video.currentTime = target } catch { /* Retry on the next media-ready event. */ }
+      }
+      const requestSeek = () => { if (!frame && alive) frame = requestAnimationFrame(seek) }
+      const pause = () => video.pause()
+      pause()
+      const trigger = reduced ? null : ScrollTrigger.create({
+        trigger: section, start: 'top 90%', end: 'bottom 10%',
+        onUpdate: (self) => { progress = self.progress; requestSeek() },
+        onRefresh: (self) => { progress = self.progress; requestSeek() },
+      })
+      progress = trigger?.progress ?? 0
+      video.addEventListener('play', pause)
+      video.addEventListener('loadedmetadata', requestSeek)
+      video.addEventListener('loadeddata', requestSeek)
+      video.addEventListener('seeked', requestSeek)
+      requestSeek()
+      return () => {
+        alive = false
+        cancelAnimationFrame(frame)
+        trigger?.kill()
+        video.removeEventListener('play', pause)
+        video.removeEventListener('loadedmetadata', requestSeek)
+        video.removeEventListener('loadeddata', requestSeek)
+        video.removeEventListener('seeked', requestSeek)
+        pause()
+      }
     })
-    return () => detach()
-  }, [mounted, failed, reduced])
+    return () => mm.revert()
+  }, [mounted, failed])
 
   const onError = () => {
     if (!failed) {
@@ -99,51 +107,39 @@ export default function WhoWeAre() {
   const leftShadow = useRef<HTMLDivElement>(null)
   const rightShadow = useRef<HTMLDivElement>(null)
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const hand = handRef.current
-    const l = leftCard.current
-    const r = rightCard.current
-    const lHome = leftHome.current
-    const rHome = rightHome.current
-    if (!hand || !l || !r || !lHome || !rHome) return
-
-    const ctx = gsap.context(() => {
-      // Side by side (sm+) the cards peek toward each other; stacked, they lie straight
-      const tilt = window.matchMedia('(min-width: 640px)').matches ? PEEK_TILT : 0
-
-      if (prefersReducedMotion()) {
-        // Already on the table
-        gsap.set(l, { rotation: -tilt })
-        gsap.set(r, { rotation: tilt })
-        return
+    const cards = [leftCard.current, rightCard.current]
+    const homes = [leftHome.current, rightHome.current]
+    if (!hand || cards.some((card) => !card) || homes.some((home) => !home)) return
+    const mm = gsap.matchMedia()
+    mm.add({ all: 'all', wide: '(min-width: 640px)', reduce: '(prefers-reduced-motion: reduce)' }, (context) => {
+      if (context.conditions?.reduce) return
+      const wide = context.conditions?.wide
+      const add = (tl: gsap.core.Timeline, i: number, at: number) => {
+        const side = i === 0 ? -1 : 1
+        tl.add(dealCard(cards[i]!, {
+          from: { x: wide ? side * 70 : side * 22, y: 64, rotation: side * 11 },
+          rotation: wide ? side * 2.6 : 0, duration: 0.85, lift: -22,
+          shadow: i === 0 ? leftShadow.current : rightShadow.current,
+        }), at)
       }
-
-      // Nothing on the table until the dealer throws — the start positions sit
-      // above the fold, so the homes hide until each card's flight begins
-      gsap.set([lHome, rHome], { autoAlpha: 0 })
-
-      const vw = window.innerWidth
-      const vh = window.innerHeight
-      const throwFrom = (side: -1 | 1) => ({ x: side * vw * 0.5, y: -vh * 0.4, rotation: side * 60 })
-      const flight = { duration: 1.0, lift: -50, air: 1.08, immediate: false } as const
-
-      const tl = gsap.timeline({
-        scrollTrigger: { trigger: hand, start: 'top 85%', once: true, fastScrollEnd: true },
-      })
-      // Each card appears in the first hand-span of its flight, already moving
-      tl.to(lHome, { autoAlpha: 1, duration: 0.15, ease: 'none' }, 0)
-      tl.add(
-        dealCard(l, { ...flight, from: throwFrom(-1), rotation: -tilt, shadow: leftShadow.current }),
-        0,
-      )
-      tl.to(rHome, { autoAlpha: 1, duration: 0.15, ease: 'none' }, DEAL_STAGGER)
-      tl.add(
-        dealCard(r, { ...flight, from: throwFrom(1), rotation: tilt, shadow: rightShadow.current }),
-        DEAL_STAGGER,
-      )
-    }, root)
-
-    return () => ctx.revert()
+      if (wide) {
+        const tl = gsap.timeline({ scrollTrigger: {
+          trigger: hand, start: 'top 94%', end: 'top 38%', scrub: 0.22, invalidateOnRefresh: true,
+        } })
+        cards.forEach((_, i) => add(tl, i, i * 0.16))
+      } else {
+        homes.forEach((home, i) => {
+          const tl = gsap.timeline({ scrollTrigger: {
+            trigger: home!, start: 'top 94%', end: 'top 48%', scrub: 0.2, invalidateOnRefresh: true,
+          } })
+          add(tl, i, 0)
+        })
+      }
+    })
+    const unobserve = observeCardLayout([hand])
+    return () => { unobserve(); mm.revert() }
   }, [])
 
   const countersRef = useRef<HTMLDivElement>(null)
@@ -153,7 +149,7 @@ export default function WhoWeAre() {
     const tweens = Array.from(wrap.querySelectorAll<HTMLElement>('[data-counter]')).map((el) =>
       animateCounter(el, Number(el.dataset.counter), el.dataset.noSeparator === 'true'),
     )
-    return () => tweens.forEach((t) => t.kill())
+    return () => tweens.forEach((t) => { t.scrollTrigger?.kill(); t.kill() })
   }, [])
 
   return (
@@ -170,14 +166,13 @@ export default function WhoWeAre() {
           className="flex flex-col items-center justify-center gap-8 sm:flex-row sm:items-stretch md:gap-12"
         >
           {/* Left hole card — the words */}
-          <div ref={leftHome} data-depth="24" className="relative sm:translate-y-2">
+          <div ref={leftHome} className="relative">
             <div ref={leftShadow} aria-hidden="true" style={shadowStyle()} />
             <div ref={leftCard} className="relative">
-             <div className="life-float" style={{ ['--life-dur' as string]: '8.2s', ['--life-delay' as string]: '-2.1s' }}>
               <CardShell
-                className="card-face-surface neon relative flex aspect-[5/7] w-[min(76vw,18.75rem)] flex-col justify-center px-7 py-8 md:w-[min(24vw,20rem,34svh)] md:px-8"
+                className="who-card-copy card-face-surface relative flex aspect-[5/7] w-[min(76vw,18.75rem)] flex-col justify-center px-7 py-8 md:w-[min(24vw,20rem,34svh)] md:px-8"
                 tiltMax={4}
-                shadowEl={leftShadow}
+                shadow={false}
               >
                 <span
                   aria-hidden="true"
@@ -202,19 +197,17 @@ export default function WhoWeAre() {
                   <span className="text-base text-[var(--ink)] md:text-lg">♠</span>
                 </span>
               </CardShell>
-             </div>
             </div>
           </div>
 
           {/* Right hole card — the bot we train, dealing */}
-          <div ref={rightHome} data-depth="10" className="relative">
+          <div ref={rightHome} className="relative">
             <div ref={rightShadow} aria-hidden="true" style={shadowStyle()} />
             <div ref={rightCard} className="relative">
-             <div className="life-float" style={{ ['--life-dur' as string]: '9.1s', ['--life-delay' as string]: '-5.6s' }}>
               <CardShell
-                className="card-back-surface neon relative aspect-[5/7] w-[min(76vw,18.75rem)] overflow-hidden md:w-[min(24vw,20rem,34svh)]"
+                className="card-back-surface relative aspect-[5/7] w-[min(76vw,18.75rem)] overflow-hidden md:w-[min(24vw,20rem,34svh)]"
                 tiltMax={4}
-                shadowEl={rightShadow}
+                shadow={false}
               >
                 {mounted && !failed && (
                   <video
@@ -225,15 +218,7 @@ export default function WhoWeAre() {
                     src={ROBOT_SRC}
                     muted
                     playsInline
-                    preload={reduced ? 'metadata' : 'auto'}
-                    onLoadedMetadata={
-                      reduced
-                        ? (e) => {
-                            // A nudge off zero makes the first frame paint without a poster
-                            e.currentTarget.currentTime = 0.04
-                          }
-                        : undefined
-                    }
+                    preload="auto"
                     onLoadedData={() => setReady(true)}
                     onSeeked={() => setReady(true)}
                     onError={onError}
@@ -241,7 +226,6 @@ export default function WhoWeAre() {
                   />
                 )}
               </CardShell>
-             </div>
             </div>
           </div>
         </div>

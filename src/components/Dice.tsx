@@ -1,12 +1,6 @@
-import { useRef } from 'react'
+import './scopedMotion.css'
 
-/**
- * The mark: a die. A CSS cube with real pips that never stops tumbling
- * (global.css .dice-*), and every press throws it — a fast roll on the
- * outer wrapper so it never fights the slow tumble on the cube. Colours
- * come from --dice-face / --dice-pip so the same die sits on the dark deck
- * and the white sheets.
- */
+/** A resting die; its parent link/button supplies hover, keyboard and press feedback. */
 
 /** pip positions per face, on a 3×3 grid (row, col) */
 const PIPS: Array<Array<[number, number]>> = [
@@ -28,25 +22,10 @@ const FACE_TRANSFORM = [
 ]
 
 export default function Dice({ size = 18, className = '' }: { size?: number; className?: string }) {
-  const roll = useRef<HTMLSpanElement>(null)
-
-  const throwIt = () => {
-    const el = roll.current
-    if (!el) return
-    el.classList.remove('dice-roll')
-    // reflow so a second press replays the roll
-    void el.offsetWidth
-    el.classList.add('dice-roll')
-    el.addEventListener('animationend', () => el.classList.remove('dice-roll'), { once: true })
-  }
-
   return (
     <span
-      ref={roll}
       aria-hidden="true"
-      onPointerDown={throwIt}
-      onPointerEnter={throwIt}
-      className={`dice inline-block align-middle ${className}`}
+      className={`dice cgs-dice inline-block align-middle ${className}`}
       style={{ width: size, height: size, ['--dice-size' as string]: `${size}px` }}
     >
       <span className="dice-cube">

@@ -1,21 +1,9 @@
-import { useEffect, useRef } from 'react'
-import { prefersReducedMotion } from '../lib/motion'
+import { useEffect, useId, useRef, useState } from 'react'
+import './scopedMotion.css'
 
-/**
- * Graph algorithms, run live — the sibling of NetworkFlow. A random
- * geometric graph is drawn, an algorithm walks it step by step (edges lit
- * as they are considered, taken, or thrown away; nodes settle with their
- * distances), the result holds for a beat, and a fresh graph is dealt.
- * Canvas 2D, navy/blue/amber on the white sheet, only while near the
- * viewport. Reduced motion draws the finished result once.
- *
- *   kruskal   MST by weight order with cycle rejection (union–find)
- *   prim      MST grown from one seed along the cheapest frontier edge
- *   dijkstra  single-source shortest paths; nodes settle with distances
- *   astar     A* to a target: open set, closed set, heuristic pull
- *   bfs       breadth-first layers spreading from a source
- *   dfs       depth-first walk with backtracking
- */
+/** Graph algorithms replay once, with pause/step/new-graph controls. Algorithm
+ * state stays outside React; reduced motion shows a completed result and
+ * supports manual steps. Scene placement remains owned by the caller. */
 
 export type Algo = 'kruskal' | 'prim' | 'dijkstra' | 'astar' | 'bfs' | 'dfs'
 
@@ -24,8 +12,7 @@ const BLUE = '30,94,255'
 const AMBER = '255,158,66'
 const MUTED = '70,88,122'
 const N = 26
-const STEP_MS = 150
-const HOLD_MS = 1800
+const STEP_MS = 360
 
 interface Node {
   x: number
@@ -57,7 +44,7 @@ const dist = (a: Node, b: Node) => Math.hypot(a.x - b.x, a.y - b.y)
 /** Random geometric graph: spaced nodes, k-nearest edges, made connected. */
 function makeGraph(w: number, h: number, rnd: () => number): { nodes: Node[]; edges: Edge[] } {
   const nodes: Node[] = []
-  const pad = 22
+  const pad = Math.min(28, w / 5, h / 5)
   const minGap = Math.min(w, h) / 6.5
   let tries = 0
   while (nodes.length < N && tries++ < 4000) {
@@ -296,189 +283,191 @@ export const ALGO_LABEL: Record<Algo, string> = {
   dfs: 'Depth-first search',
 }
 
+/** One cancellable scheduler shared by the three canvas scenes. The scene clock
+ * advances only while actually visible; a completed sequence has no idle rAF. */
+export function createSceneLoop(canvas: HTMLCanvasElement, callbacks: {
+  tick: (elapsed: number, delta: number) => boolean
+  still: () => void
+  motion?: (reduced: boolean) => void
+}) {
+  const media = window.matchMedia('(prefers-reduced-motion: reduce)')
+  let near = false
+  let wanted = !media.matches
+  let raf = 0
+  let elapsed = 0
+  let last = 0
+  let disposed = false
+  const stop = () => { if (raf) cancelAnimationFrame(raf); raf = 0; last = 0 }
+  const frame = (now: number) => {
+    raf = 0
+    if (disposed || !near || document.hidden || media.matches || !wanted) return
+    const delta = last ? Math.min(now - last, 48) : 0
+    last = now
+    elapsed += delta
+    wanted = callbacks.tick(elapsed, delta)
+    if (wanted) raf = requestAnimationFrame(frame)
+    else last = 0
+  }
+  const sync = () => {
+    if (disposed || !near || document.hidden || media.matches || !wanted) stop()
+    else if (!raf) raf = requestAnimationFrame(frame)
+  }
+  const motion = () => {
+    if (media.matches) { wanted = false; stop(); callbacks.still() }
+    callbacks.motion?.(media.matches)
+    sync()
+  }
+  const io = new IntersectionObserver((entries) => { near = entries[0]?.isIntersecting ?? false; sync() }, { threshold: 0 })
+  io.observe(canvas)
+  media.addEventListener('change', motion)
+  document.addEventListener('visibilitychange', sync)
+  motion()
+  return {
+    play: () => { wanted = true; sync() },
+    pause: () => { wanted = false; stop() },
+    reduced: () => media.matches,
+    dispose: () => { disposed = true; stop(); io.disconnect(); media.removeEventListener('change', motion); document.removeEventListener('visibilitychange', sync) },
+  }
+}
+
 export default function GraphAlgo({ algo, className = '' }: { algo: Algo; className?: string }) {
   const ref = useRef<HTMLCanvasElement>(null)
+  const statusRef = useRef<HTMLSpanElement>(null)
+  const controls = useRef<{ toggle: () => void; step: () => void; deal: () => void } | null>(null)
+  const [playing, setPlaying] = useState(true)
+  const [reduced, setReduced] = useState(false)
+  const id = useId()
 
   useEffect(() => {
     const canvas = ref.current
     const ctx = canvas?.getContext('2d')
     if (!canvas || !ctx) return
-    const reduced = prefersReducedMotion()
     let w = 0
     let h = 0
-    let raf = 0
-    let near = false
     let nodes: Node[] = []
     let edges: Edge[] = []
     let steps: Step[] = []
     let at = 0
-    let stepAt = 0
-    let holdUntil = 0
-    let seed = Date.now() % 10007
+    let progress = 0
+    let running = true
+    setPlaying(true)
+    let seed = (Date.now() % 10007) || 1
     const rnd = () => {
-      // xorshift — replayable per deal
-      seed ^= seed << 13
-      seed ^= seed >>> 17
-      seed ^= seed << 5
+      seed ^= seed << 13; seed ^= seed >>> 17; seed ^= seed << 5
       return ((seed >>> 0) % 100000) / 100000
     }
-
     const deal = () => {
       const g = makeGraph(w, h, rnd)
-      nodes = g.nodes
-      edges = g.edges
+      nodes = g.nodes; edges = g.edges
       const src = Math.floor(rnd() * nodes.length)
       let dst = src
-      nodes.forEach((p, i) => {
-        if (dist(p, nodes[src]) > dist(nodes[dst], nodes[src])) dst = i
-      })
-      steps =
-        algo === 'kruskal'
-          ? runKruskal(nodes, edges)
-          : algo === 'prim'
-            ? runPrim(nodes, edges, src)
-            : algo === 'dijkstra'
-              ? runDijkstra(nodes, edges, src)
-              : algo === 'astar'
-                ? runAstar(nodes, edges, src, dst)
-                : algo === 'bfs'
-                  ? runBfs(nodes, edges, src)
-                  : runDfs(nodes, edges, src)
-      at = 0
-      stepAt = performance.now()
-      holdUntil = 0
+      nodes.forEach((p, i) => { if (dist(p, nodes[src]) > dist(nodes[dst], nodes[src])) dst = i })
+      steps = algo === 'kruskal' ? runKruskal(nodes, edges)
+        : algo === 'prim' ? runPrim(nodes, edges, src)
+        : algo === 'dijkstra' ? runDijkstra(nodes, edges, src)
+        : algo === 'astar' ? runAstar(nodes, edges, src, dst)
+        : algo === 'bfs' ? runBfs(nodes, edges, src) : runDfs(nodes, edges, src)
+      at = 0; progress = 0
     }
-
+    const status = () => {
+      if (statusRef.current) statusRef.current.textContent = `${at + 1} / ${steps.length} · ${steps[at]?.note ?? ''}`
+    }
     const draw = (s: Step, blend: number) => {
       ctx.clearRect(0, 0, w, h)
       const tree = new Set(s.tree ?? [])
+      const previousTree = new Set(steps[Math.max(0, at - 1)]?.tree ?? [])
       const settled = new Set(s.settled ?? [])
       const frontier = new Set(s.frontier ?? [])
       const pathEdges = new Set<string>()
       if (s.path) for (let i = 1; i < s.path.length; i++) pathEdges.add(`${Math.min(s.path[i - 1], s.path[i])}-${Math.max(s.path[i - 1], s.path[i])}`)
       ctx.lineCap = 'round'
-      // faint graph
       edges.forEach((e, k) => {
-        const A = nodes[e.a]
-        const B = nodes[e.b]
+        const A = nodes[e.a], B = nodes[e.b]
         const onPath = pathEdges.has(`${Math.min(e.a, e.b)}-${Math.max(e.a, e.b)}`)
-        let color = `rgba(${NAVY},0.10)`
-        let width = 1
-        if (tree.has(k)) {
-          color = `rgba(${BLUE},0.85)`
-          width = 2
-        }
-        if (s.consider === k) {
-          color = `rgba(${AMBER},${0.6 + 0.4 * blend})`
-          width = 2.4
-        }
-        if (s.reject === k) {
-          color = `rgba(220,60,90,${0.7 * (1 - blend)})`
-          width = 2
-        }
-        if (onPath) {
-          color = `rgba(${AMBER},0.95)`
-          width = 3.2
-        }
-        ctx.strokeStyle = color
-        ctx.lineWidth = width
-        ctx.beginPath()
-        ctx.moveTo(A.x, A.y)
-        ctx.lineTo(B.x, B.y)
-        ctx.stroke()
+        ctx.strokeStyle = `rgba(${NAVY},0.10)`; ctx.lineWidth = 1
+        ctx.beginPath(); ctx.moveTo(A.x, A.y); ctx.lineTo(B.x, B.y); ctx.stroke()
+        if (!tree.has(k) && s.consider !== k && s.reject !== k && !onPath) return
+        ctx.strokeStyle = onPath ? `rgba(${AMBER},.95)` : s.consider === k ? `rgba(${AMBER},.9)` : s.reject === k ? `rgba(180,60,90,${.6 * (1 - blend)})` : `rgba(${BLUE},.85)`
+        ctx.lineWidth = onPath ? 2.8 : 1.8
+        const t = tree.has(k) && !previousTree.has(k) ? 1 - (1 - blend) ** 3 : 1
+        ctx.beginPath(); ctx.moveTo(A.x, A.y); ctx.lineTo(A.x + (B.x - A.x) * t, A.y + (B.y - A.y) * t); ctx.stroke()
       })
-      // A*'s pull: a dotted line from the current node to the target
       if (algo === 'astar' && s.current !== undefined && s.target !== undefined) {
-        ctx.setLineDash([3, 5])
-        ctx.strokeStyle = `rgba(${AMBER},0.5)`
-        ctx.lineWidth = 1
-        ctx.beginPath()
-        ctx.moveTo(nodes[s.current].x, nodes[s.current].y)
-        ctx.lineTo(nodes[s.target].x, nodes[s.target].y)
-        ctx.stroke()
-        ctx.setLineDash([])
+        ctx.setLineDash([3, 5]); ctx.strokeStyle = `rgba(${AMBER},.5)`; ctx.lineWidth = 1
+        ctx.beginPath(); ctx.moveTo(nodes[s.current].x, nodes[s.current].y); ctx.lineTo(nodes[s.target].x, nodes[s.target].y); ctx.stroke(); ctx.setLineDash([])
       }
       nodes.forEach((p, i) => {
-        const isSrc = s.source === i
-        const isDst = s.target === i
+        const isSrc = s.source === i, isDst = s.target === i
         const r = isSrc || isDst ? 5.5 : 4
         if (frontier.has(i)) {
-          ctx.strokeStyle = `rgba(${AMBER},0.9)`
-          ctx.lineWidth = 1.5
-          ctx.beginPath()
-          ctx.arc(p.x, p.y, r + 4 + 1.5 * Math.sin(performance.now() / 180 + i), 0, Math.PI * 2)
-          ctx.stroke()
+          ctx.strokeStyle = `rgba(${AMBER},.9)`; ctx.lineWidth = 1.5
+          ctx.beginPath(); ctx.arc(p.x, p.y, r + 4, 0, Math.PI * 2); ctx.stroke()
         }
         if (s.current === i) {
-          ctx.fillStyle = `rgba(${AMBER},0.25)`
-          ctx.beginPath()
-          ctx.arc(p.x, p.y, r + 8, 0, Math.PI * 2)
-          ctx.fill()
+          ctx.fillStyle = `rgba(${AMBER},.2)`
+          ctx.beginPath(); ctx.arc(p.x, p.y, r + 8, 0, Math.PI * 2); ctx.fill()
         }
-        ctx.fillStyle = settled.has(i) || tree.size >= nodes.length - 1 ? `rgba(${BLUE},1)` : `rgba(${NAVY},0.9)`
-        if (isSrc) ctx.fillStyle = `rgba(${AMBER},1)`
-        if (isDst) ctx.fillStyle = 'rgba(220,60,90,1)'
-        ctx.beginPath()
-        ctx.arc(p.x, p.y, r, 0, Math.PI * 2)
-        ctx.fill()
+        ctx.fillStyle = isSrc ? `rgba(${AMBER},1)` : isDst ? 'rgba(180,60,90,1)' : settled.has(i) || tree.size >= nodes.length - 1 ? `rgba(${BLUE},1)` : `rgba(${NAVY},.9)`
+        ctx.beginPath(); ctx.arc(p.x, p.y, r, 0, Math.PI * 2); ctx.fill()
         const label = s.dist?.[i] ?? s.depth?.[i]
         if (label !== undefined) {
-          ctx.font = '600 10px "JetBrains Mono", ui-monospace, monospace'
-          ctx.fillStyle = `rgba(${MUTED},0.95)`
-          ctx.fillText(String(Math.round(label)), p.x + 7, p.y - 6)
+          ctx.font = '600 10px ui-monospace, monospace'; ctx.fillStyle = `rgba(${MUTED},.95)`
+          ctx.fillText(String(Math.round(label)), Math.min(w - 25, p.x + 7), p.y - 7)
         }
       })
     }
-
-    const frame = (now: number) => {
-      raf = 0
-      if (!steps.length) deal()
-      if (holdUntil && now > holdUntil) deal()
-      const s = steps[at]
-      const blend = Math.min(1, (now - stepAt) / STEP_MS)
-      draw(s, blend)
-      if (now - stepAt > STEP_MS && at < steps.length - 1) {
-        at++
-        stepAt = now
-        if (at === steps.length - 1) holdUntil = now + HOLD_MS
-      }
-      if (near && !document.hidden) raf = requestAnimationFrame(frame)
-    }
-    const start = () => {
-      if (!raf && near && !reduced && !document.hidden) raf = requestAnimationFrame(frame)
-    }
-
+    const finish = () => { running = false; setPlaying(false) }
+    const render = () => { if (steps.length) { draw(steps[at], 1); status() } }
     const resize = () => {
-      const dpr = Math.min(window.devicePixelRatio || 1, 2)
       const r = canvas.getBoundingClientRect()
-      w = Math.max(1, Math.round(r.width))
-      h = Math.max(1, Math.round(r.height))
-      canvas.width = w * dpr
-      canvas.height = h * dpr
+      const nextW = Math.max(80, Math.round(r.width)), nextH = Math.max(60, Math.round(r.height))
+      const dpr = Math.min(window.devicePixelRatio || 1, 2)
+      if (w === nextW && h === nextH && canvas.width === Math.round(nextW * dpr)) return
+      // Preserve the graph and replay position when the viewport changes.
+      if (w && h) nodes.forEach((p) => { p.x *= nextW / w; p.y *= nextH / h })
+      w = nextW; h = nextH
+      canvas.width = Math.round(w * dpr); canvas.height = Math.round(h * dpr)
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
-      deal()
-      if (reduced) draw(steps[steps.length - 1], 1)
+      if (!steps.length) deal()
+      render()
     }
-    const io = new IntersectionObserver(
-      (es) => {
-        near = es[0]?.isIntersecting ?? false
-        if (near) start()
+    resize()
+    const loop = createSceneLoop(canvas, {
+      tick: (_elapsed, delta) => {
+        progress += delta
+        if (progress >= STEP_MS && at < steps.length - 1) { at++; progress = 0; status() }
+        draw(steps[at], Math.min(1, progress / STEP_MS))
+        if (at === steps.length - 1 && progress >= STEP_MS) { finish(); render(); return false }
+        return running
       },
-      { rootMargin: '20% 0px' },
-    )
-    io.observe(canvas)
+      still: () => { at = steps.length - 1; finish(); render() },
+      motion: setReduced,
+    })
+    controls.current = {
+      toggle: () => {
+        if (loop.reduced()) return
+        if (running) { finish(); loop.pause(); render() }
+        else { if (at === steps.length - 1) { at = 0; progress = 0; render() }; running = true; setPlaying(true); loop.play() }
+      },
+      step: () => { finish(); loop.pause(); at = (at + 1) % steps.length; progress = 0; render() },
+      deal: () => { finish(); loop.pause(); deal(); render() },
+    }
     const ro = new ResizeObserver(resize)
     ro.observe(canvas)
-    resize()
-    const onVis = () => start()
-    document.addEventListener('visibilitychange', onVis)
-    return () => {
-      if (raf) cancelAnimationFrame(raf)
-      io.disconnect()
-      ro.disconnect()
-      document.removeEventListener('visibilitychange', onVis)
-    }
+    return () => { controls.current = null; loop.dispose(); ro.disconnect() }
   }, [algo])
 
-  return <canvas ref={ref} aria-hidden="true" className={className} />
+  return (
+    <figure className={`cgs-scene ${className}`} aria-labelledby={id}>
+      <canvas ref={ref} role="img" aria-label={`${ALGO_LABEL[algo]}. Blue edges show the tree; amber shows the current search or selected path.`} />
+      <figcaption id={id} className="cgs-scene-caption">
+        <span>{ALGO_LABEL[algo]}<span ref={statusRef} className="cgs-scene-status" aria-live={playing ? 'off' : 'polite'} /></span>
+        <span className="cgs-scene-controls">
+          <button type="button" onClick={() => controls.current?.toggle()} disabled={reduced} aria-label={playing ? 'Pause algorithm' : 'Play algorithm'}>{playing ? 'Pause' : 'Play'}</button>
+          <button type="button" onClick={() => controls.current?.step()}>Step</button>
+          <button type="button" onClick={() => controls.current?.deal()}>New graph</button>
+        </span>
+      </figcaption>
+    </figure>
+  )
 }

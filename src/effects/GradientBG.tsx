@@ -216,7 +216,8 @@ export default function GradientBG() {
     const ease = themeLerpEase
 
     const frame = (now: number) => {
-      if (document.documentElement.classList.contains('eye-on')) {
+      if (document.documentElement.classList.contains('eye-on') || document.documentElement.classList.contains('cinema-on')) {
+        last = now
         raf = requestAnimationFrame(frame)
         return
       }

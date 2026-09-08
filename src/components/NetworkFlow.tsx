@@ -1,231 +1,134 @@
-import { useEffect, useRef } from 'react'
-import { prefersReducedMotion } from '../lib/motion'
-
-/**
- * Network flow — a layered network (4 inputs fanning out through wider
- * hidden layers to a few outputs) that BUILDS itself on enter, then keeps
- * re-routing: every connection blinks on and off many times a second and
- * pulses race along whichever edges are live, so the graph never settles.
- * Canvas 2D on the white sheet, navy/blue, DPR capped; the loop runs only
- * while the canvas is near the viewport. Reduced motion draws one still
- * frame with a few lit paths.
- */
+import { useEffect, useId, useRef, useState } from 'react'
+import { createSceneLoop } from './GraphAlgo'
+import './scopedMotion.css'
 
 const LAYERS = [4, 7, 9, 6, 2]
-const NAVY = '10,30,63'
-const BLUE = '30,94,255'
-/** ms an edge stays in a state before it may flip again — many flips a second */
-const FLIP_MIN = 45
-const FLIP_MAX = 160
-const PULSE_MS = 420
+const BUILD_MS = 800
+const SIGNAL_MS = 500
+const DURATION = BUILD_MS + SIGNAL_MS * (LAYERS.length - 1)
+type Point = { x: number; y: number; layer: number }
 
-interface Node {
-  x: number
-  y: number
-  heat: number
-}
-interface Edge {
-  a: number
-  b: number
-  on: boolean
-  next: number
-  born: number
-}
-interface Pulse {
-  e: number
-  t0: number
-}
-
+/** One legible signal crosses a stationary network. Selecting an input traces
+ * its route; the completed connection holds until another explicit action. */
 export default function NetworkFlow({ className = '' }: { className?: string }) {
   const ref = useRef<HTMLCanvasElement>(null)
+  const actions = useRef<{ select: (input: number) => void; toggle: () => void } | null>(null)
+  const [input, setInput] = useState(0)
+  const [playing, setPlaying] = useState(true)
+  const [reduced, setReduced] = useState(false)
+  const id = useId()
 
   useEffect(() => {
     const canvas = ref.current
     const ctx = canvas?.getContext('2d')
     if (!canvas || !ctx) return
-    const reduced = prefersReducedMotion()
-
-    let w = 0
-    let h = 0
-    let dpr = 1
-    let raf = 0
-    let near = false
-    let last = performance.now()
-    let t0 = performance.now()
-    const nodes: Node[] = []
-    const edges: Edge[] = []
-    const pulses: Pulse[] = []
-    const layerOf: number[] = []
-
-    // Lattice in unit space; resize maps it onto the canvas
-    const unit: Array<{ u: number; v: number }> = []
-    LAYERS.forEach((n, li) => {
-      for (let i = 0; i < n; i++) {
-        unit.push({ u: (li + 0.5) / LAYERS.length, v: (i + 0.5) / n })
-        layerOf.push(li)
-      }
+    let w = 1, h = 1, progress = 0, selected = 0, running = true
+    setPlaying(true)
+    const nodes: Point[] = []
+    const layers: number[][] = []
+    const edges: Array<[number, number]> = []
+    LAYERS.forEach((count, layer) => {
+      const indices: number[] = []
+      for (let i = 0; i < count; i++) { indices.push(nodes.length); nodes.push({ x: 0, y: 0, layer }) }
+      layers.push(indices)
+      if (layer) layers[layer - 1].forEach((a) => indices.forEach((b) => edges.push([a, b])))
     })
-    let offset = 0
-    LAYERS.forEach((n, li) => {
-      if (li === LAYERS.length - 1) return
-      const nextN = LAYERS[li + 1]
-      for (let i = 0; i < n; i++)
-        for (let j = 0; j < nextN; j++)
-          edges.push({ a: offset + i, b: offset + n + j, on: Math.random() < 0.35, next: 0, born: 0 })
-      offset += n
-    })
-    unit.forEach(() => nodes.push({ x: 0, y: 0, heat: 0 }))
-
-    const layout = () => {
-      unit.forEach((p, i) => {
-        // hidden layers spread taller than the ends: a lens shape
-        const spread = 0.62 + 0.38 * Math.sin(Math.PI * p.u)
-        nodes[i].x = 24 + p.u * (w - 48)
-        nodes[i].y = h / 2 + (p.v - 0.5) * h * spread
-      })
-    }
-
-    const resize = () => {
-      dpr = Math.min(window.devicePixelRatio || 1, 2)
-      const r = canvas.getBoundingClientRect()
-      w = Math.max(1, Math.round(r.width))
-      h = Math.max(1, Math.round(r.height))
-      canvas.width = w * dpr
-      canvas.height = h * dpr
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
-      layout()
-      if (reduced) draw(performance.now(), 1)
-    }
-
-    /** Build-in: layers appear left→right over ~1.6 s; edges draw as their layer arrives. */
-    const buildProgress = (now: number) => Math.min(1, (now - t0) / 1600)
-
-    const draw = (now: number, build: number) => {
+    const route = () => layers.map((indices, layer) => indices[(selected * (layer + 1) + layer * 2) % indices.length])
+    const draw = () => {
       ctx.clearRect(0, 0, w, h)
-      const layersShown = build * (LAYERS.length + 0.5)
-
-      // Edges
       ctx.lineCap = 'round'
-      for (let k = 0; k < edges.length; k++) {
-        const e = edges[k]
-        const la = layerOf[e.a]
-        const reveal = Math.max(0, Math.min(1, layersShown - la - 0.6))
-        if (reveal <= 0) continue
-        const A = nodes[e.a]
-        const B = nodes[e.b]
-        const x2 = A.x + (B.x - A.x) * reveal
-        const y2 = A.y + (B.y - A.y) * reveal
-        ctx.strokeStyle = e.on ? `rgba(${BLUE},0.75)` : `rgba(${NAVY},0.10)`
-        ctx.lineWidth = e.on ? 1.4 : 0.8
-        ctx.beginPath()
-        ctx.moveTo(A.x, A.y)
-        ctx.lineTo(x2, y2)
-        ctx.stroke()
+      const build = Math.min(1, progress / BUILD_MS)
+      const path = route()
+      for (const [a, b] of edges) {
+        const A = nodes[a], B = nodes[b]
+        const t = Math.max(0, Math.min(1, build * LAYERS.length - A.layer))
+        ctx.strokeStyle = 'rgba(10,30,63,.09)'; ctx.lineWidth = .8
+        ctx.beginPath(); ctx.moveTo(A.x, A.y); ctx.lineTo(A.x + (B.x - A.x) * t, A.y + (B.y - A.y) * t); ctx.stroke()
       }
-
-      // Pulses along live edges
-      for (const p of pulses) {
-        const e = edges[p.e]
-        const f = (now - p.t0) / PULSE_MS
-        if (f < 0 || f > 1) continue
-        const A = nodes[e.a]
-        const B = nodes[e.b]
-        const x = A.x + (B.x - A.x) * f
-        const y = A.y + (B.y - A.y) * f
-        ctx.fillStyle = `rgba(${BLUE},${0.95 * (1 - f * 0.4)})`
-        ctx.beginPath()
-        ctx.arc(x, y, 2.6, 0, Math.PI * 2)
-        ctx.fill()
-      }
-
-      // Nodes: navy discs, a blue heat ring when signals arrive
-      nodes.forEach((n, i) => {
-        const reveal = Math.max(0, Math.min(1, layersShown - layerOf[i]))
-        if (reveal <= 0) return
-        const r = (3.2 + (layerOf[i] === 0 || layerOf[i] === LAYERS.length - 1 ? 1.4 : 0)) * reveal
-        if (n.heat > 0.02) {
-          ctx.fillStyle = `rgba(${BLUE},${n.heat * 0.35})`
-          ctx.beginPath()
-          ctx.arc(n.x, n.y, r + 6 * n.heat, 0, Math.PI * 2)
-          ctx.fill()
+      for (let layer = 0; layer < path.length - 1; layer++) {
+        const A = nodes[path[layer]], B = nodes[path[layer + 1]]
+        const t = Math.max(0, Math.min(1, (progress - BUILD_MS - layer * SIGNAL_MS) / SIGNAL_MS))
+        if (!t) continue
+        ctx.strokeStyle = 'rgba(30,94,255,.85)'; ctx.lineWidth = 2
+        ctx.beginPath(); ctx.moveTo(A.x, A.y); ctx.lineTo(A.x + (B.x - A.x) * t, A.y + (B.y - A.y) * t); ctx.stroke()
+        if (t < 1) {
+          ctx.fillStyle = '#1e5eff'; ctx.beginPath(); ctx.arc(A.x + (B.x - A.x) * t, A.y + (B.y - A.y) * t, 3, 0, Math.PI * 2); ctx.fill()
         }
-        ctx.fillStyle = `rgba(${NAVY},${0.55 + 0.45 * reveal})`
-        ctx.beginPath()
-        ctx.arc(n.x, n.y, r, 0, Math.PI * 2)
-        ctx.fill()
-        if (n.heat > 0.02) {
-          ctx.fillStyle = `rgba(${BLUE},${n.heat})`
-          ctx.beginPath()
-          ctx.arc(n.x, n.y, r * 0.55, 0, Math.PI * 2)
-          ctx.fill()
+      }
+      nodes.forEach((point, i) => {
+        const reached = path.includes(i) && progress >= BUILD_MS + point.layer * SIGNAL_MS
+        ctx.fillStyle = reached ? '#1e5eff' : 'rgba(10,30,63,.65)'
+        ctx.beginPath(); ctx.arc(point.x, point.y, point.layer === 0 || point.layer === 4 ? 4.5 : 3, 0, Math.PI * 2); ctx.fill()
+        if (point.layer === 0) {
+          const n = layers[0].indexOf(i)
+          ctx.font = '11px ui-monospace, monospace'; ctx.fillStyle = '#46587a'
+          ctx.fillText(String(n + 1), point.x - 20, point.y + 4)
+          if (n === selected) {
+            ctx.strokeStyle = '#1e5eff'; ctx.lineWidth = 1
+            ctx.beginPath(); ctx.arc(point.x, point.y, 9, 0, Math.PI * 2); ctx.stroke()
+          }
         }
       })
     }
-
-    const frame = (now: number) => {
-      raf = 0
-      const dt = Math.min(0.1, (now - last) / 1000)
-      last = now
-      const build = buildProgress(now)
-
-      // Re-route: each edge flips after its own short random hold
-      for (let k = 0; k < edges.length; k++) {
-        const e = edges[k]
-        if (now >= e.next) {
-          const wasOn = e.on
-          e.on = Math.random() < 0.38
-          e.next = now + FLIP_MIN + Math.random() * (FLIP_MAX - FLIP_MIN)
-          if (e.on && !wasOn && build > 0.6 && pulses.length < 90) pulses.push({ e: k, t0: now })
-        }
-      }
-      // Pulses that arrive heat their target node; heat cools
-      for (let i = pulses.length - 1; i >= 0; i--) {
-        const p = pulses[i]
-        const f = (now - p.t0) / PULSE_MS
-        if (f >= 1) {
-          nodes[edges[p.e].b].heat = Math.min(1, nodes[edges[p.e].b].heat + 0.6)
-          pulses.splice(i, 1)
-        }
-      }
-      for (const n of nodes) n.heat = Math.max(0, n.heat - dt * 2.2)
-
-      draw(now, build)
-      if (near && !document.hidden) raf = requestAnimationFrame(frame)
+    const resize = () => {
+      const box = canvas.getBoundingClientRect()
+      w = Math.max(80, Math.round(box.width)); h = Math.max(50, Math.round(box.height))
+      const dpr = Math.min(window.devicePixelRatio || 1, 2)
+      canvas.width = Math.round(w * dpr); canvas.height = Math.round(h * dpr)
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
+      layers.forEach((indices, layer) => indices.forEach((index, row) => {
+        nodes[index].x = 30 + layer / (LAYERS.length - 1) * (w - 54)
+        nodes[index].y = 14 + (row + .5) / indices.length * (h - 28)
+      }))
+      draw()
     }
-    const start = () => {
-      if (!raf && near && !reduced && !document.hidden) {
-        last = performance.now()
-        raf = requestAnimationFrame(frame)
-      }
-    }
-
-    const io = new IntersectionObserver(
-      (entries) => {
-        const was = near
-        near = entries[0]?.isIntersecting ?? false
-        if (near && !was) t0 = performance.now() // build again when it comes back
-        if (near) start()
-      },
-      { rootMargin: '20% 0px' },
-    )
-    io.observe(canvas)
-    const onVis = () => start()
-    document.addEventListener('visibilitychange', onVis)
-    const ro = new ResizeObserver(resize)
-    ro.observe(canvas)
+    const finish = () => { running = false; setPlaying(false) }
     resize()
-    if (reduced) {
-      edges.forEach((e, k) => (e.on = k % 7 === 0))
-      draw(performance.now(), 1)
+    const loop = createSceneLoop(canvas, {
+      tick: (_elapsed, delta) => {
+        progress = Math.min(DURATION, progress + delta); draw()
+        if (progress === DURATION) { finish(); return false }
+        return running
+      },
+      still: () => { progress = DURATION; finish(); draw() },
+      motion: setReduced,
+    })
+    const select = (next: number) => {
+      selected = next; setInput(next)
+      progress = loop.reduced() ? DURATION : BUILD_MS
+      running = !loop.reduced(); setPlaying(running); draw()
+      if (running) loop.play()
     }
-
-    return () => {
-      if (raf) cancelAnimationFrame(raf)
-      io.disconnect()
-      ro.disconnect()
-      document.removeEventListener('visibilitychange', onVis)
+    actions.current = {
+      select,
+      toggle: () => {
+        if (loop.reduced()) return
+        if (running) { finish(); loop.pause() }
+        else { if (progress === DURATION) progress = BUILD_MS; running = true; setPlaying(true); loop.play() }
+      },
     }
+    const onPointer = (event: PointerEvent) => {
+      if (event.pointerType !== 'mouse' && event.pointerType !== 'pen') return
+      const box = canvas.getBoundingClientRect()
+      const x = event.clientX - box.left, y = event.clientY - box.top
+      const selectedNode = layers[0].findIndex((index) => Math.hypot(nodes[index].x - x, nodes[index].y - y) <= 18)
+      if (selectedNode >= 0) select(selectedNode)
+    }
+    canvas.addEventListener('pointerup', onPointer)
+    const ro = new ResizeObserver(resize); ro.observe(canvas)
+    return () => { actions.current = null; loop.dispose(); ro.disconnect(); canvas.removeEventListener('pointerup', onPointer) }
   }, [])
 
-  return <canvas ref={ref} aria-hidden="true" className={className} />
+  return (
+    <figure className={`cgs-scene ${className}`} aria-labelledby={id}>
+      <canvas ref={ref} role="img" aria-label={`Layered network. The blue path connects input ${input + 1} to output ${(input * 5 + 8) % 2 + 1}.`} />
+      <figcaption id={id} className="cgs-scene-caption">
+        <span>Network flow<span className="cgs-scene-status">Choose an input to trace its connections</span></span>
+        <span className="cgs-scene-controls">
+          {[0, 1, 2, 3].map((n) => <button key={n} type="button" aria-label={`Trace input ${n + 1}`} aria-pressed={input === n} onClick={() => actions.current?.select(n)}>{n + 1}</button>)}
+          <button type="button" disabled={reduced} onClick={() => actions.current?.toggle()}>{playing ? 'Pause' : 'Replay'}</button>
+        </span>
+      </figcaption>
+    </figure>
+  )
 }

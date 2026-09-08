@@ -1,152 +1,83 @@
 import type { ReactElement } from 'react'
 import gsap from 'gsap'
-import { ScrambleTextPlugin } from 'gsap/ScrambleTextPlugin'
-import type { PageTheme } from '../../lib/pageTheme'
-import { EASE } from '../../lib/eases'
-import { prefersReducedMotion } from '../../lib/motion'
+import type { PageTheme, ThemeName } from '../../lib/pageTheme'
+import '../scopedMotion.css'
 
-gsap.registerPlugin(ScrambleTextPlugin)
+/** Shared entrance lifecycle: one reveal per block, no ongoing copy motion. */
+export function enterPage(root: HTMLElement, variant: ThemeName): () => void {
+  const previous = root.getAttribute('data-motion-theme')
+  root.setAttribute('data-motion-theme', variant)
+  const items = Array.from(root.querySelectorAll<HTMLElement>('[data-page-item]'))
+  const seen = new Set<Element>()
+  const mm = gsap.matchMedia()
 
-/**
- * Technical — "lab, not firm" (/whatWeDo/, /mlProcess/). A blueprint grid
- * and one slow scan band sit behind the sheet; the title decodes in once,
- * the rest arrives on a short stagger; the section copy types itself.
- */
+  mm.add({ motion: '(prefers-reduced-motion: no-preference)', reduced: '(prefers-reduced-motion: reduce)' }, (context) => {
+    if (context.conditions?.reduced) {
+      items.forEach((el) => { seen.add(el); el.setAttribute('data-page-revealed', '') })
+      return
+    }
+    const tweens = new Set<gsap.core.Tween>()
+    const reveal = (batch: HTMLElement[]) => {
+      batch.forEach((el, i) => {
+        seen.add(el)
+        el.setAttribute('data-page-revealed', '')
+        const title = el.hasAttribute('data-page-title')
+        // Only the initial arrival moves type. Geometry accents carry the personality.
+        const tween = gsap.fromTo(el, {
+          opacity: 0,
+          x: variant === 'technical' && title ? -10 : 0,
+          y: variant === 'technical' ? 0 : title ? (variant === 'cinematic' ? 24 : 16) : 10,
+        }, {
+          opacity: 1, x: 0, y: 0,
+          duration: title ? (variant === 'cinematic' ? 0.85 : 0.65) : 0.48,
+          delay: Math.min(i * 0.045, 0.18),
+          ease: variant === 'kinetic' ? 'power4.out' : 'power3.out',
+          clearProps: 'opacity,transform',
+          onComplete: () => { tweens.delete(tween) },
+        })
+        tweens.add(tween)
+        if (document.hidden) tween.pause()
+      })
+    }
+    const io = new IntersectionObserver((entries) => {
+      const batch = entries.filter((e) => e.isIntersecting && !seen.has(e.target)).map((e) => e.target as HTMLElement)
+      // Capture geometry before GSAP starts writing styles.
+      batch.forEach((el) => io.unobserve(el))
+      context.add(() => reveal(batch))
+    }, { threshold: 0, rootMargin: '0px 0px -24px 0px' })
+    items.filter((el) => !seen.has(el)).forEach((el) => io.observe(el))
+    const onVisibility = () => tweens.forEach((tween) => { document.hidden ? tween.pause() : tween.resume() })
+    const onFocus = (event: FocusEvent) => {
+      const block = (event.target as HTMLElement).closest<HTMLElement>('[data-page-item]')
+      if (block) tweens.forEach((tween) => { if (tween.targets().includes(block)) tween.progress(1) })
+    }
+    document.addEventListener('visibilitychange', onVisibility)
+    root.addEventListener('focusin', onFocus)
+    return () => {
+      io.disconnect()
+      tweens.forEach((tween) => tween.kill())
+      document.removeEventListener('visibilitychange', onVisibility)
+      root.removeEventListener('focusin', onFocus)
+    }
+  }, root)
 
-const CHARS = '{}[]()<>=+*/;:#01'
-const HAIRLINE = 'rgba(10,30,63,0.06)'
-
-/* Scoped to technical-* names; the band is transform-only. */
-const CSS = `
-@keyframes technical-scan {
-  from { transform: translate3d(0, -100%, 0); }
-  to { transform: translate3d(0, 100vh, 0); }
+  return () => {
+    mm.revert()
+    items.forEach((el) => el.removeAttribute('data-page-revealed'))
+    if (previous === null) root.removeAttribute('data-motion-theme')
+    else root.setAttribute('data-motion-theme', previous)
+  }
 }
-.technical-scan {
-  animation: technical-scan 7s linear infinite;
-}
-@media (prefers-reduced-motion: reduce) {
-  .technical-scan { animation: none; display: none; }
-}
-`
-
-/* The vignette is a mask on the grid itself, not a white overlay: the layer
-   must never paint anything opaque, since in-flow page content that isn't
-   lifted above z-index 0 would otherwise be washed out. Static masks only. */
-const SIDE_FADE = 'linear-gradient(90deg, transparent, #000 20%, #000 80%, transparent)'
-const END_FADE = 'linear-gradient(180deg, transparent, #000 240px, #000 calc(100% - 240px), transparent)'
 
 function Backdrop(): ReactElement {
-  const reduced = prefersReducedMotion()
   return (
-    <div
-      aria-hidden="true"
-      style={{ position: 'absolute', inset: 0, pointerEvents: 'none', overflow: 'hidden', zIndex: 0 }}
-    >
-      <style>{CSS}</style>
-      <div style={{ position: 'absolute', inset: 0, WebkitMaskImage: SIDE_FADE, maskImage: SIDE_FADE }}>
-        <div
-          style={{
-            position: 'absolute',
-            inset: 0,
-            backgroundImage: `linear-gradient(${HAIRLINE} 1px, transparent 1px), linear-gradient(90deg, ${HAIRLINE} 1px, transparent 1px)`,
-            backgroundSize: '40px 40px',
-            WebkitMaskImage: END_FADE,
-            maskImage: END_FADE,
-          }}
-        />
-      </div>
-      {/* Viewport-fixed so every scroll position gets the sweep; the root has no transform, so fixed stays fixed. */}
-      {!reduced && (
-        <div
-          className="technical-scan"
-          style={{
-            position: 'fixed',
-            left: 0,
-            right: 0,
-            top: 0,
-            height: 120,
-            background:
-              'linear-gradient(180deg, rgba(30,94,255,0) 0%, rgba(30,94,255,0.10) 50%, rgba(30,94,255,0) 100%)',
-            WebkitMaskImage: SIDE_FADE,
-            maskImage: SIDE_FADE,
-          }}
-        />
-      )}
+    <div aria-hidden="true" className="cgs-backdrop cgs-technical-backdrop">
+      <svg className="cgs-technical-trace" viewBox="0 0 320 180" fill="none">
+        <path className="cgs-draw-line" pathLength="1" d="M0 140H80V90H180V30H320" />
+        <circle cx="80" cy="140" r="4" /><circle cx="180" cy="90" r="4" />
+      </svg>
     </div>
   )
 }
 
-function enter(root: HTMLElement): () => void {
-  const items = Array.from(root.querySelectorAll<HTMLElement>('[data-page-item]'))
-  const title = root.querySelector<HTMLElement>('[data-page-title]')
-  const rest = items.filter((el) => el !== title)
-  const original = title?.textContent ?? ''
-  const undo: Array<() => void> = []
-
-  const ctx = gsap.context(() => {
-    if (prefersReducedMotion()) {
-      gsap.fromTo(items, { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.5, ease: EASE.out })
-      return
-    }
-
-    gsap.fromTo(
-      rest,
-      { autoAlpha: 0, y: 14 },
-      { autoAlpha: 1, y: 0, duration: 0.5, ease: EASE.out, stagger: 0.06, delay: 0.35 },
-    )
-
-    if (title) {
-      /* The scrambled run has no break opportunities; let it wrap inside
-         the title's max-width like the real words do. */
-      title.style.overflowWrap = 'anywhere'
-      const restore = () => {
-        title.textContent = original
-        title.style.overflowWrap = ''
-      }
-      undo.push(restore)
-      gsap.set(title, { autoAlpha: 1 })
-      /* The title decodes on arrival and then again every few seconds — the
-         lab keeps recomputing. Each run is its own tween (the interval
-         outlives this context), so the current one is tracked and killed
-         on cleanup; restore() always leaves the real words behind. */
-      let current: gsap.core.Tween | null = null
-      const decode = () => {
-        current?.kill()
-        title.style.overflowWrap = 'anywhere'
-        current = gsap
-          .to(title, {
-            duration: 1.1,
-            ease: 'none',
-            scrambleText: {
-              text: original,
-              chars: CHARS,
-              revealDelay: 0.15,
-              tweenLength: false,
-              speed: 0.4,
-            },
-            onComplete: restore,
-          })
-          /* Write the first scrambled frame now so the real title never paints ahead of its decode. */
-          .progress(0.0001)
-      }
-      decode()
-      const loop = window.setInterval(() => {
-        if (!document.hidden) decode()
-      }, 6500)
-      undo.push(() => {
-        window.clearInterval(loop)
-        current?.kill()
-        restore()
-      })
-    }
-
-  }, root)
-
-  return () => {
-    ctx.revert()
-    for (const fn of undo.splice(0)) fn()
-  }
-}
-
-export const theme: PageTheme = { name: 'technical', Backdrop, enter }
+export const theme: PageTheme = { name: 'technical', Backdrop, enter: (root) => enterPage(root, 'technical') }
