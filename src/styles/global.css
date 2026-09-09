@@ -1,12 +1,12 @@
 @import 'tailwindcss';
 
 /* ---------------------------------------------------------------------------
-   Design tokens — two color worlds. Blue is the face-down world, Red is the
-   face-up world. Every color the site uses lives here; flipping the hero card
-   swaps data-theme on <html> and everything follows over 800 ms.
+   Design tokens — five page palettes, mirrored in src/lib/theme.ts.
+   The hero card owns its separate palette; its flips do not change these
+   tokens or the fixed-color city backdrop.
 --------------------------------------------------------------------------- */
 
-/* World 1 (card face down): dark blue. */
+/* Default page palette: dark blue. */
 :root {
   --bg-top: #04081c;
   --bg-mid: #0b2a6b;
@@ -534,55 +534,6 @@ a:hover .btn-label > span {
 .link-wipe:focus-visible {
   background-size: 100% 1px;
   background-position: 0% calc(100% - 0.05em);
-}
-
-/* ---------------------------------------------------------------------------
-   Hero card video — masked so its baked gradient melts into the site's own
-   background, floating gently in the middle of the page
---------------------------------------------------------------------------- */
-
-.hero-card-video {
-  height: min(92vh, 53.75rem);
-  aspect-ratio: 16 / 9;
-  max-width: none;
-  object-fit: cover;
-  will-change: transform, filter, clip-path;
-  transform: translateZ(0);
-  /* only the card: its rectangle in the frame (measured), rounded like a card;
-     HeroCard opens this to the full frame while the film zooms */
-  --card-k: 0;
-  clip-path: inset(
-    calc(17.2% * (1 - var(--card-k))) calc(37.5% * (1 - var(--card-k))) calc(16.1% * (1 - var(--card-k)))
-      calc(37.5% * (1 - var(--card-k))) round calc(3.2% * (1 - var(--card-k)))
-  );
-}
-
-/* the table shadow under the card — a sibling, so the clip never cuts it */
-.hero-card-shadow {
-  position: absolute;
-  left: 37.5%;
-  top: 17.2%;
-  width: 25%;
-  height: 66.7%;
-  border-radius: 3.2%;
-  box-shadow:
-    0 2.5rem 5rem -1.5rem rgba(0, 0, 0, 0.75),
-    0 0.5rem 1.2rem -0.4rem rgba(0, 0, 0, 0.5);
-  opacity: calc(1 - var(--card-k, 0));
-  pointer-events: none;
-}
-
-@media (max-width: 768px) {
-  .hero-card-stage {
-    align-items: flex-start;
-  }
-
-  .hero-card-frame {
-    margin-top: 2svh;
-  }
-  .hero-card-video {
-    height: 56svh;
-  }
 }
 
 @keyframes globe-drift {

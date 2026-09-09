@@ -1,0 +1,35 @@
+.poker-stage {
+  --poker-accent:#69dcff; --poker-second:#8875ff; --poker-foil:#daefff; --poker-face:#081326;
+  position:absolute; inset:0; z-index:2; pointer-events:none;
+}
+.poker-location { position:absolute; left:50%; top:50%; width:min(22vw,23rem,43svh); aspect-ratio:5/7; transform:translate(-50%,-50%); perspective:1400px; }
+.poker-entrance,.poker-float,.poker-tilt,.poker-turn { position:relative; display:block; width:100%; height:100%; transform-style:preserve-3d; }
+.poker-entrance,.poker-float,.poker-turn { will-change:transform; }
+.hero-poker { position:absolute; inset:0; width:100%; height:100%; z-index:3; appearance:none; padding:0; border:0; background:transparent; color:inherit; cursor:pointer; pointer-events:auto; outline:none; touch-action:manipulation; -webkit-tap-highlight-color:transparent; }
+.hero-poker:focus-visible { outline:2px solid #c1f4ff; outline-offset:12px; border-radius:6%; }
+.poker-surface { position:absolute; inset:0; overflow:hidden; border-radius:6%; border:1px solid color-mix(in srgb,var(--poker-accent) 65%,#fff 10%); backface-visibility:hidden; -webkit-backface-visibility:hidden; transform:translateZ(1.25px);
+  background:linear-gradient(135deg,color-mix(in srgb,var(--poker-face) 88%,#b8e8ff) 0%,var(--poker-face) 28%,color-mix(in srgb,var(--poker-face) 88%,#000) 64%,color-mix(in srgb,var(--poker-face) 84%,var(--poker-second)) 100%);
+  box-shadow:inset 0 0 0 1px #b9e8ff16,inset 2px 1px 3px #dff7ff1a,0 0 14px color-mix(in srgb,var(--poker-accent) 12%,transparent),0 28px 48px -20px #000c;
+}
+.poker-surface--back { visibility:hidden; transform:rotateY(180deg) translateZ(1.25px); }
+.poker-edge { position:absolute; inset:0; border-radius:6%; border:1.25px solid #93b9dc; transform:translateZ(0); }
+.poker-artwork { display:block; width:100%; height:100%; }
+.poker-rank { font-family:var(--font-serif),'Times New Roman',serif; font-size:35px; font-weight:500; }
+.poker-signature { font-family:var(--font-mono),monospace; font-size:10px; letter-spacing:3.6px; }
+.poker-monogram { font-family:var(--font-serif),Georgia,serif; font-style:italic; font-size:39px; letter-spacing:-2px; }
+.poker-glint { position:absolute; inset:-15% -45%; pointer-events:none; opacity:0; background:linear-gradient(112deg,transparent 35%,#c3eeff0b 42%,#edfcff38 49%,#9fdbff0c 56%,transparent 64%); transform:translateX(-140%); will-change:transform,opacity; }
+.poker-floor-shadow { position:absolute; left:10%; right:10%; bottom:-10%; height:9%; border-radius:50%; opacity:.48; background:radial-gradient(ellipse,#06101fed 0%,#19385745 36%,transparent 70%); transform:scaleX(1); }
+.poker-controls { position:absolute; left:0; right:0; bottom:-3.2rem; display:flex; justify-content:center; align-items:center; gap:12px; color:#c6d6e9; font:400 10px/1 var(--font-mono),monospace; letter-spacing:.07em; }
+.poker-control-divider { width:1px; height:11px; background:#8ea9cb55; }
+.poker-pause { display:grid; place-items:center; width:44px; height:44px; margin-left:-8px; color:#bdd6f3; background:none; border:0; cursor:pointer; pointer-events:auto; }
+.poker-pause svg { width:13px; height:13px; fill:none; stroke:currentColor; stroke-width:1.3; }
+.poker-pause:hover { color:#fff; }
+.poker-pause:focus-visible { outline:2px solid #a5dfff; outline-offset:1px; }
+@media(max-width:767px) {
+  .poker-location { top:calc(4rem + 20svh); width:min(50vw,26svh); }
+  .poker-controls { bottom:-2.7rem; font-size:9px; }
+}
+@media(prefers-reduced-motion:reduce) {
+  .poker-pause,.poker-control-divider { display:none; }
+  .poker-entrance,.poker-float,.poker-turn,.poker-glint { will-change:auto; }
+}

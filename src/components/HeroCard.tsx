@@ -1,341 +1,181 @@
-import { useEffect, useRef, useState } from 'react'
+import { useLayoutEffect, useRef, useState } from 'react'
 import gsap from 'gsap'
-import { currentTheme, flipThemeAt } from '../lib/theme'
-import type { Theme } from '../lib/theme'
-import { isPaging } from '../lib/scroll'
-import { isPageOpen } from '../lib/router'
-import { BOOTED_EVENT, prefersReducedMotion, isTouchDevice } from '../lib/motion'
+import { BOOTED_EVENT } from '../lib/motion'
+import HeroCardArtwork from './HeroCardArtwork'
+import '../styles/hero-poker.css'
 
-/**
- * The hero centerpiece — the provided card animation (card.mp4), masked so its
- * baked gradient melts into the site background. The video *is* the theme
- * flip: it opens paused on the ornate back (blue world); clicking plays the
- * rotate-and-zoom, and the site wipes to the Red world the instant the card
- * passes edge-on. Clicking again seeks back to the start and wipes to Blue.
- *
- * Timeline of card.mp4 (10 s, 24 fps):
- *   0.0–1.2   card back, blue gradient           → blue idle frame ~0.55
- *   1.2–3.4   zoom in, background warms
- *   ~3.6      edge-on — the flip moment          → theme wipe fires here
- *   4.0–8.0   ace revealed, zooms back out
- *   8.0–10.0  ace settled on red gradient        → red idle frame ~9.7
- */
-const T_BLUE = 0.55
-/** the film's zoom: the card grows past the frame between these seconds (measured) */
-const ZOOM_IN: [number, number] = [2.3, 2.7]
-const ZOOM_OUT: [number, number] = [5.9, 6.9]
-const T_WIPE = 3.6
-const T_RED = 9.7
+const COLORS = [
+  { name: 'midnight', accent: '#69dcff', second: '#8875ff', foil: '#daefff', face: '#081326' },
+  { name: 'ice', accent: '#a9f2ff', second: '#509cff', foil: '#f0fbff', face: '#123249' },
+  { name: 'lilac', accent: '#d6bbff', second: '#88b6ff', foil: '#f0e7ff', face: '#211b3d' },
+  { name: 'violet', accent: '#ac86ff', second: '#58cefa', foil: '#e6d9ff', face: '#170e2f' },
+  { name: 'carbon', accent: '#92b8df', second: '#556cd0', foil: '#d3e4f4', face: '#080d17' },
+] as const
 
-type Phase = 'blue' | 'flipping' | 'red'
-
+/** Two-sided vector card. Entrance, float, pointer tilt and flip have separate
+ * transform owners. Color belongs to this card, never the page or city. */
 export default function HeroCard() {
-  const wrapRef = useRef<HTMLDivElement>(null)
-  const videoRef = useRef<HTMLVideoElement>(null)
-  const btnRef = useRef<HTMLButtonElement>(null)
-  const phase = useRef<Phase>('blue')
-  const frameRef = useRef<HTMLDivElement>(null)
-  /** the in-flight flip's media listeners, so a force-complete can drop them */
-  const stepRef = useRef<(() => void) | null>(null)
-  const detachStep = () => {
-    const v = videoRef.current
-    if (v && stepRef.current) {
-      v.removeEventListener('timeupdate', stepRef.current)
-      v.removeEventListener('ended', stepRef.current)
-    }
-    stepRef.current = null
-  }
-  const wiped = useRef(false)
-  const raf = useRef(0)
-  const flipRef = useRef<() => void>(() => {})
-  const autoTimer = useRef(0)
-  const [videoOk, setVideoOk] = useState(true)
+  const root = useRef<HTMLDivElement>(null)
+  const flipAction = useRef<() => void>(() => {})
+  const synchronize = useRef<() => void>(() => {})
+  const pausedRef = useRef(false)
+  const [paused, setPaused] = useState(false)
+  pausedRef.current = paused
 
-  /** Restart the 10 s auto-flip clock (manual clicks reset it). */
-  const armAuto = () => {
-    window.clearInterval(autoTimer.current)
-    if (prefersReducedMotion()) return
-    autoTimer.current = window.setInterval(() => {
-      if (import.meta.env.DEV) {
-        const w = window as unknown as { __autoTicks?: number[] }
-        ;(w.__autoTicks ??= []).push(Math.round(performance.now() / 1000))
+  useLayoutEffect(() => {
+    const el = root.current
+    if (!el) return
+    const entrance = el.querySelector<HTMLElement>('.poker-entrance')!
+    const float = el.querySelector<HTMLElement>('.poker-float')!
+    const button = el.querySelector<HTMLButtonElement>('.hero-poker')!
+    const tilt = el.querySelector<HTMLElement>('.poker-tilt')!
+    const turn = el.querySelector<HTMLElement>('.poker-turn')!
+    const ace = el.querySelector<HTMLElement>('.poker-surface--ace')!
+    const back = el.querySelector<HTMLElement>('.poker-surface--back')!
+    const glints = el.querySelectorAll<HTMLElement>('.poker-glint')
+    const shadow = el.querySelector<HTMLElement>('.poker-floor-shadow')!
+    const section = el.closest('section')!
+    const reduce = matchMedia('(prefers-reduced-motion: reduce)')
+    const fine = matchMedia('(hover: hover) and (pointer: fine)')
+    let visible = false, shown = !!(window as { __cgsShown?: boolean }).__cgsShown
+    let alive = true, flipping = false, index = 0, turns = 0, timer = 0
+    let flip: gsap.core.Timeline | null = null, enter: gsap.core.Tween | null = null
+    let color: gsap.core.Tween | null = null, idle: gsap.core.Timeline | null = null
+    let moved = false, pointerResetPending = false, menuOpen = false
+    let bounds = section.getBoundingClientRect()
+    const ctx = gsap.context(() => {
+      gsap.set(turn, { rotationY: 0 }); gsap.set(glints, { xPercent: -140 })
+      idle = gsap.timeline({ paused: true, repeat: -1, yoyo: true })
+        .to(float, { y: -6, rotation: 1.1, duration: 3.8, ease: 'sine.inOut' }, 0)
+        .to(shadow, { scaleX: .87, opacity: .36, duration: 3.8, ease: 'sine.inOut' }, 0)
+      if (!reduce.matches) gsap.set(entrance, { opacity: 0, y: 46, rotation: -7, scale: .86 })
+    }, el)
+    // Explicit face culling also handles WebKit's flattened SVG/backface layers.
+    // Read GSAP's cached rotations; no per-frame DOM/layout measurement.
+    let displayedFace = ''
+    const paintFace = () => {
+      const angle = (Number(gsap.getProperty(turn, 'rotationY')) + Number(gsap.getProperty(tilt, 'rotationY'))) * Math.PI / 180
+      const face = Math.cos(angle) >= 0 ? 'ace' : 'back'
+      if (face === displayedFace) return
+      displayedFace = face
+      ace.style.visibility = face === 'ace' ? 'visible' : 'hidden'
+      back.style.visibility = face === 'back' ? 'visible' : 'hidden'
+    }
+    paintFace()
+    const rx = gsap.quickTo(tilt, 'rotationX', { duration: .65, ease: 'power3.out' })
+    const ry = gsap.quickTo(tilt, 'rotationY', { duration: .65, ease: 'power3.out', onUpdate: paintFace })
+    const centerPointer = () => {
+      if (!moved) return
+      if (!canRun()) { pointerResetPending = true; return }
+      pointerResetPending = false; rx(0); ry(0); moved = false
+    }
+    const canRun = () => alive && shown && visible && !document.hidden && !reduce.matches && !pausedRef.current && !menuOpen
+    const clearTimer = () => { clearTimeout(timer); timer = 0 }
+    const paintColor = (instant = false) => {
+      const palette = COLORS[index]
+      color?.kill()
+      const vars = { '--poker-accent': palette.accent, '--poker-second': palette.second, '--poker-foil': palette.foil, '--poker-face': palette.face }
+      if (instant) gsap.set(el, vars)
+      else color = gsap.to(el, { ...vars, duration: 1.15, ease: 'sine.inOut' })
+      el.dataset.color = palette.name
+    }
+    const finish = () => {
+      flipping = false
+      gsap.set(turn, { rotationY: (turns % 2) * 180, rotationZ: 0, z: 0 })
+      gsap.set(glints, { xPercent: -140, opacity: 0 })
+      paintFace()
+      el.dataset.face = turns % 2 ? 'back' : 'ace'; el.dataset.flipping = 'false'
+      button.setAttribute('aria-busy', 'false')
+    }
+    const arm = () => {
+      clearTimer()
+      if (canRun()) timer = window.setTimeout(() => { timer = 0; performFlip() }, 10000)
+    }
+    const performFlip = () => {
+      if (!alive || flipping || document.hidden) return
+      index = (index + 1) % COLORS.length; turns++
+      if (reduce.matches || pausedRef.current) { paintColor(true); finish(); return }
+      flipping = true; el.dataset.flipping = 'true'; button.setAttribute('aria-busy', 'true')
+      flip?.kill(); paintColor()
+      const from = ((turns - 1) % 2) * 180
+      flip = gsap.timeline({ onUpdate: paintFace, onComplete: finish })
+        .fromTo(turn, { rotationY: from }, { rotationY: from + 180, duration: 1.65, ease: 'power2.inOut' }, 0)
+        .to(turn, { z: 38, rotationZ: -3, duration: .62, ease: 'sine.out' }, 0)
+        .to(turn, { z: 0, rotationZ: 0, duration: 1.03, ease: 'sine.inOut' }, .62)
+        .fromTo(glints, { xPercent: -140, opacity: 0 }, { xPercent: 140, opacity: .65, duration: 1.4, ease: 'sine.inOut' }, .08)
+        .to(glints, { opacity: 0, duration: .25 }, 1.35)
+      arm()
+    }
+    const sync = () => {
+      if (!alive) return
+      const playing = canRun()
+      el.dataset.playback = document.hidden ? 'hidden' : !visible ? 'offscreen' : reduce.matches ? 'reduced' : pausedRef.current ? 'paused' : menuOpen ? 'menu' : 'playing'
+      if (reduce.matches) {
+        flip?.kill(); flip = null; finish(); color?.progress(1); enter?.progress(1); idle?.pause()
+        gsap.set([entrance, float], { opacity: 1, x: 0, y: 0, rotation: 0, scale: 1 })
+        rx.tween.pause(); ry.tween.pause(); gsap.set(tilt, { rotationX: 0, rotationY: 0 })
+        moved = false; pointerResetPending = false; clearTimer()
+      } else if (playing) {
+        enter?.resume(); flip?.resume(); color?.resume(); idle?.resume(); rx.tween.resume(); ry.tween.resume()
+        if (pointerResetPending) centerPointer()
+        if (!timer) arm()
+      } else {
+        clearTimer(); enter?.pause(); flip?.pause(); color?.pause(); idle?.pause(); rx.tween.pause(); ry.tween.pause()
       }
-      // Skip a tick rather than freeze-frame an in-flight page glide or a
-      // hidden tab; the next tick catches up.
-      if (document.hidden || isPaging() || isPageOpen()) return
-      // A flip wedged mid-flight (frozen tab) force-completes before toggling
-      const v = videoRef.current
-      if (phase.current === 'flipping' && v) {
-        v.pause()
-        v.currentTime = T_RED
-        phase.current = 'red'
-        cropForTime(T_RED)
-        detachStep()
-        if (!wiped.current) {
-          wiped.current = true
-          const { x, y } = centerOfCard()
-          flipThemeAt(x, y)
-          tintForPhase('red')
-        }
-        return
-      }
-      flipRef.current()
-    }, 10000)
-  }
-
-  // The card flips itself every 10 s; the whole site's world shifts with it.
-  useEffect(() => {
-    armAuto()
-    return () => window.clearInterval(autoTimer.current)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
-
-  // Park the video on the blue back frame once data is in
-  useEffect(() => {
-    const v = videoRef.current
-    if (!v) return
-    const park = () => {
-      if (phase.current === 'blue') v.currentTime = T_BLUE
     }
-    if (v.readyState >= 2) park()
-    v.addEventListener('loadeddata', park)
-    return () => v.removeEventListener('loadeddata', park)
-  }, [])
-
-  // The card is DEALT in — it arrives from below with a resolving rotation,
-  // continuing the loader's riffle motif, and only once the curtain lifts.
-  useEffect(() => {
-    if (prefersReducedMotion()) return
-    const wrap = wrapRef.current
-    if (!wrap) return
-    gsap.set(wrap, { yPercent: 16, scale: 0.82, rotation: -5, opacity: 0 })
-    let tween: gsap.core.Tween | null = null
-    const play = () => {
-      tween = gsap.to(wrap, {
-        yPercent: 0,
-        scale: 1,
-        rotation: 0,
-        opacity: 1,
-        duration: 1.4,
-        ease: 'site.out',
-      })
+    const arrive = () => {
+      shown = true
+      if (!reduce.matches) enter = gsap.to(entrance, { opacity: 1, y: 0, rotation: 0, scale: 1, duration: 1.25, ease: 'power3.out' })
+      sync()
     }
-    if ((window as { __cgsShown?: boolean }).__cgsShown) play()
-    else window.addEventListener(BOOTED_EVENT, play, { once: true })
+    const pointer = (event: PointerEvent) => {
+      if (!canRun() || !fine.matches || event.pointerType === 'touch') return
+      moved = true; pointerResetPending = false
+      rx(-Math.max(-1, Math.min(1, ((event.clientY - bounds.top) / bounds.height - .5) * 2)) * 6)
+      ry(Math.max(-1, Math.min(1, ((event.clientX - bounds.left) / bounds.width - .5) * 2)) * 9)
+    }
+    const measure = () => { bounds = section.getBoundingClientRect() }
+    const io = new IntersectionObserver(([entry]) => { visible = entry.isIntersecting && entry.intersectionRatio >= .55; measure(); sync() }, { threshold: [0, .55, 1] })
+    io.observe(button)
+    const ro = new ResizeObserver(measure); ro.observe(section)
+    const nav = document.querySelector('.cgs-nav-panel')
+    const menu = new MutationObserver(() => { menuOpen = nav?.getAttribute('data-open') === 'true'; sync() })
+    if (nav) { menuOpen = nav.getAttribute('data-open') === 'true'; menu.observe(nav, { attributes: true, attributeFilter: ['data-open'] }) }
+    section.addEventListener('pointermove', pointer, { passive: true }); section.addEventListener('pointerleave', centerPointer)
+    window.addEventListener('scroll', measure, { passive: true }); document.addEventListener('visibilitychange', sync)
+    reduce.addEventListener('change', sync)
+    if (shown) arrive(); else window.addEventListener(BOOTED_EVENT, arrive, { once: true })
+    flipAction.current = performFlip; synchronize.current = sync
     return () => {
-      window.removeEventListener(BOOTED_EVENT, play)
-      tween?.kill()
+      alive = false; clearTimer(); io.disconnect(); ro.disconnect(); menu.disconnect()
+      section.removeEventListener('pointermove', pointer); section.removeEventListener('pointerleave', centerPointer)
+      window.removeEventListener('scroll', measure); window.removeEventListener(BOOTED_EVENT, arrive)
+      document.removeEventListener('visibilitychange', sync); reduce.removeEventListener('change', sync)
+      enter?.kill(); flip?.kill(); color?.kill(); rx.tween.kill(); ry.tween.kill(); ctx.revert()
+      flipAction.current = () => {}; synchronize.current = () => {}
     }
   }, [])
+  useLayoutEffect(() => { synchronize.current() }, [paused])
 
-  // Cursor tilt on the whole hero (subtle parallax on the flat video)
-  useEffect(() => {
-    if (prefersReducedMotion() || isTouchDevice()) return
-    const wrap = wrapRef.current
-    if (!wrap) return
-    gsap.set(wrap, { transformPerspective: 1100 })
-    // ±4°/±3° — a breath, not a carnival; the side columns counter-drift.
-    const rx = gsap.quickTo(wrap, 'rotationX', { duration: 0.35, ease: 'power3.out' })
-    const ry = gsap.quickTo(wrap, 'rotationY', { duration: 0.35, ease: 'power3.out' })
-    const onMove = (e: PointerEvent) => {
-      const nx = e.clientX / window.innerWidth - 0.5
-      const ny = e.clientY / window.innerHeight - 0.5
-      ry(nx * 4)
-      rx(-ny * 3)
-    }
-    const section = wrap.closest('section')
-    const rest = () => { rx(0); ry(0) }
-    section?.addEventListener('pointermove', onMove, { passive: true })
-    section?.addEventListener('pointerleave', rest)
-    return () => {
-      section?.removeEventListener('pointermove', onMove)
-      section?.removeEventListener('pointerleave', rest)
-      rx.tween.kill(); ry.tween.kill()
-      gsap.set(wrap, { rotationX: 0, rotationY: 0 })
-    }
-  }, [])
-
-  useEffect(() => () => cancelAnimationFrame(raf.current), [])
-
-  const centerOfCard = () => {
-    const el = btnRef.current
-    if (!el) return { x: window.innerWidth / 2, y: window.innerHeight / 2 }
-    const r = el.getBoundingClientRect()
-    return { x: r.left + r.width / 2, y: r.top + r.height / 2 }
-  }
-
-  /**
-   * The clip's baked backdrop turns red as the ace comes up, but the site's
-   * face-up world is light blue — so the video hue-shifts in sync with the
-   * theme wipe (reds → blues; the ivory/ink card itself barely moves).
-   */
-  /**
-   * The clip's baked backdrop is blue on the back and red on the face; each
-   * world re-tints whichever face is showing so the card belongs to its sky.
-   * Rides the theme-flip clock (theme.ts DURATION_MS) with matching curvature.
-   */
-  const TINT: Record<Theme, { blue: string; red: string }> = {
-    blue: { blue: '', red: 'hue-rotate(225deg) saturate(0.72) brightness(0.94)' },
-    sky: {
-      blue: 'brightness(1.55) saturate(0.6)',
-      red: 'hue-rotate(200deg) brightness(1.5) saturate(0.55)',
-    },
-    lilac: {
-      blue: 'hue-rotate(50deg) brightness(1.55) saturate(0.55)',
-      red: 'hue-rotate(290deg) brightness(1.45) saturate(0.5)',
-    },
-    violet: {
-      blue: 'hue-rotate(45deg) saturate(0.9)',
-      red: 'hue-rotate(280deg) saturate(0.8) brightness(0.9)',
-    },
-    black: { blue: 'saturate(0.15) brightness(0.62)', red: 'saturate(0.2) brightness(0.55)' },
-  }
-  const tintForPhase = (next: 'blue' | 'red') => {
-    const v = videoRef.current
-    if (!v) return
-    v.style.transition = 'filter 1.2s cubic-bezier(0.45, 0, 0.55, 1)'
-    v.style.filter = TINT[currentTheme()][next]
-  }
-
-  /** 0 = tight on the card, 1 = the full frame (the film zooms the card past its edges) */
-  const cropForTime = (t: number) => {
-    const sm = (a: number, b: number, x: number) => {
-      const u = Math.max(0, Math.min(1, (x - a) / (b - a)))
-      return u * u * (3 - 2 * u)
-    }
-    const k = sm(ZOOM_IN[0], ZOOM_IN[1], t) * (1 - sm(ZOOM_OUT[0], ZOOM_OUT[1], t))
-    frameRef.current?.style.setProperty('--card-k', k.toFixed(3))
-    videoRef.current?.style.setProperty('--card-k', k.toFixed(3))
-  }
-
-  const flip = () => {
-    const v = videoRef.current
-    if (!v || !videoOk) {
-      // Fallback card: no video — just wipe the world
-      const { x, y } = centerOfCard()
-      flipThemeAt(x, y)
-      phase.current = phase.current === 'blue' ? 'red' : 'blue'
-      return
-    }
-
-    if (phase.current === 'flipping') return
-
-    if (phase.current === 'blue') {
-      // Play the rotate-and-zoom; wipe the theme at the edge-on moment
-      phase.current = 'flipping'
-      wiped.current = false
-
-      if (prefersReducedMotion()) {
-        v.currentTime = T_RED
-        const { x, y } = centerOfCard()
-        flipThemeAt(x, y)
-        tintForPhase('red')
-        phase.current = 'red'
-        return
-      }
-
-      v.play().catch(() => {
-        /* muted playback can't be refused; ignore */
-      })
-      // Drive the wipe from BOTH rAF (frame-precise in the foreground) and
-      // the video's own media events (which keep firing when rAF is frozen
-      // in occluded/background tabs) — otherwise a flip started right before
-      // the user tabs away would wedge at 'flipping' forever.
-      const step = () => {
-        if (phase.current !== 'flipping') return
-        cropForTime(v.currentTime)
-        if (!wiped.current && v.currentTime >= T_WIPE) {
-          wiped.current = true
-          const { x, y } = centerOfCard()
-          flipThemeAt(x, y)
-          tintForPhase('red')
-        }
-        if (v.currentTime >= T_RED || v.ended) {
-          v.pause()
-          detachStep()
-          phase.current = 'red'
-          cropForTime(T_RED)
-          if (!wiped.current) {
-            // stalled past the wipe frame (throttled tab) — catch up now
-            wiped.current = true
-            const { x, y } = centerOfCard()
-            flipThemeAt(x, y)
-            tintForPhase('red')
-          }
-        }
-      }
-      detachStep()
-      stepRef.current = step
-      v.addEventListener('timeupdate', step)
-      v.addEventListener('ended', step)
-      const watch = () => {
-        step()
-        if (phase.current === 'flipping') raf.current = requestAnimationFrame(watch)
-      }
-      raf.current = requestAnimationFrame(watch)
-    } else {
-      // Back to the top of the deal: seek to the back, wipe to blue
-      v.pause()
-      v.currentTime = T_BLUE
-      phase.current = 'blue'
-      cropForTime(T_BLUE)
-      const { x, y } = centerOfCard()
-      flipThemeAt(x, y)
-      tintForPhase('blue')
-    }
-  }
-
-  flipRef.current = flip
-
-  return (
-    <div
-      ref={wrapRef}
-      aria-hidden={videoOk ? undefined : 'true'}
-      className="hero-card-stage pointer-events-none absolute inset-0 z-0 flex items-center justify-center"
-    >
-      {videoOk ? (
-        /* frame = the video's box; the float rides it so the shadow floats with the card */
-        <div ref={frameRef} className="hero-card-frame relative animate-[hero-float_7s_ease-in-out_infinite] motion-reduce:animate-none">
-          <div aria-hidden="true" className="hero-card-shadow" />
-          <video
-            ref={videoRef}
-            data-hero-video
-            className="hero-card-video relative"
-            src="/assets/card.mp4"
-            muted
-            playsInline
-            preload="auto"
-            onError={() => setVideoOk(false)}
-            tabIndex={-1}
-            aria-hidden="true"
-          />
+  return <div ref={root} className="poker-stage" data-color="midnight" data-face="ace" data-flipping="false">
+    <div className="poker-location">
+      <div className="poker-floor-shadow" aria-hidden="true" />
+      <div className="poker-entrance"><div className="poker-float">
+        <div className="poker-tilt" aria-hidden="true">
+          <div className="poker-turn">
+            <span className="poker-surface poker-surface--ace"><HeroCardArtwork side="ace" /><span className="poker-glint" /></span>
+            <span className="poker-edge" />
+            <span className="poker-surface poker-surface--back"><HeroCardArtwork side="back" /><span className="poker-glint" /></span>
+          </div>
         </div>
-      ) : (
-        /* The stage above is dealt and tilted by GSAP — only the fallback sways */
-        <div
-          className="card-back-surface life-sway flex aspect-[5/7] h-[min(52vh,28.75rem)] items-center justify-center"
-          style={{ ['--life-dur' as string]: '9.5s', ['--life-delay' as string]: '-3.3s' }}
-        >
-          <span
-            aria-hidden="true"
-            className="life-glow text-6xl text-[var(--silver)] opacity-80"
-            style={{ ['--life-dur' as string]: '4.8s', ['--life-delay' as string]: '-1.7s' }}
-          >
-            ♠
-          </span>
-        </div>
-      )}
-      {/* Hit area over the card itself */}
-      <button
-        ref={btnRef}
-        data-interactive
-        onClick={() => {
-          flip()
-          armAuto()
-        }}
-        aria-label="Flip the card — change the color world"
-        className="pointer-events-auto absolute left-1/2 top-[30svh] aspect-[5/7] h-[min(44svh,26.875rem)] -translate-x-1/2 -translate-y-1/2 cursor-pointer rounded-3xl md:top-1/2 md:h-[min(48vh,26.875rem)]"
-      />
+      </div></div>
+      {/* The hit area stays still while the visual floats and turns. */}
+      <button className="hero-poker" type="button" aria-label="Flip the poker card" aria-busy="false" onClick={() => flipAction.current()} />
+      <div className="poker-controls"><span aria-hidden="true">Flip the card</span><span className="poker-control-divider" aria-hidden="true" />
+        <button type="button" className="poker-pause" aria-label={paused ? 'Resume card animation' : 'Pause card animation'} aria-pressed={paused} onClick={() => setPaused(!paused)}>
+          {paused ? <svg viewBox="0 0 16 16" aria-hidden="true"><path d="m5 3 7 5-7 5Z" /></svg> : <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M5 3v10M11 3v10" /></svg>}
+        </button>
+      </div>
     </div>
-  )
+  </div>
 }

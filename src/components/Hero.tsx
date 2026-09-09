@@ -4,6 +4,7 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import SectionIndex from './SectionIndex'
 import TypeLine from './TypeLine'
 import HeroCard from './HeroCard'
+import CodeCity from '../effects/CodeCity'
 import { hero } from '../content'
 import { EASE } from '../lib/eases'
 import { scrollToId } from '../lib/scroll'
@@ -100,18 +101,19 @@ export default function Hero() {
     <section
       ref={root}
       id="top"
-      className="relative flex min-h-[100svh] items-center overflow-hidden"
+      className="relative isolate flex min-h-[100svh] items-center overflow-hidden"
     >
+      <CodeCity />
       <SectionIndex rank="A" />
 
       {/* The animation, front and center */}
       <HeroCard />
 
       {/* Words at the sides */}
-      <div className="container-site pointer-events-none relative z-10 grid min-h-[100svh] grid-cols-1 content-end gap-8 pb-24 pt-[46svh] md:min-h-0 md:grid-cols-[1fr_minmax(16.25rem,30vw)_1fr] md:content-center md:items-center md:gap-0 md:py-28">
+      <div className="container-site pointer-events-none relative z-10 grid min-h-[100svh] grid-cols-1 content-end gap-8 pb-24 pt-[max(46svh,calc(4rem+39svh+3rem))] md:min-h-0 md:grid-cols-[minmax(0,1fr)_minmax(16.25rem,30vw)_minmax(0,1fr)] md:content-center md:items-center md:gap-0 md:py-28">
         {/* Left side — the name */}
-        <div data-hero-left className="md:pr-6">
-          <h1 className="font-display pointer-events-auto text-[clamp(2.5rem,4.8vw,5.4rem)] leading-[0.98] tracking-[-0.028em] text-[var(--text)]">
+        <div data-hero-left className="md:pr-6 md:[container-type:inline-size]">
+          <h1 className="font-display pointer-events-auto text-[clamp(2.5rem,4.8vw,5.4rem)] md:text-[min(16cqw,5.4rem)] leading-[0.98] tracking-[-0.028em] text-[var(--text)]">
             <span data-hero-line className="-mb-[0.12em] block overflow-hidden pb-[0.12em]">
               <span className="block">Cornell</span>
             </span>

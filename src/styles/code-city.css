@@ -1,6 +1,6 @@
-/* Homepage-owned layers. No global theme, text, or cinematic chapter overrides. */
+/* Hero-owned layers. The whole scene fades into the original home code field. */
 .code-city {
-  position: fixed;
+  position: absolute;
   inset: 0;
   z-index: 0;
   pointer-events: none;
@@ -8,12 +8,12 @@
   contain: strict;
   isolation: isolate;
   background: #040817;
+  mask-image: linear-gradient(to bottom, #000 calc(100% - 160px), transparent 100%);
 }
 .code-city[data-active='false'] { visibility: hidden; }
 .code-city__plate,
 .code-city__canvas,
-.code-city__shade,
-.code-city__mist {
+.code-city__shade {
   position: absolute;
   inset: 0;
   width: 100%;
@@ -39,20 +39,6 @@
     linear-gradient(90deg, #0408173d, transparent 22%, transparent 82%, #04081752),
     linear-gradient(180deg, #03071480 0%, #04081712 30%, #04081726 70%, #03071499 100%);
 }
-.code-city__mist {
-  opacity: 0;
-  /* Opaque light pigment above the entire dark composition, including WebGL.
-     Even the darkest plate pixels become pale enough for navy body copy. */
-  background:
-    radial-gradient(ellipse 65% 90% at 45% 45%, color-mix(in srgb, var(--bg-top) 80%, white) 0%, transparent 100%),
-    linear-gradient(180deg,
-      color-mix(in srgb, var(--bg-top) 91%, transparent),
-      color-mix(in srgb, var(--bg-top) 86%, transparent) 70%,
-      color-mix(in srgb, var(--bg-top) 92%, transparent));
-  transition: opacity 1200ms cubic-bezier(.33, 0, .67, 1);
-}
-html[data-theme='sky'] .code-city__mist,
-html[data-theme='lilac'] .code-city__mist { opacity: 1; }
 html[data-device='phone'] .code-city__shade {
   background:
     radial-gradient(ellipse 72% 65% at 48% 42%, #040817de, #04081773 70%, transparent),
@@ -60,6 +46,6 @@ html[data-device='phone'] .code-city__shade {
 }
 @media (prefers-reduced-motion: reduce) {
   .code-city__canvas { display: none; }
-  .code-city__canvas, .code-city__mist { transition: none; }
+  .code-city__canvas { transition: none; }
   .code-city .code-city__plate { mask-image: none; }
 }

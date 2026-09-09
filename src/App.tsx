@@ -5,7 +5,8 @@ import { initSmoothScroll } from './lib/scroll'
 import { useNeonEdges } from './lib/neon'
 import { BOOTED_EVENT, prefersReducedMotion } from './lib/motion'
 import { dealCard, shadowStyle } from './lib/cardMotion'
-import CodeCity from './effects/CodeCity'
+import GradientBG from './effects/GradientBG'
+import CodeLayer from './effects/CodeLayer'
 import FutureEye from './components/FutureEye'
 import Nav from './components/Nav'
 import SideRail from './components/SideRail'
@@ -204,7 +205,8 @@ export default function App() {
   return (
     <div ref={appRef}>
       <Loader done={loaded} />
-      <CodeCity />
+      <GradientBG />
+      <CodeLayer />
       {/* Fixed chrome lives OUTSIDE the shake wrapper: a transformed ancestor
           becomes the containing block for position:fixed and breaks it. */}
       <Nav />

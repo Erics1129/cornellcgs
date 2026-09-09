@@ -1,12 +1,10 @@
 import { useEffect, useRef } from 'react'
-import { currentTheme, onTheme, THEME_LERP_MS, themeLerpEase } from '../lib/theme'
-import type { Theme } from '../lib/theme'
 import { onReducedMotionChange, prefersReducedMotion } from '../lib/motion'
 import { CITY_DEPTH, CITY_PLATE, CITY_STRIDE, CODE_CITY_FRAGMENT, CODE_CITY_VERTEX, cityProjection, createCityGeometry } from './codeCityShader'
 import '../styles/code-city.css'
 
 export interface CodeCityProps {
-  /** Mount in the home App only. Set false to suspend and hide during route changes. */
+  /** Mount inside the home hero. Set false to suspend and hide the scene. */
   active?: boolean
   /** Connect any parent motion setting here; freezes travel without losing the plate. */
   paused?: boolean
@@ -14,16 +12,10 @@ export interface CodeCityProps {
   /** Base travel multiplier, clamped to 0..2. Zero freezes automatic travel. */
   speed?: number
   className?: string
-  /** Full-width opaque sections; transparency and viewport coverage are verified. */
-  opaqueSelector?: string
 }
 
-const OPAQUE_SECTIONS = '#alphago, #world, #universe, #vision, #ml-process, [data-code-city-opaque]'
 const PLATE_POSITION = `${CITY_PLATE.objectPosition[0] * 100}% ${CITY_PLATE.objectPosition[1] * 100}%`
-const TINTS: Record<Theme, readonly [number, number, number]> = {
-  blue: [0.08, 0.48, 1], sky: [0.12, 0.50, 1], lilac: [0.50, 0.28, 1],
-  violet: [0.50, 0.25, 1], black: [0.23, 0.28, 0.48],
-}
+const CITY_TINT = new Float32Array([0.08, 0.48, 1])
 const SNIPPETS = [
   ['const regret = utility - expected;', 'strategy[a] = Math.max(0, regret);', 'normalize(strategy);'],
   ['for (const hand of samples) {', '  equity += evaluate(hand, board);', '} return equity / samples.length;'],
@@ -48,7 +40,7 @@ function createCodeAtlas(): HTMLCanvasElement {
 type Renderer = {
   gl: WebGLRenderingContext
   resize: (width: number, height: number, compact: boolean, projection: ReturnType<typeof cityProjection>) => void
-  draw: (travel: number, x: number, y: number, tint: Float32Array) => void
+  draw: (travel: number, x: number, y: number) => void
   dispose: () => void
 }
 
@@ -112,7 +104,7 @@ function createRenderer(canvas: HTMLCanvasElement, compact: boolean): Renderer |
     const aspectUniform = gl.getUniformLocation(program, 'u_aspect')
     const projectionUniform = gl.getUniformLocation(program, 'u_projection')
     const pointerUniform = gl.getUniformLocation(program, 'u_pointer')
-    const tintUniform = gl.getUniformLocation(program, 'u_tint')
+    gl.uniform3fv(gl.getUniformLocation(program, 'u_tint'), CITY_TINT)
     gl.uniform1i(gl.getUniformLocation(program, 'u_code'), 0)
     gl.enable(gl.DEPTH_TEST)
     gl.enable(gl.BLEND)
@@ -131,10 +123,9 @@ function createRenderer(canvas: HTMLCanvasElement, compact: boolean): Renderer |
         gl.uniform1f(aspectUniform, width / Math.max(1, height))
         gl.uniform3f(projectionUniform, projection.x * 2 - 1, 1 - projection.y * 2, projection.focal)
       },
-      draw(travel, x, y, tint) {
+      draw(travel, x, y) {
         gl.uniform1f(travelUniform, travel)
         gl.uniform2f(pointerUniform, x, y)
-        gl.uniform3fv(tintUniform, tint)
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
         gl.depthMask(false)
         gl.drawArrays(gl.TRIANGLES, 0, mesh.groundCount)
@@ -150,13 +141,13 @@ function createRenderer(canvas: HTMLCanvasElement, compact: boolean): Renderer |
   }
 }
 
-/** Fixed homepage backdrop; replace home GradientBG + CodeLayer with <CodeCity />.
+/** Contained hero backdrop above the home's original GradientBG + CodeLayer.
  * The image is always mounted underneath the transparent GPU layer. Pauses are
  * event driven: no dormant requestAnimationFrame loop, no accumulated idle dt.
  */
 export default function CodeCity({
   active = true, paused = false, plateSrc = '/assets/scenes/code-city-v1.webp',
-  speed = 1, className = '', opaqueSelector = OPAQUE_SECTIONS,
+  speed = 1, className = '',
 }: CodeCityProps) {
   const rootRef = useRef<HTMLDivElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -170,20 +161,14 @@ export default function CodeCity({
     const host = rootRef.current, canvas = canvasRef.current
     if (!host || !canvas) return
     let alive = true, renderer: Renderer | null = null, failed = false, contextLost = false
-    let reduced = prefersReducedMotion(), inView = true, covered = false
-    let width = window.innerWidth, height = window.innerHeight
+    let reduced = prefersReducedMotion(), inView = false
+    let width = Math.max(1, host.clientWidth), height = Math.max(1, host.clientHeight)
     let compact = width < 768 || ['phone', 'tablet'].includes(document.documentElement.dataset.device || '')
     let projection = cityProjection(width, height, plateRef.current?.naturalWidth || CITY_PLATE.width, plateRef.current?.naturalHeight || CITY_PLATE.height)
     let raf = 0, probeTimer = 0, lastFrame = 0, travel = 0, boost = 0
     let scrollY = window.scrollY, scrollTime = performance.now()
     let pointerX = 0, pointerY = 0, smoothX = 0, smoothY = 0
-    let tintStart = -1
-    const tint = new Float32Array(TINTS[currentTheme()])
-    const fromTint = new Float32Array(tint), toTint = new Float32Array(tint)
     const pointerQuery = matchMedia('(hover: hover) and (pointer: fine)')
-    const targets = new Set<Element>()
-    const intersecting = new Set<Element>()
-    let sceneObserver: IntersectionObserver | null = null
 
     const setStatus = (status: string) => {
       if (host.dataset.playback !== status) host.dataset.playback = status
@@ -196,15 +181,8 @@ export default function CodeCity({
       scrollY = window.scrollY
       scrollTime = performance.now()
     }
-    const canDraw = () => alive && props.current.active && inView && !covered && !document.hidden && !contextLost && !reduced
+    const canDraw = () => alive && props.current.active && inView && !document.hidden && !contextLost && !reduced
     const moving = () => !props.current.paused && Number.isFinite(props.current.speed) && props.current.speed > 0
-    const updateTint = (now: number) => {
-      if (tintStart < 0) return
-      const t = Math.min(1, Math.max(0, (now - tintStart) / THEME_LERP_MS))
-      const eased = themeLerpEase(t)
-      for (let i = 0; i < 3; i++) tint[i] = fromTint[i] + (toTint[i] - fromTint[i]) * eased
-      if (t === 1) tintStart = -1
-    }
     const frame = (now: number) => {
       raf = 0
       if (!canDraw() || !renderer) { stop(); return }
@@ -220,8 +198,7 @@ export default function CodeCity({
         smoothY += (pointerY - smoothY) * gain
         travel = (travel + dt * (2.2 + boost * 5.0) * Math.min(2, props.current.speed)) % CITY_DEPTH
       }
-      updateTint(now)
-      renderer.draw(travel, smoothX, smoothY, tint)
+      renderer.draw(travel, smoothX, smoothY)
       if (host.dataset.renderer !== 'ready') host.dataset.renderer = 'ready'
       if (moving()) raf = requestAnimationFrame(frame)
       else lastFrame = 0
@@ -231,7 +208,6 @@ export default function CodeCity({
       if (!props.current.active) setStatus('inactive')
       else if (document.hidden) setStatus('hidden')
       else if (!inView) setStatus('offscreen')
-      else if (covered) setStatus('covered')
       else if (reduced) setStatus('reduced')
       else if (contextLost || failed) setStatus('fallback')
       else if (!moving()) setStatus('paused')
@@ -247,57 +223,31 @@ export default function CodeCity({
     }
     synchronize.current = () => { stop(); sync() }
 
-    // Geometry is sampled only after scroll/resize/observer events (max 12.5Hz).
-    // Class flags alone are insufficient: they turn on while the city is still
-    // visible at a chapter boundary. A fully covering opaque box is required.
-    const measureCoverage = () => {
+    // Check actual hero bounds on entry/restoration as well as intersection
+    // changes, so deep links never start a hidden city's animation loop.
+    const measureVisibility = () => {
       if (probeTimer) window.clearTimeout(probeTimer)
       probeTimer = 0
       if (!alive || document.hidden) return
-      const spans: [number, number][] = []
-      for (const element of intersecting) {
-        const rect = element.getBoundingClientRect()
-        if (rect.width < width - 2 || rect.left > 1 || rect.right < width - 1 || rect.bottom <= 0 || rect.top >= height) continue
-        const style = getComputedStyle(element)
-        const rgba = style.backgroundColor.match(/[\d.]+/g)?.map(Number)
-        const alpha = rgba && rgba.length >= 3 ? (rgba[3] ?? 1) : 0
-        if (style.visibility === 'hidden' || Number(style.opacity) < 0.99 || alpha < 0.99) continue
-        spans.push([Math.max(0, rect.top), Math.min(height, rect.bottom)])
-      }
-      spans.sort((a, b) => a[0] - b[0])
-      let end = 0
-      for (const span of spans) { if (span[0] > end + 1) break; end = Math.max(end, span[1]) }
-      const next = end >= height - 1
-      if (covered !== next) { covered = next; stop() }
+      const rect = host.getBoundingClientRect()
+      inView = rect.width > 0 && rect.height > 0 && rect.bottom > 0 && rect.top < window.innerHeight
+        && rect.right > 0 && rect.left < window.innerWidth
       sync()
     }
     const queueProbe = () => {
       if (!alive || document.hidden || probeTimer) return
-      probeTimer = window.setTimeout(measureCoverage, 80)
-    }
-    const discoverSections = () => {
-      const found = new Set(document.querySelectorAll(opaqueSelector))
-      for (const old of targets) {
-        if (!found.has(old)) { targets.delete(old); intersecting.delete(old); sceneObserver?.unobserve(old) }
-      }
-      for (const section of found) {
-        if (!targets.has(section)) {
-          targets.add(section)
-          intersecting.add(section) // first geometry pass also works before the IO callback
-          sceneObserver?.observe(section)
-        }
-      }
-      queueProbe()
+      probeTimer = window.setTimeout(measureVisibility, 80)
     }
     const resize = () => {
-      width = window.innerWidth
-      height = window.innerHeight
+      width = Math.max(1, host.clientWidth)
+      height = Math.max(1, host.clientHeight)
+      const wasCompact = compact
       compact = width < 768 || ['phone', 'tablet'].includes(document.documentElement.dataset.device || '')
+      if (compact !== wasCompact) { renderer?.dispose(); renderer = null }
       projection = cityProjection(width, height, plateRef.current?.naturalWidth || CITY_PLATE.width, plateRef.current?.naturalHeight || CITY_PLATE.height)
       host.style.setProperty('--code-city-horizon', `${(projection.y * 100).toFixed(3)}%`)
       renderer?.resize(width, height, compact, projection)
-      queueProbe()
-      sync()
+      measureVisibility()
     }
     resizeScene.current = resize
     const onScroll = () => {
@@ -316,13 +266,14 @@ export default function CodeCity({
     }
     const onPointer = (event: PointerEvent) => {
       if (!pointerQuery.matches || event.pointerType === 'touch' || !canDraw() || !moving()) return
-      pointerX = Math.max(-1, Math.min(1, event.clientX / width * 2 - 1))
-      pointerY = Math.max(-1, Math.min(1, event.clientY / height * 2 - 1))
+      const rect = host.getBoundingClientRect()
+      pointerX = Math.max(-1, Math.min(1, (event.clientX - rect.left) / Math.max(1, rect.width) * 2 - 1))
+      pointerY = Math.max(-1, Math.min(1, (event.clientY - rect.top) / Math.max(1, rect.height) * 2 - 1))
     }
     const resetPointer = () => { pointerX = 0; pointerY = 0 }
     const onVisibility = () => {
       stop()
-      if (!document.hidden) { measureCoverage(); sync() }
+      if (!document.hidden) measureVisibility()
       else { window.clearTimeout(probeTimer); probeTimer = 0; sync() }
     }
     const onLost = (event: Event) => {
@@ -340,14 +291,6 @@ export default function CodeCity({
       host.dataset.renderer = 'pending'
       sync()
     }
-    const offTheme = onTheme(theme => {
-      updateTint(performance.now())
-      fromTint.set(tint)
-      toTint.set(TINTS[theme])
-      tintStart = performance.now()
-      if (!moving() || reduced) { tint.set(toTint); tintStart = -1 }
-      sync()
-    })
     const offMotion = onReducedMotionChange(value => {
       reduced = value
       stop()
@@ -357,37 +300,20 @@ export default function CodeCity({
       if (reduced) { renderer?.dispose(); renderer = null; host.dataset.renderer = 'static' }
       sync()
     })
-    if (typeof IntersectionObserver !== 'undefined') {
-      sceneObserver = new IntersectionObserver(entries => {
-        for (const entry of entries) {
-          if (entry.isIntersecting) intersecting.add(entry.target)
-          else intersecting.delete(entry.target)
-        }
-        queueProbe()
-      }, { threshold: [0, 0.01, 0.5, 1] })
-    }
     const hostObserver = typeof IntersectionObserver !== 'undefined' ? new IntersectionObserver(([entry]) => {
-      inView = entry.isIntersecting
+      inView = entry.isIntersecting && entry.intersectionRect.width > 0 && entry.intersectionRect.height > 0
       sync()
     }) : null
     hostObserver?.observe(host)
-    const resizeObserver = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(queueProbe) : null
-    if (document.querySelector('main')) resizeObserver?.observe(document.querySelector('main')!)
-    const rootObserver = new MutationObserver(mutations => {
-      if (mutations.some(m => m.attributeName === 'data-device')) resize()
-      else queueProbe()
-    })
-    rootObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['class', 'data-device'] })
-    // Pin spacers and asynchronously mounted chapters change coverage geometry.
-    const contentObserver = new MutationObserver(mutations => {
-      // Typed headings/counters replace text nodes frequently; ignore those.
-      if (mutations.some(mutation => [...mutation.addedNodes, ...mutation.removedNodes].some(node => node.nodeType === 1))) discoverSections()
-    })
-    const main = document.querySelector('main')
-    if (main) contentObserver.observe(main, { childList: true, subtree: true })
+    const resizeObserver = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(resize) : null
+    resizeObserver?.observe(host)
+    const rootObserver = new MutationObserver(resize)
+    rootObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['data-device'] })
     window.addEventListener('resize', resize, { passive: true })
     window.addEventListener('scroll', onScroll, { passive: true })
-    window.addEventListener('pointermove', onPointer, { passive: true })
+    const pointerHost = host.parentElement || host
+    pointerHost.addEventListener('pointermove', onPointer, { passive: true })
+    pointerHost.addEventListener('pointerleave', resetPointer)
     window.addEventListener('blur', resetPointer)
     window.addEventListener('pageshow', onVisibility)
     document.addEventListener('pointerleave', resetPointer)
@@ -395,9 +321,7 @@ export default function CodeCity({
     canvas.addEventListener('webglcontextlost', onLost)
     canvas.addEventListener('webglcontextrestored', onRestored)
     host.dataset.renderer = reduced ? 'static' : 'pending'
-    host.style.setProperty('--code-city-horizon', `${(projection.y * 100).toFixed(3)}%`)
-    discoverSections()
-    measureCoverage()
+    resize()
 
     return () => {
       alive = false
@@ -405,12 +329,13 @@ export default function CodeCity({
       resizeScene.current = null
       stop()
       window.clearTimeout(probeTimer)
-      offTheme(); offMotion()
-      sceneObserver?.disconnect(); hostObserver?.disconnect(); resizeObserver?.disconnect()
-      rootObserver.disconnect(); contentObserver.disconnect()
+      offMotion()
+      hostObserver?.disconnect(); resizeObserver?.disconnect()
+      rootObserver.disconnect()
       window.removeEventListener('resize', resize)
       window.removeEventListener('scroll', onScroll)
-      window.removeEventListener('pointermove', onPointer)
+      pointerHost.removeEventListener('pointermove', onPointer)
+      pointerHost.removeEventListener('pointerleave', resetPointer)
       window.removeEventListener('blur', resetPointer)
       window.removeEventListener('pageshow', onVisibility)
       document.removeEventListener('pointerleave', resetPointer)
@@ -420,7 +345,7 @@ export default function CodeCity({
       renderer?.dispose()
       // Do not forcibly lose the context: StrictMode reuses this same canvas.
     }
-  }, [opaqueSelector])
+  }, [])
 
   useEffect(() => { synchronize.current?.() }, [active, paused, speed])
 
@@ -432,6 +357,5 @@ export default function CodeCity({
       onError={event => { event.currentTarget.dataset.missing = 'true' }} />
     <canvas ref={canvasRef} className="code-city__canvas" />
     <div className="code-city__shade" />
-    <div className="code-city__mist" />
   </div>
 }
