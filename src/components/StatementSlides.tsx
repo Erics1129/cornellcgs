@@ -1,7 +1,8 @@
-import { useLayoutEffect, useRef } from 'react'
+import { useLayoutEffect, useRef, useState } from 'react'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { dealCard, shadowStyle } from '../lib/cardMotion'
+import GoGame from './GoGame'
 import '../styles/showcase-motion.css'
 
 gsap.registerPlugin(ScrollTrigger)
@@ -43,12 +44,14 @@ function wordOrigin(word: HTMLElement, section: HTMLElement) {
 
 export function AlphaGoSlide() {
   const root = useRef<HTMLElement>(null)
+  const camera = useRef<HTMLDivElement>(null)
+  const [paused, setPaused] = useState(false)
   useScene(root, (section, desktop) => {
     const word = section.querySelector<HTMLElement>('[data-alpha-word]')!
     const tl = gsap.timeline({ scrollTrigger: {
       id: 'support-alphago', trigger: section,
-      start: desktop ? 'top top' : 'top 12%',
-      end: desktop ? '+=105%' : 'center 32%',
+      start: desktop ? 'top top' : 'top 85%',
+      end: desktop ? '+=105%' : 'top 16%',
       pin: desktop, scrub: 0.35, anticipatePin: 1, invalidateOnRefresh: true,
     } })
     tl.fromTo(word, {
@@ -56,15 +59,16 @@ export function AlphaGoSlide() {
       y: () => wordOrigin(word, section).y,
       scale: () => wordOrigin(word, section).scale,
     }, { x: 0, y: 0, scale: 1, duration: 0.62, ease: 'power2.inOut' }, 0)
-      .fromTo(section.querySelector('[data-go-image]'), { xPercent: 4, yPercent: 5, opacity: 0.28 }, { xPercent: 0, yPercent: 0, opacity: 0.92, duration: 0.85, ease: 'none' }, 0)
-      .fromTo(section.querySelector('[data-go-shade]'), { opacity: 0.82 }, { opacity: 0.18, duration: 0.72, ease: 'none' }, 0)
+      .fromTo(section.querySelector('[data-go-image]'), { xPercent: 4, yPercent: 5, opacity: 0.72 }, { xPercent: 0, yPercent: 0, opacity: 0.96, duration: 0.85, ease: 'none' }, 0)
+      .fromTo(section.querySelector('[data-go-shade]'), { opacity: 0.36 }, { opacity: 0.12, duration: 0.72, ease: 'none' }, 0)
       .fromTo(section.querySelectorAll('[data-alpha-copy]'), { opacity: 0, y: 18 }, { opacity: 1, y: 0, duration: 0.24, stagger: 0.13, ease: 'power2.out' }, 0.5)
       .to({}, { duration: 0.13 })
   })
   return (
     <section ref={root} id="alphago" className="section support-scene alpha-scene" aria-label="AlphaGo. The kind of AI we build.">
+      <div ref={camera} className="alpha-camera">
       <div className="go-study" aria-hidden="true">
-        <img data-go-image src="/assets/scenes/go-study.webp" alt="" width="1536" height="1024" loading="lazy" decoding="async" />
+        <GoGame camera={camera} paused={paused} />
         <div data-go-shade className="go-study-shade" />
       </div>
       <div className="container-site alpha-copy">
@@ -74,6 +78,10 @@ export function AlphaGoSlide() {
         </h2>
         <p data-alpha-copy className="body-muted support-lead">Solvers, agents, and the math behind every hand.</p>
       </div>
+      </div>
+      <button type="button" className="alpha-pause" aria-label={paused ? 'Resume Go animation' : 'Pause Go animation'} aria-pressed={paused} onClick={() => setPaused(!paused)}>
+        <span aria-hidden="true">{paused ? '▷' : 'Ⅱ'}</span>{paused ? 'Resume game' : 'Pause game'}
+      </button>
     </section>
   )
 }

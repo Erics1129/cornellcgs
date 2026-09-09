@@ -36,3 +36,9 @@ The focused browser checks passed in Chromium and WebKit at 1440×900 and 390×8
 Actual open, partially closed and fully closed frames were inspected at desktop and phone sizes. Local moving-eye frame intervals were approximately 8.4ms median / 17.1ms p95 in Chromium desktop, 8.3 / 9.2ms in Chromium phone and 17 / 18ms in both WebKit cases. These measurements describe this test host and emulated viewports; they are not a guarantee for every physical device.
 
 The production build passed a second Chromium desktop / WebKit phone check: both eye poses loaded, automatic motion and pause/resume worked, the shared black-hole and Earth shader still rendered, and the galaxy renderer initialized. Both desktop and phone no-WebGL fallbacks served the correct v4 renderer export. TypeScript, production compilation and the real-page stub build passed.
+
+## Pointer refinement
+
+The pointer target is now measured from the rendered iris, with the same artwork geometry shared by TypeScript and the shader. Gaze uses an exact critically damped response (omega 20 while following, 9 on release), carries velocity through direction changes, and stays inside a bounded range. A stationary pointer retains fixation for as long as it remains over the eye; there is no timer that takes control away. Leaving the eye returns gently to autonomous fixation. The iris moves more visibly than the curved code reflection, while the skin and corners stay anchored. Touch continues to scroll normally.
+
+The follow-up passed independent Chromium and WebKit checks: centered pointer mapping on desktop and phone, holding a target for over three seconds, eased release, paused clocks and pixels, resumed tracking, offscreen suspension, and a centered stable still after live reduced-motion changes. The mathematical response was also checked at 60 and 120 Hz, including reversals and bounds. Browser tests wait for the layout to settle before measuring the cursor target.

@@ -1,3 +1,5 @@
+import { EYE_ART } from './eyeGaze'
+
 /** The artwork is a material: skin and lashes move with the lid while the
  * cornea underneath keeps its shape. Coordinates below trace the source eye. */
 export const CINEMATIC_EYE_SHADER = `
@@ -19,10 +21,10 @@ vec3 eyeMaterial(vec2 uv){
 }
 vec3 eye(){
   bool compact=u_compact==1;
-  float width=compact?u_size.x*1.31:min(u_size.x*1.10,u_size.y*2.45);
-  vec2 q=(v_uv-.5)*u_size/vec2(width,width/1.5);
+  float width=compact?u_size.x*${EYE_ART.compactWidth}:min(u_size.x*${EYE_ART.desktopWidth},u_size.y*${EYE_ART.desktopHeight});
+  vec2 q=(v_uv-.5)*u_size/vec2(width,width/${EYE_ART.aspect});
   q.y=-q.y;
-  q+=vec2(.52,.48);
+  q+=vec2(${EYE_ART.anchorX},${EYE_ART.anchorY});
   if(any(lessThan(q,vec2(0.)))||any(greaterThan(q,vec2(1.))))return vec3(0.);
   float openUpper=eyeCurve(q.x,0);
   float openLower=eyeCurve(q.x,1);
@@ -53,10 +55,13 @@ vec3 eye(){
   vec3 closedSkin=texture(u_lid,vec2(clamp(closedUV.x,0.,1.),1.-clamp(closedUV.y,0.,1.))).rgb;
   skin=mix(skin,closedSkin,smoothstep(.08,.98,u_blink));
 
-  vec2 irisCenter=vec2(.577,.425);
+  vec2 irisCenter=vec2(${EYE_ART.irisX},${EYE_ART.irisY});
   vec2 irisAxes=vec2(.119,.191);
   float inner=smoothstep(openUpper+.009,openUpper+.055,q.y)*(1.-smoothstep(openLower-.045,openLower-.006,q.y))*horizontal;
-  vec2 gaze=vec2(u_pointer.x*.013,-u_pointer.y*.009)*inner;
+  // Rotate the central material into the look, tapering through the sclera
+  // to fixed corners. The skin and lid silhouettes never translate with it.
+  float follow=1.-smoothstep(1.05,2.6,length((q-irisCenter)/irisAxes));
+  vec2 gaze=vec2(u_pointer.x*.031,-u_pointer.y*.022)*inner*follow;
   vec2 ip=(q-irisCenter-gaze)/irisAxes;
   float r=length(ip);
   // A slightly dilated pupil gives the reflected editor room, while the
@@ -71,7 +76,7 @@ vec3 eye(){
 
   // Live source code sits on a softly curved corneal reflection. Upright,
   // readable glyphs are drawn by CodeReflection, never baked into the image.
-  vec2 glass=q-irisCenter-gaze*.73-vec2(.0,.018);
+  vec2 glass=q-irisCenter-gaze*.62-vec2(.0,.018);
   vec2 screen=glass/vec2(compact?.242:.186,compact?.171:.139);
   screen=rotate(-.045)*screen;
   screen.x+=screen.y*screen.y*.085;

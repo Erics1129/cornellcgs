@@ -10,9 +10,18 @@
 .support-mask { display: block; overflow: clip; padding-bottom: .09em; margin-bottom: -.09em; }
 .support-mask > span { display: block; }
 
-.alpha-scene { background: #060810; }
+.alpha-scene { background: #060810; --text:#e2ebfa; --muted:#adbbd0; }
+.alpha-camera { position:absolute; inset:-4px; display:flex; align-items:center; isolation:isolate; }
 .go-study { position: absolute; inset: 0; z-index: -1; pointer-events: none; overflow: hidden; }
-.go-study img { width: 100%; height: 100%; object-fit: cover; object-position: 65% 60%; opacity: .92; }
+.go-play { position:absolute; inset:0; opacity:.92; }
+.go-play img { position:absolute; left:var(--go-image-x,0); top:var(--go-image-y,0); width:var(--go-image-width,100%); height:var(--go-image-height,100%); max-width:none; object-fit:cover; }
+.go-play-stones { position:absolute; inset:0; width:100%; height:100%; opacity:0; }
+.go-play[data-ready=true] .go-play-fallback { opacity:0; }
+.go-play[data-ready=true] .go-play-stones { opacity:1; }
+.alpha-pause { position:absolute; z-index:2; bottom:2rem; right:max(1.5rem,6vw); display:flex; gap:.8em; align-items:center; min-height:44px; padding:.6rem .9rem; color:#b8c7dc; font:11px var(--font-mono); background:none; border:1px solid transparent; cursor:pointer; }
+.alpha-pause:hover { color:white; }
+.alpha-scene:has(.go-play[data-ready=false]) .alpha-pause { visibility:hidden; }
+.alpha-pause:focus-visible { outline:1px solid #b8c7dc; outline-offset:2px; }
 .go-study::after { content: ''; position: absolute; inset: 0; background: linear-gradient(90deg, #060810 0%, #060810bf 26%, #06081018 70%), linear-gradient(0deg, #060810 0%, transparent 22%, transparent 78%, #060810 100%); }
 .go-study-shade { position: absolute; inset: 0; background: #060810; opacity: .18; }
 .alpha-copy { position: relative; }
@@ -103,8 +112,9 @@
 }
 @media (max-width: 767px) {
   .support-scene.alpha-scene { min-height: 100svh; }
-  .go-study img { object-position: 63% 60%; }
-  .go-study::after { background: linear-gradient(90deg, #060810dd, #06081030 90%), linear-gradient(0deg, #060810 0%, transparent 30%, #06081088 80%, #060810); }
+  .alpha-copy { align-self:flex-start; padding-top:16svh; }
+  .alpha-copy .support-lead { max-width:28ch; }
+  .go-study::after { background: linear-gradient(0deg,#060810 0%,transparent 20%,transparent 45%,#060810bb 70%,#060810 90%); }
   .alpha-copy h2 { font-size: clamp(2.6rem, 10.8vw, 4.6rem); }
   .project-layout { display: flex; flex-direction: column-reverse; gap: 2.5rem; }
   .project-copy { width: 100%; }
@@ -128,4 +138,5 @@
 @media (prefers-reduced-motion: reduce) {
   .support-scene *, .support-scene *::before, .support-scene *::after { animation: none !important; transition: none !important; }
   .code-screen-reflection, .showcase-code-caret { display: none; }
+  .alpha-pause { display:none; }
 }

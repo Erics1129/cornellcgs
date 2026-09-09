@@ -13,7 +13,7 @@ Created using ChatGPT's built-in image generation tool. The full-resolution PNG 
 
 The `SceneCanvas` fallback keeps an image visible if WebGL cannot initialize. GPU textures initialize near the viewport. Black hole and globe request new frames only while scroll or pointer input is settling. The eye is the intentional autonomous scene; its code reflection is limited to 25 updates per second. All scenes stop rendering outside their observed region or in a hidden tab. Reduced-motion mode renders stills and readable text.
 
-The AlphaGo background is a separate Blender render, generated from `scripts/render-go-scene.py`: a beveled dark wooden Go board, individual obsidian and porcelain stones, soft area lights and a perspective camera. Its production WebP keeps the original render available alongside it.
+The AlphaGo background uses a Blender board and separate porcelain/obsidian stone sprites. `scripts/render-go-play.py` reuses the materials and camera from `scripts/render-go-scene.py`, and exports the camera projection so animated stones and contact waves align with the actual intersections. A legal sequence plays automatically only while the chapter is visible. Stone landings cause a small, local camera impulse that stops immediately on leaving the chapter. See [GO-PLAY.md](GO-PLAY.md) for assets, timing, visibility guards and verification. The earlier still is retained as a loading/failure fallback.
 
 ## Automatic scenes and scroll choreography
 

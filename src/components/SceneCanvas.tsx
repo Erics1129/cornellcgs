@@ -4,6 +4,7 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { SCENE_FRAGMENT, SCENE_VERTEX } from '../effects/sceneShaders'
 import { CodeReflection } from '../effects/codeReflection'
 import { blinkClosure } from '../effects/eyeMotion'
+import { eyePointerTarget, stepEyeGaze, type EyeGaze } from '../effects/eyeGaze'
 import '../styles/scenes.css'
 
 gsap.registerPlugin(ScrollTrigger)
@@ -28,11 +29,15 @@ export default function SceneCanvas({ kind, paused = false }: { kind: SceneKind;
     if (!gl) return
     let alive = true, near = false, loaded = false, raf = 0, last = 0
     let target = .35, progress = .35, px = 0, py = 0, tx = 0, ty = 0
-    let lastEyePaint = -1, nextBlink = 1.5, blinkAt = -1000, eyeClock = 0, pointerUntil = 0
+    let lastEyePaint = -1, nextBlink = 1.5, blinkAt = -1000, eyeClock = 0
+    let pointerInside = false
+    let pointerClientX = 0, pointerClientY = 0
+    const gaze: EyeGaze = { x: 0, y: 0, vx: 0, vy: 0 }
     let nextLook = 1.2, look = 0, idleX = 0, idleY = 0
     const gazeStops = [[-.38,.13],[.20,-.12],[0,0],[.43,.18],[-.13,-.15],[0,.04]]
     let program: WebGLProgram | null = null
     const reduce = matchMedia('(prefers-reduced-motion: reduce)')
+    let eyeReduced = reduce.matches
     const compact = matchMedia('(max-width:1023px), (orientation: portrait)')
     const reflection = kind === 'eye' ? new CodeReflection() : null
     const image = new Image()
@@ -45,24 +50,45 @@ export default function SceneCanvas({ kind, paused = false }: { kind: SceneKind;
     function request() {
       if (alive && loaded && near && !document.hidden && !raf) raf = requestAnimationFrame(draw)
     }
+    function projectEyePointer(r: DOMRect) {
+      if (!pointerInside) return
+      if (pointerClientX < r.left || pointerClientX > r.right || pointerClientY < r.top || pointerClientY > r.bottom) {
+        pointerInside = false
+        return
+      }
+      const point = eyePointerTarget(pointerClientX, pointerClientY, r, compact.matches)
+      tx = point.x; ty = point.y
+    }
     function resize() {
+      if (kind === 'eye' && !near) return
       const r = box!.getBoundingClientRect()
+      if (kind === 'eye') projectEyePointer(r)
       const cap = matchMedia('(pointer: coarse)').matches ? 1152 : 1680
       const dpr = Math.min(devicePixelRatio || 1, 1.6, cap / Math.max(1, r.width))
-      el!.width = Math.max(1, Math.round(r.width * dpr))
-      el!.height = Math.max(1, Math.round(r.height * dpr))
+      const width = Math.max(1, Math.round(r.width * dpr))
+      const height = Math.max(1, Math.round(r.height * dpr))
+      if (kind === 'eye' && el!.width === width && el!.height === height) return
+      el!.width = width
+      el!.height = height
       lastEyePaint = -1
       request()
     }
     function draw(now: number) {
       raf = 0
       if (!alive || !loaded || !near || document.hidden || gl!.isContextLost()) return
-      const dt = Math.min(.04, Math.max(.001, (now - (last || now - 16)) / 1000))
+      // A layout/scroll redraw can precede the media-query change callback.
+      // Synchronize the static pose and code cache in the renderer as well.
+      if (kind === 'eye' && eyeReduced !== reduce.matches) {
+        eyeReduced = reduce.matches
+        if (eyeReduced) gaze.x = gaze.y = gaze.vx = gaze.vy = px = py = 0
+        lastEyePaint = -1; last = 0
+      }
+      const dt = kind === 'eye' && !last ? 0 : Math.min(.04, Math.max(.001, (now - (last || now - 16)) / 1000))
       last = now
       const ease = 1 - Math.exp(-dt / .085)
       if (kind === 'eye' && !reduce.matches && !pause.current) {
         eyeClock += dt
-        if (now > pointerUntil) {
+        if (!pointerInside) {
           if (eyeClock > nextLook) {
             ;[idleX,idleY] = gazeStops[look++ % gazeStops.length]
             nextLook = eyeClock + 1.5 + Math.random() * 1.3
@@ -70,9 +96,11 @@ export default function SceneCanvas({ kind, paused = false }: { kind: SceneKind;
           tx = idleX + Math.sin(eyeClock * 1.6) * .006
           ty = idleY + Math.sin(eyeClock * 1.1) * .004
         }
+        stepEyeGaze(gaze, { x: tx, y: ty }, dt, pointerInside)
+        px = gaze.x; py = gaze.y
       }
       progress += (target - progress) * ease
-      if (!pause.current) {
+      if (kind !== 'eye' && !pause.current) {
         px += (tx - px) * ease
         py += (ty - py) * ease
       }
@@ -101,7 +129,10 @@ export default function SceneCanvas({ kind, paused = false }: { kind: SceneKind;
         el!.dataset.progress = progress.toFixed(4)
         el!.dataset.pointer = `${px.toFixed(3)},${py.toFixed(3)}`
         el!.dataset.frames = String(Number(el!.dataset.frames || 0) + 1)
-        if (kind === 'eye') { el!.dataset.blink = blink.toFixed(4); el!.dataset.clock = eyeClock.toFixed(3) }
+        if (kind === 'eye') {
+          el!.dataset.blink = blink.toFixed(4); el!.dataset.clock = eyeClock.toFixed(3)
+          el!.dataset.fixation = pointerInside ? 'pointer' : 'autonomous'
+        }
       }
       if (!reduce.matches && !pause.current && (kind === 'eye' || Math.abs(target-progress) + Math.abs(tx-px) + Math.abs(ty-py) > .0002)) request()
     }
@@ -164,8 +195,9 @@ export default function SceneCanvas({ kind, paused = false }: { kind: SceneKind;
         image.src = ASSETS[kind]
         if (lidImage) lidImage.src = '/assets/scenes/eye-cinema-closed-v4.webp'
       }
-      if (near) { last = 0; request() } else stop()
-    }, { rootMargin: '20% 0px' })
+      if (near) { last = 0; if (kind === 'eye') resize(); request() }
+      else { if (kind === 'eye') pointerInside = false; stop() }
+    }, { rootMargin: kind === 'eye' ? '0px' : '20% 0px' })
     io.observe(box)
     const occlusion = new IntersectionObserver(([entry]) => {
       if (entry.intersectionRatio > .88) opaqueScenes.add(box)
@@ -178,20 +210,41 @@ export default function SceneCanvas({ kind, paused = false }: { kind: SceneKind;
       onRefresh: self => { target = self.progress; request() },
     })
     target = st.progress
+    const pointerSurface = kind === 'eye' ? box : section
     const onMove = (event: PointerEvent) => {
-      if (reduce.matches || pause.current || event.pointerType === 'touch') return
+      if (event.pointerType === 'touch') return
+      if (kind === 'eye') {
+        pointerInside = true
+        pointerClientX = event.clientX; pointerClientY = event.clientY
+        projectEyePointer(box.getBoundingClientRect())
+        if (!reduce.matches && !pause.current) request()
+        return
+      }
+      if (reduce.matches || pause.current) return
       const r = box.getBoundingClientRect()
       tx = Math.max(-1, Math.min(1, (event.clientX-r.left)/r.width*2-1))
       ty = Math.max(-1, Math.min(1, 1-(event.clientY-r.top)/r.height*2)); request()
-      pointerUntil = performance.now() + 2200
     }
-    const onLeave = () => { pointerUntil = 0; if (kind !== 'eye') { tx = 0; ty = 0 } request() }
+    const onLeave = (event: PointerEvent) => {
+      if (kind !== 'eye') { tx = 0; ty = 0; request(); return }
+      if (event.pointerType === 'touch') return
+      pointerInside = false
+      if (!reduce.matches && !pause.current) request()
+    }
     const onVis = () => { if (document.hidden) stop(); else { last = 0; request() } }
-    const onMotionChange = () => { lastEyePaint = -1; last = 0; request() }
+    const onScroll = () => { if (near && pointerInside) projectEyePointer(box.getBoundingClientRect()) }
+    const onMotionChange = () => {
+      lastEyePaint = -1; last = 0; request()
+    }
     const onLoss = (event: Event) => { event.preventDefault(); loaded = false; stop(); setReady(false) }
     const onRestore = () => { setup() }
-    section.addEventListener('pointermove', onMove, { passive: true })
-    section.addEventListener('pointerleave', onLeave)
+    pointerSurface.addEventListener('pointermove', onMove, { passive: true })
+    if (kind === 'eye') {
+      pointerSurface.addEventListener('pointerenter', onMove, { passive: true })
+      pointerSurface.addEventListener('pointercancel', onLeave)
+      window.addEventListener('scroll', onScroll, { passive: true })
+    }
+    pointerSurface.addEventListener('pointerleave', onLeave)
     const onPlayback = () => { last = 0; request() }
     box.addEventListener('scene-playback', onPlayback)
     document.addEventListener('visibilitychange', onVis)
@@ -205,7 +258,9 @@ export default function SceneCanvas({ kind, paused = false }: { kind: SceneKind;
       document.documentElement.classList.toggle('cinema-on', opaqueScenes.size > 0)
       image.onload = null
       if (lidImage) lidImage.onload = null
-      section.removeEventListener('pointermove', onMove); section.removeEventListener('pointerleave', onLeave)
+      pointerSurface.removeEventListener('pointermove', onMove); pointerSurface.removeEventListener('pointerleave', onLeave)
+      pointerSurface.removeEventListener('pointerenter', onMove); pointerSurface.removeEventListener('pointercancel', onLeave)
+      if (kind === 'eye') window.removeEventListener('scroll', onScroll)
       box.removeEventListener('scene-playback', onPlayback)
       document.removeEventListener('visibilitychange', onVis); reduce.removeEventListener('change', onMotionChange)
       el.removeEventListener('webglcontextlost', onLoss); el.removeEventListener('webglcontextrestored', onRestore)
