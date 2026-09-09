@@ -8,7 +8,7 @@ import '../styles/scenes.css'
 
 gsap.registerPlugin(ScrollTrigger)
 export type SceneKind = 'blackhole' | 'earth' | 'eye'
-const ASSETS = { blackhole: '/assets/scenes/black-hole.webp', earth: '/assets/earth-journey/earth-nasa-july-4096.webp', eye: '/assets/scenes/iris-v3.webp' }
+const ASSETS = { blackhole: '/assets/scenes/black-hole.webp', earth: '/assets/earth-journey/earth-nasa-july-4096.webp', eye: '/assets/scenes/eye-cinema-v4.webp' }
 const opaqueScenes = new Set<Element>()
 
 /** An on-demand renderer: scroll/input is the clock, except the living eye. */
@@ -36,7 +36,8 @@ export default function SceneCanvas({ kind, paused = false }: { kind: SceneKind;
     const compact = matchMedia('(max-width:1023px), (orientation: portrait)')
     const reflection = kind === 'eye' ? new CodeReflection() : null
     const image = new Image()
-    let texture: WebGLTexture | null = null, screenTexture: WebGLTexture | null = null
+    const lidImage = kind === 'eye' ? new Image() : null
+    let texture: WebGLTexture | null = null, screenTexture: WebGLTexture | null = null, lidTexture: WebGLTexture | null = null
     let buffer: WebGLBuffer | null = null
     const uniforms: Record<string, WebGLUniformLocation | null> = {}
 
@@ -127,7 +128,7 @@ export default function SceneCanvas({ kind, paused = false }: { kind: SceneKind;
         gl!.bufferData(gl!.ARRAY_BUFFER, new Float32Array([-1,-1,1,-1,-1,1,-1,1,1,-1,1,1]), gl!.STATIC_DRAW)
         const attr = gl!.getAttribLocation(program, 'a_position')
         gl!.enableVertexAttribArray(attr); gl!.vertexAttribPointer(attr, 2, gl!.FLOAT, false, 0, 0)
-        for (const name of ['u_size','u_pointer','u_progress','u_time','u_blink','u_mode','u_compact','u_image','u_screen']) uniforms[name] = gl!.getUniformLocation(program, name)
+        for (const name of ['u_size','u_pointer','u_progress','u_time','u_blink','u_mode','u_compact','u_image','u_screen','u_lid']) uniforms[name] = gl!.getUniformLocation(program, name)
         const makeTexture = (slot: number) => {
           const tex = gl!.createTexture()
           gl!.activeTexture(slot); gl!.bindTexture(gl!.TEXTURE_2D, tex)
@@ -143,16 +144,26 @@ export default function SceneCanvas({ kind, paused = false }: { kind: SceneKind;
         if (kind === 'earth') gl!.texParameteri(gl!.TEXTURE_2D, gl!.TEXTURE_WRAP_S, gl!.REPEAT)
         screenTexture = makeTexture(gl!.TEXTURE1)
         gl!.texImage2D(gl!.TEXTURE_2D, 0, gl!.RGBA, 1, 1, 0, gl!.RGBA, gl!.UNSIGNED_BYTE, new Uint8Array([0,0,0,255]))
-        gl!.uniform1i(uniforms.u_image, 0); gl!.uniform1i(uniforms.u_screen, 1)
+        lidTexture = makeTexture(gl!.TEXTURE2)
+        if (lidImage) gl!.texImage2D(gl!.TEXTURE_2D, 0, gl!.RGBA, gl!.RGBA, gl!.UNSIGNED_BYTE, lidImage)
+        else gl!.texImage2D(gl!.TEXTURE_2D, 0, gl!.RGBA, 1, 1, 0, gl!.RGBA, gl!.UNSIGNED_BYTE, new Uint8Array([0,0,0,255]))
+        gl!.uniform1i(uniforms.u_image, 0); gl!.uniform1i(uniforms.u_screen, 1); gl!.uniform1i(uniforms.u_lid, 2)
         gl!.uniform1i(uniforms.u_mode, kind === 'earth' ? 1 : kind === 'eye' ? 2 : 0)
         lastEyePaint = -1
         loaded = true; setReady(true); resize(); request()
       } catch (error) { console.warn('Scene uses its still fallback:', error); setReady(false) }
     }
-    image.onload = setup
+    const whenImagesReady = () => {
+      if (!loaded && image.complete && image.naturalWidth && (!lidImage || (lidImage.complete && lidImage.naturalWidth))) setup()
+    }
+    image.onload = whenImagesReady
+    if (lidImage) lidImage.onload = whenImagesReady
     const io = new IntersectionObserver(([entry]) => {
       near = entry.isIntersecting
-      if (near && !image.src) image.src = ASSETS[kind]
+      if (near && !image.src) {
+        image.src = ASSETS[kind]
+        if (lidImage) lidImage.src = '/assets/scenes/eye-cinema-closed-v4.webp'
+      }
       if (near) { last = 0; request() } else stop()
     }, { rootMargin: '20% 0px' })
     io.observe(box)
@@ -193,18 +204,19 @@ export default function SceneCanvas({ kind, paused = false }: { kind: SceneKind;
       opaqueScenes.delete(box)
       document.documentElement.classList.toggle('cinema-on', opaqueScenes.size > 0)
       image.onload = null
+      if (lidImage) lidImage.onload = null
       section.removeEventListener('pointermove', onMove); section.removeEventListener('pointerleave', onLeave)
       box.removeEventListener('scene-playback', onPlayback)
       document.removeEventListener('visibilitychange', onVis); reduce.removeEventListener('change', onMotionChange)
       el.removeEventListener('webglcontextlost', onLoss); el.removeEventListener('webglcontextrestored', onRestore)
-      gl.deleteTexture(texture); gl.deleteTexture(screenTexture); gl.deleteBuffer(buffer); gl.deleteProgram(program)
+      gl.deleteTexture(texture); gl.deleteTexture(screenTexture); gl.deleteTexture(lidTexture); gl.deleteBuffer(buffer); gl.deleteProgram(program)
     }
   }, [kind])
 
   useEffect(() => { host.current?.dispatchEvent(new Event('scene-playback')) }, [paused])
 
   return <div ref={host} className={`scene-canvas scene-canvas--${kind}`} aria-hidden="true">
-    <div className="scene-still" style={{ backgroundImage: `url(${kind === 'eye' ? '/assets/scenes/eye-still-v3.webp' : ASSETS[kind]})`, opacity: ready ? 0 : 1 }} />
+    <div className="scene-still" style={{ backgroundImage: kind === 'eye' ? undefined : `url(${ASSETS[kind]})`, opacity: ready ? 0 : 1 }} />
     <canvas ref={canvas} data-scene={kind} style={{ opacity: ready ? 1 : 0 }} />
   </div>
 }

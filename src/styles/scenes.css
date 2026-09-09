@@ -87,3 +87,9 @@
 .scene-chapter::after { bottom:-12svh; background:linear-gradient(#000,transparent); }
 .scene-edge--top { background:linear-gradient(#000,transparent); opacity:1; }
 .scene-edge--bottom { background:linear-gradient(to top,#000,transparent); opacity:1; }
+
+/* Renderer exports preserve the eye's composition when WebGL is unavailable. */
+.scene-canvas--eye .scene-still { background-image:url('/assets/scenes/eye-still-v4.webp'); }
+@media(max-width:1023px), (orientation:portrait) {
+ .scene-canvas--eye .scene-still { background-image:url('/assets/scenes/eye-still-v4-mobile.webp'); }
+}
