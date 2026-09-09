@@ -8,7 +8,7 @@ import '../styles/scenes.css'
 
 gsap.registerPlugin(ScrollTrigger)
 export type SceneKind = 'blackhole' | 'earth' | 'eye'
-const ASSETS = { blackhole: 'black-hole.webp', earth: 'earth-map.webp', eye: 'eye-still.svg' }
+const ASSETS = { blackhole: '/assets/scenes/black-hole.webp', earth: '/assets/earth-journey/earth-nasa-july-4096.webp', eye: '/assets/scenes/iris-v3.webp' }
 const opaqueScenes = new Set<Element>()
 
 /** An on-demand renderer: scroll/input is the clock, except the living eye. */
@@ -29,6 +29,8 @@ export default function SceneCanvas({ kind, paused = false }: { kind: SceneKind;
     let alive = true, near = false, loaded = false, raf = 0, last = 0
     let target = .35, progress = .35, px = 0, py = 0, tx = 0, ty = 0
     let lastEyePaint = -1, nextBlink = 1.5, blinkAt = -1000, eyeClock = 0, pointerUntil = 0
+    let nextLook = 1.2, look = 0, idleX = 0, idleY = 0
+    const gazeStops = [[-.38,.13],[.20,-.12],[0,0],[.43,.18],[-.13,-.15],[0,.04]]
     let program: WebGLProgram | null = null
     const reduce = matchMedia('(prefers-reduced-motion: reduce)')
     const compact = matchMedia('(max-width:1023px), (orientation: portrait)')
@@ -48,6 +50,7 @@ export default function SceneCanvas({ kind, paused = false }: { kind: SceneKind;
       const dpr = Math.min(devicePixelRatio || 1, 1.6, cap / Math.max(1, r.width))
       el!.width = Math.max(1, Math.round(r.width * dpr))
       el!.height = Math.max(1, Math.round(r.height * dpr))
+      lastEyePaint = -1
       request()
     }
     function draw(now: number) {
@@ -59,20 +62,26 @@ export default function SceneCanvas({ kind, paused = false }: { kind: SceneKind;
       if (kind === 'eye' && !reduce.matches && !pause.current) {
         eyeClock += dt
         if (now > pointerUntil) {
-          tx = Math.sin(eyeClock * .62) * .44 + Math.sin(eyeClock * 1.47) * .13
-          ty = Math.sin(eyeClock * .43 + .7) * .26
+          if (eyeClock > nextLook) {
+            ;[idleX,idleY] = gazeStops[look++ % gazeStops.length]
+            nextLook = eyeClock + 1.5 + Math.random() * 1.3
+          }
+          tx = idleX + Math.sin(eyeClock * 1.6) * .006
+          ty = idleY + Math.sin(eyeClock * 1.1) * .004
         }
       }
       progress += (target - progress) * ease
-      px += (tx - px) * ease
-      py += (ty - py) * ease
+      if (!pause.current) {
+        px += (tx - px) * ease
+        py += (ty - py) * ease
+      }
       let blink = 0
       if (kind === 'eye' && !reduce.matches) {
         if (eyeClock > nextBlink) { blinkAt = eyeClock; nextBlink = eyeClock + 3.1 + Math.random() * 2.4 }
         blink = blinkClosure(eyeClock - blinkAt)
       }
       if (reflection && (eyeClock - lastEyePaint > .04 || lastEyePaint < 0)) {
-        reflection.paint(reduce.matches ? 3600 : eyeClock * 1000, compact.matches)
+        reflection.paint(reduce.matches ? 1800 : eyeClock * 1000, compact.matches)
         gl!.activeTexture(gl!.TEXTURE1)
         gl!.bindTexture(gl!.TEXTURE_2D, screenTexture)
         gl!.texImage2D(gl!.TEXTURE_2D, 0, gl!.RGBA, gl!.RGBA, gl!.UNSIGNED_BYTE, reflection.canvas)
@@ -83,7 +92,7 @@ export default function SceneCanvas({ kind, paused = false }: { kind: SceneKind;
       gl!.uniform2f(uniforms.u_size, el!.width, el!.height)
       gl!.uniform1i(uniforms.u_compact, compact.matches ? 1 : 0)
       gl!.uniform2f(uniforms.u_pointer, reduce.matches ? 0 : px, reduce.matches ? 0 : py)
-      gl!.uniform1f(uniforms.u_progress, reduce.matches ? .55 : progress)
+      gl!.uniform1f(uniforms.u_progress, reduce.matches ? (kind === 'earth' ? .12 : .55) : progress)
       gl!.uniform1f(uniforms.u_time, reduce.matches ? 0 : kind === 'eye' ? eyeClock : now / 1000)
       gl!.uniform1f(uniforms.u_blink, Math.max(0, blink))
       gl!.drawArrays(gl!.TRIANGLES, 0, 6)
@@ -136,13 +145,14 @@ export default function SceneCanvas({ kind, paused = false }: { kind: SceneKind;
         gl!.texImage2D(gl!.TEXTURE_2D, 0, gl!.RGBA, 1, 1, 0, gl!.RGBA, gl!.UNSIGNED_BYTE, new Uint8Array([0,0,0,255]))
         gl!.uniform1i(uniforms.u_image, 0); gl!.uniform1i(uniforms.u_screen, 1)
         gl!.uniform1i(uniforms.u_mode, kind === 'earth' ? 1 : kind === 'eye' ? 2 : 0)
+        lastEyePaint = -1
         loaded = true; setReady(true); resize(); request()
       } catch (error) { console.warn('Scene uses its still fallback:', error); setReady(false) }
     }
     image.onload = setup
     const io = new IntersectionObserver(([entry]) => {
       near = entry.isIntersecting
-      if (near && !image.src) image.src = `/assets/scenes/${ASSETS[kind]}`
+      if (near && !image.src) image.src = ASSETS[kind]
       if (near) { last = 0; request() } else stop()
     }, { rootMargin: '20% 0px' })
     io.observe(box)
@@ -194,7 +204,7 @@ export default function SceneCanvas({ kind, paused = false }: { kind: SceneKind;
   useEffect(() => { host.current?.dispatchEvent(new Event('scene-playback')) }, [paused])
 
   return <div ref={host} className={`scene-canvas scene-canvas--${kind}`} aria-hidden="true">
-    <div className="scene-still" style={{ backgroundImage: `url(/assets/scenes/${ASSETS[kind]})`, opacity: ready ? 0 : 1 }} />
+    <div className="scene-still" style={{ backgroundImage: `url(${kind === 'eye' ? '/assets/scenes/eye-still-v3.webp' : ASSETS[kind]})`, opacity: ready ? 0 : 1 }} />
     <canvas ref={canvas} data-scene={kind} style={{ opacity: ready ? 1 : 0 }} />
   </div>
 }

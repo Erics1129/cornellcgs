@@ -6,6 +6,7 @@ import '../styles/universe.css'
 
 gsap.registerPlugin(ScrollTrigger)
 const occupiedStages = new Set<Element>()
+const PHASES = ['Across galaxies', 'Beyond spacetime', 'Another horizon']
 const clamp = (v: number) => Math.max(0, Math.min(1, v))
 const smooth = (a: number, b: number, value: number) => {
   const p = clamp((value-a)/(b-a))
@@ -18,13 +19,17 @@ export default function UniverseJourney() {
   const stage = useRef<HTMLDivElement>(null)
   const canvas = useRef<HTMLCanvasElement>(null)
   const destination = useRef<HTMLImageElement>(null)
+  const nextDestination = useRef<HTMLImageElement>(null)
   const heading = useRef<HTMLDivElement>(null)
   const cue = useRef<HTMLParagraphElement>(null)
   const track = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     const section = root.current!, viewport = stage.current!, surface = canvas.current!
-    const image = destination.current!
+    const image = destination.current!, secondImage = nextDestination.current!
+    const phaseWords = Array.from(section.querySelectorAll<HTMLElement>('[data-universe-phase]')).map(phase => ({
+      phase, words: Array.from(phase.querySelectorAll<HTMLElement>('[data-phase-word]')),
+    }))
     let alive = true, visible = false
     let request = () => {}, stop = () => {}
     const occlusion = new IntersectionObserver(([entry]) => {
@@ -41,12 +46,12 @@ export default function UniverseJourney() {
       let gl: WebGL2RenderingContext | null = null
       let disposed = false, raf = 0, last = 0, lastInput = -Infinity
       let progress = 0, speed = 0, wantedSpeed = 0, direction = 1
-      let frames = 0, renderRatio = 1, hasImage = false, screenHeight = 1
+      let frames = 0, renderRatio = 1, hasImage = false, hasSecondImage = false, screenHeight = 1
       let fullWidth = 1, fullHeight = 1, fullRatio = 1, travelResolution = false
       let background: WebGLProgram | null = null, stars: WebGLProgram | null = null
       let quad: WebGLBuffer | null = null, seeds: WebGLBuffer | null = null
       let backdropVAO: WebGLVertexArrayObject | null = null, starsVAO: WebGLVertexArrayObject | null = null
-      let texture: WebGLTexture | null = null
+      let texture: WebGLTexture | null = null, secondTexture: WebGLTexture | null = null
       let scroll: ScrollTrigger | null = null
       let observer: ResizeObserver | null = null
       const compact = matchMedia('(max-width:767px), (pointer:coarse)').matches
@@ -54,12 +59,21 @@ export default function UniverseJourney() {
       const uniforms = new Map<WebGLProgram, Record<string, WebGLUniformLocation | null>>()
 
       const paintCopy = (p: number, still = false) => {
-        const intro = still ? 1 : 1-smooth(.06,.22,p)
-        heading.current!.style.opacity = String(intro)
+        phaseWords.forEach(({phase,words},i) => {
+          const starts = [0,.385,.77]
+          const exit = i===0 ? 1-smooth(.19,.28,p) : i===1 ? 1-smooth(.625,.705,p) : 1
+          const shown = still ? Number(i===2) : exit*(i===0 ? 1 : smooth(starts[i],starts[i]+.065,p))
+          phase.style.opacity = String(shown)
+          words.forEach((word,j) => {
+            const reveal = still || i===0 ? 1 : smooth(starts[i]+j*.012,starts[i]+.06+j*.012,p)
+            word.style.transform = `translateY(${(1-reveal)*105}%)`
+          })
+        })
         cue.current!.style.opacity = String(still ? 0 : 1-smooth(.025,.1,p))
         track.current!.style.transform = `scaleX(${still ? 1 : p})`
-        section.dataset.leg = String(p < .28 ? 0 : p < .78 ? 1 : 2)
-        if (import.meta.env.DEV) section.dataset.progress = p.toFixed(5)
+        const leg = p<.36 ? 0 : p<.735 ? 1 : 2
+        section.dataset.leg = String(leg)
+        if (import.meta.env.DEV) { section.dataset.progress = p.toFixed(5); section.dataset.phase = PHASES[leg] }
       }
       const still = (mode: 'reduced' | 'fallback') => {
         section.dataset.renderer = mode
@@ -82,9 +96,9 @@ export default function UniverseJourney() {
       }
       const release = () => {
         gpu.deleteVertexArray(backdropVAO); gpu.deleteVertexArray(starsVAO)
-        gpu.deleteBuffer(quad); gpu.deleteBuffer(seeds); gpu.deleteTexture(texture)
+        gpu.deleteBuffer(quad); gpu.deleteBuffer(seeds); gpu.deleteTexture(texture); gpu.deleteTexture(secondTexture)
         gpu.deleteProgram(background); gpu.deleteProgram(stars)
-        backdropVAO = starsVAO = null; quad = seeds = null; texture = null; background = stars = null
+        backdropVAO = starsVAO = null; quad = seeds = null; texture = secondTexture = null; background = stars = null
         uniforms.clear()
       }
       const compile = (type: number, source: string) => {
@@ -109,19 +123,26 @@ export default function UniverseJourney() {
         } catch (error) { gpu.deleteProgram(result); throw error }
         finally { gpu.deleteShader(vs); gpu.deleteShader(fs) }
         const locations: Record<string, WebGLUniformLocation | null> = {}
-        for (const name of ['u_size','u_progress','u_travel','u_speed','u_direction','u_pixelRatio','u_hasImage','u_imageAspect','u_image']) locations[name] = gpu.getUniformLocation(result,name)
+        for (const name of ['u_size','u_progress','u_travel','u_speed','u_direction','u_pixelRatio','u_hasImage','u_hasSecondImage','u_imageAspect','u_secondImageAspect','u_image','u_secondImage']) locations[name] = gpu.getUniformLocation(result,name)
         uniforms.set(result,locations)
         return result
       }
-      const upload = () => {
-        if (!texture || !image.complete || !image.naturalWidth || gpu.isContextLost()) return
+      const uploadImage = (source: HTMLImageElement, target: WebGLTexture | null, second: boolean) => {
+        if (!target || !source.complete || !source.naturalWidth || gpu.isContextLost()) return
         try {
-          gpu.activeTexture(gpu.TEXTURE0); gpu.bindTexture(gpu.TEXTURE_2D,texture)
+          gpu.activeTexture(second ? gpu.TEXTURE1 : gpu.TEXTURE0); gpu.bindTexture(gpu.TEXTURE_2D,target)
           gpu.pixelStorei(gpu.UNPACK_FLIP_Y_WEBGL,true)
-          gpu.texImage2D(gpu.TEXTURE_2D,0,gpu.RGBA,gpu.RGBA,gpu.UNSIGNED_BYTE,image)
-          hasImage = true; section.dataset.texture = 'ready'; request()
-        } catch { hasImage = false; section.dataset.texture = 'procedural' }
+          gpu.texImage2D(gpu.TEXTURE_2D,0,gpu.RGBA,gpu.RGBA,gpu.UNSIGNED_BYTE,source)
+          if(second) { hasSecondImage = true; section.dataset.secondTexture = 'ready' }
+          else { hasImage = true; section.dataset.texture = 'ready' }
+          request()
+        } catch {
+          if(second) { hasSecondImage = false; section.dataset.secondTexture = 'procedural' }
+          else { hasImage = false; section.dataset.texture = 'procedural' }
+        }
       }
+      const upload = () => uploadImage(image,texture,false)
+      const uploadSecond = () => uploadImage(secondImage,secondTexture,true)
       const resize = () => {
         // All dimensions are read together, never inside the render loop.
         const width = viewport.clientWidth, height = viewport.clientHeight
@@ -157,16 +178,20 @@ export default function UniverseJourney() {
           seeds = gpu.createBuffer(); gpu.bindBuffer(gpu.ARRAY_BUFFER,seeds); gpu.bufferData(gpu.ARRAY_BUFFER,data,gpu.STATIC_DRAW)
           const at = gpu.getAttribLocation(stars,'a_seed')
           gpu.enableVertexAttribArray(at); gpu.vertexAttribPointer(at,4,gpu.FLOAT,false,0,0); gpu.vertexAttribDivisor(at,1)
-          texture = gpu.createTexture(); gpu.activeTexture(gpu.TEXTURE0); gpu.bindTexture(gpu.TEXTURE_2D,texture)
-          gpu.texParameteri(gpu.TEXTURE_2D,gpu.TEXTURE_MIN_FILTER,gpu.LINEAR)
-          gpu.texParameteri(gpu.TEXTURE_2D,gpu.TEXTURE_MAG_FILTER,gpu.LINEAR)
-          gpu.texParameteri(gpu.TEXTURE_2D,gpu.TEXTURE_WRAP_S,gpu.CLAMP_TO_EDGE)
-          gpu.texParameteri(gpu.TEXTURE_2D,gpu.TEXTURE_WRAP_T,gpu.CLAMP_TO_EDGE)
-          gpu.texImage2D(gpu.TEXTURE_2D,0,gpu.RGBA,1,1,0,gpu.RGBA,gpu.UNSIGNED_BYTE,new Uint8Array([0,0,0,255]))
+          const makeTexture = (unit: number) => {
+            const result = gpu.createTexture(); gpu.activeTexture(unit); gpu.bindTexture(gpu.TEXTURE_2D,result)
+            gpu.texParameteri(gpu.TEXTURE_2D,gpu.TEXTURE_MIN_FILTER,gpu.LINEAR)
+            gpu.texParameteri(gpu.TEXTURE_2D,gpu.TEXTURE_MAG_FILTER,gpu.LINEAR)
+            gpu.texParameteri(gpu.TEXTURE_2D,gpu.TEXTURE_WRAP_S,gpu.CLAMP_TO_EDGE)
+            gpu.texParameteri(gpu.TEXTURE_2D,gpu.TEXTURE_WRAP_T,gpu.CLAMP_TO_EDGE)
+            gpu.texImage2D(gpu.TEXTURE_2D,0,gpu.RGBA,1,1,0,gpu.RGBA,gpu.UNSIGNED_BYTE,new Uint8Array([0,0,0,255]))
+            return result
+          }
+          texture = makeTexture(gpu.TEXTURE0); secondTexture = makeTexture(gpu.TEXTURE1)
           gpu.disable(gpu.DEPTH_TEST)
-          hasImage = false; section.dataset.texture = 'procedural'
+          hasImage = hasSecondImage = false; section.dataset.texture = section.dataset.secondTexture = 'procedural'
           section.dataset.renderer = 'webgl2'
-          upload(); resize(); request()
+          upload(); uploadSecond(); resize(); request()
         } catch (error) {
           stop(); release(); still('fallback')
           if (import.meta.env.DEV) console.warn('Universe uses its still fallback:',error)
@@ -198,10 +223,15 @@ export default function UniverseJourney() {
         const bg = uniforms.get(background)!
         gpu.uniform2f(bg.u_size,surface.width,surface.height)
         gpu.uniform1f(bg.u_progress,progress)
+        gpu.uniform1f(bg.u_travel,route.travel)
         gpu.uniform1f(bg.u_hasImage,hasImage ? 1 : 0)
+        gpu.uniform1f(bg.u_hasSecondImage,hasSecondImage ? 1 : 0)
         gpu.uniform1f(bg.u_imageAspect,image.naturalWidth ? image.naturalWidth/image.naturalHeight : 1.5)
+        gpu.uniform1f(bg.u_secondImageAspect,secondImage.naturalWidth ? secondImage.naturalWidth/secondImage.naturalHeight : 1.5)
         gpu.uniform1i(bg.u_image,0)
+        gpu.uniform1i(bg.u_secondImage,1)
         gpu.activeTexture(gpu.TEXTURE0); gpu.bindTexture(gpu.TEXTURE_2D,texture)
+        gpu.activeTexture(gpu.TEXTURE1); gpu.bindTexture(gpu.TEXTURE_2D,secondTexture)
         gpu.drawArrays(gpu.TRIANGLES,0,6)
         gpu.enable(gpu.BLEND); gpu.blendFunc(gpu.ONE,gpu.ONE)
         gpu.useProgram(stars); gpu.bindVertexArray(starsVAO)
@@ -223,6 +253,7 @@ export default function UniverseJourney() {
           surface.dataset.drawCalls = '2'
           surface.dataset.stars = String(count)
           surface.dataset.pixels = String(surface.width*surface.height)
+          surface.dataset.resolutionScale = travelResolution ? '.76' : '1'
         }
         if (speed || target) request()
       }
@@ -240,7 +271,9 @@ export default function UniverseJourney() {
       }
       const onRestore = () => { if (!disposed) setup() }
       const onError = () => { hasImage = false; section.dataset.texture = 'missing'; request() }
+      const onSecondError = () => { hasSecondImage = false; section.dataset.secondTexture = 'missing'; request() }
       image.addEventListener('load',upload); image.addEventListener('error',onError)
+      secondImage.addEventListener('load',uploadSecond); secondImage.addEventListener('error',onSecondError)
       surface.addEventListener('webglcontextlost',onLoss); surface.addEventListener('webglcontextrestored',onRestore)
       document.addEventListener('visibilitychange',onVisible)
       setup()
@@ -255,6 +288,7 @@ export default function UniverseJourney() {
       return () => {
         disposed = true; stop(); scroll?.kill(); observer?.disconnect()
         image.removeEventListener('load',upload); image.removeEventListener('error',onError)
+        secondImage.removeEventListener('load',uploadSecond); secondImage.removeEventListener('error',onSecondError)
         surface.removeEventListener('webglcontextlost',onLoss); surface.removeEventListener('webglcontextrestored',onRestore)
         document.removeEventListener('visibilitychange',onVisible)
         release(); request = () => {}; stop = () => {}
@@ -272,11 +306,18 @@ export default function UniverseJourney() {
       <div ref={stage} className="universe-viewport">
         <div className="universe-fallback" aria-hidden="true">
           <div className="universe-fallback-halo" />
-          <img ref={destination} src="/assets/scenes/galaxy.webp" alt="" width="1536" height="1024" loading="lazy" decoding="async" onError={(event) => { event.currentTarget.style.visibility = 'hidden' }} onLoad={(event) => { event.currentTarget.style.visibility = '' }} />
+          <img ref={destination} className="universe-source-first" src="/assets/scenes/galaxy.webp" alt="" width="1536" height="1024" loading="lazy" decoding="async" />
+          <img ref={nextDestination} src="/assets/scenes/galaxy-violet.webp" alt="" width="1536" height="1024" loading="lazy" decoding="async" onError={(event) => { event.currentTarget.style.visibility = 'hidden' }} onLoad={(event) => { event.currentTarget.style.visibility = '' }} />
         </div>
         <canvas ref={canvas} className="universe-canvas" data-scene="universe" aria-hidden="true" />
         <div className="universe-edges" aria-hidden="true" />
-        <div ref={heading} className="universe-heading container-site"><h2>Beyond the known.</h2></div>
+        <div ref={heading} className="universe-heading container-site">
+          <h2 aria-label="Across galaxies. Beyond spacetime. Another horizon.">
+            {PHASES.map((label,i) => <span key={label} data-universe-phase className={`universe-phase universe-phase-${i}`} aria-hidden="true">
+              {label.split(' ').map((word,j) => <span key={word} className="universe-phase-mask"><span data-phase-word>{word}{j===0 ? '\u00a0' : ''}</span></span>)}
+            </span>)}
+          </h2>
+        </div>
         <div className="universe-footer container-site">
           <p ref={cue} className="universe-cue">Scroll to explore <span aria-hidden="true">↓</span></p>
           <div className="universe-itinerary" aria-hidden="true">

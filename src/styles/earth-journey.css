@@ -1,0 +1,76 @@
+/* Only the Earth chapter. Static document flow is the baseline; JS enhances
+   it to native sticky scrolling when the reader permits motion. */
+.earth-journey { min-height:0; background:#000; }
+.earth-journey .earth-journey-stage { position:relative; height:auto; min-height:0; overflow:hidden; }
+.earth-intro { position:relative; height:100svh; min-height:640px; }
+.earth-globe { position:absolute; inset:0; }
+.earth-journey .earth-intro-copy { pointer-events:none; }
+.earth-journey .earth-intro-copy .scene-copy { pointer-events:none; }
+.earth-journey .earth-intro-copy .scene-link { pointer-events:auto; }
+.earth-map-credit { display:block; padding-top:10px; color:#99abc2; font-size:10px; text-decoration:underline; text-underline-offset:3px; }
+.earth-map-credit:focus-visible { outline:2px solid #fff; outline-offset:5px; }
+.earth-journey[data-earth-intro="false"] .earth-intro-copy a,
+.earth-journey[data-earth-intro="false"] .earth-map-credit { pointer-events:none; }
+.earth-journey .earth-continent { position:absolute; bottom:11%; left:7vw; z-index:3; color:#f3f7ff; }
+.earth-continent p { margin:0 0 12px; font:400 clamp(2rem,4vw,4.5rem)/1.05 var(--font-display); letter-spacing:-.04em; }
+.earth-continent span { font-size:clamp(.8rem,1vw,1rem); color:#c5d2e4; }
+.earth-journey:not([data-earth-motion]) .earth-continent { display:none; }
+.earth-place { position:relative; height:90svh; min-height:540px; margin:0; overflow:hidden; background:#07121a; }
+.earth-place::after { content:''; position:absolute; inset:0; pointer-events:none; background:linear-gradient(180deg,rgba(0,8,18,.13),transparent 25%,transparent 48%,rgba(0,8,18,.36) 73%,rgba(0,8,18,.82)); }
+.earth-photo { display:block; position:absolute; inset:0; width:100%; height:100%; object-fit:cover; object-position:50% 50%; }
+.earth-place--new-york .earth-photo { object-position:48% 45%; transform-origin:48% 42%; }
+.earth-place--bali .earth-photo { object-position:57% 52%; transform-origin:57% 52%; }
+.earth-place--hawaii .earth-photo { object-position:52% 50%; transform-origin:52% 50%; }
+.earth-place figcaption { position:absolute; inset:0; z-index:2; pointer-events:none; color:#fff; }
+.earth-place-copy { position:absolute; bottom:100px; left:7vw; right:7vw; }
+.earth-place-copy h3 { margin:0 0 16px; font:400 clamp(3.5rem,7.5vw,8rem)/.95 var(--font-display); letter-spacing:-.055em; }
+.earth-place-copy p { margin:0; font:400 clamp(.85rem,1.15vw,1.1rem)/1.5 var(--font-body,system-ui); color:#e0e8ee; }
+.earth-photo-credit { position:absolute; bottom:24px; left:7vw; right:7vw; display:flex; flex-wrap:wrap; align-items:center; margin:0; color:#c7d3dc; font:400 11px/1.6 var(--font-mono,monospace); }
+.earth-photo-credit a { display:inline-flex; align-items:center; min-height:44px; padding:4px 0; pointer-events:auto; text-decoration:underline; text-decoration-color:#7c8b94; text-underline-offset:4px; }
+.earth-photo-credit>span { white-space:pre; }
+.earth-photo-credit a:focus-visible { outline:2px solid #fff; outline-offset:5px; border-radius:1px; }
+@media(hover:hover) { .earth-photo-credit a:hover { color:#fff; text-decoration-color:currentColor; } }
+
+.earth-journey[data-earth-motion="scroll"] { min-height:700svh; }
+.earth-journey[data-earth-motion="scroll"] .earth-journey-stage { position:sticky; top:0; height:100svh; min-height:0; }
+.earth-journey[data-earth-motion="scroll"] .earth-intro { position:absolute; inset:0; height:100%; min-height:0; }
+.earth-journey[data-earth-motion="scroll"] .earth-place { position:absolute; inset:0; height:100%; min-height:0; opacity:0; pointer-events:none; }
+.earth-journey[data-earth-motion="scroll"] .earth-place[data-active="false"] a { pointer-events:none; }
+.earth-journey[data-earth-motion="scroll"] .earth-photo { will-change:transform; }
+.earth-journey[data-earth-motion="scroll"] .earth-continent { opacity:0; pointer-events:none; }
+.earth-journey[data-earth-motion="scroll"] .earth-place figcaption { opacity:0; }
+
+@media(max-width:1023px), (orientation:portrait) {
+  .earth-journey[data-earth-motion="scroll"] { min-height:600svh; }
+  .earth-intro { min-height:720px; }
+  .earth-journey .scene-content { padding-top:clamp(82px,11svh,118px); }
+  .earth-journey .scene-title { font-size:clamp(1.85rem,6.9vw,3rem); max-width:18ch; }
+  .earth-journey .scene-lead { max-width:31ch; }
+  .earth-journey .scene-link { min-height:44px; }
+  .earth-journey .earth-continent { left:6vw; right:6vw; bottom:12%; }
+  .earth-place { height:86svh; min-height:530px; }
+  .earth-place-copy { left:6vw; right:6vw; bottom:120px; }
+  .earth-place-copy h3 { font-size:clamp(3.2rem,14vw,5.7rem); margin-bottom:14px; }
+  .earth-place-copy p { max-width:30ch; font-size:.85rem; }
+  .earth-photo-credit { left:6vw; right:6vw; bottom:28px; font-size:10px; }
+  .earth-journey .scene-caption { left:6vw; right:6vw; }
+}
+@media(max-height:650px) and (min-width:1024px) {
+  .earth-journey .scene-title { font-size:2.6rem; }
+  .earth-journey .scene-eyebrow { margin-bottom:18px; }
+  .earth-journey .scene-lead { margin-top:18px; font-size:.9rem; }
+}
+@media(prefers-reduced-motion:reduce) {
+  .earth-journey[data-earth-motion="scroll"] { min-height:0; }
+  .earth-journey .earth-journey-stage { position:relative; height:auto; }
+  .earth-journey .earth-orbit-caption span:not(:first-child) { display:none; }
+  .earth-journey .earth-photo { transform:none !important; will-change:auto; }
+}
+@media print {
+  .earth-journey[data-earth-motion="scroll"] { min-height:0; }
+  .earth-journey[data-earth-motion="scroll"] .earth-journey-stage { position:relative; height:auto; }
+  .earth-journey[data-earth-motion="scroll"] .earth-intro,
+  .earth-journey[data-earth-motion="scroll"] .earth-place { position:relative; height:80vh; opacity:1 !important; }
+  .earth-journey .earth-intro-copy,.earth-journey .earth-place figcaption { opacity:1 !important; }
+  .earth-journey .earth-photo { transform:none !important; }
+}
