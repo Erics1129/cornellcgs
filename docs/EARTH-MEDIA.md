@@ -1,6 +1,6 @@
 # Earth journey: media, licensing, and integration
 
-The main World chapter moves from a satellite-data globe to real photographs of Liberty Island, Jatiluwih, and the Nā Pali Coast. The place captions describe geography only; they do not assert that Cornell CGS has members, operations, events, or affiliations in those places. The existing `world.heading`, `world.text`, and single `/world/` community link are retained.
+The main World chapter moves from a NASA-derived dotted globe through Jatiluwih, the Nā Pali Coast, the Dolomites, Skógafoss and Liberty Island, arriving at Cornell University in Ithaca. The place captions describe geography only; they do not assert that Cornell CGS has members, operations, events, or affiliations in those places. The existing `world.heading`, `world.text`, and single `/world/` community link are retained.
 
 ## Shipped assets
 
@@ -59,7 +59,7 @@ The two CC licenses allow redistribution and adaptation with attribution. Credit
 - **Credit guidance:** [NASA Earth Observations: Blue Marble Next Generation](https://neo.gsfc.nasa.gov/view.php?datasetId=BlueMarbleNG).
 - **Original file:** [NASA 5400 × 2700 JPEG](https://assets.science.nasa.gov/content/dam/science/esd/eo/images/bmng/bmng-topography-bathymetry/july/world.topo.bathy.200407.3x5400x2700.jpg).
 - **Reuse guidance:** [NASA images and media guidelines](https://www.nasa.gov/nasa-brand-center/images-and-media/). NASA imagery is public domain unless a specific third-party restriction is noted. This use credits NASA Earth Observatory and does not imply NASA endorsement.
-- **Provenance:** an actual satellite-data monthly composite, with topographic/bathymetric relief shading. It is not a single photograph, live weather, or street-level imagery. The continent and coastline approach uses this geographically referenced source; the following Liberty Island photograph supplies real ground-level detail.
+- **Provenance:** an actual satellite-data monthly composite, with topographic/bathymetric relief shading. It is not a single photograph, live weather, or street-level imagery. The continent and coastline approach uses this geographically referenced source; the following landscape photographs supply real ground-level detail.
 - **Derivative:** source resized to 4096 × 2048, WebP encoded, with original orientation/projection unchanged. The shader adds illustrative lighting and sphere projection. The visible opening credit links to NASA Earth Observatory.
 - **Previous texture:** `/assets/scenes/earth-map.webp` was a generated illustrative map. It is untouched and is not the source for the new 4K texture. It may remain available as an explicitly illustrative fallback, but should not be used for the coastline approach.
 
@@ -72,22 +72,39 @@ Use the full public URL **`/assets/earth-journey/earth-nasa-july-4096.webp`** fo
 - Full-root progress: `top top` → `bottom bottom`, 0…1.
 - North-up equirectangular image: longitude −180…180° across the width; latitude +90…−90° top to bottom. The existing WebGL upload flips the image vertically.
 - Apply `nn.yz` latitude rotation **before** `nn.xz` longitude rotation. With the parent's matrix convention, the central surface normal samples `(cos(latitude) sin(longitude), sin(latitude), cos(latitude) cos(longitude))`.
-- Initial longitude 115°E; orbit settles at approximately 38°N, 100°W. The final approach moves toward 40.7°N, 74°W, near New York Harbor. The source's resolution does not resolve the statue itself.
+- Initial longitude 20°E, latitude 15°N. Orbit 0…0.24 reveals the Atlantic, Americas and Pacific. Approach 0.23…0.36 settles toward Bali at 115°E, 8.5°S. The dotted land mask is derived from the NASA texture; a blue–violet–gold atmospheric rim supplies illustrative lighting. The map does not resolve ground-level landmarks.
 - Reduced-motion Earth uniform: **`.12`**, so the initial static globe remains alongside the original community copy.
+
+## Journey v2 media (September 9, 2026)
+
+`journey-v2-credits.json` retains original source records, hashes, licenses and modification notes for the three additions. Photographs are real, resized to 1920px wide and WebP quality 78. No generative edits.
+
+| File | Bytes | Photographer / rights | Original source |
+| --- | ---: | --- | --- |
+| `dolomites.webp` | 276,254 | Simone Mainetti / CC BY-SA 4.0 | [Tre Cime di Lavaredo](https://commons.wikimedia.org/wiki/File:Tre_Cime_di_Lavaredo_al_Tramonto.jpg) |
+| `iceland.webp` | 152,310 | Martin Falbisoner / CC BY-SA 4.0 | [Skógafoss](https://commons.wikimedia.org/wiki/File:Sk%C3%B3gafoss_July_2014.JPG) |
+| `cornell-ithaca.webp` | 390,488 | P. Hughes / CC BY 4.0 | [McGraw Tower and Uris Library](https://commons.wikimedia.org/wiki/File:Cornell_University_-_Uris_Library,_McGraw_Tower_and_Olin_Library.jpg) |
+
+New photos total 819,052 bytes. Each figure visibly links its source and license. CC BY-SA photo derivatives remain under that license. Runtime crops and grades each photograph: warm greens for Bali, cool coastal cyan for Hawaiʻi, warm alpine light, restrained cool Iceland, neutral New York, and warm natural Cornell. The source credit's title discloses cropping, grading and motion blur. These display treatments do not change geography or imply a source's endorsement.
 
 ## Scroll and accessibility behavior
 
-The enhanced World root is 700svh on desktop and 600svh on compact/portrait viewports. Its 100svh stage uses native sticky positioning, without a scroll lock or a nested scroller. The static/reduced-motion layout has natural document height and displays all three photo figures in order.
+The World root is 900svh on desktop and 780svh on compact/portrait viewports. Its stage uses native sticky positioning, without a scroll lock or nested scroller. The static/reduced-motion layout displays all six photographs in ordinary document flow.
 
 | Root progress | Visual |
 | --- | --- |
-| 0…0.30 | Longer orbit; community heading, body, and link are visible early, then fade from 0.20…0.30 |
-| 0.30…0.53 | Move toward North America, then the New York coast; continent caption appears 0.345…0.39 and fades 0.475…0.51 |
-| 0.50…0.58 | Dissolve into Liberty Island |
-| 0.67…0.75 | Dissolve into Jatiluwih |
-| 0.84…0.92 | Dissolve into Nā Pali |
-| 0.92…1 | Hold the final place while its gentle scroll pan/zoom completes |
+| 0…0.30 | Dotted orbit; community copy fades 0.20…0.30 |
+| 0.23…0.36 | Approach Indonesia |
+| 0.30…0.37 | Arrive in Bali; hold until 0.51 |
+| 0.51…0.57 | Hawaiʻi; hold until 0.67 |
+| 0.67…0.714 | Dolomites; hold until 0.78 |
+| 0.78…0.810 | Iceland; hold until 0.85 |
+| 0.85…0.874 | New York; hold until 0.90 |
+| 0.90…0.922 | Cornell University, Ithaca |
+| 0.922…1 | Quiet final Cornell hold |
 
-Photo motion uses only GPU-friendly transforms and opacity, directly scrubbed by scroll. There is no autoplay, repeating motion, animated blur, per-frame React state, or continuous photo rAF loop. The outgoing photograph remains opaque under the incoming dissolve to avoid a brightness dip. Captions stay still and fade separately, without moving readable text. The globe box is removed after 0.59 so its renderer's IntersectionObserver suspends WebGL while the photos cover it; scrolling backward restores the box.
+`earthJourney.ts` is the shared clock for the two-texture WebGL compositor, the semantic photo/caption fallback, and keyboard navigation. Each transition accelerates a small camera push and shortens the scroll distance. Seven bounded radial samples create velocity-driven motion blur. It decays to exactly zero when scrolling stops; no photo animation plays on a timer. The last Cornell hold is almost static and framed below the navigation bar. Reversing scroll retraces the same composition.
 
-Figures have descriptive alternative text, geographic captions, and visible source/license links. Keyboard focus on a photo credit seeks the corresponding scene, including when reversing with Shift+Tab. The original community link and NASA credit seek the introductory globe. Hidden layers do not intercept pointer input. Reduced motion removes the sticky sequence and transforms; the community content and all photographs remain accessible in ordinary page flow. The timeline and media listener are reverted on cleanup or preference changes.
+`EarthTravel` loads photos near the chapter, caps canvas resolution and mobile texture sizes, and draws only while progress or residual blur changes. The globe renderer suspends after 0.375; the homepage city suspends while Earth covers the viewport. Context loss, unavailable graphics, or an image failure retain the underlying DOM photographs. Reduced motion removes the GPU photo sequence and exposes all figures normally. All resources and observers are cleaned up on unmount/preference changes.
+
+Only the foremost photo accepts pointer input. Keyboard focus on a source/license seeks that photo's precise stop, including the short final transitions; Shift+Tab reverses correctly. Community and NASA links seek the globe. Alt text, captions, source links and print layout remain available independently of WebGL.

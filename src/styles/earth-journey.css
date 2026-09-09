@@ -21,6 +21,13 @@
 .earth-place--new-york .earth-photo { object-position:48% 45%; transform-origin:48% 42%; }
 .earth-place--bali .earth-photo { object-position:57% 52%; transform-origin:57% 52%; }
 .earth-place--hawaii .earth-photo { object-position:52% 50%; transform-origin:52% 50%; }
+.earth-place--bali .earth-photo { filter:saturate(1.07); }
+.earth-place--hawaii .earth-photo { filter:saturate(1.06); }
+.earth-place--dolomites .earth-photo { object-position:50% 20%; filter:saturate(1.03) sepia(.035); }
+.earth-place--iceland .earth-photo { object-position:65% 50%; filter:saturate(.91); }
+.earth-place--cornell-ithaca .earth-photo { object-position:65% 0%; filter:saturate(1.02); }
+.earth-place--cornell-ithaca .earth-place-copy h3 { max-width:10ch; }
+.earth-travel,.earth-travel-shade { display:none; }
 .earth-place figcaption { position:absolute; inset:0; z-index:2; pointer-events:none; color:#fff; }
 .earth-place-copy { position:absolute; bottom:100px; left:7vw; right:7vw; }
 .earth-place-copy h3 { margin:0 0 16px; font:400 clamp(3.5rem,7.5vw,8rem)/.95 var(--font-display); letter-spacing:-.055em; }
@@ -31,7 +38,7 @@
 .earth-photo-credit a:focus-visible { outline:2px solid #fff; outline-offset:5px; border-radius:1px; }
 @media(hover:hover) { .earth-photo-credit a:hover { color:#fff; text-decoration-color:currentColor; } }
 
-.earth-journey[data-earth-motion="scroll"] { min-height:700svh; }
+.earth-journey[data-earth-motion="scroll"] { min-height:900svh; }
 .earth-journey[data-earth-motion="scroll"] .earth-journey-stage { position:sticky; top:0; height:100svh; min-height:0; }
 .earth-journey[data-earth-motion="scroll"] .earth-intro { position:absolute; inset:0; height:100%; min-height:0; }
 .earth-journey[data-earth-motion="scroll"] .earth-place { position:absolute; inset:0; height:100%; min-height:0; opacity:0; pointer-events:none; }
@@ -39,9 +46,15 @@
 .earth-journey[data-earth-motion="scroll"] .earth-photo { will-change:transform; }
 .earth-journey[data-earth-motion="scroll"] .earth-continent { opacity:0; pointer-events:none; }
 .earth-journey[data-earth-motion="scroll"] .earth-place figcaption { opacity:0; }
+.earth-journey[data-earth-motion="scroll"] .earth-travel { display:block; position:absolute; left:0; right:0; top:4rem; width:100%; height:calc(100% - 4rem); z-index:1; opacity:0; pointer-events:none; }
+.earth-journey[data-earth-motion="scroll"] .earth-photo { top:4rem; height:calc(100% - 4rem); }
+.earth-journey[data-earth-renderer="webgl2"] .earth-place { z-index:2; background:transparent; }
+.earth-journey[data-earth-renderer="webgl2"] .earth-photo { visibility:hidden; }
+.earth-journey[data-earth-renderer="webgl2"] .earth-place::after { display:none; }
+.earth-journey[data-earth-renderer="webgl2"] .earth-travel-shade { display:block; position:absolute; inset:0; z-index:1; pointer-events:none; background:linear-gradient(180deg,rgba(0,8,18,.08),transparent 25%,transparent 48%,rgba(0,8,18,.26) 73%,rgba(0,8,18,.78)); }
 
 @media(max-width:1023px), (orientation:portrait) {
-  .earth-journey[data-earth-motion="scroll"] { min-height:600svh; }
+  .earth-journey[data-earth-motion="scroll"] { min-height:780svh; }
   .earth-intro { min-height:720px; }
   .earth-journey .scene-content { padding-top:clamp(82px,11svh,118px); }
   .earth-journey .scene-title { font-size:clamp(1.85rem,6.9vw,3rem); max-width:18ch; }
@@ -61,12 +74,15 @@
   .earth-journey .scene-lead { margin-top:18px; font-size:.9rem; }
 }
 @media(prefers-reduced-motion:reduce) {
+  .earth-travel,.earth-travel-shade { display:none !important; }
   .earth-journey[data-earth-motion="scroll"] { min-height:0; }
   .earth-journey .earth-journey-stage { position:relative; height:auto; }
   .earth-journey .earth-orbit-caption span:not(:first-child) { display:none; }
   .earth-journey .earth-photo { transform:none !important; will-change:auto; }
 }
 @media print {
+  .earth-travel,.earth-travel-shade { display:none !important; }
+  .earth-journey .earth-photo { visibility:visible !important; }
   .earth-journey[data-earth-motion="scroll"] { min-height:0; }
   .earth-journey[data-earth-motion="scroll"] .earth-journey-stage { position:relative; height:auto; }
   .earth-journey[data-earth-motion="scroll"] .earth-intro,

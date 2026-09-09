@@ -4,42 +4,11 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { world } from '../content'
 import SceneCanvas from './SceneCanvas'
 import ScrollWords from './ScrollWords'
+import EarthTravel from './EarthTravel'
+import { EARTH_PLACES as PLACES } from '../lib/earthJourney'
 import '../styles/earth-journey.css'
 
 gsap.registerPlugin(ScrollTrigger)
-
-const PLACES = [
-  {
-    id: 'new-york', name: 'New York', caption: 'Statue of Liberty · New York Harbor',
-    image: 'liberty-island.webp', width: 1920, height: 1253,
-    alt: 'The Statue of Liberty and its stone pedestal rise above Liberty Island, seen across the blue water of New York Harbor.',
-    photographer: 'National Park Service', license: 'Public domain',
-    source: 'https://npgallery.nps.gov/AssetDetail/3454fd91-1dd8-b71b-0b21-a93398840c35',
-    licenseUrl: '', start: .50, end: .75, stop: .62,
-    from: { scale: 1.025, xPercent: .4, yPercent: .5 },
-    to: { scale: 1.11, xPercent: -.5, yPercent: -.8 },
-  },
-  {
-    id: 'bali', name: 'Bali', caption: 'Jatiluwih rice terraces · Indonesia',
-    image: 'bali-jatiluwih.webp', width: 1920, height: 1152,
-    alt: 'Green rice terraces curve across a hillside in Jatiluwih, Bali, with small tiled shelters and coconut palms.',
-    photographer: 'Jorge Franganillo', license: 'CC BY 2.0',
-    source: 'https://commons.wikimedia.org/wiki/File:Bali-_Jatiluwih_rice_terraces_-_50281829296.jpg',
-    licenseUrl: 'https://creativecommons.org/licenses/by/2.0/', start: .67, end: .92, stop: .79,
-    from: { scale: 1.12, xPercent: -.8, yPercent: .7 },
-    to: { scale: 1.035, xPercent: .5, yPercent: -.4 },
-  },
-  {
-    id: 'hawaii', name: 'Hawaiʻi', caption: 'Nā Pali Coast · Kauaʻi',
-    image: 'hawaii-na-pali.webp', width: 1920, height: 1282,
-    alt: 'Deeply folded green cliffs of the Nā Pali Coast fall into the Pacific Ocean on Kauaʻi, Hawaiʻi.',
-    photographer: 'Andrew Baerst', license: 'CC BY 2.0',
-    source: 'https://commons.wikimedia.org/wiki/File:Na_Pali_Coast_(28915675361).jpg',
-    licenseUrl: 'https://creativecommons.org/licenses/by/2.0/', start: .84, end: 1, stop: .96,
-    from: { scale: 1.03, xPercent: .4, yPercent: .5 },
-    to: { scale: 1.11, xPercent: -.8, yPercent: -.5 },
-  },
-] as const
 
 /** A native sticky chapter. Every pose is a function of the same 0…1 scroll
  * range as SceneCanvas; there are no autoplay clocks or per-frame React renders.
@@ -65,7 +34,8 @@ export default function WorldSection() {
         if (el.dataset.earthIntro !== introVisible) el.dataset.earthIntro = introVisible
         // Only the foremost photo accepts pointer input. All captions remain
         // in reading/tab order; focusing a credit seeks its corresponding scene.
-        const next = progress >= .88 ? 2 : progress >= .71 ? 1 : progress >= .54 ? 0 : -1
+        let next = -1
+        PLACES.forEach((place, i) => { if (progress >= place.start + (place.arrival - place.start) * .55) next = i })
         if (next === active) return
         active = next
         figures.forEach((figure, i) => { figure.dataset.active = String(i === active) })
@@ -77,24 +47,26 @@ export default function WorldSection() {
       } })
       trigger.current = tl.scrollTrigger ?? null
       tl.to([intro, orbitCaption], { opacity: 0, duration: .10 }, .20)
-        .fromTo(continent, { opacity: 0 }, { opacity: 1, duration: .045 }, .345)
-        .to(continent, { opacity: 0, duration: .035 }, .475)
+        .fromTo(continent, { opacity: 0 }, { opacity: 1, duration: .025 }, .25)
+        .to(continent, { opacity: 0, duration: .025 }, .31)
       PLACES.forEach((place, i) => {
         const figure = figures[i]
         const photo = figure.querySelector('img')
         const caption = figure.querySelector('figcaption')
-        // Leave the preceding photograph opaque underneath the incoming one:
-        // this is a true dissolve, without a dip to black in the middle.
-        tl.fromTo(figure, { opacity: 0 }, { opacity: 1, duration: .08, ease: 'sine.inOut' }, place.start)
-          .fromTo(photo, place.from, { ...place.to, duration: place.end - place.start, force3D: true }, place.start)
-          .fromTo(caption, { opacity: 0 }, { opacity: 1, duration: .025 }, place.start + .06)
-        if (i < PLACES.length - 1) {
-          tl.to(caption, { opacity: 0, duration: .02 }, PLACES[i + 1].start - .02)
-        }
+        const next = PLACES[i + 1]
+        const end = next?.arrival ?? 1
+        // The GPU compositor supplies motion blur; these layers are also a
+        // complete image fallback when graphics or a texture cannot load.
+        tl.fromTo(figure, { opacity: 0 }, { opacity: 1, duration: place.arrival - place.start, ease: 'sine.inOut' }, place.start)
+          .fromTo(photo, { scale: 1.04 }, { scale: 1.11, duration: end - place.start, force3D: true }, place.start)
+          .fromTo(caption, { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: Math.min(.024, (place.stop - place.arrival) * .7) }, place.arrival)
+        if (next) tl.to(caption, { opacity: 0, duration: Math.min(.014, next.arrival - next.start) }, next.start - .008)
       })
+      // Normalize the common scroll clock even if the last caption ends early.
+      tl.to({}, { duration: .001 }, .999)
       // Once photographs cover the globe, removing its box also lets the
       // renderer's IntersectionObserver suspend WebGL. This reverses on scroll.
-      tl.set(globe, { display: 'none' }, .59)
+      tl.set(globe, { display: 'none' }, .375)
       updateAccess(tl.scrollTrigger?.progress ?? 0)
       return () => {
         trigger.current = null
@@ -108,7 +80,7 @@ export default function WorldSection() {
 
   const revealFocusedScene = (progress: number) => {
     const st = trigger.current
-    if (!st || Math.abs(st.progress - progress) < .065) return
+    if (!st || Math.abs(st.progress - progress) < .002) return
     // A keyboard reader can tab through the credits without encountering an
     // invisible focused link or having to scroll the entire sticky distance.
     window.scrollTo({ top: st.start + (st.end - st.start) * progress, behavior: 'instant' })
@@ -134,9 +106,11 @@ export default function WorldSection() {
           <span>Scroll to orbit</span><span aria-hidden="true">↓</span>
         </div>
         <div className="earth-continent">
-          <p>North America</p><span>Between the Atlantic and the Pacific.</span>
+          <p>Closer.</p><span>From our world to our home.</span>
         </div>
       </div>
+      <EarthTravel />
+      <div className="earth-travel-shade" aria-hidden="true" />
       {PLACES.map(place => <figure key={place.id} className={`earth-place earth-place--${place.id}`} data-earth-place={place.id}
         onFocusCapture={() => revealFocusedScene(place.stop)}>
         <img className="earth-photo" src={`/assets/earth-journey/${place.image}`} alt={place.alt}
@@ -145,7 +119,7 @@ export default function WorldSection() {
           <div className="earth-place-copy"><h3>{place.name}</h3><p>{place.caption}</p></div>
           <p className="earth-photo-credit">
             <a href={place.source} target="_blank" rel="noopener noreferrer"
-              title="Original photograph and credit. Resized, WebP encoded and cropped for display.">Photo: {place.photographer}{!place.licenseUrl && ` · ${place.license}`}</a>
+              title="Original photograph. Resized, WebP encoded, cropped and color graded for display; scroll animation adds motion blur.">Photo: {place.photographer}{!place.licenseUrl && ` · ${place.license}`}</a>
             {place.licenseUrl && <><span aria-hidden="true"> · </span><a href={place.licenseUrl} target="_blank" rel="noopener noreferrer">{place.license}</a></>}
           </p>
         </figcaption>

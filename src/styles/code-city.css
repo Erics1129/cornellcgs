@@ -1,0 +1,65 @@
+/* Homepage-owned layers. No global theme, text, or cinematic chapter overrides. */
+.code-city {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+  contain: strict;
+  isolation: isolate;
+  background: #040817;
+}
+.code-city[data-active='false'] { visibility: hidden; }
+.code-city__plate,
+.code-city__canvas,
+.code-city__shade,
+.code-city__mist {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.code-city__plate {
+  display: block;
+  object-fit: cover;
+  /* Object position and GPU camera share the measured CITY_PLATE projection. */
+  opacity: .88;
+}
+.code-city__plate[data-missing='true'] { visibility: hidden; }
+.code-city__canvas { display: block; opacity: 0; transition: opacity 700ms ease; }
+.code-city[data-renderer='ready'] .code-city__canvas { opacity: 1; }
+.code-city[data-renderer='ready'] .code-city__plate {
+  /* The artwork supplies distant architecture. Its painted foreground road is
+     subdued beneath moving world-space lanes, without zooming the whole image. */
+  mask-image: linear-gradient(to bottom, #000 0%, #000 var(--code-city-horizon, 70.5%), #0009 calc(var(--code-city-horizon, 70.5%) + 10%), #0003 100%);
+}
+.code-city__shade {
+  background:
+    radial-gradient(ellipse 40% 62% at 48% 45%, #040817db 0%, #0408179c 50%, transparent 100%),
+    linear-gradient(90deg, #0408173d, transparent 22%, transparent 82%, #04081752),
+    linear-gradient(180deg, #03071480 0%, #04081712 30%, #04081726 70%, #03071499 100%);
+}
+.code-city__mist {
+  opacity: 0;
+  /* Opaque light pigment above the entire dark composition, including WebGL.
+     Even the darkest plate pixels become pale enough for navy body copy. */
+  background:
+    radial-gradient(ellipse 65% 90% at 45% 45%, color-mix(in srgb, var(--bg-top) 80%, white) 0%, transparent 100%),
+    linear-gradient(180deg,
+      color-mix(in srgb, var(--bg-top) 91%, transparent),
+      color-mix(in srgb, var(--bg-top) 86%, transparent) 70%,
+      color-mix(in srgb, var(--bg-top) 92%, transparent));
+  transition: opacity 1200ms cubic-bezier(.33, 0, .67, 1);
+}
+html[data-theme='sky'] .code-city__mist,
+html[data-theme='lilac'] .code-city__mist { opacity: 1; }
+html[data-device='phone'] .code-city__shade {
+  background:
+    radial-gradient(ellipse 72% 65% at 48% 42%, #040817de, #04081773 70%, transparent),
+    linear-gradient(180deg, #04081755, transparent 70%, #040817aa);
+}
+@media (prefers-reduced-motion: reduce) {
+  .code-city__canvas { display: none; }
+  .code-city__canvas, .code-city__mist { transition: none; }
+  .code-city .code-city__plate { mask-image: none; }
+}
