@@ -1276,4 +1276,4 @@ a:hover .btn-label > span {
 .film-grain { animation:none !important; opacity:.025; }
 .neon-idle::before,.neon-idle::after { animation-play-state:paused; opacity:0; }
 .neon-idle:hover::before,.neon-idle:focus-visible::before { animation-play-state:running; opacity:.65; }
-html.cinema-on #code-layer-canvas { visibility:hidden; }
+html.cinema-on #code-layer-canvas,html.universe-on #code-layer-canvas { visibility:hidden; }

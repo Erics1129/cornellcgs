@@ -3,6 +3,7 @@ import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import SectionIndex from './SectionIndex'
 import CardShell from './CardShell'
+import ScrollWords from './ScrollWords'
 import { whoWeAre } from '../content'
 import { useSectionReveals, animateCounter } from '../lib/reveal'
 import { dealCard, observeCardLayout, shadowStyle } from '../lib/cardMotion'
@@ -10,12 +11,6 @@ import { dealCard, observeCardLayout, shadowStyle } from '../lib/cardMotion'
 gsap.registerPlugin(ScrollTrigger)
 
 const ROBOT_SRC = '/assets/robot.mp4'
-
-function renderEmphasis(text: string) {
-  // *word* becomes an italic display word
-  const parts = text.split('*')
-  return parts.map((p, i) => (i % 2 === 1 ? <em key={i}>{p}</em> : <span key={i}>{p}</span>))
-}
 
 export default function WhoWeAre() {
   const root = useRef<HTMLElement>(null)
@@ -156,8 +151,8 @@ export default function WhoWeAre() {
     <section ref={root} id="who-we-are" className="section">
       <SectionIndex rank="K" />
       <div className="container-site">
-        <h2 data-reveal="heading" className="h-section mx-auto mb-[min(2.5rem,4svh)] max-w-[18ch] text-center md:mb-[min(3rem,4svh)]">
-          {renderEmphasis(whoWeAre.heading)}
+        <h2 className="h-section mx-auto mb-[min(2.5rem,4svh)] max-w-[18ch] text-center md:mb-[min(3rem,4svh)]">
+          <ScrollWords text={whoWeAre.heading} treatment="mask" />
         </h2>
 
         {/* The hole cards */}

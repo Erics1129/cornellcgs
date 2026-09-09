@@ -4,16 +4,17 @@ import './scopedMotion.css'
 
 const LAYERS = [4, 7, 9, 6, 2]
 const BUILD_MS = 800
-const SIGNAL_MS = 500
+const SIGNAL_MS = 650
 const DURATION = BUILD_MS + SIGNAL_MS * (LAYERS.length - 1)
+const HOLD_MS = 1600
+const FADE_MS = 900
 type Point = { x: number; y: number; layer: number }
 
-/** One legible signal crosses a stationary network. Selecting an input traces
- * its route; the completed connection holds until another explicit action. */
+/** Inputs take turns sending one slow signal through a stationary network.
+ * The completed path holds, fades, and advances automatically while visible. */
 export default function NetworkFlow({ className = '' }: { className?: string }) {
   const ref = useRef<HTMLCanvasElement>(null)
-  const actions = useRef<{ select: (input: number) => void; toggle: () => void } | null>(null)
-  const [input, setInput] = useState(0)
+  const actions = useRef<{ toggle: () => void } | null>(null)
   const [playing, setPlaying] = useState(true)
   const [reduced, setReduced] = useState(false)
   const id = useId()
@@ -39,12 +40,14 @@ export default function NetworkFlow({ className = '' }: { className?: string }) 
       ctx.lineCap = 'round'
       const build = Math.min(1, progress / BUILD_MS)
       const path = route()
+      const emphasis = Math.max(0, Math.min(1, 1 - (progress - DURATION - HOLD_MS) / FADE_MS))
       for (const [a, b] of edges) {
         const A = nodes[a], B = nodes[b]
         const t = Math.max(0, Math.min(1, build * LAYERS.length - A.layer))
         ctx.strokeStyle = 'rgba(10,30,63,.09)'; ctx.lineWidth = .8
         ctx.beginPath(); ctx.moveTo(A.x, A.y); ctx.lineTo(A.x + (B.x - A.x) * t, A.y + (B.y - A.y) * t); ctx.stroke()
       }
+      ctx.globalAlpha = emphasis
       for (let layer = 0; layer < path.length - 1; layer++) {
         const A = nodes[path[layer]], B = nodes[path[layer + 1]]
         const t = Math.max(0, Math.min(1, (progress - BUILD_MS - layer * SIGNAL_MS) / SIGNAL_MS))
@@ -57,18 +60,26 @@ export default function NetworkFlow({ className = '' }: { className?: string }) 
       }
       nodes.forEach((point, i) => {
         const reached = path.includes(i) && progress >= BUILD_MS + point.layer * SIGNAL_MS
-        ctx.fillStyle = reached ? '#1e5eff' : 'rgba(10,30,63,.65)'
+        ctx.globalAlpha = 1
+        ctx.fillStyle = 'rgba(10,30,63,.65)'
         ctx.beginPath(); ctx.arc(point.x, point.y, point.layer === 0 || point.layer === 4 ? 4.5 : 3, 0, Math.PI * 2); ctx.fill()
+        if (reached) {
+          ctx.globalAlpha = emphasis; ctx.fillStyle = '#1e5eff'
+          ctx.beginPath(); ctx.arc(point.x, point.y, point.layer === 0 || point.layer === 4 ? 4.5 : 3, 0, Math.PI * 2); ctx.fill()
+        }
+        ctx.globalAlpha = 1
         if (point.layer === 0) {
           const n = layers[0].indexOf(i)
           ctx.font = '11px ui-monospace, monospace'; ctx.fillStyle = '#46587a'
           ctx.fillText(String(n + 1), point.x - 20, point.y + 4)
           if (n === selected) {
+            ctx.globalAlpha = emphasis
             ctx.strokeStyle = '#1e5eff'; ctx.lineWidth = 1
             ctx.beginPath(); ctx.arc(point.x, point.y, 9, 0, Math.PI * 2); ctx.stroke()
           }
         }
       })
+      ctx.globalAlpha = 1
     }
     const resize = () => {
       const box = canvas.getBoundingClientRect()
@@ -82,52 +93,37 @@ export default function NetworkFlow({ className = '' }: { className?: string }) 
       }))
       draw()
     }
-    const finish = () => { running = false; setPlaying(false) }
     resize()
     const loop = createSceneLoop(canvas, {
       tick: (_elapsed, delta) => {
-        progress = Math.min(DURATION, progress + delta); draw()
-        if (progress === DURATION) { finish(); return false }
-        return running
+        progress += delta
+        if (progress >= DURATION + HOLD_MS + FADE_MS) {
+          selected = (selected + 1) % LAYERS[0]
+          progress = BUILD_MS
+        }
+        draw()
       },
-      still: () => { progress = DURATION; finish(); draw() },
+      still: () => { progress = DURATION; draw() },
       motion: setReduced,
     })
-    const select = (next: number) => {
-      selected = next; setInput(next)
-      progress = loop.reduced() ? DURATION : BUILD_MS
-      running = !loop.reduced(); setPlaying(running); draw()
-      if (running) loop.play()
-    }
     actions.current = {
-      select,
       toggle: () => {
         if (loop.reduced()) return
-        if (running) { finish(); loop.pause() }
-        else { if (progress === DURATION) progress = BUILD_MS; running = true; setPlaying(true); loop.play() }
+        running = !running; setPlaying(running)
+        if (running) loop.play()
+        else loop.pause()
       },
     }
-    const onPointer = (event: PointerEvent) => {
-      if (event.pointerType !== 'mouse' && event.pointerType !== 'pen') return
-      const box = canvas.getBoundingClientRect()
-      const x = event.clientX - box.left, y = event.clientY - box.top
-      const selectedNode = layers[0].findIndex((index) => Math.hypot(nodes[index].x - x, nodes[index].y - y) <= 18)
-      if (selectedNode >= 0) select(selectedNode)
-    }
-    canvas.addEventListener('pointerup', onPointer)
     const ro = new ResizeObserver(resize); ro.observe(canvas)
-    return () => { actions.current = null; loop.dispose(); ro.disconnect(); canvas.removeEventListener('pointerup', onPointer) }
+    return () => { actions.current = null; loop.dispose(); ro.disconnect() }
   }, [])
 
   return (
     <figure className={`cgs-scene ${className}`} aria-labelledby={id}>
-      <canvas ref={ref} role="img" aria-label={`Layered network. The blue path connects input ${input + 1} to output ${(input * 5 + 8) % 2 + 1}.`} />
+      <canvas ref={ref} role="img" aria-label="Layered network. A blue signal traces a path from an input through hidden layers to an output." />
       <figcaption id={id} className="cgs-scene-caption">
-        <span>Network flow<span className="cgs-scene-status">Choose an input to trace its connections</span></span>
-        <span className="cgs-scene-controls">
-          {[0, 1, 2, 3].map((n) => <button key={n} type="button" aria-label={`Trace input ${n + 1}`} aria-pressed={input === n} onClick={() => actions.current?.select(n)}>{n + 1}</button>)}
-          <button type="button" disabled={reduced} onClick={() => actions.current?.toggle()}>{playing ? 'Pause' : 'Replay'}</button>
-        </span>
+        <span>Network flow<span className="cgs-scene-status">Input → hidden layers → output</span></span>
+        {!reduced && <button type="button" className="cgs-scene-pause" onClick={() => actions.current?.toggle()} aria-label={playing ? 'Pause network flow' : 'Resume network flow'}>{playing ? 'Pause' : 'Resume'}</button>}
       </figcaption>
     </figure>
   )

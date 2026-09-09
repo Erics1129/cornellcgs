@@ -2,13 +2,13 @@ import { useLayoutEffect, useRef } from 'react'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import SectionIndex from './SectionIndex'
+import ScrollWords from './ScrollWords'
 import { whatWeDo } from '../content'
 import { useSectionReveals } from '../lib/reveal'
 import { dealCard, flipCard, hoverLift, observeCardLayout, shadowStyle } from '../lib/cardMotion'
 
 gsap.registerPlugin(ScrollTrigger)
 const REST = [-1.6, 1.1, -0.7, 1.5, -1.2]
-const emphasis = (text: string) => text.split('*').map((part, i) => i % 2 ? <em key={i}>{part}</em> : <span key={i}>{part}</span>)
 
 export default function WhatWeDo() {
   const root = useRef<HTMLElement>(null)
@@ -80,7 +80,7 @@ export default function WhatWeDo() {
       <SectionIndex rank="Q" />
       <div className="container-site">
         <div className="card-board-heading">
-          <h2 data-reveal="heading" className="h-section max-w-[14ch]">{emphasis(whatWeDo.heading)}</h2>
+          <h2 className="h-section max-w-[14ch]"><ScrollWords text={whatWeDo.heading} treatment="cascade" /></h2>
           <div data-deck-spot className="card-deck-spot card-back-surface" aria-hidden="true"><span>♠</span></div>
         </div>
         <div className="community-board">

@@ -150,7 +150,7 @@ export default function Nav() {
       <div className="relative z-10 border-b border-[color-mix(in_srgb,var(--neon-dim)_55%,transparent)] bg-[color-mix(in_srgb,var(--bg-top)_97%,transparent)]">
         <div className="container-site flex h-16 items-center justify-between">
           <button type="button" onClick={goTop} aria-label="Cornell CGS — back to the top" className="cgs-nav-brand font-display flex min-h-11 items-center gap-3 font-[700] tracking-[0.26em] text-[var(--text)]">
-            <Dice size={18} /><span>CORNELL CGS</span>
+            <Dice size={28} /><span>CORNELL CGS</span>
           </button>
           <nav aria-label="Site" className="hidden items-center gap-6 md:flex">
             {GROUPS.map((group, index) => (

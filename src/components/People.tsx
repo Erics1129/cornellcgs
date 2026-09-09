@@ -2,12 +2,12 @@ import { useLayoutEffect, useRef, useState } from 'react'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import SectionIndex from './SectionIndex'
+import ScrollWords from './ScrollWords'
 import { people } from '../content'
 import { dealCard, flipCard, hoverLift, observeCardLayout, shadowStyle } from '../lib/cardMotion'
 import { useSectionReveals } from '../lib/reveal'
 
 gsap.registerPlugin(ScrollTrigger)
-const emphasis = (text: string) => text.split('*').map((part, i) => i % 2 ? <em key={i}>{part}</em> : <span key={i}>{part}</span>)
 const initials = (name: string) => name.split(/\s+/).filter(Boolean).map((word) => word[0]).slice(0, 3).join('')
 type Member = (typeof people.leaders)[number]
 
@@ -112,7 +112,7 @@ export default function People() {
     <section ref={root} id="people" className="section">
       <SectionIndex rank="8" />
       <div className="container-site">
-        <h2 data-reveal="heading" className="h-section mb-10 max-w-[16ch] md:mb-14">{emphasis(people.heading)}</h2>
+        <h2 className="h-section mb-10 max-w-[16ch] md:mb-14"><ScrollWords text={people.heading} treatment="illuminate" /></h2>
         <div ref={grid} className="people-grid" data-interactive>
           {people.leaders.map((member, index) => <PersonCard key={`${member.name}-${index}`} member={member} index={index} />)}
         </div>

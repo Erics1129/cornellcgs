@@ -16,6 +16,7 @@ import WhatWeDo from './components/WhatWeDo'
 import MLProcess from './components/MLProcess'
 import Events from './components/Events'
 import WorldSection from './components/WorldSection'
+import UniverseJourney from './components/UniverseJourney'
 import People from './components/People'
 import Join from './components/Join'
 import Footer from './components/Footer'
@@ -223,6 +224,7 @@ export default function App() {
           <MLProcess />
           <Events />
           <WorldSection />
+          <UniverseJourney />
           <People />
           <StatsSlide />
           <AnyoneSlide />

@@ -1,13 +1,9 @@
 import { useRef } from 'react'
 import CardShell from './CardShell'
 import NodeSphere from './NodeSphere'
+import ScrollWords from './ScrollWords'
 import { join } from '../content'
 import { useSectionReveals, useSectionDepth } from '../lib/reveal'
-
-function renderEmphasis(text: string) {
-  const parts = text.split('*')
-  return parts.map((p, i) => (i % 2 === 1 ? <em key={i}>{p}</em> : <span key={i}>{p}</span>))
-}
 
 /** Join (Joker) — one big card-shaped invitation. */
 export default function Join() {
@@ -50,8 +46,8 @@ export default function Join() {
                 aria-hidden="true"
                 className="pointer-events-none absolute inset-0 bg-[radial-gradient(70%_70%_at_50%_110%,color-mix(in_srgb,var(--glow)_28%,transparent),transparent_70%)]"
               />
-              <h2 data-reveal="heading" className="h-section relative max-w-[14ch]">
-                {renderEmphasis(join.heading)}
+              <h2 className="h-section relative max-w-[14ch]">
+                <ScrollWords text={join.heading} treatment="mask" />
               </h2>
               <p data-reveal="para" className="body-muted relative max-w-[44ch]">
                 {join.text}

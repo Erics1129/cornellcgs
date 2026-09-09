@@ -3,9 +3,9 @@ import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { world } from '../content'
 import SceneCanvas from './SceneCanvas'
+import ScrollWords from './ScrollWords'
 
 gsap.registerPlugin(ScrollTrigger)
-function emphasis(text: string) { return text.split('*').map((s,i) => i % 2 ? <em key={i}>{s}</em> : <span key={i}>{s}</span>) }
 
 export default function WorldSection() {
   const root = useRef<HTMLElement>(null)
@@ -26,7 +26,7 @@ export default function WorldSection() {
       <div className="container-site scene-content">
         <div ref={words} className="scene-copy">
           <p className="scene-eyebrow"><span />A shared world</p>
-          <h2 className="scene-title">{emphasis(world.heading)}</h2>
+          <h2 className="scene-title"><ScrollWords text={world.heading} treatment="illuminate" /></h2>
           <p className="scene-lead">{world.text}</p>
           <a className="scene-link" href="/world/">Meet our community <span aria-hidden="true">↗</span></a>
         </div>

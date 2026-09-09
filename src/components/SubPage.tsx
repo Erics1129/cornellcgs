@@ -125,7 +125,7 @@ export default function SubPage({ id }: { id: string }) {
             href="/"
             className="font-display flex items-center gap-2.5 text-[max(0.85rem,0.8125rem)] font-[700] tracking-[0.26em] text-[#0a1e3f]"
           >
-            <Dice size={18} /> CORNELL CGS
+            <Dice size={26} /> CORNELL CGS
           </a>
           <a
             href={back}
@@ -303,7 +303,7 @@ export default function SubPage({ id }: { id: string }) {
       <div className="bg-[#0a1e3f] text-white">
         <div className="container-site flex items-center justify-between py-8">
           <a href="/" className="font-display flex items-center gap-2.5 text-[max(0.85rem,0.8125rem)] font-[700] tracking-[0.26em] text-white">
-            <Dice size={18} className="[--dice-face:#f5f1e6] [--dice-pip:#1e5eff] [--dice-edge:rgba(10,30,63,0.35)]" /> CORNELL CGS
+            <Dice size={26} className="[--dice-face:#f5f1e6] [--dice-pip:#1e5eff] [--dice-edge:rgba(10,30,63,0.35)]" /> CORNELL CGS
           </a>
           <span className="mono text-[max(0.8rem,0.75rem)] text-[#93a6cc]">cornellcgs.org</span>
         </div>

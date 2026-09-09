@@ -3,20 +3,21 @@ import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { SCENE_FRAGMENT, SCENE_VERTEX } from '../effects/sceneShaders'
 import { CodeReflection } from '../effects/codeReflection'
+import { blinkClosure } from '../effects/eyeMotion'
 import '../styles/scenes.css'
 
 gsap.registerPlugin(ScrollTrigger)
 export type SceneKind = 'blackhole' | 'earth' | 'eye'
-const ASSETS = { blackhole: 'black-hole', earth: 'earth-map', eye: 'vision-eye' }
+const ASSETS = { blackhole: 'black-hole.webp', earth: 'earth-map.webp', eye: 'eye-still.svg' }
 const opaqueScenes = new Set<Element>()
 
 /** An on-demand renderer: scroll/input is the clock, except the living eye. */
-export default function SceneCanvas({ kind, focused = false }: { kind: SceneKind; focused?: boolean }) {
+export default function SceneCanvas({ kind, paused = false }: { kind: SceneKind; paused?: boolean }) {
   const host = useRef<HTMLDivElement>(null)
   const canvas = useRef<HTMLCanvasElement>(null)
   const [ready, setReady] = useState(false)
-  const focus = useRef(focused)
-  focus.current = focused
+  const pause = useRef(paused)
+  pause.current = paused
 
   useEffect(() => {
     const el = canvas.current
@@ -27,9 +28,10 @@ export default function SceneCanvas({ kind, focused = false }: { kind: SceneKind
     if (!gl) return
     let alive = true, near = false, loaded = false, raf = 0, last = 0
     let target = .35, progress = .35, px = 0, py = 0, tx = 0, ty = 0
-    let lastEyePaint = 0, nextBlink = 0, blinkAt = -1000, focusAmount = 0
+    let lastEyePaint = -1, nextBlink = 1.5, blinkAt = -1000, eyeClock = 0, pointerUntil = 0
     let program: WebGLProgram | null = null
     const reduce = matchMedia('(prefers-reduced-motion: reduce)')
+    const compact = matchMedia('(max-width:1023px), (orientation: portrait)')
     const reflection = kind === 'eye' ? new CodeReflection() : null
     const image = new Image()
     let texture: WebGLTexture | null = null, screenTexture: WebGLTexture | null = null
@@ -54,39 +56,44 @@ export default function SceneCanvas({ kind, focused = false }: { kind: SceneKind
       const dt = Math.min(.04, Math.max(.001, (now - (last || now - 16)) / 1000))
       last = now
       const ease = 1 - Math.exp(-dt / .085)
+      if (kind === 'eye' && !reduce.matches && !pause.current) {
+        eyeClock += dt
+        if (now > pointerUntil) {
+          tx = Math.sin(eyeClock * .62) * .44 + Math.sin(eyeClock * 1.47) * .13
+          ty = Math.sin(eyeClock * .43 + .7) * .26
+        }
+      }
       progress += (target - progress) * ease
       px += (tx - px) * ease
       py += (ty - py) * ease
-      focusAmount += ((focus.current ? 1 : 0) - focusAmount) * (reduce.matches ? 1 : ease)
       let blink = 0
       if (kind === 'eye' && !reduce.matches) {
-        if (now > nextBlink) { blinkAt = now; nextBlink = now + 3100 + Math.random() * 3300 }
-        const t = now - blinkAt
-        blink = t < 90 ? t / 90 : t < 280 ? 1 - (t - 90) / 190 : 0
+        if (eyeClock > nextBlink) { blinkAt = eyeClock; nextBlink = eyeClock + 3.1 + Math.random() * 2.4 }
+        blink = blinkClosure(eyeClock - blinkAt)
       }
-      if (reflection && (now - lastEyePaint > 40 || !lastEyePaint)) {
-        reflection.paint(reduce.matches ? 3600 : now)
+      if (reflection && (eyeClock - lastEyePaint > .04 || lastEyePaint < 0)) {
+        reflection.paint(reduce.matches ? 3600 : eyeClock * 1000, compact.matches)
         gl!.activeTexture(gl!.TEXTURE1)
         gl!.bindTexture(gl!.TEXTURE_2D, screenTexture)
         gl!.texImage2D(gl!.TEXTURE_2D, 0, gl!.RGBA, gl!.RGBA, gl!.UNSIGNED_BYTE, reflection.canvas)
-        lastEyePaint = now
+        lastEyePaint = eyeClock
       }
       gl!.useProgram(program)
       gl!.viewport(0, 0, el!.width, el!.height)
       gl!.uniform2f(uniforms.u_size, el!.width, el!.height)
-      gl!.uniform1i(uniforms.u_compact, matchMedia('(max-width:1023px), (orientation: portrait)').matches ? 1 : 0)
+      gl!.uniform1i(uniforms.u_compact, compact.matches ? 1 : 0)
       gl!.uniform2f(uniforms.u_pointer, reduce.matches ? 0 : px, reduce.matches ? 0 : py)
       gl!.uniform1f(uniforms.u_progress, reduce.matches ? .55 : progress)
-      gl!.uniform1f(uniforms.u_time, now / 1000)
+      gl!.uniform1f(uniforms.u_time, reduce.matches ? 0 : kind === 'eye' ? eyeClock : now / 1000)
       gl!.uniform1f(uniforms.u_blink, Math.max(0, blink))
-      gl!.uniform1f(uniforms.u_focus, focusAmount)
       gl!.drawArrays(gl!.TRIANGLES, 0, 6)
       if (import.meta.env.DEV) {
         el!.dataset.progress = progress.toFixed(4)
         el!.dataset.pointer = `${px.toFixed(3)},${py.toFixed(3)}`
         el!.dataset.frames = String(Number(el!.dataset.frames || 0) + 1)
+        if (kind === 'eye') { el!.dataset.blink = blink.toFixed(4); el!.dataset.clock = eyeClock.toFixed(3) }
       }
-      if (!reduce.matches && (kind === 'eye' || Math.abs(target-progress) + Math.abs(tx-px) + Math.abs(ty-py) > .0002)) request()
+      if (!reduce.matches && !pause.current && (kind === 'eye' || Math.abs(target-progress) + Math.abs(tx-px) + Math.abs(ty-py) > .0002)) request()
     }
     function setup() {
       if (!alive) return
@@ -111,7 +118,7 @@ export default function SceneCanvas({ kind, focused = false }: { kind: SceneKind
         gl!.bufferData(gl!.ARRAY_BUFFER, new Float32Array([-1,-1,1,-1,-1,1,-1,1,1,-1,1,1]), gl!.STATIC_DRAW)
         const attr = gl!.getAttribLocation(program, 'a_position')
         gl!.enableVertexAttribArray(attr); gl!.vertexAttribPointer(attr, 2, gl!.FLOAT, false, 0, 0)
-        for (const name of ['u_size','u_pointer','u_progress','u_time','u_blink','u_focus','u_mode','u_compact','u_image','u_screen']) uniforms[name] = gl!.getUniformLocation(program, name)
+        for (const name of ['u_size','u_pointer','u_progress','u_time','u_blink','u_mode','u_compact','u_image','u_screen']) uniforms[name] = gl!.getUniformLocation(program, name)
         const makeTexture = (slot: number) => {
           const tex = gl!.createTexture()
           gl!.activeTexture(slot); gl!.bindTexture(gl!.TEXTURE_2D, tex)
@@ -135,7 +142,7 @@ export default function SceneCanvas({ kind, focused = false }: { kind: SceneKind
     image.onload = setup
     const io = new IntersectionObserver(([entry]) => {
       near = entry.isIntersecting
-      if (near && !image.src) image.src = `/assets/scenes/${ASSETS[kind]}.webp`
+      if (near && !image.src) image.src = `/assets/scenes/${ASSETS[kind]}`
       if (near) { last = 0; request() } else stop()
     }, { rootMargin: '20% 0px' })
     io.observe(box)
@@ -151,20 +158,23 @@ export default function SceneCanvas({ kind, focused = false }: { kind: SceneKind
     })
     target = st.progress
     const onMove = (event: PointerEvent) => {
-      if (reduce.matches || event.pointerType === 'touch') return
+      if (reduce.matches || pause.current || event.pointerType === 'touch') return
       const r = box.getBoundingClientRect()
       tx = Math.max(-1, Math.min(1, (event.clientX-r.left)/r.width*2-1))
       ty = Math.max(-1, Math.min(1, 1-(event.clientY-r.top)/r.height*2)); request()
+      pointerUntil = performance.now() + 2200
     }
-    const onLeave = () => { tx = 0; ty = 0; request() }
+    const onLeave = () => { pointerUntil = 0; if (kind !== 'eye') { tx = 0; ty = 0 } request() }
     const onVis = () => { if (document.hidden) stop(); else { last = 0; request() } }
+    const onMotionChange = () => { lastEyePaint = -1; last = 0; request() }
     const onLoss = (event: Event) => { event.preventDefault(); loaded = false; stop(); setReady(false) }
     const onRestore = () => { setup() }
     section.addEventListener('pointermove', onMove, { passive: true })
     section.addEventListener('pointerleave', onLeave)
-    section.addEventListener('click', request)
+    const onPlayback = () => { last = 0; request() }
+    box.addEventListener('scene-playback', onPlayback)
     document.addEventListener('visibilitychange', onVis)
-    reduce.addEventListener('change', request)
+    reduce.addEventListener('change', onMotionChange)
     el.addEventListener('webglcontextlost', onLoss)
     el.addEventListener('webglcontextrestored', onRestore)
     const ro = new ResizeObserver(resize); ro.observe(box)
@@ -174,15 +184,17 @@ export default function SceneCanvas({ kind, focused = false }: { kind: SceneKind
       document.documentElement.classList.toggle('cinema-on', opaqueScenes.size > 0)
       image.onload = null
       section.removeEventListener('pointermove', onMove); section.removeEventListener('pointerleave', onLeave)
-      section.removeEventListener('click', request)
-      document.removeEventListener('visibilitychange', onVis); reduce.removeEventListener('change', request)
+      box.removeEventListener('scene-playback', onPlayback)
+      document.removeEventListener('visibilitychange', onVis); reduce.removeEventListener('change', onMotionChange)
       el.removeEventListener('webglcontextlost', onLoss); el.removeEventListener('webglcontextrestored', onRestore)
       gl.deleteTexture(texture); gl.deleteTexture(screenTexture); gl.deleteBuffer(buffer); gl.deleteProgram(program)
     }
   }, [kind])
 
+  useEffect(() => { host.current?.dispatchEvent(new Event('scene-playback')) }, [paused])
+
   return <div ref={host} className={`scene-canvas scene-canvas--${kind}`} aria-hidden="true">
-    <div className="scene-still" style={{ backgroundImage: `url(/assets/scenes/${kind === 'earth' ? 'earth-map' : ASSETS[kind]}.webp)`, opacity: ready ? 0 : 1 }} />
+    <div className="scene-still" style={{ backgroundImage: `url(/assets/scenes/${ASSETS[kind]})`, opacity: ready ? 0 : 1 }} />
     <canvas ref={canvas} data-scene={kind} style={{ opacity: ready ? 1 : 0 }} />
   </div>
 }

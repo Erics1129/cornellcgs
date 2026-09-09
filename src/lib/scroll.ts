@@ -1,7 +1,6 @@
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import Lenis from 'lenis'
-import { prefersReducedMotion } from './motion'
 
 gsap.registerPlugin(ScrollTrigger)
 
@@ -85,6 +84,62 @@ export function initSmoothScroll(): () => void {
   window.addEventListener('pagehide', onPageHide)
   window.addEventListener('pageshow', onPageShow)
 
+  // A preference change rebuilds pins and changes chapter heights. Remember
+  // the chapter before that reflow, not the transient scroll offset during it.
+  const motion = matchMedia('(prefers-reduced-motion: reduce)')
+  let reduced = motion.matches
+  let anchor: { element: HTMLElement; fraction: number } | null = null
+  let trackingFrame = 0, restoreFrame = 0, restoreTimer = 0, restoring = false
+  const chapterBox = (element: HTMLElement) => element.parentElement?.classList.contains('pin-spacer') ? element.parentElement : element
+  const rememberChapter = () => {
+    trackingFrame = 0
+    if (restoring || reduced !== motion.matches) return
+    const line = innerHeight * .32
+    for (const element of document.querySelectorAll<HTMLElement>('main > section, main > .pin-spacer > section')) {
+      const box = chapterBox(element).getBoundingClientRect()
+      if (box.top <= line && box.bottom > line && box.height) {
+        anchor = { element, fraction: (line - box.top) / box.height }
+        return
+      }
+    }
+  }
+  const trackChapter = () => { if (!trackingFrame && !restoring) trackingFrame = requestAnimationFrame(rememberChapter) }
+  const tick = (time: number) => lenis?.raf(time * 1000)
+  const setScrollMotion = () => {
+    gsap.ticker.remove(tick)
+    lenis?.destroy(); lenis = null
+    if (!motion.matches) {
+      lenis = new Lenis({ lerp: .13, wheelMultiplier: 1, syncTouch: false })
+      lenis.on('scroll', ScrollTrigger.update)
+      gsap.ticker.add(tick)
+    }
+  }
+  const onMotionChange = () => {
+    const saved = anchor
+    reduced = motion.matches
+    restoring = true
+    cancelAnimationFrame(trackingFrame); trackingFrame = 0
+    cancelAnimationFrame(restoreFrame); clearTimeout(restoreTimer)
+    setScrollMotion()
+    const restore = () => {
+      if (!saved?.element.isConnected) return
+      const box = chapterBox(saved.element).getBoundingClientRect()
+      const y = Math.max(0, box.top + scrollY + box.height * saved.fraction - innerHeight * .32)
+      if (lenis) { lenis.resize(); lenis.scrollTo(y, { immediate: true, force: true }) }
+      else window.scrollTo(0, y)
+      ScrollTrigger.update()
+    }
+    restore()
+    restoreFrame = requestAnimationFrame(restore)
+    restoreTimer = window.setTimeout(() => {
+      ScrollTrigger.sort(); ScrollTrigger.refresh(); restore()
+      restoring = false; rememberChapter()
+    }, 180)
+  }
+  window.addEventListener('scroll', trackChapter, { passive: true })
+  motion.addEventListener('change', onMotionChange)
+  rememberChapter()
+
   // Pins must refresh in document order no matter which mounted first
   // (the ML pin mounts from a layout effect, before the board's). A pending
   // restore is re-applied after each refresh, once the pins have their size.
@@ -108,17 +163,15 @@ export function initSmoothScroll(): () => void {
     window.clearTimeout(settleTimer)
     window.removeEventListener('pagehide', onPageHide)
     window.removeEventListener('pageshow', onPageShow)
+    window.removeEventListener('scroll', trackChapter)
+    motion.removeEventListener('change', onMotionChange)
+    cancelAnimationFrame(trackingFrame); cancelAnimationFrame(restoreFrame); clearTimeout(restoreTimer)
   }
-  if (prefersReducedMotion()) return cleanupBase
 
   // 120Hz-safe pin behavior; a mobile URL-bar resize must not re-measure pins
   ScrollTrigger.config({ ignoreMobileResize: true })
 
-  // wheelMultiplier 0.9: a slightly heavier, more deliberate page
-  lenis = new Lenis({ lerp: 0.13, wheelMultiplier: 1, syncTouch: false })
-  lenis.on('scroll', ScrollTrigger.update)
-  const tick = (time: number) => lenis?.raf(time * 1000)
-  gsap.ticker.add(tick)
+  setScrollMotion()
   gsap.ticker.lagSmoothing(0)
 
   return () => {

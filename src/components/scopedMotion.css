@@ -58,6 +58,10 @@
 .cgs-scene-caption { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px 16px; border-top:1px solid #e3e9f4; padding-top:10px; color:#46587a; font:11px/1.5 ui-monospace,monospace; }
 .cgs-scene-controls { display:flex; gap:6px; flex-shrink:0; }
 .cgs-scene button { min-width:44px; min-height:44px; padding:6px 10px; border:1px solid #d4deef; border-radius:4px; color:#0a1e3f; background:transparent; font:inherit; cursor:pointer; transition:background-color .18s,transform .18s; }
+.cgs-scene .cgs-scene-pause { border-color:transparent; color:#52688b; }
+.cgs-sphere-pause { position:absolute; bottom:16px; right:clamp(16px,4vw,64px); z-index:20; pointer-events:auto; min-height:44px; padding:8px 12px; color:var(--muted,#a9b4d6); background:var(--panel,rgba(10,30,63,.65)); border:1px solid transparent; border-radius:4px; font:12px/1.5 ui-monospace,monospace; cursor:pointer; }
+.cgs-sphere-pause:focus-visible { outline:2px solid currentColor; outline-offset:4px; }
+.cgs-sphere-pause:hover { color:var(--text,#fff); border-color:currentColor; }
 .cgs-scene button:hover { background:#eef3ff; }
 .cgs-scene button[aria-pressed="true"] { background:#e6eeff; border-color:#1e5eff; color:#1e5eff; }
 .cgs-scene button:disabled { opacity:.4; cursor:default; }

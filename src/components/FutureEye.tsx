@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
 import { vision } from '../content'
 import SceneCanvas from './SceneCanvas'
+import ScrollWords from './ScrollWords'
 
-/** Photographic iris + corneal code reflection, with pointer gaze and natural blinks. */
+/** An animated glass eye; its gaze, blink and code reflection begin on arrival. */
 export default function FutureEye() {
   const root = useRef<HTMLElement>(null)
-  const [focused, setFocused] = useState(false)
+  const [paused, setPaused] = useState(false)
   useEffect(() => {
     const el = root.current
     if (!el) return
@@ -18,11 +19,11 @@ export default function FutureEye() {
   return <section ref={root} id="vision" className="vision-chapter" aria-label={vision.title}>
     <div className="container-site vision-heading">
       <p className="scene-eyebrow"><span />The next move</p>
-      <h2 className="scene-title">{vision.title}<span className="vision-period">.</span></h2>
+      <h2 className="scene-title"><ScrollWords text={`${vision.title}.`} treatment="illuminate" /></h2>
     </div>
     <div className="vision-eye-stage">
-      <SceneCanvas kind="eye" focused={focused} />
-      <button type="button" className="vision-focus" aria-pressed={focused} onClick={() => setFocused(!focused)}>{focused ? 'Full view' : 'Look closer'} <span aria-hidden="true">{focused ? '−' : '+'}</span></button>
+      <SceneCanvas kind="eye" paused={paused} />
+      <button type="button" className="vision-pause" aria-label={paused ? 'Resume eye animation' : 'Pause eye animation'} aria-pressed={paused} onClick={() => setPaused(!paused)}><span aria-hidden="true">{paused ? '▷' : 'Ⅱ'}</span>{paused ? 'Resume motion' : 'Pause motion'}</button>
     </div>
     <div className="container-site vision-bottom">
       <p className="vision-note">Human curiosity.<br /><em>Machine possibility.</em></p>

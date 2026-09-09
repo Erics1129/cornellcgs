@@ -16,7 +16,6 @@ uniform vec2 u_pointer;
 uniform float u_progress;
 uniform float u_time;
 uniform float u_blink;
-uniform float u_focus;
 uniform int u_mode;
 uniform int u_compact;
 const float PI=3.14159265359;
@@ -70,33 +69,57 @@ vec3 blackhole(){
 }
 
 vec3 eye(){
-  float width=min(u_size.x*1.03,u_size.y*1.68)*(1.+u_focus*1.15);
-  vec2 q=(v_uv-.5)*u_size/vec2(width,width/1.5)+.5;
-  if(any(lessThan(q,vec2(0.)))||any(greaterThan(q,vec2(1.))))return vec3(0.);
-  vec2 center=vec2(.495,.551);
-  vec2 gaze=u_pointer*vec2(.018,.010);
-  vec2 delta=q-center;
-  float iris=length(delta*vec2(1.5,1.));
-  float weight=1.-smoothstep(.21,.34,iris);
-  vec2 source=q-gaze*weight;
-  // Texture pixels give lashes, vessels and iris fibres. Only the cornea moves.
-  vec3 tex=texture(u_image,source).rgb;
-  float x=(q.x-.50)/.49;
-  float almond=sqrt(max(0.,1.-x*x));
-  float upper=.545+.225*almond-u_blink*.245*almond;
-  float lower=.500-.207*almond+u_blink*.199*almond;
-  float aperture=smoothstep(lower-.012,lower+.003,q.y)*(1.-smoothstep(upper-.003,upper+.012,q.y));
-  vec3 result=tex*aperture;
-  // A readable editor is reflected across the enlarged pupil and inner iris.
-  vec2 rp=(q-center-gaze)*vec2(1.5,1.);
-  float pupil=1.-smoothstep(.145,.172,length(rp));
-  vec2 screenUV=rp/vec2(.32,.205)+.5;
-  screenUV+=rp*dot(rp,rp)*2.;
-  float rect=smoothstep(0.,.03,screenUV.x)*(1.-smoothstep(.97,1.,screenUV.x))*smoothstep(0.,.04,screenUV.y)*(1.-smoothstep(.96,1.,screenUV.y));
+  // One sculpted almond, softly lit like a cel-animated glass object.
+  float radius=min(u_size.x*.46,u_size.y*.96);
+  vec2 p=(v_uv-.5)*u_size/radius;
+  p.y-=.022*sin(u_time*.47);
+  if(abs(p.x)>1.04||abs(p.y)>.57)return vec3(0.);
+  float arc=pow(max(0.,1.-p.x*p.x),.72);
+  float seam=.025*arc-.018;
+  float upper=mix(.435*arc,seam,u_blink);
+  float lower=mix(-.355*arc,seam,u_blink);
+  float aa=max(.0025,1.25/radius);
+  float aperture=smoothstep(lower-aa,lower+aa,p.y)*(1.-smoothstep(upper-aa,upper+aa,p.y));
+  float side=1.-smoothstep(.99,1.01,abs(p.x));
+  aperture*=side;
+  // Smooth pearl sclera without skin or photo-cutout lids.
+  float shade=clamp(.64+.35*arc-.23*p.y,.0,1.);
+  vec3 sclera=mix(vec3(.28,.40,.56),vec3(.89,.95,1.),shade);
+  float lidShadow=1.-smoothstep(.0,.16,upper-p.y);
+  sclera*=1.-.37*lidShadow;
+  vec2 ip=p-u_pointer*vec2(.10,.047);
+  float r=length(ip);
+  float ir=(u_compact==1?.40:.345)+.005*sin(u_time*.65);
+  float a=atan(ip.y,ip.x);
+  float rays=.5+.5*sin(a*24.+r*18.);
+  float glassBand=exp(-abs(r-ir*.82)*34.);
+  vec3 iris=mix(vec3(.028,.12,.24),vec3(.17,.48,.68),glassBand*.65+rays*.10);
+  iris+=vec3(.12,.30,.45)*exp(-abs(r-ir*.87)*105.);
+  iris*=.50+.50*(1.-smoothstep(ir-.035,ir,r));
+  vec3 result=mix(sclera,iris,1.-smoothstep(ir-aa,ir+aa,r));
+  float pupil=1.-smoothstep(.22,.24,r);
+  result=mix(result,vec3(.006,.019,.038),pupil);
+  // Barrel distortion follows a curved cornea. The dark editor has no pasted
+  // white rectangle; its illuminated glyphs dissolve into the blue iris.
+  vec2 glass=ip-u_pointer*vec2(.012,.006);
+  vec2 screenUV=glass/vec2(.53,.37);
+  screenUV*=1.+.30*dot(screenUV,screenUV);
+  screenUV+=.5;
+  float mask=smoothstep(.02,.13,screenUV.x)*(1.-smoothstep(.87,.98,screenUV.x))*smoothstep(.02,.13,screenUV.y)*(1.-smoothstep(.87,.98,screenUV.y));
+  mask*=1.-smoothstep(.23,.29,r);
   vec3 screen=texture(u_screen,clamp(screenUV,0.,1.)).rgb;
-  result=mix(result,screen*.81,pupil*rect*aperture*.89);
-  float shine=exp(-length((rp-vec2(-.074,.12))*vec2(1.,1.8))*85.);
-  result+=vec3(.55,.75,1.)*shine*aperture*.15;
+  result=mix(result,result*.3+screen*.92,mask*.91);
+  // Broad curved highlight and small catchlight give animated glass depth.
+  float crescent=exp(-abs(length(ip-vec2(.035,-.025))-.286)*180.);
+  crescent*=smoothstep(.03,.21,ip.y)*(1.-smoothstep(-.02,.22,ip.x));
+  result+=vec3(.54,.82,1.)*crescent*.38;
+  float shine=exp(-dot((ip-vec2(-.123,.20))*vec2(1.,1.8),(ip-vec2(-.123,.20))*vec2(1.,1.8))*2600.);
+  result+=vec3(.82,.95,1.)*shine*.65;
+  result*=aperture;
+  // Eyelid contour remains a gentle curved stroke during the full close.
+  float upperLine=exp(-abs(p.y-upper)*200.)*arc*side;
+  float lowerLine=exp(-abs(p.y-lower)*220.)*arc*side*(1.-u_blink);
+  result+=vec3(.18,.34,.51)*(upperLine*.52+lowerLine*.26);
   return result;
 }
 void main(){

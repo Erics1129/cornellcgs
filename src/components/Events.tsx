@@ -2,12 +2,12 @@ import { useLayoutEffect, useRef, useState, type CSSProperties } from 'react'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import SectionIndex from './SectionIndex'
+import ScrollWords from './ScrollWords'
 import { events } from '../content'
 import { useSectionReveals } from '../lib/reveal'
 import { dealCard, fanLayout, hoverLift, observeCardLayout, shadowStyle } from '../lib/cardMotion'
 
 gsap.registerPlugin(ScrollTrigger)
-const emphasis = (text: string) => text.split('*').map((part, i) => i % 2 ? <em key={i}>{part}</em> : <span key={i}>{part}</span>)
 
 export default function Events() {
   const root = useRef<HTMLElement>(null)
@@ -72,7 +72,7 @@ export default function Events() {
     <section ref={root} id="events" className="section card-events-section">
       <SectionIndex rank="10" />
       <div className="container-site">
-        <h2 data-reveal="heading" className="h-section mb-6 max-w-[16ch]">{emphasis(events.heading)}</h2>
+        <h2 className="h-section mb-6 max-w-[16ch]"><ScrollWords text={events.heading} treatment="spread" /></h2>
         {count === 0 && <p className="body-muted">New events will appear here when announced.</p>}
         <div ref={hand} className={`event-hand ${count <= 7 ? 'event-hand-fan' : ''}`} data-interactive>
           {events.items.map((event, i) => (

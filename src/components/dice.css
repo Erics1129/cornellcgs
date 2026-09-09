@@ -1,0 +1,67 @@
+/* Isolated names keep the brand independent of the retired global dice rules.
+   The cube's diagonal, including perspective, stays inside the supplied size. */
+.cgs-brand-die {
+  position: relative;
+  display: inline-block;
+  flex: none;
+  vertical-align: middle;
+  overflow: clip;
+  isolation: isolate;
+  pointer-events: none;
+  line-height: 0;
+}
+.cgs-brand-die-stage,
+.cgs-brand-die-response { position: absolute; inset: 0; transform-style: preserve-3d; }
+.cgs-brand-die-stage { perspective: var(--brand-die-perspective); }
+.cgs-brand-die-response { transition: transform 280ms cubic-bezier(.2,.7,.25,1); }
+.cgs-brand-die-rotor {
+  position: absolute;
+  left: 50%; top: 50%;
+  width: var(--brand-die-edge); height: var(--brand-die-edge);
+  margin-left: calc(var(--brand-die-edge) / -2);
+  margin-top: calc(var(--brand-die-edge) / -2);
+  transform-style: preserve-3d;
+  transform: rotateX(-24deg) rotateY(-32deg) rotateZ(0deg);
+  animation: cgs-brand-die-tumble 22s linear infinite;
+  animation-play-state: paused;
+}
+.cgs-brand-die[data-motion="running"] .cgs-brand-die-rotor { animation-play-state: running; }
+.cgs-brand-die:not([data-motion="running"]) .cgs-brand-die-response { transition: none; }
+.cgs-brand-die-face {
+  position: absolute; inset: 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-rows: repeat(3, minmax(0, 1fr));
+  place-items: center;
+  padding: 17%;
+  box-sizing: border-box;
+  border-radius: calc(var(--brand-die-edge) * .09);
+  background: var(--dice-face, linear-gradient(145deg, #f4faff, #bfd8f4));
+  box-shadow: inset 0 0 0 .45px var(--dice-edge, rgba(238,248,255,.85)), inset -.65px -.65px .7px rgba(17,40,72,.36);
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+}
+.cgs-brand-die-face-front { transform: translateZ(calc(var(--brand-die-edge) / 2)); }
+.cgs-brand-die-face-back { transform: rotateY(180deg) translateZ(calc(var(--brand-die-edge) / 2)); background: var(--dice-face, linear-gradient(145deg, #bad6f4, #76a2d3)); }
+.cgs-brand-die-face-right { transform: rotateY(90deg) translateZ(calc(var(--brand-die-edge) / 2)); background: var(--dice-face, linear-gradient(145deg, #b9d9fa, #81a9d7)); }
+.cgs-brand-die-face-left { transform: rotateY(-90deg) translateZ(calc(var(--brand-die-edge) / 2)); background: var(--dice-face, linear-gradient(145deg, #213b5d, #10213b)); }
+.cgs-brand-die-face-top { transform: rotateX(90deg) translateZ(calc(var(--brand-die-edge) / 2)); background: var(--dice-face, linear-gradient(145deg, #ffffff, #d8e8fa)); }
+.cgs-brand-die-face-bottom { transform: rotateX(-90deg) translateZ(calc(var(--brand-die-edge) / 2)); background: var(--dice-face, linear-gradient(145deg, #638cbb, #315a8b)); }
+.cgs-brand-die-pip {
+  display: block;
+  width: 70%; height: 70%;
+  border-radius: 50%;
+  background: var(--dice-pip, #102542);
+  box-shadow: 0 .25px 0 rgba(255,255,255,.6), inset 0 .25px .3px rgba(0,0,0,.55);
+}
+.cgs-brand-die-face-left .cgs-brand-die-pip,
+.cgs-brand-die-face-bottom .cgs-brand-die-pip { background: var(--dice-pip, #ecf6ff); box-shadow: 0 .3px .25px rgba(0,0,0,.5); }
+@keyframes cgs-brand-die-tumble {
+  from { transform: rotateX(-24deg) rotateY(-32deg) rotateZ(0deg); }
+  to { transform: rotateX(336deg) rotateY(328deg) rotateZ(0deg); }
+}
+.cgs-brand-die[data-motion="reduced"] .cgs-brand-die-rotor { animation: none; }
+@media (prefers-reduced-motion: reduce) {
+  .cgs-brand-die-rotor { animation: none; }
+  .cgs-brand-die-response { transform: none !important; transition: none; }
+}

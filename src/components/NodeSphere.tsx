@@ -1,15 +1,16 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { createSceneLoop } from './GraphAlgo'
-import { isPaging } from '../lib/scroll'
 
-/** A stationary Fibonacci lattice after one establishing turn and connection.
- * Local pointer lean settles on demand; no global pointer listener or idle loop. */
+/** A slowly turning Fibonacci lattice with deliberate, spaced connections.
+ * Playback is automatic while visible; the pause control lives outside the
+ * caller's aria-hidden decorative wrapper so keyboard users can reach it. */
 
 const N = 144
 const K = 3
-const ARC_DRAW_MS = 1300
-const ARC_HOLD_MS = 900
-const ARC_FADE_MS = 700
+const ARC_DRAW_MS = 1800
+const ARC_HOLD_MS = 1400
+const ARC_FADE_MS = 1000
 
 type Vec = [number, number, number]
 
@@ -56,12 +57,19 @@ function slerp(a: Vec, b: Vec, t: number): Vec {
 
 export default function NodeSphere({ className = '' }: { className?: string }) {
   const ref = useRef<HTMLCanvasElement>(null)
+  const control = useRef<(() => void) | null>(null)
+  const [host, setHost] = useState<HTMLElement | null>(null)
+  const [playing, setPlaying] = useState(true)
+  const [reduced, setReduced] = useState(false)
 
   useEffect(() => {
     const canvas = ref.current
     const ctx = canvas?.getContext('2d')
     if (!canvas || !ctx) return
 
+    setHost(canvas.closest('section'))
+    setPlaying(true)
+    let running = true
     const pts = lattice(N)
     const edges = neighbours(pts, K)
     const fine = window.matchMedia('(pointer: fine)').matches
@@ -174,45 +182,47 @@ export default function NodeSphere({ className = '' }: { className?: string }) {
       }
     }
 
-    // A brief establishing turn and one connection, then stillness. Pointer
-    // accents are local to the canvas and only schedule frames while settling.
-    let intro = true
     let pointerActive = false
+    let connection = 0
     let bounds = canvas.getBoundingClientRect()
     const loop = createSceneLoop(canvas, {
       tick: (_elapsed, delta) => {
         sceneTime += delta
-        if (!isPaging()) {
-          if (intro) rotY += delta * 0.00005
-          const smoothing = 1 - Math.exp(-delta / 130)
-          leanX += (targetLeanX - leanX) * smoothing
-          leanY += (targetLeanY - leanY) * smoothing
-          if (intro && !arc && sceneTime >= nextArc) {
-            arc = { a: pts[12], b: pts[100], t0: sceneTime }
-            nextArc = Infinity
-          }
+        rotY += delta * 0.000035
+        const smoothing = 1 - Math.exp(-delta / 130)
+        leanX += (targetLeanX - leanX) * smoothing
+        leanY += (targetLeanY - leanY) * smoothing
+        if (!arc && sceneTime >= nextArc) {
+          const a = (12 + connection * 37) % N
+          const b = (100 + connection * 23) % N
+          arc = { a: pts[a], b: pts[a === b ? (b + 47) % N : b], t0: sceneTime }
+          connection++
+          nextArc = sceneTime + ARC_DRAW_MS + ARC_HOLD_MS + ARC_FADE_MS + 1800
         }
         draw(sceneTime)
-        if (sceneTime > 4200) intro = false
-        const settling = Math.abs(targetLeanX - leanX) + Math.abs(targetLeanY - leanY) > .001
-        return intro || !!arc || settling
       },
       still: () => {
-        intro = false; leanX = 0; leanY = 0; targetLeanX = 0; targetLeanY = 0
+        leanX = 0; leanY = 0; targetLeanX = 0; targetLeanY = 0
         arc = { a: pts[12], b: pts[100], t0: sceneTime - ARC_DRAW_MS }
+        nextArc = sceneTime + ARC_HOLD_MS + ARC_FADE_MS + 1800
         draw(sceneTime)
       },
+      motion: setReduced,
     })
+    control.current = () => {
+      if (loop.reduced()) return
+      running = !running; setPlaying(running)
+      if (running) loop.play()
+      else loop.pause()
+    }
     const onEnter = () => { bounds = canvas.getBoundingClientRect(); pointerActive = true }
     const onPointer = (event: PointerEvent) => {
-      if (!fine || loop.reduced() || !pointerActive || event.pointerType === 'touch') return
+      if (!fine || !running || loop.reduced() || !pointerActive || event.pointerType === 'touch') return
       targetLeanX = ((event.clientY - bounds.top) / bounds.height - .5) * .12
       targetLeanY = ((event.clientX - bounds.left) / bounds.width - .5) * .18
-      loop.play()
     }
     const onLeave = () => {
       pointerActive = false; targetLeanX = 0; targetLeanY = 0
-      if (!loop.reduced()) loop.play()
     }
     canvas.addEventListener('pointerenter', onEnter)
     canvas.addEventListener('pointermove', onPointer, { passive: true })
@@ -222,6 +232,7 @@ export default function NodeSphere({ className = '' }: { className?: string }) {
     ro.observe(canvas)
     resize()
     return () => {
+      control.current = null
       loop.dispose(); ro.disconnect()
       canvas.removeEventListener('pointerenter', onEnter)
       canvas.removeEventListener('pointermove', onPointer)
@@ -230,5 +241,12 @@ export default function NodeSphere({ className = '' }: { className?: string }) {
     }
   }, [])
 
-  return <canvas ref={ref} aria-hidden="true" className={className} />
+  return <>
+    <canvas ref={ref} data-node-sphere aria-hidden="true" className={className} />
+    {host && !reduced && createPortal(
+      <button type="button" className="cgs-sphere-pause" data-interactive onClick={() => control.current?.()}
+        aria-label={playing ? 'Pause node sphere' : 'Resume node sphere'}>{playing ? 'Pause animation' : 'Resume animation'}</button>,
+      host,
+    )}
+  </>
 }

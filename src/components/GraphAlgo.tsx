@@ -1,9 +1,9 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import './scopedMotion.css'
 
-/** Graph algorithms replay once, with pause/step/new-graph controls. Algorithm
- * state stays outside React; reduced motion shows a completed result and
- * supports manual steps. Scene placement remains owned by the caller. */
+/** Graph algorithms autoplay on a stable graph, hold the result, then gently
+ * replay. Only an explicit pause stops playback intent; visibility and motion
+ * preferences suspend the scene clock without changing that intent. */
 
 export type Algo = 'kruskal' | 'prim' | 'dijkstra' | 'astar' | 'bfs' | 'dfs'
 
@@ -12,7 +12,9 @@ const BLUE = '30,94,255'
 const AMBER = '255,158,66'
 const MUTED = '70,88,122'
 const N = 26
-const STEP_MS = 360
+const STEP_MS = 420
+const HOLD_MS = 1800
+const FADE_MS = 900
 
 interface Node {
   x: number
@@ -284,15 +286,15 @@ export const ALGO_LABEL: Record<Algo, string> = {
 }
 
 /** One cancellable scheduler shared by the three canvas scenes. The scene clock
- * advances only while actually visible; a completed sequence has no idle rAF. */
+ * advances only while actually visible. Media changes preserve explicit pause. */
 export function createSceneLoop(canvas: HTMLCanvasElement, callbacks: {
-  tick: (elapsed: number, delta: number) => boolean
+  tick: (elapsed: number, delta: number) => void
   still: () => void
   motion?: (reduced: boolean) => void
 }) {
   const media = window.matchMedia('(prefers-reduced-motion: reduce)')
   let near = false
-  let wanted = !media.matches
+  let wanted = true
   let raf = 0
   let elapsed = 0
   let last = 0
@@ -304,7 +306,7 @@ export function createSceneLoop(canvas: HTMLCanvasElement, callbacks: {
     const delta = last ? Math.min(now - last, 48) : 0
     last = now
     elapsed += delta
-    wanted = callbacks.tick(elapsed, delta)
+    callbacks.tick(elapsed, delta)
     if (wanted) raf = requestAnimationFrame(frame)
     else last = 0
   }
@@ -313,11 +315,15 @@ export function createSceneLoop(canvas: HTMLCanvasElement, callbacks: {
     else if (!raf) raf = requestAnimationFrame(frame)
   }
   const motion = () => {
-    if (media.matches) { wanted = false; stop(); callbacks.still() }
+    if (media.matches) { stop(); callbacks.still() }
     callbacks.motion?.(media.matches)
     sync()
   }
-  const io = new IntersectionObserver((entries) => { near = entries[0]?.isIntersecting ?? false; sync() }, { threshold: 0 })
+  const io = new IntersectionObserver((entries) => {
+    const entry = entries[0]
+    near = !!entry?.isIntersecting && entry.intersectionRatio > 0
+    sync()
+  }, { threshold: [0, 0.01] })
   io.observe(canvas)
   media.addEventListener('change', motion)
   document.addEventListener('visibilitychange', sync)
@@ -333,7 +339,7 @@ export function createSceneLoop(canvas: HTMLCanvasElement, callbacks: {
 export default function GraphAlgo({ algo, className = '' }: { algo: Algo; className?: string }) {
   const ref = useRef<HTMLCanvasElement>(null)
   const statusRef = useRef<HTMLSpanElement>(null)
-  const controls = useRef<{ toggle: () => void; step: () => void; deal: () => void } | null>(null)
+  const controls = useRef<{ toggle: () => void } | null>(null)
   const [playing, setPlaying] = useState(true)
   const [reduced, setReduced] = useState(false)
   const id = useId()
@@ -372,7 +378,7 @@ export default function GraphAlgo({ algo, className = '' }: { algo: Algo; classN
     const status = () => {
       if (statusRef.current) statusRef.current.textContent = `${at + 1} / ${steps.length} · ${steps[at]?.note ?? ''}`
     }
-    const draw = (s: Step, blend: number) => {
+    const draw = (s: Step, blend: number, emphasis = 1) => {
       ctx.clearRect(0, 0, w, h)
       const tree = new Set(s.tree ?? [])
       const previousTree = new Set(steps[Math.max(0, at - 1)]?.tree ?? [])
@@ -384,14 +390,17 @@ export default function GraphAlgo({ algo, className = '' }: { algo: Algo; classN
       edges.forEach((e, k) => {
         const A = nodes[e.a], B = nodes[e.b]
         const onPath = pathEdges.has(`${Math.min(e.a, e.b)}-${Math.max(e.a, e.b)}`)
+        ctx.globalAlpha = 1
         ctx.strokeStyle = `rgba(${NAVY},0.10)`; ctx.lineWidth = 1
         ctx.beginPath(); ctx.moveTo(A.x, A.y); ctx.lineTo(B.x, B.y); ctx.stroke()
         if (!tree.has(k) && s.consider !== k && s.reject !== k && !onPath) return
+        ctx.globalAlpha = emphasis
         ctx.strokeStyle = onPath ? `rgba(${AMBER},.95)` : s.consider === k ? `rgba(${AMBER},.9)` : s.reject === k ? `rgba(180,60,90,${.6 * (1 - blend)})` : `rgba(${BLUE},.85)`
         ctx.lineWidth = onPath ? 2.8 : 1.8
         const t = tree.has(k) && !previousTree.has(k) ? 1 - (1 - blend) ** 3 : 1
         ctx.beginPath(); ctx.moveTo(A.x, A.y); ctx.lineTo(A.x + (B.x - A.x) * t, A.y + (B.y - A.y) * t); ctx.stroke()
       })
+      ctx.globalAlpha = emphasis
       if (algo === 'astar' && s.current !== undefined && s.target !== undefined) {
         ctx.setLineDash([3, 5]); ctx.strokeStyle = `rgba(${AMBER},.5)`; ctx.lineWidth = 1
         ctx.beginPath(); ctx.moveTo(nodes[s.current].x, nodes[s.current].y); ctx.lineTo(nodes[s.target].x, nodes[s.target].y); ctx.stroke(); ctx.setLineDash([])
@@ -399,6 +408,10 @@ export default function GraphAlgo({ algo, className = '' }: { algo: Algo; classN
       nodes.forEach((p, i) => {
         const isSrc = s.source === i, isDst = s.target === i
         const r = isSrc || isDst ? 5.5 : 4
+        ctx.globalAlpha = 1
+        ctx.fillStyle = `rgba(${NAVY},.9)`
+        ctx.beginPath(); ctx.arc(p.x, p.y, r, 0, Math.PI * 2); ctx.fill()
+        ctx.globalAlpha = emphasis
         if (frontier.has(i)) {
           ctx.strokeStyle = `rgba(${AMBER},.9)`; ctx.lineWidth = 1.5
           ctx.beginPath(); ctx.arc(p.x, p.y, r + 4, 0, Math.PI * 2); ctx.stroke()
@@ -415,8 +428,8 @@ export default function GraphAlgo({ algo, className = '' }: { algo: Algo; classN
           ctx.fillText(String(Math.round(label)), Math.min(w - 25, p.x + 7), p.y - 7)
         }
       })
+      ctx.globalAlpha = 1
     }
-    const finish = () => { running = false; setPlaying(false) }
     const render = () => { if (steps.length) { draw(steps[at], 1); status() } }
     const resize = () => {
       const r = canvas.getBoundingClientRect()
@@ -435,22 +448,23 @@ export default function GraphAlgo({ algo, className = '' }: { algo: Algo; classN
     const loop = createSceneLoop(canvas, {
       tick: (_elapsed, delta) => {
         progress += delta
-        if (progress >= STEP_MS && at < steps.length - 1) { at++; progress = 0; status() }
-        draw(steps[at], Math.min(1, progress / STEP_MS))
-        if (at === steps.length - 1 && progress >= STEP_MS) { finish(); render(); return false }
-        return running
+        if (at < steps.length - 1 && progress >= STEP_MS) { at++; progress = 0; status() }
+        const last = at === steps.length - 1
+        const fade = last ? Math.max(0, 1 - (progress - STEP_MS - HOLD_MS) / FADE_MS) : 1
+        draw(steps[at], Math.min(1, progress / STEP_MS), Math.min(1, fade))
+        if (last && progress >= STEP_MS + HOLD_MS + FADE_MS) { at = 0; progress = 0; status() }
       },
-      still: () => { at = steps.length - 1; finish(); render() },
+      still: () => { at = steps.length - 1; progress = STEP_MS; render() },
       motion: setReduced,
     })
     controls.current = {
       toggle: () => {
         if (loop.reduced()) return
-        if (running) { finish(); loop.pause(); render() }
-        else { if (at === steps.length - 1) { at = 0; progress = 0; render() }; running = true; setPlaying(true); loop.play() }
+        running = !running
+        setPlaying(running)
+        if (running) loop.play()
+        else loop.pause()
       },
-      step: () => { finish(); loop.pause(); at = (at + 1) % steps.length; progress = 0; render() },
-      deal: () => { finish(); loop.pause(); deal(); render() },
     }
     const ro = new ResizeObserver(resize)
     ro.observe(canvas)
@@ -461,12 +475,8 @@ export default function GraphAlgo({ algo, className = '' }: { algo: Algo; classN
     <figure className={`cgs-scene ${className}`} aria-labelledby={id}>
       <canvas ref={ref} role="img" aria-label={`${ALGO_LABEL[algo]}. Blue edges show the tree; amber shows the current search or selected path.`} />
       <figcaption id={id} className="cgs-scene-caption">
-        <span>{ALGO_LABEL[algo]}<span ref={statusRef} className="cgs-scene-status" aria-live={playing ? 'off' : 'polite'} /></span>
-        <span className="cgs-scene-controls">
-          <button type="button" onClick={() => controls.current?.toggle()} disabled={reduced} aria-label={playing ? 'Pause algorithm' : 'Play algorithm'}>{playing ? 'Pause' : 'Play'}</button>
-          <button type="button" onClick={() => controls.current?.step()}>Step</button>
-          <button type="button" onClick={() => controls.current?.deal()}>New graph</button>
-        </span>
+        <span>{ALGO_LABEL[algo]}<span ref={statusRef} className="cgs-scene-status" /></span>
+        {!reduced && <button type="button" className="cgs-scene-pause" onClick={() => controls.current?.toggle()} aria-label={playing ? 'Pause algorithm' : 'Resume algorithm'}>{playing ? 'Pause' : 'Resume'}</button>}
       </figcaption>
     </figure>
   )

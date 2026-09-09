@@ -1,0 +1,7 @@
+.scroll-words { display:inline; }
+.scroll-word-frame { display:inline-block; max-width:100%; vertical-align:bottom; }
+.scroll-word-frame>[data-scroll-word] { display:inline-block; max-width:100%; overflow-wrap:anywhere; vertical-align:bottom; }
+.scroll-words--mask .scroll-word-frame { overflow:clip; padding:.11em .035em; margin:-.11em -.035em; }
+@media(prefers-reduced-motion:reduce) {
+ .scroll-word-frame>[data-scroll-word] { transform:none!important; opacity:1!important; }
+}
