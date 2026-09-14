@@ -1,0 +1,11 @@
+/* Keep the canvas and still in the same fixed artwork coordinates. */
+.scene-canvas--eye.eye-sequence .eye-sequence__still {
+  position:absolute;
+  inset:auto;
+  left:50%; top:50%;
+  width:var(--eye-art-width,110%);
+  max-width:none;
+  height:auto;
+  transform:translate(-52%,-48%);
+}
+.scene-canvas--eye.eye-sequence canvas { transition:none; }

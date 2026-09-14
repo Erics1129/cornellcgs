@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { vision } from '../content'
-import SceneCanvas from './SceneCanvas'
+import EyeSequence from './EyeSequence'
 import ScrollWords from './ScrollWords'
 
 /** An animated glass eye; its gaze, blink and code reflection begin on arrival. */
@@ -22,7 +22,7 @@ export default function FutureEye() {
       <h2 className="scene-title"><ScrollWords text={`${vision.title}.`} treatment="illuminate" /></h2>
     </div>
     <div className="vision-eye-stage">
-      <SceneCanvas kind="eye" paused={paused} />
+      <EyeSequence paused={paused} />
       <button type="button" className="vision-pause" aria-label={paused ? 'Resume eye animation' : 'Pause eye animation'} aria-pressed={paused} onClick={() => setPaused(!paused)}><span aria-hidden="true">{paused ? '▷' : 'Ⅱ'}</span>{paused ? 'Resume motion' : 'Pause motion'}</button>
     </div>
     <div className="container-site vision-bottom">

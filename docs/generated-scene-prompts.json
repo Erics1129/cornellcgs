@@ -1,0 +1,116 @@
+{
+  "mode": "Built-in image_gen.imagegen",
+  "generatedDate": "2026-09-14",
+  "note": "27 subpage keyframes from nine generated filmstrips. Seven new eye gaze/blink poses, plus two earlier open/closed poses. Two new city district images used by Blender as scene materials. Intermediate rendered frames are not independently AI-generated.",
+  "assets": [
+    {
+      "id": "who-we-are",
+      "master": "output/imagegen/who-we-are.png",
+      "website": "public/assets/page-scenes/who-we-are/{0,1,2}.webp",
+      "prompt": "Create a THREE-FRAME ANIMATION FILMSTRIP, ONE landscape1536x1024 image divided into EXACTLY THREE equal512x1024 vertical frames, edge-to-edge with NO margins, gutters, border or text. Each panel shows the SAME object identity, SAME locked camera, lighting and scene scale in a successive animation state, smooth modest movement between adjacent frames. IMPORTANT: each panel is a complete portrait composition with main object occupying central60% and generous empty space at top and bottom. Stylized premium 3D illustration, finely shaded materials, refined editorial art direction, not medical or photoreal humans. No words, labels, interface, logos or watermarks. Ivory studio with midnight navy folded porcelain ribbons, three elegant interlocking sculptural forms, warm soft sidelight. State1: three separated forms hovering close; state2: forms rotate and approach each other; state3: joined into one beautiful open knot. Quiet and editorial, feels like collective intelligence."
+    },
+    {
+      "id": "what-we-do",
+      "master": "output/imagegen/what-we-do.png",
+      "website": "public/assets/page-scenes/what-we-do/{0,1,2}.webp",
+      "prompt": "Create a THREE-FRAME ANIMATION FILMSTRIP, ONE landscape1536x1024 image divided into EXACTLY THREE equal512x1024 vertical frames, edge-to-edge with NO margins, gutters, border or text. Each panel shows the SAME object identity, SAME locked camera, lighting and scene scale in a successive animation state, smooth modest movement between adjacent frames. IMPORTANT: each panel is a complete portrait composition with main object occupying central60% and generous empty space at top and bottom. Stylized premium 3D illustration, finely shaded materials, refined editorial art direction, not medical or photoreal humans. No words, labels, interface, logos or watermarks. Graphite charcoal game-design workbench with satin coral geometric tokens, glossy dark Go stones, warm silver miniature branching rails. State1: scattered neatly spaced pieces; state2: tokens glide along rails; state3: poised completed abstract game strategy arrangement. Beautiful controlled design, no chaotic objects."
+    },
+    {
+      "id": "ml-process",
+      "master": "output/imagegen/ml-process.png",
+      "website": "public/assets/page-scenes/ml-process/{0,1,2}.webp",
+      "prompt": "Create a THREE-FRAME ANIMATION FILMSTRIP, ONE landscape1536x1024 image divided into EXACTLY THREE equal512x1024 vertical frames, edge-to-edge with NO margins, gutters, border or text. Each panel shows the SAME object identity, SAME locked camera, lighting and scene scale in a successive animation state, smooth modest movement between adjacent frames. IMPORTANT: each panel is a complete portrait composition with main object occupying central60% and generous empty space at top and bottom. Stylized premium 3D illustration, finely shaded materials, refined editorial art direction, not medical or photoreal humans. No words, labels, interface, logos or watermarks. Deep midnight navy laboratory of layered thin ice-blue glass planes and suspended tiny pearl beads, technical restrained glowing cyan paths, amber final signal. State1: loose input beads at bottom; state2: beads flow up through ordered layers; state3: a bright coherent amber cluster emerges above. Refined physical explanation of training, no brain shape."
+    },
+    {
+      "id": "eye-down",
+      "master": "output/imagegen/eye-down.png",
+      "website": "public/assets/sequences/eye-v5/down.webp",
+      "prompt": "Edit this blue eye into ONE matching animation frame1536x1024. Actual iris and pupil look DOWN by about5 percent of image height, showing more white above iris, upperlid follows slightly downward naturally. Same exact socket, tear duct, crop, skin, lash roots, iris identity and midnight blue lighting. Pupil remains big dark round clean, small wet highlight only, no text or screen. Move onlythe eyeball within stationary socket, no camera movement. Reference image eye must remain recognizable."
+    },
+    {
+      "id": "events",
+      "master": "output/imagegen/events.png",
+      "website": "public/assets/page-scenes/events/{0,1,2}.webp",
+      "prompt": "undefinedWarm ivory exhibition floor, sculptural burnt-orange domino pieces arranged in an elegant curved line with elongated soft shadows, one polished silver ball. State1: all standing except the very first leaning; state2: a clear falling wave half way down line; state3: half settled with last dominoes still standing. Same exact view/objects across all three frames, movement small and physical, no numbers or text."
+    },
+    {
+      "id": "world",
+      "master": "output/imagegen/world.png",
+      "website": "public/assets/page-scenes/world/{0,1,2}.webp",
+      "prompt": "undefinedDark petrol blue architectural model of Earth made from fine topographic layers, gentle turquoise ocean glass, warm pale continents, three orbital fine brass arcs. State1: globe at one angle, Americas visible; state2: globe turned toward Atlantic; state3: Europe/Africa turned into view, arcbead advances on orbit. Recognizable stylized geography, not a map with labels, elegant museum object. No spaceship, no neon city."
+    },
+    {
+      "id": "people",
+      "master": "output/imagegen/people.png",
+      "website": "public/assets/page-scenes/people/{0,1,2}.webp",
+      "prompt": "undefinedWarm white studio, woven satin ribbons of deep ink navy and muted golden ochre, simple intersecting strips floating as a beautiful small collective sculpture, nohumanfigures. State1: ribbons separated in loose parallel strands; state2: they gently curl and cross; state3: one tidy woven open structure. Same ribbons/camera/materials. Soft shadows and believablefabric, editorial typography-friendly negative space."
+    },
+    {
+      "id": "advisors",
+      "master": "output/imagegen/advisors.png",
+      "website": "public/assets/page-scenes/advisors/{0,1,2}.webp",
+      "prompt": "undefinedBright ivory gallery, refined sculptural node-and-edge network made of brushed silver rods and dark navy glass spheres on a low white plinth, one small amber route through structure. State1: sparse tetrahedral structure with4major nodes; state2: same structure expands to8nodes; state3: a graceful connected tree with12nodes, amber route advances. Realconstrainedgeometry, clean shadows, not magicalbrain, no people.",
+      "revisionPrompt": "Edit this exact three-panel filmstrip. REMOVE EVERY single word, letter, number, title, label and line of text from ALL THREE PANELS, including every plinth and all background walls. Fill removed writing with matching plain smooth off-white surface. Preserve the actual network sculpture, all navy spheres, silver edges and amber rods EXACTLY as they are, same size/position, same lighting/shadows/camera. Also remove the thin white panel separators so clean natural image edges meet. This is an animation texture asset, no typography whatsoever. Keep1536x1024andthethreeequalverticalpanels. No new objects. No other changes."
+    },
+    {
+      "id": "join",
+      "master": "output/imagegen/join.png",
+      "website": "public/assets/page-scenes/join/{0,1,2}.webp",
+      "prompt": "undefinedWarm cream architectural model, three tall pale sandstone open doorframes aligned in deep perspective with restrained sage green interior light, a single small polished darkgreen sphere rolling toward open space. State1: sphere near first doorway; state2: it passes middle doorway and doors pivot slightly open; state3: it arrives beyond third doorway in warmly lit open courtyard. Inviting and minimalist, not futuristiccity. Samecameraarchitecture, visible gentle light change."
+    },
+    {
+      "id": "contact",
+      "master": "output/imagegen/contact.png",
+      "website": "public/assets/page-scenes/contact/{0,1,2}.webp",
+      "prompt": "undefinedMidnight ink blue studio with a sculptural delicate brass signal system: one softly luminous warm amber orb suspended inside three thin concentric metallic rings, subtle warm reflections on matte base. State1: rings aligned frontally and orb at center; state2: outerring rotates35degrees and smallpulse movesalongit; state3: allrings in graceful gyroscope arrangement withorb shifted slightly right. Elegant macro design object, generous blackspace, no letters, envelope,phone,UI."
+    },
+    {
+      "id": "city-corner",
+      "master": "output/imagegen/city-corner.png",
+      "website": "public/assets/sequences/city/corner.webp",
+      "prompt": "Use case: stylized-concept. Edit target: the referenced neon city. Create ONE full-frame cinematic animation keyframe, landscape 1536x1024. This is later along the SAME empty cyan and violet code-city avenue: camera has moved 35 meters forward and is smoothly turning RIGHT at the first intersection, yaw 35 degrees, eye-level low first-person POV. The buildings nearest us now slide strongly toward the left edge; the new street opens to the RIGHT in deep perspective with luminous rectangular elevated bridges, elegant tall dark glass towers carrying tiny abstract code lights. Wet obsidian road, thin cyan lane light ribbons rounding the corner, restrained violet trim, midnight sky. Maintain the architecture/material/color realism and cool dark exposure of the reference. No cars or people. No interface, no card, no titles, no borders. A real different camera position at a street corner, not just a crop or zoom of the reference."
+    },
+    {
+      "id": "city-plaza",
+      "master": "output/imagegen/city-plaza.png",
+      "website": "public/assets/sequences/city/plaza.webp",
+      "prompt": "Use case: stylized-concept. Edit target: the referenced neon code city. Create ONE full-frame cinematic animation keyframe, landscape 1536x1024. First-person camera deeper into the same world, after turning a corner, now arriving at a wide angular plaza with a low rectangular reflecting pool, three tall glass code towers, and long elevated light bridges that cross overhead. A clear wide path travels along the RIGHT side of the plaza and curves LEFT ahead into another avenue. A few abstract luminous pixel-code panels embedded into the far buildings. Maintain same midnight navy, electric cyan and restrained violet palette, dark reflective ground and sophisticated architectural realism. Strong real perspective and parallax, immersive human eye-level, broad calm central space for an overlaying poker card. Distinct place in the SAME city, not unrelated fantasy. No people/cars, no giant neon signage, no logos, no UI, no borders."
+    },
+    {
+      "id": "eye-left",
+      "master": "output/imagegen/eye-left.png",
+      "website": "public/assets/sequences/eye-v5/left.webp",
+      "prompt": "Use case: identity-preserve. Edit the referenced blue eye into ONE exact matching animation frame. Keep the exact eye socket, skin, eyelash roots, crop, lighting, blue iris identity, size and camera unchanged. Move ONLY the actual iris and pupil to look distinctly LEFT, by about 9 percent of the full image width; the curved eyeball and visible sclera change naturally around it, with the upper and lower lids following very subtly. The pupil remains large, round, very dark and clean so live code reflection can be composited later. Preserve the same small wet highlight. No words, code, rectangles, interface, or extra eye. Match reference dimensions 1536x1024. A beautiful cinematic eye in black, elegant rather than medical/horror. This is an actual gaze animation keyframe, not whole-picture translation or rotation."
+    },
+    {
+      "id": "eye-half",
+      "master": "output/imagegen/eye-half.png",
+      "website": "public/assets/sequences/eye-v5/half.webp",
+      "prompt": "Use case: identity-preserve. Edit the referenced blue eye into ONE exact matching blink animation frame. Keep exact same eye identity, socket, iris center, crop and cool-blue lighting. Upper eyelid has come down halfway from fully open: the opening is now 50 percent of original height, naturally covering the upper half of the iris/pupil; lower lid rises only a little. Eyelashes attached to the upper lid move down with it and tip slightly forward. Actual eyelid occlusion, no translucent double-exposed eye. Everything outside the moving lid region stays exactly aligned to reference. Large dark clean pupil. No written text or painted computer reflection. One full image 1536x1024, not a collage. No added objects, no camera movement."
+    },
+    {
+      "id": "eye-right",
+      "master": "output/imagegen/eye-right.png",
+      "website": "public/assets/sequences/eye-v5/right.webp",
+      "prompt": "Edit this blue eye into ONE matching animation frame, 1536x1024. The actual iris and pupil now look RIGHT: move their center about 8 percent of the full image width to the right, so more sclera shows on the left and less on the right. Keep the face, skin, corner tear duct, upper/lower lid boundaries and eyelash roots aligned exactly to reference. Eyeball rotates within the socket, not whole photograph sliding. Preserve iris fibre identity, pupil size, midnight-blue lighting, black negative space and crop. Pupil clean dark with only small wet highlight, no screen/text. Elegant beautiful cinematic style, not horror. No added elements."
+    },
+    {
+      "id": "eye-up",
+      "master": "output/imagegen/eye-up.png",
+      "website": "public/assets/sequences/eye-v5/up.webp",
+      "prompt": "Edit this eye into ONE matching animation frame, 1536x1024. Make the actual iris and pupil look UP by around 5 percent of image height, naturally rotating the globe, with a little more white visible below iris. Keep original crop, socket, skin, corners, lighting, eyelash roots, iris color/identity and black surround absolutely aligned. Upper lid follows by only a very small amount, not fully raised or surprised. Preserve large dark round pupil without text or computer image. No movement of the whole photo, no graphic overlays."
+    },
+    {
+      "id": "eye-quarter",
+      "master": "output/imagegen/eye-quarter.png",
+      "website": "public/assets/sequences/eye-v5/quarter.webp",
+      "prompt": "Edit this eye into ONE matching blink animation frame, 1536x1024. The eyelid is one-quarter CLOSED (75 percent opening remains): upper lid lowers exactly 25 percent of the original aperture height, gradually occluding upper iris; lower lid moves minimally. Eyelashes follow the upper lid edge naturally downward. Match identical socket/skin/camera/crop/iris center/lighting/background. No whole-eye squashing or translucent overlay; actual lid skin occupies newly covered area. Keep iris and pupil visible where not covered. Clean dark pupil, no text/reflected screen. Everything outside moving upper lid stays still."
+    },
+    {
+      "id": "eye-threequarter",
+      "master": "output/imagegen/eye-threequarter.png",
+      "website": "public/assets/sequences/eye-v5/threequarter.webp",
+      "prompt": "Edit this eye into ONE matching blink animation frame, 1536x1024. The eye is three-quarters CLOSED: only a narrow remaining opening of 25 percent of original aperture height. Upper lid has travelled down 75 percent and its real skin/lashes cover the upper three quarters of the iris; lower lid rises a little in natural blink. Preserve precise reference eye socket position, corner positions, original camera crop, skin identity, deep blue lighting and black outside. No bright seam, no double exposure, no whole-eye scaling. Tiny remaining pupil/iris visible under edge; no written text or baked screen reflection. One single image, no panel grid."
+    }
+  ]
+}

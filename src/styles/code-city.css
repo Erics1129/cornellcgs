@@ -1,4 +1,4 @@
-/* Hero-owned layers. The whole scene fades into the original home code field. */
+/* The opening hero owns every city layer; colors are fixed to the render. */
 .code-city {
   position: absolute;
   inset: 0;
@@ -12,27 +12,23 @@
 }
 .code-city[data-active='false'] { visibility: hidden; }
 .code-city__plate,
-.code-city__canvas,
+.code-city__video,
 .code-city__shade {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
 }
-.code-city__plate {
+.code-city__plate,
+.code-city__video {
   display: block;
   object-fit: cover;
-  /* Object position and GPU camera share the measured CITY_PLATE projection. */
-  opacity: .88;
+  object-position: 50% 52%;
 }
+.code-city__plate { opacity: .94; }
 .code-city__plate[data-missing='true'] { visibility: hidden; }
-.code-city__canvas { display: block; opacity: 0; transition: opacity 700ms ease; }
-.code-city[data-renderer='ready'] .code-city__canvas { opacity: 1; }
-.code-city[data-renderer='ready'] .code-city__plate {
-  /* The artwork supplies distant architecture. Its painted foreground road is
-     subdued beneath moving world-space lanes, without zooming the whole image. */
-  mask-image: linear-gradient(to bottom, #000 0%, #000 var(--code-city-horizon, 70.5%), #0009 calc(var(--code-city-horizon, 70.5%) + 10%), #0003 100%);
-}
+.code-city__video { opacity: 0; transition: opacity 500ms ease; }
+.code-city[data-renderer='ready'] .code-city__video { opacity: 1; }
 .code-city__shade {
   background:
     radial-gradient(ellipse 40% 62% at 48% 45%, #040817db 0%, #0408179c 50%, transparent 100%),
@@ -45,7 +41,5 @@ html[data-device='phone'] .code-city__shade {
     linear-gradient(180deg, #04081755, transparent 70%, #040817aa);
 }
 @media (prefers-reduced-motion: reduce) {
-  .code-city__canvas { display: none; }
-  .code-city__canvas { transition: none; }
-  .code-city .code-city__plate { mask-image: none; }
+  .code-city__video { display: none; transition: none; }
 }

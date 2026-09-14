@@ -336,10 +336,13 @@ export function createSceneLoop(canvas: HTMLCanvasElement, callbacks: {
   }
 }
 
-export default function GraphAlgo({ algo, className = '' }: { algo: Algo; className?: string }) {
+export default function GraphAlgo({ algo, className = '', paused = false }: { algo: Algo; className?: string; paused?: boolean }) {
   const ref = useRef<HTMLCanvasElement>(null)
   const statusRef = useRef<HTMLSpanElement>(null)
   const controls = useRef<{ toggle: () => void } | null>(null)
+  const sceneLoop = useRef<ReturnType<typeof createSceneLoop> | null>(null)
+  const externallyPaused = useRef(paused)
+  externallyPaused.current = paused
   const [playing, setPlaying] = useState(true)
   const [reduced, setReduced] = useState(false)
   const id = useId()
@@ -457,19 +460,26 @@ export default function GraphAlgo({ algo, className = '' }: { algo: Algo; classN
       still: () => { at = steps.length - 1; progress = STEP_MS; render() },
       motion: setReduced,
     })
+    sceneLoop.current = loop
+    if (externallyPaused.current) loop.pause()
     controls.current = {
       toggle: () => {
         if (loop.reduced()) return
         running = !running
         setPlaying(running)
-        if (running) loop.play()
+        if (running && !externallyPaused.current) loop.play()
         else loop.pause()
       },
     }
     const ro = new ResizeObserver(resize)
     ro.observe(canvas)
-    return () => { controls.current = null; loop.dispose(); ro.disconnect() }
+    return () => { controls.current = null; sceneLoop.current = null; loop.dispose(); ro.disconnect() }
   }, [algo])
+
+  useEffect(() => {
+    if (paused || !playing) sceneLoop.current?.pause()
+    else sceneLoop.current?.play()
+  }, [paused, playing, algo])
 
   return (
     <figure className={`cgs-scene ${className}`} aria-labelledby={id}>

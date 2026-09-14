@@ -12,9 +12,12 @@ type Point = { x: number; y: number; layer: number }
 
 /** Inputs take turns sending one slow signal through a stationary network.
  * The completed path holds, fades, and advances automatically while visible. */
-export default function NetworkFlow({ className = '' }: { className?: string }) {
+export default function NetworkFlow({ className = '', paused = false }: { className?: string; paused?: boolean }) {
   const ref = useRef<HTMLCanvasElement>(null)
   const actions = useRef<{ toggle: () => void } | null>(null)
+  const sceneLoop = useRef<ReturnType<typeof createSceneLoop> | null>(null)
+  const externallyPaused = useRef(paused)
+  externallyPaused.current = paused
   const [playing, setPlaying] = useState(true)
   const [reduced, setReduced] = useState(false)
   const id = useId()
@@ -106,17 +109,24 @@ export default function NetworkFlow({ className = '' }: { className?: string }) 
       still: () => { progress = DURATION; draw() },
       motion: setReduced,
     })
+    sceneLoop.current = loop
+    if (externallyPaused.current) loop.pause()
     actions.current = {
       toggle: () => {
         if (loop.reduced()) return
         running = !running; setPlaying(running)
-        if (running) loop.play()
+        if (running && !externallyPaused.current) loop.play()
         else loop.pause()
       },
     }
     const ro = new ResizeObserver(resize); ro.observe(canvas)
-    return () => { actions.current = null; loop.dispose(); ro.disconnect() }
+    return () => { actions.current = null; sceneLoop.current = null; loop.dispose(); ro.disconnect() }
   }, [])
+
+  useEffect(() => {
+    if (paused || !playing) sceneLoop.current?.pause()
+    else sceneLoop.current?.play()
+  }, [paused, playing])
 
   return (
     <figure className={`cgs-scene ${className}`} aria-labelledby={id}>

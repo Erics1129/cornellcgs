@@ -19,9 +19,12 @@ for (const [name, engine, width, height] of [
       theme: document.documentElement.dataset.theme,
       style: document.documentElement.getAttribute('style'),
     }))
-    const palette = () => page.locator('.code-city canvas').evaluate(e => {
-      const gl = e.getContext('webgl'), program = gl.getParameter(gl.CURRENT_PROGRAM)
-      return Array.from(gl.getUniform(program, gl.getUniformLocation(program, 'u_tint')))
+    // The city is now a native movie of offline-rendered 3D frames. Its
+    // source and presentation must stay independent of every card color.
+    await page.waitForFunction(() => document.querySelector('.code-city').dataset.renderer === 'ready')
+    const palette = () => page.locator('.code-city').evaluate(e => {
+      const video = e.querySelector('video')
+      return { source: video.currentSrc, filter: getComputedStyle(video).filter, blend: getComputedStyle(video).mixBlendMode, hostFilter: getComputedStyle(e).filter }
     })
     const tint = await palette()
     assert.equal(await page.locator('#top > .code-city').count(), 1)

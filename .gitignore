@@ -6,3 +6,7 @@ dist
 # local API secrets (wrangler dev)
 worker/.dev.vars
 .wrangler/
+
+# Reproducible render frames, generated masters and local visual reports.
+# Optimized website media is versioned under public/assets/.
+output/
