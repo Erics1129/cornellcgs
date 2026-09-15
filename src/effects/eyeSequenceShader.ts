@@ -57,6 +57,12 @@ float lid(float x, int frame, bool bottom) {
 }
 int blinkLayer(int frame) { return frame == 0 ? 0 : frame + 4; }
 
+vec2 highlight(int layer) {
+  vec2 centers[5] = vec2[5](vec2(.53568,.36540),vec2(.43559,.38707),
+    vec2(.58435,.36399),vec2(.53636,.32197),vec2(.52966,.45954));
+  return centers[u_layers[layer]];
+}
+
 // The inverse map pins the outer face, while matching each source lid edge
 // to the interpolated edge. Skin/lashes interpolate at the same position.
 vec3 lidMaterial(vec2 q, int frame, float upper, float lower) {
@@ -70,19 +76,33 @@ vec3 lidMaterial(vec2 q, int frame, float upper, float lower) {
   } else if (q.y > lower) {
     p.y += (low-lower) * (1.-smoothstep(lower, .88, q.y));
   } else {
-    // Only used for the narrow lash band, never to squash the iris.
-    p.y += (top-upper)*(1.-smoothstep(upper,upper+.055,q.y));
+    // Register both sides of the rim within the feathered aperture. Leaving
+    // the inner lower band unregistered ghosts the tear line mid-blink.
+    // This material never supplies the iris itself.
+    p.y += (top-upper)*(1.-smoothstep(upper,upper+.055,q.y))
+      + (low-lower)*smoothstep(lower-.055,lower,q.y);
   }
   return pose(p, layer);
 }
 
 // Move source pupils into one shared intermediate position before blending.
 // The warp is local to the eyeball: the socket never pans with the gaze.
-vec3 alignedPose(vec2 q, int layer, vec2 pupil, float inner) {
+vec4 alignedPose(vec2 q, int layer, vec2 pupil, vec2 glint) {
   vec2 d = q-pupil;
   float falloff = 1.-smoothstep(.95, 2.05, length(d/vec2(.133,.209)));
-  vec2 uv = q + (u_pupils[layer]-pupil) * falloff * inner;
-  return pose(uv, layer);
+  // Translate the iris rigidly. Multiplying this offset by the destination
+  // lid mask squashes the iris and drags the source tear line into the globe.
+  vec2 uv = q + (u_pupils[layer]-pupil) * falloff;
+  // Register the photographed catchlight as well as the pupil. Its offset
+  // differs slightly between poses; a raw dissolve makes two white glints.
+  float specular = 1.-smoothstep(.55,1.65,length((q-glint)/vec2(.019,.028)));
+  uv += (highlight(layer)-u_pupils[layer]-(glint-pupil))*specular;
+  float top = lid(uv.x,0,false), bottom = lid(uv.x,0,true);
+  // A turned pose cannot supply pixels hidden behind its photographed lid.
+  // Reject those samples and let the other aligned pose fill the exposure.
+  float valid = smoothstep(top+.014,top+.038,uv.y)
+    * (1.-smoothstep(bottom-.044,bottom-.022,uv.y));
+  return vec4(pose(uv,layer)*valid,valid);
 }
 
 void main() {
@@ -107,18 +127,27 @@ void main() {
   // reaches full opacity away from the lid instead of cutting a hard matte.
   float aperture = smoothstep(upper+aa,upper+.042,q.y)*(1.-smoothstep(lower-.038,lower-aa,q.y));
   aperture *= horizontal*(1.-smoothstep(.98,1.,blink));
-  float inner = smoothstep(openUpper+.004,openUpper+.043,q.y)
-    * (1.-smoothstep(openLower-.038,openLower-.004,q.y))*horizontal;
+  float inner = smoothstep(openUpper+.004,openUpper+.022,q.y)
+    * (1.-smoothstep(openLower-.026,openLower-.004,q.y))*horizontal;
 
   int horizontalPose = u_gaze.x < 0. ? 1 : 2;
   int verticalPose = u_gaze.y > 0. ? 3 : 4;
   vec2 weight = abs(u_gaze);
   weight /= max(1.,weight.x+weight.y);
-  vec2 pupil = u_pupils[0]*(1.-weight.x-weight.y)
+  vec2 blendedPupil = u_pupils[0]*(1.-weight.x-weight.y)
     + u_pupils[horizontalPose]*weight.x + u_pupils[verticalPose]*weight.y;
-  vec3 sphere = alignedPose(q,0,pupil,inner)*(1.-weight.x-weight.y)
-    + alignedPose(q,horizontalPose,pupil,inner)*weight.x
-    + alignedPose(q,verticalPose,pupil,inner)*weight.y;
+  // Texture weights live in a triangle; gaze lives in a circular range.
+  // Using those weights for position freezes the outer 29% of a diagonal.
+  vec2 pupil = u_pupils[0] + (u_pupils[horizontalPose]-u_pupils[0])*abs(u_gaze.x)
+    + (u_pupils[verticalPose]-u_pupils[0])*abs(u_gaze.y);
+  vec2 glint = highlight(0)*(1.-weight.x-weight.y)
+    + highlight(horizontalPose)*weight.x + highlight(verticalPose)*weight.y + pupil-blendedPupil;
+  vec4 aligned = alignedPose(q,0,pupil,glint)*(1.-weight.x-weight.y)
+    + alignedPose(q,horizontalPose,pupil,glint)*weight.x
+    + alignedPose(q,verticalPose,pupil,glint)*weight.y;
+  vec3 rim = pose(q,0)*(1.-weight.x-weight.y)
+    + pose(q,horizontalPose)*weight.x + pose(q,verticalPose)*weight.y;
+  vec3 sphere = mix(rim,aligned.rgb/max(.0001,aligned.a),inner*smoothstep(0.,.08,aligned.a));
 
   // The editor is actual TypeScript painted each 40ms, mapped to the cornea.
   // Small curvature retains readable glyphs. Its center follows the pupil.

@@ -11,6 +11,15 @@
   mask-image: linear-gradient(to bottom, #000 calc(100% - 160px), transparent 100%);
 }
 .code-city[data-active='false'] { visibility: hidden; }
+.code-city__view {
+  position: absolute;
+  inset: 0;
+}
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  /* Wider optics are in the render. This small fixed margin only covers look. */
+  .code-city__view { inset: -20px; }
+  .code-city[data-playback='playing'] .code-city__view { will-change: transform; }
+}
 .code-city__plate,
 .code-city__video,
 .code-city__shade {
@@ -23,7 +32,7 @@
 .code-city__video {
   display: block;
   object-fit: cover;
-  object-position: 50% 52%;
+  object-position: 50% 50%;
 }
 .code-city__plate { opacity: .94; }
 .code-city__plate[data-missing='true'] { visibility: hidden; }
@@ -31,13 +40,13 @@
 .code-city[data-renderer='ready'] .code-city__video { opacity: 1; }
 .code-city__shade {
   background:
-    radial-gradient(ellipse 40% 62% at 48% 45%, #040817db 0%, #0408179c 50%, transparent 100%),
+    radial-gradient(ellipse 40% 62% at 48% 45%, #04081780 0%, #0408173d 50%, transparent 100%),
     linear-gradient(90deg, #0408173d, transparent 22%, transparent 82%, #04081752),
-    linear-gradient(180deg, #03071480 0%, #04081712 30%, #04081726 70%, #03071499 100%);
+    linear-gradient(180deg, #03071466 0%, #04081708 30%, #04081712 70%, #03071499 100%);
 }
 html[data-device='phone'] .code-city__shade {
   background:
-    radial-gradient(ellipse 72% 65% at 48% 42%, #040817de, #04081773 70%, transparent),
+    radial-gradient(ellipse 72% 65% at 48% 42%, #040817ad, #04081752 70%, transparent),
     linear-gradient(180deg, #04081755, transparent 70%, #040817aa);
 }
 @media (prefers-reduced-motion: reduce) {

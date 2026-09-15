@@ -1,125 +1,118 @@
-import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 import type { CSSProperties, RefObject } from 'react'
-import { PAGE_SCENES, sceneFrames } from '../lib/pageScenes'
+import { PAGE_SCENES, sceneArtwork } from '../lib/pageScenes'
 import type { PageSceneId } from '../lib/pageScenes'
+import type { SceneImage } from '../effects/pageSceneImage'
 
 type Playback = 'playing' | 'paused' | 'offscreen' | 'hidden' | 'reduced'
-
-/** No ticking React state, scroll listeners, or work in hidden tabs. */
 export function useScenePlayback(ref: RefObject<Element>, paused: boolean): Playback {
-  const [visible, setVisible] = useState(false)
-  const [hidden, setHidden] = useState(() => document.hidden)
-  const [reduced, setReduced] = useState(() => matchMedia('(prefers-reduced-motion: reduce)').matches)
-  useEffect(() => {
-    const media = matchMedia('(prefers-reduced-motion: reduce)')
-    const motion = () => setReduced(media.matches)
-    const visibility = () => setHidden(document.hidden)
-    const observer = new IntersectionObserver(([entry]) => setVisible(entry.isIntersecting), { threshold: 0 })
-    if (ref.current) observer.observe(ref.current)
-    media.addEventListener('change', motion)
-    document.addEventListener('visibilitychange', visibility)
-    return () => {
-      observer.disconnect()
-      media.removeEventListener('change', motion)
-      document.removeEventListener('visibilitychange', visibility)
+  const [visible,setVisible]=useState(false)
+  const [hidden,setHidden]=useState(()=>document.hidden)
+  const [reduced,setReduced]=useState(()=>matchMedia('(prefers-reduced-motion: reduce)').matches)
+  useEffect(()=>{
+    const media=matchMedia('(prefers-reduced-motion: reduce)')
+    const motion=()=>setReduced(media.matches),visibility=()=>setHidden(document.hidden)
+    const observer=new IntersectionObserver(([entry])=>setVisible(entry.isIntersecting),{threshold:0})
+    if(ref.current)observer.observe(ref.current)
+    media.addEventListener('change',motion);document.addEventListener('visibilitychange',visibility)
+    return()=>{observer.disconnect();media.removeEventListener('change',motion);document.removeEventListener('visibilitychange',visibility)}
+  },[ref])
+  return reduced?'reduced':paused?'paused':hidden?'hidden':visible?'playing':'offscreen'
+}
+
+declare global {interface Window {__pageScene?: {renderAt:(time:number,x?:number,y?:number)=>void;resume:()=>void;snapshot:()=>unknown}}}
+
+export default function PageScene({id,paused,onToggle,className=''}:{id:PageSceneId;paused:boolean;onToggle:()=>void;className?:string}) {
+  const ref=useRef<HTMLElement>(null),stage=useRef<HTMLDivElement>(null),canvas=useRef<HTMLCanvasElement>(null)
+  const playback=useScenePlayback(ref,paused)
+  const current=useRef(playback);current.current=playback
+  const sync=useRef<()=>void>(()=>{})
+  const [renderer,setRenderer]=useState<'loading'|'webgl2'|'fallback'>('loading')
+  const labelId=useId(),scene=PAGE_SCENES[id]
+
+  useEffect(()=>{
+    const host=ref.current!,box=stage.current!,el=canvas.current!
+    let alive=true,world:SceneImage|null=null,raf=0,last=0,time=0,frames=0,manual=false,initializing=false,failed=false
+    let x=0,y=0,tx=0,ty=0,pointer=false,cx=0,cy=0
+    let bounds=box.getBoundingClientRect()
+    const fine=matchMedia('(hover:hover) and (pointer:fine)')
+    const state=()=>{host.dataset.playback=failed?'fallback':world?current.current:'loading'}
+    const stop=()=>{cancelAnimationFrame(raf);raf=0;last=0}
+    const paint=()=>{
+      if(!world)return
+      world.draw(time,x,y);frames++
+      if(import.meta.env.DEV){el.dataset.frames=String(frames);el.dataset.time=time.toFixed(4);el.dataset.pointer=`${x.toFixed(4)},${y.toFixed(4)}`}
     }
-  }, [ref])
-  return reduced ? 'reduced' : paused ? 'paused' : hidden ? 'hidden' : visible ? 'playing' : 'offscreen'
-}
-
-function SceneMarks({ motif }: { motif: string }) {
-  return (
-    <svg className={`page-scene__marks page-scene__marks--${motif}`} viewBox="0 0 400 600" fill="none" aria-hidden="true">
-      {motif === 'orbit' || motif === 'rings' ? (
-        <g className="page-scene__orbit">
-          <ellipse cx="200" cy="300" rx="150" ry={motif === 'orbit' ? 66 : 150} />
-          <ellipse cx="200" cy="300" rx="180" ry={motif === 'orbit' ? 94 : 180} />
-          <circle className="page-scene__bead" cx="350" cy="300" r="3" fill="currentColor" />
-        </g>
-      ) : motif === 'signal' || motif === 'nodes' ? (
-        <>
-          <path d="M50 180 160 260 250 190 350 280M50 420 160 340 250 410 350 320M160 260V340M250 190V410" />
-          {[0, 1, 2].map(i => <circle key={i} className="page-scene__bead" style={{ '--mark-delay': `${-i * 2}s` } as CSSProperties} cx={100 + i * 100} cy={260 + i * 35} r="3" fill="currentColor" />)}
-        </>
-      ) : motif === 'grid' ? (
-        <g className="page-scene__drift"><path d="M40 440H360M40 480H360M40 520H360M80 410V550M160 410V550M240 410V550M320 410V550" /><circle cx="240" cy="480" r="7" fill="currentColor" /></g>
-      ) : motif === 'door' ? (
-        <g className="page-scene__drift"><path d="M100 520V110H300V520M120 520V130H280V520" /></g>
-      ) : (
-        <g className="page-scene__drift"><path d={motif === 'wave' ? 'M-20 410Q80 220 180 410T420 410M-20 440Q80 250 180 440T420 440' : motif === 'weave' ? 'M20 540C360 450 40 150 380 60M20 60C360 150 40 450 380 540' : 'M40 480 200 280 360 480M40 120 200 320 360 120'} /></g>
-      )}
-    </svg>
-  )
-}
-
-export default function PageScene({ id, paused, onToggle, className = '' }: {
-  id: PageSceneId; paused: boolean; onToggle: () => void; className?: string
-}) {
-  const ref = useRef<HTMLElement>(null)
-  const images = useRef<Array<HTMLImageElement | null>>([])
-  const animations = useRef<Animation[]>([])
-  const [loaded, setLoaded] = useState<number[]>([])
-  const [failed, setFailed] = useState<number[]>([])
-  const playback = useScenePlayback(ref, paused)
-  const labelId = useId()
-  const scene = PAGE_SCENES[id]
-  const ready = loaded.length === 3 && failed.length === 0
-  const state = failed.length ? 'fallback' : ready ? playback : 'loading'
-
-  useLayoutEffect(() => {
-    if (!ready) return
-    // Zero stays underneath; one holds while two fades over it, giving
-    // an uninterrupted 0 → 1 → 2 → 1 → 0 blend without a blank frame.
-    const quarter = scene.duration / 4
-    const offsets = [0, quarter - 650, quarter, quarter * 2 - 650, quarter * 2, quarter * 3 - 650, quarter * 3, scene.duration - 650, scene.duration].map(time => time / scene.duration)
-    const opacity = [[1, 1, 1, 1, 1, 1, 1, 1, 1], [0, 0, 1, 1, 1, 1, 1, 1, 0], [0, 0, 0, 0, 1, 1, 0, 0, 0]]
-    const scale = [1.025, 1.047, 1.065, 1.047, 1.025]
-    animations.current = images.current.flatMap((img, index) => {
-      if (!img) return []
-      const animation = img.animate(scale.map((s, step) => ({
-        transform: `translate3d(${[0, -0.5, 0, 0.5, 0][step]}%, ${[0.4, 0, -0.4, 0, 0.4][step]}%, 0) scale(${s})`,
-        offset: step / 4, easing: 'ease-in-out',
-      })), { duration: scene.duration, iterations: Infinity, fill: 'both' })
-      animation.pause()
-      if (index === 0) return [animation]
-      const blend = img.animate(offsets.map((offset, step) => ({ opacity: opacity[index][step], offset, easing: 'ease-in-out' })), { duration: scene.duration, iterations: Infinity, fill: 'both' })
-      blend.pause()
-      return [animation, blend]
-    })
-    return () => { animations.current.forEach(a => a.cancel()); animations.current = [] }
-  }, [id, ready, scene.duration])
-
-  useLayoutEffect(() => {
-    animations.current.forEach(animation => {
-      if (state === 'playing') animation.play()
-      else {
-        const time = animation.currentTime
-        animation.pause()
-        if (state === 'reduced') animation.currentTime = 0
-        else if (time !== null) animation.currentTime = time
-      }
-    })
-  }, [state, ready])
-
-  const still = playback === 'reduced'
-  return (
-    <figure ref={ref} className={`page-scene ${className}`} data-scene={id} data-playback={state} aria-labelledby={labelId} style={{ '--scene-position': scene.position } as CSSProperties}>
-      <div className="page-scene__window" role="img" aria-label={scene.description}>
-        <div className="page-scene__fallback" aria-hidden="true" />
-        {sceneFrames(id).map((src, index) => (
-          <img key={src} ref={el => { images.current[index] = el }} src={src} alt="" width={id === 'events' ? 1536 : 512} height={id === 'events' ? 342 : 1024} decoding="async" fetchPriority={index === 0 ? 'high' : 'low'}
-            className="page-scene__frame" data-frame={index} hidden={failed.includes(index) || (failed.length > 0 && index > 0)}
-            onLoad={() => setLoaded(previous => previous.includes(index) ? previous : [...previous, index])}
-            onError={() => setFailed(previous => previous.includes(index) ? previous : [...previous, index])} />
-        ))}
-        <SceneMarks motif={scene.motif} />
-      </div>
-      <figcaption className="page-scene__caption">
-        <span id={labelId}>{scene.label}</span>
-        <button type="button" onClick={onToggle} disabled={still} aria-pressed={paused || still} aria-label={still ? 'Scene animation is static' : paused ? 'Resume scene animation' : 'Pause scene animation'}>
-          <span aria-hidden="true">{still ? '—' : paused ? '▷' : 'Ⅱ'}</span> {still ? 'Still' : paused ? 'Resume' : 'Pause'}
-        </button>
-      </figcaption>
-    </figure>
-  )
+    const tick=(now:number)=>{
+      raf=0
+      if(!alive||!world||failed||current.current!=='playing'||manual){last=0;return}
+      const dt=last?Math.min(.05,(now-last)/1000):0;last=now;time+=dt
+      // Exact exponential damping: fast reversals retarget the existing camera.
+      const ease=1-Math.exp(-9*dt)
+      x+=(tx-x)*ease;y+=(ty-y)*ease
+      paint();raf=requestAnimationFrame(tick)
+    }
+    const update=()=>{
+      stop();state()
+      if(!world||failed)return
+      if(current.current==='reduced'){time=0;x=y=tx=ty=0;pointer=false;paint()}
+      else if(current.current==='playing'&&!manual)raf=requestAnimationFrame(tick)
+    }
+    sync.current=update
+    const resize=()=>{bounds=box.getBoundingClientRect();world?.resize(bounds.width,bounds.height)}
+    const pointerMove=(e:PointerEvent)=>{
+      if(!fine.matches||e.pointerType==='touch'||current.current!=='playing')return
+      pointer=true;cx=e.clientX;cy=e.clientY
+      // Read geometry on entry/scroll/resize, never interleave frame writes.
+      tx=Math.max(-1,Math.min(1,(e.clientX-bounds.left)/bounds.width*2-1))
+      ty=Math.max(-1,Math.min(1,(e.clientY-bounds.top)/bounds.height*2-1))
+    }
+    const enter=(e:PointerEvent)=>{bounds=box.getBoundingClientRect();pointerMove(e)}
+    const leave=()=>{pointer=false;tx=ty=0}
+    const scroll=()=>{if(pointer){bounds=box.getBoundingClientRect();if(cx<bounds.left||cx>bounds.right||cy<bounds.top||cy>bounds.bottom)leave();else{tx=(cx-bounds.left)/bounds.width*2-1;ty=(cy-bounds.top)/bounds.height*2-1}}}
+    const loss=(e:Event)=>{
+      e.preventDefault();failed=true;stop()
+      // Release the old handles while the context is lost. Deleting them after
+      // restoration produces INVALID_OPERATION on the newly restored context.
+      world?.dispose();world=null
+      setRenderer('fallback');host.dataset.playback='fallback'
+    }
+    const initialize=async()=>{
+      if(initializing||world||!alive)return;initializing=true
+      try{
+        const {createPageSceneImage}=await import('../effects/pageSceneImage')
+        if(!alive)return
+        const loaded=await createPageSceneImage(el,id,sceneArtwork(id))
+        if(!alive){loaded.dispose();return}
+        world=loaded;failed=false;resize();paint();setRenderer('webgl2');update()
+      }catch(error){console.warn('Scene retains its generated still:',error);if(alive){failed=true;setRenderer('fallback');host.dataset.playback='fallback'}}
+      finally{initializing=false}
+    }
+    const restore=()=>{failed=false;setRenderer('loading');void initialize()}
+    const near=new IntersectionObserver(([entry])=>{if(entry.isIntersecting){void initialize();near.disconnect()}},{rootMargin:'240px'})
+    near.observe(box)
+    const ro=new ResizeObserver(resize);ro.observe(box)
+    box.addEventListener('pointerenter',enter,{passive:true});box.addEventListener('pointermove',pointerMove,{passive:true})
+    box.addEventListener('pointerleave',leave);box.addEventListener('pointercancel',leave)
+    window.addEventListener('scroll',scroll,{passive:true});window.addEventListener('blur',leave)
+    el.addEventListener('webglcontextlost',loss);el.addEventListener('webglcontextrestored',restore)
+    const dev={
+      renderAt(t:number,px=0,py=0){stop();manual=true;time=Math.max(0,t);x=Math.max(-1,Math.min(1,px));y=Math.max(-1,Math.min(1,py));paint()},
+      resume(){manual=false;update()},
+      snapshot:()=>({time,x,y,tx,ty,frames,pointer,playback:current.current,ready:!!world,stats:world?.stats()}),
+    }
+    if(import.meta.env.DEV)window.__pageScene=dev
+    return()=>{alive=false;stop();near.disconnect();ro.disconnect();world?.dispose();sync.current=()=>{};box.removeEventListener('pointerenter',enter);box.removeEventListener('pointermove',pointerMove);box.removeEventListener('pointerleave',leave);box.removeEventListener('pointercancel',leave);window.removeEventListener('scroll',scroll);window.removeEventListener('blur',leave);el.removeEventListener('webglcontextlost',loss);el.removeEventListener('webglcontextrestored',restore);if(window.__pageScene===dev)delete window.__pageScene}
+  },[id])
+  useEffect(()=>sync.current(),[playback])
+  const state=renderer==='fallback'?'fallback':renderer==='loading'?'loading':playback
+  const still=playback==='reduced'
+  return <figure ref={ref} className={`page-scene ${className}`} data-scene={id} data-renderer={renderer} data-playback={state} aria-labelledby={labelId} style={{'--scene-position':scene.position} as CSSProperties}>
+    <div ref={stage} className="page-scene__window" role="img" aria-label={scene.description}>
+      <div className="page-scene__fallback" aria-hidden="true" />
+      <img className="page-scene__poster" src={sceneArtwork(id)} onError={e=>{const img=e.currentTarget;if(!img.dataset.fallback){img.dataset.fallback='true';img.src=`/assets/page-scenes/${id}/0.webp`}}} alt="" decoding="async" width={id==='events'?1536:1024} height={id==='events'?1024:1536} />
+      <canvas ref={canvas} className="page-scene__canvas" aria-hidden="true" />
+    </div>
+    <figcaption className="page-scene__caption"><span id={labelId}>{scene.label}</span><button type="button" onClick={onToggle} disabled={still} aria-pressed={paused||still} aria-label={still?'Scene animation is static':paused?'Resume scene animation':'Pause scene animation'}><span aria-hidden="true">{still?'—':paused?'▷':'Ⅱ'}</span> {still?'Still':paused?'Resume':'Pause'}</button></figcaption>
+  </figure>
 }

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { CodeReflection } from '../effects/codeReflection'
 import { blinkClosure } from '../effects/eyeMotion'
-import { EYE_ART, eyePointerTarget, stepEyeGaze, type EyeGaze } from '../effects/eyeGaze'
+import { EYE_ART, EYE_IDLE_PERIOD, eyeIdleTarget, eyePointerTarget, stepEyeGaze, type EyeGaze } from '../effects/eyeGaze'
 import { EYE_POSES, EYE_PUPILS, EYE_SEQUENCE_FRAGMENT, EYE_SEQUENCE_VERTEX } from '../effects/eyeSequenceShader'
 import '../styles/scenes.css'
 import '../styles/eye-sequence.css'
@@ -17,16 +17,11 @@ type EyeSequenceDev = {
 declare global { interface Window { __eyeSequence?: EyeSequenceDev } }
 
 const ASSET_ROOT = '/assets/sequences/eye-v5/'
-const STOPS = [[0, .04], [-.55, .12], [.35, -.15], [0, .35], [.65, .09], [-.20, -.28]]
 const finite = (n: number, fallback = 0) => Number.isFinite(n) ? n : fallback
 const clamp = (n: number, low: number, high: number) => Math.max(low, Math.min(high, finite(n)))
 const automaticBlink = (time: number) => {
   const local = ((time % 13.7) + 13.7) % 13.7
   return Math.max(...[1.5, 5.6, 10.8].map(start => blinkClosure(local - start)))
-}
-const idleTarget = (time: number): Point => {
-  const stop = STOPS[Math.floor(Math.max(0, time) / 2.4) % STOPS.length]
-  return { x: stop[0] + Math.sin(time * 1.6) * .005, y: stop[1] + Math.sin(time * 1.1) * .004 }
 }
 
 /** Generated gaze and lid poses, with local motion compensation on the GPU.
@@ -48,6 +43,8 @@ export default function EyeSequence({ paused = false }: { paused?: boolean }) {
     let poses: WebGLTexture | null = null, code: WebGLTexture | null = null
     let reflection: CodeReflection | null = null, lastCode = -Infinity, codeCompact = false
     let rect: DOMRect | null = null, pointerInside = false, pointerX = 0, pointerY = 0
+    let pointerMovedAt = -Infinity, tracking = false, releasedAt = -Infinity
+    let releaseFrom: Point = { x: 0, y: 0 }, target: Point = { x: 0, y: 0 }
     let gaze: EyeGaze = { x: 0, y: 0, vx: 0, vy: 0 }
     let frame: Frame = { time: 0, gaze: { x: 0, y: 0 }, blink: 0 }
     let assetStatus: string[] = []
@@ -115,14 +112,14 @@ export default function EyeSequence({ paused = false }: { paused?: boolean }) {
         el.dataset.clock = next.time.toFixed(4)
         el.dataset.pointer = `${next.gaze.x.toFixed(3)},${next.gaze.y.toFixed(3)}`
         el.dataset.blink = next.blink.toFixed(4)
-        el.dataset.fixation = manual ? 'manual' : pointerInside ? 'pointer' : 'autonomous'
+        el.dataset.fixation = manual ? 'manual' : tracking ? 'pointer' : clock-releasedAt < .85 ? 'handoff' : 'autonomous'
       }
     }
 
     function pointerTarget() {
       if (!rect || pointerX < rect.left || pointerX > rect.right || pointerY < rect.top || pointerY > rect.bottom) {
         pointerInside = false
-        return idleTarget(clock)
+        return eyeIdleTarget(clock)
       }
       return eyePointerTarget(pointerX, pointerY, rect, compact.matches)
     }
@@ -131,8 +128,18 @@ export default function EyeSequence({ paused = false }: { paused?: boolean }) {
       if (!canAnimate()) { last = 0; request(); return }
       const dt = last ? Math.min(.05, Math.max(0, (now-last)/1000)) : 0
       last = now; clock += dt
-      const target = pointerInside ? pointerTarget() : idleTarget(clock)
-      stepEyeGaze(gaze, target, dt, pointerInside)
+      const pointer = pointerInside ? pointerTarget() : null
+      // A parked cursor must not freeze the performance indefinitely. Give
+      // it a quiet fixation, then return to idle using the current gaze.
+      const nextTracking = pointerInside && clock-pointerMovedAt < 2.6
+      if (tracking && !nextTracking) { releasedAt = clock; releaseFrom = { x:gaze.x, y:gaze.y } }
+      tracking = nextTracking
+      target = tracking && pointer ? pointer : eyeIdleTarget(clock)
+      if (!tracking && clock-releasedAt < .85) {
+        const t = clamp((clock-releasedAt)/.85,0,1), mix = t*t*(3-2*t)
+        target = { x:releaseFrom.x+(target.x-releaseFrom.x)*mix, y:releaseFrom.y+(target.y-releaseFrom.y)*mix }
+      }
+      stepEyeGaze(gaze, target, dt, tracking)
       paint({ time: clock, gaze, blink: automaticBlink(clock) })
       request()
     }
@@ -254,22 +261,25 @@ export default function EyeSequence({ paused = false }: { paused?: boolean }) {
     },{threshold:0})
     const onMove = (event: PointerEvent) => {
       if (event.pointerType === 'touch' || reduce.matches || pause.current || manual) return
+      if (!pointerInside || Math.hypot(event.clientX-pointerX,event.clientY-pointerY) > .25) pointerMovedAt = clock
       pointerInside = true; pointerX = event.clientX; pointerY = event.clientY
       rect = box.getBoundingClientRect()
       request()
     }
     const onLeave = (event: PointerEvent) => { if (event.pointerType !== 'touch') pointerInside = false }
+    const onBlur = () => { pointerInside = false }
     const onScroll = () => { if (visible && pointerInside) rect = box.getBoundingClientRect() }
     const onPlayback = () => { stop(); request() }
     const onVisibility = () => {
       stop()
       if (!document.hidden) { void load(); request() }
-      else state()
+      else { pointerInside = false; state() }
     }
     const onMotion = () => {
       stop()
       if (reduce.matches) {
         pointerInside = false; manual = false
+        tracking = false; releasedAt = pointerMovedAt = -Infinity
         gaze = { x:0, y:0, vx:0, vy:0 }
         frame = { time:1.8, gaze:{x:0,y:0}, blink:0 }
         if (visible && !document.hidden) paint(frame,true)
@@ -293,12 +303,13 @@ export default function EyeSequence({ paused = false }: { paused?: boolean }) {
     box.addEventListener('pointerleave',onLeave); box.addEventListener('pointercancel',onLeave)
     box.addEventListener('scene-playback',onPlayback)
     window.addEventListener('scroll',onScroll,{passive:true})
+    window.addEventListener('blur',onBlur)
     document.addEventListener('visibilitychange',onVisibility)
     reduce.addEventListener('change',onMotion); compact.addEventListener('change',onLayout)
     el.addEventListener('webglcontextlost',onLoss); el.addEventListener('webglcontextrestored',onRestore)
 
     const dev: EyeSequenceDev = {
-      renderAt(time,point = idleTarget(time),blink = automaticBlink(time)) {
+      renderAt(time,point = eyeIdleTarget(time),blink = automaticBlink(time)) {
         if (!loaded) throw new Error('Eye sequence is not ready; scroll it near the viewport first.')
         stop(); manual = true
         const p = Array.isArray(point) ? {x:point[0],y:point[1]} : point
@@ -306,8 +317,16 @@ export default function EyeSequence({ paused = false }: { paused?: boolean }) {
         paint({time:Math.max(0,finite(time)),gaze:{x:x/radius,y:y/radius},blink:clamp(blink,0,1)},true)
         state()
       },
-      resume() { manual = false; stop(); request() },
+      resume() {
+        // Resume the frame actually displayed by a seek, including its clock.
+        if (manual) {
+          clock = frame.time; gaze = { ...frame.gaze, vx:0, vy:0 }; pointerInside = tracking = false
+          releasedAt = clock; releaseFrom = { ...frame.gaze }
+        }
+        manual = false; stop(); request()
+      },
       snapshot: () => ({ready:loaded,frames,clock,frame,visible,near,paused:pause.current,reduced:reduce.matches,
+        target,velocity:{x:gaze.vx,y:gaze.vy},pointerInside,tracking,fixation:el.dataset.fixation,idlePeriod:EYE_IDLE_PERIOD,
         hidden:document.hidden,playback:box.dataset.playback,assets:Object.fromEntries(EYE_POSES.map((name,i)=>[name,assetStatus[i]])),
         size:[el.width,el.height],textureBytes:1152*768*4*EYE_POSES.length+800*500*4}),
     }
@@ -320,6 +339,7 @@ export default function EyeSequence({ paused = false }: { paused?: boolean }) {
       box.removeEventListener('pointerleave',onLeave); box.removeEventListener('pointercancel',onLeave)
       box.removeEventListener('scene-playback',onPlayback)
       window.removeEventListener('scroll',onScroll); document.removeEventListener('visibilitychange',onVisibility)
+      window.removeEventListener('blur',onBlur)
       reduce.removeEventListener('change',onMotion); compact.removeEventListener('change',onLayout)
       el.removeEventListener('webglcontextlost',onLoss); el.removeEventListener('webglcontextrestored',onRestore)
       destroyGPU(); reflection = null

@@ -22,11 +22,13 @@ from pathlib import Path
 from mathutils import Vector
 
 ROOT = Path(__file__).resolve().parents[1]
-OUT = ROOT / 'output/city-journey'
+OUT = ROOT / 'output/city-journey-v3'
 PUBLIC = ROOT / 'public/assets/sequences'
 FPS, DURATION, COUNT = 24, 20, 480
 WIDTH, HEIGHT = 1280, 720
 SEED = 91827
+LENS_MM = 17.5
+GAZE_RISE = 3.4
 CYAN = (0.08, 0.68, 1.0, 1)
 ICE = (0.43, 0.76, 1.0, 1)
 VIOLET = (0.29, 0.13, 1.0, 1)
@@ -234,9 +236,9 @@ def build_scene(engine='EEVEE', samples=32):
     # Distant city plates are fixed in world space, behind the traversable 3D
     # streets. They never move or zoom with the camera, and cast real reflections.
     for name,path,verts,uv in [
-        ('avenue distant city',ROOT/'public/assets/scenes/code-city-v1.webp',[(-126,225,-.08),(126,225,-.08),(126,225,116),(-126,225,116)],[(0,.305),(1,.305),(1,1),(0,1)]),
-        ('generated corner distant city',OUT/'materials/corner.png',[(172,216.5,-.08),(172,-33.5,-.08),(172,-33.5,110),(172,216.5,110)],[(0,.338),(1,.338),(1,1),(0,1)]),
-        ('generated plaza distant city',OUT/'materials/plaza.png',[(-120,186,-.08),(110,186,-.08),(110,186,94),(-120,186,94)],[(0,.380),(1,.380),(1,1),(0,1)]),
+        ('avenue distant city',ROOT/'public/assets/scenes/code-city-v1.webp',[(-156,225,-.08),(156,225,-.08),(156,225,146),(-156,225,146)],[(0,.305),(1,.305),(1,1),(0,1)]),
+        ('generated corner distant city',OUT/'materials/corner.png',[(172,246.5,-.08),(172,-63.5,-.08),(172,-63.5,136),(172,246.5,136)],[(0,.338),(1,.338),(1,1),(0,1)]),
+        ('generated plaza distant city',OUT/'materials/plaza.png',[(-154,186,-.08),(144,186,-.08),(144,186,132),(-154,186,132)],[(0,.380),(1,.380),(1,1),(0,1)]),
     ]:
         photo_quad(name,verts,uv,image_material(name,path))
     # Planar reflections capture offscreen facades and generated skyline too.
@@ -279,7 +281,7 @@ def build_scene(engine='EEVEE', samples=32):
         pts=[(center[0]+rad*math.cos(start+(end-start)*k/48),center[1]+rad*math.sin(start+(end-start)*k/48),.22) for k in range(49)]
         line('curved curb light',pts,.022,cyan)
     # Walkway bridges with dark structural decks, glass balustrades, luminous undersides.
-    for x,y,w,d,z in [(0,-12,31,3.0,15),(0,57,31,3.3,18),(29,24,2.6,33,17),(50,110,36,3.0,21)]:
+    for x,y,w,d,z in [(0,-12,31,3.0,28),(0,57,31,3.3,18),(29,24,2.6,33,17),(50,110,36,3.0,21)]:
         box('skybridge deck',x,y,z,w,d,.45,metal)
         if w>d:
             for side in [-1,1]: box('skybridge underside light',x,y+side*d*.35,z-.245,w*.97,.09,.035,ice)
@@ -328,6 +330,11 @@ def build_scene(engine='EEVEE', samples=32):
     box('halo pedestal',64,67,1.0,3.6,3.6,2,metal)
     # A distant slender landmark draws the gaze into the final district.
     facade(31,135,7,10,94,0,(glass,metal,cyan,windows))
+    # A layered, monumental skyline remains legible through the broad avenue.
+    # These are full 3D towers, not a crop/scale change to the playback image.
+    for x,y,w,d,h,style in [(-7,169,10,14,142,0),(64,170,9,13,130,0),
+                           (-47,177,12,15,156,1),(104,163,11,14,138,0)]:
+        facade(x,y,w,d,h,style,(glass,metal,cyan,windows))
     # Cool architectural illumination; palette stays independent of page themes.
     area('moon softbox',(0,15,100),(.29,.43,1),95000,110,(20,40,0))
     for i,(x,y) in enumerate([(0,-35),(0,5),(24,24),(50,49),(50,83),(50,122)]):
@@ -344,7 +351,7 @@ def build_scene(engine='EEVEE', samples=32):
         data=bpy.data.meshes.new(name); data.from_pydata(verts,[],faces); data.materials.append(mat); data.update()
         obj=bpy.data.objects.new(name,data); bpy.context.collection.objects.link(obj)
     camdata=bpy.data.cameras.new('street eye-level camera'); cam=bpy.data.objects.new('street eye-level camera',camdata); bpy.context.collection.objects.link(cam)
-    camdata.lens=22; camdata.sensor_width=36; camdata.clip_end=650; camdata.clip_start=.08
+    camdata.lens=LENS_MM; camdata.sensor_width=36; camdata.clip_end=650; camdata.clip_start=.08
     scene.camera=cam
     # Every frame has an explicit transform, computed by arc length rather than
     # unequal Bezier time. Heading eases into each real 90 degree street turn.
@@ -357,7 +364,7 @@ def build_scene(engine='EEVEE', samples=32):
         tangent=(ahead-behind).normalized()
         cam.location=p
         # An architectural camera: eye level and a slight constant upward gaze.
-        target=p+tangent*18+Vector((0,0,1.15))
+        target=p+tangent*18+Vector((0,0,GAZE_RISE))
         cam.rotation_euler=(target-p).to_track_quat('-Z','Y').to_euler()
         cam.keyframe_insert('location',frame=frame); cam.keyframe_insert('rotation_euler',frame=frame)
         route.append({'frame':frame,'seconds':round((frame-1)/FPS,5),'position':[round(v,5) for v in p], 'heading_degrees':round(math.degrees(math.atan2(tangent.x,tangent.y)),5)})
@@ -455,21 +462,21 @@ def encode(mobile_only=False):
     scene.render.ffmpeg.audio_codec='NONE'; scene.render.ffmpeg.gopsize=48
     PUBLIC.mkdir(parents=True,exist_ok=True)
     if not mobile_only:
-        scene.render.filepath=str(PUBLIC/'city-journey-v2.mp4')
+        scene.render.filepath=str(PUBLIC/'city-journey-v3.mp4')
         bpy.ops.render.render(animation=True)
         poster=bpy.data.images.load(str(frames[FPS])); scene.render.image_settings.file_format='WEBP'; scene.render.image_settings.quality=88
-        poster.save_render(str(PUBLIC/'city-journey-v2.webp'),scene=scene)
+        poster.save_render(str(PUBLIC/'city-journey-v3.webp'),scene=scene)
     # 960-wide keeps a tall phone's object-fit cover crop adequately detailed.
     scene.render.image_settings.file_format='FFMPEG'; scene.render.resolution_x=960; scene.render.resolution_y=540
-    scene.render.filepath=str(PUBLIC/'city-journey-v2-mobile.mp4')
+    scene.render.filepath=str(PUBLIC/'city-journey-v3-mobile.mp4')
     bpy.ops.render.render(animation=True)
-    if not mobile_only: fast_start_mp4(PUBLIC/'city-journey-v2.mp4')
-    fast_start_mp4(PUBLIC/'city-journey-v2-mobile.mp4')
+    if not mobile_only: fast_start_mp4(PUBLIC/'city-journey-v3.mp4')
+    fast_start_mp4(PUBLIC/'city-journey-v3-mobile.mp4')
     data=json.loads((OUT/'manifest.json').read_text())
-    data.update({'rendered_frame_count':len(frames),'encoded_frame_count':COUNT-FPS,'encoded_duration_seconds':(COUNT-FPS)/FPS,'loop_dissolve_frames':FPS,'video':str(PUBLIC/'city-journey-v2.mp4'),'mobile_video':str(PUBLIC/'city-journey-v2-mobile.mp4'),'poster':str(PUBLIC/'city-journey-v2.webp'),'video_bytes':(PUBLIC/'city-journey-v2.mp4').stat().st_size,'mobile_video_bytes':(PUBLIC/'city-journey-v2-mobile.mp4').stat().st_size,'mobile_width':960,'mobile_height':540,'fast_start':True,'encoder':'Blender bundled FFmpeg / H.264 HIGH CRF, yuv420p, no audio','loop':'One-second baked dissolve: output begins at source frame 25, ends at source frame 24. 480 source renders become a 456-frame / 19-second seamless loop.'})
+    data.update({'rendered_frame_count':len(frames),'encoded_frame_count':COUNT-FPS,'encoded_duration_seconds':(COUNT-FPS)/FPS,'loop_dissolve_frames':FPS,'video':str(PUBLIC/'city-journey-v3.mp4'),'mobile_video':str(PUBLIC/'city-journey-v3-mobile.mp4'),'poster':str(PUBLIC/'city-journey-v3.webp'),'video_bytes':(PUBLIC/'city-journey-v3.mp4').stat().st_size,'mobile_video_bytes':(PUBLIC/'city-journey-v3-mobile.mp4').stat().st_size,'mobile_width':960,'mobile_height':540,'fast_start':True,'encoder':'Blender bundled FFmpeg / H.264 HIGH CRF, yuv420p, no audio','loop':'One-second baked dissolve: output begins at source frame 25, ends at source frame 24. 480 source renders become a 456-frame / 19-second seamless loop.'})
     data['source_sha256']=hashlib.sha256(Path(__file__).read_bytes()).hexdigest()
     hashes=data.setdefault('video_sha256',{})
-    for filename in (['city-journey-v2-mobile.mp4'] if mobile_only else ['city-journey-v2.mp4','city-journey-v2-mobile.mp4']):
+    for filename in (['city-journey-v3-mobile.mp4'] if mobile_only else ['city-journey-v3.mp4','city-journey-v3-mobile.mp4']):
         hashes[filename]=hashlib.sha256((PUBLIC/filename).read_bytes()).hexdigest()
     (OUT/'manifest.json').write_text(json.dumps(data,indent=2))
     print('CITY_ENCODE_COMPLETE',json.dumps(data),flush=True)
@@ -523,7 +530,7 @@ def main():
         elapsed=time.monotonic()-before; timings.append({'frame':frame,'render_seconds':round(elapsed,3)})
         print(f'CITY_FRAME {frame}/{COUNT} {elapsed:.2f}s',flush=True)
     (OUT/f'{args.mode}-timings-{args.start}.json').write_text(json.dumps(timings,indent=2))
-    manifest={'seed':SEED,'engine':args.engine,'samples':args.samples,'fps':FPS,'duration_seconds':DURATION,'width':WIDTH,'height':HEIGHT,'expected_frame_count':COUNT,'rendered_frame_count':len(list((OUT/'frames').glob('frame-*.png'))),'frame_pattern':str(OUT/'frames/frame-%04d.png'),'scene':str(OUT/'city-journey.blend'),'source':str(ROOT/'scripts/render-city-journey.py'),'route':str(OUT/'camera-route.json'),'ai_materials':['materials/corner.png','materials/plaza.png'],'ai_material_use':'World-space distant architecture and cropped glass facade materials; packed into .blend','camera_height_m':2.15,'route_length_m':round(TOTAL,3),'route_timing':[{'district':'glass avenue','seconds':[0,round(50/TOTAL*20,2)]},{'district':'right turn','seconds':[round(50/TOTAL*20,2),round((50+LENGTHS[1])/TOTAL*20,2)]},{'district':'bridge gallery','seconds':[round((50+LENGTHS[1])/TOTAL*20,2),round((76+LENGTHS[1])/TOTAL*20,2)]},{'district':'left turn into plaza','seconds':[round((76+LENGTHS[1])/TOTAL*20,2),round((76+2*LENGTHS[1])/TOTAL*20,2)]},{'district':'plaza','seconds':[round((76+2*LENGTHS[1])/TOTAL*20,2),20]}],'elapsed_seconds':round(time.monotonic()-start,2)}
+    manifest={'seed':SEED,'engine':args.engine,'samples':args.samples,'fps':FPS,'duration_seconds':DURATION,'width':WIDTH,'height':HEIGHT,'expected_frame_count':COUNT,'rendered_frame_count':len(list((OUT/'frames').glob('frame-*.png'))),'frame_pattern':str(OUT/'frames/frame-%04d.png'),'scene':str(OUT/'city-journey.blend'),'source':str(ROOT/'scripts/render-city-journey.py'),'route':str(OUT/'camera-route.json'),'ai_materials':['materials/corner.png','materials/plaza.png'],'ai_material_use':'World-space distant architecture and cropped glass facade materials; packed into .blend','camera_height_m':2.15,'lens_mm':LENS_MM,'horizontal_fov_degrees':round(math.degrees(2*math.atan(36/(2*LENS_MM))),3),'gaze_rise_m':GAZE_RISE,'skyline_landmark_heights_m':[142,130,156,138],'route_length_m':round(TOTAL,3),'route_timing':[{'district':'glass avenue','seconds':[0,round(50/TOTAL*20,2)]},{'district':'right turn','seconds':[round(50/TOTAL*20,2),round((50+LENGTHS[1])/TOTAL*20,2)]},{'district':'bridge gallery','seconds':[round((50+LENGTHS[1])/TOTAL*20,2),round((76+LENGTHS[1])/TOTAL*20,2)]},{'district':'left turn into plaza','seconds':[round((76+LENGTHS[1])/TOTAL*20,2),round((76+2*LENGTHS[1])/TOTAL*20,2)]},{'district':'plaza','seconds':[round((76+2*LENGTHS[1])/TOTAL*20,2),20]}],'elapsed_seconds':round(time.monotonic()-start,2)}
     (OUT/'manifest.json').write_text(json.dumps(manifest,indent=2))
     print('CITY_RUN_COMPLETE',json.dumps(manifest),flush=True)
 
