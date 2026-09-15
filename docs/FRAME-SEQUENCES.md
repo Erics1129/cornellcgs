@@ -56,6 +56,10 @@ The eye passed the expanded Chromium tests and a WebKit 26.5 desktop/phone smoke
 
 ## Continuous scene implementation
 
-`src/effects/pageSceneImage.ts` is a small raw WebGL2 image renderer, dynamically imported near the viewport. It uses one generated photograph, one draw call, a 1.6-million-pixel ceiling, and a DPR ceiling of 1.75. The light pass is restrained and follows existing image highlights. No geometry recreates the subject, and no Three.js dependency is required.
+`src/effects/pageSceneImage.ts` is a small raw WebGL2 image renderer, dynamically imported near the viewport. It uses one generated photograph, one draw call, a 1.6-million-pixel ceiling, and a DPR ceiling of 1.75. Camera travel is intentionally visible on first sight, with up to 22% additional push-in through the loop. Moving light follows existing image highlights; ML fibre signals and brass lens reflections travel across the photographed material. No geometry recreates the subject, and no Three.js dependency is required.
 
 `PageScene.tsx` owns the scene clock, visibility, mouse damping, pause and teardown. It performs no recurring renderer work while offscreen, hidden, paused or under reduced motion. A necessary static redraw still occurs after resize or preference changes. Unavailable/lost WebGL retains a generated still; restoration rebuilds the image renderer. Pointer bounds refresh on entry, scrolling and resize. Touch input does not start hover movement. The camera smoothly returns when the pointer leaves or the window blurs.
+
+## First-sight motion check
+
+After review found the initial camera movement too subtle, travel and lighting were increased. `scripts/test-visible-motion.mjs` checks all nine scenes on Chromium desktop and WebKit phone: the first-second change affects 59–83% of pixels in the captured canvas, with mean RGB differences of 15–30/255. It also checks automatic advancement, exact 20-second joins, both extreme pointer corners throughout the cycle, and error-free image coverage. All 18 cases passed; evidence is in `/tmp/cgs-visible-motion/results.json`. The subjects remain generated photographs animated by camera travel and light, not independently articulated 3D models or generated video.

@@ -26,18 +26,18 @@ type Look = {
   dust: number
 }
 
-// Light changes exposure in the original photograph. These are deliberately
-// gentler on matte ivory scenes, more visible on glass/metal, never displacement.
+// Visible camera travel and moving reflections keep the photograph intact.
+// Matte scenes get broad light; glass/metal additionally carry travelling glints.
 const LOOKS: Record<PageSceneId, Look> = {
-  'who-we-are': { focusY: .48, drift: .009, pointer: .006, zoom: .010, light: .042, caustic: .016, angle: .6, tint: [1, .94, .82], dust: 0 },
-  'what-we-do': { focusY: .54, drift: .008, pointer: .006, zoom: .010, light: .052, caustic: .022, angle: -.7, tint: [1, .83, .73], dust: 0 },
-  'ml-process': { focusY: .50, drift: .010, pointer: .007, zoom: .012, light: .080, caustic: .090, angle: 1.1, tint: [.70, .90, 1], dust: .014 },
-  events: { focusY: .56, drift: .007, pointer: .005, zoom: .008, light: .050, caustic: .020, angle: .2, tint: [1, .88, .73], dust: 0 },
-  world: { focusY: .49, drift: .009, pointer: .006, zoom: .010, light: .062, caustic: .065, angle: -.4, tint: [.76, 1, .96], dust: 0 },
-  people: { focusY: .48, drift: .008, pointer: .006, zoom: .010, light: .042, caustic: .014, angle: .9, tint: [1, .94, .83], dust: 0 },
-  advisors: { focusY: .48, drift: .009, pointer: .006, zoom: .010, light: .060, caustic: .072, angle: -.9, tint: [.85, .94, 1], dust: 0 },
-  join: { focusY: .53, drift: .008, pointer: .006, zoom: .012, light: .066, caustic: .024, angle: .4, tint: [1, .96, .80], dust: 0 },
-  contact: { focusY: .50, drift: .009, pointer: .007, zoom: .012, light: .078, caustic: .076, angle: -.3, tint: [1, .81, .55], dust: .012 },
+  'who-we-are': { focusY: .48, drift: .055, pointer: .018, zoom: .16, light: .20, caustic: .10, angle: .6, tint: [1, .94, .82], dust: 0 },
+  'what-we-do': { focusY: .54, drift: .065, pointer: .020, zoom: .14, light: .24, caustic: .26, angle: -.7, tint: [1, .83, .73], dust: 0 },
+  'ml-process': { focusY: .50, drift: .055, pointer: .020, zoom: .17, light: .28, caustic: .42, angle: 1.1, tint: [.70, .90, 1], dust: .055 },
+  events: { focusY: .56, drift: .10, pointer: .018, zoom: .12, light: .24, caustic: .30, angle: .2, tint: [1, .88, .73], dust: 0 },
+  world: { focusY: .49, drift: .070, pointer: .018, zoom: .18, light: .16, caustic: .08, angle: -.4, tint: [.76, 1, .96], dust: 0 },
+  people: { focusY: .48, drift: .058, pointer: .018, zoom: .14, light: .22, caustic: .26, angle: .9, tint: [1, .94, .83], dust: 0 },
+  advisors: { focusY: .48, drift: .055, pointer: .018, zoom: .17, light: .24, caustic: .40, angle: -.9, tint: [.85, .94, 1], dust: 0 },
+  join: { focusY: .53, drift: .050, pointer: .016, zoom: .22, light: .30, caustic: .10, angle: .4, tint: [1, .96, .80], dust: 0 },
+  contact: { focusY: .50, drift: .060, pointer: .020, zoom: .16, light: .25, caustic: .40, angle: -.3, tint: [1, .81, .55], dust: .050 },
 }
 
 const VERTEX = `#version 300 es
@@ -50,8 +50,10 @@ void main() {
   gl_Position = vec4(p * 2.0 - 1.0, 0.0, 1.0);
 }`
 
-const fragment = (dust: boolean) => `#version 300 es
+const fragment = (dust: boolean, id: PageSceneId) => `#version 300 es
 #define OPTICAL_DUST ${dust ? 1 : 0}
+#define FIBRE_FLOW ${id === 'ml-process' ? 1 : 0}
+#define LENS_FLOW ${id === 'contact' ? 1 : 0}
 precision highp float;
 uniform sampler2D uImage;
 uniform vec4 uCrop;
@@ -85,6 +87,22 @@ void main() {
   float exposure = ((sweep - 0.45) * uLight.z + (reflection - 0.22) * uLight.w)
     * highlights * headroom * subject;
   vec3 color = photo * (1.0 + exposure * mix(vec3(1.0), uTint, 0.4));
+#if FIBRE_FLOW
+  // Signals follow the already photographed blue fibres toward the processor.
+  // The colour/brightness mask excludes dark metal and the processor itself.
+  float radius = length((uv - vec2(.51, .48)) * uImageMetric);
+  float fibre = smoothstep(.012, .15, photo.b - photo.r * .85)
+    * smoothstep(.10, .45, luma) * smoothstep(.045, .11, radius);
+  float signal = pow(.5 + .5 * sin(radius * 58.0 + uCycle.z * 2.0), 6.0);
+  color += vec3(.18, .60, 1.0) * fibre * signal * .42 * (1.0 - photo);
+#endif
+#if LENS_FLOW
+  // A travelling reflection over the existing brass rings, not a drawn overlay.
+  float radius = length((uv - vec2(.50, .56)) * uImageMetric);
+  float brass = smoothstep(.035, .20, photo.r - photo.b) * smoothstep(.1, .48, luma);
+  float signal = pow(.5 + .5 * sin(radius * 65.0 - uCycle.z), 5.0);
+  color += vec3(1.0, .58, .15) * brass * signal * .34 * (1.0 - photo);
+#endif
 #if OPTICAL_DUST
   // Only three soft optical specks, only over dark background, away from center.
   if (luma < 0.30) {
@@ -182,7 +200,7 @@ export async function createPageSceneImage(
     program = gl.createProgram()
     if (!program) throw new Error('Unable to allocate scene image program')
     gl.attachShader(program, compile(gl.VERTEX_SHADER, VERTEX))
-    gl.attachShader(program, compile(gl.FRAGMENT_SHADER, fragment(look.dust > 0)))
+    gl.attachShader(program, compile(gl.FRAGMENT_SHADER, fragment(look.dust > 0, id)))
     gl.linkProgram(program)
     if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
       throw new Error(`Scene image program: ${gl.getProgramInfoLog(program) || 'link failed'}`)
@@ -268,7 +286,7 @@ export async function createPageSceneImage(
       gl.bindTexture(gl.TEXTURE_2D, texture)
       gl.viewport(0, 0, canvas.width, canvas.height)
       gl.uniform4f(uCrop, spanX, spanY, .5 + spanX * dx, centerY + spanY * dy)
-      gl.uniform4f(uCycle, .5 + .28 * c, .5 + .24 * s, phase * 2 + look.angle, phase - look.angle)
+      gl.uniform4f(uCycle, .5 + .28 * c, .5 + .24 * s, phase * 6 + look.angle, phase * 4 - look.angle)
       if (uDust !== null) {
         for (let i = 0; i < 3; i++) {
           const angle = phase + i * TAU / 3, n = i * 4
