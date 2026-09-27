@@ -17,9 +17,9 @@
 .showcase-code-panel[data-editor-paused='true'] .showcase-editor-pointer,
 .showcase-code-panel[data-editor-paused='true'] .showcase-code-caret { visibility: hidden; }
 .showcase-code-panel[data-editor-paused='true'] .code-simulated-selection { background: transparent; color: inherit; }
-.showcase-editor-status { min-width: 9ch; margin-left: auto; text-align: right; color: #a4bddb; font-size: 9px; }
+.showcase-editor-status { min-width: 0; margin-left: auto; text-align: right; color: #a4bddb; font-size: 10px; }
 .showcase-code-panel .showcase-code-language { margin-left: 0; }
-.showcase-copy-code { flex-shrink: 0; min-height: 28px; min-width: 9ch; padding: 4px 7px; border: 1px solid #aec6e533; border-radius: 3px; color: #c9d8eb; background: #b5d3f609; cursor: pointer; font: inherit; transition: background-color 140ms ease, transform 140ms cubic-bezier(.23, 1, .32, 1); }
+.showcase-copy-code { flex-shrink:0; min-height:32px; min-width:76px; padding:5px 9px; border:1px solid transparent; border-radius:6px; color:#c3d1e4; background:transparent; cursor:pointer; white-space:nowrap; font:500 11px/1.2 -apple-system,BlinkMacSystemFont,system-ui,sans-serif; transition:background-color 140ms ease,transform 140ms cubic-bezier(.23,1,.32,1); }
 .showcase-copy-code:active { transform: scale(.97); }
 .showcase-copy-code:focus-visible { outline: 2px solid #a9cdfa; outline-offset: 2px; }
 .showcase-type-line { user-select: text; -webkit-user-select: text; }
@@ -43,7 +43,7 @@
 @media (max-width: 767px) {
   .showcase-code-panel .showcase-code-toolbar { gap: 8px; }
   .showcase-code-panel .showcase-code-dots, .showcase-code-panel .showcase-code-language { display: none; }
-  .showcase-copy-code { min-height: 36px; }
+  .showcase-copy-code { min-height: 44px; }
 }
 @media (prefers-reduced-motion: reduce) {
   .showcase-editor-pointer { display: none !important; }

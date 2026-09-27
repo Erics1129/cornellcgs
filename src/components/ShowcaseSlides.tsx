@@ -150,21 +150,23 @@ export function CodeSlide() {
     <section ref={root} id="code" className="section support-scene code-scene" data-chapter-surface="world" aria-labelledby="code-title">
       <div className="container-site code-layout">
         <div className="code-copy">
-          <div data-code-copy className="code-club-mark" aria-hidden="true">♠</div>
+          <p data-code-copy className="code-eyebrow">Behind the game</p>
           <h2 id="code-title" data-chapter-type="slide" className="h-section">Source</h2>
           <p data-code-copy className="body-muted support-lead">Hand evaluators, equity math, solvers.</p>
         </div>
         <div className="code-device-stage">
-          <div ref={laptop} className="code-laptop">
-            <div className="code-laptop-lid">
-              <div className="code-camera" aria-hidden="true" />
+          <div ref={laptop} className="code-laptop code-workspace">
+            <div className="code-workspace-titlebar">
+              <span className="code-window-lights" aria-hidden="true"><i /><i /><i /></span>
+              <span className="code-workspace-project"><svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M2 4.5h4l1.5 1.5H14v7H2zM2 4.5V3h4l1.5 1.5H14V6" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" /></svg>cornellcgs</span>
+              <span className="code-workspace-branch"><svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><circle cx="4" cy="3" r="1.5" stroke="currentColor" /><circle cx="12" cy="4" r="1.5" stroke="currentColor" /><circle cx="4" cy="13" r="1.5" stroke="currentColor" /><path d="M4 4.5v7M12 5.5v1A3.5 3.5 0 0 1 8.5 10H4" stroke="currentColor" /></svg>main</span>
+            </div>
               <div className="code-screen">
                 <CodePanel ref={editor} lines={POT_EQUITY} title="equity.ts" mode="ts" />
                 <CodePanel ref={terminal} lines={SHELL} title="zsh — cornellcgs" mode="sh" />
                 <div data-screen-reflection className="code-screen-reflection" aria-hidden="true" />
               </div>
-            </div>
-            <div className="code-laptop-base" aria-hidden="true"><span /></div>
+            <div className="code-workspace-footnote"><span>Monte Carlo equity</span><span>TypeScript <span aria-hidden="true">·</span> UTF-8</span></div>
           </div>
         </div>
       </div>

@@ -19,7 +19,7 @@ Pause, page visibility and reduced-motion preferences take priority over playbac
 
 ## Text and interaction
 
-The editor uses an immutable sequence of keystrokes, corrections, drag selections, replacements and paste operations. It seeks deterministically in either direction with scroll. Its illustrated selection never changes the browser's real selection. Actual selection pauses the demonstration; Copy code writes only after the user activates that button. Headline treatments share their chapter's scroll timeline and revert cleanly for reduced motion.
+The editor opens with a complete readable snippet. An immutable sequence illustrates keystrokes, corrections, drag selections, replacements and paste operations over that baseline; rows not yet reached by the animation remain populated, including the terminal. This prevents internal scrolling or inspection from exposing empty future rows. It seeks deterministically in either direction with scroll. Its illustrated selection never changes the browser's real selection. Actual selection pauses the demonstration; Copy code writes only after the user activates that button. Headline treatments share their chapter's scroll timeline and revert cleanly for reduced motion.
 
 ## Identity and localized effects
 
@@ -38,3 +38,5 @@ Run Blender with `--background --python scripts/render-page-films.py -- --scene 
 `scripts/test-cinematic-films.mjs` checks rendered media, autoplay, loop rollover, pointer coverage, pause, scroll takeover, reduced motion and route layouts. Set `CGS_TEST_URL` to a frozen production preview and `CGS_PLAYWRIGHT_MODULE` to an installed Playwright module. `CGS_TEST_PAGE` optionally filters page ids. Runtime checks supplement visual inspection; browser emulation is not a claim that every physical device has been tested.
 
 `scripts/test-subpages.mjs` covers published content, admin overrides, navigation, native-video lifecycle and poster fallback. The older `test-page-scene-motion.mjs` and `test-visible-motion.mjs` target the retired WebGL photograph renderer; use the cinematic suite for this version. `scripts/test-hero-city.mjs` covers card controls, the city and its offscreen/reduced-motion lifecycle.
+
+`scripts/test-source-panel.mjs` exercises the real Source chapter in Chromium and WebKit: initial content, scrolling into future lines, reversing the chapter, selecting text, keyboard inspection, copying, reduced motion and resizing to a phone viewport. It asserts that every visible nonempty source row stays readable. Use the same `CGS_TEST_URL` and `CGS_PLAYWRIGHT_MODULE` settings as the film suite.

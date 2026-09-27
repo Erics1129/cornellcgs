@@ -137,9 +137,12 @@ const CodePanel = forwardRef<CodePanelHandle, {
       const showCaret = !motion.matches && progress > 0 && progress < 1 && !frame.selection
       let start = 0
       rows.forEach((row, i) => {
-        const line = visible[i] ?? ''
-        const from = frame.selection ? Math.max(0, Math.min(line.length, frame.selection.from - start)) : 0
-        const to = frame.selection ? Math.max(0, Math.min(line.length, frame.selection.to - start)) : 0
+        const authored = visible[i] ?? ''
+        // The score illustrates edits in an already readable document. Keeping
+        // untouched rows populated also lets readers scroll or select at any point.
+        const line = authored.trim() ? authored : lines[i] ?? ''
+        const from = frame.selection ? Math.max(0, Math.min(authored.length, frame.selection.from - start)) : 0
+        const to = frame.selection ? Math.max(0, Math.min(authored.length, frame.selection.to - start)) : 0
         const key = JSON.stringify([line, from, to])
         if (key !== row.key) {
           paintLine(row.text, line, mode, from, to)
@@ -153,7 +156,8 @@ const CodePanel = forwardRef<CodePanelHandle, {
           row.pointer.style.transform = `translateX(${frame.pointer.offset - pointerStart}ch)`
           row.pointer.dataset.pressed = String(frame.pointer.pressed)
         }
-        start += line.length + 1
+        // Selection offsets belong to the animated score, not the preview rows.
+        start += authored.length + 1
       })
       el.dataset.typedChars = String(frame.text.length)
       el.dataset.editorAction = frame.action
@@ -246,10 +250,9 @@ const CodePanel = forwardRef<CodePanelHandle, {
   return (
     <div ref={root} className={`showcase-code-panel showcase-code-${mode} ${className}`} role="group" aria-label={title}>
       <div className="showcase-code-toolbar">
-        <span className="showcase-code-dots" aria-hidden="true"><i /><i /><i /></span>
-        <span className="showcase-code-filename">{title}</span>
+        <span className="showcase-code-filename">{mode === 'sh' ? 'Terminal' : title}</span>
         <span data-editor-status className="showcase-editor-status" aria-hidden="true" />
-        <span className="showcase-code-language" aria-hidden="true">{mode.toUpperCase()}</span>
+        <span className="showcase-code-language" aria-hidden="true">{mode === 'sh' ? 'zsh' : mode.toUpperCase()}</span>
         <button type="button" className="showcase-copy-code" onClick={copyCode} aria-label={`Copy code from ${title}`} aria-disabled={copyState === 'copying'}>
           {copyState === 'copied' ? 'Copied' : copyState === 'failed' ? 'Retry copy' : copyState === 'copying' ? 'Copying…' : 'Copy code'}
         </button>
