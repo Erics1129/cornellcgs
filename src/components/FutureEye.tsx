@@ -18,7 +18,7 @@ export default function FutureEye() {
   }, [])
   return <section ref={root} id="vision" className="vision-chapter" aria-label={vision.title}>
     <div className="container-site vision-heading">
-      <p className="scene-eyebrow"><span />The next move</p>
+      <p className="scene-eyebrow"><span />Looking ahead</p>
       <h2 className="scene-title"><ScrollWords text={`${vision.title}.`} treatment="illuminate" /></h2>
     </div>
     <div className="vision-eye-stage">
@@ -26,7 +26,7 @@ export default function FutureEye() {
       <button type="button" className="vision-pause" aria-label={paused ? 'Resume eye animation' : 'Pause eye animation'} aria-pressed={paused} onClick={() => setPaused(!paused)}><span aria-hidden="true">{paused ? '▷' : 'Ⅱ'}</span>{paused ? 'Resume motion' : 'Pause motion'}</button>
     </div>
     <div className="container-site vision-bottom">
-      <p className="vision-note">Human curiosity.<br /><em>Machine possibility.</em></p>
+      <p className="vision-note"><em>In development.</em></p>
       <ul>{vision.next.map((line,i) => <li key={line}><span>{String(i+1).padStart(2,'0')}</span>{line}</li>)}</ul>
     </div>
   </section>

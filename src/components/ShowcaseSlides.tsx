@@ -3,14 +3,15 @@ import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import CodePanel, { type CodePanelHandle } from './CodePanel'
 import { POT_EQUITY } from '../effects/codeSnippets'
+import { chapterType } from '../lib/chapterType'
 import '../styles/showcase-motion.css'
 
 gsap.registerPlugin(ScrollTrigger)
 
 const STATS = [
-  { over: 'Every Throwing Eggs deck', big: '108 cards', under: 'two decks, jokers in' },
+  { over: 'The deck', big: '108 cards', under: 'two decks, jokers included' },
   { over: 'Four players', big: '2 teams', under: 'partners across the table' },
-  { over: 'Ezra Cornell', big: 'Any person', under: 'any study.' },
+  { over: 'The match', big: '2 → A', under: 'win rounds to climb the levels' },
 ]
 
 /** An unpinned editorial sequence: each figure clears its own baseline. */
@@ -22,26 +23,30 @@ export function StatsSlide() {
     const media = gsap.matchMedia(section)
     media.add('(prefers-reduced-motion: no-preference)', () => {
       section.querySelectorAll<HTMLElement>('[data-stat]').forEach((row, i) => {
+        const glyphs = row.querySelectorAll('[data-stat-glyph]')
+        const copy = row.querySelectorAll('[data-stat-copy]')
+        gsap.set(glyphs, { yPercent: 110 })
+        gsap.set(copy, { opacity: 0, y: 8 })
         const tl = gsap.timeline({ scrollTrigger: {
           id: `support-stat-${i}`, trigger: row, start: 'top 88%', end: 'center 62%', scrub: 0.3,
         } })
         tl.fromTo(row.querySelector('[data-stat-rule]'), { scaleX: 0 }, { scaleX: 1, duration: 0.8, ease: 'power2.out' }, 0)
-          .fromTo(row.querySelectorAll('[data-stat-glyph]'), { yPercent: 110, rotation: 3 }, {
-            yPercent: 0, rotation: 0, duration: 0.6, stagger: 0.035, ease: 'power3.out',
+          .to(glyphs, {
+            yPercent: 0, duration: 0.6, stagger: 0.035, ease: 'power3.out',
           }, 0.06)
-          .fromTo(row.querySelectorAll('[data-stat-copy]'), { opacity: 0, y: 8 }, { opacity: 1, y: 0, duration: 0.32, stagger: 0.06, ease: 'none' }, 0.3)
+          .to(copy, { opacity: 1, y: 0, duration: 0.32, stagger: 0.06, ease: 'none' }, 0.3)
       })
     })
     return () => media.revert()
   }, [])
   return (
-    <section ref={root} id="stats" className="section support-scene stats-scene" aria-label="The numbers">
+    <section ref={root} id="stats" className="section support-scene stats-scene" data-chapter-surface="world" aria-label="Throwing Eggs rules">
       <div className="container-site">
         {STATS.map((stat) => (
           <div key={stat.big} data-stat className="stat-row">
             <div data-stat-rule className="stat-rule" aria-hidden="true" />
             <p data-stat-copy className="stat-over">{stat.over}</p>
-            <p className="stat-big" aria-label={stat.big}>
+            <p data-chapter-type="rise" className="stat-big" aria-label={stat.big === '2 → A' ? 'Two through Ace' : stat.big}>
               <span aria-hidden="true">{stat.big.split('').map((char, i) => (
                 <span key={i} className="stat-glyph-mask"><span data-stat-glyph>{char === ' ' ? '\u00a0' : char}</span></span>
               ))}</span>
@@ -78,6 +83,7 @@ export function CodeSlide() {
     if (!section || !device) return
     const media = gsap.matchMedia(section)
     media.add({
+      all: 'all',
       motion: '(prefers-reduced-motion: no-preference)',
       desktop: '(min-width: 900px) and (min-height: 680px)',
     }, (context) => {
@@ -108,15 +114,32 @@ export function CodeSlide() {
       // characters rather than starting timers or a second scroll range.
       tl.to(playhead, { progress: 1, duration: 1, ease: 'none' }, 0)
       if (desktop) {
+        const copy = section.querySelectorAll('[data-code-copy]')
+        gsap.set(copy, { opacity: 0, y: 16 })
+        chapterType(tl, section.querySelector('[data-chapter-type]'), 'slide', 0, 0.26)
         tl.fromTo(device, { x: 90, y: 28, rotationY: -14, rotationX: 5 }, {
           x: 0, y: 0, rotationY: 0, rotationX: 0, duration: 0.32, ease: 'power2.out',
         }, 0)
-          .fromTo(section.querySelectorAll('[data-code-copy]'), { opacity: 0, y: 16 }, {
+          .to(copy, {
             opacity: 1, y: 0, duration: 0.22, stagger: 0.045, ease: 'power2.out',
           }, 0)
           .fromTo(section.querySelector('[data-screen-reflection]'), { xPercent: -80, opacity: 0.5 }, {
             xPercent: 125, opacity: 0, duration: 0.4, ease: 'none',
           }, 0)
+      }
+      // On small screens the copy arrives before the laptop. It needs its own
+      // unpinned entrance; the typing clock still belongs solely to the device.
+      if (!desktop) {
+        const copy = section.querySelector<HTMLElement>('.code-copy')!
+        const captions = copy.querySelectorAll('[data-code-copy]')
+        gsap.set(captions, { opacity: 0, y: 10 })
+        const entrance = gsap.timeline({ scrollTrigger: {
+          id: 'support-code-copy', trigger: copy, start: 'top 90%', end: 'top 62%', scrub: 0.2,
+        } })
+        chapterType(entrance, copy.querySelector('[data-chapter-type]'), 'slide', 0, 0.35)
+        entrance.to(captions, {
+          opacity: 1, y: 0, duration: 0.25, stagger: 0.05, ease: 'power2.out',
+        }, 0.1)
       }
       draw()
     })
@@ -124,14 +147,12 @@ export function CodeSlide() {
   }, [])
 
   return (
-    <section ref={root} id="code" className="section support-scene code-scene" aria-label="The code behind the club">
+    <section ref={root} id="code" className="section support-scene code-scene" data-chapter-surface="world" aria-labelledby="code-title">
       <div className="container-site code-layout">
         <div className="code-copy">
           <div data-code-copy className="code-club-mark" aria-hidden="true">♠</div>
-          <h2 data-code-copy className="h-section">The code<br />behind the club.</h2>
-          <p data-code-copy className="body-muted support-lead">Hand evaluators, equity math, solvers — typed as you scroll.</p>
-          <p data-code-copy className="code-tagline">Evaluate. Simulate. Solve.</p>
-          <p data-code-copy className="code-study">Weekly study nights.</p>
+          <h2 id="code-title" data-chapter-type="slide" className="h-section">Source</h2>
+          <p data-code-copy className="body-muted support-lead">Hand evaluators, equity math, solvers.</p>
         </div>
         <div className="code-device-stage">
           <div ref={laptop} className="code-laptop">

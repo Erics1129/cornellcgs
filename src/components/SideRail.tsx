@@ -47,8 +47,9 @@ export default function SideRail() {
   return (
     <aside
       data-interactive
+      data-surface={active === 'events' ? 'light' : undefined}
       aria-label="Chapters"
-      className="fixed left-5 top-1/2 z-40 hidden -translate-y-1/2 items-stretch gap-3 lg:flex"
+      className="cgs-side-rail fixed left-5 top-1/2 z-40 hidden -translate-y-1/2 items-stretch gap-3 lg:flex"
     >
       {/* Progress line */}
       <div aria-hidden="true" className="relative w-px bg-[color-mix(in_srgb,var(--neon-dim)_80%,transparent)]">

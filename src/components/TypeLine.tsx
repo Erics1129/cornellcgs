@@ -1,77 +1,23 @@
-import { useEffect, useRef, useState } from 'react'
+import { useMemo, useRef } from 'react'
 import { typing } from '../content'
-import { prefersReducedMotion } from '../lib/motion'
+import { createTextChoreography } from '../lib/editorChoreography'
+import { EditorTypingText, useEditorPlayback } from '../lib/useEditorPlayback'
+import '../styles/code-editor-interactions.css'
 
-/**
- * The hero typing line (§5.4). Whole phrases rotate — the lead verb changes
- * too ("We do research in…", "We study…", "We build…"). Letters type at
- * 55–90 ms with slight randomness, hold 1.6 s, delete fast, move on.
- * The lead renders muted, the tail bright, with a blinking block cursor.
- */
+/** Illustrated phrase edits pause while offscreen, hidden, or being selected. */
 export default function TypeLine() {
-  const [text, setText] = useState('')
-  // the lines are editable — an emptied list must not take the hero down
-  const [leadLen, setLeadLen] = useState(typing.pairs[0]?.lead.length ?? 0)
-  const idx = useRef(0)
-  const timer = useRef<number>(0)
-
-  useEffect(() => {
-    if (!typing.pairs.length) return
-    const phrase = (i: number) => `${typing.pairs[i].lead} ${typing.pairs[i].tail}`
-
-    if (prefersReducedMotion()) {
-      setText(phrase(0))
-
-    }
-
-    let alive = true
-    const schedule = (fn: () => void, ms: number) => {
-      timer.current = window.setTimeout(() => {
-        if (alive) fn()
-      }, ms)
-    }
-
-    const typePhrase = (full: string, at: number) => {
-      if (at <= full.length) {
-        setText(full.slice(0, at))
-        schedule(() => typePhrase(full, at + 1), 55 + Math.random() * 35)
-      } else {
-        schedule(() => deletePhrase(full, full.length), 1600)
-      }
-    }
-
-    const deletePhrase = (full: string, at: number) => {
-      if (at >= 0) {
-        setText(full.slice(0, at))
-        schedule(() => deletePhrase(full, at - 1), 26)
-      } else {
-        idx.current = (idx.current + 1) % typing.pairs.length
-        setLeadLen(typing.pairs[idx.current].lead.length)
-        schedule(() => typePhrase(phrase(idx.current), 0), 260)
-      }
-    }
-
-    typePhrase(phrase(0), 0)
-    return () => {
-      alive = false
-      window.clearTimeout(timer.current)
-    }
-  }, [])
-
-  if (!typing.pairs.length) return null
-
+  const pairs = useMemo(() => typing.pairs.filter(pair => `${pair.lead}${pair.tail}`.trim()), [])
+  const root = useRef<HTMLParagraphElement>(null)
+  const score = useMemo(() => createTextChoreography(pairs.map(pair => `${pair.lead} ${pair.tail}`.trimEnd()), 1600), [pairs])
+  const frame = useEditorPlayback(root, score)
+  if (!pairs.length) return null
   return (
-    <p
-      className="life-float mono text-[max(1.2rem,1.1875rem)] md:text-[clamp(1.6rem,2vw,2.2rem)]"
+    <p ref={root}
+      className="showcase-type-line life-float mono text-[max(1.2rem,1.1875rem)] md:text-[clamp(1.6rem,2vw,2.2rem)]"
       style={{ ['--life-dur' as string]: '10.5s', ['--life-delay' as string]: '-3.4s' }}
-      aria-live="off"
+      aria-live="off" aria-label={score.reduced.text}
     >
-      <span className="body-muted">{text.slice(0, leadLen)}</span>
-      <span className="text-[var(--text)]">{text.slice(leadLen)}</span>
-      <span
-        className="ml-[2px] inline-block h-[1.15em] w-[0.55em] translate-y-[0.22em] animate-[cursor-blink_1.1s_steps(2)_infinite] bg-[var(--neon-mid)]"
-        aria-hidden="true"
-      />
+      <EditorTypingText frame={frame} splitAt={pairs[frame.phrase ?? 0]?.lead.length ?? 0} caretClass="bg-[var(--neon-mid)]" />
     </p>
   )
 }

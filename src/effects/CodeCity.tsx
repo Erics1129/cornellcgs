@@ -13,14 +13,36 @@ export interface CodeCityProps {
   className?: string
 }
 
-const POSTER = '/assets/sequences/city-journey-v3.webp'
+const POSTER = '/assets/sequences/city-journey-v4.webp'
 const FALLBACK = '/assets/scenes/code-city-v1.webp'
-const VIDEO = '/assets/sequences/city-journey-v3.mp4'
-const MOBILE_VIDEO = '/assets/sequences/city-journey-v3-mobile.mp4'
+const VIDEO = '/assets/sequences/city-journey-v4-1080.mp4'
+const UHD_VIDEO = '/assets/sequences/city-journey-v4-4k.mp4'
+const MOBILE_VIDEO = '/assets/sequences/city-journey-v4-mobile.mp4'
 
 type MediaNavigator = Navigator & {
   deviceMemory?: number
-  connection?: { saveData?: boolean }
+  connection?: { saveData?: boolean; effectiveType?: string; downlink?: number }
+}
+
+/** This metadata-only probe downloads no video. Unknown capabilities use 1080p. */
+async function supportsUHD(nav: MediaNavigator, width: number, height: number) {
+  const pixels = Math.max(width, height * 16 / 9) * (window.devicePixelRatio || 1)
+  const network = nav.connection
+  if (pixels <= 1920 || nav.hardwareConcurrency < 8
+    || (nav.deviceMemory !== undefined && nav.deviceMemory < 8)
+    || network?.saveData || (network?.effectiveType && network.effectiveType !== '4g')
+    || (network?.downlink !== undefined && network.downlink < 8)
+    || !nav.mediaCapabilities?.decodingInfo) return false
+  try {
+    const result = await nav.mediaCapabilities.decodingInfo({
+      type: 'file',
+      video: {
+        contentType: 'video/mp4; codecs="avc1.640033"',
+        width: 3840, height: 2160, bitrate: 40_000_000, framerate: 24,
+      },
+    })
+    return result.supported && result.smooth && result.powerEfficient
+  } catch { return false }
 }
 
 /** A single native decoder plays numbered, offline-rendered 3D camera frames.
@@ -43,10 +65,10 @@ export default function CodeCity({
     const finePointer = matchMedia('(hover: hover) and (pointer: fine)')
     const nav = navigator as MediaNavigator
     // Choose once: resizing must not fetch a second movie or restart travel.
-    const compact = matchMedia('(max-width: 767px)').matches
+    const compact = matchMedia('(max-width: 767px), (max-width: 1023px) and (pointer: coarse)').matches
       || (nav.deviceMemory !== undefined && nav.deviceMemory <= 4)
       || nav.connection?.saveData === true
-    const source = compact ? MOBILE_VIDEO : VIDEO
+    let source: string | null = null, selecting = false, selectionTimer = 0
     let alive = true, inView = false, reduced = prefersReducedMotion()
     let failed = false, attached = false, pendingPlay = false, ready = false
     let releaseTimer = 0, probeTimer = 0, playRequest = 0, resumeAt = 0
@@ -145,6 +167,26 @@ export default function CodeCity({
         return
       }
       cancelRelease()
+      if (!source) {
+        if (!selecting) {
+          selecting = true
+          const choose = (uhd: boolean) => {
+            // A late capability result cannot replace an attached stream.
+            if (!alive || source) return
+            window.clearTimeout(selectionTimer)
+            source = compact ? MOBILE_VIDEO : uhd ? UHD_VIDEO : VIDEO
+            host.dataset.stream = compact ? 'mobile' : uhd ? '4k' : 'desktop'
+            sync()
+          }
+          if (compact) choose(false)
+          else {
+            const rect = host.getBoundingClientRect()
+            selectionTimer = window.setTimeout(() => choose(false), 1000)
+            void supportsUHD(nav, rect.width, rect.height).then(choose)
+          }
+        }
+        return
+      }
       video.playbackRate = Math.max(.0625, Math.min(2, props.current.speed))
       if (!attached) {
         attached = true
@@ -233,13 +275,14 @@ export default function CodeCity({
     window.addEventListener('resize', queueMeasure, { passive: true })
     if (!observer) window.addEventListener('scroll', queueMeasure, { passive: true })
     host.dataset.renderer = reduced ? 'static' : 'pending'
-    host.dataset.stream = compact ? 'mobile' : 'desktop'
+    host.dataset.stream = 'pending'
     measure()
 
     return () => {
       alive = false
       synchronize.current = null
       cancelRelease()
+      window.clearTimeout(selectionTimer)
       window.clearTimeout(probeTimer)
       resetLook()
       observer?.disconnect()
@@ -265,7 +308,7 @@ export default function CodeCity({
 
   return <div ref={rootRef} className={`code-city ${className}`} data-active={active} aria-hidden="true">
     <div ref={viewRef} className="code-city__view">
-      <img key={plateSrc} className="code-city__plate" src={plateSrc} alt="" width="1280" height="720"
+      <img key={plateSrc} className="code-city__plate" src={plateSrc} alt="" width="1920" height="1080"
         decoding="async" loading="eager" draggable={false}
         onError={event => {
           const image = event.currentTarget

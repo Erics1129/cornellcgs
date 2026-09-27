@@ -1,15 +1,7 @@
-import { useEffect, useRef, useState } from 'react'
-import { prefersReducedMotion } from '../lib/motion'
-
-/**
- * Typed copy for the sub-pages — the same voice as the hero line. A heading
- * keeps talking: it types its line, holds, deletes, types its alternate,
- * and never settles. A body types itself once when it scrolls into view and
- * then sits under a live caret. Both are plain state updates on a timer;
- * nothing here touches layout beyond the text itself.
- */
-
-const CARET = 'ml-[2px] inline-block w-[0.5em] translate-y-[0.14em] [animation:cursor-blink_1.1s_steps(2)_infinite]'
+import { useMemo, useRef } from 'react'
+import { createTextChoreography } from '../lib/editorChoreography'
+import { EditorTypingText, useEditorPlayback } from '../lib/useEditorPlayback'
+import '../styles/code-editor-interactions.css'
 
 /**
  * The other live voice (the advisors page): no typing. Each letter of a
@@ -68,26 +60,6 @@ export function ShimmerText({
   )
 }
 
-function useNear(ref: React.RefObject<Element | null>, margin = '15% 0px') {
-  const [near, setNear] = useState(false)
-  useEffect(() => {
-    const el = ref.current
-    if (!el) return
-    const io = new IntersectionObserver(
-      (es) => {
-        if (es[0]?.isIntersecting) {
-          setNear(true)
-          io.disconnect()
-        }
-      },
-      { rootMargin: margin },
-    )
-    io.observe(el)
-    return () => io.disconnect()
-  }, [ref])
-  return near
-}
-
 /** Heading that alternates between `text` and `alt` forever. */
 export function TypedHeading({
   text,
@@ -106,43 +78,12 @@ export function TypedHeading({
   caret?: string
 }) {
   const ref = useRef<HTMLHeadingElement>(null)
-  const near = useNear(ref)
-  const [shown, setShown] = useState(prefersReducedMotion() ? text : '')
-  const lines = alt ? [text, alt] : [text]
-
-  useEffect(() => {
-    if (!near || prefersReducedMotion()) return
-    let alive = true
-    let timer = 0
-    let li = 0
-    const wait = (fn: () => void, ms: number) => {
-      timer = window.setTimeout(() => alive && fn(), ms)
-    }
-    const type = (full: string, at: number) => {
-      setShown(full.slice(0, at))
-      if (at < full.length) wait(() => type(full, at + 1), 34 + Math.random() * 40)
-      else if (lines.length > 1) wait(() => erase(full, full.length), hold)
-    }
-    const erase = (full: string, at: number) => {
-      setShown(full.slice(0, at))
-      if (at > 0) wait(() => erase(full, at - 1), 18)
-      else {
-        li = (li + 1) % lines.length
-        wait(() => type(lines[li], 0), 320)
-      }
-    }
-    wait(() => type(lines[0], 0), 120)
-    return () => {
-      alive = false
-      window.clearTimeout(timer)
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [near])
+  const score = useMemo(() => createTextChoreography(alt && alt !== text ? [text, alt] : [text], hold), [text, alt, hold])
+  const frame = useEditorPlayback(ref, score)
 
   return (
     <Tag ref={ref} className={className} aria-label={text}>
-      <span aria-hidden="true">{shown}</span>
-      <span aria-hidden="true" className={`${CARET} ${caret} h-[0.9em]`} />
+      <EditorTypingText frame={frame} caretClass={caret} />
     </Tag>
   )
 }
@@ -158,28 +99,8 @@ export function TypedBody({
   caret?: string
 }) {
   const ref = useRef<HTMLParagraphElement>(null)
-  const near = useNear(ref)
-  const [n, setN] = useState(prefersReducedMotion() ? text.length : 0)
-
-  useEffect(() => {
-    if (!near || prefersReducedMotion()) return
-    let alive = true
-    let raf = 0
-    const t0 = performance.now() + 380
-    const perChar = Math.max(9, Math.min(16, 1400 / Math.max(1, text.length)))
-    const tick = (now: number) => {
-      if (!alive) return
-      const k = Math.max(0, Math.min(text.length, Math.floor((now - t0) / perChar)))
-      setN(k)
-      if (k < text.length) raf = requestAnimationFrame(tick)
-    }
-    raf = requestAnimationFrame(tick)
-    return () => {
-      alive = false
-      cancelAnimationFrame(raf)
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [near])
+  const score = useMemo(() => createTextChoreography([text], 0, false), [text])
+  const frame = useEditorPlayback(ref, score)
 
   return (
     <p ref={ref} className={className} aria-label={text}>
@@ -187,8 +108,7 @@ export function TypedBody({
       <span aria-hidden="true" className="invisible block h-0 overflow-hidden">
         {text}
       </span>
-      <span aria-hidden="true">{text.slice(0, n)}</span>
-      <span aria-hidden="true" className={`${CARET} ${caret} h-[1em]`} />
+      <EditorTypingText frame={frame} caretClass={caret} />
     </p>
   )
 }

@@ -93,3 +93,21 @@
 @media(max-width:1023px), (orientation:portrait) {
  .scene-canvas--eye .scene-still { background-image:url('/assets/scenes/eye-still-v4-mobile.webp'); }
 }
+
+/* Dark video can contain bright bursts. This fixed scrim protects reading
+   contrast without sampling pixels or making letter colours flicker. */
+.scene-chapter--ml .scene-content { background: linear-gradient(90deg,#000b 0%,#0008 25%,transparent 55%); }
+.scene-chapter--ml .scene-title--serif { min-height: 1.15em; max-width: 14ch; font-size:clamp(3rem,5.2vw,5.5rem); }
+.scene-chapter--ml .ml-step p { font-size:.875rem; color:#b7c6dd; }
+@media(max-width:1023px), (orientation:portrait) {
+ .scene-chapter--ml .scene-content { background: linear-gradient(#000c 0%,#0009 36%,transparent 65%); }
+ .scene-chapter--ml .scene-title--serif { font-size:clamp(2.75rem,11vw,4.5rem); }
+ .scene-chapter--ml .ml-step p { font-size:.8125rem; }
+}
+.scroll-film { position:absolute; inset:0; overflow:hidden; background:#000; }
+.scroll-film img,.scroll-film video { position:absolute; top:0; left:25%; width:85%; height:100%; object-fit:contain; mask-image:linear-gradient(90deg,transparent,#000 14%,#000 90%,transparent); }
+.scroll-film video { opacity:0; }
+.scroll-film[data-ready='true'] video { opacity:1; }
+.scroll-film[data-ready='true'] img { opacity:0; }
+@media(max-width:1023px),(orientation:portrait) { .scroll-film img,.scroll-film video { left:-8%; top:27%; width:116%; height:70%; } }
+@media(prefers-reduced-motion:reduce) { .scroll-film video { display:none; } .scroll-film[data-ready='true'] img { opacity:1; } }

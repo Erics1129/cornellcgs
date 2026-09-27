@@ -1,0 +1,101 @@
+/* Registered stops interpolate instead of replacing the whole gradient when
+   data-theme changes. OKLab endpoints keep the transition perceptual, and CSS
+   transitions retarget from the displayed color during an interrupted flip. */
+@property --chapter-surface {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #04081c;
+}
+@property --chapter-depth {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #0b1734;
+}
+
+.support-scene[data-chapter-surface] {
+  --chapter-surface: oklab(from #04081c l a b);
+  --chapter-depth: oklab(from #0b1734 l a b);
+  --chapter-ink: #f2f5ff;
+  --chapter-muted: #b7c5e0;
+  --chapter-rule: #7186ac;
+  --text: var(--chapter-ink);
+  --muted: var(--chapter-muted);
+  color: var(--chapter-ink);
+  background: linear-gradient(155deg, var(--chapter-surface), var(--chapter-depth));
+  background: linear-gradient(155deg in oklab, var(--chapter-surface), var(--chapter-depth));
+  color-scheme: dark;
+}
+.support-scene[data-chapter-surface='world'] {
+  /* Parent theme code can share this duration without controlling scene ink. */
+  transition: --chapter-surface var(--theme-transition-duration, 1200ms) cubic-bezier(.33, 0, .67, 1),
+    --chapter-depth var(--theme-transition-duration, 1200ms) cubic-bezier(.33, 0, .67, 1);
+  /* Safe fallback for browsers without contrast-color(): light ink on a
+     quiet dark reading surface while the surrounding world still changes. */
+  --chapter-copy-surface: #060810;
+  --chapter-ink: #f2f5ff;
+  --chapter-muted: #c2cee1;
+  --chapter-rule: color-mix(in oklab, var(--chapter-ink) 42%, transparent);
+}
+html[data-theme='sky'] .support-scene[data-chapter-surface='world'] {
+  --chapter-surface: oklab(from #dfeeff l a b);
+  --chapter-depth: oklab(from #b9d6ff l a b);
+  color-scheme: light;
+}
+html[data-theme='lilac'] .support-scene[data-chapter-surface='world'] {
+  --chapter-surface: oklab(from #efe6ff l a b);
+  --chapter-depth: oklab(from #d6c4ff l a b);
+  color-scheme: light;
+}
+html[data-theme='violet'] .support-scene[data-chapter-surface='world'] {
+  --chapter-surface: oklab(from #0e0620 l a b);
+  --chapter-depth: oklab(from #26134c l a b);
+}
+html[data-theme='black'] .support-scene[data-chapter-surface='world'] {
+  --chapter-surface: oklab(from #000 l a b);
+  --chapter-depth: oklab(from #15151e l a b);
+}
+
+/* A flat, feathered reading surface gives every glyph the same background.
+   Its color is derived from the animated stops on every frame. Without it,
+   one ink switch cannot serve both ends of a mid-brightness gradient. */
+.support-scene[data-chapter-surface='world'] :is(.project-copy, .anyone-copy, .code-copy, .stat-row) {
+  position: relative;
+  isolation: isolate;
+}
+.support-scene[data-chapter-surface='world'] :is(.project-copy, .anyone-copy, .code-copy, .stat-row)::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  inset: -.6rem;
+  background: var(--chapter-copy-surface);
+  box-shadow: 0 0 2rem 1rem var(--chapter-copy-surface);
+  pointer-events: none;
+}
+@supports (color: contrast-color(#777)) {
+  .support-scene[data-chapter-surface='world'] {
+    --chapter-copy-surface: color-mix(in oklab, var(--chapter-surface), var(--chapter-depth) 35%);
+    /* Never tween the ink through gray. Native contrast-color switches at
+       the measured luminance crossover (>= 4.58:1 on the reading surface).
+       Captions use the same ink: muting it near the crossover fails AA. */
+    --chapter-ink: contrast-color(var(--chapter-copy-surface));
+    --chapter-muted: var(--chapter-ink);
+  }
+}
+.support-scene[data-chapter-surface='dark'] {
+  --chapter-surface: #060810;
+  --chapter-depth: #060810;
+  --chapter-ink: #f2f5ff;
+  --chapter-muted: #c2cee1;
+  --chapter-rule: #8093b0;
+}
+.support-scene [data-chapter-type] {
+  color: var(--chapter-ink, var(--text));
+  text-wrap: balance;
+}
+.chapter-type-mask { display: block; overflow: clip; padding-block: .12em; margin-block: -.12em; }
+[data-chapter-glyph] { display: inline-block; }
+.support-scene ::selection { color: var(--chapter-copy-surface, var(--chapter-surface)); background: var(--chapter-ink); }
+@media (prefers-reduced-motion: reduce) {
+  .support-scene[data-chapter-surface='world'] { transition: none; }
+  [data-chapter-type], [data-chapter-glyph] { clip-path: none !important; transform: none !important; opacity: 1 !important; }
+}

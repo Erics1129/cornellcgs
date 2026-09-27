@@ -1,0 +1,18 @@
+.identity-chapter { --text:#f1f5fc; --muted:#acb9d0; position:relative; isolation:isolate; background:#0a1020; color:var(--text); padding-block:clamp(7rem,15vh,13rem); }
+.identity-chapter::before { content:''; position:absolute; inset:0; z-index:-1; background:radial-gradient(ellipse 45% 55% at 70% 48%,#273c5d70,transparent); }
+.identity-layout { display:grid; grid-template-columns:.85fr 1.15fr; align-items:center; gap:4vw; }
+.identity-copy { max-width:30rem; }
+.identity-eyebrow { margin-bottom:2rem; font:500 .72rem var(--font-mono); letter-spacing:.16em; text-transform:uppercase; color:#9badc6; }
+.identity-title { font-size:clamp(3.5rem,7.8vw,8rem); letter-spacing:-.06em; line-height:1; font-weight:550; }
+.identity-lead { margin-top:2rem; font-size:clamp(1.05rem,1.55vw,1.4rem); line-height:1.65; color:#b8c6db; max-width:28ch; }
+.identity-link { display:inline-flex; align-items:center; gap:2rem; margin-top:2rem; padding-block:.75rem; font-size:1rem; color:#e8f3ff; border-bottom:1px solid #91a8c755; }
+.identity-link span { transition:transform 240ms ease; }.identity-link:hover span { transform:translate(3px,-3px); }
+.identity-link:focus-visible,.identity-figure button:focus-visible { outline:2px solid #c7def8; outline-offset:6px; }
+.identity-figure { margin:0; min-width:0; }.identity-object { position:relative; width:100%; aspect-ratio:1; }
+.identity-object::before { content:''; position:absolute; width:68%; height:12%; left:16%; bottom:9%; background:#03060dbb; filter:blur(20px); border-radius:50%; }
+.identity-object .cgs-voxel-mark { width:100%; height:100%; }
+.identity-figure figcaption { display:flex; justify-content:space-between; align-items:center; padding:0 12%; color:#a8b9d0; font:400 .7rem var(--font-mono); letter-spacing:.03em; }
+.identity-figure button { display:flex; gap:12px; align-items:center; min-height:44px; padding:8px 0 8px 14px; background:none; border:0; color:inherit; cursor:pointer; }
+.identity-facts { display:flex; gap:2rem; margin-top:2.5rem; }.identity-facts dt { color:#a8b9d0; font-size:.8rem; }.identity-facts dd { margin:6px 0 0; font-size:1.8rem; }
+@media(max-width:767px) { .identity-chapter { padding-block:6rem 4rem; }.identity-layout { grid-template-columns:1fr; gap:2rem; }.identity-copy { max-width:100%; }.identity-title { font-size:clamp(3.5rem,17vw,6rem); }.identity-eyebrow { margin-bottom:1.5rem; }.identity-lead { font-size:1.1rem; max-width:29ch; }.identity-object { max-width:480px; margin:auto; }.identity-figure figcaption { padding-inline:7%; } }
+@media(prefers-reduced-motion:reduce) { .identity-link span { transition:none; } }

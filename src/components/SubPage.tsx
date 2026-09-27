@@ -7,6 +7,7 @@ import { PAGE_ORDER, PAGE_SCENES } from '../lib/pageScenes'
 import type { PageSceneId } from '../lib/pageScenes'
 import PageScene from './PageScene'
 import Dice from './Dice'
+import PageNavigator from './PageNavigator'
 import type { Algo } from './GraphAlgo'
 import '../styles/subpages.css'
 
@@ -167,8 +168,8 @@ export default function SubPage({ id }: { id: string }) {
     <a className="sp-skip" href="#page-content">Skip to content</a>
     <header className="sp-bar"><nav className="sp-bar__inner" aria-label="Page navigation">
       <a className="sp-back" href={back} onClick={goBack}><span aria-hidden="true">←</span> Back</a>
-      <a className="sp-brand" href="/"><Dice size={24} /><span>{site.name}</span></a>
-      <label className="sp-explore"><span className="sp-sr-only">Explore other pages</span><select aria-label="Explore other pages" value="" onChange={event => { if (event.target.value) location.assign(pagePath(event.target.value)) }}><option value="" disabled>Explore other pages</option>{PAGE_ORDER.map(pageId => <option key={pageId} value={pageId} disabled={pageId === id}>{pages[pageId].title}{pageId === id ? ' · current' : ''}</option>)}</select><span aria-hidden="true">⌄</span></label>
+      <a className="sp-brand" href="/"><Dice size={24} paused={paused} /><span>{site.name}</span></a>
+      <PageNavigator currentId={id} />
     </nav></header>
     <main id="page-content" tabIndex={-1} className="sp-main" aria-labelledby="page-title">{composition}{ALGO[id] && <PageStudy id={id} paused={paused} />}</main>
     <footer className="sp-footer"><nav className="sp-footer__routes" aria-label="Continue exploring"><a href={pagePath(previous)}><span>Previous</span>{pages[previous].title}<span aria-hidden="true">↖</span></a><a href={pagePath(next)}><span>Next</span>{pages[next].title}<span aria-hidden="true">↗</span></a></nav><div className="sp-footer__bottom"><a href={back} onClick={goBack}>Back to the main page <span aria-hidden="true">↗</span></a><p>{site.credit}</p><span>{site.domain}</span></div></footer>

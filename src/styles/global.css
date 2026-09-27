@@ -1228,3 +1228,17 @@ a:hover .btn-label > span {
 .neon-idle::before,.neon-idle::after { animation-play-state:paused; opacity:0; }
 .neon-idle:hover::before,.neon-idle:focus-visible::before { animation-play-state:running; opacity:.65; }
 html.cinema-on #code-layer-canvas,html.universe-on #code-layer-canvas { visibility:hidden; }
+
+/* The surface underneath the words decides their ink. Fixed dark films keep
+   light ink while the surrounding live palette can still become sky/lilac. */
+#top, #universe, #vision, #ml-process, #world {
+  --text: #f3f7ff;
+  --muted: #b7c6dd;
+  --neon-core: #e8f8ff;
+  --neon-mid: #91cfff;
+  color: var(--text);
+  color-scheme: dark;
+}
+#top .body-muted { color: var(--muted); }
+#top :is(h1, .mono) { text-shadow: 0 2px 18px #02081666; }
+html[data-theme='sky'], html[data-theme='lilac'] { color-scheme: light; }

@@ -3,8 +3,10 @@
 
   Blender -b -t 12 --python scripts/render-city-journey.py -- --mode preview
   Blender -b -t 12 --python scripts/render-city-journey.py -- --mode render
+  Blender -b -t 12 --python scripts/render-city-journey.py -- --mode render --blend output/city-journey-v3/city-journey.blend
   Blender -b -t 12 --python scripts/render-city-journey.py -- --mode encode
 
+Native 3840x2160, 16-sample masters; 1080p and mobile are downsampled encodes.
 No image-plane camera tricks: each numbered PNG is a new view of one 3D scene.
 Scene, previews, source copies and frame provenance stay outside public/.
 """
@@ -22,10 +24,12 @@ from pathlib import Path
 from mathutils import Vector
 
 ROOT = Path(__file__).resolve().parents[1]
-OUT = ROOT / 'output/city-journey-v3'
+OUT = ROOT / 'output/city-journey-v4'
 PUBLIC = ROOT / 'public/assets/sequences'
 FPS, DURATION, COUNT = 24, 20, 480
-WIDTH, HEIGHT = 1280, 720
+WIDTH, HEIGHT = 3840, 2160
+ASSET = 'city-journey-v4'
+MAX_VIDEO_BYTES = 95_000_000  # Safely below GitHub's 100 MiB per-file limit.
 SEED = 91827
 LENS_MM = 17.5
 GAZE_RISE = 3.4
@@ -190,7 +194,7 @@ def make_ground(glass, metal):
     return ground
 
 
-def build_scene(engine='EEVEE', samples=32):
+def build_scene(engine='EEVEE', samples=16):
     bpy.ops.object.select_all(action='SELECT'); bpy.ops.object.delete(use_global=False)
     scene=bpy.context.scene
     scene.render.engine='CYCLES' if engine=='CYCLES' else 'BLENDER_EEVEE_NEXT'
@@ -434,10 +438,23 @@ def fast_start_mp4(path):
     temp.replace(path)
 
 
+def png_dimensions(path):
+    with path.open('rb') as image:
+        header = image.read(24)
+    if header[:8] != b'\x89PNG\r\n\x1a\n':
+        raise RuntimeError(f'Not a PNG render: {path}')
+    return struct.unpack('>II', header[16:24])
+
+
 def encode(mobile_only=False):
     frames=sorted((OUT/'frames').glob('frame-*.png'))
     expected=[f'frame-{i:04d}.png' for i in range(1,COUNT+1)]
     if [f.name for f in frames]!=expected: raise RuntimeError(f'Expected {COUNT} contiguous frames, found {len(frames)}')
+    # Reject stale / reduced-scale frames: the 4K asset must come from native
+    # 3840x2160 renders, never an enlargement of a previous movie or sequence.
+    for frame in frames:
+        if png_dimensions(frame) != (WIDTH, HEIGHT):
+            raise RuntimeError(f'Native {WIDTH}x{HEIGHT} required: {frame}')
     bpy.ops.wm.read_factory_settings(use_empty=True)
     scene=bpy.context.scene; scene.render.engine='BLENDER_EEVEE_NEXT'
     scene.render.resolution_x=WIDTH; scene.render.resolution_y=HEIGHT; scene.render.resolution_percentage=100
@@ -461,23 +478,53 @@ def encode(mobile_only=False):
     scene.render.ffmpeg.constant_rate_factor='HIGH'; scene.render.ffmpeg.ffmpeg_preset='GOOD'
     scene.render.ffmpeg.audio_codec='NONE'; scene.render.ffmpeg.gopsize=48
     PUBLIC.mkdir(parents=True,exist_ok=True)
+    streams = [('4k', WIDTH, HEIGHT), ('1080', 1920, 1080), ('mobile', 960, 540)]
+    if mobile_only:
+        streams = streams[-1:]
+    encoded = {}
+    for label, width, height in streams:
+        scene.render.resolution_x=width; scene.render.resolution_y=height
+        # Each VSE image keeps its original source dimensions. Scaling explicitly
+        # downsamples both strips together; no crop, changed lens, or extra zoom.
+        for image_strip in (strip, seam):
+            image_strip.transform.scale_x=width/WIDTH
+            image_strip.transform.scale_y=height/HEIGHT
+        path=PUBLIC/f'{ASSET}-{label}.mp4'
+        # Finish and size-check each encode before exposing the public asset.
+        # Compression may change to meet hosting limits; native dimensions do not.
+        candidate=OUT/f'{ASSET}-{label}-encoding.mp4'
+        qualities=['PERC_LOSSLESS','HIGH','MEDIUM'] if label=='4k' else ['HIGH','MEDIUM']
+        for quality in qualities:
+            scene.render.ffmpeg.constant_rate_factor=quality
+            scene.render.filepath=str(candidate)
+            bpy.ops.render.render(animation=True)
+            fast_start_mp4(candidate)
+            size=candidate.stat().st_size
+            print(f'CITY_ENCODE_SIZE {label} {quality} {size}/{MAX_VIDEO_BYTES}',flush=True)
+            if size < MAX_VIDEO_BYTES:
+                candidate.replace(path)
+                break
+        else:
+            raise RuntimeError(f'{label} exceeds the 95 MB asset ceiling; adjust compression, never upscale or shorten the route')
+        encoded[label]={'path':str(path),'width':width,'height':height,
+                        'bytes':path.stat().st_size,'quality':scene.render.ffmpeg.constant_rate_factor,
+                        'sha256':hashlib.sha256(path.read_bytes()).hexdigest()}
     if not mobile_only:
-        scene.render.filepath=str(PUBLIC/'city-journey-v3.mp4')
-        bpy.ops.render.render(animation=True)
-        poster=bpy.data.images.load(str(frames[FPS])); scene.render.image_settings.file_format='WEBP'; scene.render.image_settings.quality=88
-        poster.save_render(str(PUBLIC/'city-journey-v3.webp'),scene=scene)
-    # 960-wide keeps a tall phone's object-fit cover crop adequately detailed.
-    scene.render.image_settings.file_format='FFMPEG'; scene.render.resolution_x=960; scene.render.resolution_y=540
-    scene.render.filepath=str(PUBLIC/'city-journey-v3-mobile.mp4')
-    bpy.ops.render.render(animation=True)
-    if not mobile_only: fast_start_mp4(PUBLIC/'city-journey-v3.mp4')
-    fast_start_mp4(PUBLIC/'city-journey-v3-mobile.mp4')
+        poster=bpy.data.images.load(str(frames[FPS]))
+        poster.scale(1920,1080)
+        scene.render.image_settings.file_format='WEBP'
+        scene.render.image_settings.quality=92
+        poster.save_render(str(PUBLIC/f'{ASSET}.webp'),scene=scene)
     data=json.loads((OUT/'manifest.json').read_text())
-    data.update({'rendered_frame_count':len(frames),'encoded_frame_count':COUNT-FPS,'encoded_duration_seconds':(COUNT-FPS)/FPS,'loop_dissolve_frames':FPS,'video':str(PUBLIC/'city-journey-v3.mp4'),'mobile_video':str(PUBLIC/'city-journey-v3-mobile.mp4'),'poster':str(PUBLIC/'city-journey-v3.webp'),'video_bytes':(PUBLIC/'city-journey-v3.mp4').stat().st_size,'mobile_video_bytes':(PUBLIC/'city-journey-v3-mobile.mp4').stat().st_size,'mobile_width':960,'mobile_height':540,'fast_start':True,'encoder':'Blender bundled FFmpeg / H.264 HIGH CRF, yuv420p, no audio','loop':'One-second baked dissolve: output begins at source frame 25, ends at source frame 24. 480 source renders become a 456-frame / 19-second seamless loop.'})
+    data.update({'rendered_frame_count':len(frames),'native_render_width':WIDTH,
+                 'native_render_height':HEIGHT,'upscaled':False,
+                 'encoded_frame_count':COUNT-FPS,'encoded_duration_seconds':(COUNT-FPS)/FPS,
+                 'loop_dissolve_frames':FPS,'poster':str(PUBLIC/f'{ASSET}.webp'),
+                 'fast_start':True,'max_video_bytes':MAX_VIDEO_BYTES,
+                 'encoder':'Blender bundled FFmpeg / H.264 CRF (quality recorded per stream), yuv420p, no audio',
+                 'loop':'One-second baked dissolve: output begins at source frame 25, ends at source frame 24. 480 source renders become a 456-frame / 19-second seamless loop.'})
+    data.setdefault('streams',{}).update(encoded)
     data['source_sha256']=hashlib.sha256(Path(__file__).read_bytes()).hexdigest()
-    hashes=data.setdefault('video_sha256',{})
-    for filename in (['city-journey-v3-mobile.mp4'] if mobile_only else ['city-journey-v3.mp4','city-journey-v3-mobile.mp4']):
-        hashes[filename]=hashlib.sha256((PUBLIC/filename).read_bytes()).hexdigest()
     (OUT/'manifest.json').write_text(json.dumps(data,indent=2))
     print('CITY_ENCODE_COMPLETE',json.dumps(data),flush=True)
 
@@ -509,14 +556,31 @@ def prepare_materials():
 
 
 def main():
-    p=argparse.ArgumentParser(); p.add_argument('--mode',choices=['preview','render','encode'],default='preview'); p.add_argument('--engine',choices=['EEVEE','CYCLES'],default='EEVEE'); p.add_argument('--samples',type=int,default=32); p.add_argument('--start',type=int,default=1); p.add_argument('--end',type=int,default=COUNT); p.add_argument('--preview-frames',default='1,235,370'); p.add_argument('--scale',type=int,default=100); p.add_argument('--mobile-only',action='store_true',help='In encode mode, rebuild only the mobile stream and manifest')
+    p=argparse.ArgumentParser(); p.add_argument('--mode',choices=['preview','render','encode'],default='preview'); p.add_argument('--engine',choices=['EEVEE','CYCLES'],default='EEVEE'); p.add_argument('--samples',type=int,default=16); p.add_argument('--start',type=int,default=1); p.add_argument('--end',type=int,default=COUNT); p.add_argument('--preview-frames',default='1,235,370'); p.add_argument('--scale',type=int,default=100); p.add_argument('--mobile-only',action='store_true',help='In encode mode, rebuild only the mobile stream and manifest')
+    p.add_argument('--blend',type=Path,help='Reuse the original scene and camera animation without rebuilding geometry')
     args=p.parse_args(sys.argv[sys.argv.index('--')+1:] if '--' in sys.argv else [])
     OUT.mkdir(parents=True,exist_ok=True); (OUT/'frames').mkdir(exist_ok=True); (OUT/'previews').mkdir(exist_ok=True)
     if args.mode=='encode':
         shutil.copy2(__file__,OUT/'render-city-journey.py')
         encode(mobile_only=args.mobile_only); return
+    if args.mode == 'render' and args.scale != 100:
+        p.error('Production renders must be native 3840x2160; --scale is preview-only')
     prepare_materials()
-    start=time.monotonic(); scene=build_scene(args.engine,args.samples); scene.render.resolution_percentage=args.scale
+    start=time.monotonic()
+    if args.blend:
+        bpy.ops.wm.open_mainfile(filepath=str(args.blend.resolve()))
+        scene=bpy.context.scene
+        if scene.render.engine != ('CYCLES' if args.engine == 'CYCLES' else 'BLENDER_EEVEE_NEXT'):
+            p.error('--engine must match the reused scene')
+        if args.engine == 'CYCLES': scene.cycles.samples=args.samples
+        else: scene.eevee.taa_render_samples=args.samples
+        route=args.blend.parent/'camera-route.json'
+        if route.resolve() != (OUT/'camera-route.json').resolve():
+            shutil.copy2(route,OUT/'camera-route.json')
+    else:
+        scene=build_scene(args.engine,args.samples)
+    scene.render.resolution_x=WIDTH; scene.render.resolution_y=HEIGHT
+    scene.render.resolution_percentage=args.scale
     shutil.copy2(__file__,OUT/'render-city-journey.py')
     bpy.ops.wm.save_as_mainfile(filepath=str(OUT/'city-journey.blend'))
     frames=[int(s) for s in args.preview_frames.split(',')] if args.mode=='preview' else range(args.start,args.end+1)
@@ -524,13 +588,16 @@ def main():
     for frame in frames:
         folder='previews' if args.mode=='preview' else 'frames'
         path=OUT/folder/f'frame-{frame:04d}.png'
-        if args.mode=='render' and path.exists(): continue
+        if args.mode=='render' and path.exists():
+            if png_dimensions(path) != (WIDTH, HEIGHT):
+                raise RuntimeError(f'Remove stale non-native frame before resuming: {path}')
+            continue
         before=time.monotonic(); scene.frame_set(frame); scene.render.filepath=str(path)
         bpy.ops.render.render(write_still=True)
         elapsed=time.monotonic()-before; timings.append({'frame':frame,'render_seconds':round(elapsed,3)})
         print(f'CITY_FRAME {frame}/{COUNT} {elapsed:.2f}s',flush=True)
     (OUT/f'{args.mode}-timings-{args.start}.json').write_text(json.dumps(timings,indent=2))
-    manifest={'seed':SEED,'engine':args.engine,'samples':args.samples,'fps':FPS,'duration_seconds':DURATION,'width':WIDTH,'height':HEIGHT,'expected_frame_count':COUNT,'rendered_frame_count':len(list((OUT/'frames').glob('frame-*.png'))),'frame_pattern':str(OUT/'frames/frame-%04d.png'),'scene':str(OUT/'city-journey.blend'),'source':str(ROOT/'scripts/render-city-journey.py'),'route':str(OUT/'camera-route.json'),'ai_materials':['materials/corner.png','materials/plaza.png'],'ai_material_use':'World-space distant architecture and cropped glass facade materials; packed into .blend','camera_height_m':2.15,'lens_mm':LENS_MM,'horizontal_fov_degrees':round(math.degrees(2*math.atan(36/(2*LENS_MM))),3),'gaze_rise_m':GAZE_RISE,'skyline_landmark_heights_m':[142,130,156,138],'route_length_m':round(TOTAL,3),'route_timing':[{'district':'glass avenue','seconds':[0,round(50/TOTAL*20,2)]},{'district':'right turn','seconds':[round(50/TOTAL*20,2),round((50+LENGTHS[1])/TOTAL*20,2)]},{'district':'bridge gallery','seconds':[round((50+LENGTHS[1])/TOTAL*20,2),round((76+LENGTHS[1])/TOTAL*20,2)]},{'district':'left turn into plaza','seconds':[round((76+LENGTHS[1])/TOTAL*20,2),round((76+2*LENGTHS[1])/TOTAL*20,2)]},{'district':'plaza','seconds':[round((76+2*LENGTHS[1])/TOTAL*20,2),20]}],'elapsed_seconds':round(time.monotonic()-start,2)}
+    manifest={'seed':SEED,'engine':args.engine,'samples':args.samples,'fps':FPS,'duration_seconds':DURATION,'width':int(WIDTH*args.scale/100),'height':int(HEIGHT*args.scale/100),'resolution_percentage':args.scale,'native_render':args.scale==100,'expected_frame_count':COUNT,'rendered_frame_count':len(list((OUT/'frames').glob('frame-*.png'))),'frame_pattern':str(OUT/'frames/frame-%04d.png'),'scene':str(OUT/'city-journey.blend'),'source':str(ROOT/'scripts/render-city-journey.py'),'route':str(OUT/'camera-route.json'),'ai_materials':['materials/corner.png','materials/plaza.png'],'ai_material_use':'World-space distant architecture and cropped glass facade materials; packed into .blend','camera_height_m':2.15,'lens_mm':LENS_MM,'horizontal_fov_degrees':round(math.degrees(2*math.atan(36/(2*LENS_MM))),3),'gaze_rise_m':GAZE_RISE,'skyline_landmark_heights_m':[142,130,156,138],'route_length_m':round(TOTAL,3),'route_timing':[{'district':'glass avenue','seconds':[0,round(50/TOTAL*20,2)]},{'district':'right turn','seconds':[round(50/TOTAL*20,2),round((50+LENGTHS[1])/TOTAL*20,2)]},{'district':'bridge gallery','seconds':[round((50+LENGTHS[1])/TOTAL*20,2),round((76+LENGTHS[1])/TOTAL*20,2)]},{'district':'left turn into plaza','seconds':[round((76+LENGTHS[1])/TOTAL*20,2),round((76+2*LENGTHS[1])/TOTAL*20,2)]},{'district':'plaza','seconds':[round((76+2*LENGTHS[1])/TOTAL*20,2),20]}],'elapsed_seconds':round(time.monotonic()-start,2)}
     (OUT/'manifest.json').write_text(json.dumps(manifest,indent=2))
     print('CITY_RUN_COMPLETE',json.dumps(manifest),flush=True)
 

@@ -1,0 +1,23 @@
+.hero-glass-title {
+  --glass-0:rgb(181 215 244); --glass-1:rgb(217 234 250); --glass-2:rgb(173 203 236); --glass-light:48%;
+  color:#e8f3ff;
+  filter:drop-shadow(0 2px 1px #020714a6) drop-shadow(0 0 14px #050b1770);
+}
+.hero-glass-line { display:block; overflow:hidden; margin-bottom:-.12em; padding-bottom:.12em; }
+.hero-glass-ink { display:block; }
+@supports (background-clip:text) or (-webkit-background-clip:text) {
+  .hero-glass-ink {
+    background-image:linear-gradient(163deg,
+      #fff 0%,var(--glass-0) 21%,#e1edfaab 34%,var(--glass-1) 44%,
+      #ffffffef var(--glass-light),#d5e8fc9e 58%,var(--glass-2) 78%,#f4f8ff 100%);
+    background-size:100% 100%;
+    background-clip:text; -webkit-background-clip:text;
+    -webkit-text-fill-color:transparent;
+    -webkit-text-stroke:.3px #e1f2ff66;
+  }
+}
+.hero-glass-ink::selection,.hero-glass-ink em::selection { background:#accfff; color:#10213a; -webkit-text-fill-color:#10213a; }
+@media(forced-colors:active) {
+  .hero-glass-title { filter:none; }
+  .hero-glass-ink { background:none; -webkit-text-fill-color:CanvasText; -webkit-text-stroke:0; }
+}

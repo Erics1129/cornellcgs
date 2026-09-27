@@ -1,10 +1,13 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import SectionIndex from './SectionIndex'
 import TypeLine from './TypeLine'
 import HeroCard from './HeroCard'
+import GlassTitle from './GlassTitle'
 import CodeCity from '../effects/CodeCity'
+import ParticleField from './ParticleField'
+import EnergyVeil from './EnergyVeil'
 import { hero } from '../content'
 import { EASE } from '../lib/eases'
 import { scrollToId } from '../lib/scroll'
@@ -32,70 +35,93 @@ function RollLabel({ text }: { text: string }) {
 
 export default function Hero() {
   const root = useRef<HTMLElement>(null)
+  const [effectsPaused, setEffectsPaused] = useState(false)
 
   useEffect(() => {
-    if (prefersReducedMotion()) return
-    const ctx = gsap.context(() => {
+    // A live preference change restores readable text and kills the entrance.
+    // Once presented, the title never hides again just because motion returns.
+    let presented = prefersReducedMotion()
+    const media = gsap.matchMedia(root)
+    media.add('(prefers-reduced-motion: no-preference)', context => {
+      if (presented) return
       gsap.set('[data-hero-line] > span', { yPercent: 112, rotation: 2.5, transformOrigin: '0% 100%' })
       gsap.set('[data-hero-fade]', { opacity: 0, y: 18 })
       gsap.set('[data-hero-hint]', { opacity: 0, y: 12 })
 
       const play = () => {
-        const tl = gsap.timeline()
-        tl.to('[data-hero-line] > span', {
-          yPercent: 0,
-          rotation: 0,
-          duration: 1.15,
-          ease: EASE.out,
-          stagger: 0.12,
-        })
-          .to(
-            '[data-hero-fade]',
-            { opacity: 1, y: 0, duration: 0.7, ease: EASE.out, stagger: 0.08 },
-            0.45,
-          )
-          .to('[data-hero-hint]', { opacity: 1, y: 0, duration: 0.8, ease: EASE.out }, 2.2)
+        if (presented) return
+        presented = true
+        // Boot may happen after this effect returns; record its animations in
+        // the same context so unmount and live reduced motion still own them.
+        context.add(() => {
+          const tl = gsap.timeline()
+          tl.to('[data-hero-line] > span', {
+            yPercent: 0,
+            rotation: 0,
+            duration: 1.15,
+            ease: EASE.out,
+            stagger: 0.12,
+          })
+            .to(
+              '[data-hero-fade]',
+              { opacity: 1, y: 0, duration: 0.7, ease: EASE.out, stagger: 0.08 },
+              0.45,
+            )
+            .to('[data-hero-hint]', { opacity: 1, y: 0, duration: 0.8, ease: EASE.out }, 2.2)
 
-        // The hint retires on first scroll — it did its job.
-        ScrollTrigger.create({
-          start: '40px top',
-          once: true,
-          onEnter: () =>
-            gsap.to('[data-hero-hint]', { opacity: 0, y: 8, duration: 0.35, ease: 'power2.out' }),
+          // The hint retires on first scroll — it did its job.
+          ScrollTrigger.create({
+            start: '40px top',
+            once: true,
+            onEnter: () => context.add(() => {
+              gsap.to('[data-hero-hint]', { opacity: 0, y: 8, duration: 0.35, ease: 'power2.out' })
+            }),
+          })
         })
       }
 
       if ((window as { __cgsShown?: boolean }).__cgsShown) play()
       else window.addEventListener(BOOTED_EVENT, play, { once: true })
-    }, root)
-    return () => ctx.revert()
+      return () => window.removeEventListener(BOOTED_EVENT, play)
+    })
+    return () => media.revert()
   }, [])
 
   // Counter-parallax: the words drift opposite the card's cursor tilt, so the
   // hero reads as layered space. Transform-only on two elements.
   useEffect(() => {
-    if (prefersReducedMotion()) return
-    if (!window.matchMedia('(pointer: fine)').matches) return
     const el = root.current
-    if (!el) return
+    if (!el || effectsPaused) return
     const left = el.querySelector('[data-hero-left]')
     const right = el.querySelector('[data-hero-right]')
     if (!left || !right) return
-    const lx = gsap.quickTo(left, 'x', { duration: 1.4, ease: 'power2.out' })
-    const ly = gsap.quickTo(left, 'y', { duration: 1.4, ease: 'power2.out' })
-    const rx = gsap.quickTo(right, 'x', { duration: 1.4, ease: 'power2.out' })
-    const ry = gsap.quickTo(right, 'y', { duration: 1.4, ease: 'power2.out' })
-    const onMove = (e: PointerEvent) => {
-      const nx = e.clientX / window.innerWidth - 0.5
-      const ny = e.clientY / window.innerHeight - 0.5
-      lx(nx * -12)
-      ly(ny * -8)
-      rx(nx * -8)
-      ry(ny * -6)
-    }
-    el.addEventListener('pointermove', onMove)
-    return () => el.removeEventListener('pointermove', onMove)
-  }, [])
+    const media = gsap.matchMedia(root)
+    media.add('(hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference)', () => {
+      const lx = gsap.quickTo(left, 'x', { duration: 1.4, ease: 'power2.out' })
+      const ly = gsap.quickTo(left, 'y', { duration: 1.4, ease: 'power2.out' })
+      const rx = gsap.quickTo(right, 'x', { duration: 1.4, ease: 'power2.out' })
+      const ry = gsap.quickTo(right, 'y', { duration: 1.4, ease: 'power2.out' })
+      const moves = [lx, ly, rx, ry]
+      const onMove = (e: PointerEvent) => {
+        if (document.hidden || e.pointerType === 'touch') return
+        const nx = e.clientX / window.innerWidth - 0.5
+        const ny = e.clientY / window.innerHeight - 0.5
+        lx(nx * -12); ly(ny * -8); rx(nx * -8); ry(ny * -6)
+      }
+      const center = () => { moves.forEach(move => move(0)) }
+      const visibility = () => { if (document.hidden) moves.forEach(move => move.tween.pause()); else center() }
+      el.addEventListener('pointermove', onMove, { passive: true })
+      el.addEventListener('pointerleave', center)
+      document.addEventListener('visibilitychange', visibility)
+      return () => {
+        el.removeEventListener('pointermove', onMove)
+        el.removeEventListener('pointerleave', center)
+        document.removeEventListener('visibilitychange', visibility)
+        moves.forEach(move => move.tween.kill())
+      }
+    })
+    return () => media.revert()
+  }, [effectsPaused])
 
   return (
     <section
@@ -103,38 +129,19 @@ export default function Hero() {
       id="top"
       className="relative isolate flex min-h-[100svh] items-center overflow-hidden"
     >
-      <CodeCity />
+      <CodeCity paused={effectsPaused} />
+      <EnergyVeil mode="hero" paused={effectsPaused} />
+      <ParticleField mode="hero" paused={effectsPaused} />
       <SectionIndex rank="A" />
 
       {/* The animation, front and center */}
-      <HeroCard />
+      <HeroCard onPausedChange={setEffectsPaused} />
 
       {/* Words at the sides */}
       <div className="container-site pointer-events-none relative z-10 grid min-h-[100svh] grid-cols-1 content-end gap-8 pb-24 pt-[max(46svh,calc(4rem+39svh+3rem))] md:min-h-0 md:grid-cols-[minmax(0,1fr)_minmax(16.25rem,30vw)_minmax(0,1fr)] md:content-center md:items-center md:gap-0 md:py-28">
         {/* Left side — the name */}
         <div data-hero-left className="md:pr-6 md:[container-type:inline-size]">
-          <h1 className="font-display pointer-events-auto text-[clamp(2.5rem,4.8vw,5.4rem)] md:text-[min(16cqw,5.4rem)] leading-[0.98] tracking-[-0.028em] text-[var(--text)]">
-            <span data-hero-line className="-mb-[0.12em] block overflow-hidden pb-[0.12em]">
-              <span className="block">Cornell</span>
-            </span>
-            <span data-hero-line className="-mb-[0.12em] block overflow-hidden pb-[0.12em]">
-              <span className="block">Computational</span>
-            </span>
-            <span data-hero-line className="-mb-[0.12em] block overflow-hidden pb-[0.12em]">
-              <span className="block">
-                {/* Breathe on an inner wrapper — the masked line span is GSAP's */}
-                Game{' '}
-                <em>
-                  <span
-                    className="life-breathe inline-block"
-                    style={{ ['--life-dur' as string]: '8.6s', ['--life-delay' as string]: '-2.9s' }}
-                  >
-                    Society
-                  </span>
-                </em>
-              </span>
-            </span>
-          </h1>
+          <GlassTitle />
         </div>
 
         {/* Center — kept clear for the card */}

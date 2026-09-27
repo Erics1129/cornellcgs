@@ -14,7 +14,7 @@ const COLORS = [
 
 /** Two-sided vector card. Entrance, float, pointer tilt and flip have separate
  * transform owners. Color belongs to this card, never the page or city. */
-export default function HeroCard() {
+export default function HeroCard({ onPausedChange }: { onPausedChange?: (paused: boolean) => void }) {
   const root = useRef<HTMLDivElement>(null)
   const flipAction = useRef<() => void>(() => {})
   const synchronize = useRef<() => void>(() => {})
@@ -96,6 +96,7 @@ export default function HeroCard() {
       index = (index + 1) % COLORS.length; turns++
       if (reduce.matches || pausedRef.current) { paintColor(true); finish(); return }
       flipping = true; el.dataset.flipping = 'true'; button.setAttribute('aria-busy', 'true')
+      el.dispatchEvent(new CustomEvent('cgs:card-flip', { bubbles: true }))
       flip?.kill(); paintColor()
       const from = ((turns - 1) % 2) * 180
       flip = gsap.timeline({ onUpdate: paintFace, onComplete: finish })
@@ -172,7 +173,7 @@ export default function HeroCard() {
       {/* The hit area stays still while the visual floats and turns. */}
       <button className="hero-poker" type="button" aria-label="Flip the poker card" aria-busy="false" onClick={() => flipAction.current()} />
       <div className="poker-controls"><span aria-hidden="true">Flip the card</span><span className="poker-control-divider" aria-hidden="true" />
-        <button type="button" className="poker-pause" aria-label={paused ? 'Resume card animation' : 'Pause card animation'} aria-pressed={paused} onClick={() => setPaused(!paused)}>
+        <button type="button" className="poker-pause" aria-label={paused ? 'Resume card animation' : 'Pause card animation'} aria-pressed={paused} onClick={() => { setPaused(!paused); onPausedChange?.(!paused) }}>
           {paused ? <svg viewBox="0 0 16 16" aria-hidden="true"><path d="m5 3 7 5-7 5Z" /></svg> : <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M5 3v10M11 3v10" /></svg>}
         </button>
       </div>

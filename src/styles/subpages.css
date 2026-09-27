@@ -42,7 +42,7 @@
 .sp-action { display: inline-flex; align-items: center; justify-content: space-between; gap: 2rem; min-height: 48px; margin-top: 1.5rem; padding: .65rem 0; border-bottom: 1px solid currentColor; font-size: 1rem; font-weight: 600; }
 .sp-action:hover span { transform: translate(3px,-3px); }
 
-/* Generated photographic artwork stays intact; a continuous camera and light pass animate it. */
+/* Native films: objects move inside the scene. Bounded pointer look is composited. */
 .page-scene { min-width: 0; position: relative; color: var(--sp-ink); }
 .page-scene__window { position: relative; aspect-ratio: 1 / 1.55; background: var(--sp-panel); overflow: hidden; contain: paint; }
 .page-scene__poster, .page-scene__canvas { position: absolute; inset: 0; display: block; width: 100%; height: 100%; }
@@ -304,3 +304,13 @@
 @media (prefers-reduced-motion: reduce) {
   .subpage *, .subpage *::before, .subpage *::after { animation: none !important; transition: none !important; }
 }
+
+.page-scene__film { position: absolute; inset: -12px; width: calc(100% + 24px); height: calc(100% + 24px); object-fit: cover; object-position: var(--scene-position,50%); opacity: 0; transition: opacity .3s ease; }
+.page-scene[data-renderer='video'] .page-scene__film { opacity: 1; }
+.page-scene[data-renderer='video'] .page-scene__poster { visibility: hidden; }
+.page-scene[data-playback='playing'] .page-scene__film { will-change: transform; }
+.page-scene[data-playback='reduced'] .page-scene__film { display: none; }
+.page-scene[data-playback='reduced'] .page-scene__poster { visibility: visible; }
+@media (prefers-reduced-motion: reduce) { .page-scene__film { display: none; } .page-scene[data-renderer='video'] .page-scene__poster { visibility: visible; } }
+/* Tailwind's media reset caps video at 100%; keep the intentional look margin. */
+.page-scene__film { max-width: none; }

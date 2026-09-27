@@ -1,115 +1,62 @@
-import { useLayoutEffect, useRef, useState, type CSSProperties } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import SectionIndex from './SectionIndex'
 import ScrollWords from './ScrollWords'
 import { events } from '../content'
-import { useSectionReveals } from '../lib/reveal'
-import { dealCard, fanLayout, hoverLift, observeCardLayout, shadowStyle } from '../lib/cardMotion'
-
+import '../styles/event-agenda.css'
 gsap.registerPlugin(ScrollTrigger)
 
 export default function Events() {
   const root = useRef<HTMLElement>(null)
-  const hand = useRef<HTMLDivElement>(null)
-  const panel = useRef<HTMLDivElement>(null)
-  const opener = useRef<HTMLButtonElement | null>(null)
   const [open, setOpen] = useState<number | null>(null)
-  useSectionReveals(root)
-  const count = events.items.length
-  const shown = open === null ? undefined : events.items[open]
-  const rest = fanLayout(count, { step: 5, drop: 7 })
-
+  useEffect(() => {
+    if (open === null) return
+    const escape = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return
+      event.preventDefault()
+      root.current?.querySelectorAll<HTMLButtonElement>('.agenda-trigger')[open]?.focus()
+      setOpen(null)
+    }
+    document.addEventListener('keydown', escape)
+    return () => document.removeEventListener('keydown', escape)
+  }, [open])
   useLayoutEffect(() => {
-    const container = hand.current
-    if (!container) return
-    const slots = Array.from(container.querySelectorAll<HTMLElement>('[data-event-slot]'))
-    if (!slots.length) return
-    const mm = gsap.matchMedia()
-    mm.add({ all: 'all', wide: '(min-width: 1024px)', reduce: '(prefers-reduced-motion: reduce)' }, (context) => {
-      const fan = context.conditions?.wide && count <= 7
-      if (context.conditions?.reduce) return
-      const add = (tl: gsap.core.Timeline, slot: HTMLElement, i: number, at: number) => {
-        const surface = slot.querySelector<HTMLElement>('[data-event-deal]')!
-        const shadow = slot.querySelector<HTMLElement>('[data-event-shadow]')
-        tl.add(dealCard(surface, {
-          from: {
-            x: () => fan ? -(i - (count - 1) / 2) * Math.min(90, container.clientWidth / (count + 1)) : (i % 2 ? 18 : -18),
-            y: fan ? 88 : 56, rotation: i % 2 ? 9 : -9,
-          }, duration: 0.8, rotation: 0, lift: -20, shadow,
-        }), at)
-      }
-      if (fan) {
-        const tl = gsap.timeline({ scrollTrigger: {
-          trigger: container, start: 'top 93%', end: 'top 40%', scrub: 0.22, invalidateOnRefresh: true,
-        } })
-        // Outside seats land first, with the centre card on top.
-        slots.map((_, i) => i).sort((a, b) => Math.abs(b - (count - 1) / 2) - Math.abs(a - (count - 1) / 2))
-          .forEach((i, order) => add(tl, slots[i], i, order * 0.09))
-      } else {
-        slots.forEach((slot, i) => {
-          const tl = gsap.timeline({ scrollTrigger: {
-            trigger: slot, start: 'top 95%', end: 'top 55%', scrub: 0.2, invalidateOnRefresh: true,
-          } })
-          add(tl, slot, i, 0)
-        })
-      }
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) ScrollTrigger.refresh()
+  }, [open])
+  useLayoutEffect(() => {
+    const media = gsap.matchMedia(root)
+    media.add('(prefers-reduced-motion: no-preference)', () => {
+      root.current!.querySelectorAll('.agenda-row').forEach(row => {
+        gsap.fromTo(row, { opacity: 0, y: 22 }, { opacity: 1, y: 0, ease: 'power2.out',
+          scrollTrigger: { trigger: row, start: 'top 96%', end: 'top 78%', scrub: .3 } })
+      })
     })
-    const lifts = slots.map((slot) => hoverLift(slot.querySelector<HTMLElement>('[data-event-lift]')!, { hitArea: slot, maxTilt: 3, lift: -9 }))
-    const unobserve = observeCardLayout([container, ...slots])
-    return () => { unobserve(); lifts.forEach((off) => off()); mm.revert() }
-  }, [count])
-
-  useLayoutEffect(() => {
-    if (!root.current) return
-    const unobserve = observeCardLayout([root.current])
-    return unobserve
+    return () => media.revert()
   }, [])
-
-  const close = () => { setOpen(null); opener.current?.focus({ preventScroll: true }) }
-
-  return (
-    <section ref={root} id="events" className="section card-events-section">
-      <SectionIndex rank="10" />
-      <div className="container-site">
-        <h2 className="h-section mb-6 max-w-[16ch]"><ScrollWords text={events.heading} treatment="spread" /></h2>
-        {count === 0 && <p className="body-muted">New events will appear here when announced.</p>}
-        <div ref={hand} className={`event-hand ${count <= 7 ? 'event-hand-fan' : ''}`} data-interactive>
-          {events.items.map((event, i) => (
-            <div key={`${event.title}-${i}`} data-event-slot className="event-slot" style={{
-              '--seat': i - (count - 1) / 2,
-              '--seat-angle': `${rest[i].rotation}deg`,
-              '--seat-drop': `${rest[i].y}px`,
-              '--seat-z': Math.round(count - Math.abs(i - (count - 1) / 2)),
-            } as CSSProperties}>
-              <div data-event-shadow aria-hidden="true" style={shadowStyle()} />
-              <div data-event-deal className="card-deal">
-                <div data-event-lift className="card-lift">
-                  <button type="button" onClick={(event) => {
-                    opener.current = event.currentTarget
-                    setOpen((previous) => previous === i ? null : i)
-                  }} aria-label={`${event.title}, ${event.date}. ${open === i ? 'Hide' : 'Show'} event details`}
-                    aria-expanded={open === i} aria-controls="event-details"
-                    className="card-face-surface card-material event-surface">
-                    <span className="material-index" aria-hidden="true"><span>{i + 1}</span><span>♠</span></span>
-                    <span><span className="h-card block text-[var(--ink)]">{event.title}</span><span className="event-date mono">{event.date}</span></span>
-                    <span className="event-invitation mono">{open === i ? 'Close details −' : 'View event +'} </span>
-                  </button>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-        <div ref={panel} id="event-details" role="region" aria-labelledby={shown ? 'event-detail-title' : undefined} hidden={!shown}
-          className="event-details panel" onKeyDown={(event) => { if (event.key === 'Escape') close() }}>
-          {shown && <>
-            <p className="eyebrow mb-2">{shown.date}</p>
-            <h3 id="event-detail-title" className="h-card mb-3 text-[var(--text)]">{shown.title}</h3>
-            <p className="body-muted">{shown.blurb}</p>
-            <button type="button" onClick={close} className="event-details-close mono" aria-label="Close event details">Close ×</button>
-          </>}
-        </div>
+  return <section ref={root} id="events" className="section event-agenda">
+    <SectionIndex rank="10" />
+    <div className="container-site agenda-layout">
+      <header className="agenda-heading">
+        <p className="agenda-eyebrow">The calendar</p>
+        <h2><ScrollWords text={events.heading} treatment="spread" /></h2>
+        <a className="agenda-more" href="/events/">All events <span aria-hidden="true">↗</span></a>
+      </header>
+      <div className="agenda-list">
+        {!events.items.length && <p>New events will appear here when announced.</p>}
+        {events.items.map((item, i) => <article key={`${item.title}-${i}`} className="agenda-row" data-open={open === i}>
+          <h3><button className="agenda-trigger" type="button" aria-expanded={open === i} aria-controls={`agenda-detail-${i}`}
+            onClick={() => setOpen(open === i ? null : i)}>
+            <span className="agenda-number" aria-hidden="true">{String(i + 1).padStart(2, '0')}</span>
+            <span className="agenda-name">{item.title}<span className="agenda-date">{item.date}</span></span>
+            <span className="agenda-plus" aria-hidden="true">+</span>
+          </button></h3>
+          <div id={`agenda-detail-${i}`} className="agenda-reveal" aria-hidden={open !== i}
+            onTransitionEnd={event => { if (event.target === event.currentTarget && event.propertyName === 'grid-template-rows') ScrollTrigger.refresh() }}>
+            <div><p>{item.blurb}</p></div>
+          </div>
+        </article>)}
       </div>
-    </section>
-  )
+    </div>
+  </section>
 }

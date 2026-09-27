@@ -253,6 +253,8 @@ export default function CodeLayer() {
     }
 
     const buildColumns = () => {
+      // A resize changes both the column and slot indices held by a flash.
+      flash = null
       const n = Math.max(2, Math.min(5, Math.round(w / 440)))
       const slot = w / n
       const count = Math.ceil((h + LINE_H * 2) / LINE_H) + 1
@@ -589,6 +591,11 @@ export default function CodeLayer() {
         cancelAnimationFrame(raf)
         raf = 0
         flash = null
+        if (lerpStart >= 0) {
+          palette = lerpTo
+          lerpStart = -1
+          renderAtlas(palette)
+        }
         fluid.clear()
         for (const col of cols) col.ofs.fill(0) // the static frame sits at rest
         drawStatic()

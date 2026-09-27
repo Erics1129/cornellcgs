@@ -63,8 +63,8 @@ export default function SceneCanvas({ kind, paused = false }: { kind: SceneKind;
       if (kind === 'eye' && !near) return
       const r = box!.getBoundingClientRect()
       if (kind === 'eye') projectEyePointer(r)
-      const cap = matchMedia('(pointer: coarse)').matches ? 1152 : 1680
-      const dpr = Math.min(devicePixelRatio || 1, 1.6, cap / Math.max(1, r.width))
+      const cap = matchMedia('(pointer: coarse)').matches ? 1600 : 3840
+      const dpr = Math.min(devicePixelRatio || 1, 2, cap / Math.max(1, r.width), Math.sqrt(8_294_400 / Math.max(1, r.width * r.height)))
       const width = Math.max(1, Math.round(r.width * dpr))
       const height = Math.max(1, Math.round(r.height * dpr))
       if (kind === 'eye' && el!.width === width && el!.height === height) return

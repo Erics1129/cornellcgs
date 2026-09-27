@@ -22,6 +22,19 @@ for (const [name, engine, width, height] of [
     // The city is now a native movie of offline-rendered 3D frames. Its
     // source and presentation must stay independent of every card color.
     await page.waitForFunction(() => document.querySelector('.code-city').dataset.renderer === 'ready')
+    await page.waitForFunction(() => document.querySelector('.hero-glass-title')?.dataset.reflection !== undefined)
+    const reflectedScene = () => page.evaluate(() => {
+      const video = document.querySelector('.code-city__video'), title = document.querySelector('.hero-glass-title')
+      return { time: video.currentTime, reflection: title.dataset.reflection,
+        colors: [0, 1, 2].map(i => title.style.getPropertyValue(`--glass-${i}`)) }
+    })
+    const waitForSharedPause = () => page.waitForFunction(() => document.querySelector('.code-city').dataset.playback === 'paused'
+      && document.querySelector('.code-city__video').paused && document.querySelector('.hero-glass-title').dataset.glassMotion === 'paused')
+    const waitForSharedResume = before => page.waitForFunction(previous => {
+      const video = document.querySelector('.code-city__video'), title = document.querySelector('.hero-glass-title')
+      return !video.paused && document.querySelector('.code-city').dataset.playback === 'playing'
+        && title.dataset.glassMotion === 'running' && video.currentTime !== previous.time && title.dataset.reflection !== previous.reflection
+    }, before)
     const palette = () => page.locator('.code-city').evaluate(e => {
       const video = e.querySelector('video')
       return { source: video.currentSrc, filter: getComputedStyle(video).filter, blend: getComputedStyle(video).mixBlendMode, hostFilter: getComputedStyle(e).filter }
@@ -45,14 +58,20 @@ for (const [name, engine, width, height] of [
     // Stop halfway through a second flip; resuming must continue from the same pose.
     await button.click(); await page.waitForTimeout(430)
     await page.getByRole('button', { name: 'Pause card animation' }).click()
+    await waitForSharedPause()
     const pose = await page.locator('.poker-turn').getAttribute('style')
+    const frozenScene = await reflectedScene()
     await page.waitForTimeout(250)
     assert.equal(await page.locator('.poker-turn').getAttribute('style'), pose)
+    assert.deepEqual(await reflectedScene(), frozenScene, 'Pause freezes the city and its glass-title reflections together')
     await page.getByRole('button', { name: 'Resume card animation' }).click()
+    await waitForSharedResume(frozenScene)
     await page.waitForFunction(() => document.querySelector('.poker-stage').dataset.flipping === 'false')
     assert.equal(await card.getAttribute('data-face'), 'ace')
     // All local colors, including wraparound, remain independent of the city/page.
     await page.getByRole('button', { name: 'Pause card animation' }).click()
+    await waitForSharedPause()
+    const pausedScene = await reflectedScene()
     for (const next of ['violet', 'carbon', 'midnight', 'ice', 'lilac']) {
       await button.click(); assert.equal(await color(), next)
     }
@@ -69,8 +88,10 @@ for (const [name, engine, width, height] of [
     await page.waitForTimeout(400)
     assert.equal(await color(), stoppedColor)
     await page.evaluate(() => scrollTo(0, 0))
-    await page.waitForFunction(() => document.querySelector('.code-city').dataset.playback === 'playing')
+    await waitForSharedPause()
+    assert.deepEqual(await reflectedScene(), pausedScene, 'Returning to the hero preserves shared Pause')
     await page.getByRole('button', { name: 'Resume card animation' }).click()
+    await waitForSharedResume(pausedScene)
     const beforeAuto = await color()
     await page.waitForFunction(previous => document.querySelector('.poker-stage').dataset.color !== previous, beforeAuto, { timeout: 12500 })
     await page.waitForFunction(() => document.querySelector('.poker-stage').dataset.flipping === 'false')
@@ -81,6 +102,6 @@ for (const [name, engine, width, height] of [
     assert.equal(await card.getAttribute('data-flipping'), 'false')
     assert.equal(await page.locator('.code-city').getAttribute('data-playback'), 'reduced')
     assert.deepEqual(errors, [])
-    console.log('PASS', name, 'faces, keyboard, pause/resume, five local colors, city scope, code field, automatic flip, reduced motion; no page errors')
+    console.log('PASS', name, 'faces, keyboard, shared city/glass pause and resume, five local colors, city scope, code field, automatic flip, reduced motion; no page errors')
   } finally { await browser.close() }
 }

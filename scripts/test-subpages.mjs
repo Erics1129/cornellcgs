@@ -18,8 +18,8 @@ export const base = (process.env.CGS_TEST_URL || `http://127.0.0.1:${isProductio
 export const output = process.env.CGS_SCREENSHOTS || '/tmp/cgs-subpages'
 export const path = id => `/${content.pageSlugs[id]}/`
 export const ids = Object.keys(content.pages)
-export const artwork = id => `/assets/page-scenes/${id}/cinematic-v2.webp`
-export const imageDimensions = id => id === 'events' ? [1536, 1024] : [1024, 1536]
+export const artwork = id => `/assets/page-scenes/${id}/motion-v3.webp`
+export const imageDimensions = id => id === 'events' ? [3840, 2160] : [2160, 3840]
 const graphIds = ['what-we-do', 'ml-process', 'world', 'people', 'advisors']
 export const selectedIds = () => {
   const selected = ids.filter(id => !process.env.CGS_TEST_PAGE || id.match(process.env.CGS_TEST_PAGE))
@@ -80,7 +80,7 @@ export function installGLProbe() {
 }
 export const probe = page => page.evaluate(() => window.__pageSceneTest())
 export const playback = (page, state) => page.waitForFunction(state => document.querySelector('.page-scene')?.dataset.playback === state, state)
-export const frame = page => page.locator('.page-scene__canvas').screenshot()
+export const frame = page => page.locator('.page-scene__window').screenshot()
 export function pixels(buffer) { return PNG.sync.read(buffer) }
 export function difference(a, b) {
   assert.equal(a.width, b.width); assert.equal(a.height, b.height)
@@ -96,7 +96,7 @@ export function difference(a, b) {
 export function assertRendered(buffer) {
   const image = pixels(buffer), colors = new Set()
   for (let i = 0; i < image.data.length; i += 4 * 11) colors.add(`${image.data[i] >> 3},${image.data[i + 1] >> 3},${image.data[i + 2] >> 3}`)
-  assert.ok(colors.size > 30, `canvas must contain a detailed photograph (${colors.size} colors)`)
+  assert.ok(colors.size > 30, `scene must contain a detailed rendered image (${colors.size} colors)`)
 }
 export const visibleCopy = async locator => {
   await locator.evaluate(async el => {
@@ -114,52 +114,50 @@ export const visibleCopy = async locator => {
     return true
   }), 'copy and its ancestors stay fully opaque')
 }
+export const mediaState = page => page.locator('.page-scene video').evaluate(video => ({
+  time: video.currentTime, paused: video.paused, readyState: video.readyState,
+  source: video.currentSrc, width: video.videoWidth, height: video.videoHeight,
+  duration: video.duration, error: video.error?.message || null,
+}))
 export async function sceneReady(page, id) {
   await page.waitForSelector(`[data-subpage="${id}"]`)
   await page.evaluate(() => document.fonts.ready)
   const scene = page.locator('.page-scene')
-  await scene.scrollIntoViewIfNeeded()
-  await page.waitForFunction(() => ['webgl2', 'fallback'].includes(document.querySelector('.page-scene')?.dataset.renderer))
-  assert.equal(await scene.getAttribute('data-renderer'), 'webgl2', `${id} must initialize WebGL`)
+  await scene.locator('.page-scene__window').scrollIntoViewIfNeeded()
+  await page.waitForFunction(() => document.querySelector('.page-scene')?.dataset.renderer === 'video')
   await playback(page, 'playing')
-  assert.equal(await scene.locator('canvas').count(), 1)
-  assert.equal(await scene.locator('img').count(), 1, 'single generated poster; no image sequence')
+  assert.equal(await scene.locator('video').count(), 1, 'one native video decoder')
+  assert.equal(await scene.locator('canvas').count(), 0, 'scene renders the film directly')
+  assert.equal(await scene.locator('img').count(), 1, 'single matching poster')
   await page.waitForFunction(() => { const img = document.querySelector('.page-scene__poster'); return img?.complete && img.naturalWidth > 0 })
   assert.equal(await scene.locator('img').getAttribute('src'), artwork(id))
-  assert.deepEqual(await scene.locator('img').evaluate(img => [img.naturalWidth, img.naturalHeight]), imageDimensions(id), 'generated master dimensions')
-  assert.deepEqual(await scene.locator('img').evaluate(img => [Number(img.getAttribute('width')), Number(img.getAttribute('height'))]), imageDimensions(id), 'poster declares the master dimensions')
+  assert.deepEqual(await scene.locator('img').evaluate(img => [img.naturalWidth, img.naturalHeight]), imageDimensions(id), 'matching 4K poster dimensions')
   assert.equal(await scene.locator('.page-scene__poster').isVisible(), false)
-  assert.equal(await scene.locator('canvas').evaluate(el => getComputedStyle(el).opacity), '1')
-  assert.ok(await scene.locator('canvas').evaluate(el => el.width > 50 && el.height > 50))
-  assert.ok((await scene.getByRole('img').getAttribute('aria-label')).length > 15, 'canvas has an accessible description')
+  await page.waitForFunction(() => getComputedStyle(document.querySelector('.page-scene video')).opacity === '1')
+  assert.ok((await scene.getByRole('img').getAttribute('aria-label')).length > 15, 'scene has an accessible description')
+  const state = await mediaState(page)
+  assert.equal(state.duration, 8, 'eight-second object animation')
+  assert.equal(state.error, null, 'native decoder is healthy')
   return scene
 }
 export async function assertImageResource(page, id, requests) {
-  const expected = artwork(id), gl = await probe(page)
-  assert.ok(gl, `${id}: renderer has a GL probe`)
-  assert.equal(gl.context, 'webgl2', 'real WebGL2 context')
-  assert.equal(gl.uploads, 1, 'one photograph upload per context')
-  assert.equal(gl.live.Texture, 1, 'one live photograph texture')
-  assert.ok(gl.image, 'texture upload uses a decoded image')
-  assert.equal(new URL(gl.image.url).pathname, expected, 'GPU uses the same master as the poster')
-  assert.deepEqual([gl.image.width, gl.image.height], imageDimensions(id), 'GPU receives the full master')
-  assert.ok(requests.length > 0 && requests.every(url => new URL(url).pathname === expected), 'only this page requests its generated master')
-  const entries = await page.evaluate(() => performance.getEntriesByType('resource').filter(r => r.name.includes('/assets/page-scenes/')).map(r => ({ url: r.name, transferSize: r.transferSize, encodedBodySize: r.encodedBodySize, responseEnd: r.responseEnd })))
-  assert.ok(entries.length > 0 && entries.every(r => new URL(r.url).pathname === expected && r.responseEnd > 0), 'poster and renderer finish loading the same asset')
-  // Some engines emit separate entries for img and new Image() even when the
-  // decoded resource is shared. WebKit also reports a 300-byte transfer for
-  // each 304 revalidation under Vite's no-cache headers, with zero body bytes.
-  // Count actual image-body transfers, preserving the duplicate-download check.
-  assert.ok(entries.filter(r => r.encodedBodySize > 0 && r.transferSize > r.encodedBodySize).length <= 1, `at most one image body download for the shared image: ${JSON.stringify(entries)}`)
+  const state = await mediaState(page), poster = artwork(id)
+  const expectedFilm = `/assets/page-scenes/${id}/motion-v3-${await page.locator('.page-scene').getAttribute('data-quality')}.mp4`
+  assert.equal(new URL(state.source).pathname, expectedFilm, 'chosen native stream')
+  assert.ok(requests.length > 0 && requests.every(url => [poster, expectedFilm].includes(new URL(url).pathname)), 'only this page requests its poster and selected stream')
+  assert.equal(new Set(requests.filter(url => /\.mp4(?:\?|$)/.test(url))).size, 1, 'one stream tier is requested')
+  const quality = expectedFilm.includes('-mobile.') ? 'mobile' : expectedFilm.includes('-4k.') ? '4k' : '1080'
+  const short = { mobile: 720, '1080': 1080, '4k': 2160 }[quality], long = { mobile: 1280, '1080': 1920, '4k': 3840 }[quality]
+  assert.deepEqual([state.width, state.height], id === 'events' ? [long, short] : [short, long], 'native stream dimensions')
 }
 export async function assertNoFrames(page, label, ms = 250) {
-  // Allow observer delivery, then require zero actual GL work for the interval.
   await page.waitForTimeout(80)
-  const before = await probe(page)
-  assert.ok(before, `${label}: GL probe attached`)
+  const before = await mediaState(page)
+  assert.equal(before.paused, true, `${label}: decoder is paused`)
   await page.waitForTimeout(ms)
-  const after = await probe(page)
-  assert.deepEqual(after, before, `${label}: zero GL clears/draws/allocations`)
+  const after = await mediaState(page)
+  assert.equal(after.time, before.time, `${label}: native playhead is stable`)
+  assert.equal(after.source, before.source, `${label}: source remains stable`)
   return after
 }
 export async function setHidden(page, hidden) {
@@ -298,21 +296,22 @@ async function testSubpages(browser, { testCase, width, height }) {
       assert.equal(await page.locator('.sp-section__aside').count(), 0, 'one heading per section')
       assert.equal(await page.locator('.code-city, #code-layer-canvas, .poker-stage, .life-float, .life-breathe').count(), 0)
       assert.equal(await page.locator('.sp-brand .cgs-brand-die').count(), 1)
-      assert.equal(await page.getByRole('combobox', { name: 'Explore other pages' }).locator('option').count(), 10)
+      assert.equal(await page.locator('.page-navigator__link').count(), 9)
+      assert.equal(await page.locator('.page-navigator__link[aria-current=page]').getAttribute('href'), path(id))
       const scene = await sceneReady(page, id)
       assert.equal(await page.evaluate(() => '__pageScene' in window), false, 'production does not expose the DEV motion hook')
       await assertImageResource(page, id, h.requests)
-      const moving = await frame(page), before = await probe(page)
+      const moving = await frame(page), before = await mediaState(page)
       assertRendered(moving)
       await page.waitForTimeout(300)
-      assert.ok(!moving.equals(await frame(page)), 'autoplay changes the rendered photograph')
-      assert.ok((await probe(page)).draws > before.draws, 'autoplay submits new GL draws')
+      assert.ok(!moving.equals(await frame(page)), 'autoplay changes the rendered film')
+      assert.notEqual((await mediaState(page)).time, before.time, 'autoplay advances the native playhead')
       await page.getByRole('button', { name: 'Pause scene animation', exact: true }).click()
       await playback(page, 'paused')
       await assertNoFrames(page, 'paused')
       const stopped = await frame(page)
       await page.waitForTimeout(150)
-      assert.ok(stopped.equals(await frame(page)), 'pause freezes the actual canvas pixels')
+      assert.ok(stopped.equals(await frame(page)), 'pause freezes the actual film pixels')
       assert.equal(await scene.getByRole('button').getAttribute('aria-pressed'), 'true')
       await page.getByRole('button', { name: 'Resume scene animation', exact: true }).click()
       await playback(page, 'playing')
@@ -372,20 +371,20 @@ async function testSubpages(browser, { testCase, width, height }) {
       await page.mouse.move(5, 5); await page.mouse.move(width / 2, height / 2)
       await page.waitForTimeout(150)
       assert.ok(reduced.equals(await frame(page)), 'reduced motion keeps the photograph static after mouse input')
-      const afterLifecycle = await probe(page)
-      assert.deepEqual(afterLifecycle.created, before.created, 'playback and resize do not allocate new GPU resources')
-      assert.deepEqual(afterLifecycle.live, before.live, 'playback and resize retain a stable GPU resource count')
-      assert.equal(afterLifecycle.uploads, before.uploads, 'playback and resize do not upload the photograph again')
+      const afterLifecycle = await mediaState(page)
+      assert.equal(afterLifecycle.source, before.source, 'playback and resize keep the selected stream')
+      assert.equal(await scene.locator('video').count(), 1, 'one decoder after lifecycle changes')
       assert.equal(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth), 0, `${id} no horizontal overflow`)
       await page.evaluate(() => scrollTo(0, 0))
       await page.screenshot({ path: `${output}/${testCase}-${id}.png`, fullPage: true })
       await page.emulateMedia({ reducedMotion: 'no-preference' })
       const next = ids[(ids.indexOf(id) + 1) % ids.length]
-      await page.getByRole('combobox', { name: 'Explore other pages' }).selectOption(next)
+      await page.getByRole('button', { name: 'Explore other pages' }).click()
+      await page.locator(`.page-navigator__link[href="${path(next)}"]`).click()
       await page.waitForURL(base + path(next))
       await page.waitForSelector(`[data-subpage="${next}"]`)
     })
-    if (passed) console.log('PASS', testCase, id, 'content, route, shared photograph, autoplay, pause/resume, offscreen/hidden zero GL work, RM, navigation')
+    if (passed) console.log('PASS', testCase, id, 'content, route, single film, autoplay, pause/resume, offscreen/hidden pause, RM, navigation')
   }
   h.setOverrides({ pages: Object.fromEntries(ids.map(id => [id, { ...content.pages[id], title: `Edited ${content.pages[id].title}`, sections: [...content.pages[id].sections, { heading: 'Admin addition', body: 'A published extra section.', link: { label: 'Open contact', href: '/contact/' } }] }])), site: { credit: 'Edited website credit' }, team: [{ label: 'Updated roster', alt: 'Roster detail', people: [{ name: 'Published member', major: 'Published major' }] }], advisors: [{ ...content.advisors[0], name: 'Published advisor', photo: '/assets/team/elsie-lu.jpg' }] })
   for (const id of ids) await clean(`${testCase}/admin/${id}`, async () => {
@@ -419,7 +418,8 @@ async function testSubpages(browser, { testCase, width, height }) {
     assert.ok(Math.abs(before - after) <= 3, `Back restores exact deck position ${before} → ${after}`)
     await page.locator('.earth-intro-copy a[href="/world/"]').click()
     await page.waitForURL(base + path('world'))
-    await page.getByRole('combobox', { name: 'Explore other pages' }).selectOption('contact')
+    await page.getByRole('button', { name: 'Explore other pages' }).click()
+    await page.locator(`.page-navigator__link[href="${path('contact')}"]`).click()
     await page.waitForURL(base + path('contact'))
     await page.getByRole('link', { name: 'Back', exact: true }).click()
     await page.waitForFunction(() => window.__cgsShown === true)
@@ -434,78 +434,41 @@ async function testSubpages(browser, { testCase, width, height }) {
   return { flows: results.length, details: `${output}/${testCase}-subpages-details.json` }
 }
 async function testFallback(browser, { testCase, width, height }) {
-  // Deliberately failed WebGL runs are isolated from normal console-health runs.
-  for (const mode of ['unavailable', 'context-loss']) {
+  // Failed media requests are isolated from the normal console-health checks.
+  for (const mode of ['film-error', 'poster-error']) {
     const h = await createHarness(browser, width, height), { page } = h
-    if (mode === 'unavailable') await page.addInitScript(() => {
-      const original = HTMLCanvasElement.prototype.getContext
-      HTMLCanvasElement.prototype.getContext = function (type, ...args) { return /^webgl/.test(type) && this.matches('.page-scene__canvas') ? null : original.call(this, type, ...args) }
-    })
     try {
+      await page.route('**/assets/page-scenes/**/*.mp4', route => route.abort())
+      if (mode === 'poster-error') await page.route('**/assets/page-scenes/**/motion-v3.webp', route => route.abort())
       await page.goto(base + path('who-we-are'))
-      await page.locator('.page-scene').scrollIntoViewIfNeeded()
-      if (mode === 'context-loss') {
-        await sceneReady(page, 'who-we-are')
-        const available = await page.locator('.page-scene__canvas').evaluate(canvas => {
-          const extension = canvas.getContext('webgl2').getExtension('WEBGL_lose_context')
-          if (!extension) return false
-          window.__restoreTestScene = () => extension.restoreContext()
-          extension.loseContext(); return true
-        })
-        assert.ok(available, 'WEBGL_lose_context available for real context-loss test')
-      }
+      await page.locator('.page-scene__window').scrollIntoViewIfNeeded()
       await playback(page, 'fallback')
       assert.equal(await page.locator('.page-scene').getAttribute('data-renderer'), 'fallback')
       const poster = page.locator('.page-scene__poster')
       await poster.waitFor({ state: 'visible' })
       await page.waitForFunction(() => { const img = document.querySelector('.page-scene__poster'); return img.complete && img.naturalWidth > 0 })
       assert.equal(await page.locator('.page-scene img').count(), 1)
-      assert.equal(await poster.getAttribute('src'), artwork('who-we-are'))
-      assert.deepEqual(await poster.evaluate(img => [img.naturalWidth, img.naturalHeight]), imageDimensions('who-we-are'))
-      assert.equal(await page.locator('.page-scene canvas').evaluate(el => getComputedStyle(el).opacity), '0')
-      const still = await poster.screenshot()
+      const expected = mode === 'poster-error' ? '/assets/page-scenes/who-we-are/cinematic-v2.webp' : artwork('who-we-are')
+      assert.equal(await poster.getAttribute('src'), expected, 'failed poster uses the existing image fallback')
+      await assertNoFrames(page, mode)
+      const still = await frame(page)
       await page.waitForTimeout(200)
-      assert.ok(still.equals(await poster.screenshot()), 'generated poster remains static')
-      const lostProbe = await probe(page)
+      assert.ok(still.equals(await frame(page)), 'fallback remains visibly static')
       await setHidden(page, true)
       await page.waitForTimeout(100)
-      assert.equal(await page.locator('.page-scene').getAttribute('data-playback'), 'fallback', 'hidden fallback retains its state')
+      await playback(page, 'fallback')
       await setHidden(page, false)
       await page.getByRole('button', { name: 'Pause scene animation', exact: true }).click()
-      await page.waitForTimeout(80)
-      assert.equal(await page.locator('.page-scene').getAttribute('data-playback'), 'fallback', 'pause retains fallback state')
+      await playback(page, 'fallback')
       await page.getByRole('button', { name: 'Resume scene animation', exact: true }).click()
-      await page.waitForTimeout(100)
-      assert.equal(await page.locator('.page-scene').getAttribute('data-playback'), 'fallback', 'resume cannot restart a lost renderer')
+      await playback(page, 'fallback')
       await page.emulateMedia({ reducedMotion: 'reduce' })
       await page.waitForTimeout(100)
-      assert.equal(await page.locator('.page-scene').getAttribute('data-playback'), 'fallback', 'RM retains fallback state')
-      await page.emulateMedia({ reducedMotion: 'no-preference' })
-      await page.waitForTimeout(100)
-      if (lostProbe) {
-        const after = await probe(page)
-        assert.equal(after.clears, lostProbe.clears, 'no paints while context is lost')
-        assert.equal(after.draws, lostProbe.draws, 'no draws while context is lost')
-      }
+      await playback(page, 'fallback')
       await visibleCopy(page.locator('h1'))
+      assert.equal(await page.locator('vite-error-overlay, nextjs-portal').count(), 0)
       await page.screenshot({ path: `${output}/${testCase}-fallback-${mode}.png` })
-      if (mode === 'context-loss') {
-        await page.evaluate(() => window.__restoreTestScene())
-        // restoreContext delivers an asynchronous event, then the renderer
-        // decodes its cached image before creating the replacement resources.
-        // sceneReady accepts an initial fallback, so explicitly await recovery.
-        await page.waitForFunction(() => document.querySelector('.page-scene')?.dataset.renderer === 'webgl2')
-        await sceneReady(page, 'who-we-are')
-        const restored = await frame(page), before = await probe(page)
-        assertRendered(restored)
-        await page.waitForTimeout(220)
-        assert.ok(!restored.equals(await frame(page)), 'restored context resumes visible image motion')
-        const after = await probe(page)
-        assert.ok(after.draws > before.draws, 'restored context draws again')
-        assert.equal(after.lost, false); assert.equal(after.error, 0)
-      }
-      assert.ok(h.errors.every(message => /Error creating WebGL context|context lost/i.test(message)
-        || (mode === 'unavailable' && /^Scene retains its generated still: (?:Error: )?WebGL2 is unavailable for the scene photograph(?:\n|$)/.test(message))), `only deliberately induced WebGL failure is allowed: ${h.errors.join('; ')}`)
+      assert.ok(h.errors.every(message => /Failed to load resource|Load failed|cancelled|aborted|ERR_FAILED/i.test(message)), `only deliberately failed media requests are allowed: ${h.errors.join('; ')}`)
     } finally { await h.context.close() }
   }
 }

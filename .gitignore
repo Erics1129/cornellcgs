@@ -10,3 +10,6 @@ worker/.dev.vars
 # Reproducible render frames, generated masters and local visual reports.
 # Optimized website media is versioned under public/assets/.
 output/
+
+# Python caches from the reproducible Blender scene builders.
+scripts/cinematic/__pycache__/
