@@ -79,28 +79,50 @@ export default function EarthTravel() {
         if (import.meta.env.DEV) { canvas!.dataset.progress = progress.toFixed(5); canvas!.dataset.blur = blur.toFixed(5) }
         if (velocity > .002) request()
       }
+      // The six photographs used to upload inside their onload handlers; from
+      // cache they all land together (~100 ms in one frame). They now upload
+      // one per animation frame: the same staging canvas and texImage2D, just
+      // never two in the same frame. (No img.decode() here: in WebKit its
+      // promise can stay pending for a photo re-read from the memory cache.)
+      const pending: (() => void)[] = []
+      let pumping = 0
+      const pump = () => {
+        pumping = 0
+        const job = pending.shift()
+        if (job && alive && !gl!.isContextLost()) job()
+        if (pending.length && alive) pumping = requestAnimationFrame(pump)
+      }
+      const enqueue = (job: () => void) => {
+        pending.push(job)
+        if (!pumping) pumping = requestAnimationFrame(pump)
+      }
       function load() {
         if (images.length || !valid) return
         for (const place of EARTH_PLACES) {
           const index = images.length, image = new Image(); images.push(image)
-          image.onload = () => {
-            if (!alive || gl!.isContextLost()) return
-            const staging = document.createElement('canvas')
-            const width = Math.min(image.naturalWidth, matchMedia('(pointer: coarse)').matches ? 1280 : 1920)
-            staging.width = width; staging.height = Math.round(image.naturalHeight * width / image.naturalWidth)
-            const ctx = staging.getContext('2d'); if (!ctx) return
-            ctx.drawImage(image, 0, 0, staging.width, staging.height)
-            const texture = gl!.createTexture(); textures[index] = texture
-            gl!.bindTexture(gl!.TEXTURE_2D, texture); gl!.pixelStorei(gl!.UNPACK_FLIP_Y_WEBGL, true)
-            gl!.texImage2D(gl!.TEXTURE_2D, 0, gl!.RGB, gl!.RGB, gl!.UNSIGNED_BYTE, staging)
-            gl!.texParameteri(gl!.TEXTURE_2D, gl!.TEXTURE_MIN_FILTER, gl!.LINEAR)
-            gl!.texParameteri(gl!.TEXTURE_2D, gl!.TEXTURE_MAG_FILTER, gl!.LINEAR)
-            gl!.texParameteri(gl!.TEXTURE_2D, gl!.TEXTURE_WRAP_S, gl!.CLAMP_TO_EDGE)
-            gl!.texParameteri(gl!.TEXTURE_2D, gl!.TEXTURE_WRAP_T, gl!.CLAMP_TO_EDGE)
-            loaded++; request()
-          }
+          image.onload = () => enqueue(() => upload(index, image))
           image.src = `/assets/earth-journey/${place.image}`
         }
+      }
+      function upload(index: number, image: HTMLImageElement) {
+        if (!alive || gl!.isContextLost()) return
+        const staging = document.createElement('canvas')
+        const width = Math.min(image.naturalWidth, matchMedia('(pointer: coarse)').matches ? 1280 : 1920)
+        staging.width = width; staging.height = Math.round(image.naturalHeight * width / image.naturalWidth)
+        const ctx = staging.getContext('2d'); if (!ctx) return
+        ctx.drawImage(image, 0, 0, staging.width, staging.height)
+        const texture = gl!.createTexture(); textures[index] = texture
+        gl!.bindTexture(gl!.TEXTURE_2D, texture); gl!.pixelStorei(gl!.UNPACK_FLIP_Y_WEBGL, true)
+        gl!.texImage2D(gl!.TEXTURE_2D, 0, gl!.RGB, gl!.RGB, gl!.UNSIGNED_BYTE, staging)
+        gl!.texParameteri(gl!.TEXTURE_2D, gl!.TEXTURE_MIN_FILTER, gl!.LINEAR)
+        gl!.texParameteri(gl!.TEXTURE_2D, gl!.TEXTURE_MAG_FILTER, gl!.LINEAR)
+        gl!.texParameteri(gl!.TEXTURE_2D, gl!.TEXTURE_WRAP_S, gl!.CLAMP_TO_EDGE)
+        gl!.texParameteri(gl!.TEXTURE_2D, gl!.TEXTURE_WRAP_T, gl!.CLAMP_TO_EDGE)
+        loaded++
+        // Every texture is on the GPU: the renderer is ready even if the
+        // chapter scrolled away before its first frame could be drawn.
+        if (loaded === EARTH_PLACES.length) section!.dataset.earthRenderer = 'webgl2'
+        request()
       }
       const st = ScrollTrigger.create({ trigger: section, start: 'top top', end: 'bottom bottom',
         onUpdate(self) {
@@ -126,6 +148,7 @@ export default function EarthTravel() {
         alive = false; stop(); st.kill(); io.disconnect(); ro.disconnect()
         document.removeEventListener('visibilitychange', onVisibility)
         canvas.removeEventListener('webglcontextlost', onLost); canvas.removeEventListener('webglcontextrestored', onRestored)
+        cancelAnimationFrame(pumping); pending.length = 0
         images.forEach(image => { image.onload = null }); textures.forEach(texture => gl.deleteTexture(texture))
         gl.deleteBuffer(buffer); gl.deleteProgram(program)
         delete section.dataset.earthRenderer; canvas.style.opacity = '0'

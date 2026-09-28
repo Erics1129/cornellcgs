@@ -109,7 +109,7 @@ export default function People() {
   }, [people.leaders.length])
 
   return (
-    <section ref={root} id="people" className="section">
+    <section ref={root} id="people" className="section" data-quiet-rain>
       <SectionIndex rank="8" />
       <div className="container-site">
         <h2 className="h-section mb-10 max-w-[16ch] md:mb-14"><ScrollWords text={people.heading} treatment="illuminate" /></h2>

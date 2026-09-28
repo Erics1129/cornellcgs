@@ -208,6 +208,29 @@ export default function CodeLayer() {
     let flash: { col: number; slot: number; t0: number } | null = null
     let nextFlash = performance.now() + 2000
     let reduced = prefersReducedMotion()
+    // Chapters dense with words or cards ([data-quiet-rain]) hush the rain
+    // while they hold the screen; it eases back as they leave.
+    let quiet = 0
+    let quietTarget = 0
+    let dim = 1
+    // Measured as the share of the SCREEN a chapter covers (a tall chapter's
+    // own visible ratio may never pass a fixed mark on a phone); thresholds
+    // every 5% keep the reading fresh while it scrolls.
+    const quietCover = new Map<Element, number>()
+    const quietIO = new IntersectionObserver((entries) => {
+      for (const e of entries) {
+        const screen = e.rootBounds?.height || window.innerHeight
+        quietCover.set(e.target, e.isIntersecting ? e.intersectionRect.height / screen : 0)
+      }
+      quietTarget = [...quietCover.values()].some((c) => c > 0.5) ? 1 : 0
+      if (reduced && quiet !== quietTarget) {
+        // no frame loop runs with reduced motion: settle and redraw the still
+        quiet = quietTarget
+        dim = 1 - 0.55 * quiet
+        drawStatic()
+      }
+    }, { threshold: Array.from({ length: 21 }, (_, i) => i / 20) })
+    document.querySelectorAll('[data-quiet-rain]').forEach((el) => quietIO.observe(el))
     let raf = 0
     let last = performance.now()
     let alive = true
@@ -265,7 +288,9 @@ export default function CodeLayer() {
           speed: 3 + depth * 8,
           // Visible but calm — on the light worlds the ink-blue code competes
           // with headings much harder than it did on navy
-          alpha: 0.07 + depth * 0.09 + Math.random() * 0.02,
+          // …and a third quieter again behind the content chapters: present,
+          // alive, never louder than the words (the lens still reveals it)
+          alpha: 0.045 + depth * 0.06 + Math.random() * 0.015,
           start: Math.floor(Math.random() * lines.length),
           count,
           off: Math.random() * count * LINE_H,
@@ -286,7 +311,7 @@ export default function CodeLayer() {
       const total = col.count * LINE_H
       const eff = col.off + scroll * PARALLAX
       const ofs = col.ofs
-      ctx.globalAlpha = col.alpha
+      ctx.globalAlpha = col.alpha * dim
       for (let j = 0; j < col.count; j++) {
         const line = lines[(col.start + j) % lines.length]
         if (line.row < 0) continue
@@ -317,7 +342,7 @@ export default function CodeLayer() {
           y += oy
           const speed = Math.sqrt(s.vx * s.vx + s.vy * s.vy)
           const e = Math.min(1, fluid.sampleDye(px, py) + speed / GLOW_SPEED)
-          ctx.globalAlpha = Math.min(1, col.alpha * (1 + 0.6 * e))
+          ctx.globalAlpha = Math.min(1, col.alpha * dim * (1 + 0.6 * e))
         }
         if (y > h || y < -LINE_H || x + cw < 0 || x > w) continue
         ctx.drawImage(
@@ -496,6 +521,8 @@ export default function CodeLayer() {
       if (document.documentElement.classList.contains('eye-on') || document.documentElement.classList.contains('cinema-on') || document.documentElement.classList.contains('universe-on')) { last = now; return }
       const dt = Math.min(0.1, (now - last) / 1000)
       last = now
+      quiet += (quietTarget - quiet) * Math.min(1, dt * 2.5)
+      dim = 1 - 0.55 * quiet
 
       if (lerpStart >= 0) {
         const t = Math.min(1, (now - lerpStart) / THEME_LERP_MS)
@@ -624,6 +651,7 @@ export default function CodeLayer() {
     return () => {
       alive = false
       cancelAnimationFrame(raf)
+      quietIO.disconnect()
       window.removeEventListener('resize', resize)
       document.removeEventListener('visibilitychange', onVis)
       window.removeEventListener('pointermove', onPointer)

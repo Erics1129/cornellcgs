@@ -21,3 +21,24 @@
   .hero-glass-title { filter:none; }
   .hero-glass-ink { background:none; -webkit-text-fill-color:CanvasText; -webkit-text-stroke:0; }
 }
+
+/* Hero actions: the outline button keeps its edge over the moving city */
+/* (component CSS loads before global.css, so these outrank .btn by selector) */
+.hero-actions .btn { padding-inline: 1rem; white-space: nowrap; }
+.btn.hero-btn-ghost { background: rgb(4 8 24 / 0.42); border-color: rgb(226 236 255 / 0.55); }
+.btn.hero-btn-ghost:hover { background: rgb(40 70 160 / 0.32); }
+
+/* Scroll hint: an outlined card with a spade — reads as a card, never as a hole */
+.hero-hint-card {
+  display: grid;
+  place-items: center;
+  width: 1.5rem;
+  height: 2.1rem;
+  border-radius: 0.25rem;
+  border: 1px solid rgb(214 226 246 / 0.55);
+  background: linear-gradient(160deg, rgb(255 255 255 / 0.14), rgb(255 255 255 / 0.03));
+  box-shadow: 0 6px 16px -8px rgb(0 0 0 / 0.7);
+  color: rgb(214 226 246 / 0.8);
+  font-size: 0.72rem;
+  line-height: 1;
+}

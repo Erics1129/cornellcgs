@@ -39,7 +39,7 @@ export default function WhoWeAre() {
       <figure className="identity-figure" aria-label="The CGS logo: an illuminated cube assembled from moving metallic blocks">
         <div className="identity-object"><Dice size={640} paused={paused} /></div>
         <figcaption><span>Built together.</span><button type="button" onClick={() => setPaused(!paused)} aria-pressed={paused}
-          aria-label={paused ? 'Resume logo animation' : 'Pause logo animation'}>{paused ? 'Play' : 'Pause'} <span aria-hidden="true">{paused ? '▷' : 'Ⅱ'}</span></button></figcaption>
+          aria-label={paused ? 'Play logo animation' : 'Pause logo animation'}><span aria-hidden="true">{paused ? '▷' : 'Ⅱ'}</span>{paused ? 'Play' : 'Pause'}</button></figcaption>
       </figure>
     </div>
   </section>

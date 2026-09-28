@@ -245,7 +245,9 @@ export default function NodeSphere({ className = '' }: { className?: string }) {
     <canvas ref={ref} data-node-sphere aria-hidden="true" className={className} />
     {host && !reduced && createPortal(
       <button type="button" className="cgs-sphere-pause" data-interactive onClick={() => control.current?.()}
-        aria-label={playing ? 'Pause node sphere' : 'Resume node sphere'}>{playing ? 'Pause animation' : 'Resume animation'}</button>,
+        aria-pressed={!playing} aria-label={playing ? 'Pause node sphere' : 'Play node sphere'}>
+        <span aria-hidden="true">{playing ? 'Ⅱ' : '▷'}</span>{playing ? 'Pause' : 'Play'}
+      </button>,
       host,
     )}
   </>

@@ -8,7 +8,8 @@
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "deploy": "sh scripts/deploy.sh",
-    "admin:connect": "node scripts/admin-connect.mjs"
+    "admin:connect": "node scripts/admin-connect.mjs",
+    "equity": "node scripts/equity.mjs"
   },
   "dependencies": {
     "gsap": "^3.13.0",

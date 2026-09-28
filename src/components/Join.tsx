@@ -12,7 +12,7 @@ export default function Join() {
   useSectionDepth(root)
 
   return (
-    <section ref={root} id="join" className="section overflow-x-clip">
+    <section ref={root} id="join" className="section overflow-x-clip" data-quiet-rain>
       {/* Joker corner index */}
       <div className="card-index" aria-hidden="true">
         <span

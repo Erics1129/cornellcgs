@@ -5,6 +5,17 @@
  * site's own components (src/components/*.tsx).
  */
 
+import equitySource from '../solver/equity.ts?raw'
+
+/** The lines between `// #region <name>` and `// #endregion` in a source file */
+function region(source: string, name: string): string[] {
+  const lines = source.replace(/\r\n/g, '\n').split('\n')
+  const from = lines.findIndex((line) => line.trim() === `// #region ${name}`)
+  const to = lines.findIndex((line, i) => i > from && line.trim() === '// #endregion')
+  if (from < 0 || to < 0) throw new Error(`codeSnippets: no region "${name}"`)
+  return lines.slice(from + 1, to)
+}
+
 export const POKER_EVALUATOR: string[] = [
   '// 5-card evaluator — [category, ...tiebreaks], higher wins',
   "const RANKS = '23456789TJQKA'",
@@ -67,32 +78,12 @@ export const CFR_UPDATE: string[] = [
   '}',
 ]
 
-export const POT_EQUITY: string[] = [
-  '// Pot equity by Monte Carlo — deal the unseen, count wins',
-  'function potEquity(hole: Card[], board: Card[], n = 2e4) {',
-  '  const seen = new Set([...hole, ...board].map(key))',
-  '  const deck = DECK.filter((c) => !seen.has(key(c)))',
-  '  let win = 0',
-  '  let tie = 0',
-  '  for (let t = 0; t < n; t++) {',
-  '    shuffle(deck)',
-  '    const vill = deck.slice(0, 2)',
-  '    const need = 5 - board.length',
-  '    const run = board.concat(deck.slice(2, 2 + need))',
-  '    const cmp = compare(best7(hole, run), best7(vill, run))',
-  '    if (cmp > 0) win++',
-  '    else if (cmp === 0) tie++',
-  '  }',
-  '  return (win + tie / 2) / n // share of the pot',
-  '}',
-  '',
-  'function shuffle<T>(a: T[]) {',
-  '  for (let i = a.length - 1; i > 0; i--) {',
-  '    const j = Math.floor(Math.random() * (i + 1))',
-  '    ;[a[i], a[j]] = [a[j], a[i]]',
-  '  }',
-  '}',
-]
+/**
+ * The Source chapter's editor shows this block of src/solver/equity.ts as it
+ * is in the file — read raw at build time, so the screen can never drift
+ * from the code its terminal actually runs.
+ */
+export const POT_EQUITY: string[] = region(equitySource, 'potEquity')
 
 /** Copied verbatim (dedented) from this site's own components. */
 export const SITE_SNIPPETS: string[] = [

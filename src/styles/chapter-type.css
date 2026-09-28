@@ -62,14 +62,30 @@ html[data-theme='black'] .support-scene[data-chapter-surface='world'] {
   position: relative;
   isolation: isolate;
 }
+/* Feathered, not boxed: the reading color is solid under every glyph and
+   fades out over 4–5rem beyond them on every side, so there is no edge to
+   see — the words keep their even background and the scene shows no panel. */
 .support-scene[data-chapter-surface='world'] :is(.project-copy, .anyone-copy, .code-copy, .stat-row)::before {
   content: '';
   position: absolute;
   z-index: -1;
-  inset: -.6rem;
+  inset: -4rem -5rem;
   background: var(--chapter-copy-surface);
-  box-shadow: 0 0 2rem 1rem var(--chapter-copy-surface);
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 5rem, #000 calc(100% - 5rem), transparent),
+    linear-gradient(180deg, transparent, #000 4rem, #000 calc(100% - 4rem), transparent);
+  -webkit-mask-composite: source-in;
+  mask-image: linear-gradient(90deg, transparent, #000 5rem, #000 calc(100% - 5rem), transparent),
+    linear-gradient(180deg, transparent, #000 4rem, #000 calc(100% - 4rem), transparent);
+  mask-composite: intersect;
   pointer-events: none;
+  /* On the dark worlds light ink already reads, and no flat color can match
+     the diagonal gradient behind it — so the surface only shows on the
+     light worlds, fading with the same 1.2s world change. */
+  opacity: 0;
+  transition: opacity var(--theme-transition-duration, 1200ms) cubic-bezier(.33, 0, .67, 1);
+}
+html:is([data-theme='sky'], [data-theme='lilac']) .support-scene[data-chapter-surface='world'] :is(.project-copy, .anyone-copy, .code-copy, .stat-row)::before {
+  opacity: 1;
 }
 @supports (color: contrast-color(#777)) {
   .support-scene[data-chapter-surface='world'] {

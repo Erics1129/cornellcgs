@@ -76,7 +76,7 @@ export default function WhatWeDo() {
   }, [whatWeDo.threads.length])
 
   return (
-    <section ref={root} id="what-we-do" className="section card-board-section">
+    <section ref={root} id="what-we-do" className="section card-board-section" data-quiet-rain>
       <SectionIndex rank="Q" />
       <div className="container-site">
         <div className="card-board-heading">

@@ -49,7 +49,7 @@ export default function SideRail() {
       data-interactive
       data-surface={active === 'events' ? 'light' : undefined}
       aria-label="Chapters"
-      className="cgs-side-rail fixed left-5 top-1/2 z-40 hidden -translate-y-1/2 items-stretch gap-3 lg:flex"
+      className="cgs-side-rail fixed left-3 top-1/2 z-40 hidden -translate-y-1/2 items-stretch gap-3 lg:flex"
     >
       {/* Progress line */}
       <div aria-hidden="true" className="relative w-px bg-[color-mix(in_srgb,var(--neon-dim)_80%,transparent)]">
@@ -89,7 +89,7 @@ export default function SideRail() {
                   transform/opacity only. */}
               <span
                 aria-hidden="true"
-                className="pointer-events-none absolute left-7 top-1/2 flex h-40 w-4 -translate-y-1/2 items-center justify-center overflow-hidden"
+                className="pointer-events-none absolute left-6 top-1/2 flex h-40 w-4 -translate-y-1/2 items-center justify-center overflow-hidden"
               >
                 <span
                   className={`mono block rotate-180 whitespace-nowrap text-[max(0.78rem,0.75rem)] [writing-mode:vertical-rl] transition-[transform,opacity,color] duration-[350ms] [transition-timing-function:var(--ease-out)] ${

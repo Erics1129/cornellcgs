@@ -153,11 +153,11 @@ export default function Hero() {
           <div data-hero-fade className="pointer-events-auto min-h-[3.4em] md:w-[24ch] md:text-left">
             <TypeLine />
           </div>
-          <div data-hero-fade className="pointer-events-auto">
+          <div data-hero-fade className="pointer-events-auto w-full sm:w-auto">
             {/* Float on a wrapper — the fade above is GSAP's. The neon laps at
                 a whisper at rest; the second comet starts half a turn away. */}
             <div
-              className="life-float flex flex-wrap gap-4 md:justify-end"
+              className="hero-actions life-float grid w-full grid-cols-2 gap-3 sm:w-[23rem] md:w-[16.5rem] md:grid-cols-1"
               style={{ ['--life-dur' as string]: '12s', ['--life-delay' as string]: '-4.1s' }}
             >
               <a
@@ -166,7 +166,7 @@ export default function Hero() {
                   e.preventDefault()
                   scrollToId('join')
                 }}
-                className="btn btn-primary neon neon-idle"
+                className="btn btn-primary neon neon-idle justify-center"
               >
                 <RollLabel text={hero.ctaPrimary.label} />
               </a>
@@ -176,7 +176,7 @@ export default function Hero() {
                   e.preventDefault()
                   scrollToId('what-we-do')
                 }}
-                className="btn neon neon-idle"
+                className="btn hero-btn-ghost neon neon-idle justify-center"
                 style={{ ['--neon-from' as string]: '180deg' }}
               >
                 <RollLabel text={hero.ctaSecondary.label} />
@@ -190,9 +190,10 @@ export default function Hero() {
       <div
         data-hero-hint
         aria-hidden="true"
-        className="absolute bottom-6 left-1/2 z-10 flex -translate-x-1/2 flex-col items-center gap-2"
+        className="absolute bottom-6 left-1/2 z-10 hidden -translate-x-1/2 flex-col items-center gap-2 md:flex [@media(max-height:700px)]:hidden"
       >
-        <div className="h-9 w-[1.625rem] animate-[card-tip_2.6s_ease-in-out_infinite] rounded-[0.25rem] border border-[color-mix(in_srgb,var(--silver)_50%,transparent)] bg-[var(--ink)]" />
+        {/* a card outline that tips forward and back: glass, not a black tile */}
+        <div className="hero-hint-card animate-[card-tip_2.6s_ease-in-out_infinite]"><span>♠</span></div>
         <span
           className="life-glow mono text-[max(0.75rem,0.75rem)] text-[var(--muted)]"
           style={{ ['--life-dur' as string]: '4.4s', ['--life-delay' as string]: '-1.6s' }}
