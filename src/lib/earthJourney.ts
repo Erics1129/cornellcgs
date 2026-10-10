@@ -12,20 +12,21 @@ const imported = (id: string) => {
   return { ...place, image: place.image.split('/').pop()! }
 }
 
-/** Each interval gets shorter; the final tenth is a quiet arrival. These same
+/** Only the destination (the last stop) has a name and caption; the stops on
+ * the way show the photo alone. Each interval gets shorter; the final tenth is a quiet arrival. These same
  * stops drive captions, keyboard navigation, fallback photos and GPU motion. */
 export const EARTH_PLACES: EarthPlace[] = [
   {
-    id: 'bali', name: 'Bali', caption: 'Jatiluwih · Indonesia',
+    id: 'bali', name: '', caption: '',
     image: 'bali-jatiluwih.webp', width: 1920, height: 1152,
-    alt: 'Green rice terraces curve across a hillside in Jatiluwih, Bali, with tiled shelters and coconut palms.',
+    alt: 'Green rice terraces curve across a hillside, with tiled shelters and coconut palms.',
     photographer: 'Jorge Franganillo', license: 'CC BY 2.0',
     source: 'https://commons.wikimedia.org/wiki/File:Bali-_Jatiluwih_rice_terraces_-_50281829296.jpg',
     licenseUrl: 'https://creativecommons.org/licenses/by/2.0/',
     start: .30, arrival: .37, stop: .43, anchor: [.57, .52], tint: [1.015, 1.025, .965], saturation: 1.07,
   },
   {
-    id: 'hawaii', name: 'Hawaiʻi', caption: 'Nā Pali Coast · Kauaʻi',
+    id: 'hawaii', name: '', caption: '',
     image: 'hawaii-na-pali.webp', width: 1920, height: 1282,
     alt: 'Deeply folded green cliffs of the Nā Pali Coast fall into the Pacific Ocean on Kauaʻi, Hawaiʻi.',
     photographer: 'Andrew Baerst', license: 'CC BY 2.0',
@@ -33,12 +34,12 @@ export const EARTH_PLACES: EarthPlace[] = [
     licenseUrl: 'https://creativecommons.org/licenses/by/2.0/',
     start: .51, arrival: .57, stop: .61, anchor: [.52, .50], tint: [.96, 1.025, 1.04], saturation: 1.06,
   },
-  { ...imported('dolomites'), name: 'The Dolomites', caption: 'Tre Cime di Lavaredo · Italy',
+  { ...imported('dolomites'), name: '', caption: '',
     start: .67, arrival: .714, stop: .744, anchor: [.50, .20], tint: [1.045, 1.005, .965], saturation: 1.03 },
-  { ...imported('iceland'), name: 'Iceland', caption: 'Skógafoss · Southern Iceland',
+  { ...imported('iceland'), name: '', caption: '',
     start: .78, arrival: .810, stop: .828, anchor: [.65, .50], tint: [.95, 1.015, 1.055], saturation: .91 },
   {
-    id: 'new-york', name: 'New York', caption: 'Statue of Liberty · New York Harbor',
+    id: 'new-york', name: '', caption: '',
     image: 'liberty-island.webp', width: 1920, height: 1253,
     alt: 'The Statue of Liberty and its stone pedestal rise above Liberty Island, seen across New York Harbor.',
     photographer: 'National Park Service', license: 'Public domain',

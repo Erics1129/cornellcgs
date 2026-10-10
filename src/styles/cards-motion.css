@@ -78,40 +78,43 @@
   .event-hand-fan .event-slot:hover, .event-hand-fan .event-slot:focus-within { z-index: 30; }
 }
 
-.people-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 2rem 1.2rem; }
-.people-slot { position: relative; width: 100%; max-width: 22rem; aspect-ratio: 5 / 7; margin-inline: auto; }
+/* Compact team cards in a centered, wrapping row: a partial last row stays centered */
+.people-grid { display: flex; flex-wrap: wrap; justify-content: center; gap: 1.1rem .9rem; }
+.people-slot { position: relative; flex: 0 0 auto; width: clamp(9rem, 15vw, 11.5rem); aspect-ratio: 5 / 7; }
 .people-slot > .card-deal { position: absolute; inset: 0; }
-.people-front { display: flex; flex-direction: column; align-items: stretch; justify-content: space-between; gap: .75rem; padding: 1.1rem 1.1rem 4rem; cursor: pointer; }
-.people-portrait, .people-initials { width: clamp(5rem, 11vw, 8rem); height: clamp(5rem, 11vw, 8rem); margin-inline: auto; border-radius: 50%; flex-shrink: 0; object-fit: cover; box-shadow: 0 2px 7px rgba(25,24,18,.18); }
-.people-initials { display: grid; place-items: center; font-family: var(--font-display, Georgia, serif); font-size: 1.7rem; color: #e5e5dc; background: radial-gradient(circle at 30% 20%, #294163, #0b172b); }
+.people-front { display: flex; flex-direction: column; align-items: stretch; justify-content: space-between; gap: .4rem; padding: .7rem .7rem 3.7rem; cursor: pointer; }
+.people-front .material-index { font-size: 1.1rem; }
+.people-front .material-index > :last-child { font-size: .8rem; }
+.people-portrait, .people-initials { width: clamp(3.3rem, 6vw, 4.6rem); height: clamp(3.3rem, 6vw, 4.6rem); margin-inline: auto; border-radius: 50%; flex-shrink: 0; object-fit: cover; box-shadow: 0 2px 7px rgba(25,24,18,.18); }
+.people-initials { display: grid; place-items: center; font-family: var(--font-display, Georgia, serif); font-size: 1.3rem; color: #e5e5dc; background: radial-gradient(circle at 30% 20%, #294163, #0b172b); }
 .people-name { text-align: center; }
-.people-name .h-card { font-size: clamp(1rem, 1.5vw, 1.35rem); line-height: 1.15; color: var(--ink); }
-.people-name p { margin-top: .35rem; font-size: .75rem; line-height: 1.4; color: #675c46; }
-.people-back { padding: 1.3rem 1.1rem 4rem; pointer-events: none; }
+.people-name .h-card { font-size: clamp(.92rem, 1.1vw, 1.05rem); line-height: 1.15; color: var(--ink); }
+.people-name p { margin-top: .25rem; font-size: .66rem; line-height: 1.35; color: #675c46; }
+.people-back { padding: .9rem .75rem 3.7rem; pointer-events: none; }
 .people-back::before { opacity: .4; }
 .people-slot[data-flipped="true"] .people-back { pointer-events: auto; }
 .people-slot[data-flipped="true"] .people-front { pointer-events: none; }
-.people-bio { position: relative; height: 100%; overflow-y: auto; overscroll-behavior-y: contain; scrollbar-width: thin; scrollbar-color: #63718a transparent; padding: .15rem .35rem .75rem .15rem; color: #d8e0ed; font-size: max(14px, .875rem); line-height: 1.5; touch-action: pan-y; }
-.people-bio .h-card { font-size: 1.15rem; line-height: 1.2; color: #f8f4e9; }
-.people-bio-role { font-size: .68rem; line-height: 1.4; text-transform: uppercase; letter-spacing: .08em; color: #aebed5; margin: .5rem 0 .7rem; }
-.people-bio-group { margin-top: 1rem; }
-.people-bio-group h4 { margin-bottom: .4rem; font-size: .65rem; text-transform: uppercase; letter-spacing: .12em; color: #dcc48f; }
-.people-bio-group p + p { margin-top: .4rem; }
-.people-flip-control { position: absolute; left: .75rem; right: .75rem; bottom: .65rem; z-index: 2; transform: translateZ(24px); display: flex; align-items: center; justify-content: space-between; gap: .5rem; min-height: 44px; padding: .65rem .55rem; border-top: 1px solid rgba(69,58,34,.18); color: #564c39; font-size: .72rem; letter-spacing: .05em; cursor: pointer; touch-action: manipulation; border-radius: 0 0 .5rem .5rem; }
+.people-bio { position: relative; height: 100%; overflow-y: auto; overscroll-behavior-y: contain; scrollbar-width: thin; scrollbar-color: #63718a transparent; padding: .1rem .3rem .6rem .1rem; color: #d8e0ed; font-size: 13px; line-height: 1.45; touch-action: pan-y; }
+.people-bio .h-card { font-size: 1rem; line-height: 1.2; color: #f8f4e9; }
+.people-bio-role { font-size: .62rem; line-height: 1.4; text-transform: uppercase; letter-spacing: .08em; color: #aebed5; margin: .35rem 0 .5rem; }
+.people-bio-group { margin-top: .75rem; }
+.people-bio-group h4 { margin-bottom: .3rem; font-size: .6rem; text-transform: uppercase; letter-spacing: .12em; color: #dcc48f; }
+.people-bio-group p + p { margin-top: .3rem; }
+.people-flip-control { position: absolute; left: .55rem; right: .55rem; bottom: .4rem; z-index: 2; transform: translateZ(24px); display: flex; align-items: center; justify-content: space-between; gap: .4rem; min-height: 44px; padding: .5rem .4rem; border-top: 1px solid rgba(69,58,34,.18); color: #564c39; font-size: .64rem; letter-spacing: .05em; cursor: pointer; touch-action: manipulation; border-radius: 0 0 .5rem .5rem; }
 .people-slot[data-flipped="true"] .people-flip-control { color: #d7e1ef; border-color: rgba(196,212,234,.25); }
-@media (min-width: 440px) { .people-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .people-slot { min-height: 20rem; } }
-@media (min-width: 760px) { .people-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
-@media (min-width: 1100px) { .people-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+.people-flip-control > span:first-child { white-space: nowrap; }
+/* The smallest cards (two per row on phones) */
+@media (max-width: 639px) {
+  .people-flip-control { letter-spacing: .01em; font-size: .6rem; }
+  .people-bio { font-size: 12px; line-height: 1.4; }
+  .people-bio .h-card { font-size: .9rem; }
+  .people-bio-role { margin: .25rem 0 .4rem; }
+}
 .who-card-copy { min-height: 22rem; }
 .who-card-copy p + p { margin-top: 1rem; }
 @media (max-width: 639px) {
   .card-board-section, .card-events-section, #people, #who-we-are { padding-top: max(6rem, 9vh); }
   .card-board-section > .card-index, .card-events-section > .card-index, #people > .card-index, #who-we-are > .card-index { top: 1.25rem; left: 1.5rem; }
-}
-@media (max-width: 439px) {
-  .people-slot { max-width: 20rem; }
-  .people-portrait, .people-initials { width: 7rem; height: 7rem; }
-  .people-name .h-card { font-size: 1.2rem; }
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -43,7 +43,7 @@ export default function MLProcess() {
           </div>
         </div>
       </div>
-      <div className="scene-caption"><span>01 — 05</span><span>Keep exploring</span><span aria-hidden="true">↓</span></div>
+      <div className="scene-caption"><span>5 steps</span><span>Events are next</span><span aria-hidden="true">↓</span></div>
     </div>
   </section>
 }

@@ -26,7 +26,7 @@ export default function FutureEye() {
       <button type="button" className="vision-pause" aria-label={paused ? 'Resume eye animation' : 'Pause eye animation'} aria-pressed={paused} onClick={() => setPaused(!paused)}><span aria-hidden="true">{paused ? '▷' : 'Ⅱ'}</span>{paused ? 'Resume motion' : 'Pause motion'}</button>
     </div>
     <div className="container-site vision-bottom">
-      <p className="vision-note"><em>In development.</em></p>
+      <p className="vision-note"><em>On our list:</em></p>
       <ul>{vision.next.map((line,i) => <li key={line}><span>{String(i+1).padStart(2,'0')}</span>{line}</li>)}</ul>
     </div>
   </section>

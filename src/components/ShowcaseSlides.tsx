@@ -10,10 +10,11 @@ import '../styles/code-ide.css'
 
 gsap.registerPlugin(ScrollTrigger)
 
+/** Current projects, one row each. TODO(club): keep this list up to date. */
 const STATS = [
-  { over: 'The deck', big: '108 cards', under: 'two decks, jokers included' },
-  { over: 'Four players', big: '2 teams', under: 'partners across the table' },
-  { over: 'The match', big: '2 → A', under: 'win rounds to climb the levels' },
+  { over: 'In training', big: 'Guandan', under: 'a card game agent that learns by playing against itself' },
+  { over: 'Working', big: 'Poker', under: 'a hold’em equity calculator, running just below' },
+  { over: 'In progress', big: 'Ink Maze', under: 'a puzzle game: roll the ball, color every block' },
 ]
 
 /** An unpinned editorial sequence: each figure clears its own baseline. */
@@ -42,13 +43,13 @@ export function StatsSlide() {
     return () => media.revert()
   }, [])
   return (
-    <section ref={root} id="stats" className="section support-scene stats-scene" data-chapter-surface="world" aria-label="Throwing Eggs rules">
+    <section ref={root} id="stats" className="section support-scene stats-scene" data-chapter-surface="world" aria-label="Current projects">
       <div className="container-site">
         {STATS.map((stat) => (
           <div key={stat.big} data-stat className="stat-row">
             <div data-stat-rule className="stat-rule" aria-hidden="true" />
             <p data-stat-copy className="stat-over">{stat.over}</p>
-            <p data-chapter-type="rise" className="stat-big" aria-label={stat.big === '2 → A' ? 'Two through Ace' : stat.big}>
+            <p data-chapter-type="rise" className="stat-big" aria-label={stat.big}>
               <span aria-hidden="true">{stat.big.split('').map((char, i) => (
                 <span key={i} className="stat-glyph-mask"><span data-stat-glyph>{char === ' ' ? '\u00a0' : char}</span></span>
               ))}</span>
@@ -66,7 +67,6 @@ export function StatsSlide() {
 // lines drawn below it. Every number on this screen comes from that code.
 const HAND = ['As', 'Ks']
 const SHELL = [`npm run equity -- ${HAND.join(' ')}`]
-const REPO = 'https://github.com/Erics1129/cornellcgs'
 const RUN_BATCHES = 40
 const RUN_BATCH = 500
 const RUN_TOTAL = RUN_BATCHES * RUN_BATCH
@@ -104,18 +104,19 @@ function computeRun(onDone: (run: Checkpoint[]) => void): () => void {
   return () => { cancelled = true }
 }
 
-type Tree = { name: string; path: string; kind: 'dir' | 'ts' | 'js' | 'json'; depth: number; open?: boolean; active?: boolean }
+// A picture of the project's files: names only, nothing links out
+type Tree = { name: string; kind: 'dir' | 'ts' | 'js' | 'json'; depth: number; open?: boolean; active?: boolean }
 const TREE: Tree[] = [
-  { name: 'public', path: 'tree/main/public', kind: 'dir', depth: 0 },
-  { name: 'scripts', path: 'tree/main/scripts', kind: 'dir', depth: 0, open: true },
-  { name: 'equity.mjs', path: 'blob/main/scripts/equity.mjs', kind: 'js', depth: 1 },
-  { name: 'src', path: 'tree/main/src', kind: 'dir', depth: 0, open: true },
-  { name: 'components', path: 'tree/main/src/components', kind: 'dir', depth: 1 },
-  { name: 'lib', path: 'tree/main/src/lib', kind: 'dir', depth: 1 },
-  { name: 'solver', path: 'tree/main/src/solver', kind: 'dir', depth: 1, open: true },
-  { name: 'equity.ts', path: 'blob/main/src/solver/equity.ts', kind: 'ts', depth: 2, active: true },
-  { name: 'styles', path: 'tree/main/src/styles', kind: 'dir', depth: 1 },
-  { name: 'package.json', path: 'blob/main/package.json', kind: 'json', depth: 0 },
+  { name: 'public', kind: 'dir', depth: 0 },
+  { name: 'scripts', kind: 'dir', depth: 0, open: true },
+  { name: 'equity.mjs', kind: 'js', depth: 1 },
+  { name: 'src', kind: 'dir', depth: 0, open: true },
+  { name: 'components', kind: 'dir', depth: 1 },
+  { name: 'lib', kind: 'dir', depth: 1 },
+  { name: 'solver', kind: 'dir', depth: 1, open: true },
+  { name: 'equity.ts', kind: 'ts', depth: 2, active: true },
+  { name: 'styles', kind: 'dir', depth: 1 },
+  { name: 'package.json', kind: 'json', depth: 0 },
 ]
 const FILE_BADGE = { ts: 'TS', js: 'JS', json: '{ }', dir: '' } as const
 
@@ -274,11 +275,16 @@ export function CodeSlide() {
       const [edit, type, out] = desktop
         ? [[0.06, 0.56], [0.58, 0.68], [0.7, 0.95]]
         : [[0, 0.48], [0.5, 0.6], [0.62, 0.94]]
+      // The editor holds the finished file. Its lines arrive with transform and
+      // opacity only, so scrolling never rewrites text (the old per-keystroke
+      // replay rewrote spans and forced layout on every frame).
+      editor.current?.setProgress(1, false)
+      const viewport = section.querySelector<HTMLElement>('.ide-main > .showcase-code-ts .showcase-code-viewport')
+      const rows = section.querySelectorAll<HTMLElement>('.ide-main > .showcase-code-ts [data-code-row]')
       const playhead = { progress: 0 }
       let previousQ = 0
       const draw = () => {
         const p = playhead.progress
-        editor.current?.setProgress(windowProgress(p, edit[0], edit[1]))
         terminal.current?.setProgress(windowProgress(p, type[0], type[1]))
         const q = windowProgress(p, out[0], out[1])
         scrollOutput.current = q
@@ -293,13 +299,26 @@ export function CodeSlide() {
           id: 'support-code', trigger: desktop ? section : device,
           start: desktop ? 'top top' : 'top 85%',
           end: desktop ? '+=190%' : 'bottom 90%',
-          pin: desktop, scrub: 0.28, anticipatePin: 1, invalidateOnRefresh: true,
+          pin: desktop, scrub: 0.6, anticipatePin: 1, invalidateOnRefresh: true,
           onRefresh: draw,
         },
       })
       // The sole clock for every pane: seeks and reversals write exact
       // characters rather than starting timers or a second scroll range.
       tl.to(playhead, { progress: 1, duration: 1, ease: 'none' }, 0)
+      const span = edit[1] - edit[0]
+      const each = 0.1
+      tl.fromTo(rows, { opacity: 0.16, y: 6 }, {
+        opacity: 1, y: 0, duration: each, ease: 'power2.out',
+        stagger: rows.length > 1 ? (span - each) / (rows.length - 1) : 0,
+      }, edit[0])
+      // The view glides down as the lower lines arrive, ending at the return line
+      if (viewport) {
+        tl.fromTo(viewport, { scrollTop: 0 }, {
+          scrollTop: () => Math.max(0, viewport.scrollHeight - viewport.clientHeight),
+          duration: span * 0.55, ease: 'power1.inOut',
+        }, edit[0] + span * 0.4)
+      }
       if (desktop) {
         const copy = section.querySelectorAll('[data-code-copy]')
         gsap.set(copy, { opacity: 0, y: 16 })
@@ -337,14 +356,9 @@ export function CodeSlide() {
     <section ref={root} id="code" className="section support-scene code-scene" data-chapter-surface="world" aria-labelledby="code-title">
       <div className="container-site code-layout">
         <div className="code-copy">
-          <p data-code-copy className="code-eyebrow">Behind the game</p>
+          <p data-code-copy className="code-eyebrow">Poker equity</p>
           <h2 id="code-title" data-chapter-type="slide" className="h-section">Source</h2>
-          <p data-code-copy className="body-muted support-lead">Hand evaluators, equity math, solvers.</p>
-          <a data-code-copy className="code-source-link" href={`${REPO}/blob/main/src/solver/equity.ts`} target="_blank" rel="noreferrer">
-            <span>Real code. It runs.</span>
-            <span className="showcase-sr-only"> Read src/solver/equity.ts on GitHub (opens a new tab)</span>
-            <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M5 11 11 5M6 5h5v5" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" /></svg>
-          </a>
+          <p data-code-copy className="body-muted support-lead">Our hold’em equity calculator. Press Run and it deals 20,000 hands against a random opponent.</p>
         </div>
         <div className="code-device-stage">
           <div ref={laptop} className="code-laptop code-workspace ide" data-run="idle">
@@ -361,27 +375,25 @@ export function CodeSlide() {
               </button>
             </div>
             <div className="ide-body">
-              <nav className="ide-explorer" aria-label="Project files on GitHub">
+              <div className="ide-explorer" aria-hidden="true">
                 <p className="ide-explorer-title">Explorer</p>
                 <p className="ide-explorer-root">cornellcgs</p>
                 <ul>
                   {TREE.map((item) => (
-                    <li key={item.path} style={{ ['--depth' as string]: item.depth }}>
-                      <a href={`${REPO}/${item.path}`} target="_blank" rel="noreferrer"
-                        className="ide-tree-item" data-kind={item.kind} data-open={item.open ? 'true' : undefined}
+                    <li key={`${item.depth}-${item.name}`} style={{ ['--depth' as string]: item.depth }}>
+                      <span className="ide-tree-item" data-kind={item.kind} data-open={item.open ? 'true' : undefined}
                         aria-current={item.active ? 'true' : undefined}>
                         {item.kind === 'dir'
                           ? <svg className="ide-tree-chevron" viewBox="0 0 16 16" aria-hidden="true"><path d="m6 4 4 4-4 4" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" /></svg>
                           : <span className="ide-tree-badge" aria-hidden="true">{FILE_BADGE[item.kind]}</span>}
                         <span>{item.name}</span>
-                        <span className="showcase-sr-only"> (opens on GitHub)</span>
-                      </a>
+                      </span>
                     </li>
                   ))}
                 </ul>
-              </nav>
+              </div>
               <div className="code-screen ide-main">
-                <CodePanel ref={editor} lines={POT_EQUITY} title="equity.ts" mode="ts" minimap inlayRow={RETURN_ROW}
+                <CodePanel ref={editor} lines={POT_EQUITY} title="equity.ts" mode="ts" minimap inlayRow={RETURN_ROW} manualScroll
                   onFrame={onEditorFrame} extraTabs={['equity.mjs']} breadcrumb={['src', 'solver', 'equity.ts', 'potEquity']} />
                 <div className="ide-dock">
                   <CodePanel ref={terminal} lines={SHELL} title="zsh — cornellcgs" mode="sh" />

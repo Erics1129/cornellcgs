@@ -46,7 +46,7 @@ const GROUPS: Group[] = [
     label: 'Join',
     target: 'join',
     subs: [
-      { label: 'Pull up a chair', id: 'join' },
+      { label: 'How to join', id: 'join' },
       { label: 'Contact Us', id: 'contact' },
     ],
   },
