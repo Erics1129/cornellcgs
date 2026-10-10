@@ -56,7 +56,7 @@ export default function ForgePage(){
  const prepare=(id?:number)=>{
   if(busyLock.current||prepareId.current||!ready||sessionRef.current.state.ended)return
   const current=sessionRef.current.state
-  const target=id?current.knives.find(n=>n.id===id):current.knives.find(n=>n.place==='crate'&&!n.heated)||current.knives.find(n=>n.place==='crate')
+  const target=id?current.knives.find(n=>n.id===id):current.knives.find(n=>n.place==='furnace')||current.knives.find(n=>n.place==='crate'&&!n.heated)||current.knives.find(n=>n.place==='crate')
   if(!target){setPanel('shop');setTradeTab('buy');return}
   unlock();choose(target.id);scene.current?.focus()
   const previous=current.knives.find(n=>n.place==='anvil'&&n.id!==target.id)
