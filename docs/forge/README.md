@@ -23,11 +23,18 @@ node scripts/stubs.mjs
 
 ## Controls
 
-Drag a blank to the furnace, wait two seconds, then carry it to the anvil. Tap the knife or press Space to strike. Drop on the scale to sell; use the rack to keep up to four knives overnight. Buttons duplicate every drag action for keyboard and touch users. Shop and lantern labels open their panels. Full screen expands the game within the page; Escape restores the page. Sound and volume are remembered. Reduced motion removes camera shake, impact flash and hit-stop.
+You control a rigged blacksmith in a walkable Unity room. **WASD / arrows** move, **Shift** runs, and dragging the scene turns the camera. Walk up to a station and press **E** to handle it. Pick up a crate blank, carry it to the furnace, place it in the fire, wait two seconds, pick it up, then carry it to the anvil. **Space** swings the character's hammer. **F** activates Flow. **1 / 2 / 3 / 4** use guard, rewind, hone stone, and stamina.
+
+At the shop **Q / R** browse stock and **E** buys. At a crate or rack Q/R choose a knife. Carry knives to the scale to sell or the rack to keep them. Hold E beside the lantern to finish the day. The next-hit board appears beside the anvil. The core loop requires no on-screen action buttons.
+
+On touch screens, hold the Minecraft-style directional pad to walk; release to stop. Two directions can be held together. Near a crate, rack or shop, the ‹ / › thumb controls browse knives or stock. At the anvil, available one-use items appear above the movement pad. Drag the scene's right side to look, and use the thumb controls **Handle**, **Hammer**, and **Flow**. The left-side drag gesture remains available. Tap a station to walk to it and interact; tap the anvil to hammer, or hold it to pick up the knife. H opens instructions and L opens scores.
+
+**V** or the expand icon enters native full screen where supported. On iPhone browsers without that API, it fills the available viewport. The same icon exits, and Escape returns to the page. Portrait and landscape touch controls respect screen safe areas. Enter submits the smith name on the final score screen. Audio settings are remembered and reduced motion is respected.
 
 ## Source map
 
-- `unity/ForgeOrFold/Assets/Scripts/ForgeWorld.cs`: actual Unity room, camera, procedural knife geometry, spring dragging, hammer, pooled sparks/shards, evolution, fire and lighting.
+- `unity/ForgeOrFold/Assets/Scripts/ForgeWorld.cs`: actual Unity room, procedural knife geometry, carried-object springs, hammer, pooled sparks/shards, evolution, fire and lighting.
+- `unity/ForgeOrFold/Assets/Scripts/ForgeSmith.cs`: controllable human, walk/run/idle blending, hand IK, camera orbit, collision and physical station interactions.
 - `unity/ForgeOrFold/Assets/Shaders`: physically based blade heat/material shader, animated generated flame, additive ring.
 - `unity/ForgeOrFold/Assets/Editor/ForgeBuild.cs`: reproducible Web player build.
 - `src/minigames/forge/unity.ts`: Unity loading, pointer input and state/event bridge, lifecycle cleanup.
@@ -62,11 +69,13 @@ Browser checks use Chromium desktop and WebKit at 390×844, with an actual Unity
 ## Decisions and assumptions
 
 - The user's later Unity instruction supersedes the brief's Three.js preference. The actual 3D game runs in Unity; the shared deterministic rules remain TypeScript to avoid divergent scoring implementations and to stay callable by a future AI. No Three.js renderer is shipped for this game.
-- The reference informs first-person workshop framing and a dark brass/green HUD. Models, text, invented items and generated textures are original; no reference-site assets were copied.
+- The reference informs workshop atmosphere and a dark brass/green HUD. Workshop models, knives, text, invented items and generated textures are original; the humanoid and locomotion clips come from Unity’s official Standard Assets repository under its Companion License. No reference-site assets were copied.
 - The later image-generation request permits generated workshop textures and a flame animation atlas. Knives and audio remain code-built as originally requested. No generated still image is presented as a 3D room: the playable room has real Unity geometry.
 - Auricite is the invented eighth metal. New runs start with 180 gold, one guard and one rewind. Prices and twelve charms are in the shared config.
 - Heat is required once per knife. Cooling is visual. Time pauses when the page is hidden. The traveling buyer arrives at the sixth and fourteenth strike each day, remains 24 visible seconds, and offers 70–170% before charm effects.
-- Days 1–6 retain rack knives only, with confirmation before clearing the others. Day 7 scores every knife still owned. Rewind restores the affected knife and stamina, but does not rewind the random stream or cumulative strike count.
+- Days 1–6 retain rack knives only; holding Handle/E at the lantern deliberately clears the others. Day 7 scores every knife still owned. Rewind restores the affected knife and stamina, but does not rewind the random stream or cumulative strike count.
 - With no backend URL, the game explicitly uses local scores. A world-eligible run needs a server-issued seed ticket; an old offline run cannot be submitted later as verified.
 - Device identity is browser-local, not an account. Clearing storage creates another identity. Legal deterministic replay blocks invented scores and illegal ownership; it is not bot prevention or protection against searching a known seed. A competitive tournament would need server-issued per-action randomness/authentication.
 - No paid assets, Unity services, external audio or new hosting plan are required. The backend account is created by the user.
+
+Character source and license are recorded in `public/unity/forge/THIRD-PARTY-NOTICES.txt`. The Unity-only assets must retain that license notice. Holding a knife is a visual interaction state; reloading returns it to its last saved station.

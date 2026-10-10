@@ -19,3 +19,7 @@ Prompt specifications used:
 Generated master identifiers: room `exec-6b193ecc-7191-4aa4-83e4-d8d8f37708aa`, wood `exec-5e660ac3-990d-4593-8307-296195fc33b1`, stone `exec-d1f8a2f2-b5c5-493f-a99c-b031e362f57f`, fire `exec-234d67c3-c79f-4269-a88d-bebe4c2bfa56`.
 
 Knives, the reflection environment, workshop models, portraits, particles and audio are generated in code. Assets were inspected in the resulting Unity browser scene. Fire is an animated atlas; the remaining materials are static textures applied to real 3D geometry.
+
+## Human character and locomotion
+
+The rigged male worker, idle/walk/run FBX clips and albedo/normal textures are from [Unity Technologies Standard Assets Characters](https://github.com/Unity-Technologies/Standard-Assets-Characters). They are imported for Unity only under the [Unity Companion License](https://unity.com/legal/licenses/unity-companion-license), with the source notice retained alongside the assets and in the public Web build. The controller, leather apron, hand IK, carrying, hammer pose and station interaction logic are custom. No external controller code or audio was imported.
