@@ -9,7 +9,7 @@ export const site = {
   domain: 'cornellcgs.org',
   /** the last line of every page */
   credit: 'Website developed by Eric Shi',
-  eyebrow: 'Cornell University · Registered student organization',
+  eyebrow: 'TBD',
   // TODO official registration line
   footerLine: (year: number) => `© ${year} Cornell CGS · cornellcgs.org`,
 }
@@ -30,15 +30,15 @@ export const heroTitle = ['Cornell', 'Computational', 'Game Society']
 /** Hero typing line — the lead changes too. */
 export const typing = {
   pairs: [
-    { lead: 'We do research in', tail: 'computational game theory' },
-    { lead: 'We study', tail: 'imperfect information games' },
-    { lead: 'We build', tail: 'poker solvers' },
-    { lead: 'We train', tail: 'reinforcement learning agents' },
-    { lead: 'We compute', tail: 'equilibria' },
-    { lead: 'We work on', tail: 'multi-agent learning' },
-    { lead: 'We build', tail: 'AlphaGo style agents' },
-    { lead: 'We are training', tail: 'a Guandan agent' },
-    { lead: 'We play', tail: 'anything with payoffs' },
+    { lead: 'TBD', tail: '' },
+    { lead: 'TBD', tail: '' },
+    { lead: 'TBD', tail: '' },
+    { lead: 'TBD', tail: '' },
+    { lead: 'TBD', tail: '' },
+    { lead: 'TBD', tail: '' },
+    { lead: 'TBD', tail: '' },
+    { lead: 'TBD', tail: '' },
+    { lead: 'TBD', tail: '' },
   ],
 }
 
@@ -49,8 +49,8 @@ export const hero = {
 }
 
 export const whoWeAre = {
-  heading: 'Game *AI*',
-  paragraphs: ['A Cornell student club. We write game solvers and train agents that learn to play.'],
+  heading: 'TBD',
+  paragraphs: ['TBD'],
   photoPlaceholder: 'TODO team photo',
   // TODO real numbers — null shows as "TBA" until they exist
   counters: [
@@ -62,110 +62,110 @@ export const whoWeAre = {
 }
 
 export const whatWeDo = {
-  heading: 'At *Play*',
+  heading: 'TBD',
   // TODO real threads
   threads: [
     {
       rank: 'A',
       suit: '♠',
-      title: 'Study nights',
-      text: 'Every week: game theory, ranges, equilibria.',
+      title: 'TBD',
+      text: 'TBD',
     },
     {
       rank: 'K',
       suit: '♠',
-      title: 'Research',
-      text: 'Solvers, learning agents, and equity math.',
+      title: 'TBD',
+      text: 'TBD',
     },
     {
       rank: 'Q',
       suit: '♠',
-      title: 'Build',
-      text: 'We write our own agents and tools.',
+      title: 'TBD',
+      text: 'TBD',
     },
     {
       rank: 'J',
       suit: '♠',
-      title: 'Tournaments',
-      text: 'Run like the real thing, with no buy-in.',
+      title: 'TBD',
+      text: 'TBD',
     },
     {
       rank: '10',
       suit: '♠',
-      title: 'Talks',
-      text: 'On quant, poker, and academic research.',
+      title: 'TBD',
+      text: 'TBD',
     },
   ],
 }
 
 export const mlProcess = {
-  heading: 'Self-play',
+  heading: 'TBD',
   // TODO real steps
   steps: [
     {
       n: '01',
-      title: 'Frame',
-      text: 'Write the game down as states, actions, and payoffs.',
+      title: 'TBD',
+      text: 'TBD',
     },
     {
       n: '02',
-      title: 'Simulate',
-      text: 'Build a simulator so agents can play themselves.',
+      title: 'TBD',
+      text: 'TBD',
     },
     {
       n: '03',
-      title: 'Train',
-      text: 'Counterfactual regret minimization or deep reinforcement learning.',
+      title: 'TBD',
+      text: 'TBD',
     },
     {
       n: '04',
-      title: 'Evaluate',
-      text: 'Measure exploitability and play agents head to head.',
+      title: 'TBD',
+      text: 'TBD',
     },
     {
       n: '05',
-      title: 'Ship',
-      text: 'Release the agents and tools once they hold up.',
+      title: 'TBD',
+      text: 'TBD',
     },
   ],
 }
 
 export const events = {
-  heading: 'Coming *Up*',
+  heading: 'TBD',
   // TODO real events
   items: [
     {
-      title: 'Fall Kickoff',
-      date: 'Date TBA', // TODO date
-      blurb: 'Our first meeting of the year.',
+      title: 'TBD',
+      date: 'TBD', // TODO date
+      blurb: 'TBD',
     },
     {
-      title: 'Solver Workshop',
-      date: 'Date TBA', // TODO date
-      blurb: 'Write a small CFR solver with us.',
+      title: 'TBD',
+      date: 'TBD', // TODO date
+      blurb: 'TBD',
     },
     {
-      title: 'Alumni Night',
-      date: 'Date TBA', // TODO date
-      blurb: 'Alumni talk about working in quant and research.',
+      title: 'TBD',
+      date: 'TBD', // TODO date
+      blurb: 'TBD',
     },
     {
-      title: 'Charity Tournament',
-      date: 'Date TBA', // TODO date
-      blurb: 'A club tournament played for charity.',
+      title: 'TBD',
+      date: 'TBD', // TODO date
+      blurb: 'TBD',
     },
     {
-      title: 'Spring Banquet',
-      date: 'Date TBA', // TODO date
-      blurb: 'End-of-year dinner.',
+      title: 'TBD',
+      date: 'TBD', // TODO date
+      blurb: 'TBD',
     },
   ],
 }
 
 export const world = {
-  heading: 'One *Table*',
+  heading: 'TBD',
   // TODO real country count
-  text: 'Cornell students from around the world.',
+  text: 'TBD',
 }
 
 export const people = {
@@ -177,7 +177,7 @@ export const people = {
       role: 'President',
       major: 'Statistics',
       photo: '/assets/team/elsie-lu.jpg',
-      skills: ['VC', 'Medical devices', 'Management', 'Financial modeling'],
+      skills: ['TBD', 'TBD', 'TBD', 'TBD'],
     },
     {
       name: 'Evan Jiang',
@@ -185,12 +185,12 @@ export const people = {
       major: 'Biometry & Statistics + Information Science',
       photo: '/assets/team/evan-jiang.jpg',
       experience: [
-        'Faircaribe LLC: financial and data analysis',
-        'Handshake AI: intern',
-        'Noon AI: operations intern',
-        'Personal website development',
+        'TBD',
+        'TBD',
+        'TBD',
+        'TBD',
       ],
-      skills: ['Statistical modeling', 'Mathematical modeling', 'Python', 'AI reasoning & research'],
+      skills: ['TBD', 'TBD', 'TBD', 'TBD'],
     },
     // TODO(club): roles, majors, photos and bios. Every field is present so the
     // admin shows a photo drop zone, major, experience and skills for each person.
@@ -216,7 +216,7 @@ export const people = {
 export const team: Array<{ label: string; alt: string; people: Array<{ name: string; major: string }> }> = [
   {
     label: 'Board',
-    alt: 'Leadership',
+    alt: 'TBD',
     people: [
       { name: 'Elsie Lu', major: 'Statistics' },
       { name: 'Evan Jiang', major: 'Biometry & Statistics + Information Science' },
@@ -225,14 +225,14 @@ export const team: Array<{ label: string; alt: string; people: Array<{ name: str
   // TODO(club): majors for the rest of the team
   {
     label: 'Members',
-    alt: 'The Team',
+    alt: 'TBD',
     people: ['Yicheng', 'Michael', 'Henrique', 'Eric', 'Selina', 'Christina', 'Daniel'].map((name) => ({ name, major: '' })),
   },
 ]
 
 export const join = {
   heading: 'Join *CGS*',
-  text: 'New members every semester.',
+  text: 'TBD',
   cta: { label: 'Apply to CGS', href: 'mailto:recruitment@cornellcgs.org' }, // TODO form url when one exists
 }
 
@@ -254,11 +254,11 @@ export const contact = {
 
 /** The last chapter: what the club plans to do next. TODO(club): make these your own. */
 export const vision = {
-  title: 'Next',
+  title: 'TBD',
   next: [
-    'Make our agents stronger.',
-    'Let anyone play against them.',
-    'Share what we find.',
+    'TBD',
+    'TBD',
+    'TBD',
   ],
 }
 
@@ -268,7 +268,7 @@ export const advisors = [
     name: 'Robert D. Kleinberg',
     role: 'Faculty Advisor',
     title: 'Professor of Computer Science, Cornell University',
-    bio: 'Algorithms and theoretical computer science: economic aspects of algorithms, online learning and its applications, random processes in networks.',
+    bio: 'TBD',
     photo: '/assets/advisors/kleinberg.jpg',
     url: 'https://www.cs.cornell.edu/~rdk/',
   },
@@ -348,91 +348,91 @@ export const minigames = {
 export const pages: Record<string, SubPageDef> = {
   'who-we-are': {
     title: 'About',
-    lead: 'A Cornell club for people who like games and the math behind them.',
+    lead: 'TBD',
     sections: [
-      { heading: 'How we work', alt: 'Culture', body: 'Beginners are welcome, and we still check each other\u2019s math.' },
-      { heading: 'Game AI', alt: 'Focus', body: 'Solvers, learning agents, and the math behind them.' },
-      { heading: 'Ithaca', alt: 'Home', body: 'We meet at Cornell. Our members come from all over the world.' },
+      { heading: 'TBD', alt: 'TBD', body: 'TBD' },
+      { heading: 'TBD', alt: 'TBD', body: 'TBD' },
+      { heading: 'TBD', alt: 'TBD', body: 'TBD' },
     ],
   },
   'what-we-do': {
     title: 'Our Work',
-    lead: 'What we are building, and what the club does each week.',
+    lead: 'TBD',
     sections: [
       {
         // TODO(club): add numbers once benchmarks exist
-        heading: 'Guandan agent', alt: 'In training',
-        body: 'Four agents play the card game Guandan against each other and learn from self-play. No benchmarks published yet.',
+        heading: 'TBD', alt: 'TBD',
+        body: 'TBD',
       },
       {
-        heading: 'Poker equity', alt: 'Calculator',
-        body: 'A Monte Carlo equity calculator for Texas hold\u2019em. You can run it on our home page.',
+        heading: 'TBD', alt: 'TBD',
+        body: 'TBD',
       },
-      { heading: 'Study nights', alt: 'Every week', body: 'A weekly session on game theory, ranges, and equilibria.' },
-      { heading: 'Club events', alt: 'Off the laptop', body: 'Tournaments with real structure and no buy-in, plus talks on quant, poker, and academia.' },
+      { heading: 'TBD', alt: 'TBD', body: 'TBD' },
+      { heading: 'TBD', alt: 'TBD', body: 'TBD' },
     ],
   },
   'ml-process': {
     title: 'Machine Learning',
-    lead: 'How we turn a game\u2019s rules into an agent that plays it.',
+    lead: 'TBD',
     sections: [
-      { heading: 'Frame', alt: 'The rules', body: 'Write the game down as states, actions, and payoffs.' },
-      { heading: 'Simulate', alt: 'Simulator', body: 'Build a simulator fast enough for agents to play themselves.' },
-      { heading: 'Train', alt: 'Self-play', body: 'Counterfactual regret minimization or deep reinforcement learning.' },
-      { heading: 'Evaluate', alt: 'Testing', body: 'Measure exploitability and play agents head to head.' },
-      { heading: 'Share', alt: 'Release', body: 'We plan to release agents, tools, and write-ups. Nothing is out yet.' },
+      { heading: 'TBD', alt: 'TBD', body: 'TBD' },
+      { heading: 'TBD', alt: 'TBD', body: 'TBD' },
+      { heading: 'TBD', alt: 'TBD', body: 'TBD' },
+      { heading: 'TBD', alt: 'TBD', body: 'TBD' },
+      { heading: 'TBD', alt: 'TBD', body: 'TBD' },
     ],
   },
   events: {
     title: 'Events',
-    lead: 'Dates go up here once they are set.',
+    lead: 'TBD',
     sections: [
-      { heading: 'Fall Kickoff', alt: 'First meeting', body: 'Our first meeting of the year. Date TBA.' },
-      { heading: 'Solver Workshop', alt: 'Hands-on', body: 'Write a small CFR solver with us. Date TBA.' },
-      { heading: 'Alumni Night', alt: 'Q&A', body: 'Alumni talk about working in quant and research. Date TBA.' },
-      { heading: 'Charity Tournament', alt: 'For charity', body: 'A club tournament played for charity. Date TBA.' },
-      { heading: 'Spring Banquet', alt: 'Dinner', body: 'End-of-year dinner. Date TBA.' },
+      { heading: 'TBD', alt: 'TBD', body: 'TBD' },
+      { heading: 'TBD', alt: 'TBD', body: 'TBD' },
+      { heading: 'TBD', alt: 'TBD', body: 'TBD' },
+      { heading: 'TBD', alt: 'TBD', body: 'TBD' },
+      { heading: 'TBD', alt: 'TBD', body: 'TBD' },
     ],
   },
   world: {
     title: 'World',
-    lead: 'Where our members come from.',
+    lead: 'TBD',
     sections: [
-      { heading: 'Our members', alt: 'Hometowns', body: 'Cornell students from around the world.' },
-      { heading: 'Countries', alt: 'How many', body: 'Count TBA.' },
+      { heading: 'TBD', alt: 'TBD', body: 'TBD' },
+      { heading: 'TBD', alt: 'TBD', body: 'TBD' },
     ],
   },
   people: {
     title: 'Our Team',
-    lead: 'Board and members of Cornell CGS.',
+    lead: 'TBD',
     sections: [
-      { heading: 'Advisors', alt: 'Faculty', body: 'See the Advisors page.' },
+      { heading: 'Advisors', alt: 'TBD', body: 'TBD' },
     ],
   },
   advisors: {
     title: 'Advisors',
     // TODO(club): advisor + member roster (names, roles, photos)
-    lead: 'Faculty who advise Cornell CGS.',
+    lead: 'TBD',
     sections: [
       {
-        heading: 'Our team', alt: 'Board and members',
-        body: 'The board and the rest of the club are listed on the Our Team page.',
+        heading: 'Our team', alt: 'TBD',
+        body: 'TBD',
         link: { label: 'Our Team', href: '/ourTeam/' },
       },
     ],
   },
   join: {
     title: 'Join CGS',
-    lead: 'We take new members every semester.',
+    lead: 'TBD',
     sections: [
-      { heading: 'Everyone', alt: 'All majors', body: 'Every school, major, and background is welcome to apply.' },
-      { heading: 'Helpful math', alt: 'Recommended', body: 'MATH 1110 or higher, or similar experience. Recommended, not required.' },
-      { heading: 'Helpful CS', alt: 'Recommended', body: 'CS 1110 or 1112, or experience reading and writing code. Recommended, not required.' },
-      { heading: 'Apply', alt: 'Email us', body: 'Email recruitment@cornellcgs.org.' },
+      { heading: 'TBD', alt: 'TBD', body: 'TBD' },
+      { heading: 'TBD', alt: 'TBD', body: 'TBD' },
+      { heading: 'TBD', alt: 'TBD', body: 'TBD' },
+      { heading: 'TBD', alt: 'TBD', body: 'recruitment@cornellcgs.org' },
       {
-        heading: 'Coffee chat',
-        alt: 'Say hello',
-        body: 'A twenty-minute chat with a member. You don\u2019t have to apply afterward.',
+        heading: 'TBD',
+        alt: 'TBD',
+        body: 'TBD',
         link: {
           label: 'Book a coffee chat',
           href: 'https://docs.google.com/forms/d/e/1FAIpQLSfCJEW9kdTEYV41YZZCt4MQRg8c9KdNSbrw9IGmSgCRF9eglw/viewform',
@@ -442,13 +442,13 @@ export const pages: Record<string, SubPageDef> = {
   },
   contact: {
     title: 'Contact Us',
-    lead: 'Email the team that fits your question.',
+    lead: 'TBD',
     sections: [
-      { heading: 'Recruitment', alt: 'Join CGS', body: 'recruitment@cornellcgs.org' },
-      { heading: 'Tech', alt: 'Code', body: 'tech@cornellcgs.org' },
-      { heading: 'Finance', alt: 'Sponsors', body: 'finance@cornellcgs.org' },
-      { heading: 'Marketing', alt: 'Outreach', body: 'marketing@cornellcgs.org' },
-      { heading: 'Social', alt: 'Say hello', body: 'social@cornellcgs.org' },
+      { heading: 'Recruitment', alt: 'TBD', body: 'recruitment@cornellcgs.org' },
+      { heading: 'Tech', alt: 'TBD', body: 'tech@cornellcgs.org' },
+      { heading: 'Finance', alt: 'TBD', body: 'finance@cornellcgs.org' },
+      { heading: 'Marketing', alt: 'TBD', body: 'marketing@cornellcgs.org' },
+      { heading: 'Social', alt: 'TBD', body: 'social@cornellcgs.org' },
     ],
   },
 }

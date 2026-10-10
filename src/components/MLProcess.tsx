@@ -33,7 +33,7 @@ export default function MLProcess() {
       <div className="container-site scene-content">
         <div className="scene-copy">
           <p className="scene-eyebrow"><span />Machine learning</p>
-          <TypedHeading text={mlProcess.heading} alt="Adapt" className="scene-title scene-title--serif" caret="bg-[#b8d7ff]" />
+          <TypedHeading text={mlProcess.heading} alt="TBD" className="scene-title scene-title--serif" caret="bg-[#b8d7ff]" />
           <div className="ml-sequence">
             <div ref={track} className="ml-sequence-track" />
             {mlProcess.steps.map((step,i) => <div key={`${step.n}-${i}`} data-ml-step className="ml-step">
@@ -43,7 +43,7 @@ export default function MLProcess() {
           </div>
         </div>
       </div>
-      <div className="scene-caption"><span>5 steps</span><span>Events are next</span><span aria-hidden="true">↓</span></div>
+      <div className="scene-caption"><span>TBD</span><span>TBD</span><span aria-hidden="true">↓</span></div>
     </div>
   </section>
 }

@@ -28,35 +28,35 @@ const SLUGS = {
 const PAGES = {
   'who-we-are': {
     title: 'Who We Are — Cornell Computational Game Society',
-    desc: 'The people and culture of the Cornell Computational Game Society (Cornell CGS).',
+    desc: 'TBD',
   },
   'what-we-do': {
     title: 'What We Do — Cornell Computational Game Society',
-    desc: 'Current projects at Cornell CGS, including a Guandan agent and a poker equity calculator, plus study nights, tournaments and talks.',
+    desc: 'TBD',
   },
   'ml-process': {
     title: 'Our Machine Learning Process — Cornell CGS',
-    desc: 'How the Cornell Computational Game Society frames games, builds environments, trains and evaluates agents.',
+    desc: 'TBD',
   },
   events: {
     title: 'Events — Cornell Computational Game Society',
-    desc: 'Events at the Cornell Computational Game Society (Cornell CGS).',
+    desc: 'TBD',
   },
   world: {
     title: 'World — Cornell Computational Game Society',
-    desc: 'The worldwide community of the Cornell Computational Game Society.',
+    desc: 'TBD',
   },
   advisors: {
     title: 'Advisors \u2014 Cornell Computational Game Society',
-    desc: 'Advisors and team of the Cornell Computational Game Society (Cornell CGS).',
+    desc: 'TBD',
   },
   people: {
     title: 'Our Team — Cornell Computational Game Society',
-    desc: 'The board and members of the Cornell Computational Game Society (Cornell CGS).',
+    desc: 'TBD',
   },
   join: {
     title: 'Join — Cornell Computational Game Society',
-    desc: 'How to join the Cornell Computational Game Society. Any major can apply: email recruitment@cornellcgs.org.',
+    desc: 'TBD',
   },
   minigames: {
     title: 'Mini Games — Cornell Computational Game Society',
@@ -70,7 +70,7 @@ const PAGES = {
   },
   contact: {
     title: 'Contact Us — Cornell Computational Game Society',
-    desc: 'Contact Cornell CGS: recruitment, tech, finance, marketing and social inboxes at cornellcgs.org.',
+    desc: 'TBD',
   },
 }
 
