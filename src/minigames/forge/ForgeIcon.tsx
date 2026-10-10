@@ -1,0 +1,22 @@
+const paths: Record<string,string> = {
+ hammer:'m5 20 9-9m-3-5 3-3 7 7-3 3-7-7Zm-7 15 3-3',
+ fire:'M13 3c1 5-4 5-2 9 2-1 3-3 3-4 5 4 5 7 3 10-3 4-10 3-11-1-2-5 4-7 7-14Z',
+ keep:'M4 5h16v15H4Zm-1 0V2h18v3M9 10h6',
+ shop:'M3 9h18l-2-6H5L3 9Zm1 0v12h16V9M9 21v-7h6v7M3 9c0 4 6 4 6 0 0 4 6 4 6 0 0 4 6 4 6 0',
+ sell:'M4 12h15m-5-5 5 5-5 5M5 5v14',
+ plus:'M12 5v14M5 12h14',
+ moon:'M20 15A9 9 0 0 1 9 4a9 9 0 1 0 11 11Z',
+ bolt:'m13 2-9 12h7l-1 8 10-13h-8l1-7Z',
+ coin:'M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-5v10m3-8H10a2 2 0 0 0 0 4h4a2 2 0 0 1 0 4H9',
+ trophy:'M7 3h10v6a5 5 0 0 1-10 0V3Zm5 11v6m-4 1h8M7 5H3v2a4 4 0 0 0 4 4m10-6h4v2a4 4 0 0 1-4 4',
+ sound:'m11 4-5 4H2v8h4l5 4V4Zm4 4a6 6 0 0 1 0 8m3-11a10 10 0 0 1 0 14',
+ mute:'m11 4-5 4H2v8h4l5 4V4Zm5 5 5 6m0-6-5 6',
+ full:'M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5',
+ close:'m6 6 12 12M6 18 18 6',
+ back:'m14 5-7 7 7 7',
+ help:'M9 9a3 3 0 1 1 5 2c-2 1-2 2-2 3m0 3h.01M22 12a10 10 0 1 1-20 0 10 10 0 0 1 20 0Z',
+ guard:'m12 3 8 3v6c0 5-8 9-8 9s-8-4-8-9V6l8-3Zm-4 9 3 3 5-6',
+ rewind:'M4 4v6h6M4 10a8 8 0 1 1 0 6',
+ hand:'M7 13V5a2 2 0 0 1 4 0v7-8a2 2 0 0 1 4 0v8-5a2 2 0 0 1 4 0v9c0 7-9 8-12 3l-4-5a2 2 0 0 1 3-2l1 1Z',
+}
+export default function ForgeIcon({name}:{name:string}) { return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={paths[name]||paths.plus}/></svg> }

@@ -13,3 +13,13 @@ output/
 
 # Python caches from the reproducible Blender scene builders.
 scripts/cinematic/__pycache__/
+
+# Unity source is versioned; imports and machine state are reproducible.
+unity/**/Library/
+unity/**/Temp/
+unity/**/Obj/
+unity/**/Logs/
+unity/**/UserSettings/
+unity/**/*.csproj
+unity/**/*.sln
+unity/**/Builds/
