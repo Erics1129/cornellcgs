@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1536" height="768" viewBox="0 0 1536 768">
+  <defs>
+    <linearGradient id="pearl" x2="0" y2="1"><stop stop-color="#728a9f"/><stop offset=".45" stop-color="#cee3f4"/><stop offset="1" stop-color="#e3f4ff"/></linearGradient>
+    <radialGradient id="iris"><stop offset=".57" stop-color="#051326"/><stop offset=".64" stop-color="#123449"/><stop offset=".85" stop-color="#317ba0"/><stop offset=".89" stop-color="#6fc5e2"/><stop offset="1" stop-color="#0b243b"/></radialGradient>
+    <clipPath id="lid"><path d="M60 394 Q768 -186 1476 394 Q768 925 60 394Z"/></clipPath>
+    <clipPath id="pupil"><circle cx="768" cy="384" r="159"/></clipPath>
+  </defs>
+  <path fill="#000" d="M0 0h1536v768H0z"/>
+  <g clip-path="url(#lid)">
+    <path d="M60 394 Q768 -186 1476 394 Q768 925 60 394Z" fill="url(#pearl)"/>
+    <circle cx="768" cy="384" r="244" fill="url(#iris)"/>
+    <circle cx="768" cy="384" r="159" fill="#041222"/>
+    <g clip-path="url(#pupil)" font-family="monospace" font-size="24" fill="#cbe9ff">
+      <text x="628" y="326" fill="#b6afff">function learn() {</text>
+      <text x="644" y="366">const next = play();</text>
+      <text x="644" y="406">update(next);</text>
+      <text x="644" y="446" fill="#90e4de">return next;</text>
+      <text x="628" y="486">}</text>
+    </g>
+    <path d="M628 247 Q674 188 738 190" fill="none" stroke="#a0ddf7" stroke-width="7" stroke-linecap="round" opacity=".58"/>
+  </g>
+</svg>

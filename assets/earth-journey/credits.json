@@ -1,0 +1,117 @@
+{
+  "photos": [
+    {
+      "id": "liberty",
+      "file": "liberty-island.webp",
+      "title": "The Statue of Liberty on Liberty Island",
+      "creator": "National Park Service",
+      "credit": "NPS Photo",
+      "source": "https://npgallery.nps.gov/AssetDetail/3454fd91-1dd8-b71b-0b21-a93398840c35",
+      "original": "https://www.nps.gov/npgallery/GetAsset/3454fd91-1dd8-b71b-0b21-a93398840c35/original",
+      "originalFilename": "3457A073-1DD8-B71B-0BEB2FF4DD540CD5.jpg",
+      "license": "Public domain; Full Granting Rights",
+      "licenseUrl": "https://npgallery.nps.gov/AssetDetail/3454fd91-1dd8-b71b-0b21-a93398840c35",
+      "dateTaken": "2010-09-20",
+      "quality": 79,
+      "originalDimensions": {
+        "width": 4211,
+        "height": 2749
+      },
+      "originalBytes": 3390782,
+      "originalSha256": "5fb4fda60256b7921826182a31f9929479926dbe7b946e0a3dcc66752fb2b8b3",
+      "output": {
+        "width": 1920,
+        "height": 1253,
+        "bytes": 146014
+      },
+      "modifications": "Resized to 1920 pixels wide and encoded as WebP. Encoding quality is recorded separately. Original aspect ratio retained. Website applies responsive display cropping, a static contrast scrim, and reversible scroll zoom/pan. No generative alteration.",
+      "retrieved": "2026-09-08"
+    },
+    {
+      "id": "bali",
+      "file": "bali-jatiluwih.webp",
+      "title": "Bali- Jatiluwih rice terraces - 50281829296.jpg",
+      "creator": "Jorge Franganillo",
+      "credit": "© Jorge Franganillo",
+      "source": "https://commons.wikimedia.org/wiki/File:Bali-_Jatiluwih_rice_terraces_-_50281829296.jpg",
+      "original": "https://upload.wikimedia.org/wikipedia/commons/1/1b/Bali-_Jatiluwih_rice_terraces_-_50281829296.jpg",
+      "creatorSource": "https://www.flickr.com/photos/franganillo/50281829296/",
+      "originalFilename": "Bali-_Jatiluwih_rice_terraces_-_50281829296.jpg",
+      "license": "Creative Commons Attribution 2.0 Generic (CC BY 2.0)",
+      "licenseUrl": "https://creativecommons.org/licenses/by/2.0/",
+      "dateTaken": "2018-08-14",
+      "licenseReview": "FlickreviewR 2, 2020-08-30",
+      "quality": 79,
+      "originalDimensions": {
+        "width": 4486,
+        "height": 2692
+      },
+      "originalBytes": 10929008,
+      "originalSha256": "91f74da3d1b94d27f4d9e880ebd4f9eadf50545ed3d5cb02b76c02c82a5a961a",
+      "output": {
+        "width": 1920,
+        "height": 1152,
+        "bytes": 374660
+      },
+      "modifications": "Resized to 1920 pixels wide and encoded as WebP. Encoding quality is recorded separately. Original aspect ratio retained. Website applies responsive display cropping, a static contrast scrim, and reversible scroll zoom/pan. No generative alteration.",
+      "retrieved": "2026-09-08"
+    },
+    {
+      "id": "hawaii",
+      "file": "hawaii-na-pali.webp",
+      "title": "Na Pali Coast",
+      "creator": "Andrew Baerst",
+      "credit": "© Andy Baerst — 2016",
+      "source": "https://commons.wikimedia.org/wiki/File:Na_Pali_Coast_(28915675361).jpg",
+      "original": "https://upload.wikimedia.org/wikipedia/commons/e/e3/Na_Pali_Coast_%2828915675361%29.jpg",
+      "creatorSource": "https://www.flickr.com/photos/baerst/28915675361/",
+      "originalFilename": "Na_Pali_Coast_(28915675361).jpg",
+      "license": "Creative Commons Attribution 2.0 Generic (CC BY 2.0)",
+      "licenseUrl": "https://creativecommons.org/licenses/by/2.0/",
+      "dateTaken": "2016-06-29",
+      "licenseReview": "FlickreviewR 2, 2019-07-29",
+      "quality": 70,
+      "originalDimensions": {
+        "width": 4096,
+        "height": 2734
+      },
+      "originalBytes": 13345422,
+      "originalSha256": "a5a5070679ded1d4ee8a35ddb79373c229dd37968297a53828c795240a7d3fce",
+      "output": {
+        "width": 1920,
+        "height": 1282,
+        "bytes": 478936
+      },
+      "modifications": "Resized to 1920 pixels wide and encoded as WebP. Encoding quality is recorded separately. Original aspect ratio retained. Website applies responsive display cropping, a static contrast scrim, and reversible scroll zoom/pan. No generative alteration.",
+      "retrieved": "2026-09-08"
+    }
+  ],
+  "earth": {
+    "file": "earth-nasa-july-4096.webp",
+    "title": "Blue Marble: Next Generation — July 2004 with topography and bathymetry",
+    "creator": "NASA Earth Observatory; Reto Stöckli (NASA/GSFC)",
+    "credit": "NASA Earth Observatory",
+    "source": "https://science.nasa.gov/earth/earth-observatory/blue-marble-next-generation/base-topography-bathymetry/",
+    "original": "https://assets.science.nasa.gov/content/dam/science/esd/eo/images/bmng/bmng-topography-bathymetry/july/world.topo.bathy.200407.3x5400x2700.jpg",
+    "originalFilename": "world.topo.bathy.200407.3x5400x2700.jpg",
+    "license": "Public-domain NASA imagery, subject to NASA media usage guidelines; no endorsement implied.",
+    "licenseUrl": "https://www.nasa.gov/nasa-brand-center/images-and-media/",
+    "creditSource": "https://neo.gsfc.nasa.gov/view.php?datasetId=BlueMarbleNG",
+    "dataPeriod": "2004-07",
+    "projection": "Equirectangular (Plate Carrée), north up, longitude -180…180°, latitude 90…-90°",
+    "originalDimensions": {
+      "width": 5400,
+      "height": 2700
+    },
+    "originalBytes": 2308798,
+    "originalSha256": "4f4240673a3a1b173d61b92ca4b07bac5fd17059ea5f725ba6da5a9c5386b7ba",
+    "output": {
+      "width": 4096,
+      "height": 2048,
+      "bytes": 765670
+    },
+    "quality": 86,
+    "modifications": "Resized and encoded as WebP. No cropping, generative alteration, reprojection, or geographic feature editing. Runtime projects it onto a sphere with illustrative lighting. It is a satellite-data composite with shaded relief, not a single photograph, live weather, or a street-level map.",
+    "retrieved": "2026-09-08"
+  }
+}
