@@ -9,7 +9,9 @@
     "preview": "vite preview",
     "deploy": "sh scripts/deploy.sh",
     "admin:connect": "node scripts/admin-connect.mjs",
-    "equity": "node scripts/equity.mjs"
+    "equity": "node scripts/equity.mjs",
+    "test": "node scripts/test-solver.mjs && node scripts/test-inkmaze.mjs",
+    "inkmaze:solve": "node scripts/inkmaze-solve.mjs"
   },
   "dependencies": {
     "gsap": "^3.13.0",

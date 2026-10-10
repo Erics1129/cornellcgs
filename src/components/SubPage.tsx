@@ -8,6 +8,7 @@ import type { PageSceneId } from '../lib/pageScenes'
 import PageScene from './PageScene'
 import Dice from './Dice'
 import PageNavigator from './PageNavigator'
+import MinigamesCard from '../minigames/MinigamesCard'
 import type { Algo } from './GraphAlgo'
 import '../styles/subpages.css'
 
@@ -138,7 +139,7 @@ export default function SubPage({ id }: { id: string }) {
       composition = <><div className="sp-editorial">{title}{scene}</div><div className="sp-principles">{sections(true)}</div></>
       break
     case 'what-we-do':
-      composition = <>{title}<div className="sp-workshop">{scene}<div className="sp-workshop__notes">{sections(true)}</div></div></>
+      composition = <>{title}<div className="sp-workshop">{scene}<div className="sp-workshop__notes">{sections(true)}</div></div><MinigamesCard /></>
       break
     case 'ml-process':
       composition = <>{title}<div className="sp-process">{scene}<div className="sp-process__steps">{sections()}</div></div></>

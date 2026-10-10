@@ -9,11 +9,11 @@ import { pageSlugs } from '../content'
 
 const slugToId = Object.fromEntries(Object.entries(pageSlugs).map(([id, slug]) => [slug, id]))
 
-/** The page id for the current URL: stub-declared, else the slug segment. */
+/** The page id for the current URL: stub-declared, else the slug path (one segment, or two for /minigames/<game>/). */
 export function currentPage(): string | null {
   const declared = (window as { __cgsPage?: string }).__cgsPage
   if (declared) return declared
-  const m = window.location.pathname.match(/^\/([A-Za-z-]+)\/?$/)
+  const m = window.location.pathname.match(/^\/([A-Za-z-]+(?:\/[A-Za-z-]+)?)\/?$/)
   if (!m) return null
   return slugToId[m[1]] ?? null
 }

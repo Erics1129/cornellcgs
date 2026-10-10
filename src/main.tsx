@@ -21,6 +21,10 @@ import { installDevice } from './lib/device'
 import { isDraftPreview, loadDraft, loadLiveContent, markDraftPreview } from './lib/liveContent'
 import './styles/global.css'
 
+// The mini games are their own routes under /minigames/; their code loads only there
+const MinigamesPage = React.lazy(() => import('./minigames/MinigamesPage'))
+const InkMazePage = React.lazy(() => import('./minigames/inkmaze/InkMazePage'))
+
 // Device class + design scale first: everything below measures in rem.
 installDevice()
 installNeonClick()
@@ -33,7 +37,9 @@ if (legacy && pages[legacy[1]]) {
 
 // Info pages are REAL pages: render the standalone view, not the deck.
 const page = currentPage()
-const standalone = page !== null && !!pages[page]
+const Game = page === 'minigames' ? MinigamesPage : page === 'ink-maze' ? InkMazePage : null
+const infoPage = page !== null && !!pages[page]
+const standalone = Game !== null || infoPage
 
 // The words and portraits the board publishes from /admin/ are written into
 // the content module before the first render; with no API (or a slow one)
@@ -44,7 +50,9 @@ loadLiveContent()
   .then(() => (draft ? loadDraft() : []))
   .finally(() => {
     ReactDOM.createRoot(document.getElementById('root')!).render(
-      <React.StrictMode>{standalone ? <SubPage id={page} /> : <App />}</React.StrictMode>,
+      <React.StrictMode>{Game
+        ? <React.Suspense fallback={null}><Game /></React.Suspense>
+        : infoPage ? <SubPage id={page} /> : <App />}</React.StrictMode>,
     )
     if (draft) markDraftPreview()
   })

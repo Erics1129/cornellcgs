@@ -314,3 +314,26 @@
 @media (prefers-reduced-motion: reduce) { .page-scene__film { display: none; } .page-scene[data-renderer='video'] .page-scene__poster { visibility: visible; } }
 /* Tailwind's media reset caps video at 100%; keep the intentional look margin. */
 .page-scene__film { max-width: none; }
+
+/* Game cards: on What We Do (leading to /minigames/) and on /minigames/ */
+.sp-play-card { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); align-items: center; gap: clamp(1.5rem, 3vw, 3rem); max-width: 60rem; margin-top: clamp(3.5rem, 6vw, 6rem); padding: 1.2rem; border: 1px solid var(--sp-rule); background: var(--sp-panel); transition: border-color .2s ease, background-color .2s ease; }
+.sp-play-card__art { display: block; width: 100%; height: auto; aspect-ratio: 1200 / 630; object-fit: cover; background: #3b2416; }
+.sp-play-card__art--plain { display: grid; grid-template-columns: repeat(4, 1fr); gap: 3px; padding: 12% 26%; }
+.sp-play-card__art--plain i { aspect-ratio: 1; background: #e8cf9f; }
+.sp-play-card__art--plain i[data-inked] { background: #1f49c9; }
+.sp-play-card__art--plain i[data-wall] { background: #8a5a33; }
+.sp-play-card__copy { display: grid; gap: .55rem; min-width: 0; }
+.sp-play-card__title { font-size: clamp(1.6rem, 2.8vw, 2.4rem); font-weight: 600; line-height: 1.05; letter-spacing: -.04em; }
+.sp-play-card__body { color: var(--sp-muted); font-size: 1rem; line-height: 1.6; max-width: 36ch; }
+.sp-play-card__cta { display: inline-flex; align-items: center; gap: .9rem; width: max-content; margin-top: .4rem; padding: .5rem 0; border-bottom: 1px solid currentColor; font-weight: 600; }
+.sp-play-card__cta span { transition: transform .2s ease; }
+@media (hover: hover) and (pointer: fine) {
+  .sp-play-card:hover { border-color: var(--sp-ink); background: #ebe6db; }
+  .sp-play-card:hover .sp-play-card__cta span { transform: translateX(4px); }
+}
+@media (max-width: 700px) { .sp-play-card { grid-template-columns: 1fr; padding: .9rem; gap: 1.1rem; } }
+.sp-play-card__meta { color: var(--sp-ink); font-size: .92rem; font-weight: 600; }
+
+/* /minigames/: one card per game */
+.subpage .mg-games { display: grid; gap: clamp(1.25rem, 2.5vw, 2rem); margin: clamp(3rem, 5vw, 5rem) 0 0; padding: 0; list-style: none; }
+.mg-games .sp-play-card { margin-top: 0; }

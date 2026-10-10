@@ -20,6 +20,8 @@ const SLUGS = {
   advisors: 'advisors',
   join: 'join',
   contact: 'contact',
+  minigames: 'minigames',
+  'ink-maze': 'minigames/inkMaze',
 }
 
 // Titles/descriptions state nothing the site itself doesn't already say.
@@ -56,6 +58,16 @@ const PAGES = {
     title: 'Join — Cornell Computational Game Society',
     desc: 'Any person, any study \u2014 how to join the Cornell Computational Game Society. Email recruitment@cornellcgs.org.',
   },
+  minigames: {
+    title: 'Mini Games — Cornell Computational Game Society',
+    desc: 'Puzzles from the Cornell Computational Game Society that you can play in the browser. The first one is Ink Maze.',
+    image: '/assets/minigames/ink-maze/cover.png',
+  },
+  'ink-maze': {
+    title: 'Ink Maze — Cornell Computational Game Society',
+    desc: 'Roll the ball to color every floor block before you run out of ink. Ten levels, from 4 × 4 to 7 × 7.',
+    image: '/assets/minigames/ink-maze/cover.png',
+  },
   contact: {
     title: 'Contact Us — Cornell Computational Game Society',
     desc: 'Contact Cornell CGS \u2014 recruitment, tech, finance, marketing and social inboxes at cornellcgs.org.',
@@ -65,7 +77,7 @@ const PAGES = {
 const esc = (s) => s.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;')
 const base = readFileSync(join(root, 'dist/index.html'), 'utf8')
 
-for (const [id, { title, desc }] of Object.entries(PAGES)) {
+for (const [id, { title, desc, image }] of Object.entries(PAGES)) {
   const slug = SLUGS[id] ?? id
   const html = base
     .replace(/<title>[^<]*<\/title>/, `<title>${esc(title)}</title>`)
@@ -74,7 +86,7 @@ for (const [id, { title, desc }] of Object.entries(PAGES)) {
     .replace(/(<meta property="og:description" content=")[^"]*(")/, `$1${esc(desc)}$2`)
     .replace(/(<meta property="og:url" content=")[^"]*(")/, `$1${ORIGIN}/${slug}/$2`)
     .replace(/<link rel="canonical" href="[^"]*"\s*\/>/, `<link rel="canonical" href="${ORIGIN}/${slug}/" />`)
-    .replace('</head>', `  <style>html{background:#fff}</style>\n  <script>window.__cgsPage='${id}'</script>\n  </head>`)
+    .replace('</head>', `${image ? `  <meta property="og:image" content="${ORIGIN}${image}" />\n` : ''}  <style>html{background:#fff}</style>\n  <script>window.__cgsPage='${id}'</script>\n  </head>`)
   mkdirSync(join(root, 'dist', slug), { recursive: true })
   writeFileSync(join(root, 'dist', slug, 'index.html'), html)
   console.log(`stub: /${slug}/`)

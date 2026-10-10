@@ -310,6 +310,35 @@ export const pageSlugs: Record<string, string> = {
   advisors: 'advisors',
   join: 'join',
   contact: 'contact',
+  /** the mini games live under /minigames/; they are pages of their own, not info pages (no entry in `pages`) */
+  minigames: 'minigames',
+  'ink-maze': 'minigames/inkMaze',
+}
+
+/** The mini games: the list at /minigames/, each game's page, and the card on What We Do. */
+export const minigames = {
+  title: 'Mini Games',
+  eyebrow: 'Play',
+  lead: 'Small puzzles you can play in the browser, on a computer or a phone.',
+  card: {
+    eyebrow: 'Play',
+    title: 'Mini Games',
+    body: 'Puzzles you can play in the browser. The first one is Ink Maze.',
+    cta: 'See the games',
+  },
+  inkMaze: {
+    title: 'Ink Maze',
+    eyebrow: 'Mini game',
+    lead: 'Roll the ball to color every floor block before you run out of ink.',
+    summary: 'Ten levels, from 4 × 4 to 7 × 7. Each level gives you a set amount of ink. On the last three, it is exactly the least you need.',
+    cta: 'Play Ink Maze',
+    rules: [
+      'The ball rolls in a straight line until a wall or the edge of the board stops it.',
+      'Each block the ball rolls onto uses one ink, even if it is already colored.',
+      'Color every floor block to clear the level.',
+      'If you run out of ink with blocks still uncolored, the level is lost. You can undo or restart.',
+    ],
+  },
 }
 
 export const pages: Record<string, SubPageDef> = {
