@@ -44,7 +44,7 @@ export default function PageNavigator({ currentId }: { currentId: string }) {
       <span>Explore</span><svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="m4 6 4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
     </button>
     <div id={panelId} className="page-navigator__panel" aria-hidden={!open}>
-      <p className="page-navigator__eyebrow">Discover CGS</p>
+      <p className="page-navigator__eyebrow">All pages</p>
       <div className="page-navigator__links">
         {PAGE_ORDER.map(pageId => <a key={pageId} className="page-navigator__link" href={pagePath(pageId)}
           aria-current={pageId === currentId ? 'page' : undefined} tabIndex={open ? 0 : -1}

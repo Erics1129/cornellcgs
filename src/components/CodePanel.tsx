@@ -90,7 +90,9 @@ const CodePanel = forwardRef<CodePanelHandle, {
   extraTabs?: string[]
   /** the path shown under the tabs, last item emphasised */
   breadcrumb?: string[]
-}>(function CodePanel({ lines, title, mode = 'ts', className = '', minimap = false, inlayRow = -1, onFrame, extraTabs = [], breadcrumb }, ref) {
+  /** the parent moves the viewport itself; the panel never writes its scroll position */
+  manualScroll?: boolean
+}>(function CodePanel({ lines, title, mode = 'ts', className = '', minimap = false, inlayRow = -1, onFrame, extraTabs = [], breadcrumb, manualScroll = false }, ref) {
   const root = useRef<HTMLDivElement>(null)
   const viewport = useRef<HTMLDivElement>(null)
   const map = useRef<HTMLDivElement>(null)
@@ -206,12 +208,15 @@ const CodePanel = forwardRef<CodePanelHandle, {
           }
           row.key = key
         }
-        const isActive = i === activeRow && progress > 0 && progress < 1 && !motion.matches
-        row.node.dataset.active = String(isActive)
-        if (row.mini) row.mini.dataset.active = String(isActive)
-        row.caret.hidden = !showCaret || i !== activeRow
+        // Unchanged attributes are not rewritten: each write would restyle the row
+        const isActive = String(i === activeRow && progress > 0 && progress < 1 && !motion.matches)
+        if (row.node.dataset.active !== isActive) row.node.dataset.active = isActive
+        if (row.mini && row.mini.dataset.active !== isActive) row.mini.dataset.active = isActive
+        const caretHidden = !showCaret || i !== activeRow
+        if (row.caret.hidden !== caretHidden) row.caret.hidden = caretHidden
         if (i === activeRow) row.caret.style.transform = `translateX(${caretColumn}ch)`
-        row.pointer.style.display = i === pointerRow ? '' : 'none'
+        const pointerDisplay = i === pointerRow ? '' : 'none'
+        if (row.pointer.style.display !== pointerDisplay) row.pointer.style.display = pointerDisplay
         if (i === pointerRow && frame.pointer) {
           row.pointer.style.transform = `translateX(${frame.pointer.offset - pointerStart}ch)`
           row.pointer.dataset.pressed = String(frame.pointer.pressed)
@@ -219,19 +224,17 @@ const CodePanel = forwardRef<CodePanelHandle, {
         // Selection offsets belong to the animated score, not the preview rows.
         start += authored.length + 1
       })
-      el.dataset.typedChars = String(frame.text.length)
-      el.dataset.editorAction = frame.action
-      status.textContent = ({ copy: 'Ctrl+C', paste: 'Ctrl+V', backspace: 'Backspace', replace: 'Replace' } as Partial<Record<EditorFrame['action'], string>>)[frame.action] ?? ''
+      const typed = String(frame.text.length)
+      if (el.dataset.typedChars !== typed) el.dataset.typedChars = typed
+      if (el.dataset.editorAction !== frame.action) el.dataset.editorAction = frame.action
+      const statusText = ({ copy: 'Ctrl+C', paste: 'Ctrl+V', backspace: 'Backspace', replace: 'Replace' } as Partial<Record<EditorFrame['action'], string>>)[frame.action] ?? ''
+      if (status.textContent !== statusText) status.textContent = statusText
       // All geometry comes from resize/font measurements, never after character writes.
-      if (pendingRewind || !follow || progress === 0 || motion.matches) body.scrollTop = 0
-      else body.scrollTop = Math.max(0, (rowBottoms[activeRow] ?? 0) - viewportHeight + 24)
-      body.scrollLeft = pendingRewind || !follow || progress === 0 || motion.matches ? 0 : Math.max(0, lineLeft + (caretColumn + 3) * characterWidth - viewportWidth + 12)
-      if (mapView && body.scrollHeight > 0) {
-        // top/height as shares of the minimap's rows, which mirror the file's rows
-        const top = `${(body.scrollTop / body.scrollHeight) * 100}%`
-        const height = `${Math.min(100, (body.clientHeight / body.scrollHeight) * 100)}%`
-        if (mapView.style.top !== top) mapView.style.top = top
-        if (mapView.style.height !== height) mapView.style.height = height
+      if (!manualScroll) {
+        if (pendingRewind || !follow || progress === 0 || motion.matches) body.scrollTop = 0
+        else body.scrollTop = Math.max(0, (rowBottoms[activeRow] ?? 0) - viewportHeight + 24)
+        body.scrollLeft = pendingRewind || !follow || progress === 0 || motion.matches ? 0 : Math.max(0, lineLeft + (caretColumn + 3) * characterWidth - viewportWidth + 12)
+        syncMap()
       }
       const hint = inlay.current
       if (hint) {
@@ -253,6 +256,14 @@ const CodePanel = forwardRef<CodePanelHandle, {
       geometryDirty = false
       lastFollow = follow
       lastFrame = frame
+    }
+    /** The minimap's window: top/height as shares of the minimap's rows, which mirror the file's rows */
+    const syncMap = () => {
+      if (!mapView || body.scrollHeight <= 0) return
+      const top = `${(body.scrollTop / body.scrollHeight) * 100}%`
+      const height = `${Math.min(100, (body.clientHeight / body.scrollHeight) * 100)}%`
+      if (mapView.style.top !== top) mapView.style.top = top
+      if (mapView.style.height !== height) mapView.style.height = height
     }
     const syncInspection = () => {
       const next = inspecting()
@@ -287,6 +298,7 @@ const CodePanel = forwardRef<CodePanelHandle, {
       rowBottoms = rows.map(row => row.node.offsetTop + row.node.offsetHeight)
       geometryDirty = true
       draw()
+      if (manualScroll) syncMap()
     }
     write.current = (progress, follow = true) => {
       requested.current = { progress: Number.isFinite(progress) ? Math.max(0, Math.min(1, progress)) : 0, follow }
@@ -299,6 +311,7 @@ const CodePanel = forwardRef<CodePanelHandle, {
     el.addEventListener('focusout', focusOut)
     el.addEventListener('keydown', keyDown)
     body.addEventListener('wheel', inspectScroll, { passive: true })
+    if (manualScroll) body.addEventListener('scroll', syncMap, { passive: true })
     document.addEventListener('pointerup', up)
     document.addEventListener('pointercancel', up)
     document.addEventListener('selectionchange', syncInspection)
@@ -316,6 +329,7 @@ const CodePanel = forwardRef<CodePanelHandle, {
       el.removeEventListener('focusout', focusOut)
       el.removeEventListener('keydown', keyDown)
       body.removeEventListener('wheel', inspectScroll)
+      body.removeEventListener('scroll', syncMap)
       document.removeEventListener('pointerup', up)
       document.removeEventListener('pointercancel', up)
       document.removeEventListener('selectionchange', syncInspection)
@@ -325,7 +339,7 @@ const CodePanel = forwardRef<CodePanelHandle, {
       rewind.current = () => {}
       redraw.current = () => {}
     }
-  }, [model, mode])
+  }, [model, mode, manualScroll])
 
   useImperativeHandle(ref, () => ({
     setProgress: (progress, followCaret) => write.current(progress, followCaret),

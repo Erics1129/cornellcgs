@@ -32,26 +32,6 @@
   gap: clamp(2rem, 3.4vw, 4rem);
 }
 .code-scene .code-copy h2 { font-size: clamp(3.2rem, 5.4vw, 5.6rem); }
-.code-source-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.45rem;
-  margin-top: 1.6rem;
-  padding-bottom: 0.3rem;
-  font: 500 0.78rem/1.3 var(--font-mono, monospace);
-  letter-spacing: 0.02em;
-  color: var(--chapter-muted, var(--muted));
-  text-decoration: none;
-  border-bottom: 1px solid color-mix(in oklab, currentColor 35%, transparent);
-  transition: color 0.2s ease, border-color 0.2s ease;
-}
-.code-source-link svg { width: 0.9rem; height: 0.9rem; transition: transform 0.25s cubic-bezier(0.23, 1, 0.32, 1); }
-@media (hover: hover) and (pointer: fine) {
-  .code-source-link:hover { color: var(--chapter-ink, var(--text)); border-color: currentColor; }
-  .code-source-link:hover svg { transform: translate(2px, -2px); }
-}
-.code-source-link:focus-visible { outline: 2px solid var(--ide-accent); outline-offset: 4px; }
-
 /* A pool of screen light behind the window — a static gradient, no filter */
 .code-scene .code-device-stage { position: relative; }
 .code-scene .code-device-stage::before {

@@ -55,17 +55,16 @@ function PersonCard({ member, index }: { member: Member; index: number }) {
               <span className="material-index" aria-hidden="true"><span>8</span><span>♠</span></span>
               {member.photo && !noPhoto ? <img src={member.photo} alt="" width={160} height={160} loading="lazy" decoding="async"
                 onError={() => setNoPhoto(true)} className="people-portrait" /> : <span className="people-initials" aria-hidden="true">{member.name === 'To be added' ? '♠' : initials(member.name)}</span>}
-              <div className="people-name"><h3 className="h-card">{member.name}</h3><p className="mono">{member.role}</p></div>
+              <div className="people-name"><h3 className="h-card">{member.name}</h3>{member.role && <p className="mono">{member.role}</p>}</div>
             </div>
             <div className="card-back-surface card-material card-side card-reverse people-back" aria-hidden={!flipped}>
               <div id={`person-bio-${index}`} data-bio-copy data-lenis-prevent className="people-bio" tabIndex={flipped ? 0 : -1}
                 aria-label={`${member.name}'s biography`} onKeyDown={(event) => { if (event.key === 'Escape') { setFlipped(false); slot.current?.querySelector<HTMLButtonElement>('button')?.focus() } }}>
                 <h3 className="h-card">{member.name}</h3>
-                <p className="mono people-bio-role">{member.role}</p>
+                {member.role && <p className="mono people-bio-role">{member.role}</p>}
                 {member.major && <p>{member.major}</p>}
                 {!!member.experience?.length && <div className="people-bio-group"><h4 className="mono">Experience</h4>{member.experience.map((experience, i) => <p key={`${experience}-${i}`}>{experience}</p>)}</div>}
                 {!!member.skills?.length && <div className="people-bio-group"><h4 className="mono">Skills</h4><p>{member.skills.join(' · ')}</p></div>}
-                {!member.major && !member.experience?.length && !member.skills?.length && <p>Bio to be added.</p>}
               </div>
             </div>
           </div>

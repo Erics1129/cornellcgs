@@ -35,9 +35,9 @@ export const typing = {
     { lead: 'We build', tail: 'poker solvers' },
     { lead: 'We train', tail: 'reinforcement learning agents' },
     { lead: 'We compute', tail: 'equilibria' },
-    { lead: 'We collaborate on', tail: 'multi agent learning' },
+    { lead: 'We work on', tail: 'multi-agent learning' },
     { lead: 'We build', tail: 'AlphaGo style agents' },
-    { lead: 'We are training', tail: 'a Throwing Eggs AI' },
+    { lead: 'We are training', tail: 'a Guandan agent' },
     { lead: 'We play', tail: 'anything with payoffs' },
   ],
 }
@@ -50,7 +50,7 @@ export const hero = {
 
 export const whoWeAre = {
   heading: 'Game *AI*',
-  paragraphs: ['A Cornell student organization exploring game theory through solvers and learning agents.'],
+  paragraphs: ['A Cornell student club. We write game solvers and train agents that learn to play.'],
   photoPlaceholder: 'TODO team photo',
   // TODO real numbers — null shows as "TBA" until they exist
   counters: [
@@ -69,31 +69,31 @@ export const whatWeDo = {
       rank: 'A',
       suit: '♠',
       title: 'Study nights',
-      text: 'Game theory, ranges, equilibrium.',
+      text: 'Every week: game theory, ranges, equilibria.',
     },
     {
       rank: 'K',
       suit: '♠',
       title: 'Research',
-      text: 'Solvers, agents, equity math.',
+      text: 'Solvers, learning agents, and equity math.',
     },
     {
       rank: 'Q',
       suit: '♠',
       title: 'Build',
-      text: 'Bots that play. Right now: Throwing Eggs.',
+      text: 'We write our own agents and tools.',
     },
     {
       rank: 'J',
       suit: '♠',
       title: 'Tournaments',
-      text: 'Real structure, zero buy in.',
+      text: 'Run like the real thing, with no buy-in.',
     },
     {
       rank: '10',
       suit: '♠',
       title: 'Talks',
-      text: 'Quant, poker, academia.',
+      text: 'On quant, poker, and academic research.',
     },
   ],
 }
@@ -105,27 +105,27 @@ export const mlProcess = {
     {
       n: '01',
       title: 'Frame',
-      text: 'States, actions, payoffs.',
+      text: 'Write the game down as states, actions, and payoffs.',
     },
     {
       n: '02',
       title: 'Simulate',
-      text: 'A simulator and self play.',
+      text: 'Build a simulator so agents can play themselves.',
     },
     {
       n: '03',
       title: 'Train',
-      text: 'Counterfactual regret minimization and deep reinforcement learning.',
+      text: 'Counterfactual regret minimization or deep reinforcement learning.',
     },
     {
       n: '04',
       title: 'Evaluate',
-      text: 'Exploitability and head to head matches.',
+      text: 'Measure exploitability and play agents head to head.',
     },
     {
       n: '05',
       title: 'Ship',
-      text: 'The goal: share agents, tools, and findings.',
+      text: 'Release the agents and tools once they hold up.',
     },
   ],
 }
@@ -137,27 +137,27 @@ export const events = {
     {
       title: 'Fall Kickoff',
       date: 'Date TBA', // TODO date
-      blurb: 'First deal of the year.',
+      blurb: 'Our first meeting of the year.',
     },
     {
       title: 'Solver Workshop',
       date: 'Date TBA', // TODO date
-      blurb: 'Hands on with CFR.',
+      blurb: 'Write a small CFR solver with us.',
     },
     {
       title: 'Alumni Night',
       date: 'Date TBA', // TODO date
-      blurb: 'The truth about quant and research.',
+      blurb: 'Alumni talk about working in quant and research.',
     },
     {
       title: 'Charity Tournament',
       date: 'Date TBA', // TODO date
-      blurb: 'Every chip for a good cause.',
+      blurb: 'A club tournament played for charity.',
     },
     {
       title: 'Spring Banquet',
       date: 'Date TBA', // TODO date
-      blurb: 'The year in review.',
+      blurb: 'End-of-year dinner.',
     },
   ],
 }
@@ -170,7 +170,7 @@ export const world = {
 
 export const people = {
   heading: 'Our *Team*',
-  /** A card is a board seat — the rest of the club lives on the Our Team page. */
+  /** One card per person. Roles and bios are filled in as they come; a card without them shows the name only. */
   leaders: [
     {
       name: 'Elsie Lu',
@@ -185,18 +185,18 @@ export const people = {
       major: 'Biometry & Statistics + Information Science',
       photo: '/assets/team/evan-jiang.jpg',
       experience: [
-        'Faircaribe LLC \u2014 financial and data analysis',
-        'Handshake AI \u2014 intern',
-        'Noon AI \u2014 operations intern',
+        'Faircaribe LLC: financial and data analysis',
+        'Handshake AI: intern',
+        'Noon AI: operations intern',
         'Personal website development',
       ],
       skills: ['Statistical modeling', 'Mathematical modeling', 'Python', 'AI reasoning & research'],
     },
-    // TODO(club): the rest of the board — empty seats carry every field so the
-    // admin shows a photo drop zone, major, experience and skills for them
-    ...Array.from({ length: 2 }, () => ({
-      name: 'To be added',
-      role: 'Seat TBA',
+    // TODO(club): roles, majors, photos and bios. Every field is present so the
+    // admin shows a photo drop zone, major, experience and skills for each person.
+    ...['Yicheng', 'Michael', 'Henrique', 'Eric', 'Selina', 'Christina', 'Daniel'].map((name) => ({
+      name,
+      role: '',
       major: '',
       photo: '',
       experience: [] as string[],
@@ -222,8 +222,12 @@ export const team: Array<{ label: string; alt: string; people: Array<{ name: str
       { name: 'Evan Jiang', major: 'Biometry & Statistics + Information Science' },
     ],
   },
-  // TODO(club): the roster
-  { label: 'Members', alt: 'The Table', people: [{ name: 'To be added', major: 'Major TBA' }] },
+  // TODO(club): majors for the rest of the team
+  {
+    label: 'Members',
+    alt: 'The Team',
+    people: ['Yicheng', 'Michael', 'Henrique', 'Eric', 'Selina', 'Christina', 'Daniel'].map((name) => ({ name, major: '' })),
+  },
 ]
 
 export const join = {
@@ -248,13 +252,13 @@ export const contact = {
   ],
 }
 
-/** The last chapter — what we envision. TODO(club): make these your own. */
+/** The last chapter: what the club plans to do next. TODO(club): make these your own. */
 export const vision = {
   title: 'Next',
   next: [
-    'Stronger agents.',
-    'Open play.',
-    'Shared research.',
+    'Make our agents stronger.',
+    'Let anyone play against them.',
+    'Share what we find.',
   ],
 }
 
@@ -264,7 +268,7 @@ export const advisors = [
     name: 'Robert D. Kleinberg',
     role: 'Faculty Advisor',
     title: 'Professor of Computer Science, Cornell University',
-    bio: 'Algorithms and theoretical computer science \u2014 economic aspects of algorithms, online learning and its applications, random processes in networks.',
+    bio: 'Algorithms and theoretical computer science: economic aspects of algorithms, online learning and its applications, random processes in networks.',
     photo: '/assets/advisors/kleinberg.jpg',
     url: 'https://www.cs.cornell.edu/~rdk/',
   },
@@ -345,92 +349,91 @@ export const minigames = {
 export const pages: Record<string, SubPageDef> = {
   'who-we-are': {
     title: 'About',
-    lead: 'Game theory, explored together at Cornell.',
+    lead: 'A Cornell club for people who like games and the math behind them.',
     sections: [
-      { heading: 'Our Culture', alt: 'Together', body: 'Open, rigorous, beginner-friendly.' },
-      { heading: 'Game AI', alt: 'Our Focus', body: 'Solvers, learning agents, and the mathematics behind them.' },
-      { heading: 'Ithaca', alt: 'Our Home', body: 'Based at Cornell, with members from around the world.' },
+      { heading: 'How we work', alt: 'Culture', body: 'Beginners are welcome, and we still check each other\u2019s math.' },
+      { heading: 'Game AI', alt: 'Focus', body: 'Solvers, learning agents, and the math behind them.' },
+      { heading: 'Ithaca', alt: 'Home', body: 'We meet at Cornell. Our members come from all over the world.' },
     ],
   },
   'what-we-do': {
     title: 'Our Work',
-    lead: 'Now playing: Throwing Eggs.',
+    lead: 'What we are building, and what the club does each week.',
     sections: [
       {
-        heading: 'The Game', alt: 'Throwing Eggs',
-        body: '4 players, 2 teams, 108 cards. Partners sit across the table. Shed your hand with singles, pairs, straights, full houses, and bombs.',
+        // TODO(club): add numbers once benchmarks exist
+        heading: 'Guandan agent', alt: 'In training',
+        body: 'Four agents play the card game Guandan against each other and learn from self-play. No benchmarks published yet.',
       },
       {
-        heading: 'Level Up', alt: 'Winning',
-        body: 'Finish before the other team. Wins climb your team up card levels, 2 through Ace. First team past Ace takes the match.',
+        heading: 'Poker equity', alt: 'Calculator',
+        body: 'A Monte Carlo equity calculator for Texas hold\u2019em. You can run it on our home page.',
       },
-      {
-        // TODO(club): replace with real, current capabilities + numbers
-        heading: 'In Training', alt: 'Our Agent',
-        body: 'Our Throwing Eggs agent learns through self-play. Benchmarks are not yet published.',
-      },
-      { heading: 'Study Nights', alt: 'Every Week', body: 'Game theory, ranges, equilibrium — weekly.' },
-      { heading: 'Club Events', alt: 'Beyond Code', body: 'Structured tournaments with no buy-in. Talks on quant, poker, and academia.' },
+      { heading: 'Study nights', alt: 'Every week', body: 'A weekly session on game theory, ranges, and equilibria.' },
+      { heading: 'Club events', alt: 'Off the laptop', body: 'Tournaments with real structure and no buy-in, plus talks on quant, poker, and academia.' },
     ],
   },
   'ml-process': {
     title: 'Machine Learning',
-    lead: 'From game rules to a learning agent.',
+    lead: 'How we turn a game\u2019s rules into an agent that plays it.',
     sections: [
-      { heading: 'Frame', alt: 'Game State', body: 'States, actions, payoffs.' },
-      { heading: 'Simulate', alt: 'The Environment', body: 'A simulator for self-play.' },
-      { heading: 'Train', alt: 'Self-play', body: 'Counterfactual regret minimization and deep reinforcement learning.' },
-      { heading: 'Evaluate', alt: 'Measure', body: 'Exploitability and head-to-head matches.' },
-      { heading: 'Share', alt: 'The Goal', body: 'Agents, tools, and research findings. Releases to come.' },
+      { heading: 'Frame', alt: 'The rules', body: 'Write the game down as states, actions, and payoffs.' },
+      { heading: 'Simulate', alt: 'Simulator', body: 'Build a simulator fast enough for agents to play themselves.' },
+      { heading: 'Train', alt: 'Self-play', body: 'Counterfactual regret minimization or deep reinforcement learning.' },
+      { heading: 'Evaluate', alt: 'Testing', body: 'Measure exploitability and play agents head to head.' },
+      { heading: 'Share', alt: 'Release', body: 'We plan to release agents, tools, and write-ups. Nothing is out yet.' },
     ],
   },
   events: {
     title: 'Events',
-    lead: 'On the calendar. Dates TBA.',
+    lead: 'Dates go up here once they are set.',
     sections: [
-      { heading: 'Fall Kickoff', alt: 'First Deal', body: 'First deal of the year. Date TBA.' },
-      { heading: 'Solver Workshop', alt: 'Build Solvers', body: 'Hands-on with CFR. Date TBA.' },
-      { heading: 'Alumni Night', alt: 'Ask Away', body: 'Conversations on quant and research. Date TBA.' },
-      { heading: 'Charity Tournament', alt: 'Give Back', body: 'Every chip for a good cause. Date TBA.' },
-      { heading: 'Spring Banquet', alt: 'Looking Back', body: 'The year in review. Date TBA.' },
+      { heading: 'Fall Kickoff', alt: 'First meeting', body: 'Our first meeting of the year. Date TBA.' },
+      { heading: 'Solver Workshop', alt: 'Hands-on', body: 'Write a small CFR solver with us. Date TBA.' },
+      { heading: 'Alumni Night', alt: 'Q&A', body: 'Alumni talk about working in quant and research. Date TBA.' },
+      { heading: 'Charity Tournament', alt: 'For charity', body: 'A club tournament played for charity. Date TBA.' },
+      { heading: 'Spring Banquet', alt: 'Dinner', body: 'End-of-year dinner. Date TBA.' },
     ],
   },
   world: {
     title: 'World',
-    lead: 'Different places. A shared table.',
+    lead: 'Where our members come from.',
     sections: [
-      { heading: 'Our Members', alt: 'Common Ground', body: 'Cornell students from around the world.' },
-      { heading: 'Countries', alt: 'Our Reach', body: 'Count TBA.' },
+      { heading: 'Our members', alt: 'Hometowns', body: 'Cornell students from around the world.' },
+      { heading: 'Countries', alt: 'How many', body: 'Count TBA.' },
     ],
   },
   people: {
     title: 'Our Team',
     lead: 'Board and members of Cornell CGS.',
     sections: [
-      { heading: 'Advisors', alt: 'Our Mentors', body: 'TBA \u2014 see Advisors.' },
+      { heading: 'Advisors', alt: 'Faculty', body: 'See the Advisors page.' },
     ],
   },
   advisors: {
     title: 'Advisors',
     // TODO(club): advisor + member roster (names, roles, photos)
-    lead: 'Advisors and mentors of Cornell CGS.',
+    lead: 'Faculty who advise Cornell CGS.',
     sections: [
-      { heading: 'Board', alt: 'Leadership', body: 'TBA.' },
-      { heading: 'Members', alt: 'The Table', body: 'TBA.' },
+      {
+        heading: 'Our team', alt: 'Board and members',
+        body: 'The board and the rest of the club are listed on the Our Team page.',
+        link: { label: 'Our Team', href: '/ourTeam/' },
+      },
     ],
   },
   join: {
     title: 'Join CGS',
-    lead: 'Any person, any study.',
+    lead: 'We take new members every semester.',
     sections: [
-      { heading: 'Everyone', alt: 'All Majors', body: 'Every school, major, and background is welcome to apply.' },
-      { heading: 'Helpful Math', alt: 'Recommended', body: 'MATH 1110 or beyond, or relevant experience. Recommended, not required.' },
+      { heading: 'Everyone', alt: 'All majors', body: 'Every school, major, and background is welcome to apply.' },
+      { heading: 'Helpful math', alt: 'Recommended', body: 'MATH 1110 or higher, or similar experience. Recommended, not required.' },
       { heading: 'Helpful CS', alt: 'Recommended', body: 'CS 1110 or 1112, or experience reading and writing code. Recommended, not required.' },
-      { heading: 'Apply', alt: 'Email Us', body: 'Email recruitment@cornellcgs.org. New members every semester.' },
+      { heading: 'Apply', alt: 'Email us', body: 'Email recruitment@cornellcgs.org.' },
       {
-        heading: 'Coffee Chat',
-        alt: 'Say Hello',
-        body: 'Twenty minutes with a member. No commitment.',
+        heading: 'Coffee chat',
+        alt: 'Say hello',
+        body: 'A twenty-minute chat with a member. You don\u2019t have to apply afterward.',
         link: {
           label: 'Book a coffee chat',
           href: 'https://docs.google.com/forms/d/e/1FAIpQLSfCJEW9kdTEYV41YZZCt4MQRg8c9KdNSbrw9IGmSgCRF9eglw/viewform',
@@ -446,7 +449,7 @@ export const pages: Record<string, SubPageDef> = {
       { heading: 'Tech', alt: 'Code', body: 'tech@cornellcgs.org' },
       { heading: 'Finance', alt: 'Sponsors', body: 'finance@cornellcgs.org' },
       { heading: 'Marketing', alt: 'Outreach', body: 'marketing@cornellcgs.org' },
-      { heading: 'Social', alt: 'Say Hello', body: 'social@cornellcgs.org' },
+      { heading: 'Social', alt: 'Say hello', body: 'social@cornellcgs.org' },
     ],
   },
 }

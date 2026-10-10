@@ -56,7 +56,7 @@ export function AlphaGoSlide() {
       </div>
       <div className="container-site alpha-copy">
         <h2 id="alphago-title" data-chapter-type="sweep" className="h-section alpha-word">AlphaGo</h2>
-        <p data-alpha-copy className="body-muted support-lead">An inspiration for agents that learn through play.</p>
+        <p data-alpha-copy className="body-muted support-lead">DeepMind’s Go program beat Lee Sedol in 2016. It’s a big reason we train our agents through self-play.</p>
       </div>
       </div>
       <button type="button" className="alpha-pause" aria-label={paused ? 'Resume Go animation' : 'Pause Go animation'} aria-pressed={paused} onClick={() => setPaused(!paused)}>
@@ -101,11 +101,11 @@ export function ProjectSlide() {
     <section ref={root} id="project" className="section support-scene project-scene" data-chapter-surface="world" aria-labelledby="project-title">
       <div className="container-site project-layout">
         <div className="project-copy">
-          <h2 id="project-title" data-chapter-type="rise" className="project-title" aria-label="Throwing Eggs">
-            <span className="chapter-type-mask" aria-hidden="true"><span data-chapter-glyph>Throwing</span></span>
-            <span className="chapter-type-mask" aria-hidden="true"><span data-chapter-glyph>Eggs</span></span>
+          <h2 id="project-title" data-chapter-type="rise" className="project-title" aria-label="Current projects">
+            <span className="chapter-type-mask" aria-hidden="true"><span data-chapter-glyph>Current</span></span>
+            <span className="chapter-type-mask" aria-hidden="true"><span data-chapter-glyph>projects</span></span>
           </h2>
-          <p data-project-copy className="project-description">Our card-game agent. In training.</p>
+          <p data-project-copy className="project-description">What members are working on right now.</p>
         </div>
         <div className="project-table" aria-hidden="true">
           <div className="project-table-light" />
@@ -141,7 +141,7 @@ export function AnyoneSlide() {
           <span aria-hidden="true">{'Together'.split('').map((letter, i) => <span key={i} data-chapter-glyph>{letter}</span>)}</span>
         </h2>
         <div data-anyone-rule className="anyone-rule" aria-hidden="true" />
-        <p data-anyone-copy className="anyone-invitation">Study, build, play.</p>
+        <p data-anyone-copy className="anyone-invitation">Any major can join, and you don’t need experience.</p>
       </div>
     </section>
   )

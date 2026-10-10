@@ -26,7 +26,6 @@ export default function WorldSection() {
       const globe = el.querySelector('.earth-globe')
       const intro = el.querySelector('.earth-intro-copy')
       const orbitCaption = el.querySelector('.earth-orbit-caption')
-      const continent = el.querySelector('.earth-continent')
       const figures = Array.from(el.querySelectorAll<HTMLElement>('.earth-place'))
       let active = -2
       const updateAccess = (progress: number) => {
@@ -47,8 +46,6 @@ export default function WorldSection() {
       } })
       trigger.current = tl.scrollTrigger ?? null
       tl.to([intro, orbitCaption], { opacity: 0, duration: .10 }, .20)
-        .fromTo(continent, { opacity: 0 }, { opacity: 1, duration: .025 }, .25)
-        .to(continent, { opacity: 0, duration: .025 }, .31)
       PLACES.forEach((place, i) => {
         const figure = figures[i]
         const photo = figure.querySelector('img')
@@ -59,7 +56,8 @@ export default function WorldSection() {
         // complete image fallback when graphics or a texture cannot load.
         tl.fromTo(figure, { opacity: 0 }, { opacity: 1, duration: place.arrival - place.start, ease: 'sine.inOut' }, place.start)
           .fromTo(photo, { scale: 1.04 }, { scale: 1.11, duration: end - place.start, force3D: true }, place.start)
-          .fromTo(caption, { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: Math.min(.024, (place.stop - place.arrival) * .7) }, place.arrival)
+        if (!caption) return
+        tl.fromTo(caption, { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: Math.min(.024, (place.stop - place.arrival) * .7) }, place.arrival)
         if (next) tl.to(caption, { opacity: 0, duration: Math.min(.014, next.arrival - next.start) }, next.start - .008)
       })
       // Normalize the common scroll clock even if the last caption ends early.
@@ -95,34 +93,39 @@ export default function WorldSection() {
         <div className="scene-edge scene-edge--bottom" />
         <div className="container-site scene-content earth-intro-copy" onFocusCapture={() => revealFocusedScene(.12)}>
           <div className="scene-copy">
-            <p className="scene-eyebrow"><span />A shared world</p>
+            <p className="scene-eyebrow"><span />Where we’re from</p>
             <h2 className="scene-title"><ScrollWords text={world.heading} treatment="illuminate" /></h2>
             <p className="scene-lead">{world.text}</p>
-            <a className="scene-link" href="/world/">Meet our community <span aria-hidden="true">↗</span></a>
+            <a className="scene-link" href="/world/">More about our members <span aria-hidden="true">↗</span></a>
           </div>
         </div>
         <div className="scene-caption earth-orbit-caption" onFocusCapture={() => revealFocusedScene(.12)}>
-          <span>Many perspectives. One table.<a className="earth-map-credit" href="https://science.nasa.gov/earth/earth-observatory/blue-marble-next-generation/base-topography-bathymetry/" target="_blank" rel="noopener noreferrer">Earth imagery: NASA Earth Observatory</a></span>
+          <span><a className="earth-map-credit" href="https://science.nasa.gov/earth/earth-observatory/blue-marble-next-generation/base-topography-bathymetry/" target="_blank" rel="noopener noreferrer">Earth imagery: NASA Earth Observatory</a></span>
           <span>Scroll to orbit</span><span aria-hidden="true">↓</span>
-        </div>
-        <div className="earth-continent">
-          <p>Closer.</p><span>From our world to our home.</span>
         </div>
       </div>
       <EarthTravel />
       <div className="earth-travel-shade" aria-hidden="true" />
-      {PLACES.map(place => <figure key={place.id} className={`earth-place earth-place--${place.id}`} data-earth-place={place.id}
+      {/* The stops on the way are photos alone. The last stop names the
+          destination and carries every photo credit the licenses ask for. */}
+      {PLACES.map((place, i) => <figure key={place.id} className={`earth-place earth-place--${place.id}`} data-earth-place={place.id}
         onFocusCapture={() => revealFocusedScene(place.stop)}>
         <img className="earth-photo" src={`/assets/earth-journey/${place.image}`} alt={place.alt}
           width={place.width} height={place.height} loading="lazy" decoding="async" draggable={false} />
-        <figcaption>
-          <div className="earth-place-copy"><h3>{place.name}</h3><p>{place.caption}</p></div>
-          <p className="earth-photo-credit">
-            <a href={place.source} target="_blank" rel="noopener noreferrer"
-              title="Original photograph. Resized, WebP encoded, cropped and color graded for display; scroll animation adds motion blur.">Photo: {place.photographer}{!place.licenseUrl && ` · ${place.license}`}</a>
-            {place.licenseUrl && <><span aria-hidden="true"> · </span><a href={place.licenseUrl} target="_blank" rel="noopener noreferrer">{place.license}</a></>}
+        {i === PLACES.length - 1 && <figcaption>
+          {place.name && <div className="earth-place-copy"><h3>{place.name}</h3><p>{place.caption}</p></div>}
+          <p className="earth-photo-credit earth-photo-credit--all">
+            <span>Photos: </span>
+            {PLACES.map((credit, j) => <span key={credit.id} className="earth-credit">
+              {j > 0 && <span aria-hidden="true"> · </span>}
+              <a href={credit.source} target="_blank" rel="noopener noreferrer"
+                title="Original photograph. Resized, WebP encoded, cropped and color graded for display; scroll animation adds motion blur.">{credit.photographer}</a>
+              {credit.licenseUrl
+                ? <>{' ('}<a href={credit.licenseUrl} target="_blank" rel="noopener noreferrer">{credit.license}</a>{')'}</>
+                : ` (${credit.license.toLowerCase()})`}
+            </span>)}
           </p>
-        </figcaption>
+        </figcaption>}
       </figure>)}
     </div>
   </section>

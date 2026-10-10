@@ -11,10 +11,6 @@
 .earth-map-credit:focus-visible { outline:2px solid #fff; outline-offset:5px; }
 .earth-journey[data-earth-intro="false"] .earth-intro-copy a,
 .earth-journey[data-earth-intro="false"] .earth-map-credit { pointer-events:none; }
-.earth-journey .earth-continent { position:absolute; bottom:11%; left:7vw; z-index:3; color:#f3f7ff; }
-.earth-continent p { margin:0 0 12px; font:400 clamp(2rem,4vw,4.5rem)/1.05 var(--font-display); letter-spacing:-.04em; }
-.earth-continent span { font-size:clamp(.8rem,1vw,1rem); color:#c5d2e4; }
-.earth-journey:not([data-earth-motion]) .earth-continent { display:none; }
 .earth-place { position:relative; height:90svh; min-height:540px; margin:0; overflow:hidden; background:#07121a; }
 .earth-place::after { content:''; position:absolute; inset:0; pointer-events:none; background:linear-gradient(180deg,rgba(0,8,18,.13),transparent 25%,transparent 48%,rgba(0,8,18,.36) 73%,rgba(0,8,18,.82)); }
 .earth-photo { display:block; position:absolute; inset:0; width:100%; height:100%; object-fit:cover; object-position:50% 50%; }
@@ -37,6 +33,9 @@
 .earth-photo-credit>span { white-space:pre; }
 .earth-photo-credit a:focus-visible { outline:2px solid #fff; outline-offset:5px; border-radius:1px; }
 @media(hover:hover) { .earth-photo-credit a:hover { color:#fff; text-decoration-color:currentColor; } }
+/* Every credit on the last stop: compact rows, the destination name sits above them */
+.earth-photo-credit--all a { min-height:24px; padding:2px 0; }
+.earth-place:has(.earth-photo-credit--all) .earth-place-copy { bottom:132px; }
 
 .earth-journey[data-earth-motion="scroll"] { min-height:900svh; }
 .earth-journey[data-earth-motion="scroll"] .earth-journey-stage { position:sticky; top:0; height:100svh; min-height:0; }
@@ -44,7 +43,6 @@
 .earth-journey[data-earth-motion="scroll"] .earth-place { position:absolute; inset:0; height:100%; min-height:0; opacity:0; pointer-events:none; }
 .earth-journey[data-earth-motion="scroll"] .earth-place[data-active="false"] a { pointer-events:none; }
 .earth-journey[data-earth-motion="scroll"] .earth-photo { will-change:transform; }
-.earth-journey[data-earth-motion="scroll"] .earth-continent { opacity:0; pointer-events:none; }
 .earth-journey[data-earth-motion="scroll"] .earth-place figcaption { opacity:0; }
 .earth-journey[data-earth-motion="scroll"] .earth-travel { display:block; position:absolute; left:0; right:0; top:4rem; width:100%; height:calc(100% - 4rem); z-index:1; opacity:0; pointer-events:none; }
 .earth-journey[data-earth-motion="scroll"] .earth-photo { top:4rem; height:calc(100% - 4rem); }
@@ -60,12 +58,12 @@
   .earth-journey .scene-title { font-size:clamp(1.85rem,6.9vw,3rem); max-width:18ch; }
   .earth-journey .scene-lead { max-width:31ch; }
   .earth-journey .scene-link { min-height:44px; }
-  .earth-journey .earth-continent { left:6vw; right:6vw; bottom:12%; }
   .earth-place { height:86svh; min-height:530px; }
   .earth-place-copy { left:6vw; right:6vw; bottom:120px; }
   .earth-place-copy h3 { font-size:clamp(3.2rem,14vw,5.7rem); margin-bottom:14px; }
   .earth-place-copy p { max-width:30ch; font-size:.85rem; }
   .earth-photo-credit { left:6vw; right:6vw; bottom:28px; font-size:10px; }
+  .earth-place:has(.earth-photo-credit--all) .earth-place-copy { bottom:200px; }
   .earth-journey .scene-caption { left:6vw; right:6vw; }
 }
 @media(max-height:650px) and (min-width:1024px) {

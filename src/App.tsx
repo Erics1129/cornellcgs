@@ -220,13 +220,13 @@ export default function App() {
           <AlphaGoSlide />
           <WhatWeDo />
           <ProjectSlide />
+          <StatsSlide />
           <CodeSlide />
           <MLProcess />
           <Events />
           <WorldSection />
           <UniverseJourney />
           <People />
-          <StatsSlide />
           <AnyoneSlide />
           <Join />
           <FutureEye />
