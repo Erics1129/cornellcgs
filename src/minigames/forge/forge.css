@@ -388,3 +388,5 @@ to{opacity:1;transform:none}
 @keyframes ff-flow-ready{to{border-color:#f2d594;box-shadow:0 0 19px #e4b65e50}}
 @media(max-width:700px){.ff-flow{max-width:320px;font-size:9px!important;min-height:26px}.ff-flow.is-active,.ff-flow.is-ready{padding:6px 9px}}
 @media(prefers-reduced-motion:reduce){.ff-main.is-flow-ready .ff-flow{animation:none}.ff-flow .ff-flow-time{transition:none}}
+
+@media(max-width:360px){.ff-topbar{padding-inline:7px;gap:2px}.ff-topbar h1{font-size:8px;letter-spacing:.06em}.ff-icon-button{width:27px}.ff-stats{gap:9px;padding-inline:2px}.ff-stats b{font-size:13px}.ff-tools{gap:0}.ff-topbar .ff-icon-button svg{width:18px;height:18px}}

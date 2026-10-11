@@ -19,7 +19,8 @@ float3 ForgeLamp(float3 position,float3 radiance,float3 p,float3 n,float3 view,f
 float3 ForgeLit(float3 base,float metal,float smooth,float3 p,float3 n,float3 view){
  float rough=max(.14,1-smooth);
  float3 ambient=max(float3(.13,.11,.09),ShadeSH9(float4(n,1)));
- float3 color=base*ambient*(1-metal*.82);
+ // A restrained room fill keeps dark metal readable when a close-up probe direction is black.
+ float3 color=base*ambient*(1-metal*.22);
  color+=ForgeLamp(_ForgeKeyPosition.xyz,_ForgeKeyColor.rgb*3.3,p,n,view,base,metal,rough);
  color+=ForgeLamp(_ForgeRimPosition.xyz,_ForgeRimColor.rgb*3.3,p,n,view,base,metal,rough);
  color+=ForgeLamp(_ForgeFirePosition.xyz,_ForgeFireColor.rgb*2.8,p,n,view,base,metal,rough);
