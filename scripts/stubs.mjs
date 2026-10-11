@@ -22,6 +22,7 @@ const SLUGS = {
   contact: 'contact',
   minigames: 'minigames',
   'ink-maze': 'minigames/inkMaze',
+  'forge-or-fold': 'minigames/forgeOrFold',
 }
 
 // Titles/descriptions state nothing the site itself doesn't already say.
@@ -60,8 +61,12 @@ const PAGES = {
   },
   minigames: {
     title: 'Mini games · Cornell Computational Game Society',
-    desc: 'Small puzzles from the Cornell Computational Game Society that you can play in your browser. So far there is one, Ink Maze.',
+    desc: 'Small games from the Cornell Computational Game Society that you can play in your browser: Ink Maze and Forge or Fold.',
     image: '/assets/minigames/ink-maze/cover.png',
+  },
+  'forge-or-fold': {
+    title: 'Forge or Fold — Cornell CGS',
+    desc: 'A seven-day 3D forging game. Heat, strike, sell and learn when to stop. Keep your best knife.',
   },
   // the numbers must match src/minigames/inkmaze/levels.ts
   'ink-maze': {

@@ -1,0 +1,8 @@
+{
+  "name": "cgs-forge-leaderboard",
+  "main": "worker.ts",
+  "compatibility_date": "2026-10-01",
+  "workers_dev": true,
+  "vars": { "ALLOWED_ORIGIN": "https://cornellcgs.org,https://www.cornellcgs.org" },
+  "d1_databases": [{ "binding": "DB", "database_name": "cgs-forge", "database_id": "REPLACE_WITH_YOUR_D1_DATABASE_ID" }]
+}

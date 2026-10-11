@@ -59,11 +59,13 @@ type UnityConfig = {
   showBanner?: (message: string, type: 'error' | 'warning' | 'info') => void
 }
 
-declare global {
-  interface Window {
-    createUnityInstance?: (canvas: HTMLCanvasElement, config: UnityConfig, onProgress?: (progress: number) => void) => Promise<UnityInstance>
-  }
-}
+type UnityFactory = (canvas: HTMLCanvasElement, config: UnityConfig, onProgress?: (progress: number) => void) => Promise<UnityInstance>
+/**
+ * The loader script defines a global createUnityInstance. Forge or Fold's
+ * loader declares that global with its own type, so this file reads it
+ * through a local one instead of adding a second global declaration.
+ */
+const unityFactory = () => (window as unknown as { createUnityInstance?: UnityFactory }).createUnityInstance
 
 /**
  * The build targets WebAssembly 2023 (SIMD and native exceptions). A browser
@@ -141,13 +143,13 @@ let loaderScript: Promise<void> | null = null
 
 /** Adds Unity's loader script once per page. */
 function addLoader(url: string): Promise<void> {
-  if (typeof window.createUnityInstance === 'function') return Promise.resolve()
+  if (typeof unityFactory() === 'function') return Promise.resolve()
   if (!loaderScript) {
     loaderScript = new Promise<void>((resolve, reject) => {
       const script = document.createElement('script')
       script.src = url
       script.async = true
-      script.onload = () => (typeof window.createUnityInstance === 'function' ? resolve() : reject(new Error('the Unity loader did not define createUnityInstance')))
+      script.onload = () => (typeof unityFactory() === 'function' ? resolve() : reject(new Error('the Unity loader did not define createUnityInstance')))
       script.onerror = () => reject(new Error('the Unity loader did not load'))
       document.head.appendChild(script)
     }).catch((error) => {
@@ -225,7 +227,7 @@ export class UnityInkMaze implements InkMazeView {
       if (!build) throw new Error('no Unity build at ' + UNITY_BUILD.base)
       await addLoader(build.loader)
       if (this.phase !== 'loading') return
-      const instance = await window.createUnityInstance!(canvas, {
+      const instance = await unityFactory()!(canvas, {
         dataUrl: build.data,
         frameworkUrl: build.framework,
         codeUrl: build.code,

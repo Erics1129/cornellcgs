@@ -533,8 +533,9 @@ for (const [name, engine] of [['chromium', chromium], ['webkit', webkit]]) {
     await card.waitForURL(/\/minigames\/$/)
     assert.equal(await card.locator('h1').textContent(), minigames.title)
     assert.ok((await card.title()).includes(minigames.title))
-    const gameCard = card.locator('.mg-games a.sp-play-card')
-    assert.equal(await gameCard.getAttribute('href'), '/minigames/inkMaze/')
+    // the list holds more than one game: pick Ink Maze's card by its link
+    const gameCard = card.locator('.mg-games a.sp-play-card[href="/minigames/inkMaze/"]')
+    assert.equal(await gameCard.count(), 1, 'one Ink Maze card on the list')
     assert.ok((await gameCard.textContent()).includes(minigames.inkMaze.cta))
     assert.match(await gameCard.textContent(), new RegExp(`cleared 1 of ${LEVELS.length}`), 'the list shows saved progress')
     await gameCard.click()

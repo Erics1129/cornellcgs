@@ -10,8 +10,12 @@
     "deploy": "sh scripts/deploy.sh",
     "admin:connect": "node scripts/admin-connect.mjs",
     "equity": "node scripts/equity.mjs",
-    "test": "node scripts/test-solver.mjs && node scripts/test-inkmaze.mjs",
-    "inkmaze:solve": "node scripts/inkmaze-solve.mjs"
+    "test": "node scripts/test-solver.mjs && node scripts/test-inkmaze.mjs && node scripts/test-forge.mjs && node scripts/test-forge-backend.mjs",
+    "inkmaze:solve": "node scripts/inkmaze-solve.mjs",
+    "forge:simulate": "node scripts/forge-simulate.mjs",
+    "lint": "eslint src/minigames/forge backend/forge/worker.ts src/minigames/MinigamesPage.tsx",
+    "forge:unity": "node scripts/forge-unity-build.mjs",
+    "forge:worker": "node scripts/forge-worker-build.mjs"
   },
   "dependencies": {
     "gsap": "^3.13.0",
@@ -20,12 +24,15 @@
     "react-dom": "^18.3.1"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@tailwindcss/vite": "^4.1.14",
     "@types/react": "^18.3.27",
     "@types/react-dom": "^18.3.7",
     "@vitejs/plugin-react": "^5.1.0",
+    "eslint": "^10.12.0",
     "tailwindcss": "^4.1.14",
     "typescript": "^5.9.3",
+    "typescript-eslint": "^8.71.1",
     "vite": "^7.1.11"
   }
 }

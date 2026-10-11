@@ -317,6 +317,7 @@ export const pageSlugs: Record<string, string> = {
   /** the mini games live under /minigames/; they are pages of their own, not info pages (no entry in `pages`) */
   minigames: 'minigames',
   'ink-maze': 'minigames/inkMaze',
+  'forge-or-fold': 'minigames/forgeOrFold',
 }
 
 /** The mini games: the list at /minigames/, each game's page, and the card on What We Do. */
@@ -327,7 +328,7 @@ export const minigames = {
   card: {
     eyebrow: 'Play',
     title: 'Mini games',
-    body: 'Small puzzles you can play in your browser. So far there is one, Ink Maze.',
+    body: 'Small games you can play in your browser: Ink Maze and Forge or Fold.',
     cta: 'See the games',
   },
   inkMaze: {
