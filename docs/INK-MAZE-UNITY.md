@@ -91,6 +91,14 @@ A jslib function `InkMazeEmit(type, payloadJson)` runs
 - The last levels allow zero wasted ink, so a ball that drifts, stops between
   blocks or bounces into another block would make the page wrong. Physics shapes
   the motion; the engine decides where the ball ends.
+- `Show`: the rigidbody and the colors are exact at once; only the visuals may
+  ease, for at most 0.2 s (the marble glides back after an undo or a restart,
+  stains retract). The drawn marble is a separate object from the physics body,
+  and visual code never writes a rigidbody, a collider or the colored blocks.
+- `ready` is sent after the warm-up frames: Unity draws every material, the
+  particles and the post-processing once in hidden form during its first three
+  frames, then sends `ready` in frame 4, so the first roll does not stall on
+  shader compiles.
 
 ## Physics
 
@@ -99,13 +107,16 @@ A jslib function `InkMazeEmit(type, payloadJson)` runs
   its height and the axis across the roll are frozen; it is launched along the
   roll axis.
 - Walls: one box collider per wall block. The board edge: rim colliders.
-- A roll that ends at a wall or the edge hits it for real: the collision bounces
-  the ball back, then a spring with damping pulls it to the block center, and it
-  snaps exactly once it is close and slow.
+- A roll that ends at a wall or the edge hits it for real. The roll follows a
+  planned speed profile (a short spin-up, then braking to an arrive speed that
+  sets the impact strength, the same strength the sound used before). The
+  collision bounces the ball back; then a planned return (not a spring) brings
+  it to the block center along a curve that ends at rest, and it snaps exactly
+  at the end. The slowest roll is about 0.54 s.
 - A roll cut short because the ink ran out has no wall to hit: the ball brakes to
   a stop on that block, with no impact.
-- `Bump`: a small push into the adjacent wall, a real collision, then the spring
-  brings the ball back.
+- `Bump`: a small push into the adjacent wall, a real collision, then the same
+  planned return brings the ball back (about 0.14 s).
 
 ## Look (the same art files)
 
@@ -116,19 +127,49 @@ All images come from `public/assets/minigames/ink-maze/`:
 - `wall.png`: wall blocks, raised boxes (about 0.55 blocks tall), with wall.png on every face.
 - `rim.png`: the wooden frame around the board (0.46 blocks wide, slightly raised).
 - `table.png`: the table under and around the board, tiled.
-- `ball.png`: drawn as a sprite that always faces the camera, riding on the
-  physics sphere, with a soft shadow under it.
+- `ball.png`: the marble is a real 3D glass sphere. ball.png is its base color,
+  mapped as a matcap facing the camera, so at rest it looks like the image; an
+  inner vane and bubbles turn with the rolling, and it casts a real shadow.
 
-The camera looks down with a slight tilt and frames the board, rim and table
-margin (0.55 blocks) at the same aspect ratio as `boardAspect(width, height)` in
-`render.ts`, so the Unity canvas can take the canvas view's place without the
-layout moving. Light: one directional light with soft shadows; colors stay
-close to the images. An impact gives a very small camera shake and a few ink
-droplets.
+Wood and ink get their relief and gloss from the same images: at load the GPU
+derives a slope and a grain map from each PNG (no extra downloads). Walls have
+chamfered edges, floor tiles have beveled grooves, the rim is a raised tray with
+rounded, mitered corners, and the ink is wet and glossy while it spreads, then
+dries.
+
+The Unity canvas has the same aspect ratio as `boardAspect(width, height)` in
+`render.ts`, so it takes the canvas view's place without the layout moving.
+Inside that box the camera looks down at 24 degrees with a 20 degree field of
+view and no yaw. On the takeover it starts from a top-down framing that matches
+the 2D canvas and lifts into the 3D view; a new level settles in while its walls
+rise and the marble drops onto its block.
+
+Rendering: URP 17.5 (Forward, Linear color) with hand-written HLSL shaders
+(`InkMaze/Floor`, `Wood`, `Marble`, `Fx`). One sun with soft realtime shadows, a
+per-level baked ambient-occlusion texture, a small generated studio cubemap for
+reflections, and post-processing (bloom, vignette, color adjustments, dithering;
+no tonemapping curve, so lit surfaces keep the images' colors). Impacts jolt the
+toy on the table (the camera stays still), make the struck wall twitch and
+splash ink drops; a bump puffs a little wood dust. Dry ink has a clear coat: a
+long studio strip light reflects in it as a soft band that moves with the
+camera. A win makes the marble hop almost half a block and land with a burst of
+ink while a glossy sheen sweeps over the board (twice on the big 9 x 9 boards)
+and the camera leans in 3%; a loss pulses the blocks still dry. Undo and restart
+fade the stains they take back toward each block's centre. With reduced motion,
+none of the motion effects run; the look stays the same.
+
+Quality tiers: High (desktop), Medium (phones, iPads, and Safari on a desktop,
+whose GPU process costs it about twice what Chromium pays per frame) and Low (weak
+or software GPUs: no post-processing, flat relief, fewer particles). Unity picks
+the tier itself; `?inkq=low`, `?inkq=medium` or `?inkq=high` in the page's URL
+forces one. While playing, a governor lowers the tier (never raises it) when the
+90th percentile of 45 moving frames is over 17.5 ms. When nothing moves, Unity
+draws about one frame a second. `?inkdebug` lets Unity's start-up log and the
+chosen tier reach the console; without it the console stays quiet.
 
 ## Build
 
-- Project: `~/UnityProjects/InkMaze`, Unity 6000.5.1f1, built-in render pipeline.
+- Project: `~/UnityProjects/InkMaze`, Unity 6000.5.1f1, Universal Render Pipeline 17.5.
   Another tool works on a different Unity project on this Mac: never open or
   change other projects, and never stop Unity processes this project did not start.
 - WebGL build in batch mode (`-executeMethod InkMazeBuild.BuildWebGL`) to
@@ -136,15 +177,36 @@ droplets.
   and the framework, wasm and data files.
 - Gzip compression with Decompression Fallback on, because GitHub Pages cannot send
   a Content-Encoding header. No splash screen. Every file under 100 MB; the whole
-  build should stay under about 8 MB.
+  build targets 8.0 MB or less (about 7.7 MB today). The build warns above
+  8.5 MB and fails above 12 MB.
+- The build writes `src/minigames/inkmaze/unityBuildVersion.ts` (a hash of the
+  build) and `unity.ts` adds it to the file URLs as `?v=`, so a browser never
+  mixes a cached old build with a new one.
+- Self-test: `Tools/selftest.sh` plays all 20 levels (844 moves) in batch mode
+  and checks that every move settles exactly on the engine's block within
+  0.76 s of simulated time.
 
 ## Page integration
 
+- On the 3D board (reduced motion off), the result screen waits for Unity's
+  beat: 700 ms after a win, 450 ms after a loss. The sound and the announcement
+  do not wait, and an undo or restart in that moment cancels the screen.
 - `src/minigames/inkmaze/unity.ts`: `UnityInkMaze implements InkMazeView`, with
-  `load(canvas): Promise<void>` that adds the loader script, creates the Unity
-  instance and resolves on `ready` (rejects on an error or after 20 s).
+  `load(canvas, whenQuiet?): Promise<void>` that adds the loader script, creates
+  the Unity instance and resolves on `ready` (rejects on an error or after 20 s).
+  It fetches the three build files itself and inflates the gzip ones with the
+  browser's `DecompressionStream` (off the main thread), handing the loader
+  `blob:` URLs; on a failure or the timeout it aborts the downloads, so nothing
+  keeps running. Unity itself starts only when `whenQuiet` resolves: the page
+  waits for the ball to rest and the browser to idle (at most 6 s), because
+  starting Unity holds the main thread for a few hundred milliseconds on a phone.
+- On Unity's canvas only, WebGL fences are answered at once as signaled. Unity
+  polls one twice a frame to limit frames in flight; in Safari each poll is a
+  synchronous trip to the GPU process (about 6 ms). WebGL has no mapped buffers,
+  so the fences guard nothing, and the browser paces frames itself.
+- Keys pressed during a roll wait their turn, up to two, in order.
 - The canvas view draws from the first frame, so the game is playable at once.
-  Unity loads in the background unless WebGL2 is missing, `?renderer=canvas` is
+  Unity loads in the background unless WebGL2 or WebAssembly SIMD and exceptions are missing, `?renderer=canvas` is
   in the URL, or the browser asks to save data. When Unity is ready and no roll
   is running, the page calls `show(current state)` on it and fades it in over the
   canvas. If Unity fails later, the page goes back to the canvas.

@@ -30,8 +30,8 @@ export interface InkMazeSound {
   lose(): void
   undo(): void
   restart(): void
-  /** A level opens. */
-  level(): void
+  /** A level opens. `landing`: the 3D board's marble drops onto it, with a knock as it lands. */
+  level(landing?: boolean): void
   destroy(): void
 }
 
@@ -609,8 +609,12 @@ export function createInkMazeSound(): InkMazeSound {
       })
     },
 
-    level() {
-      play((a, at) => marimba(a, at, NOTE.G4, 0.18, true))
+    level(landing = false) {
+      play((a, at) => {
+        marimba(a, at, NOTE.G4, 0.18, true)
+        // the 3D board's marble lands on its block 0.44 s after the level opens
+        if (landing) knock(a, at + 0.44, 0.3, true, 0.95)
+      })
     },
 
     destroy() {

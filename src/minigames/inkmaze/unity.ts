@@ -56,6 +56,13 @@ type UnityConfig = {
   productVersion?: string
   devicePixelRatio?: number
   matchWebGLToCanvasSize?: boolean
+  /** let Unity persist its (unused) data folder itself, instead of the deprecated manual sync that warns in the console */
+  autoSyncPersistentDataPath?: boolean
+  /** the loader's IndexedDB cache: the page fetches the files itself (HTTP caching and ?v= cover them) */
+  cacheControl?: (url: string) => string
+  /** the engine's own start-up lines (memory setup, GL extensions...) */
+  print?: (message: string) => void
+  printErr?: (message: string) => void
   showBanner?: (message: string, type: 'error' | 'warning' | 'info') => void
 }
 
@@ -81,6 +88,116 @@ function wasmFeatures(): boolean {
     return typeof WebAssembly === 'object' && WebAssembly.validate(WASM_SIMD) && WebAssembly.validate(WASM_EXCEPTIONS)
   } catch {
     return false
+  }
+}
+
+/** ?inkdebug in the page's URL: Unity's own start-up log reaches the console (it is quiet otherwise). */
+const debugging = () => {
+  try {
+    return new URLSearchParams(location.search).has('inkdebug')
+  } catch {
+    return false
+  }
+}
+
+/**
+ * Fetches one build file and, when it is still gzip (GitHub Pages sends the
+ * .unityweb files as they are, with no Content-Encoding), inflates it with the
+ * browser's own DecompressionStream, off the main thread, instead of the
+ * loader's JavaScript inflater. Returns a blob: URL for the loader, or the
+ * original URL when there is nothing to gain (no DecompressionStream, or an
+ * empty file). `signal` aborts the download (the 20 s timeout, leaving the page).
+ */
+async function prepare(url: string, type: string, signal: AbortSignal): Promise<string> {
+  if (typeof DecompressionStream !== 'function' || typeof Blob.prototype.stream !== 'function') return url
+  const response = await fetch(url, { signal })
+  if (!response.ok) throw new Error(`${url} answered ${response.status}`)
+  const bytes = new Uint8Array(await response.arrayBuffer())
+  if (bytes.length === 0) return url
+  const gzip = bytes.length > 2 && bytes[0] === 0x1f && bytes[1] === 0x8b
+  const body = gzip ? await new Response(new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'))).blob() : new Blob([bytes])
+  return URL.createObjectURL(new Blob([body], { type }))
+}
+
+/**
+ * Unity's WebGL player asks the GPU about a fence twice a frame (to limit
+ * the frames in flight). In Safari every fence call is a synchronous trip to
+ * its GPU process that waits for the whole frame to run there: about 6 ms
+ * each on the main thread. WebGL has no mapped buffers, so the fences guard
+ * nothing a frame could overwrite, and the browser paces frames itself: on
+ * Unity's canvas only, fences are answered at once as already signaled.
+ */
+function lightenFences(canvas: HTMLCanvasElement) {
+  const own = canvas as HTMLCanvasElement & { __inkMazeFences?: boolean }
+  if (own.__inkMazeFences) return
+  own.__inkMazeFences = true
+  // ?inkfences keeps Unity's real fences (for comparing)
+  try { if (new URLSearchParams(location.search).has('inkfences')) return } catch { /* no URL: go on */ }
+  const getContext = canvas.getContext.bind(canvas) as (type: string, attributes?: unknown) => unknown
+  ;(canvas as unknown as { getContext: (type: string, attributes?: unknown) => unknown }).getContext = (type: string, attributes?: unknown) => {
+    const context = getContext(type, attributes)
+    if (type === 'webgl2' && context && typeof WebGL2RenderingContext !== 'undefined' && context instanceof WebGL2RenderingContext) fakeFences(context)
+    return context
+  }
+}
+
+function fakeFences(gl: WebGL2RenderingContext & { __inkMazeFences?: boolean }) {
+  if (gl.__inkMazeFences) return
+  gl.__inkMazeFences = true
+  // Unity turns on every extension it is offered; Safari warns in the console about one it never needs (wireframes)
+  const getExtension = gl.getExtension.bind(gl)
+  const getSupportedExtensions = gl.getSupportedExtensions.bind(gl)
+  Object.assign(gl, {
+    getExtension: (name: string) => (name === 'WEBGL_polygon_mode' ? null : getExtension(name)),
+    getSupportedExtensions: () => getSupportedExtensions()?.filter((name) => name !== 'WEBGL_polygon_mode') ?? null,
+  })
+  const fake = new WeakSet<object>()
+  const real = {
+    clientWaitSync: gl.clientWaitSync.bind(gl),
+    waitSync: gl.waitSync.bind(gl),
+    deleteSync: gl.deleteSync.bind(gl),
+    isSync: gl.isSync.bind(gl),
+    getSyncParameter: gl.getSyncParameter.bind(gl),
+  }
+  const isFake = (sync: unknown) => typeof sync === 'object' && sync !== null && fake.has(sync)
+  Object.assign(gl, {
+    fenceSync: () => {
+      const sync = {}
+      fake.add(sync)
+      return sync as WebGLSync
+    },
+    clientWaitSync: (sync: WebGLSync, flags: number, timeout: number) => (isFake(sync) ? gl.ALREADY_SIGNALED : real.clientWaitSync(sync, flags, timeout)),
+    waitSync: (sync: WebGLSync, flags: number, timeout: number) => (isFake(sync) ? undefined : real.waitSync(sync, flags, timeout)),
+    deleteSync: (sync: WebGLSync | null) => (isFake(sync) ? undefined : real.deleteSync(sync)),
+    isSync: (sync: WebGLSync | null) => (isFake(sync) ? true : real.isSync(sync)),
+    getSyncParameter: (sync: WebGLSync, name: number) => {
+      if (!isFake(sync)) return real.getSyncParameter(sync, name)
+      if (name === gl.SYNC_STATUS) return gl.SIGNALED
+      if (name === gl.OBJECT_TYPE) return gl.SYNC_FENCE
+      if (name === gl.SYNC_CONDITION) return gl.SYNC_GPU_COMMANDS_COMPLETE
+      return 0
+    },
+  })
+}
+
+/**
+ * Unity's engine prints its start-up report (memory setup, GL extensions,
+ * physics backend...) straight to console.log, about 45 lines. Unless the page
+ * has ?inkdebug, those lines (and only those: they come through the
+ * framework's _JS_Log_Dump) are held back while Unity starts. Warnings and
+ * errors always get through. Returns the function that ends the filter.
+ */
+function quietUnityStart(): () => void {
+  if (debugging()) return () => {}
+  const log = console.log
+  const filtered = function (this: Console, ...args: unknown[]) {
+    const stack = new Error().stack ?? ''
+    if (stack.includes('_JS_Log_Dump')) return
+    return log.apply(this, args)
+  }
+  console.log = filtered
+  return () => {
+    if (console.log === filtered) console.log = log
   }
 }
 
@@ -198,12 +315,22 @@ export class UnityInkMaze implements InkMazeView {
   /** the latest state sent, for the safety net to show again */
   private latest: State | null = null
 
+  /** aborts the build's downloads (a failure, the timeout, leaving the page) */
+  private downloads = new AbortController()
+  /** blob: URLs made for the loader, released once the instance exists */
+  private blobs: string[] = []
+  /** ends the start-up console filter (a moment after 'ready', or on failure) */
+  private endQuiet: () => void = () => {}
+
   /**
    * Loads the build into `canvas`. Resolves when Unity says it has drawn its
    * first frame; rejects on an error, when there is no build, or after 20 s
-   * with the page in view.
+   * with the page in view. The files download (and inflate) at once; Unity
+   * itself starts, which keeps the main thread busy for a few hundred
+   * milliseconds on a phone, only when `whenQuiet` resolves (the page waits
+   * for the ball to be at rest and the browser idle).
    */
-  load(canvas: HTMLCanvasElement): Promise<void> {
+  load(canvas: HTMLCanvasElement, whenQuiet?: () => Promise<void>): Promise<void> {
     if (this.loadPromise) return this.loadPromise
     if (this.phase === 'destroyed') return Promise.reject(new Error('destroyed'))
     this.phase = 'loading'
@@ -216,31 +343,49 @@ export class UnityInkMaze implements InkMazeView {
     canvas.addEventListener('webglcontextlost', this.onContextLost)
     document.addEventListener('visibilitychange', this.onVisibility)
     this.armLoadTimer()
-    void this.start(canvas)
+    void this.start(canvas, whenQuiet)
     return this.loadPromise
   }
 
-  private async start(canvas: HTMLCanvasElement) {
+  private async start(canvas: HTMLCanvasElement, whenQuiet?: () => Promise<void>) {
     try {
       const build = await findUnityBuild()
       if (this.phase !== 'loading') return
       if (!build) throw new Error('no Unity build at ' + UNITY_BUILD.base)
-      await addLoader(build.loader)
+      const signal = this.downloads.signal
+      const loader = addLoader(build.loader)
+      const files = await Promise.all([
+        prepare(build.framework, 'application/javascript', signal),
+        prepare(build.code, 'application/wasm', signal),
+        prepare(build.data, 'application/octet-stream', signal),
+      ])
+      this.blobs = files.filter((url) => url.startsWith('blob:'))
+      const [frameworkUrl, codeUrl, dataUrl] = files
+      await loader
       if (this.phase !== 'loading') return
+      if (whenQuiet) await whenQuiet()
+      if (this.phase !== 'loading') return
+      lightenFences(canvas)
+      const quiet = !debugging()
+      this.endQuiet = quietUnityStart()
       const instance = await unityFactory()!(canvas, {
-        dataUrl: build.data,
-        frameworkUrl: build.framework,
-        codeUrl: build.code,
+        dataUrl,
+        frameworkUrl,
+        codeUrl,
         streamingAssetsUrl: 'StreamingAssets',
         companyName: 'Cornell CGS',
         productName: 'Ink Maze',
         productVersion: '1.0',
         devicePixelRatio: Math.min(window.devicePixelRatio || 1, 2),
         matchWebGLToCanvasSize: true,
+        autoSyncPersistentDataPath: true,
+        cacheControl: () => 'no-store',
+        ...(quiet ? { print: () => {}, printErr: (message: string) => console.warn(message) } : {}),
         showBanner: (message, type) => {
           if (type === 'error') this.fail(message || 'Unity reported an error')
         },
       })
+      this.releaseBlobs()
       if (this.phase !== 'loading') {
         // destroyed or failed while it was starting: let it go
         instance.Quit().catch(() => {})
@@ -249,8 +394,15 @@ export class UnityInkMaze implements InkMazeView {
       this.instance = instance
       this.becomeReady()
     } catch (error) {
+      this.releaseBlobs()
+      if (this.phase !== 'loading') return // aborted on purpose
       this.fail(error instanceof Error ? error.message : String(error))
     }
+  }
+
+  private releaseBlobs() {
+    for (const url of this.blobs) URL.revokeObjectURL(url)
+    this.blobs = []
   }
 
   /** Ready once the instance exists and Unity has sent 'ready', in either order. */
@@ -262,6 +414,10 @@ export class UnityInkMaze implements InkMazeView {
     this.queue = []
     for (const [method, argument] of queued) this.send(method, argument)
     if (this.phase === 'ready') this.resolveLoad?.()
+    // the engine's last start-up lines come with its first frames
+    const end = this.endQuiet
+    this.endQuiet = () => {}
+    window.setTimeout(end, 2000)
   }
 
   // ----------------------------------------------------------- the view
@@ -318,6 +474,8 @@ export class UnityInkMaze implements InkMazeView {
     this.onEvent = null
     this.onFailure = null
     if (wasLoading) this.rejectLoad?.(new Error('destroyed'))
+    this.downloads.abort()
+    this.endQuiet()
     const instance = this.instance
     this.instance = null
     instance?.Quit().catch(() => {})
@@ -375,6 +533,9 @@ export class UnityInkMaze implements InkMazeView {
     this.phase = 'failed'
     this.stopLoadTimer()
     this.queue = []
+    // a download still going is wasted now: stop it (Unity never starts)
+    this.downloads.abort()
+    this.endQuiet()
     if (wasLoading) {
       this.rejectLoad?.(new Error(reason))
       return

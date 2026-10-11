@@ -343,6 +343,29 @@ for (const [name, engine] of [['chromium', chromium], ['webkit', webkit]]) {
     assert.equal((await hud(calm)).moves, 2, 'no animation holds moves back')
     await calm.close()
 
+    // ------------------- fast keys: moves pressed during a roll play in order, none lost
+    {
+      // three different rolls in a row on level 8, each one legal from where the last ends
+      const level = LEVELS[7]
+      let state = initialState(level)
+      const three = []
+      for (let k = 0; k < 3; k++) {
+        const direction = legalMoves(state).find((d) => d !== three.at(-1) && status(applyMove(state, d).state) === 'playing')
+        assert.ok(direction, 'level 8 has three rolls in a row')
+        three.push(direction)
+        state = applyMove(state, direction).state
+      }
+      const quick = await browser.newPage({ viewport: { width: 1440, height: 900 } })
+      await quick.goto(game('level=8'))
+      await quick.waitForSelector(BOARD)
+      for (const direction of three) { await quick.keyboard.press(KEY[direction]); await quick.waitForTimeout(30) }
+      await quick.waitForTimeout(3 * 820)
+      const after = await hud(quick)
+      assert.equal(after.moves, 3, `three keys 30 ms apart make three moves (${three.join(', ')})`)
+      assert.equal(after.ink, state.ink, '...the ones pressed, in order')
+      await quick.close()
+    }
+
     // ------------- the 3D board's contract, with a stand-in for the Unity build
     {
       const fake = await browser.newPage({ viewport: { width: 1280, height: 860 } })
@@ -445,6 +468,31 @@ for (const [name, engine] of [['chromium', chromium], ['webkit', webkit]]) {
       await refused.keyboard.press('ArrowRight'); await settle(refused)
       assert.deepEqual(await hud(refused), afterRight)
       await refused.close()
+    }
+
+    {
+      // on the 3D board the result waits for Unity's beat (450 ms after a loss): an undo in that moment means no lost screen at all
+      const beat = await browser.newPage({ viewport: { width: 1280, height: 860 } })
+      const beatErrors = []
+      beat.on('pageerror', (error) => beatErrors.push(error.message))
+      await withFakeUnity(beat)
+      await beat.goto(`${base}/minigames/inkMaze/?level=${tight + 1}`)
+      await beat.waitForSelector(BOARD)
+      await beat.waitForFunction(() => document.querySelector('.im-stage')?.dataset.renderer === 'unity', null, { timeout: 10000 })
+      await beat.waitForTimeout(450) // the fade
+      const line = losingLine(LEVELS[tight])
+      for (const move of line) await roll(beat, KEY[move])
+      // within 300 ms of the losing roll's 'settled'
+      await beat.keyboard.press('z')
+      await beat.waitForTimeout(900)
+      assert.equal(await beat.locator('.im-result').count(), 0, 'an undo right after a losing roll on the 3D board: the lost screen never appears')
+      assert.ok((await hud(beat)).ink > 0, 'the undo gave the ink back')
+      // the same roll again, left alone: the lost screen waits for the beat, then appears
+      await roll(beat, KEY[line.at(-1)])
+      assert.equal(await beat.locator('.im-result').count(), 0, 'the lost screen waits for the 3D board\'s beat')
+      await beat.waitForSelector('.im-result[data-kind="lost"]', { timeout: 2000 })
+      assert.deepEqual(beatErrors, [])
+      await beat.close()
     }
 
     // -------------------------- the 3D board: takes over, keeps the layout, still wins

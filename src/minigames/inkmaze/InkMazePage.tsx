@@ -48,7 +48,17 @@ const ARROWS: Array<{ direction: Direction; label: string; glyph: string }> = [
 const FADE_MS = 300
 /** wait this long after the page appears before fetching the 3D build */
 const UNITY_START_MS = 250
+/**
+ * On the 3D board the result waits for Unity's beat (the marble's hops after a
+ * win, the pulses after a loss), so the player sees the moment first. The
+ * sound and the announcement do not wait.
+ */
+const RESULT_DELAY_MS = { won: 700, lost: 450 } as const
 const SOUND_KEY = 'cgs-inkmaze-sound-v1'
+/** keys pressed during a roll wait their turn: up to this many, in order (more are dropped) */
+const QUEUE_MAX = 2
+/** the 3D board's start-up waits for the ball to rest and the browser to idle, but never longer than this */
+const QUIET_WAIT_MS = 6000
 
 type RendererName = 'canvas' | 'unity'
 /** off: not tried here; loading; on: showing; failed: gave up, the 2D board stays */
@@ -117,7 +127,8 @@ export default function InkMazePage() {
   const sessionRef = useRef(session)
   sessionRef.current = session
   const rolling = useRef(false)
-  const queued = useRef<Direction | null>(null)
+  /** moves pressed while the ball rolls, played in order once it stops (at most QUEUE_MAX) */
+  const queued = useRef<Direction[]>([])
   /** true while undo, restart or a level change cuts a roll short */
   const interrupting = useRef(false)
   /** the 3D view became ready during a roll: it takes over once the ball stops */
@@ -128,6 +139,9 @@ export default function InkMazePage() {
   /** the latest move handler, for a queued move to call once the ball stops */
   const moveRef = useRef<(direction: Direction) => void>(() => {})
   const retryButton = useRef<HTMLButtonElement>(null)
+  /** a result waiting for the 3D board's beat, and how to show it at once */
+  const resultTimer = useRef(0)
+  const resultPending = useRef<(() => void) | null>(null)
 
   const state = current(session)
   const status = sessionStatus(session)
@@ -166,10 +180,34 @@ export default function InkMazePage() {
     }, reducedMotion.current ? 0 : FADE_MS + 50)
   }, [])
 
+  /** Forget a result still waiting for the 3D board's beat (undo, restart and a new level make it moot). */
+  const dropResult = useCallback(() => {
+    clearTimeout(resultTimer.current)
+    resultTimer.current = 0
+    resultPending.current = null
+  }, [])
+
+  /** Show a result now on the 2D board, or after the 3D board's beat. */
+  const showResult = useCallback((kind: 'won' | 'lost', show: () => void) => {
+    dropResult()
+    const u = unity.current
+    if (!u || view.current !== u || reducedMotion.current) { show(); return }
+    resultPending.current = show
+    resultTimer.current = window.setTimeout(() => {
+      resultTimer.current = 0
+      resultPending.current = null
+      show()
+    }, RESULT_DELAY_MS[kind])
+  }, [dropResult])
+
   /** The 3D view failed: the 2D board comes back with the current position. */
   const fallBack = useCallback((reason: unknown) => {
     const u = unity.current
     if (!u) return
+    // a result waiting for the 3D board's beat shows now, on the 2D board
+    const pending = resultPending.current
+    dropResult()
+    pending?.()
     unity.current = null
     takeOverWaiting.current = false
     clearTimeout(hideFlatTimer.current)
@@ -188,7 +226,10 @@ export default function InkMazePage() {
     // no build on this server is ordinary (a fresh checkout); anything else is worth a warning
     if (/^no Unity build/.test(message)) console.info(`Ink Maze: ${message}, so the 2D board stays.`)
     else console.warn(`Ink Maze: the 3D board stopped (${message}), so the 2D board is back.`)
-  }, [])
+  }, [dropResult])
+
+  // a result still waiting when the page goes away is dropped with it
+  useEffect(() => dropResult, [dropResult])
 
   // Reduced motion, now and when the setting changes (before the views start)
   useEffect(() => {
@@ -222,9 +263,32 @@ export default function InkMazePage() {
       flat.current = null
       // a roll that was going will not finish now; the next view starts at rest
       rolling.current = false
-      queued.current = null
+      queued.current = []
     }
   }, [viewEvent])
+
+  /**
+   * Starting Unity keeps the main thread busy for a moment (a few hundred ms
+   * on a phone): wait until the 2D ball is at rest and the browser is idle,
+   * and wait again if a roll starts in between (never past QUIET_WAIT_MS).
+   */
+  const whenQuiet = useCallback(() => new Promise<void>((resolve) => {
+    const giveUpAt = performance.now() + QUIET_WAIT_MS
+    const idle = (then: () => void) => {
+      const w = window as Window & { requestIdleCallback?: (cb: () => void, options?: { timeout: number }) => number }
+      if (typeof w.requestIdleCallback === 'function') w.requestIdleCallback(then, { timeout: 2000 })
+      else window.setTimeout(then, 80)
+    }
+    const check = () => {
+      if (performance.now() >= giveUpAt) { resolve(); return }
+      if (rolling.current) { window.setTimeout(check, 100); return }
+      idle(() => {
+        if (rolling.current && performance.now() < giveUpAt) window.setTimeout(check, 100)
+        else resolve()
+      })
+    }
+    check()
+  }), [])
 
   // The 3D view loads in the background, a moment after the page appears
   useEffect(() => {
@@ -239,7 +303,7 @@ export default function InkMazePage() {
       u.onEvent = (event) => { if (view.current === u) viewEvent(event) }
       u.onFailure = (reason) => { if (alive) fallBack(reason) }
       u.setReducedMotion(reducedMotion.current)
-      u.load(canvas).then(
+      u.load(canvas, whenQuiet).then(
         () => { if (alive && unity.current === u) takeOver() },
         (error) => { if (alive && unity.current === u) fallBack(error) },
       )
@@ -288,30 +352,31 @@ export default function InkMazePage() {
     const quiet = interrupting.current
     if (!quiet && takeOverWaiting.current) takeOver()
     const result = sessionStatus(after)
+    if (result !== 'playing') queued.current = [] // the level is over: keys pressed during the last roll are dropped
     if (result === 'won') {
       const run = { ink: inkUsed(after), moves: movesUsed(after) }
       const before = loadBests()[after.levelId]
       setBests(recordWin(after.levelId, run))
       if (quiet) return
-      setOverlay({ kind: 'won', newBest: beats(run, before) })
+      const newBest = beats(run, before)
+      showResult('won', () => setOverlay({ kind: 'won', newBest }))
       setAnnouncement(`Level cleared with ${run.ink} ink in ${run.moves} moves.`)
       sound.current?.win(run.ink === parOf(after.levelId))
       return
     }
     if (quiet) return
     if (result === 'lost') {
-      setOverlay({ kind: 'lost', newBest: false })
+      showResult('lost', () => setOverlay({ kind: 'lost', newBest: false }))
       setAnnouncement(`Out of ink with ${blocksLeft(current(after))} blocks left. Undo or restart.`)
       sound.current?.lose()
       return
     }
-    const next = queued.current
-    queued.current = null
+    const next = queued.current.shift()
     if (next) moveRef.current(next)
-  }, [takeOver])
+  }, [takeOver, showResult])
 
   const move = useCallback((direction: Direction) => {
-    if (rolling.current) { queued.current = direction; return } // one move waits its turn
+    if (rolling.current) { if (queued.current.length < QUEUE_MAX) queued.current.push(direction); return } // moves wait their turn, in order
     const { session: after, result } = play(sessionRef.current, direction)
     if (after === sessionRef.current) {
       if (sessionStatus(after) === 'playing') {
@@ -333,7 +398,8 @@ export default function InkMazePage() {
 
   /** Undo, restart and a new level end any roll at once, with no result or sound for it. */
   const interrupt = useCallback(() => {
-    queued.current = null
+    queued.current = []
+    dropResult()
     interrupting.current = true
     try {
       view.current?.finish()
@@ -341,7 +407,7 @@ export default function InkMazePage() {
       interrupting.current = false
       rolling.current = false
     }
-  }, [])
+  }, [dropResult])
 
   /** Shows a position at rest, then lets a waiting 3D view take over. */
   const showAtRest = useCallback((after: Session) => {
@@ -375,13 +441,16 @@ export default function InkMazePage() {
 
   const openLevel = useCallback((index: number) => {
     interrupt()
+    // a different board on the 3D view rises from the table and the marble drops onto it: a knock as it lands
+    const u = unity.current
+    const landing = !!u && view.current === u && !reducedMotion.current && LEVELS[index].id !== sessionRef.current.levelId
     const fresh = createSession(LEVELS[index])
     sessionRef.current = fresh
     setLevelIndex(index)
     setSession(fresh)
     setOverlay(null)
     showAtRest(fresh)
-    sound.current?.level()
+    sound.current?.level(landing)
     setAnnouncement(`Level ${index + 1}, ${LEVELS[index].name}.`)
     const url = new URL(location.href)
     url.searchParams.set('level', String(index + 1))
@@ -452,7 +521,7 @@ export default function InkMazePage() {
               tabIndex={0}
               aria-label={`Level ${levelIndex + 1}, ${level.name}: a ${state.width} by ${state.height} board. ${floors - left} of ${floors} blocks colored, ${state.ink} ink left. Use the arrow keys or the roll buttons.`}>
               <canvas ref={flatCanvas} className="im-canvas im-canvas--flat" aria-hidden="true" />
-              {unityPhase !== 'off' && <canvas ref={unityCanvas} id="ink-maze-unity" className="im-canvas im-canvas--unity" aria-hidden="true" tabIndex={-1} />}
+              {(unityPhase === 'loading' || unityPhase === 'on') && <canvas ref={unityCanvas} id="ink-maze-unity" className="im-canvas im-canvas--unity" aria-hidden="true" tabIndex={-1} />}
             </div>
             {overlay && (
               <div className="im-result" data-kind={overlay.kind} role="dialog" aria-modal="false" aria-labelledby="im-result-title">
