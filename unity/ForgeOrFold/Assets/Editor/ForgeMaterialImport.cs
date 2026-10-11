@@ -4,9 +4,11 @@ using System.IO;
 // Split the generated atlas reproducibly as part of the game's asset pipeline.
 public static class ForgeMaterialImport {
  public static void Prepare(){
-  string source="Assets/ArtSource/MaterialsV2.png";if(!File.Exists(source))return;
+  Split("Assets/ArtSource/MaterialsV3.png",new[]{"IronV3","LeatherV3","WoodV3","BrickV3"});
+ }
+ static void Split(string source,string[] names){
+  if(!File.Exists(source))return;
   var atlas=new Texture2D(2,2,TextureFormat.RGBA32,false);atlas.LoadImage(File.ReadAllBytes(source));int size=atlas.width/2;
-  string[] names={"SteelV2","LeatherV2","WoodV2","StoneV2"};
   for(int i=0;i<4;i++){
    string path="Assets/Resources/Forge/"+names[i]+".png";
    if(!File.Exists(path)||File.GetLastWriteTimeUtc(source)>File.GetLastWriteTimeUtc(path)){

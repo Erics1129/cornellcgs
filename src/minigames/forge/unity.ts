@@ -39,7 +39,7 @@ export class ForgeUnity {
     this.root = root; this.hooks = hooks
     this.clearState()
     this.canvas.id = 'forge-unity-canvas'; this.canvas.className = 'ff-unity-canvas'; this.canvas.tabIndex = -1
-    this.canvas.setAttribute('aria-label', 'Unity 3D workshop. Move with WASD or the touch pad, handle objects with E, and hammer with Space. Drag to look around.')
+    this.canvas.setAttribute('aria-label', 'First-person Unity workshop. Move with WASD or the touch pad, handle objects with E, and hammer with Space. Drag to look around.')
     this.loading.className = 'ff-unity-loading'; this.loading.setAttribute('role', 'status')
     this.loading.innerHTML = '<span>FORGE / FOLD</span><strong>Lighting the forge</strong><p></p><progress max="1" value="0"></progress>'
     root.replaceChildren(this.canvas, this.loading)
