@@ -1,9 +1,9 @@
 /** Balance data shared by the browser, simulations and leaderboard verifier. */
 export const RULES = {
-  version: 1, days: 7, dailyBlanks: 3, stamina: 20, rackSlots: 4, charmSlots: 5,
+  version: 2, days: 7, dailyBlanks: 3, stamina: 20, rackSlots: 4, charmSlots: 5,
   initialGold: 180, levelFactor: 1.5, shatterPerLevel: .04, shatterCap: .6,
   chip: .1, dull: .15, perfect: .12, perfectDecay: .01, perfectFloor: .02,
-  flowPips: 10, flowHits: 3, sharpenBonus: .15, heatSeconds: 2,
+  flowPips: 10, flowHits: 3, flowSeconds: 4, flowSpeed: 1.5, sharpenBonus: .15, heatSeconds: 2,
   marketMin: .7, marketMax: 1.4, marketDrift: .24,
   buyerAt: [6, 14], buyerSeconds: 24, buyerMin: .7, buyerMax: 1.7,
   maxActions: 12000, maxWait: 60, maxRunSeconds: 604800,
@@ -35,7 +35,7 @@ export const CHARMS = {
   ember: { name: 'Ember eye', price: 550, description: 'Perfect +3 percentage points.', perfect: .03 },
   shelter: { name: 'Ash shelter', price: 700, description: 'Shatter −3 percentage points.', shatter: -.03 },
   rhythm: { name: 'Copper rhythm', price: 600, description: 'Flow charges in 8 strikes.', pips: -2 },
-  tide: { name: 'Quiet tide', price: 800, description: 'Flow protects 4 strikes.', flow: 1 },
+  tide: { name: 'Quiet tide', price: 800, description: 'Flow lasts one extra second.', flow: 1 },
   merchant: { name: 'Merchant seal', price: 380, description: 'Selling pays 12% more.', sale: .12 },
   apprentice: { name: 'Apprentice knot', price: 300, description: 'One extra iron blank each morning.', blanks: 1 },
   lungs: { name: 'Bellows heart', price: 420, description: '4 extra strikes each morning.', stamina: 4 },

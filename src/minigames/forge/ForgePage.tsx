@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type ReactNode } from 'react'
 import MinigameShell from '../MinigameShell'
 import { CHARMS, FAMILIES, ITEMS, METALS, RESULT_LABELS, RULES, WORLD } from './config'
 import type { Charm, Item, Metal } from './config'
-import { act, bestKnife, bonus, expectedValue, flowNeed, knifeName, odds, price, saleValue, value } from './engine'
+import { act, bestKnife, bonus, expectedValue, flowDuration, flowNeed, knifeName, odds, price, saleValue, value } from './engine'
 import type { Action, GameEvent, Place } from './engine'
 import { API, api, cleanName, fresh, identity, loadSession, localScores, recordLocal, saveName, saveSession } from './storage'
 import type { Score, Session, Ticket } from './storage'
@@ -11,10 +11,13 @@ import { ForgeAudio } from './audio'
 import KnifePortrait from './KnifePortrait'
 import ForgeIcon from './ForgeIcon'
 import { GoldCounter, MarketBoard } from './TradeDetails'
+import { panelShortcut } from './input'
+import ChanceBar from './ChanceBar'
 import './forge.css'
 const format=(n:number)=>Math.round(n).toLocaleString('en-US')
 const tutorial=[['Forge','Press Space or tap the blade. New heats and places a blank for you.'],['Keep or sell','Sell cashes in the current blade in one tap. Trade shows every knife, daily prices, metal, tools, and charms.'],['Explore','WASD or the touch pad moves your smith. Drag to look. E picks up and places objects.'],['Seven days','Rest keeps your four best knives. Your best surviving knife after day seven is your score. Gold is only for supplies.']]
 const itemIcons:Record<Item,string>={guard:'guard',rewind:'rewind',whetstone:'hammer',stamina:'bolt'}
+const quickItems:Item[]=['guard','rewind','whetstone']
 const itemNames:Record<Item,string>={guard:'Guard',rewind:'Undo',whetstone:'Hone',stamina:'Energy'}
 function Modal({title,close,children,accessory}:{title:string;close:()=>void;children:ReactNode;accessory?:ReactNode}){const ref=useRef<HTMLDialogElement>(null);useEffect(()=>{const d=ref.current!;d.showModal();return()=>d.close()},[]);return <dialog ref={ref} className="ff-modal" onCancel={e=>{e.preventDefault();close()}} onClick={e=>{if(e.target===e.currentTarget)close()}}><div className="ff-modal-head"><h2>{title}</h2>{accessory}<button aria-label="Close dialog" onClick={close}>×</button></div>{children}</dialog>}
 export default function ForgePage(){
@@ -28,7 +31,7 @@ export default function ForgePage(){
  const [notice,setNotice]=useState('')
  const [receipt,setReceipt]=useState<{id:number;amount:number}|null>(null),receiptId=useRef(0)
  const [event,setEvent]=useState<GameEvent|null>(null),[busy,setBusy]=useState(false)
- const [panel,setPanel]=useState<'shop'|'board'|'end'|'help'|null>(null)
+ const [panel,setPanel]=useState<'shop'|'board'|'end'|'help'|'result'|null>(null)
  const [sceneError,setSceneError]=useState(''),[saveError,setSaveError]=useState(false)
  const [scores,setScores]=useState<Score[]>(localScores),[myScore,setMyScore]=useState<Score|null>(null),[boardStatus,setBoardStatus]=useState(API?'Connecting to world board…':'World board offline · Local scores on this device'),[posting,setPosting]=useState(false)
  const [player]=useState(identity),[name,setName]=useState(player.name),[audio]=useState(()=>new ForgeAudio()),[muted,setMuted]=useState(audio.muted)
@@ -40,29 +43,33 @@ export default function ForgePage(){
  const s=session.state,k=s.knives.find(k=>k.id===selected),anvil=s.knives.find(k=>k.place==='anvil'),best=bestKnife(s),heating=s.knives.find(k=>k.place==='furnace'&&!k.heated)
  const choose=(id:number)=>{selectedRef.current=id;setSelected(id)}
  const sendRef=useRef<(a:Action)=>void>(()=>{})
- const hitRef=useRef<()=>void>(()=>{})
+ const hitRef=useRef<()=>void>(()=>{}),queuedHit=useRef(false)
+ const clockMark=useRef(performance.now()),advanceRef=useRef<()=>void>(()=>{})
  const send=(action:Action)=>{
+  const clockAction=action.type==='tick'||action.type==='wait'
+  if(!clockAction)advanceRef.current()
   if(['buy','sell','offer'].includes(action.type)&&(tradeLock.current||busyLock.current||prepareId.current))return false
   const current=sessionRef.current,result=act(current.state,action)
   if(!result.ok){setNotice(result.event.text);return false}
   const actions=[...current.actions],last=actions.at(-1)
-  if(action.type==='wait'&&last?.type==='wait'&&last.seconds+action.seconds<=RULES.maxWait)actions[actions.length-1]={type:'wait',seconds:last.seconds+action.seconds};else actions.push(action)
+  if(action.type==='tick'&&last?.type==='tick'&&last.ms+action.ms<=RULES.maxWait*1000)actions[actions.length-1]={type:'tick',ms:last.ms+action.ms};else if(action.type==='wait'&&last?.type==='wait'&&last.seconds+action.seconds<=RULES.maxWait)actions[actions.length-1]={type:'wait',seconds:last.seconds+action.seconds};else actions.push(action)
   const next={...current,state:result.state,actions};sessionRef.current=next;setSession(next)
   if(action.type==='buy'||result.event.kind==='sell'){tradeLock.current=true;setTrading(true);const amount=result.state.gold-current.state.gold;setReceipt({id:++receiptId.current,amount});setNotice(`${amount>0?'Sold +':'Purchased −'}${format(Math.abs(amount))}`)}
-  if(action.type!=='wait'){setEvent(result.event);if(action.type!=='buy'&&result.event.kind!=='sell')setNotice(action.type==='move'&&action.to==='rack'?'Kept':action.type==='use'?itemNames[action.item]:action.type==='flow'?'Flow ready':'');setSaveError(!saveSession(next));const a=result.event;if(a.kind!=='hit')audio.play(a.kind);else{audio.play(a.outcome!,a.after?.level||0);if(a.evolution)audio.play('evolution');if(!matchMedia('(prefers-reduced-motion: reduce)').matches)navigator.vibrate?.(a.outcome==='shatter'?[20,30,30]:12)}
+  if(!clockAction){setEvent(result.event);if(action.type!=='buy'&&result.event.kind!=='sell')setNotice(action.type==='move'&&action.to==='rack'?'Kept':action.type==='use'?itemNames[action.item]:action.type==='flow'?'Flow active':'');setSaveError(!saveSession(next));const a=result.event;if(a.kind!=='hit')audio.play(a.kind);else{if(a.flowStarted)audio.play('flow');audio.play(a.outcome!,a.after?.level||0);if(a.evolution)audio.play('evolution');if(!matchMedia('(prefers-reduced-motion: reduce)').matches)navigator.vibrate?.(a.outcome==='shatter'?[20,30,30]:12)}
    if(a.id&&action.type!=='buy'&&result.state.knives.some(n=>n.id===a.id))choose(a.id)
    if(!result.state.knives.some(n=>n.id===selectedRef.current))choose(result.state.knives.find(n=>n.place==='anvil')?.id||result.state.knives[0]?.id||0)
-   if(action.type==='end'){choose(result.state.knives[0]?.id||0);setPanel(null)}
+   if(action.type==='end'){choose(result.state.knives[0]?.id||0);setPanel(result.state.ended?'result':null)}
   }
   scene.current?.sync(result.state,selectedRef.current,result.event)
   return true
  }
  sendRef.current=send
+ advanceRef.current=()=>{const now=performance.now(),ms=Math.round(now-clockMark.current);clockMark.current=now;if(ms>0&&!document.hidden&&!sessionRef.current.state.ended)sendRef.current({type:'tick',ms:Math.min(ms,RULES.maxWait*1000)})}
  const prepare=(id?:number)=>{
   if(busyLock.current||prepareId.current||!ready||sessionRef.current.state.ended)return
   const current=sessionRef.current.state
   const target=id?current.knives.find(n=>n.id===id):current.knives.find(n=>n.place==='furnace')||current.knives.find(n=>n.place==='crate'&&!n.heated)||current.knives.find(n=>n.place==='crate')
-  if(!target){setPanel('shop');setTradeTab('buy');return}
+  if(!target){setNotice('No blanks. Open Trade to buy metal.');return}
   unlock();choose(target.id);scene.current?.focus()
   const previous=current.knives.find(n=>n.place==='anvil'&&n.id!==target.id)
   if(previous&&!send({type:'move',id:previous.id,to:current.knives.filter(n=>n.place==='rack').length<RULES.rackSlots?'rack':'crate'}))return
@@ -74,10 +81,10 @@ export default function ForgePage(){
  }
  const prepareRef=useRef(prepare);prepareRef.current=prepare
  const hit=()=>{
-  unlock();if(busyLock.current||tradeLock.current||prepareId.current||!ready)return
+  unlock();advanceRef.current();if(busyLock.current){if(sessionRef.current.state.knives.some(n=>n.place==='anvil'&&n.flow>0))queuedHit.current=true;return}if(tradeLock.current||prepareId.current||!ready)return
   const current=sessionRef.current.state,target=current.knives.find(n=>n.place==='anvil')
   if(!target?.heated){prepareRef.current();return}
-  if(current.stamina<=0){setPanel('end');return}
+
   choose(target.id);busyLock.current=true;setBusy(true)
   const started=scene.current?.strike(()=>sendRef.current({type:'hit',id:target.id}))
   if(!started){busyLock.current=false;setBusy(false)}
@@ -85,7 +92,7 @@ export default function ForgePage(){
  hitRef.current=hit
  useEffect(()=>{
   if(!root.current)return
-  try{const g=new ForgeUnity(root.current,{ready:()=>{setReady(true);scene.current?.focus()},settled:()=>{busyLock.current=false;setBusy(false)},select:choose,drop:(id,spot)=>{if(['crate','rack','furnace','anvil'].includes(spot))sendRef.current({type:'move',id,to:spot as Place});else if(spot==='sell')sendRef.current({type:'sell',id})},hit:()=>hitRef.current(),spot:spot=>{if(spot==='shop')setPanel('shop');if(spot==='lantern')setPanel('end')},gesture:()=>audio.start(),labels:()=>{},error:setSceneError,context:()=>{},near:()=>{},notice:setNotice,command:(kind,id,key)=>{if(kind==='buy'&&key)sendRef.current({type:'buy',key});else if(kind==='end')setPanel('end');else if(kind==='flow')sendRef.current({type:'flow',id});else if(['guard','rewind','whetstone','stamina'].includes(kind))sendRef.current({type:'use',item:kind as Item,id:id||undefined})}});scene.current=g;g.sync(sessionRef.current.state,selectedRef.current);return()=>{g.dispose();scene.current=null}}
+  try{const g=new ForgeUnity(root.current,{ready:()=>{setReady(true);scene.current?.focus()},settled:()=>{busyLock.current=false;setBusy(false);if(queuedHit.current){queuedHit.current=false;if(sessionRef.current.state.knives.some(n=>n.place==='anvil'&&n.flow>0))queueMicrotask(()=>hitRef.current())}},select:choose,drop:(id,spot)=>{if(['crate','rack','furnace','anvil'].includes(spot))sendRef.current({type:'move',id,to:spot as Place});else if(spot==='sell')sendRef.current({type:'sell',id})},hit:()=>hitRef.current(),spot:spot=>{if(spot==='shop')setPanel('shop');if(spot==='lantern')setPanel('end')},gesture:()=>audio.start(),labels:()=>{},error:setSceneError,context:()=>{},near:()=>{},notice:setNotice,command:(kind,id,key)=>{if(kind==='buy'&&key)sendRef.current({type:'buy',key});else if(kind==='end')setPanel('end');else if(kind==='flow')sendRef.current({type:'flow',id});else if(['guard','rewind','whetstone','stamina'].includes(kind))sendRef.current({type:'use',item:kind as Item,id:id||undefined})}});scene.current=g;g.sync(sessionRef.current.state,selectedRef.current);return()=>{g.dispose();scene.current=null}}
   catch{setSceneError('Unity could not start. Reload to try again; your saved run is safe.')}
  },[audio])
  useEffect(()=>{scene.current?.sync(sessionRef.current.state,selected)},[selected])
@@ -96,14 +103,22 @@ export default function ForgePage(){
  useEffect(()=>{if(!trading)return;const t=setTimeout(()=>{tradeLock.current=false;setTrading(false)},550);return()=>clearTimeout(t)},[trading])
  useEffect(()=>{if(!receipt)return;const t=setTimeout(()=>setReceipt(null),2600);return()=>clearTimeout(t)},[receipt])
  useEffect(()=>{if(!notice)return;const t=setTimeout(()=>setNotice(''),2400);return()=>clearTimeout(t)},[notice])
- useEffect(()=>{if(!panel)return;scene.current?.control('clear',false)},[panel])
- useEffect(()=>{const tick=setInterval(()=>{if(!document.hidden&&!sessionRef.current.state.ended)sendRef.current({type:'wait',seconds:1})},1000);const save=()=>{saveSession(sessionRef.current);if(document.hidden)audio.suspend()};window.addEventListener('pagehide',save);document.addEventListener('visibilitychange',save);return()=>{clearInterval(tick);saveSession(sessionRef.current);window.removeEventListener('pagehide',save);document.removeEventListener('visibilitychange',save);audio.dispose()}},[audio])
- useEffect(()=>{const key=(e:KeyboardEvent)=>{if(e.key==='Escape'){setImmersive(false);setPanel(null)}if(e.target instanceof HTMLElement&&['INPUT','TEXTAREA'].includes(e.target.tagName))return;if(e.code==='KeyT'){setPanel(p=>p==='shop'?null:'shop');setTradeTab('buy')}if(e.code==='KeyH')setPanel('help');if(e.code==='KeyL')setPanel('board');if(e.code==='KeyV')void maxScreen();if(e.code==='KeyN'&&sessionRef.current.state.ended)void newRun()};window.addEventListener('keydown',key);return()=>window.removeEventListener('keydown',key)},[])
+ useEffect(()=>{if(!panel)return;queuedHit.current=false;scene.current?.control('clear',false)},[panel])
+ useEffect(()=>{const tick=setInterval(()=>advanceRef.current(),100);const save=()=>{clockMark.current=performance.now();queuedHit.current=false;saveSession(sessionRef.current);if(document.hidden)audio.suspend()};window.addEventListener('pagehide',save);document.addEventListener('visibilitychange',save);return()=>{clearInterval(tick);saveSession(sessionRef.current);window.removeEventListener('pagehide',save);document.removeEventListener('visibilitychange',save);audio.dispose()}},[audio])
+ useEffect(()=>{const key=(e:KeyboardEvent)=>{
+  if(e.key==='Escape'){if(document.querySelector('dialog[open]'))return;setImmersive(false);setPanel(null);return}
+  if(e.target instanceof HTMLElement&&(e.target.isContentEditable||/^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)))return
+  const code=panelShortcut(e);if(!code)return
+  if(document.querySelector('dialog[open]')){if(code==='KeyT')setPanel(p=>p==='shop'?null:p);return}
+  e.preventDefault()
+  if(code==='KeyT'){setPanel('shop');setTradeTab('buy')}
+  if(code==='KeyH')setPanel('help');if(code==='KeyL')setPanel('board');if(code==='KeyV')void maxScreen();if(code==='KeyN'&&sessionRef.current.state.ended)void newRun()
+ };window.addEventListener('keydown',key);return()=>window.removeEventListener('keydown',key)},[])
  const refreshBoard=async()=>{if(!API){setScores(localScores());return}try{const data=await api<{scores:Score[];player:Score|null}>(`/scores?playerId=${encodeURIComponent(player.playerId)}`);setScores(data.scores);setMyScore(data.player);setBoardStatus('World board · Verified runs')}catch{setScores(localScores());setBoardStatus('World board offline · Local scores on this device')}}
  useEffect(()=>{if(panel!=='board')return;void refreshBoard();const t=setInterval(()=>void refreshBoard(),RULES.leaderboardRefreshMs);return()=>clearInterval(t)},[panel])
- const newRun=async()=>{setPosting(true);let next:Session;try{if(API){const ticket=await api<Ticket>('/runs',{playerId:player.playerId,proof:player.proof});next=fresh(ticket.seed,ticket)}else next=fresh()}catch(e){setNotice(`Starting locally. ${(e as Error).message}`);next=fresh()}sessionRef.current=next;setSession(next);choose(next.state.knives[0].id);setEvent(null);saveSession(next);scene.current?.sync(next.state,next.state.knives[0].id);setPosting(false);setPanel(null)}
+ const newRun=async()=>{setPosting(true);let next:Session;try{if(API){const ticket=await api<Ticket>('/runs',{playerId:player.playerId,proof:player.proof});next=fresh(ticket.seed,ticket)}else next=fresh()}catch(e){setNotice(`Starting locally. ${(e as Error).message}`);next=fresh()}sessionRef.current=next;clockMark.current=performance.now();queuedHit.current=false;setSession(next);choose(next.state.knives[0].id);setEvent(null);saveSession(next);scene.current?.sync(next.state,next.state.knives[0].id);setPosting(false);setPanel(null)}
  const autoTicket=useRef<Promise<Ticket>|null>(null)
- useEffect(()=>{if(!API||sessionRef.current.ticket||sessionRef.current.actions.some(a=>a.type!=='wait'))return;let active=true;if(!autoTicket.current)autoTicket.current=api<Ticket>('/runs',{playerId:player.playerId,proof:player.proof});void autoTicket.current.then(ticket=>{if(!active||sessionRef.current.ticket||sessionRef.current.actions.some(a=>a.type!=='wait'))return;const next=fresh(ticket.seed,ticket);sessionRef.current=next;setSession(next);choose(next.state.knives[0].id);saveSession(next);scene.current?.sync(next.state,next.state.knives[0].id)}).catch(()=>{if(active)setBoardStatus('World board offline · Local scores on this device')});return()=>{active=false}},[player])
+ useEffect(()=>{if(!API||sessionRef.current.ticket||sessionRef.current.actions.some(a=>a.type!=='wait'&&a.type!=='tick'))return;let active=true;if(!autoTicket.current)autoTicket.current=api<Ticket>('/runs',{playerId:player.playerId,proof:player.proof});void autoTicket.current.then(ticket=>{if(!active||sessionRef.current.ticket||sessionRef.current.actions.some(a=>a.type!=='wait'&&a.type!=='tick'))return;const next=fresh(ticket.seed,ticket);sessionRef.current=next;setSession(next);choose(next.state.knives[0].id);saveSession(next);scene.current?.sync(next.state,next.state.knives[0].id)}).catch(()=>{if(active)setBoardStatus('World board offline · Local scores on this device')});return()=>{active=false}},[player])
  const submit=async()=>{if(posting)return;setPosting(true);saveName(player,name);setName(player.name);const winner=bestKnife(sessionRef.current.state);const score:Score={playerId:player.playerId,name:cleanName(name),value:winner?value(winner,sessionRef.current.state):0,level:winner?.level||0,knife:winner||null};recordLocal(score)
   try{if(API&&session.ticket){await api('/scores',{playerId:player.playerId,proof:player.proof,name:score.name,runId:session.ticket.id,actions:session.actions,knife:winner||null});setBoardStatus('World score submitted.')}else setBoardStatus(API?'This was a local run. Start a new run to qualify for the world board.':'World board offline · Saved on this device')}catch(e){setBoardStatus(`Saved locally. ${(e as Error).message}`)}setScores(localScores());setPosting(false);setPanel('board')}
  const end=()=>{
@@ -123,17 +138,18 @@ export default function ForgePage(){
  const locked=busy||trading||preparing!==null||s.ended||!ready
  const forgeKnife=anvil||k
  const riskKnife=forgeKnife
+ const flowing=!s.ended&&!!riskKnife?.flow,flowReady=!s.ended&&!!riskKnife&&!flowing&&riskKnife.pips>=flowNeed(s)
  const buyerPrice=s.offer&&anvil?.id===s.offer.knifeId?Math.round(value(anvil,s)*s.offer.multiplier*(1+bonus(s,'buyer'))):null
 
  const t=riskKnife?odds(riskKnife,s):null,ev=riskKnife?expectedValue(riskKnife,s):0
  return <MinigameShell pageId="forge-or-fold" title="Forge or Fold" back={{href:'/minigames/',label:'All games'}} skip={{href:'#forge-main',label:'Skip to forge'}} className={`ff-page ${immersive?'is-immersive':''}`}>
- <main id="forge-main" className="ff-main" tabIndex={-1}>
+ <main id="forge-main" className={`ff-main ${flowing?'is-flowing':flowReady?'is-flow-ready':''}`} tabIndex={-1}>
   <div className="ff-scene" ref={root} data-testid="forge-scene"/>
   <div className="ff-vignette" aria-hidden="true"/>
   <header className="ff-topbar">
    <a href="/minigames/" className="ff-icon-button" aria-label="Back to games"><ForgeIcon name="back"/></a>
    <h1>FORGE <span>/</span> FOLD</h1>
-   <div className="ff-stats" aria-label="Run status"><span title="Day"><small>DAY</small><b>{s.day}<em>/7</em></b></span><span title="Strikes remaining"><ForgeIcon name="bolt"/><b>{s.stamina}</b></span><span title="Gold"><GoldCounter value={s.gold} receipt={receipt}/></span></div>
+   <div className="ff-stats" aria-label="Run status"><span title="Day"><small>DAY</small><b>{s.day}<em>/7</em></b></span><span title="Unlimited energy" aria-label="Unlimited energy"><ForgeIcon name="bolt"/><b>∞</b></span><span title="Gold"><GoldCounter value={s.gold} receipt={receipt}/></span></div>
    <nav className="ff-tools" aria-label="Game tools">
     <button className="ff-icon-button" aria-label="Scores" onClick={()=>setPanel('board')}><ForgeIcon name="trophy"/></button>
     <button className="ff-icon-button" aria-label="Help" onClick={()=>setPanel('help')}><ForgeIcon name="help"/></button>
@@ -146,25 +162,27 @@ export default function ForgePage(){
    <section className="ff-blade-info" aria-label="Blade and exact odds">
     <div className="ff-blade-title"><span>{forgeKnife?METALS[forgeKnife.metal].name:'The forge'}</span><b>{forgeKnife?FAMILIES[forgeKnife.family]:'Ready.'}</b>{forgeKnife&&<em>+{forgeKnife.level}</em>}</div>
     {riskKnife&&<><div className="ff-blade-value"><strong>{format(value(riskKnife,s))}</strong><span>value</span><small title="Expected value after one more hit">Next avg. {format(ev)}</small></div>
-     <div className="ff-risk" aria-label="Exact odds for the next hit">{t&&Object.entries(t).map(([key,p])=><span className={`ff-prob-${key}`} key={key} title={RESULT_LABELS[key as keyof typeof RESULT_LABELS]}><b>{Math.round(p*100)}%</b><small>{RESULT_LABELS[key as keyof typeof RESULT_LABELS]}</small></span>)}</div>
-     <div className="ff-status-marks">{riskKnife.guard&&<span><ForgeIcon name="guard"/>Guarded</span>}{riskKnife.flow>0&&<span><ForgeIcon name="bolt"/>{riskKnife.flow} safe hits</span>}</div>
+     {t&&<ChanceBar chances={t}/>}
+     <div className="ff-status-marks">{riskKnife.guard&&<span><ForgeIcon name="guard"/>Guarded</span>}{riskKnife.flow>0&&<span><ForgeIcon name="bolt"/>{riskKnife.flow.toFixed(1)}s · No shatter</span>}</div>
     </>}
    </section>
-   <aside className="ff-quick-tools" aria-label="Forging tools">{(Object.keys(ITEMS) as Item[]).map(item=><button key={item} disabled={locked||!s.items[item]||(item==='rewind'&&!s.lastHit)||(!k&&item!=='stamina'&&item!=='rewind')} aria-label={`${itemNames[item]} (${s.items[item]})`} title={`${itemNames[item]} · ${ITEMS[item].description}`} onClick={()=>{unlock();send({type:'use',item,id:k?.id})}}><ForgeIcon name={itemIcons[item]}/><b>{s.items[item]}</b><small>{itemNames[item]}</small></button>)}{s.charms.length>0&&<button className="ff-charms-button" aria-label="View charms" onClick={()=>{trade('buy');setCategory('charms')}}><span>◇</span><b>{s.charms.length}</b><small>Charms</small></button>}</aside>
+   <aside className="ff-quick-tools" aria-label="Forging tools">{quickItems.map(item=><button key={item} disabled={locked||!s.items[item]||(item==='rewind'&&!s.lastHit)||(!k&&item!=='stamina'&&item!=='rewind')} aria-label={`${itemNames[item]} (${s.items[item]})`} title={`${itemNames[item]} · ${ITEMS[item].description}`} onClick={()=>{unlock();send({type:'use',item,id:k?.id})}}><ForgeIcon name={itemIcons[item]}/><b>{s.items[item]}</b><small>{itemNames[item]}</small></button>)}{s.charms.length>0&&<button className="ff-charms-button" aria-label="View charms" onClick={()=>{trade('buy');setCategory('charms')}}><span>◇</span><b>{s.charms.length}</b><small>Charms</small></button>}</aside>
    <div className="ff-feedback" role="status" aria-live="polite">{heating?<span key={heating.id} className="ff-heating"><ForgeIcon name="fire"/>Heating<span className="ff-heat-bar"/></span>:event?.kind==='hit'?<div key={s.totalHits} className={`ff-outcome ff-outcome-${event.outcome}`}><b>{event.evolution?'Evolved':RESULT_LABELS[event.outcome!]}</b><span>{event.outcome==='perfect'?'+2':event.outcome==='good'?'+1':event.outcome==='chip'?'−1':event.outcome==='shatter'?'Gone':'—'}</span></div>:null}{notice&&<span className="ff-toast">{notice}</span>}</div>
    <div className="ff-touch-controls" aria-label="Touch movement"><div className="ff-dpad">{touchControl('KeyW','Move forward','▲','ff-pad-up')}{touchControl('KeyA','Move left','◀','ff-pad-left')}<span className="ff-pad-center"/>{touchControl('KeyD','Move right','▶','ff-pad-right')}{touchControl('KeyS','Move backward','▼','ff-pad-down')}</div>{touchControl('KeyE','Handle','✋','ff-pad-handle')}</div>
    <div className="ff-control-hint"><kbd>WASD</kbd> Move <span>Drag to look</span><kbd>E</kbd> Handle</div>
-   {s.offer&&anvil&&buyerPrice!==null&&<button className="ff-buyer" disabled={locked} onClick={()=>send({type:'offer',id:anvil.id})}><ForgeIcon name="coin"/><span>Buyer <b>{format(buyerPrice)}</b></span><small>{s.offer.remaining}s</small><ForgeIcon name="sell"/></button>}
+   {s.offer&&anvil&&buyerPrice!==null&&<button className="ff-buyer" disabled={locked} onClick={()=>send({type:'offer',id:anvil.id})}><ForgeIcon name="coin"/><span>Buyer <b>{format(buyerPrice)}</b></span><small>{Math.ceil(s.offer.remaining)}s</small><ForgeIcon name="sell"/></button>}
    <div className="ff-bottom">
     <section className="ff-knives" aria-label="Your knives">{s.knives.map(n=><button key={n.id} className={`ff-knife-card ${n.id===selected?'is-selected':''} ${n.place==='rack'?'is-kept':''}`} disabled={locked} aria-label={`${METALS[n.metal].name} ${FAMILIES[n.family]}, level ${n.level}, ${n.place}`} aria-pressed={n.id===selected} title={`${knifeName(n)} · ${format(value(n,s))}`} onClick={()=>prepare(n.id)}><span><b>+{n.level}</b>{n.place==='rack'&&<ForgeIcon name="keep"/>}</span><KnifePortrait knife={n}/><small>{METALS[n.metal].name}</small></button>)}<button className="ff-new" aria-label="Prepare new knife" disabled={locked} onClick={()=>prepare()}><ForgeIcon name="plus"/><span>New</span></button></section>
     <div className="ff-actionbar">
      <button disabled={locked} onClick={()=>trade('buy')}><ForgeIcon name="shop"/><span>Trade</span><kbd>T</kbd></button>
      <button disabled={locked||!k||k.place==='rack'} onClick={keep}><ForgeIcon name="keep"/><span>Keep</span></button>
-     <button className="ff-strike" disabled={locked} aria-label={preparing?'Heating':!anvil?'Prepare and forge':'Forge'} onClick={hit}><ForgeIcon name={preparing?'fire':'hammer'}/><span>{preparing?'Heating':!anvil?'Start forging':'Forge'}</span><kbd>Space</kbd></button>
+     <button className="ff-strike" disabled={locked&&!(busy&&flowing&&!trading&&!preparing&&!s.ended&&ready)} aria-label={preparing?'Heating':!anvil?'Prepare and forge':'Forge'} onClick={hit}><ForgeIcon name={preparing?'fire':'hammer'}/><span>{preparing?'Heating':!anvil?'Start forging':'Forge'}</span><kbd>Space</kbd></button>
      <button className="ff-quick-sell" disabled={locked||!k} aria-label={k?`Sell ${METALS[k.metal].name} ${FAMILIES[k.family]} for ${saleValue(s,k)} gold`:"Sell knife"} title="Sells this knife immediately" onClick={()=>{if(k)sell(k.id)}}><ForgeIcon name="sell"/><span>Sell <b>{k?format(saleValue(s,k)):"—"}</b></span></button>
      <button disabled={locked} onClick={()=>setPanel('end')}><ForgeIcon name="moon"/><span>Rest</span></button>
     </div>
-    {riskKnife&&<button className={`ff-flow ${riskKnife.flow?'is-active':''}`} disabled={locked||riskKnife.pips<flowNeed(s)||!!riskKnife.flow} onClick={()=>send({type:'flow',id:riskKnife.id})} title="Three hits with no shatter risk"><ForgeIcon name="bolt"/><span>Flow</span><div>{Array.from({length:flowNeed(s)},(_,i)=><i key={i} className={i<riskKnife.pips||riskKnife.flow?'is-filled':''}/>)}</div><b>{riskKnife.flow||`${riskKnife.pips}/${flowNeed(s)}`}</b></button>}
+    {s.ended&&<button className="ff-masterwork" onClick={()=>setPanel('result')}>View masterwork</button>}
+    {riskKnife&&!s.ended&&<button className={`ff-flow ${flowing?'is-active':flowReady?'is-ready':''}`} disabled={locked||!flowReady||riskKnife.place!=='anvil'} onClick={()=>send({type:'flow',id:riskKnife.id})} aria-label={flowing?`Flow active, ${riskKnife.flow.toFixed(1)} seconds, no shatter`:flowReady?`Flow ready. Next strike starts ${flowDuration(s)} seconds with no shatter`:`Flow charge ${riskKnife.pips} of ${flowNeed(s)}`} title="Fill the bar. The next strike starts Flow."><ForgeIcon name="bolt"/><span>{flowing?'FLOW':flowReady?'FLOW READY':'Flow'}</span><div className="ff-flow-track">{flowing?<i className="ff-flow-time" style={{width:`${riskKnife.flow/flowDuration(s)*100}%`}}/>:Array.from({length:flowNeed(s)},(_,i)=><i key={i} className={i<riskKnife.pips?'is-filled':''}/>)}</div><b>{flowing?`${riskKnife.flow.toFixed(1)}s`:flowReady?'Strike to unleash':`${riskKnife.pips}/${flowNeed(s)}`}</b></button>}
+
    </div>
   </>}
   {saveError&&<p className="ff-warning" role="alert">Saving unavailable. Keep this tab open.</p>}
@@ -173,16 +191,16 @@ export default function ForgePage(){
   <div className="ff-trade-art"><img src="/assets/forge/generated/trade-v2.png" alt=""/></div>
   <div className="ff-tabs" role="tablist" aria-label="Trade"><button role="tab" aria-selected={tradeTab==='buy'} onClick={()=>setTradeTab('buy')}>Buy</button><button role="tab" aria-selected={tradeTab==='sell'} onClick={()=>setTradeTab('sell')}>Sell <small>{s.knives.length}</small></button></div>
   <MarketBoard run={s}/>
-  {s.offer&&anvil&&buyerPrice!==null&&<div className="ff-trade-offer"><ForgeIcon name="coin"/><span><strong>Traveling buyer</strong><small>{buyerPrice>=saleValue(s,anvil)?'+':''}{Math.round((buyerPrice/saleValue(s,anvil)-1)*100)}% vs market · {s.offer.remaining}s</small></span><button disabled={locked} aria-label={`Accept buyer offer for ${buyerPrice} gold`} onClick={()=>{unlock();send({type:'offer',id:anvil.id})}}>Sell {format(buyerPrice)}</button></div>}
+  {s.offer&&anvil&&buyerPrice!==null&&<div className="ff-trade-offer"><ForgeIcon name="coin"/><span><strong>Traveling buyer</strong><small>{buyerPrice>=saleValue(s,anvil)?'+':''}{Math.round((buyerPrice/saleValue(s,anvil)-1)*100)}% vs market · {Math.ceil(s.offer.remaining)}s</small></span><button disabled={locked} aria-label={`Accept buyer offer for ${buyerPrice} gold`} onClick={()=>{unlock();send({type:'offer',id:anvil.id})}}>Sell {format(buyerPrice)}</button></div>}
   {tradeTab==='buy'?<><div className="ff-categories">{(['metal','tools','charms'] as const).map(c=><button key={c} aria-pressed={category===c} onClick={()=>setCategory(c)}>{c==='metal'?'Metal':c==='tools'?'Tools':'Charms'}</button>)}</div><div className="ff-shop-grid">{Object.entries(s.stock).filter(([key])=>category==='metal'?key.startsWith('metal:'):category==='charms'?key.startsWith('charm:'):!key.includes(':')).map(([key,stock])=>{
    const metal=key.startsWith('metal:')?key.slice(6) as Metal:null,item=metal?METALS[metal]:key.startsWith('charm:')?CHARMS[key.slice(6) as Charm]:ITEMS[key as Item],cost=price(s,key),disabled=!stock||cost>s.gold||locked||(key.startsWith('charm:')&&s.charms.length>=RULES.charmSlots)
    return <article key={key} className={!stock?'is-sold-out':''}>{metal?<div className="ff-ingot" style={{'--metal-color':METALS[metal].color} as React.CSSProperties}/>:<ForgeIcon name={key.startsWith('charm:')?'guard':itemIcons[key as Item]}/>}<strong>{item.name}</strong><small>{'description'in item?item.description:`Base ${format(item.base)}`}</small><span className="ff-stock"><em>{stock?`${stock} left`:'Sold out'}</em>{cost>s.gold&&stock>0&&<small>Need {format(cost-s.gold)}</small>}</span><button disabled={disabled} aria-label={`Buy ${item.name} for ${cost} gold`} onClick={()=>buy(key)}><span>Buy</span><b>{format(cost)} <ForgeIcon name="coin"/></b></button>{metal&&<button className="ff-buy-forge" disabled={disabled} aria-label={`Buy and forge ${item.name} for ${cost} gold`} onClick={()=>buy(key,true)}><ForgeIcon name="hammer"/>Buy & forge</button>}</article>
   })}</div>{category==='charms'&&s.charms.length>0&&<div className="ff-owned-charms">{s.charms.map(c=><span title={CHARMS[c].description} key={c}>◇ {CHARMS[c].name}</span>)}</div>}</>:<><p className="ff-trade-note">One tap to sell. Kept blades count toward your score.</p><div className="ff-sell-list">{[...s.knives].sort((a,b)=>saleValue(s,b)-saleValue(s,a)||a.id-b.id).map(n=><div key={n.id} className={n.place==='rack'?'is-kept':''}><KnifePortrait knife={n}/><span><strong>{FAMILIES[n.family]} <b>+{n.level}</b></strong><small>{METALS[n.metal].name} · {Math.round(s.market[n.metal]*100)}% market</small>{n.place==='rack'&&<em><ForgeIcon name="keep"/>Kept</em>}</span><button disabled={locked} aria-label={`Sell ${METALS[n.metal].name} ${FAMILIES[n.family]} level ${n.level} for ${saleValue(s,n)} gold`} onClick={()=>sell(n.id)}><small>Sell</small><b>{format(saleValue(s,n))}</b><ForgeIcon name="coin"/></button></div>)}{!s.knives.length&&<div className="ff-empty-trade"><ForgeIcon name="shop"/><span>No blades left.</span><button onClick={()=>setTradeTab('buy')}>Buy metal</button></div>}</div></>}
   <div className="ff-trade-message" role="status">{notice||'Restocks each morning.'}</div><button className="ff-primary ff-return" onClick={()=>setPanel(null)}>Back to forge</button>
  </Modal>}
- {panel==='end'&&!s.ended&&<Modal title={s.day===7?'Finish your run?':'Rest?'} close={()=>setPanel(null)}><p className="ff-dialog-lead">{s.day===7?'Your best knife becomes your score.':`Keep your ${Math.min(RULES.rackSlots,s.knives.length)} best knives. Refill energy. Three fresh blanks.`}</p><div className="ff-rest-preview">{[...s.knives].sort((a,b)=>value(b,s)-value(a,s)).slice(0,s.day===7?1:RULES.rackSlots).map(n=><div key={n.id}><KnifePortrait knife={n}/><b>+{n.level}</b></div>)}</div>{s.day<7&&s.knives.length>4&&<p className="ff-small">{s.knives.length-4} lower-value knives will be cleared.</p>}<div className="ff-modal-actions"><button onClick={()=>setPanel(null)}>Stay</button><button className="ff-primary" disabled={locked} onClick={end}>{s.day===7?'Finish':'Keep & rest'}</button></div></Modal>}
- {s.ended&&panel!=='board'&&<Modal title="Your masterwork" close={()=>setPanel('board')}><div className="ff-pedestal">{best&&<KnifePortrait knife={best}/>}<h3>{best?knifeName(best):'A fresh start awaits.'}</h3><strong>{best?format(value(best,s)):'0'}</strong></div><label className="ff-name">Name<input maxLength={WORLD.maxName} value={name} onChange={e=>setName(e.target.value)} placeholder="Anonymous smith" autoComplete="nickname" onKeyDown={e=>{if(e.key==='Enter'){e.preventDefault();void submit()}}}/></label><p className="ff-small">{API&&session.ticket?'Verified world score':'Saved on this device'}</p><div className="ff-modal-actions"><button disabled={posting} onClick={()=>void newRun()}>New run</button><button className="ff-primary" disabled={posting} onClick={()=>void submit()}>{posting?'Saving…':'Save score'}</button></div></Modal>}
+ {panel==='end'&&!s.ended&&<Modal title={s.day===7?'Finish your run?':'Rest?'} close={()=>setPanel(null)}><p className="ff-dialog-lead">{s.day===7?'Your best knife becomes your score.':`Keep your ${Math.min(RULES.rackSlots,s.knives.length)} best knives. Fresh metal and a new market.`}</p><div className="ff-rest-preview">{[...s.knives].sort((a,b)=>value(b,s)-value(a,s)).slice(0,s.day===7?1:RULES.rackSlots).map(n=><div key={n.id}><KnifePortrait knife={n}/><b>+{n.level}</b></div>)}</div>{s.day<7&&s.knives.length>4&&<p className="ff-small">{s.knives.length-4} lower-value knives will be cleared.</p>}<div className="ff-modal-actions"><button onClick={()=>setPanel(null)}>Stay</button><button className="ff-primary" disabled={locked} onClick={end}>{s.day===7?'Finish':'Keep & rest'}</button></div></Modal>}
+ {panel==='result'&&s.ended&&<Modal title="Your masterwork" close={()=>setPanel(null)}><div className="ff-pedestal">{best&&<KnifePortrait knife={best}/>}<h3>{best?knifeName(best):'A fresh start awaits.'}</h3><strong>{best?format(value(best,s)):'0'}</strong></div><label className="ff-name">Name<input maxLength={WORLD.maxName} value={name} onChange={e=>setName(e.target.value)} placeholder="Anonymous smith" autoComplete="nickname" onKeyDown={e=>{if(e.key==='Enter'){e.preventDefault();void submit()}}}/></label><p className="ff-small">{API&&session.ticket?'Verified world score':'Saved on this device'}</p><div className="ff-modal-actions"><button disabled={posting} onClick={()=>void newRun()}>New run</button><button className="ff-primary" disabled={posting} onClick={()=>void submit()}>{posting?'Saving…':'Save score'}</button></div></Modal>}
  {panel==='board'&&<Modal title="Best blades" close={()=>setPanel(null)}><p className="ff-board-status">{boardStatus}</p><ol className="ff-scores">{scores.length?scores.map((score,i)=><li key={score.playerId} className={score.playerId===player.playerId?'is-you':''}><span>{score.rank||i+1}</span>{score.knife&&<KnifePortrait knife={score.knife}/>}<div><strong>{score.name}{score.playerId===player.playerId?' · You':''}</strong><small>Level {score.level}</small></div><b>{format(score.value)}</b></li>):<li>Finish a run to set the first score.</li>}</ol>{myScore&&!scores.some(n=>n.playerId===player.playerId)&&<p>#{myScore.rank} · {format(myScore.value)}</p>}<div className="ff-modal-actions"><button onClick={()=>void refreshBoard()}>Refresh</button>{s.ended&&<button className="ff-primary" disabled={posting} onClick={()=>void newRun()}>New run</button>}</div></Modal>}
- {panel==='help'&&<Modal title="Make. Risk. Keep." close={()=>setPanel(null)}><div className="ff-rules">{tutorial.map(([title,text])=><div key={title}><h3>{title}</h3><p>{text}</p></div>)}<div className="ff-modal-actions"><button onClick={()=>{unlock();audio.setMuted(!muted);setMuted(!muted)}}>{muted?'Sound on':'Sound off'}</button><button onClick={()=>setPanel('board')}>Scores</button></div><details><summary>Odds & tools</summary><p>Perfect +2 levels. Good +1. Dull stays. Chip −1. Shatter loses the blade. The odds above the blade are exact.</p><p>Flow protects three hits. Guard turns the next Shatter into Chip. Undo restores your last blade and stamina; the next roll is fresh. Hone adds 15% value. Energy restores five strikes.</p><p>1–4 use tools. F activates Flow. T opens Trade. V fills the screen. Gold is imaginary. No real purchases.</p></details></div></Modal>}
+ {panel==='help'&&<Modal title="Make. Risk. Keep." close={()=>setPanel(null)}><div className="ff-rules">{tutorial.map(([title,text])=><div key={title}><h3>{title}</h3><p>{text}</p></div>)}<div className="ff-modal-actions"><button onClick={()=>{unlock();audio.setMuted(!muted);setMuted(!muted)}}>{muted?'Sound on':'Sound off'}</button><button onClick={()=>setPanel('board')}>Scores</button></div><details><summary>Odds & tools</summary><p>Perfect +2 levels. Good +1. Dull stays. Chip −1. Shatter loses the blade. The odds above the blade are exact.</p><p>Flow charges on the same blade. At full charge, the next hit begins four seconds with no shatter risk. Tap rapidly during the countdown. Chip and Dull can still happen. Energy is unlimited. Guard turns the next Shatter into Chip. Undo restores your last blade and stamina; the next roll is fresh. Hone adds 15% value.</p><p>1–3 use tools. F activates a charged Flow. T opens Trade. V fills the screen. Gold is imaginary. No real purchases.</p></details></div></Modal>}
  </MinigameShell>
 }

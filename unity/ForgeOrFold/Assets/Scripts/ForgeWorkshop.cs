@@ -85,7 +85,7 @@ public partial class ForgeWorld {
  void UpdateFirstPersonHammer(float raw){
   if(smith==null)return;
   var yaw=Quaternion.Euler(0,orbitYaw,0);var rest=smith.position+yaw*new Vector3(Screen.width<700?.12f:.28f,1.11f,Screen.width<700?.57f:.43f);var restRotation=yaw*Quaternion.Euler(-9,0,-24);
-  if(swinging){float before=swingTime;swingTime+=raw;float t=swingTime;var impact=new Vector3(.42f,1.085f,-.4f);var raised=smith.position+new Vector3(.34f,1.48f,.36f);float angle;
+  if(swinging){float before=swingTime;swingTime+=raw*swingSpeed;float t=swingTime;var impact=new Vector3(.42f,1.085f,-.4f);var raised=smith.position+new Vector3(.34f,1.48f,.36f);float angle;
    if(t<.24f){float q=Mathf.SmoothStep(0,1,t/.24f);hammer.position=Vector3.Lerp(rest,raised,q);angle=Mathf.Lerp(-24,-65,q);}
    else if(t<.34f){float q=(t-.24f)/.1f;hammer.position=Vector3.Lerp(raised,impact,q*q);angle=Mathf.Lerp(-65,74,q*q);}
    else {float q=Mathf.Clamp01((t-.34f)/.4f);hammer.position=Vector3.Lerp(impact,rest,Mathf.SmoothStep(0,1,q))+Vector3.up*Mathf.Sin(q*Mathf.PI)*.12f;angle=Mathf.Lerp(74,-24,Mathf.Sqrt(q));}

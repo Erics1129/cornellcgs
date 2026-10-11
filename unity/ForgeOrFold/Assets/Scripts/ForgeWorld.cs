@@ -5,9 +5,9 @@ using System.Runtime.InteropServices;
 using UnityEngine;
 using UnityEngine.Rendering;
 
-[Serializable] public class ForgeKnife { public int id,level,family,pips,flow; public string metal,place,displayName;public int saleValue,heldValue; public bool heated,guard,sharpened; public string color,glow; public float rough; public Vector2[] profile; }
-[Serializable] public class ForgeEvent { public string kind,outcome; public int id; public bool evolution; }
-[Serializable] public class ForgeSnapshot { public ForgeKnife[] knives; public int selected,day; public bool ended,reduced; public ForgeEvent effect; public ForgeOffer[] offers; }
+[Serializable] public class ForgeKnife { public int id,level,family,pips;public float flow; public string metal,place,displayName;public int saleValue,heldValue; public bool heated,guard,sharpened; public string color,glow; public float rough; public Vector2[] profile; }
+[Serializable] public class ForgeEvent { public string kind,outcome; public int id; public bool evolution,flowStarted; }
+[Serializable] public class ForgeSnapshot { public int flowNeed=10;public float flowSpeed=1.5f; public ForgeKnife[] knives; public int selected,day; public bool ended,reduced; public ForgeEvent effect; public ForgeOffer[] offers; }
 [Serializable] public class ForgePointer { public float x,y; public string phase; }
 [Serializable] public class ForgeMessage { public string type,spot; public int id; public float x,y; }
 public class ForgeKnifeTag:MonoBehaviour { public int id; }
@@ -24,7 +24,7 @@ public partial class ForgeWorld:MonoBehaviour {
  readonly Stack<Fragment> fragmentPool=new Stack<Fragment>();
  string queuedSnapshot;
  Camera cam;Transform hammer,scalePan,fire,ring;Light furnaceLight,flash;Material fireMat,ringMat,wood,stone,iron,brass,leather,coal;ForgeSnapshot state;
- Vector3 cameraHome,dragTarget;Plane carryPlane=new Plane(Vector3.up,new Vector3(0,1.85f,0));int dragging=-1;Vector2 pointerDown;bool dragMoved,swinging,reduced;float swingTime,freeze,shake,ringAge=10,scaleAge=10,elapsed,qualityTime;int oldWidth,oldHeight,frameCount;float frameTotal; Mesh boxMesh; Cubemap environment; Material particleGold,particleIron,particleAsh,particleHot,sparkTrail;
+ Vector3 cameraHome,dragTarget;Plane carryPlane=new Plane(Vector3.up,new Vector3(0,1.85f,0));int dragging=-1;Vector2 pointerDown;bool dragMoved,swinging,reduced;float swingTime,swingSpeed=1,freeze,shake,ringAge=10,scaleAge=10,elapsed,qualityTime;int oldWidth,oldHeight,frameCount;float frameTotal; Mesh boxMesh; Cubemap environment; Material particleGold,particleIron,particleAsh,particleHot,sparkTrail;
 
  void Start(){
   Application.targetFrameRate=60;
@@ -63,7 +63,7 @@ public partial class ForgeWorld:MonoBehaviour {
   int crateIndex=0,rackIndex=0;foreach(var k in next.knives){var sig=k.metal+":"+k.family+":"+Mathf.Min(5,k.level/3);Body b;if(!bodies.TryGetValue(k.id,out b)||b.signature!=sig){var old=b;var pos=old!=null?old.root.transform.position:spots.ContainsKey(k.place)?spots[k.place]:Vector3.zero;float heat=old!=null?old.heat:0;if(old!=null)DisposeBody(old);b=MakeKnife(k);b.signature=sig;b.root.transform.position=pos;b.heat=heat;bodies[k.id]=b;}b.knife=k;b.target=spots[k.place];if(k.place=="crate"){b.target+=new Vector3(-.2f,.02f+(crateIndex/3)*.035f,-.18f+(crateIndex%3)*.15f);crateIndex++;}if(k.place=="rack"){b.target+=new Vector3(-.36f+rackIndex*.24f,.04f,-.08f);rackIndex++;}if(k.place=="anvil")b.target=new Vector3(-.2f,1.035f,-.4f);if(k.place=="furnace")b.target+=new Vector3(-.2f,0,-.05f);
    if(next.effect!=null&&next.effect.kind=="heat"&&next.effect.id==k.id)b.heat=1;
   }
-  if(next.effect!=null){var e=next.effect;if(e.kind=="hit")Impact(e);if(e.kind=="flow"){ringAge=0;ringMat.SetColor("_Color",new Color(.3f,.95f,.9f,.55f));}if(e.kind=="buy"&&bodies.TryGetValue(e.id,out var purchase)){purchase.root.transform.position=spots["shop"]+Vector3.up*.25f;purchase.root.transform.localScale=Vector3.one*.28f;purchase.velocity=Vector3.up*.5f;}if(e.evolution&&bodies.TryGetValue(e.id,out var evolved)){evolved.evolution=1.5f;ringAge=0;Burst(evolved.target,65,"perfect");}}
+  if(next.effect!=null){var e=next.effect;if(e.kind=="hit")Impact(e);if(e.kind=="flow"||e.flowStarted){ringAge=0;ringMat.SetColor("_Color",new Color(.3f,.95f,.9f,.55f));}if(e.kind=="buy"&&bodies.TryGetValue(e.id,out var purchase)){purchase.root.transform.position=spots["shop"]+Vector3.up*.25f;purchase.root.transform.localScale=Vector3.one*.28f;purchase.velocity=Vector3.up*.5f;}if(e.evolution&&bodies.TryGetValue(e.id,out var evolved)){evolved.evolution=1.5f;ringAge=0;Burst(evolved.target,65,"perfect");}}
  }
  void DisposeBody(Body b){if(b.blade!=null)Destroy(b.blade.GetComponent<MeshFilter>().sharedMesh);if(b.metal!=null)Destroy(b.metal);Destroy(b.root);}
  Body MakeKnife(ForgeKnife k){int stage=Mathf.Min(5,k.level/3);var root=new GameObject("Knife "+k.id);root.transform.localScale=Vector3.one*.28f;var profile=k.profile;var metal=new Material(Shader.Find("Forge/Blade")){name=k.metal+" blade",color=C(string.IsNullOrEmpty(k.color)?"b7c5ca":k.color)};metal.SetTexture("_MainTex",Resources.Load<Texture2D>("Forge/SteelV2"));metal.SetFloat("_Metallic",k.metal=="obsidian"?.25f:.94f);metal.SetFloat("_Glossiness",1-Mathf.Clamp(k.rough,.05f,.85f));metal.SetFloat("_Kind",Array.IndexOf(new[]{"iron","bronze","steel","silver","damascus","obsidian","meteor","auricite"},k.metal));metal.SetFloat("_Stage",stage);metal.SetColor("_GlowColor",C(k.glow));
@@ -82,7 +82,7 @@ public partial class ForgeWorld:MonoBehaviour {
   return new Body{root=root,blade=blade,bladeRenderer=blade.GetComponent<Renderer>(),metal=metal,knife=k};
  }
  public void Strike(string unused){if(swinging)return;workFocus=true;carriedId=-1;if(Vector3.Distance(smith.position,approaches["anvil"])>.27f){GoTo("anvil","begin");return;}BeginSwing();}
- void BeginSwing(){FaceStation("anvil");swinging=true;swingTime=0;}
+ void BeginSwing(){FaceStation("anvil");swinging=true;swingTime=0;swingSpeed=1;if(state!=null)foreach(var k in state.knives)if(k.place=="anvil"&&(k.flow>0||k.pips>=state.flowNeed))swingSpeed=state.flowSpeed;}
  public void Pointer(string json){PlayerPointer(JsonUtility.FromJson<ForgePointer>(json));}
  void OldPointer(string json){if(cam==null||state==null||state.ended||swinging)return;var p=JsonUtility.FromJson<ForgePointer>(json);var ray=cam.ViewportPointToRay(new Vector3(p.x,1-p.y));if(p.phase=="down"){Send("gesture");if(Physics.Raycast(ray,out var hit,50)){var tag=hit.collider.GetComponent<ForgeKnifeTag>();if(tag!=null){dragging=tag.id;pointerDown=new Vector2(p.x,p.y);dragMoved=false;dragTarget=bodies[dragging].root.transform.position;Send("select",dragging);return;}}if(carryPlane.Raycast(ray,out var t)){var near=Nearest(ray.GetPoint(t));if(near=="shop"||near=="lantern")Send("spot",0,near);}}
   else if(p.phase=="move"&&dragging>=0){if(Vector2.Distance(pointerDown,new Vector2(p.x,p.y))>.009f)dragMoved=true;if(carryPlane.Raycast(ray,out var t)){dragTarget=ray.GetPoint(t);var spot=Nearest(dragTarget);if(spot!=""){var target=spots[spot];target.y=dragTarget.y;if(Vector3.Distance(target,dragTarget)<.85f)dragTarget=Vector3.Lerp(dragTarget,target,.35f);}Send("hover",dragging,spot);}}

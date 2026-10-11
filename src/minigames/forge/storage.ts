@@ -1,13 +1,21 @@
-import { createRun, replay } from './engine'
+import { act, createRun, replay } from './engine'
 import type { Action, Run, Knife } from './engine'
 import { RULES, WORLD, METALS, FAMILIES } from './config'
 export type Ticket={id:string;seed:number}
-export type Session={state:Run;actions:Action[];ticket:Ticket|null}
+export type Session={state:Run;actions:Action[];ticket:Ticket|null;initialVersion?:number}
 export type Score={playerId:string;name:string;value:number;level:number;knife:Knife|null;rank?:number}
 const KEY='cgs-forge-run-v1'
 export function fresh(seed=crypto.getRandomValues(new Uint32Array(1))[0],ticket:Ticket|null=null):Session{return {state:createRun(seed),actions:[],ticket}}
-export function loadSession():Session{try{const saved=JSON.parse(localStorage.getItem(KEY)||'null');if(saved&&saved.version===RULES.version){const state=replay(saved.seed,saved.actions);return {state,actions:saved.actions,ticket:saved.ticket||null}}}catch{/* corrupt or unavailable storage starts a clean run */}return fresh()}
-export function saveSession(s:Session):boolean{try{localStorage.setItem(KEY,JSON.stringify({version:RULES.version,seed:s.state.seed,actions:s.actions,ticket:s.ticket}));return true}catch{return false}}
+export function loadSession():Session{
+ // Development-only replay fixtures exercise real rules without touching a player's save.
+ const qa=import.meta.env.DEV?new URLSearchParams(location.search).get('forge-qa'):null
+ if(qa){const actions:Action[]=[{type:'move',id:1,to:'furnace'},{type:'heat',id:1},{type:'move',id:1,to:'anvil'}];for(let i=0;i<10;i++)actions.push({type:'tick',ms:1000},{type:'hit',id:1});if(qa==='ended'){actions.push({type:'move',id:1,to:'rack'});for(let i=0;i<7;i++)actions.push({type:'end'})}if(qa==='empty')for(const k of replay(1,actions).knives)actions.push({type:'sell',id:k.id});return {state:replay(1,actions),actions,ticket:null}}
+ try{const saved=JSON.parse(localStorage.getItem(KEY)||'null');if(saved&&(saved.version===1||saved.version===RULES.version)){
+ const actions:Action[]=[...saved.actions];let state=replay(saved.seed,actions,saved.version),ticket=saved.ticket||null
+ if(state.version===1&&!state.ended){const action:Action={type:'upgrade'};state=act(state,action).state;actions.push(action);ticket=null}
+ return {state,actions,ticket,initialVersion:saved.version}
+}}catch{/* corrupt or unavailable storage starts a clean run */}return fresh()}
+export function saveSession(s:Session):boolean{if(import.meta.env.DEV&&new URLSearchParams(location.search).has('forge-qa'))return true;try{localStorage.setItem(KEY,JSON.stringify({version:s.initialVersion??RULES.version,seed:s.state.seed,actions:s.actions,ticket:s.ticket}));return true}catch{return false}}
 export function identity():{playerId:string;proof:string;name:string}{try{const raw=JSON.parse(localStorage.getItem('cgs-forge-player')||'null');if(raw?.playerId&&raw?.proof)return raw}catch{/* defaults */}const id={playerId:crypto.randomUUID(),proof:crypto.randomUUID()+crypto.randomUUID(),name:''};try{localStorage.setItem('cgs-forge-player',JSON.stringify(id))}catch{/* session only */}return id}
 export function cleanName(s:string){return s.normalize('NFKC').replace(/[^\p{L}\p{N} _.-]/gu,'').trim().slice(0,WORLD.maxName)||'Anonymous smith'}
 export function saveName(id:ReturnType<typeof identity>,name:string){id.name=cleanName(name);try{localStorage.setItem('cgs-forge-player',JSON.stringify(id))}catch{/* optional */}}

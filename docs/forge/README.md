@@ -27,7 +27,7 @@ node scripts/stubs.mjs
 
 **Keep** puts the selected blade on the rack. **Sell** immediately sells the selected blade for the price shown on the button. **Trade / T** opens a Buy/Sell tray from anywhere. Prices, missing gold, and remaining stock are visible before buying. **Buy & forge** buys a blank, heats it, and puts it on the anvil without spending a strike. The Sell tab lists every owned knife by sale value, marks kept blades, and shows its metal’s current market rate. Expand **Today’s market** for all eight rates and changes since yesterday. A traveling buyer’s active quote appears in the tray with its premium or discount against the normal sale price. Transactions briefly lock to prevent accidental double-tap sales. **Rest** previews and saves the four most valuable knives using ordinary legal rack moves, then advances the day. It explicitly states how many lower-value blades will be cleared. Day seven scores the best held knife.
 
-You see through the rigged blacksmith’s eyes in a walkable Unity room. **WASD / arrows** move, **Shift** runs, and dragging the scene turns the camera. Walking or dragging releases the anvil focus while keeping the camera at eye level. **E** picks up or places objects near a station; visiting the shop opens the Trade tray. **Q / R** choose local knives, **F** activates Flow, and **1 / 2 / 3 / 4** use guard, rewind, hone and stamina. H opens help and L opens scores.
+You see through the rigged blacksmith’s eyes in a walkable Unity room. **WASD / arrows** move, **Shift** runs, and dragging the scene turns the camera. Walking or dragging releases the anvil focus while keeping the camera at eye level. **E** picks up or places objects near a station; tapping the shop approaches it; E or the Trade control opens its tray. **Q / R** choose local knives, **F** activates Flow, and **1 / 2 / 3** use guard, rewind and hone. H opens help and L opens scores.
 
 On touch screens, hold the directional pad to walk; two directions can be held together. Drag the scene to look. **Handle** performs physical interactions, and the large **Forge** control or a tap on the work area swings the hammer. The game fills the viewport by default. **V** or the expand icon requests native fullscreen where supported. Escape exits. The name field submits with Enter. Sound settings are remembered and reduced motion is respected.
 
@@ -84,3 +84,16 @@ Browser checks use Chromium desktop and WebKit at 390×844, with an actual Unity
 - No paid assets, Unity services, external audio or new hosting plan are required. The backend account is created by the user.
 
 Character source and license are recorded in `public/unity/forge/THIRD-PARTY-NOTICES.txt`. The Unity-only assets must retain that license notice. Holding a knife is a visual interaction state; reloading returns it to its last saved station.
+
+
+## October 10 rules and HUD update
+
+Energy is unlimited. Rest remains a deliberate choice to advance the market/day and retain the four best knives. Obsolete energy items are no longer sold; migration refunds unused tea and the energy charm at their base prices.
+
+Flow now charges over 10 strikes on the same knife (8 with Copper rhythm). The next strike automatically starts a 4-second window with no shatter risk, a 1.5× hammer animation and a visible countdown. Quiet tide extends it to 5 seconds. Players may also activate a charged blade using F or the Flow control. Chip and Dull remain possible. One extra manual tap can be buffered during a swing; no automatic repeat occurs without input. The bar above the anvil uses the exact modified next-hit probabilities, including charged/active Flow and Guard.
+
+Rules version 2 records integer millisecond clock actions and rejects strikes closer than 350 ms during replay. The animation is slower than that bound. Old action logs replay under version 1 before a deterministic upgrade preserves knives, market, day and gold; old world tickets become local runs rather than being submitted under different rules. Existing local scores remain. The backend must use the current shared rules when configured.
+
+Panels open only through intentional controls. Empty inventory produces a small prompt instead of opening Trade. Looking toward the shop or lantern approaches the station; interaction is separate. The masterwork view can close without reopening Scores or another result dialog.
+
+For development QA only, `?forge-qa=flow`, `?forge-qa=ended`, and `?forge-qa=empty` load actual seed-1 action replays and do not write a run save. The fixture branch is removed from production builds. `test-forge-input.mjs` covers drag-return and shortcut regressions; `test-forge-flow.mjs` covers timing, unlimited energy, odds, cooldown, migration and deterministic replay.
