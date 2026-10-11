@@ -322,26 +322,36 @@ export const pageSlugs: Record<string, string> = {
 
 /** The mini games: the list at /minigames/, each game's page, and the card on What We Do. */
 export const minigames = {
-  title: 'Mini Games',
+  title: 'Mini games',
   eyebrow: 'Play',
-  lead: 'Small puzzles you can play in the browser, on a computer or a phone.',
+  lead: 'Small puzzles you can play in your browser, on a computer or a phone.',
   card: {
     eyebrow: 'Play',
-    title: 'Mini Games',
-    body: 'Puzzles you can play in the browser. The first one is Ink Maze.',
+    title: 'Mini games',
+    body: 'Small games you can play in your browser: Ink Maze and Forge or Fold.',
     cta: 'See the games',
   },
   inkMaze: {
     title: 'Ink Maze',
     eyebrow: 'Mini game',
     lead: 'Roll the ball to color every floor block before you run out of ink.',
-    summary: 'Ten levels, from 4 × 4 to 7 × 7. Each level gives you a set amount of ink. On the last three, it is exactly the least you need.',
+    /**
+     * The card on /minigames/. The numbers come from levels.ts (MinigamesPage
+     * works them out), so they stay right when levels change: `first` and
+     * `last` are board sizes like '4 × 4', `exact` counts the levels whose ink
+     * is exactly their par.
+     */
+    summary: ({ levels, first, last, exact }: { levels: number; first: string; last: string; exact: number }) =>
+      `Roll a ball to color every floor block before the ink runs out. Boards go from ${first} on level 1 to ${last} on level ${levels}. ` +
+      (exact ? `Each level gives you a set amount of ink, and on ${exact === levels ? 'all of them' : `${exact} of them`} there is none to spare.` : 'Each level gives you a set amount of ink.'),
     cta: 'Play Ink Maze',
+    /** must stay true to engine.ts */
     rules: [
-      'The ball rolls in a straight line until a wall or the edge of the board stops it.',
-      'Each block the ball rolls onto uses one ink, even if it is already colored.',
-      'Color every floor block to clear the level.',
-      'If you run out of ink with blocks still uncolored, the level is lost. You can undo or restart.',
+      'Pick a direction and the ball rolls in a straight line until a wall or the edge of the board stops it.',
+      'Every block the ball rolls onto costs one ink, even if it is already colored.',
+      'If the ink runs out partway through a roll, the ball stops on the block where it ran out.',
+      'Color every floor block to clear the level, even if that takes your last drop of ink.',
+      'If the ink runs out while some blocks are still uncolored, you lose the level. You can still undo or restart.',
     ],
   },
 }

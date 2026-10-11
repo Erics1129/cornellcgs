@@ -4,9 +4,11 @@
  *
  *  - Arrow keys and W A S D roll the ball (while the game has keyboard focus
  *    or nothing else on the page is focused).
- *  - Z, U or Backspace undoes; R restarts.
+ *  - Z, U or Backspace undoes; R restarts; M turns the sound on or off.
  *  - A swipe on the board rolls the ball the way the finger moved. The board
  *    sets touch-action: none, so the page does not scroll under the swipe.
+ *    The board is the element around whichever view is drawing (2D canvas or
+ *    the 3D one), so swipes work the same on both.
  */
 import type { Direction } from './engine.ts'
 
@@ -14,6 +16,7 @@ export type InputHandlers = {
   move: (direction: Direction) => void
   undo: () => void
   restart: () => void
+  toggleSound?: () => void
 }
 
 const KEYS: Record<string, Direction> = {
@@ -53,6 +56,10 @@ export function attachInput(scope: HTMLElement, board: HTMLElement, handlers: In
     } else if (event.key === 'r' || event.key === 'R') {
       event.preventDefault()
       handlers.restart()
+    } else if ((event.key === 'm' || event.key === 'M') && handlers.toggleSound) {
+      if (event.repeat) return // holding M would flip it back and forth
+      event.preventDefault()
+      handlers.toggleSound()
     }
   }
 

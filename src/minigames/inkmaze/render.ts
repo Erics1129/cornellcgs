@@ -6,11 +6,17 @@
  * glass marble. Images come from assets.ts; anything missing is drawn with
  * plain colors. Animation runs only while something moves, then the canvas
  * holds still.
+ *
+ * It is one of the two board views (see view.ts): it reports the ball
+ * entering each block ('cell'), its speed ('roll'), the knock when a roll
+ * ends at a wall or the edge ('impact') and the moment it rests ('settled'),
+ * all on the same clock it draws with.
  */
 import { FLOOR, toXY } from './engine.ts'
-import type { MoveResult, State } from './engine.ts'
+import type { Direction, MoveResult, State } from './engine.ts'
 import { COLORS } from './assets.ts'
 import type { Art } from './assets.ts'
+import type { InkMazeView, ViewEvent } from './view.ts'
 
 /** Proportions, in block widths */
 const RIM = 0.46
@@ -22,10 +28,21 @@ const MS_MAX = 720
 /** how long ink takes to soak a block after the ball reaches it */
 const SPREAD_MS = 260
 const DROPLET_MS = 640
+/** a knock against an adjacent wall: how long, and how far the ball moves (blocks) */
+const BUMP_MS = 190
+const BUMP_REACH = 0.12
+/** 'roll' events go out about 15 times a second */
+const ROLL_EVENT_MS = 66
+/** ball speed (blocks per second) reported as 'roll' speed 1 */
+const ROLL_FULL_SPEED = 24
+
+const BUMP_STEP: Record<Direction, readonly [number, number]> = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] }
 
 type Droplet = { x: number; y: number; vx: number; vy: number; r: number; born: number; life: number }
 
 const easeRoll = (t: number) => 1 - Math.pow(1 - t, 2.4)
+/** d(easeRoll)/dt */
+const easeRollSpeed = (t: number) => 2.4 * Math.pow(1 - t, 1.4)
 const easeSoak = (t: number) => 1 - Math.pow(1 - t, 3)
 
 /** A tiny deterministic hash, so each block's ink edge has its own wobble. */
@@ -40,7 +57,21 @@ export function boardAspect(width: number, height: number): number {
   return (width + pad) / (height + pad)
 }
 
-export class InkMazeRenderer {
+type Roll = {
+  from: [number, number]
+  path: number[]
+  start: number
+  duration: number
+  done: () => void
+  /** path blocks the ball's centre has entered so far */
+  reached: number
+  /** what stops the ball: a wall block, the board's edge, or nothing (the ink ran out) */
+  stop: 'wall' | 'rim' | null
+  lastSpeedAt: number
+}
+
+export class InkMazeRenderer implements InkMazeView {
+  onEvent: ((event: ViewEvent) => void) | null = null
   private ctx: CanvasRenderingContext2D
   private art: Art = {}
   private state: State | null = null
@@ -49,7 +80,9 @@ export class InkMazeRenderer {
   private droplets: Droplet[] = []
   private ball = { x: 0, y: 0 } // in block units, centre of the ball
   private squashAt = -1
-  private roll: { from: [number, number]; path: number[]; start: number; duration: number; done: () => void } | null = null
+  private bumpAt = -1
+  private bumpStep: readonly [number, number] = [0, 0]
+  private roll: Roll | null = null
   private raf = 0
   private cssW = 0
   private cssH = 0
@@ -57,12 +90,14 @@ export class InkMazeRenderer {
   private ox = 0
   private oy = 0
   private patterns: Partial<Record<'table' | 'rim', CanvasPattern>> = {}
-  private reduced: MediaQueryList
+  private reduced: boolean
+  /** false while another view has the board: no drawing, no animation frames */
+  private active = true
   private resizeObserver: ResizeObserver
 
   constructor(private canvas: HTMLCanvasElement) {
     this.ctx = canvas.getContext('2d')!
-    this.reduced = window.matchMedia('(prefers-reduced-motion: reduce)')
+    this.reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
     this.resizeObserver = new ResizeObserver(() => this.resize())
     this.resizeObserver.observe(canvas)
   }
@@ -70,7 +105,35 @@ export class InkMazeRenderer {
   setArt(art: Art) {
     this.art = art
     this.patterns = {}
-    this.draw(performance.now())
+    if (this.active) this.draw(performance.now())
+  }
+
+  setReducedMotion(reduced: boolean) {
+    this.reduced = reduced
+  }
+
+  /**
+   * Pauses or resumes drawing, for when another view covers this one. While
+   * paused it still keeps the state it is given, so it can take over again.
+   */
+  setActive(active: boolean) {
+    if (active === this.active) return
+    this.active = active
+    if (!active) {
+      cancelAnimationFrame(this.raf)
+      this.raf = 0
+    } else {
+      this.resize()
+      if (this.roll || this.droplets.length) this.loop()
+    }
+  }
+
+  /** The ball knocks the wall next to it and comes back; nothing else changes. */
+  bump(direction: Direction) {
+    if (this.reduced || this.roll || !this.state) return
+    this.bumpAt = performance.now()
+    this.bumpStep = BUMP_STEP[direction]
+    this.loop()
   }
 
   /** Show a state at rest (a new level, undo, restart): no animation. */
@@ -80,6 +143,7 @@ export class InkMazeRenderer {
     this.soakedAt.clear()
     for (let i = 0; i < state.colored.length; i++) if (state.colored[i] === '1') this.soakedAt.set(i, 0)
     this.droplets = []
+    this.bumpAt = -1
     const [x, y] = toXY(state, state.ball)
     this.ball = { x, y }
     this.resize()
@@ -90,21 +154,26 @@ export class InkMazeRenderer {
    * when the ball has stopped (straight away with reduced motion).
    */
   animate(result: MoveResult, done: () => void) {
+    this.cancelRoll()
     const from = this.state
     if (!from || !result.path.length) { done(); return }
-    this.cancelRoll()
     this.state = result.state
-    if (this.reduced.matches) {
+    this.bumpAt = -1
+    const stop = stopSurface(from, result)
+    if (this.reduced || !this.active) {
+      // no animation (or nobody watching): land at once
       for (const cell of result.path) this.soakedAt.set(cell, 0)
       const [x, y] = toXY(result.state, result.state.ball)
       this.ball = { x, y }
       this.draw(performance.now())
+      if (stop) this.emit({ type: 'impact', strength: impactStrength(result.path.length), surface: stop })
+      this.emit({ type: 'settled' })
       done()
       return
     }
     const start = performance.now()
     const duration = Math.min(MS_MAX, MS_BASE + MS_PER_BLOCK * result.path.length)
-    this.roll = { from: toXY(from, from.ball), path: result.path, start, duration, done }
+    this.roll = { from: toXY(from, from.ball), path: result.path, start, duration, done, reached: 0, stop, lastSpeedAt: -Infinity }
     this.loop()
   }
 
@@ -117,6 +186,8 @@ export class InkMazeRenderer {
     const [x, y] = toXY(this.state, this.state.ball)
     this.ball = { x, y }
     this.draw(performance.now())
+    // cut short: the ball is simply there, with no knock
+    this.emit({ type: 'settled' })
     done()
   }
 
@@ -124,6 +195,18 @@ export class InkMazeRenderer {
     cancelAnimationFrame(this.raf)
     this.resizeObserver.disconnect()
     this.roll = null
+    this.onEvent = null
+  }
+
+  /** A listener that throws must not stop the ball: report it, carry on. */
+  private emit(event: ViewEvent) {
+    const listener = this.onEvent
+    if (!listener) return
+    try {
+      listener(event)
+    } catch (error) {
+      setTimeout(() => { throw error })
+    }
   }
 
   private cancelRoll() {
@@ -131,6 +214,7 @@ export class InkMazeRenderer {
   }
 
   private resize() {
+    if (!this.active) return
     const rect = this.canvas.getBoundingClientRect()
     if (!rect.width || !rect.height || !this.state) return
     const dpr = Math.min(window.devicePixelRatio || 1, 2)
@@ -153,6 +237,7 @@ export class InkMazeRenderer {
 
   private loop = () => {
     cancelAnimationFrame(this.raf)
+    if (!this.active) { this.raf = 0; return }
     const tick = (now: number) => {
       const busy = this.step(now)
       this.draw(now)
@@ -165,7 +250,8 @@ export class InkMazeRenderer {
   private step(now: number): boolean {
     let busy = false
     if (this.roll && this.state) {
-      const { from, path, start, duration } = this.roll
+      const roll = this.roll
+      const { from, path, start, duration } = roll
       const t = Math.min(1, (now - start) / duration)
       const s = easeRoll(t) * path.length // blocks travelled
       const [tx, ty] = toXY(this.state, path[path.length - 1])
@@ -176,14 +262,29 @@ export class InkMazeRenderer {
       path.forEach((cell, i) => {
         if (s >= i + 0.5 && !this.soakedAt.has(cell)) this.soakedAt.set(cell, now)
       })
-      if (t >= 1) {
-        const done = this.roll.done
+      while (roll.reached < path.length && s >= roll.reached + 0.5) {
+        roll.reached++
+        this.emit({ type: 'cell', index: path[roll.reached - 1], step: roll.reached, of: path.length })
+      }
+      if (t < 1 && now - roll.lastSpeedAt >= ROLL_EVENT_MS) {
+        roll.lastSpeedAt = now
+        const blocksPerSecond = (path.length * easeRollSpeed(t)) / (duration / 1000)
+        this.emit({ type: 'roll', speed: Math.min(1, blocksPerSecond / ROLL_FULL_SPEED) })
+      }
+      if (t >= 1 && this.roll === roll) {
+        const done = roll.done
         this.roll = null
         this.squashAt = now
         this.splash(now, dx, dy)
+        if (roll.stop) this.emit({ type: 'impact', strength: impactStrength(path.length), surface: roll.stop })
+        this.emit({ type: 'settled' })
         done()
       }
       busy = true
+    }
+    if (this.bumpAt >= 0) {
+      if (now - this.bumpAt < BUMP_MS) busy = true
+      else this.bumpAt = -1
     }
     for (const at of this.soakedAt.values()) if (at && now - at < SPREAD_MS) busy = true
     if (this.squashAt >= 0 && now - this.squashAt < 180) busy = true
@@ -406,8 +507,14 @@ export class InkMazeRenderer {
   private drawBall(now: number) {
     const ctx = this.ctx
     const u = this.unit
-    const cx = this.px(this.ball.x + 0.5)
-    const cy = this.py(this.ball.y + 0.5)
+    // a knock: quickly out toward the wall, then back
+    let nudge = 0
+    if (this.bumpAt >= 0) {
+      const t = Math.min(1, Math.max(0, (now - this.bumpAt) / BUMP_MS))
+      nudge = Math.sin(Math.PI * Math.pow(t, 0.6)) * BUMP_REACH
+    }
+    const cx = this.px(this.ball.x + 0.5 + this.bumpStep[0] * nudge)
+    const cy = this.py(this.ball.y + 0.5 + this.bumpStep[1] * nudge)
     const r = u * 0.36
     // a little squash as it stops
     let sx = 1
@@ -443,6 +550,24 @@ export class InkMazeRenderer {
     ctx.restore()
   }
 }
+
+/**
+ * What a roll ends against: a wall block, the board's edge ('rim'), or
+ * nothing when the ink ran out with open floor still ahead.
+ */
+function stopSurface(from: State, result: MoveResult): 'wall' | 'rim' | null {
+  const { path, state } = result
+  const [fx, fy] = toXY(from, from.ball)
+  const [ax, ay] = toXY(state, path[0])
+  const [lx, ly] = toXY(state, path[path.length - 1])
+  const nx = lx + Math.sign(ax - fx)
+  const ny = ly + Math.sign(ay - fy)
+  if (nx < 0 || ny < 0 || nx >= state.width || ny >= state.height) return 'rim'
+  return state.cells[ny * state.width + nx] === FLOOR ? null : 'wall'
+}
+
+/** Longer rolls arrive harder: 1 block is a tap, 8 or more a full knock. */
+const impactStrength = (blocks: number) => Math.min(1, 0.25 + (0.75 * Math.min(blocks, 8)) / 8)
 
 function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
   ctx.beginPath()
