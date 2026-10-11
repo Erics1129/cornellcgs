@@ -359,3 +359,4 @@ to{opacity:1;transform:none}
 .ff-modal-head h2{flex:1}
 .ff-modal-head .ff-wallet{color:#eed1a0;font-size:15px;margin-right:5px}
 .ff-modal:has(.ff-market) .ff-modal-head{position:sticky;top:0;z-index:6;background:#211912;box-shadow:0 -23px 0 #211912,0 8px 0 #211912}
+.ff-page .ff-primary:hover:not(:disabled){background:#efd2a4;color:#242a1c;border-color:#f8e2bb}
