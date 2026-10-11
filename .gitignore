@@ -23,3 +23,5 @@ unity/**/UserSettings/
 unity/**/*.csproj
 unity/**/*.sln
 unity/**/Builds/
+# deploy.sh works in this folder while publishing
+.pages-publish/

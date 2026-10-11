@@ -31,7 +31,7 @@ export default function MinigameShell({ pageId, title, back, skip, className, ch
       html.style.background = style.backgroundColor
       html.style.colorScheme = style.colorScheme
     }
-    document.title = `${title} — ${site.name}`
+    document.title = `${title} · ${site.name}`
     return () => { html.style.background = previous.background; html.style.colorScheme = previous.colorScheme; document.title = previous.title }
   }, [title])
 

@@ -254,9 +254,17 @@
   height: auto;
   min-height: 0;
   padding: 14px 18px 18px 6px;
+  overscroll-behavior-y: auto;
   /* a row scrolled half out fades under the breadcrumb instead of being sliced */
   -webkit-mask-image: linear-gradient(transparent, #000 14px);
   mask-image: linear-gradient(transparent, #000 14px);
+}
+/* On touch screens a vertical swipe over the code moves the page, never the
+   editor; the scroll timeline still glides the code (scrollTop set in script),
+   and long lines still pan sideways. */
+@media (pointer: coarse) {
+  .ide .showcase-code-ts .showcase-code-viewport,
+  .ide .showcase-code-ts .showcase-code-viewport:focus { overflow-y: hidden; }
 }
 
 .ide .showcase-code-source {

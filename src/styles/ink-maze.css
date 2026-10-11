@@ -1,6 +1,8 @@
 /* Ink Maze page. The chrome (bar, navigator, footer, type and paper tokens)
    comes from subpages.css; this file lays out the game around the board.
-   The board itself is drawn on canvas (src/minigames/inkmaze/render.ts). */
+   The board is drawn by one of two views in the same frame: the 2D canvas
+   (src/minigames/inkmaze/render.ts) or the 3D Unity build (unity.ts), which
+   fades in over the 2D one once it has loaded. */
 
 .subpage--ink-maze {
   --im-wood: #3b2416;
@@ -60,23 +62,35 @@
   user-select: none;
   -webkit-user-select: none;
 }
+/* the frame both views draw in: its aspect ratio (set inline from
+   boardAspect) fixes the layout, whichever view is showing. A board taller
+   than wide is kept no taller than the stage is wide. */
 .im-board {
+  position: relative;
   display: block;
-  width: 100%;
-  height: auto;
+  width: min(100%, calc(var(--im-board) * var(--im-aspect, 1)));
+  margin-inline: auto;
   touch-action: none; /* swipes roll the ball instead of scrolling the page */
   -webkit-touch-callout: none;
   cursor: grab;
 }
-.im-board:focus-visible { outline: 3px solid var(--im-ink); outline-offset: -3px; }
-.im-stage[data-bump='up'] .im-board { animation: im-bump-up 0.16s ease-out; }
-.im-stage[data-bump='down'] .im-board { animation: im-bump-down 0.16s ease-out; }
-.im-stage[data-bump='left'] .im-board { animation: im-bump-left 0.16s ease-out; }
-.im-stage[data-bump='right'] .im-board { animation: im-bump-right 0.16s ease-out; }
-@keyframes im-bump-up { 40% { transform: translateY(-3px); } }
-@keyframes im-bump-down { 40% { transform: translateY(3px); } }
-@keyframes im-bump-left { 40% { transform: translateX(-3px); } }
-@keyframes im-bump-right { 40% { transform: translateX(3px); } }
+.im-board:focus-visible { outline: none; }
+/* the focus ring sits over both canvases */
+.im-board::after { content: ''; position: absolute; inset: 0; pointer-events: none; }
+.im-board:focus-visible::after { box-shadow: inset 0 0 0 3px var(--im-ink); }
+.im-canvas {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  pointer-events: none; /* the frame takes every touch, for both views */
+}
+/* the 3D view fades in over the 2D one; the 2D one is hidden once it has */
+.im-canvas--unity { opacity: 0; transition: opacity 0.3s ease; }
+.im-stage[data-renderer='unity'] .im-canvas--unity { opacity: 1; }
+.im-stage[data-renderer='unity'] .im-canvas--flat { visibility: hidden; transition: visibility 0s linear 0.3s; }
+.im-stage[data-unity='failed'] .im-canvas--unity { display: none; }
 
 /* the result, over the board */
 .im-result {
@@ -102,15 +116,17 @@
 @keyframes im-result-in { from { opacity: 0; transform: scale(0.97); } }
 
 /* ---- controls ---------------------------------------------------------------- */
-.im-controls { display: flex; align-items: center; justify-content: space-between; gap: 1rem; width: var(--im-board); }
-.im-actions { display: flex; gap: 0.6rem; }
+/* actions on the left, the roll pad on the right; when the board is narrow
+   the actions wrap into a column beside the pad instead of pushing it out */
+.im-controls { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 0.75rem 1rem; width: var(--im-board); }
+.im-actions { display: flex; flex-wrap: wrap; gap: 0.5rem 0.6rem; }
 .im-button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
   min-height: 44px;
-  padding: 0.55rem 1.05rem;
+  padding: 0.55rem 0.95rem;
   border: 1px solid var(--sp-ink);
   border-radius: 999px;
   background: transparent;
@@ -121,6 +137,10 @@
   transition: background-color 0.15s ease, color 0.15s ease, transform 0.15s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.15s ease;
 }
 .im-button:active:not(:disabled) { transform: scale(0.97); }
+.im-button__icon { flex: none; margin: -0.2rem 0; }
+
+
+.im-button--sound[aria-pressed='false'] { color: var(--sp-muted); border-color: var(--sp-rule); }
 .im-button:disabled { opacity: 0.38; cursor: default; }
 .im-button--primary { background: var(--sp-ink); color: var(--sp-paper); }
 @media (hover: hover) and (pointer: fine) {
@@ -180,7 +200,7 @@
   display: grid;
   place-items: center;
   width: 100%;
-  aspect-ratio: 1;
+  height: 3rem; /* twenty levels make four short rows */
   min-height: 44px;
   border: 1px solid var(--sp-rule);
   border-radius: 10px;
@@ -219,16 +239,17 @@
   .im-inkbar { left: 0.6rem; right: 0.6rem; bottom: 0.35rem; }
   .im-stage { border-radius: 14px; }
   /* the pad goes under the thumb: big keys, centred */
-  .im-controls { flex-direction: column-reverse; gap: 0.75rem; }
+  .im-controls { grid-template-columns: minmax(0, 1fr); gap: 0.75rem; }
+  .im-pad { order: -1; justify-self: center; }
   .im-pad { grid-template-columns: repeat(3, 3.6rem); grid-template-rows: repeat(2, 3.2rem); gap: 0.4rem; }
   .im-pad__key { font-size: 1.3rem; border-radius: 12px; }
-  .im-actions { width: 100%; }
-  .im-actions .im-button { flex: 1; }
+  .im-actions .im-button { flex: 1 1 auto; padding-inline: 0.75rem; }
   .im-side { grid-template-columns: minmax(0, 1fr); gap: 1.5rem; }
   .im-hint { text-align: center; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .im-result, .im-stage .im-board { animation: none !important; }
+  .im-result { animation: none !important; }
+  .im-canvas--unity, .im-stage[data-renderer='unity'] .im-canvas--flat { transition: none; }
   .im-inkbar > span, .im-button, .im-pad__key { transition: none; }
 }

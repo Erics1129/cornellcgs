@@ -46,7 +46,7 @@ export const EARTH_PLACES: EarthPlace[] = [
     source: 'https://npgallery.nps.gov/AssetDetail/3454fd91-1dd8-b71b-0b21-a93398840c35', licenseUrl: '',
     start: .85, arrival: .874, stop: .886, anchor: [.48, .45], tint: [1.015, 1.0, .98], saturation: .98,
   },
-  { ...imported('cornell-ithaca'), name: 'Cornell University', caption: 'Ithaca, New York',
+  { ...imported('cornell-ithaca'), name: 'TBD', caption: 'TBD',
     start: .90, arrival: .922, stop: .964, anchor: [.65, 0], tint: [1.025, 1.01, .985], saturation: 1.02 },
 ]
 

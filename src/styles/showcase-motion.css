@@ -85,7 +85,7 @@
 .showcase-code-sh .showcase-code-filename { border-bottom-color:transparent; color:#c2cee0; font-size:11px; }
 .showcase-code-sh .showcase-code-filename::before { content:'>_'; font:500 12px/1 ui-monospace,monospace; color:#a4c2de; }
 .showcase-code-language { margin-left:auto; font-size:10px; letter-spacing:.05em; color:#a1b0c5; }
-.showcase-code-viewport { position:relative; height:clamp(260px,34vh,360px); padding:16px 18px 20px 7px; overflow:hidden; overscroll-behavior:contain; scrollbar-width:thin; scrollbar-color:#63779566 transparent; outline-offset:-2px; }
+.showcase-code-viewport { position:relative; height:clamp(260px,34vh,360px); padding:16px 18px 20px 7px; overflow:hidden; overscroll-behavior:auto; scrollbar-width:thin; scrollbar-color:#63779566 transparent; outline-offset:-2px; }
 .showcase-code-viewport:focus { overflow-y:auto; }
 .showcase-code-viewport:focus-visible { outline:1px solid #a4c8fa; }
 .showcase-code-sh .showcase-code-viewport { height:144px; padding-top:14px; padding-bottom:14px; }

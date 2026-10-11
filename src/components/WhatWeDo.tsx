@@ -53,7 +53,7 @@ export default function WhatWeDo() {
       if (wide) {
         const tl = gsap.timeline({ scrollTrigger: {
           trigger: section, start: 'top top', end: () => `+=${Math.round(window.innerHeight * 1.6)}`,
-          pin: true, scrub: 0.24, anticipatePin: 1, refreshPriority: 1, invalidateOnRefresh: true,
+          pin: true, scrub: 0.24, invalidateOnRefresh: true,
           onRefreshInit: measure,
         } })
         parts.forEach((_, i) => addCard(tl, i, i * 0.12))

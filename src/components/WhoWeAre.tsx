@@ -32,9 +32,9 @@ export default function WhoWeAre() {
       <div className="identity-copy">
         <p data-identity-copy className="identity-eyebrow">Cornell CGS</p>
         <h2 className="identity-title"><ScrollWords text={whoWeAre.heading} treatment="illuminate" /></h2>
-        {whoWeAre.paragraphs.map(line => <p data-identity-copy className="identity-lead" key={line}>{line}</p>)}
+        {whoWeAre.paragraphs.map((line, i) => <p data-identity-copy className="identity-lead" key={i}>{line}</p>)}
         <a data-identity-copy href="/whoWeAre/" className="identity-link">About us <span aria-hidden="true">↗</span></a>
-        {facts.length > 0 && <dl className="identity-facts">{facts.map(fact => <div key={fact.label}><dt>{fact.label}</dt><dd>{fact.value}</dd></div>)}</dl>}
+        {facts.length > 0 && <dl className="identity-facts">{facts.map((fact, i) => <div key={i}><dt>{fact.label}</dt><dd>{fact.value}</dd></div>)}</dl>}
       </div>
       <figure className="identity-figure" aria-label="The CGS logo: an illuminated cube assembled from moving metallic blocks">
         <div className="identity-object"><Dice size={640} paused={paused} /></div>

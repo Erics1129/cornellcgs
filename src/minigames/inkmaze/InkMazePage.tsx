@@ -2,11 +2,20 @@
  * /minigames/inkMaze/: the Ink Maze page.
  *
  * Sits in the same frame as the info pages (MinigameShell) and wires the game
- * together: the rules come from engine.ts via session.ts, drawing from
- * render.ts, keys and swipes from input.ts. This component only holds the
- * session and forwards moves; it never decides what a move does.
+ * together: the rules come from engine.ts via session.ts, keys and swipes from
+ * input.ts, sound from sound.ts. This component only holds the session and
+ * forwards moves; it never decides what a move does.
+ *
+ * Two views can draw the board (view.ts). The 2D canvas (render.ts) draws
+ * from the first frame, so the game is playable at once. Unless the browser
+ * cannot run it or asks to save data, the 3D Unity build (unity.ts) loads in
+ * the background into a second canvas; once it is ready and the ball is at
+ * rest, it takes over the board. If it fails at any point, the 2D canvas
+ * comes back showing the same position. `data-renderer` on the stage says
+ * which view is showing.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import type { CSSProperties } from 'react'
 import { minigames, site } from '../../content'
 import { pagePath } from '../../lib/router'
 import MinigameShell from '../MinigameShell'
@@ -16,6 +25,10 @@ import type { Direction } from './engine'
 import { createSession, current, inkUsed, movesUsed, play, restart, sessionStatus, undo } from './session'
 import type { Session } from './session'
 import { InkMazeRenderer, boardAspect } from './render'
+import { UnityInkMaze, unityAllowed } from './unity'
+import type { InkMazeView, ViewEvent } from './view'
+import { createInkMazeSound } from './sound'
+import type { InkMazeSound } from './sound'
 import { loadArt } from './assets'
 import { attachInput } from './input'
 import { beats, loadBests, recordWin } from './progress'
@@ -31,12 +44,49 @@ const ARROWS: Array<{ direction: Direction; label: string; glyph: string }> = [
   { direction: 'right', label: 'Roll right', glyph: '→' },
 ]
 
+/** the 3D board fades in over the 2D one (keep in step with ink-maze.css) */
+const FADE_MS = 300
+/** wait this long after the page appears before fetching the 3D build */
+const UNITY_START_MS = 250
+const SOUND_KEY = 'cgs-inkmaze-sound-v1'
+
+type RendererName = 'canvas' | 'unity'
+/** off: not tried here; loading; on: showing; failed: gave up, the 2D board stays */
+type UnityPhase = 'off' | 'loading' | 'on' | 'failed'
+
 /** ?level=3 opens level 3; anything else opens the first level not yet cleared. */
 function startingLevel(bests: Bests): number {
   const asked = Number(new URLSearchParams(location.search).get('level'))
   if (Number.isInteger(asked) && asked >= 1 && asked <= LEVELS.length) return asked - 1
   const open = LEVELS.findIndex((level) => !bests[level.id])
   return open < 0 ? 0 : open
+}
+
+/** The saved sound choice, for the button's first render (sound.ts owns the setting). */
+function soundStartsOn(): boolean {
+  try {
+    return localStorage.getItem(SOUND_KEY) !== 'off'
+  } catch {
+    return true
+  }
+}
+
+const parOf = (levelId: string) => LEVELS.find((level) => level.id === levelId)?.par
+
+declare global {
+  interface Window {
+    /** dev server only: the showing view's recent events, for scripts/test-inkmaze-page.mjs */
+    __inkMazeEvents?: Array<ViewEvent & { view: RendererName }>
+  }
+}
+
+function SoundIcon({ on }: { on: boolean }) {
+  return <svg className="im-button__icon" viewBox="0 0 20 20" width="18" height="18" aria-hidden="true" focusable="false">
+    <path d="M3.5 7.5h3l4-3.5v12l-4-3.5h-3z" fill="currentColor" />
+    {on
+      ? <path d="M13.2 7.2a4 4 0 0 1 0 5.6M15.4 5a7 7 0 0 1 0 10" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+      : <path d="M13.5 7.5l4 5M17.5 7.5l-4 5" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />}
+  </svg>
 }
 
 export default function InkMazePage() {
@@ -47,14 +97,32 @@ export default function InkMazePage() {
   /** the result shown over the board once the ball has stopped */
   const [overlay, setOverlay] = useState<null | { kind: 'won' | 'lost'; newBest: boolean }>(null)
   const [announcement, setAnnouncement] = useState('')
-  const [bump, setBump] = useState<Direction | null>(null)
+  const [soundOn, setSoundOn] = useState(soundStartsOn)
+  const [rendererName, setRendererName] = useState<RendererName>('canvas')
+  const [unityPhase, setUnityPhase] = useState<UnityPhase>(() => (unityAllowed() ? 'loading' : 'off'))
+  /** decided once, on the first render */
+  const unityWanted = useRef(unityPhase !== 'off')
 
-  const canvas = useRef<HTMLCanvasElement>(null)
-  const renderer = useRef<InkMazeRenderer | null>(null)
+  const board = useRef<HTMLDivElement>(null)
+  const flatCanvas = useRef<HTMLCanvasElement>(null)
+  const unityCanvas = useRef<HTMLCanvasElement>(null)
+  /** the 2D view: always there, drawing whenever it is the one showing */
+  const flat = useRef<InkMazeRenderer | null>(null)
+  /** the 3D view, while it is loading or showing */
+  const unity = useRef<UnityInkMaze | null>(null)
+  /** whichever view is showing: moves, undo and restart go to it */
+  const view = useRef<InkMazeView | null>(null)
+  const sound = useRef<InkMazeSound | null>(null)
+  const reducedMotion = useRef(false)
   const sessionRef = useRef(session)
   sessionRef.current = session
   const rolling = useRef(false)
   const queued = useRef<Direction | null>(null)
+  /** true while undo, restart or a level change cuts a roll short */
+  const interrupting = useRef(false)
+  /** the 3D view became ready during a roll: it takes over once the ball stops */
+  const takeOverWaiting = useRef(false)
+  const hideFlatTimer = useRef(0)
   const nextButton = useRef<HTMLButtonElement>(null)
   const game = useRef<HTMLElement>(null) // the main area: keys roll the ball while focus is in it (or nowhere)
   /** the latest move handler, for a queued move to call once the ball stops */
@@ -65,39 +133,182 @@ export default function InkMazePage() {
   const status = sessionStatus(session)
   const floors = useMemo(() => floorCount(state), [state.cells])
   const left = blocksLeft(state)
+  const aspect = boardAspect(state.width, state.height)
 
-  // The renderer lives as long as the page; art arrives when it arrives
+  /** Events from the view that is showing go to the sound. */
+  const viewEvent = useCallback((event: ViewEvent) => {
+    if (import.meta.env.DEV) {
+      const log = (window.__inkMazeEvents ??= [])
+      log.push({ ...event, view: unity.current && view.current === unity.current ? 'unity' : 'canvas' })
+      if (log.length > 200) log.splice(0, log.length - 200)
+    }
+    // a knock (and the little movement before it) with no roll going is a
+    // bump, which move() already sounded; the 3D board reports both
+    if ((event.type === 'impact' || event.type === 'roll') && !rolling.current) return
+    sound.current?.event(event)
+  }, [])
+
+  /** The 3D view takes the board, once the ball is at rest. */
+  const takeOver = useCallback(() => {
+    const u = unity.current
+    if (!u) return
+    if (rolling.current) { takeOverWaiting.current = true; return }
+    takeOverWaiting.current = false
+    u.show(current(sessionRef.current))
+    view.current = u
+    performance.mark?.('inkmaze:unity-on') // how long the 3D board took, for anyone measuring
+    setRendererName('unity')
+    setUnityPhase('on')
+    clearTimeout(hideFlatTimer.current)
+    // the 2D board stays underneath while the 3D one fades in, then rests
+    hideFlatTimer.current = window.setTimeout(() => {
+      if (view.current === u) flat.current?.setActive(false)
+    }, reducedMotion.current ? 0 : FADE_MS + 50)
+  }, [])
+
+  /** The 3D view failed: the 2D board comes back with the current position. */
+  const fallBack = useCallback((reason: unknown) => {
+    const u = unity.current
+    if (!u) return
+    unity.current = null
+    takeOverWaiting.current = false
+    clearTimeout(hideFlatTimer.current)
+    const f = flat.current
+    if (view.current === u && f) {
+      view.current = f
+      f.setActive(true)
+      f.show(current(sessionRef.current))
+      // a roll the 3D view had going ends now; a queued move then plays on the 2D board
+      u.finish()
+    }
+    u.destroy()
+    setRendererName('canvas')
+    setUnityPhase('failed')
+    const message = reason instanceof Error ? reason.message : String(reason)
+    // no build on this server is ordinary (a fresh checkout); anything else is worth a warning
+    if (/^no Unity build/.test(message)) console.info(`Ink Maze: ${message}, so the 2D board stays.`)
+    else console.warn(`Ink Maze: the 3D board stopped (${message}), so the 2D board is back.`)
+  }, [])
+
+  // Reduced motion, now and when the setting changes (before the views start)
   useEffect(() => {
-    if (!canvas.current) return
-    const r = new InkMazeRenderer(canvas.current)
-    renderer.current = r
+    const query = window.matchMedia('(prefers-reduced-motion: reduce)')
+    const apply = () => {
+      reducedMotion.current = query.matches
+      flat.current?.setReducedMotion(query.matches)
+      unity.current?.setReducedMotion(query.matches)
+    }
+    apply()
+    query.addEventListener?.('change', apply)
+    return () => query.removeEventListener?.('change', apply)
+  }, [])
+
+  // The 2D view lives as long as the page; art arrives when it arrives
+  useEffect(() => {
+    if (!flatCanvas.current) return
+    if (import.meta.env.DEV) window.__inkMazeEvents ??= []
+    const r = new InkMazeRenderer(flatCanvas.current)
+    flat.current = r
+    view.current = r
+    r.onEvent = (event) => { if (view.current === r) viewEvent(event) }
+    r.setReducedMotion(reducedMotion.current)
     r.show(current(sessionRef.current))
     let alive = true
     loadArt().then((art) => { if (alive) r.setArt(art) })
-    return () => { alive = false; r.destroy(); renderer.current = null }
+    return () => {
+      alive = false
+      r.destroy()
+      if (view.current === r) view.current = null
+      flat.current = null
+      // a roll that was going will not finish now; the next view starts at rest
+      rolling.current = false
+      queued.current = null
+    }
+  }, [viewEvent])
+
+  // The 3D view loads in the background, a moment after the page appears
+  useEffect(() => {
+    if (!unityWanted.current) return
+    let alive = true
+    const start = window.setTimeout(() => {
+      const canvas = unityCanvas.current
+      if (!canvas) return
+      const u = new UnityInkMaze()
+      unity.current = u
+      performance.mark?.('inkmaze:unity-load')
+      u.onEvent = (event) => { if (view.current === u) viewEvent(event) }
+      u.onFailure = (reason) => { if (alive) fallBack(reason) }
+      u.setReducedMotion(reducedMotion.current)
+      u.load(canvas).then(
+        () => { if (alive && unity.current === u) takeOver() },
+        (error) => { if (alive && unity.current === u) fallBack(error) },
+      )
+    }, UNITY_START_MS)
+    return () => {
+      alive = false
+      clearTimeout(start)
+      clearTimeout(hideFlatTimer.current)
+      const u = unity.current
+      unity.current = null
+      takeOverWaiting.current = false
+      if (u) {
+        if (view.current === u) view.current = flat.current
+        u.destroy()
+      }
+      // back to where a fresh start would be (this matters only when the effect runs again)
+      flat.current?.setActive(true)
+      setRendererName('canvas')
+      setUnityPhase((phase) => (phase === 'off' ? phase : 'loading'))
+    }
+    // runs once per mount: a failed load does not start another
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  /** After the ball stops: a queued move, or the result. */
+  // Sound: it may only start after a click or a key press in the game
+  useEffect(() => {
+    const s = createInkMazeSound()
+    sound.current = s
+    setSoundOn(!s.muted)
+    const wake = (event: Event) => {
+      const target = event.target
+      if (target === document.body || target === document.documentElement || (target instanceof Node && game.current?.contains(target))) s.unlock()
+    }
+    const types = ['pointerdown', 'pointerup', 'keydown'] as const
+    for (const type of types) document.addEventListener(type, wake, true)
+    return () => {
+      for (const type of types) document.removeEventListener(type, wake, true)
+      s.destroy()
+      if (sound.current === s) sound.current = null
+    }
+  }, [])
+
+  /** After the ball stops: the result, or a queued move. */
   const settle = useCallback((after: Session) => {
     rolling.current = false
+    const quiet = interrupting.current
+    if (!quiet && takeOverWaiting.current) takeOver()
     const result = sessionStatus(after)
     if (result === 'won') {
       const run = { ink: inkUsed(after), moves: movesUsed(after) }
       const before = loadBests()[after.levelId]
       setBests(recordWin(after.levelId, run))
+      if (quiet) return
       setOverlay({ kind: 'won', newBest: beats(run, before) })
       setAnnouncement(`Level cleared with ${run.ink} ink in ${run.moves} moves.`)
+      sound.current?.win(run.ink === parOf(after.levelId))
       return
     }
+    if (quiet) return
     if (result === 'lost') {
       setOverlay({ kind: 'lost', newBest: false })
       setAnnouncement(`Out of ink with ${blocksLeft(current(after))} blocks left. Undo or restart.`)
+      sound.current?.lose()
       return
     }
     const next = queued.current
     queued.current = null
     if (next) moveRef.current(next)
-  }, [])
+  }, [takeOver])
 
   const move = useCallback((direction: Direction) => {
     if (rolling.current) { queued.current = direction; return } // one move waits its turn
@@ -105,8 +316,8 @@ export default function InkMazePage() {
     if (after === sessionRef.current) {
       if (sessionStatus(after) === 'playing') {
         // a wall right there: a small knock, no ink spent
-        setBump(null)
-        requestAnimationFrame(() => setBump(direction))
+        view.current?.bump(direction)
+        sound.current?.bump()
       }
       return
     }
@@ -115,56 +326,84 @@ export default function InkMazePage() {
     setSession(after)
     const now = current(after)
     setAnnouncement(`Rolled ${direction} ${result.cost} ${result.cost === 1 ? 'block' : 'blocks'}. ${now.ink} ink left, ${blocksLeft(now)} to color.`)
-    renderer.current?.animate(result, () => settle(after))
+    sound.current?.rollStart(result.cost)
+    view.current?.animate(result, () => settle(after))
   }, [settle])
   moveRef.current = move
 
-  const takeBack = useCallback(() => {
-    renderer.current?.finish()
+  /** Undo, restart and a new level end any roll at once, with no result or sound for it. */
+  const interrupt = useCallback(() => {
     queued.current = null
-    rolling.current = false
+    interrupting.current = true
+    try {
+      view.current?.finish()
+    } finally {
+      interrupting.current = false
+      rolling.current = false
+    }
+  }, [])
+
+  /** Shows a position at rest, then lets a waiting 3D view take over. */
+  const showAtRest = useCallback((after: Session) => {
+    view.current?.show(current(after))
+    if (takeOverWaiting.current) takeOver()
+  }, [takeOver])
+
+  const takeBack = useCallback(() => {
+    interrupt()
     const after = undo(sessionRef.current)
     if (after === sessionRef.current) return
     sessionRef.current = after
     setSession(after)
     setOverlay(null)
-    renderer.current?.show(current(after))
+    showAtRest(after)
+    sound.current?.undo()
     setAnnouncement('Move undone.')
-  }, [])
+  }, [interrupt, showAtRest])
 
   const startOver = useCallback(() => {
-    renderer.current?.finish()
-    queued.current = null
-    rolling.current = false
+    interrupt()
     const after = restart(sessionRef.current)
+    const changed = after !== sessionRef.current
     sessionRef.current = after
     setSession(after)
     setOverlay(null)
-    renderer.current?.show(current(after))
+    showAtRest(after)
+    if (changed) sound.current?.restart()
     setAnnouncement('Level restarted.')
-  }, [])
+  }, [interrupt, showAtRest])
 
   const openLevel = useCallback((index: number) => {
-    renderer.current?.finish()
-    queued.current = null
-    rolling.current = false
+    interrupt()
     const fresh = createSession(LEVELS[index])
     sessionRef.current = fresh
     setLevelIndex(index)
     setSession(fresh)
     setOverlay(null)
-    renderer.current?.show(current(fresh))
+    showAtRest(fresh)
+    sound.current?.level()
     setAnnouncement(`Level ${index + 1}, ${LEVELS[index].name}.`)
     const url = new URL(location.href)
     url.searchParams.set('level', String(index + 1))
     history.replaceState(null, '', url)
+  }, [interrupt, showAtRest])
+
+  const toggleSound = useCallback(() => {
+    const s = sound.current
+    if (!s) return
+    s.unlock()
+    s.setMuted(!s.muted)
+    setSoundOn(!s.muted)
   }, [])
 
   // Keys (while the game, or nothing in particular, has focus) and swipes on the board
   useEffect(() => {
-    if (!game.current || !canvas.current) return
-    return attachInput(game.current, canvas.current, { move, undo: takeBack, restart: startOver })
-  }, [move, takeBack, startOver])
+    const frame = board.current
+    if (!game.current || !frame) return
+    const detach = attachInput(game.current, frame, { move, undo: takeBack, restart: startOver, toggleSound })
+    frame.dataset.ready = 'true' // keys and swipes work from here on (tests wait for it)
+    return () => { detach(); delete frame.dataset.ready }
+  }, [move, takeBack, startOver, toggleSound])
 
   // The result's main action takes focus, so Enter continues
   useEffect(() => {
@@ -181,7 +420,7 @@ export default function InkMazePage() {
   return <MinigameShell
     pageId="ink-maze"
     title={copy.title}
-    back={{ href: pagePath('minigames'), label: `Back to ${minigames.title}` }}
+    back={{ href: pagePath('minigames'), label: 'Back to the mini games' }}
     skip={{ href: '#ink-maze-board', label: 'Skip to the game' }}
     className="subpage--ink-maze">
 
@@ -203,16 +442,18 @@ export default function InkMazePage() {
             <div><dt>Blocks left</dt><dd><strong>{left}</strong></dd></div>
           </dl>
 
-          <div className="im-stage" data-bump={bump ?? undefined} onAnimationEnd={() => setBump(null)}>
-            <canvas
+          <div className="im-stage" data-renderer={rendererName} data-unity={unityPhase}>
+            <div
               id="ink-maze-board"
-              ref={canvas}
+              ref={board}
               className="im-board"
-              style={{ aspectRatio: String(boardAspect(state.width, state.height)) }}
+              style={{ aspectRatio: String(aspect), '--im-aspect': String(aspect) } as CSSProperties}
               role="img"
               tabIndex={0}
-              aria-label={`Level ${levelIndex + 1}, ${level.name}: a ${state.width} by ${state.height} board. ${floors - left} of ${floors} blocks colored, ${state.ink} ink left. Use the arrow keys or the roll buttons.`}
-            />
+              aria-label={`Level ${levelIndex + 1}, ${level.name}: a ${state.width} by ${state.height} board. ${floors - left} of ${floors} blocks colored, ${state.ink} ink left. Use the arrow keys or the roll buttons.`}>
+              <canvas ref={flatCanvas} className="im-canvas im-canvas--flat" aria-hidden="true" />
+              {unityPhase !== 'off' && <canvas ref={unityCanvas} id="ink-maze-unity" className="im-canvas im-canvas--unity" aria-hidden="true" tabIndex={-1} />}
+            </div>
             {overlay && (
               <div className="im-result" data-kind={overlay.kind} role="dialog" aria-modal="false" aria-labelledby="im-result-title">
                 {overlay.kind === 'won' ? <>
@@ -220,7 +461,7 @@ export default function InkMazePage() {
                   <h2 id="im-result-title">Level cleared</h2>
                   <p className="im-result__stats">
                     You used {used} ink in {moves} {moves === 1 ? 'move' : 'moves'}.{' '}
-                    {used === level.par ? 'That is the least this level needs.' : `It can be done with ${level.par}.`}
+                    {used === level.par ? 'That is the least this level needs.' : `It can be done with ${level.par} ink.`}
                   </p>
                   {overlay.newBest && <p className="im-result__badge">New best</p>}
                   <div className="im-result__actions">
@@ -250,6 +491,9 @@ export default function InkMazePage() {
               <button type="button" className="im-button" onClick={startOver} disabled={moves === 0} aria-keyshortcuts="R">
                 <span aria-hidden="true">↻</span> Restart
               </button>
+              <button type="button" className="im-button im-button--sound" onClick={toggleSound} aria-pressed={soundOn} aria-keyshortcuts="M">
+                <SoundIcon on={soundOn} /> {soundOn ? 'Sound on' : 'Sound off'}
+              </button>
             </div>
             <div className="im-pad" role="group" aria-label="Roll the ball">
               {ARROWS.map((arrow) => (
@@ -261,7 +505,7 @@ export default function InkMazePage() {
             </div>
           </div>
           <p className="im-hint">
-            <span className="im-hint--keys">Arrow keys or <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> to roll · <kbd>Z</kbd> undo · <kbd>R</kbd> restart</span>
+            <span className="im-hint--keys">Arrow keys or <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> to roll · <kbd>Z</kbd> undo · <kbd>R</kbd> restart · <kbd>M</kbd> sound</span>
             <span className="im-hint--touch">Swipe on the board to roll the ball</span>
           </p>
       </section>
@@ -272,7 +516,7 @@ export default function InkMazePage() {
             <h2>{level.name}</h2>
             <p className="im-level__meta">{state.width} × {state.height} board <span aria-hidden="true">·</span> {level.ink} ink</p>
             <p className="im-level__note">
-              {level.slack > 0 ? `The least it needs is ${level.par}, so you have ${level.slack} extra.` : 'That is exactly the least it needs.'}
+              {level.slack > 0 ? `The least it needs is ${level.par}, so you have ${level.slack} to spare.` : `You get ${level.ink} ink, exactly the least it needs, so there is none to spare.`}
             </p>
             <p className="im-level__best">{best ? `Your best: ${best.ink} ink in ${best.moves} moves${best.ink === level.par ? ', the least possible' : ''}` : 'Not cleared yet'}</p>
           </div>

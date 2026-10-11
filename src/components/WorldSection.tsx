@@ -85,7 +85,7 @@ export default function WorldSection() {
     ScrollTrigger.update()
   }
 
-  return <section ref={root} id="world" className="scene-chapter scene-chapter--world earth-journey" aria-label="Our world">
+  return <section ref={root} id="world" className="scene-chapter scene-chapter--world earth-journey" aria-label="TBD">
     <div className="scene-stage earth-journey-stage">
       <div className="earth-intro">
         <div className="earth-globe"><SceneCanvas kind="earth" /></div>
@@ -93,10 +93,10 @@ export default function WorldSection() {
         <div className="scene-edge scene-edge--bottom" />
         <div className="container-site scene-content earth-intro-copy" onFocusCapture={() => revealFocusedScene(.12)}>
           <div className="scene-copy">
-            <p className="scene-eyebrow"><span />Where we’re from</p>
+            <p className="scene-eyebrow"><span />TBD</p>
             <h2 className="scene-title"><ScrollWords text={world.heading} treatment="illuminate" /></h2>
             <p className="scene-lead">{world.text}</p>
-            <a className="scene-link" href="/world/">More about our members <span aria-hidden="true">↗</span></a>
+            <a className="scene-link" href="/world/">TBD <span aria-hidden="true">↗</span></a>
           </div>
         </div>
         <div className="scene-caption earth-orbit-caption" onFocusCapture={() => revealFocusedScene(.12)}>

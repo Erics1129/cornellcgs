@@ -29,53 +29,54 @@ const SLUGS = {
 const PAGES = {
   'who-we-are': {
     title: 'Who We Are — Cornell Computational Game Society',
-    desc: 'The people and culture of the Cornell Computational Game Society (Cornell CGS).',
+    desc: 'TBD',
   },
   'what-we-do': {
     title: 'What We Do — Cornell Computational Game Society',
-    desc: 'Current projects at Cornell CGS, including a Guandan agent and a poker equity calculator, plus study nights, tournaments and talks.',
+    desc: 'TBD',
   },
   'ml-process': {
     title: 'Our Machine Learning Process — Cornell CGS',
-    desc: 'How the Cornell Computational Game Society frames games, builds environments, trains and evaluates agents.',
+    desc: 'TBD',
   },
   events: {
     title: 'Events — Cornell Computational Game Society',
-    desc: 'Events at the Cornell Computational Game Society (Cornell CGS).',
+    desc: 'TBD',
   },
   world: {
     title: 'World — Cornell Computational Game Society',
-    desc: 'The worldwide community of the Cornell Computational Game Society.',
+    desc: 'TBD',
   },
   advisors: {
     title: 'Advisors \u2014 Cornell Computational Game Society',
-    desc: 'Advisors and team of the Cornell Computational Game Society (Cornell CGS).',
+    desc: 'TBD',
   },
   people: {
     title: 'Our Team — Cornell Computational Game Society',
-    desc: 'The board and members of the Cornell Computational Game Society (Cornell CGS).',
+    desc: 'TBD',
   },
   join: {
     title: 'Join — Cornell Computational Game Society',
-    desc: 'How to join the Cornell Computational Game Society. Any major can apply: email recruitment@cornellcgs.org.',
+    desc: 'TBD',
   },
   minigames: {
-    title: 'Mini Games — Cornell Computational Game Society',
-    desc: 'Puzzles from the Cornell Computational Game Society that you can play in the browser. The first one is Ink Maze.',
+    title: 'Mini games · Cornell Computational Game Society',
+    desc: 'Small games from the Cornell Computational Game Society that you can play in your browser: Ink Maze and Forge or Fold.',
     image: '/assets/minigames/ink-maze/cover.png',
   },
   'forge-or-fold': {
     title: 'Forge or Fold — Cornell CGS',
     desc: 'A seven-day 3D forging game. Heat, strike, sell and learn when to stop. Keep your best knife.',
   },
+  // the numbers must match src/minigames/inkmaze/levels.ts
   'ink-maze': {
-    title: 'Ink Maze — Cornell Computational Game Society',
-    desc: 'Roll the ball to color every floor block before you run out of ink. Ten levels, from 4 × 4 to 7 × 7.',
+    title: 'Ink Maze · Cornell Computational Game Society',
+    desc: 'Roll a ball to color every floor block before the ink runs out. There are 20 levels, on boards from 4 × 4 to 9 × 9.',
     image: '/assets/minigames/ink-maze/cover.png',
   },
   contact: {
     title: 'Contact Us — Cornell Computational Game Society',
-    desc: 'Contact Cornell CGS: recruitment, tech, finance, marketing and social inboxes at cornellcgs.org.',
+    desc: 'TBD',
   },
 }
 

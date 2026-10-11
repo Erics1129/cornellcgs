@@ -231,6 +231,20 @@ export default function CodeLayer() {
       }
     }, { threshold: Array.from({ length: 21 }, (_, i) => i / 20) })
     document.querySelectorAll('[data-quiet-rain]').forEach((el) => quietIO.observe(el))
+    // The support chapters paint an opaque surface; while one fills the screen
+    // none of the rain shows, so the frame loop skips the fluid and columns
+    // (as it does behind the eye chapter). Readings every 1% stay fresh as a
+    // chapter slides off.
+    const surfaceCover = new Map<Element, number>()
+    let covered = false
+    const surfaceIO = new IntersectionObserver((entries) => {
+      for (const e of entries) {
+        const screen = e.rootBounds?.height || window.innerHeight
+        surfaceCover.set(e.target, e.isIntersecting ? e.intersectionRect.height / screen : 0)
+      }
+      covered = [...surfaceCover.values()].some((c) => c >= 0.999)
+    }, { threshold: Array.from({ length: 101 }, (_, i) => i / 100) })
+    document.querySelectorAll('.support-scene[data-chapter-surface]').forEach((el) => surfaceIO.observe(el))
     let raf = 0
     let last = performance.now()
     let alive = true
@@ -518,7 +532,7 @@ export default function CodeLayer() {
     const frame = (now: number) => {
       raf = requestAnimationFrame(frame)
       // behind the black eye chapter nothing of this shows: skip the work
-      if (document.documentElement.classList.contains('eye-on') || document.documentElement.classList.contains('cinema-on') || document.documentElement.classList.contains('universe-on')) { last = now; return }
+      if (covered || document.documentElement.classList.contains('eye-on') || document.documentElement.classList.contains('cinema-on') || document.documentElement.classList.contains('universe-on')) { last = now; return }
       const dt = Math.min(0.1, (now - last) / 1000)
       last = now
       quiet += (quietTarget - quiet) * Math.min(1, dt * 2.5)
@@ -652,6 +666,7 @@ export default function CodeLayer() {
       alive = false
       cancelAnimationFrame(raf)
       quietIO.disconnect()
+      surfaceIO.disconnect()
       window.removeEventListener('resize', resize)
       document.removeEventListener('visibilitychange', onVis)
       window.removeEventListener('pointermove', onPointer)

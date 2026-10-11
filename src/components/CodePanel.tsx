@@ -310,7 +310,9 @@ const CodePanel = forwardRef<CodePanelHandle, {
     el.addEventListener('focusin', focusIn)
     el.addEventListener('focusout', focusOut)
     el.addEventListener('keydown', keyDown)
-    body.addEventListener('wheel', inspectScroll, { passive: true })
+    // A scroll-driven panel (manualScroll) leaves the wheel to the page: taking
+    // focus here would pin Lenis to the panel and stop the page under the pointer.
+    if (!manualScroll) body.addEventListener('wheel', inspectScroll, { passive: true })
     if (manualScroll) body.addEventListener('scroll', syncMap, { passive: true })
     document.addEventListener('pointerup', up)
     document.addEventListener('pointercancel', up)
