@@ -71,8 +71,11 @@ public partial class ForgeWorld {
   var key=new GameObject("Warm work light").AddComponent<Light>();key.type=LightType.Spot;key.color=C("ffe0af");key.intensity=3.0f;key.range=7;key.spotAngle=95;key.transform.position=new Vector3(-.65f,2.8f,-1.15f);key.transform.LookAt(new Vector3(0,1,-.3f));key.shadows=LightShadows.Soft;key.shadowStrength=.85f;key.shadowBias=.12f;key.shadowNormalBias=.22f;key.renderMode=LightRenderMode.ForcePixel;
   var rim=new GameObject("Cool window spill").AddComponent<Light>();rim.type=LightType.Spot;rim.color=C("a4b8d2");rim.intensity=2.2f;rim.range=6;rim.spotAngle=90;rim.transform.position=new Vector3(2.3f,2.35f,1.65f);rim.transform.LookAt(new Vector3(.2f,.9f,-.5f));rim.renderMode=LightRenderMode.ForcePixel;
   furnaceLight=new GameObject("Furnace radiance").AddComponent<Light>();furnaceLight.type=LightType.Point;furnaceLight.color=C("ff9a48");furnaceLight.intensity=2.6f;furnaceLight.range=4.3f;furnaceLight.transform.position=spots["furnace"]+new Vector3(0,.2f,-.4f);furnaceLight.renderMode=LightRenderMode.ForcePixel;
-  flash=new GameObject("Hammer contact flash").AddComponent<Light>();flash.type=LightType.Point;flash.color=C("ffd4a1");flash.range=2;flash.intensity=0;flash.transform.position=new Vector3(.12f,1.12f,-.4f);
+  flash=new GameObject("Hammer contact flash").AddComponent<Light>();flash.type=LightType.Point;flash.color=C("ffd4a1");flash.range=2;flash.intensity=0;flash.renderMode=LightRenderMode.ForceVertex;flash.shadows=LightShadows.None;flash.transform.position=new Vector3(.12f,1.12f,-.4f);
   var ringObj=new GameObject("Evolution heat wave");ring=ringObj.transform;ringObj.AddComponent<MeshFilter>().sharedMesh=RingMesh();ringMat=new Material(Shader.Find("Forge/Glow"));ringMat.SetColor("_Color",new Color(1,.65f,.2f,0));ringObj.AddComponent<MeshRenderer>().sharedMaterial=ringMat;ring.position=new Vector3(0,1.04f,-.4f);
+  Shader.SetGlobalVector("_ForgeKeyPosition",key.transform.position);Shader.SetGlobalColor("_ForgeKeyColor",key.color.linear*key.intensity*.7f);
+  Shader.SetGlobalVector("_ForgeRimPosition",rim.transform.position);Shader.SetGlobalColor("_ForgeRimColor",rim.color.linear*rim.intensity*.7f);
+  Shader.SetGlobalVector("_ForgeFirePosition",furnaceLight.transform.position);Shader.SetGlobalColor("_ForgeFireColor",furnaceLight.color.linear*furnaceLight.intensity*.55f);
   QualitySettings.pixelLightCount=4;QualitySettings.shadowDistance=12;
  }
  void BakeWorkshopReflection(){
@@ -82,7 +85,7 @@ public partial class ForgeWorld {
  void UpdateFirstPersonHammer(float raw){
   if(smith==null)return;
   var yaw=Quaternion.Euler(0,orbitYaw,0);var rest=smith.position+yaw*new Vector3(Screen.width<700?.12f:.28f,1.11f,Screen.width<700?.57f:.43f);var restRotation=yaw*Quaternion.Euler(-9,0,-24);
-  if(swinging){float before=swingTime;swingTime+=raw;float t=swingTime;var impact=new Vector3(.42f,1.11f,-.4f);var raised=smith.position+new Vector3(.34f,1.48f,.36f);float angle;
+  if(swinging){float before=swingTime;swingTime+=raw;float t=swingTime;var impact=new Vector3(.42f,1.085f,-.4f);var raised=smith.position+new Vector3(.34f,1.48f,.36f);float angle;
    if(t<.24f){float q=Mathf.SmoothStep(0,1,t/.24f);hammer.position=Vector3.Lerp(rest,raised,q);angle=Mathf.Lerp(-24,-65,q);}
    else if(t<.34f){float q=(t-.24f)/.1f;hammer.position=Vector3.Lerp(raised,impact,q*q);angle=Mathf.Lerp(-65,74,q*q);}
    else {float q=Mathf.Clamp01((t-.34f)/.4f);hammer.position=Vector3.Lerp(impact,rest,Mathf.SmoothStep(0,1,q))+Vector3.up*Mathf.Sin(q*Mathf.PI)*.12f;angle=Mathf.Lerp(74,-24,Mathf.Sqrt(q));}

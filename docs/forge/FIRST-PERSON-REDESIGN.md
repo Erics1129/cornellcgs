@@ -34,3 +34,14 @@ No rules, leaderboard validation, or game balance changed. The existing backend 
 - Buying Iron immediately deducted 85 gold (180 → 95), added the fourth knife, and reduced stock from 3 to 2. Refresh retained the run.
 - No browser runtime errors were reported during final portrait/landscape checks. Unity's frame counter on the desktop test host reported 120 fps; that is not a phone-device performance measurement.
 - The existing automated tests pass for the rules and backend score replay. Lint and the production TypeScript/site build pass.
+
+
+## Trading and contact effects
+
+The game now exposes the existing economy directly in play: one-tap selling with the exact payout on the action button, automatic preparation after buying a blank, a daily market board, value-sorted inventory sales, and the traveling buyer’s quote compared with the market. Gold stays visible in the trade header, including landscape phones. Sale and purchase receipts use the actual rules result; animated counters do not change the authoritative gold balance. A 550 ms presentation lock prevents a second tap from accidentally selling the next blade.
+
+Unity retains a sold knife briefly for a lift onto the scale, then shrinks it away. The pan dips and round brass coins scatter and curve toward the HUD; the HUD also collects small coin particles and counts up. Buying animates a blank from the stall. Forge strikes add pooled drifting smoke, distinct dust for Dull, a few solid fragments plus sparks for Chip, and triangular splinters built from the actual blade mesh for Shatter. Layered synthesized contact noise and coin clinks accompany the visual effects. Smoke and mesh fragments are capped; reduced motion suppresses smoke and the larger breakup.
+
+Blade creation now applies its final world scale before rendering, preventing a one-frame size jump when an evolution or chip rebuilds its shape. The first-person hands use one textured lighting pass with the workshop lights and contact glow, avoiding unstable overlapping lighting on WebGL. Tiny sparks and the close-up arms do not cast shadow-map shadows.
+
+Trading verification: a direct sale added exactly 221 gold (95 → 316), a bronze Buy & forge charged 210 (316 → 106), and a normal strike raised its price. On a 390×844 viewport, double-clicking an inventory sale sold one knife and added exactly 98 gold; buying Ember tea deducted 190 and using it restored five strikes. Market rates and a traveling quote were visible, and reloading preserved the resulting run. Desktop and phone checks used the in-app browser; physical-device performance remains unmeasured.

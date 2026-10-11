@@ -299,3 +299,63 @@ to{opacity:1;transform:none}
 .ff-outcome{animation:none!important;opacity:1}
 .ff-heat-bar{animation:none!important}
 }
+
+/* Trading stays inside the workshop: prices before the action, feedback after it. */
+.ff-wallet{position:relative;display:inline-flex;align-items:center;gap:7px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.ff-wallet-effect{position:absolute;inset:0;pointer-events:none;z-index:6}
+.ff-wallet-effect em{position:absolute;top:100%;right:0;font-size:13px!important;font-style:normal;color:#f4d899!important;animation:ff-payout 2.5s both}
+.ff-wallet-effect.is-purchase em{color:#ded0ba!important}
+.ff-wallet-effect i{position:absolute;left:3px;top:7px;width:11px;height:11px;border-radius:50%;background:radial-gradient(circle at 32% 27%,#fff1b4,#d7a34e 45%,#744718 78%);border:1px solid #f8d68f;box-shadow:0 0 8px #e1af5a66;animation:ff-coin-collect .8s var(--coin-delay) cubic-bezier(.44,.01,.38,1) both}
+.ff-quick-sell>span{display:flex;flex-direction:column;gap:2px}
+.ff-quick-sell b{font-size:12px;font-weight:600;color:#efcf91}
+.ff-market{margin:0 0 16px;border-top:1px solid #c9ac7a26;border-bottom:1px solid #c9ac7a26}
+.ff-market summary{display:flex;align-items:center;gap:10px;cursor:pointer;font-size:11px;padding:12px 0;list-style:none;color:#e5cfab}
+.ff-market summary::-webkit-details-marker{display:none}
+.ff-market summary>span:first-child{flex:1}
+.ff-market summary small{font-size:10px;color:#b3a590}
+.ff-market[open] summary>span:last-child{transform:rotate(180deg)}
+.ff-market>div{display:grid;grid-template-columns:1fr 1fr;gap:11px 25px;padding:2px 0 12px}
+.ff-market>div>span{display:flex;gap:7px;align-items:center;font-size:10px}
+.ff-market i{width:7px;height:7px;border-radius:2px;flex-shrink:0}
+.ff-market>div>span>span{flex:1}
+.ff-market b{font-weight:500;font-variant-numeric:tabular-nums}
+.ff-market em{font-size:15px;font-style:normal;color:#bcb8ad}
+.ff-market .is-up{color:#b0d2a3}.ff-market .is-down{color:#dc9e89}
+.ff-market p{font-size:10px;color:#b1a795;margin:0 0 13px}
+.ff-shop-grid>article{display:flex;align-items:flex-start;flex-direction:column;gap:7px;min-width:0;padding:14px;background:linear-gradient(150deg,#3b2c1e,#281d14);border:1px solid #c3bd9b26;border-radius:7px}
+.ff-shop-grid>article.is-sold-out{background:#211b16}
+.ff-shop-grid>article>svg{width:32px!important;height:32px!important;color:#d3bc8f;margin:10px 0}
+.ff-shop-grid>article>small{flex:1}
+.ff-shop-grid .ff-stock{display:flex;gap:5px;justify-content:space-between;align-items:center;width:100%;padding:5px 0 3px}
+.ff-shop-grid .ff-stock small{font-size:9px;color:#dfad95}
+.ff-shop-grid article>button{display:flex;align-items:center;justify-content:space-between;gap:7px;min-height:40px;width:100%;padding:8px 10px;font-size:11px;background:#5d4329;border-color:#dcc59845}
+.ff-shop-grid article>.ff-buy-forge{justify-content:center;background:transparent;border-color:#c8ae7530;color:#d7be94;font-size:10px;min-height:36px}
+.ff-buy-forge>svg{width:13px!important;height:13px!important}
+.ff-sell-list>div{animation:ff-stock-in .22s ease-out}
+.ff-sell-list>div.is-kept{border-left:2px solid #a7b997}
+.ff-sell-list strong b{color:#e7c28c;margin-left:4px}
+.ff-sell-list>div>span em{display:flex;align-items:center;gap:4px;color:#b8cbaa;font-size:9px;font-style:normal}
+.ff-sell-list em svg{width:11px!important;height:11px!important}
+.ff-sell-list button{flex-wrap:wrap;justify-content:center;max-width:105px;min-width:84px;background:#5d4329;border-color:#dcc59845}
+.ff-sell-list button small{width:100%;color:#ddd0b9;font-size:9px}
+.ff-sell-list button b{font-weight:600}
+.ff-empty-trade{justify-content:center;padding:30px 12px!important;font-size:13px}
+.ff-trade-art{height:94px;overflow:visible}
+.ff-trade-art img{object-position:center 61%}
+.ff-trade-art>span{z-index:1}
+@keyframes ff-coin-collect{0%{opacity:0;transform:translate(var(--coin-x),var(--coin-y)) scale(.6) rotateY(0)}15%{opacity:1}75%{opacity:1}100%{opacity:0;transform:translate(0,0) scale(.3) rotateY(620deg)}}
+@keyframes ff-payout{0%{opacity:0;transform:translateY(12px)}15%,70%{opacity:1;transform:translateY(6px)}100%{opacity:0;transform:translateY(-8px)}}
+@keyframes ff-stock-in{from{opacity:0;transform:translateX(8px)}to{opacity:1;transform:translateX(0)}}
+@media(max-width:700px){.ff-shop-grid>article{padding:12px}.ff-shop-grid article>button{min-height:44px}.ff-shop-grid article>.ff-buy-forge{min-height:44px}.ff-market>div{gap:11px 13px}.ff-quick-sell b{font-size:10px}.ff-quick-sell>span{gap:0}.ff-quick-sell>svg{display:none}.ff-trade-art{height:75px}.ff-wallet{gap:4px}.ff-sell-list .ff-portrait{width:93px}.ff-sell-list>div{gap:8px}.ff-sell-list button{min-width:70px;padding:8px}.ff-sell-list strong{font-size:11px}}
+@media(max-height:500px) and (orientation:landscape){.ff-trade-art{display:none}.ff-modal:has(.ff-trade-art){max-width:740px}.ff-shop-grid{grid-template-columns:repeat(4,1fr)}}
+@media(prefers-reduced-motion:reduce){.ff-wallet-effect i{display:none}.ff-wallet-effect em,.ff-sell-list>div{animation:none}.ff-wallet-effect em{opacity:1}}
+
+.ff-trade-offer{display:flex;align-items:center;gap:12px;margin-bottom:17px;padding:12px;background:#51391ee0;border:1px solid #d6b16a75;border-radius:7px}
+.ff-trade-offer>span{flex:1;display:flex;flex-direction:column;gap:5px}
+.ff-trade-offer strong{font-size:12px;font-weight:500;color:#f0d5a2}
+.ff-trade-offer small{font-size:10px;color:#c8b594}
+.ff-trade-offer button{min-height:44px;padding:8px 13px;font-size:12px;color:#f3d7a8;white-space:nowrap}
+
+.ff-modal-head h2{flex:1}
+.ff-modal-head .ff-wallet{color:#eed1a0;font-size:15px;margin-right:5px}
+.ff-modal:has(.ff-market) .ff-modal-head{position:sticky;top:0;z-index:6;background:#211912;box-shadow:0 -23px 0 #211912,0 8px 0 #211912}

@@ -10,20 +10,23 @@ import { ForgeUnity } from './unity'
 import { ForgeAudio } from './audio'
 import KnifePortrait from './KnifePortrait'
 import ForgeIcon from './ForgeIcon'
+import { GoldCounter, MarketBoard } from './TradeDetails'
 import './forge.css'
 const format=(n:number)=>Math.round(n).toLocaleString('en-US')
-const tutorial=[['Forge','Press Space or tap the blade. New heats and places a blank for you.'],['Keep or sell','Keep saves a blade on the rack. Trade buys metal and sells any knife, from anywhere.'],['Explore','WASD or the touch pad moves your smith. Drag to look. E picks up and places objects.'],['Seven days','Rest keeps your four best knives. Your best surviving knife after day seven is your score. Gold is only for supplies.']]
+const tutorial=[['Forge','Press Space or tap the blade. New heats and places a blank for you.'],['Keep or sell','Sell cashes in the current blade in one tap. Trade shows every knife, daily prices, metal, tools, and charms.'],['Explore','WASD or the touch pad moves your smith. Drag to look. E picks up and places objects.'],['Seven days','Rest keeps your four best knives. Your best surviving knife after day seven is your score. Gold is only for supplies.']]
 const itemIcons:Record<Item,string>={guard:'guard',rewind:'rewind',whetstone:'hammer',stamina:'bolt'}
 const itemNames:Record<Item,string>={guard:'Guard',rewind:'Undo',whetstone:'Hone',stamina:'Energy'}
-function Modal({title,close,children}:{title:string;close:()=>void;children:ReactNode}){const ref=useRef<HTMLDialogElement>(null);useEffect(()=>{const d=ref.current!;d.showModal();return()=>d.close()},[]);return <dialog ref={ref} className="ff-modal" onCancel={e=>{e.preventDefault();close()}} onClick={e=>{if(e.target===e.currentTarget)close()}}><div className="ff-modal-head"><h2>{title}</h2><button aria-label="Close dialog" onClick={close}>×</button></div>{children}</dialog>}
+function Modal({title,close,children,accessory}:{title:string;close:()=>void;children:ReactNode;accessory?:ReactNode}){const ref=useRef<HTMLDialogElement>(null);useEffect(()=>{const d=ref.current!;d.showModal();return()=>d.close()},[]);return <dialog ref={ref} className="ff-modal" onCancel={e=>{e.preventDefault();close()}} onClick={e=>{if(e.target===e.currentTarget)close()}}><div className="ff-modal-head"><h2>{title}</h2>{accessory}<button aria-label="Close dialog" onClick={close}>×</button></div>{children}</dialog>}
 export default function ForgePage(){
  const [session,setSession]=useState(loadSession),sessionRef=useRef(session)
  const [selected,setSelected]=useState<number|null>(()=>session.state.knives.find(n=>n.place==='anvil')?.id||session.state.knives[0]?.id||null),selectedRef=useRef(selected)
  const [ready,setReady]=useState(false)
  const [preparing,setPreparing]=useState<number|null>(null),prepareId=useRef<number|null>(null),busyLock=useRef(false)
+ const [trading,setTrading]=useState(false),tradeLock=useRef(false)
  const [tradeTab,setTradeTab]=useState<'buy'|'sell'>('buy'),[category,setCategory]=useState<'metal'|'tools'|'charms'>('metal')
  const [immersive,setImmersive]=useState(false)
  const [notice,setNotice]=useState('')
+ const [receipt,setReceipt]=useState<{id:number;amount:number}|null>(null),receiptId=useRef(0)
  const [event,setEvent]=useState<GameEvent|null>(null),[busy,setBusy]=useState(false)
  const [panel,setPanel]=useState<'shop'|'board'|'end'|'help'|null>(null)
  const [sceneError,setSceneError]=useState(''),[saveError,setSaveError]=useState(false)
@@ -39,12 +42,14 @@ export default function ForgePage(){
  const sendRef=useRef<(a:Action)=>void>(()=>{})
  const hitRef=useRef<()=>void>(()=>{})
  const send=(action:Action)=>{
+  if(['buy','sell','offer'].includes(action.type)&&(tradeLock.current||busyLock.current||prepareId.current))return false
   const current=sessionRef.current,result=act(current.state,action)
   if(!result.ok){setNotice(result.event.text);return false}
   const actions=[...current.actions],last=actions.at(-1)
   if(action.type==='wait'&&last?.type==='wait'&&last.seconds+action.seconds<=RULES.maxWait)actions[actions.length-1]={type:'wait',seconds:last.seconds+action.seconds};else actions.push(action)
   const next={...current,state:result.state,actions};sessionRef.current=next;setSession(next)
-  if(action.type!=='wait'){setEvent(result.event);setNotice(action.type==='buy'?'Purchased':action.type==='sell'?'Sold':action.type==='move'&&action.to==='rack'?'Kept':action.type==='use'?itemNames[action.item]:action.type==='flow'?'Flow ready':'');setSaveError(!saveSession(next));const a=result.event;if(a.kind!=='hit')audio.play(a.kind);else{audio.play(a.outcome!,a.after?.level||0);if(a.evolution)audio.play('evolution');if(!matchMedia('(prefers-reduced-motion: reduce)').matches)navigator.vibrate?.(a.outcome==='shatter'?[20,30,30]:12)}
+  if(action.type==='buy'||result.event.kind==='sell'){tradeLock.current=true;setTrading(true);const amount=result.state.gold-current.state.gold;setReceipt({id:++receiptId.current,amount});setNotice(`${amount>0?'Sold +':'Purchased −'}${format(Math.abs(amount))}`)}
+  if(action.type!=='wait'){setEvent(result.event);if(action.type!=='buy'&&result.event.kind!=='sell')setNotice(action.type==='move'&&action.to==='rack'?'Kept':action.type==='use'?itemNames[action.item]:action.type==='flow'?'Flow ready':'');setSaveError(!saveSession(next));const a=result.event;if(a.kind!=='hit')audio.play(a.kind);else{audio.play(a.outcome!,a.after?.level||0);if(a.evolution)audio.play('evolution');if(!matchMedia('(prefers-reduced-motion: reduce)').matches)navigator.vibrate?.(a.outcome==='shatter'?[20,30,30]:12)}
    if(a.id&&action.type!=='buy'&&result.state.knives.some(n=>n.id===a.id))choose(a.id)
    if(!result.state.knives.some(n=>n.id===selectedRef.current))choose(result.state.knives.find(n=>n.place==='anvil')?.id||result.state.knives[0]?.id||0)
    if(action.type==='end'){choose(result.state.knives[0]?.id||0);setPanel(null)}
@@ -69,7 +74,7 @@ export default function ForgePage(){
  }
  const prepareRef=useRef(prepare);prepareRef.current=prepare
  const hit=()=>{
-  unlock();if(busyLock.current||prepareId.current||!ready)return
+  unlock();if(busyLock.current||tradeLock.current||prepareId.current||!ready)return
   const current=sessionRef.current.state,target=current.knives.find(n=>n.place==='anvil')
   if(!target?.heated){prepareRef.current();return}
   if(current.stamina<=0){setPanel('end');return}
@@ -88,6 +93,8 @@ export default function ForgePage(){
   sendRef.current({type:'heat',id})
   if(prepareId.current===id){sendRef.current({type:'move',id,to:'anvil'});prepareId.current=null;setPreparing(null);scene.current?.focus()}
  },RULES.heatSeconds*1000);return()=>clearTimeout(t)},[heating?.id])
+ useEffect(()=>{if(!trading)return;const t=setTimeout(()=>{tradeLock.current=false;setTrading(false)},550);return()=>clearTimeout(t)},[trading])
+ useEffect(()=>{if(!receipt)return;const t=setTimeout(()=>setReceipt(null),2600);return()=>clearTimeout(t)},[receipt])
  useEffect(()=>{if(!notice)return;const t=setTimeout(()=>setNotice(''),2400);return()=>clearTimeout(t)},[notice])
  useEffect(()=>{if(!panel)return;scene.current?.control('clear',false)},[panel])
  useEffect(()=>{const tick=setInterval(()=>{if(!document.hidden&&!sessionRef.current.state.ended)sendRef.current({type:'wait',seconds:1})},1000);const save=()=>{saveSession(sessionRef.current);if(document.hidden)audio.suspend()};window.addEventListener('pagehide',save);document.addEventListener('visibilitychange',save);return()=>{clearInterval(tick);saveSession(sessionRef.current);window.removeEventListener('pagehide',save);document.removeEventListener('visibilitychange',save);audio.dispose()}},[audio])
@@ -111,10 +118,12 @@ export default function ForgePage(){
  }
  const trade=(tab:'buy'|'sell')=>{unlock();setTradeTab(tab);setPanel('shop')}
  const keep=()=>{if(k&&!busyLock.current&&!prepareId.current){unlock();send({type:'move',id:k.id,to:'rack'})}}
- const buy=(key:string)=>{unlock();send({type:'buy',key})}
- const locked=busy||preparing!==null||s.ended||!ready
+ const buy=(key:string,forge=false)=>{if(busyLock.current||prepareId.current)return;unlock();const id=sessionRef.current.state.nextId;if(send({type:'buy',key})&&forge){setPanel(null);prepare(id)}}
+ const sell=(id:number)=>{if(busyLock.current||prepareId.current)return;unlock();send({type:'sell',id})}
+ const locked=busy||trading||preparing!==null||s.ended||!ready
  const forgeKnife=anvil||k
  const riskKnife=forgeKnife
+ const buyerPrice=s.offer&&anvil?.id===s.offer.knifeId?Math.round(value(anvil,s)*s.offer.multiplier*(1+bonus(s,'buyer'))):null
 
  const t=riskKnife?odds(riskKnife,s):null,ev=riskKnife?expectedValue(riskKnife,s):0
  return <MinigameShell pageId="forge-or-fold" title="Forge or Fold" back={{href:'/minigames/',label:'All games'}} skip={{href:'#forge-main',label:'Skip to forge'}} className={`ff-page ${immersive?'is-immersive':''}`}>
@@ -124,7 +133,7 @@ export default function ForgePage(){
   <header className="ff-topbar">
    <a href="/minigames/" className="ff-icon-button" aria-label="Back to games"><ForgeIcon name="back"/></a>
    <h1>FORGE <span>/</span> FOLD</h1>
-   <div className="ff-stats" aria-label="Run status"><span title="Day"><small>DAY</small><b>{s.day}<em>/7</em></b></span><span title="Strikes remaining"><ForgeIcon name="bolt"/><b>{s.stamina}</b></span><span title="Gold"><ForgeIcon name="coin"/><b>{format(s.gold)}</b></span></div>
+   <div className="ff-stats" aria-label="Run status"><span title="Day"><small>DAY</small><b>{s.day}<em>/7</em></b></span><span title="Strikes remaining"><ForgeIcon name="bolt"/><b>{s.stamina}</b></span><span title="Gold"><GoldCounter value={s.gold} receipt={receipt}/></span></div>
    <nav className="ff-tools" aria-label="Game tools">
     <button className="ff-icon-button" aria-label="Scores" onClick={()=>setPanel('board')}><ForgeIcon name="trophy"/></button>
     <button className="ff-icon-button" aria-label="Help" onClick={()=>setPanel('help')}><ForgeIcon name="help"/></button>
@@ -145,14 +154,14 @@ export default function ForgePage(){
    <div className="ff-feedback" role="status" aria-live="polite">{heating?<span key={heating.id} className="ff-heating"><ForgeIcon name="fire"/>Heating<span className="ff-heat-bar"/></span>:event?.kind==='hit'?<div key={s.totalHits} className={`ff-outcome ff-outcome-${event.outcome}`}><b>{event.evolution?'Evolved':RESULT_LABELS[event.outcome!]}</b><span>{event.outcome==='perfect'?'+2':event.outcome==='good'?'+1':event.outcome==='chip'?'−1':event.outcome==='shatter'?'Gone':'—'}</span></div>:null}{notice&&<span className="ff-toast">{notice}</span>}</div>
    <div className="ff-touch-controls" aria-label="Touch movement"><div className="ff-dpad">{touchControl('KeyW','Move forward','▲','ff-pad-up')}{touchControl('KeyA','Move left','◀','ff-pad-left')}<span className="ff-pad-center"/>{touchControl('KeyD','Move right','▶','ff-pad-right')}{touchControl('KeyS','Move backward','▼','ff-pad-down')}</div>{touchControl('KeyE','Handle','✋','ff-pad-handle')}</div>
    <div className="ff-control-hint"><kbd>WASD</kbd> Move <span>Drag to look</span><kbd>E</kbd> Handle</div>
-   {s.offer&&anvil?.id===s.offer.knifeId&&<button className="ff-buyer" disabled={locked} onClick={()=>send({type:'offer',id:anvil.id})}><ForgeIcon name="coin"/><span>Buyer <b>{format(Math.round(value(anvil,s)*s.offer.multiplier*(1+bonus(s,'buyer'))))}</b></span><small>{s.offer.remaining}s</small><ForgeIcon name="sell"/></button>}
+   {s.offer&&anvil&&buyerPrice!==null&&<button className="ff-buyer" disabled={locked} onClick={()=>send({type:'offer',id:anvil.id})}><ForgeIcon name="coin"/><span>Buyer <b>{format(buyerPrice)}</b></span><small>{s.offer.remaining}s</small><ForgeIcon name="sell"/></button>}
    <div className="ff-bottom">
     <section className="ff-knives" aria-label="Your knives">{s.knives.map(n=><button key={n.id} className={`ff-knife-card ${n.id===selected?'is-selected':''} ${n.place==='rack'?'is-kept':''}`} disabled={locked} aria-label={`${METALS[n.metal].name} ${FAMILIES[n.family]}, level ${n.level}, ${n.place}`} aria-pressed={n.id===selected} title={`${knifeName(n)} · ${format(value(n,s))}`} onClick={()=>prepare(n.id)}><span><b>+{n.level}</b>{n.place==='rack'&&<ForgeIcon name="keep"/>}</span><KnifePortrait knife={n}/><small>{METALS[n.metal].name}</small></button>)}<button className="ff-new" aria-label="Prepare new knife" disabled={locked} onClick={()=>prepare()}><ForgeIcon name="plus"/><span>New</span></button></section>
     <div className="ff-actionbar">
      <button disabled={locked} onClick={()=>trade('buy')}><ForgeIcon name="shop"/><span>Trade</span><kbd>T</kbd></button>
      <button disabled={locked||!k||k.place==='rack'} onClick={keep}><ForgeIcon name="keep"/><span>Keep</span></button>
      <button className="ff-strike" disabled={locked} aria-label={preparing?'Heating':!anvil?'Prepare and forge':'Forge'} onClick={hit}><ForgeIcon name={preparing?'fire':'hammer'}/><span>{preparing?'Heating':!anvil?'Start forging':'Forge'}</span><kbd>Space</kbd></button>
-     <button disabled={locked||!k} onClick={()=>trade('sell')}><ForgeIcon name="sell"/><span>Sell</span></button>
+     <button className="ff-quick-sell" disabled={locked||!k} aria-label={k?`Sell ${METALS[k.metal].name} ${FAMILIES[k.family]} for ${saleValue(s,k)} gold`:"Sell knife"} title="Sells this knife immediately" onClick={()=>{if(k)sell(k.id)}}><ForgeIcon name="sell"/><span>Sell <b>{k?format(saleValue(s,k)):"—"}</b></span></button>
      <button disabled={locked} onClick={()=>setPanel('end')}><ForgeIcon name="moon"/><span>Rest</span></button>
     </div>
     {riskKnife&&<button className={`ff-flow ${riskKnife.flow?'is-active':''}`} disabled={locked||riskKnife.pips<flowNeed(s)||!!riskKnife.flow} onClick={()=>send({type:'flow',id:riskKnife.id})} title="Three hits with no shatter risk"><ForgeIcon name="bolt"/><span>Flow</span><div>{Array.from({length:flowNeed(s)},(_,i)=><i key={i} className={i<riskKnife.pips||riskKnife.flow?'is-filled':''}/>)}</div><b>{riskKnife.flow||`${riskKnife.pips}/${flowNeed(s)}`}</b></button>}
@@ -160,11 +169,16 @@ export default function ForgePage(){
   </>}
   {saveError&&<p className="ff-warning" role="alert">Saving unavailable. Keep this tab open.</p>}
  </main>
- {panel==='shop'&&<Modal title="Trade" close={()=>setPanel(null)}>
-  <div className="ff-trade-art"><img src="/assets/forge/generated/trade-v2.png" alt=""/><span><ForgeIcon name="coin"/>{format(s.gold)}</span></div>
+ {panel==='shop'&&<Modal title="Trade" close={()=>setPanel(null)} accessory={<GoldCounter value={s.gold} receipt={receipt}/>}>
+  <div className="ff-trade-art"><img src="/assets/forge/generated/trade-v2.png" alt=""/></div>
   <div className="ff-tabs" role="tablist" aria-label="Trade"><button role="tab" aria-selected={tradeTab==='buy'} onClick={()=>setTradeTab('buy')}>Buy</button><button role="tab" aria-selected={tradeTab==='sell'} onClick={()=>setTradeTab('sell')}>Sell <small>{s.knives.length}</small></button></div>
-  {tradeTab==='buy'?<><div className="ff-categories">{(['metal','tools','charms'] as const).map(c=><button key={c} aria-pressed={category===c} onClick={()=>setCategory(c)}>{c==='metal'?'Metal':c==='tools'?'Tools':'Charms'}</button>)}</div><div className="ff-shop-grid">{Object.entries(s.stock).filter(([key])=>category==='metal'?key.startsWith('metal:'):category==='charms'?key.startsWith('charm:'):!key.includes(':')).map(([key,stock])=>{const metal=key.startsWith('metal:')?key.slice(6) as Metal:null;const item=metal?METALS[metal]:key.startsWith('charm:')?CHARMS[key.slice(6) as Charm]:ITEMS[key as Item];return <button key={key} disabled={!stock||price(s,key)>s.gold||s.ended||busy||preparing!==null||(key.startsWith('charm:')&&s.charms.length>=RULES.charmSlots)} aria-label={`Buy ${item.name} for ${price(s,key)} gold`} onClick={()=>buy(key)}>{metal?<div className="ff-ingot" style={{'--metal-color':METALS[metal].color} as React.CSSProperties}/>:<ForgeIcon name={key.startsWith('charm:')?'guard':itemIcons[key as Item]}/>}<strong>{item.name}</strong><small>{'description'in item?item.description:`Base ${format(item.base)}`}</small><span><b>{format(price(s,key))} <ForgeIcon name="coin"/></b><em>{stock} left</em></span></button>})}</div>{category==='charms'&&s.charms.length>0&&<div className="ff-owned-charms">{s.charms.map(c=><span title={CHARMS[c].description} key={c}>◇ {CHARMS[c].name}</span>)}</div>}</>:<><p className="ff-trade-note">Sold knives leave your score.</p><div className="ff-sell-list">{s.knives.map(n=><div key={n.id}><KnifePortrait knife={n}/><span><strong>{METALS[n.metal].name} +{n.level}</strong><small>{n.place==='rack'?'Kept':FAMILIES[n.family]}</small></span><button disabled={busy||preparing!==null||s.ended} aria-label={`Sell ${METALS[n.metal].name} level ${n.level} for ${saleValue(s,n)} gold`} onClick={()=>{unlock();send({type:'sell',id:n.id})}}>{format(saleValue(s,n))}<ForgeIcon name="coin"/><ForgeIcon name="sell"/></button></div>)}{!s.knives.length&&<p>No knives to sell.</p>}</div></>}
-  <div className="ff-trade-message" role="status">{notice||' '}</div><button className="ff-primary ff-return" onClick={()=>setPanel(null)}>Back to forge</button>
+  <MarketBoard run={s}/>
+  {s.offer&&anvil&&buyerPrice!==null&&<div className="ff-trade-offer"><ForgeIcon name="coin"/><span><strong>Traveling buyer</strong><small>{buyerPrice>=saleValue(s,anvil)?'+':''}{Math.round((buyerPrice/saleValue(s,anvil)-1)*100)}% vs market · {s.offer.remaining}s</small></span><button disabled={locked} aria-label={`Accept buyer offer for ${buyerPrice} gold`} onClick={()=>{unlock();send({type:'offer',id:anvil.id})}}>Sell {format(buyerPrice)}</button></div>}
+  {tradeTab==='buy'?<><div className="ff-categories">{(['metal','tools','charms'] as const).map(c=><button key={c} aria-pressed={category===c} onClick={()=>setCategory(c)}>{c==='metal'?'Metal':c==='tools'?'Tools':'Charms'}</button>)}</div><div className="ff-shop-grid">{Object.entries(s.stock).filter(([key])=>category==='metal'?key.startsWith('metal:'):category==='charms'?key.startsWith('charm:'):!key.includes(':')).map(([key,stock])=>{
+   const metal=key.startsWith('metal:')?key.slice(6) as Metal:null,item=metal?METALS[metal]:key.startsWith('charm:')?CHARMS[key.slice(6) as Charm]:ITEMS[key as Item],cost=price(s,key),disabled=!stock||cost>s.gold||locked||(key.startsWith('charm:')&&s.charms.length>=RULES.charmSlots)
+   return <article key={key} className={!stock?'is-sold-out':''}>{metal?<div className="ff-ingot" style={{'--metal-color':METALS[metal].color} as React.CSSProperties}/>:<ForgeIcon name={key.startsWith('charm:')?'guard':itemIcons[key as Item]}/>}<strong>{item.name}</strong><small>{'description'in item?item.description:`Base ${format(item.base)}`}</small><span className="ff-stock"><em>{stock?`${stock} left`:'Sold out'}</em>{cost>s.gold&&stock>0&&<small>Need {format(cost-s.gold)}</small>}</span><button disabled={disabled} aria-label={`Buy ${item.name} for ${cost} gold`} onClick={()=>buy(key)}><span>Buy</span><b>{format(cost)} <ForgeIcon name="coin"/></b></button>{metal&&<button className="ff-buy-forge" disabled={disabled} aria-label={`Buy and forge ${item.name} for ${cost} gold`} onClick={()=>buy(key,true)}><ForgeIcon name="hammer"/>Buy & forge</button>}</article>
+  })}</div>{category==='charms'&&s.charms.length>0&&<div className="ff-owned-charms">{s.charms.map(c=><span title={CHARMS[c].description} key={c}>◇ {CHARMS[c].name}</span>)}</div>}</>:<><p className="ff-trade-note">One tap to sell. Kept blades count toward your score.</p><div className="ff-sell-list">{[...s.knives].sort((a,b)=>saleValue(s,b)-saleValue(s,a)||a.id-b.id).map(n=><div key={n.id} className={n.place==='rack'?'is-kept':''}><KnifePortrait knife={n}/><span><strong>{FAMILIES[n.family]} <b>+{n.level}</b></strong><small>{METALS[n.metal].name} · {Math.round(s.market[n.metal]*100)}% market</small>{n.place==='rack'&&<em><ForgeIcon name="keep"/>Kept</em>}</span><button disabled={locked} aria-label={`Sell ${METALS[n.metal].name} ${FAMILIES[n.family]} level ${n.level} for ${saleValue(s,n)} gold`} onClick={()=>sell(n.id)}><small>Sell</small><b>{format(saleValue(s,n))}</b><ForgeIcon name="coin"/></button></div>)}{!s.knives.length&&<div className="ff-empty-trade"><ForgeIcon name="shop"/><span>No blades left.</span><button onClick={()=>setTradeTab('buy')}>Buy metal</button></div>}</div></>}
+  <div className="ff-trade-message" role="status">{notice||'Restocks each morning.'}</div><button className="ff-primary ff-return" onClick={()=>setPanel(null)}>Back to forge</button>
  </Modal>}
  {panel==='end'&&!s.ended&&<Modal title={s.day===7?'Finish your run?':'Rest?'} close={()=>setPanel(null)}><p className="ff-dialog-lead">{s.day===7?'Your best knife becomes your score.':`Keep your ${Math.min(RULES.rackSlots,s.knives.length)} best knives. Refill energy. Three fresh blanks.`}</p><div className="ff-rest-preview">{[...s.knives].sort((a,b)=>value(b,s)-value(a,s)).slice(0,s.day===7?1:RULES.rackSlots).map(n=><div key={n.id}><KnifePortrait knife={n}/><b>+{n.level}</b></div>)}</div>{s.day<7&&s.knives.length>4&&<p className="ff-small">{s.knives.length-4} lower-value knives will be cleared.</p>}<div className="ff-modal-actions"><button onClick={()=>setPanel(null)}>Stay</button><button className="ff-primary" disabled={locked} onClick={end}>{s.day===7?'Finish':'Keep & rest'}</button></div></Modal>}
  {s.ended&&panel!=='board'&&<Modal title="Your masterwork" close={()=>setPanel('board')}><div className="ff-pedestal">{best&&<KnifePortrait knife={best}/>}<h3>{best?knifeName(best):'A fresh start awaits.'}</h3><strong>{best?format(value(best,s)):'0'}</strong></div><label className="ff-name">Name<input maxLength={WORLD.maxName} value={name} onChange={e=>setName(e.target.value)} placeholder="Anonymous smith" autoComplete="nickname" onKeyDown={e=>{if(e.key==='Enter'){e.preventDefault();void submit()}}}/></label><p className="ff-small">{API&&session.ticket?'Verified world score':'Saved on this device'}</p><div className="ff-modal-actions"><button disabled={posting} onClick={()=>void newRun()}>New run</button><button className="ff-primary" disabled={posting} onClick={()=>void submit()}>{posting?'Saving…':'Save score'}</button></div></Modal>}
