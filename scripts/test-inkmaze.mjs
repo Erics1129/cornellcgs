@@ -136,11 +136,12 @@ for (const file of ['engine', 'session', 'solver', 'levels']) {
 }
 
 // ----------------------------------------------------------------- levels
-assert.equal(LEVELS.length, 10, 'ten levels ship')
+assert.equal(LEVELS.length, 20, 'twenty levels ship')
 assert.equal(new Set(LEVELS.map((l) => l.id)).size, LEVELS.length, 'level ids are unique')
+assert.equal(new Set(LEVELS.map((l) => l.name)).size, LEVELS.length, 'level names are unique')
 const sizes = LEVELS.map((l) => initialState(l)).map((s) => Math.max(s.width, s.height))
 assert.equal(sizes[0], 4, 'the first level is 4 by 4')
-assert.equal(sizes.at(-1), 7, 'the last level is 7 by 7')
+assert.equal(sizes.at(-1), 9, 'the last level is 9 by 9')
 sizes.forEach((size, i) => i && assert.ok(size >= sizes[i - 1], `level ${i + 1} is not smaller than level ${i}`))
 for (const level of LEVELS) {
   const s = initialState(level)
@@ -156,7 +157,18 @@ for (const level of LEVELS) {
   assert.equal(status(replay(level, level.ink, win.moves)), 'won', `${level.id}: the found line wins when replayed`)
   const best = minInk(level)
   assert.equal(best.ink, level.par, `${level.id}: par is the least ink (${best.ink}), not ${level.par}. Run npm run inkmaze:solve -- --write`)
+  assert.ok(best.explored < 200_000, `${level.id}: the solver explored ${best.explored} positions; keep levels quick to check`)
   if (level.par > 0) assert.equal(solvableWith(level, level.par - 1), null, `${level.id}: one drop under par must not be enough`)
+}
+
+// The search-result text for /minigames/inkMaze/ (scripts/stubs.mjs) is typed by hand: keep its numbers true
+{
+  const stubs = readFileSync(new URL('./stubs.mjs', import.meta.url), 'utf8')
+  const desc = stubs.match(/'ink-maze':\s*\{[^}]*?desc:\s*'([^']*)'/)?.[1]
+  assert.ok(desc, 'stubs.mjs has a description for ink-maze')
+  const side = (level) => { const s = initialState(level); return `${s.width} × ${s.height}` }
+  assert.match(desc, new RegExp(`\\b${LEVELS.length} levels\\b`), `stubs.mjs says how many levels there are (${LEVELS.length}): "${desc}"`)
+  assert.ok(desc.includes(`from ${side(LEVELS[0])} to ${side(LEVELS.at(-1))}`), `stubs.mjs gives the board sizes (${side(LEVELS[0])} to ${side(LEVELS.at(-1))}): "${desc}"`)
 }
 
 console.log(`PASS ink maze: rules, sessions, plain-data state, ${LEVELS.length} levels clearable with their ink`)

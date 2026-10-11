@@ -13,3 +13,6 @@ output/
 
 # Python caches from the reproducible Blender scene builders.
 scripts/cinematic/__pycache__/
+
+# deploy.sh works in this folder while publishing
+.pages-publish/

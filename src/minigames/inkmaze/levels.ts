@@ -15,8 +15,14 @@
  * `par` and `ink` (= par + slack) back into this file. `npm test` fails if
  * any level cannot be cleared with its ink.
  *
- * All ten layouts are original: generated at random for this site, solved
- * exactly, and kept for how much planning they ask for.
+ * All twenty layouts are original: generated at random for this site, solved
+ * exactly, and kept for how much planning they ask for. Levels 11 to 20 come
+ * from scripts/inkmaze-generate.mjs (seed 1, 1500 boards each of 7 x 7, 8 x 8
+ * and 9 x 9, then --pick). The comment above each of them gives its board id;
+ *
+ *   node scripts/inkmaze-generate.mjs --board s1-7-0038
+ *
+ * prints that board and its numbers again.
  */
 import type { Level } from './engine.ts'
 
@@ -164,6 +170,188 @@ export const LEVELS: Level[] = [
       '.....#.',
       '##....#',
       '....###',
+    ],
+  },
+  // s1-7-0038
+  {
+    id: 'the-attic',
+    name: 'The Attic',
+    slack: 2,
+    par: 60,
+    ink: 62,
+    grid: [
+      '...####',
+      '##.#.#.',
+      '.......',
+      '.....#.',
+      '##...#.',
+      '.......',
+      '.#o.#..',
+    ],
+  },
+  // s1-7-1181
+  {
+    id: 'back-stairs',
+    name: 'Back Stairs',
+    slack: 2,
+    par: 60,
+    ink: 62,
+    grid: [
+      '.#.....',
+      '..###..',
+      '#o.....',
+      '.......',
+      '#..##.#',
+      '......#',
+      '...##..',
+    ],
+  },
+  // s1-8-1030
+  {
+    id: 'closets',
+    name: 'Closets',
+    slack: 1,
+    par: 74,
+    ink: 75,
+    grid: [
+      '.#.#..#.',
+      '.#.##.#.',
+      '.#......',
+      '......##',
+      '....#..#',
+      '.......#',
+      '#...#.##',
+      '..#..o.#',
+    ],
+  },
+  // s1-8-0691
+  {
+    id: 'pillars',
+    name: 'Pillars',
+    slack: 1,
+    par: 67,
+    ink: 68,
+    grid: [
+      '###..#..',
+      '...#...#',
+      '...##...',
+      '........',
+      '..##..##',
+      '..##..#.',
+      'o....##.',
+      '..#.....',
+    ],
+  },
+  // s1-8-0413
+  {
+    id: 'one-way',
+    name: 'One Way',
+    slack: 1,
+    par: 74,
+    ink: 75,
+    grid: [
+      '......#.',
+      '.##o..#.',
+      '.#......',
+      '..###..#',
+      '#..#....',
+      '...#.#..',
+      '.##.....',
+      '.#.....#',
+    ],
+  },
+  // s1-8-1119
+  {
+    id: 'the-porch',
+    name: 'The Porch',
+    slack: 0,
+    par: 67,
+    ink: 67,
+    grid: [
+      '...#...#',
+      'o.#..###',
+      '.......#',
+      '....#...',
+      '#.###...',
+      '..#..#..',
+      '.#......',
+      '#..#...#',
+    ],
+  },
+  // s1-9-0502
+  {
+    id: 'top-floor',
+    name: 'Top Floor',
+    slack: 1,
+    par: 89,
+    ink: 90,
+    grid: [
+      '.#.......',
+      '.####....',
+      '.###..###',
+      '.....#...',
+      '#.#.#..##',
+      '....#....',
+      '..#.##...',
+      'o.#.#....',
+      '......#..',
+    ],
+  },
+  // s1-9-1304
+  {
+    id: 'stalls',
+    name: 'Stalls',
+    slack: 0,
+    par: 94,
+    ink: 94,
+    grid: [
+      '..o..#.#.',
+      '.........',
+      '#..#.#.##',
+      '.....#.##',
+      '..##.#.##',
+      '##.......',
+      '.........',
+      '.#.#.#.#.',
+      '.....#...',
+    ],
+  },
+  // s1-9-0912
+  {
+    id: 'courtyard',
+    name: 'Courtyard',
+    slack: 0,
+    par: 92,
+    ink: 92,
+    grid: [
+      '....#....',
+      '.....o##.',
+      '.##.#.##.',
+      '###.....#',
+      '.........',
+      '.##......',
+      '.#.#..#.#',
+      '...#.....',
+      '####..#..',
+    ],
+  },
+  // s1-9-0476
+  {
+    id: 'dead-end',
+    name: 'Dead End',
+    slack: 0,
+    par: 119,
+    ink: 119,
+    grid: [
+      '....o#..#',
+      '.#.#.....',
+      '#........',
+      '#....#..#',
+      '#....##..',
+      '#.....#..',
+      '##.......',
+      '#....##.#',
+      '....#....',
     ],
   },
 ]

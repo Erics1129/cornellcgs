@@ -59,13 +59,14 @@ const PAGES = {
     desc: 'TBD',
   },
   minigames: {
-    title: 'Mini Games — Cornell Computational Game Society',
-    desc: 'Puzzles from the Cornell Computational Game Society that you can play in the browser. The first one is Ink Maze.',
+    title: 'Mini games · Cornell Computational Game Society',
+    desc: 'Small puzzles from the Cornell Computational Game Society that you can play in your browser. So far there is one, Ink Maze.',
     image: '/assets/minigames/ink-maze/cover.png',
   },
+  // the numbers must match src/minigames/inkmaze/levels.ts
   'ink-maze': {
-    title: 'Ink Maze — Cornell Computational Game Society',
-    desc: 'Roll the ball to color every floor block before you run out of ink. Ten levels, from 4 × 4 to 7 × 7.',
+    title: 'Ink Maze · Cornell Computational Game Society',
+    desc: 'Roll a ball to color every floor block before the ink runs out. There are 20 levels, on boards from 4 × 4 to 9 × 9.',
     image: '/assets/minigames/ink-maze/cover.png',
   },
   contact: {
