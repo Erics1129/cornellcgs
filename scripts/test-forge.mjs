@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs'
 import { act, createRun, odds, value, replay, expectedValue, flowNeed, bestKnife } from '../src/minigames/forge/engine.ts'
 import { METALS, RULES } from '../src/minigames/forge/config.ts'
 const seed = 74623
-const setup = () => { let s = createRun(seed); for (const a of [{type:'move',id:1,to:'furnace'},{type:'heat',id:1},{type:'move',id:1,to:'anvil'}]) s=act(s,a).state;return s }
+const setup = () => { let s = createRun(seed,1); for (const a of [{type:'move',id:1,to:'furnace'},{type:'heat',id:1},{type:'move',id:1,to:'anvil'}]) s=act(s,a).state;return s }
 for(let l=0;l<=500;l++) {
   const s=setup(), k={...s.knives[0],level:l}
   for(const charms of [[],['steady','ember','shelter','rhythm','patience']]) {
@@ -24,8 +24,8 @@ let a=setup();a.knives[0].pips=flowNeed(a);a=act(a,{type:'flow',id:1}).state
 for(let i=0;i<3;i++){assert.equal(odds(a.knives[0],a).shatter,0);a=act(a,{type:'hit',id:1}).state;assert.ok(a.knives.some(k=>k.id===1))}
 assert.equal(a.knives[0].flow,0);assert.equal(a.knives[0].pips,0)
 const actions=[{type:'move',id:1,to:'furnace'},{type:'heat',id:1},{type:'move',id:1,to:'anvil'},{type:'hit',id:1},{type:'hit',id:1},{type:'use',item:'rewind'},{type:'hit',id:1}]
-assert.deepEqual(replay(seed,actions),replay(seed,actions));assert.deepEqual(createRun(seed),createRun(seed))
-assert.equal(act(createRun(seed),{type:'hit',id:1}).ok,false)
+assert.deepEqual(replay(seed,actions,1),replay(seed,actions,1));assert.deepEqual(createRun(seed,1),createRun(seed,1))
+assert.equal(act(createRun(seed,1),{type:'hit',id:1}).ok,false)
 let r=setup();r=act(r,{type:'move',id:1,to:'rack'}).state;r=act(r,{type:'end'}).state;assert.equal(r.knives.length,4);assert.equal(r.stamina,20)
 for(let day=2;day<=7;day++)r=act(r,{type:'end'}).state
 assert.equal(r.ended,true);assert.equal(bestKnife(r).id,1);assert.equal(act(r,{type:'end'}).ok,false)

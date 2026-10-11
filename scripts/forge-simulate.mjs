@@ -7,18 +7,18 @@ for(const [name,target] of [['careful',9],['balanced',11],['bold',18]]){
  const scores=[],levels=[],metalCounts={}
  for(let seed=1;seed<=count;seed++){
   let s=createRun(seed),focus=null
-  const doA=a=>{const t=act(s,a);s=t.state;return t.ok}
+  const doA=a=>{if(a.type==='hit')s=act(s,{type:'tick',ms:s.knives.find(k=>k.id===a.id)?.flow?560:850}).state;const t=act(s,a);s=t.state;return t.ok}
   const knife=id=>s.knives.find(k=>k.id===id)
   const buy=key=>s.stock[key]>0&&s.gold>=price(s,key)&&doA({type:'buy',key})
   const heat=id=>{doA({type:'move',id,to:'furnace'});doA({type:'heat',id});doA({type:'move',id,to:'anvil'})}
   for(let day=1;day<=7;day++){
    // Income: stop at level three on free iron, sell it, then invest in a persistent masterwork.
-   // Explicit stamina budget prevents income blades from consuming the entire day.
-   const incomeBudget=day===1?18:focus?8:11,start=s.stamina
+   // Strategy attention budgets bound a simulation; the game itself has unlimited energy.
+   const incomeBudget=day===1?18:focus?8:11,start=s.hitsToday
    for(const id of s.knives.filter(k=>k.place==='crate'&&k.id!==focus).map(k=>k.id)){
-    if(start-s.stamina>=incomeBudget){doA({type:'sell',id});continue}
+    if(s.hitsToday-start>=incomeBudget){doA({type:'sell',id});continue}
     heat(id)
-    while(knife(id)&&knife(id).level<3&&s.stamina>0&&start-s.stamina<incomeBudget)doA({type:'hit',id})
+    while(knife(id)&&knife(id).level<3&&s.hitsToday-start<incomeBudget)doA({type:'hit',id})
     if(knife(id))doA({type:'sell',id})
    }
    // Mid-metal focus, with enough gold reserved for recovery. No hidden luck or odds changes.
@@ -30,7 +30,7 @@ for(const [name,target] of [['careful',9],['balanced',11],['bold',18]]){
     if(day<5)for(const key of ['rhythm','patience','shelter','steady','tide'])if(s.charms.length<5&&s.gold>price(s,'charm:'+key)+400)buy('charm:'+key)
     heat(focus)
     let safety=0
-    while(knife(focus)&&s.stamina>0&&knife(focus).level<target&&safety++<60){
+    while(knife(focus)&&knife(focus).level<target&&safety++<60){
      let k=knife(focus)
      if(k.pips>=flowNeed(s)&&!k.flow)doA({type:'flow',id:focus})
      k=knife(focus)

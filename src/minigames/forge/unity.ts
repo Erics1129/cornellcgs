@@ -1,8 +1,9 @@
-import { METALS, CHARMS, ITEMS } from './config'
-import { price, value, saleValue, knifeName } from './engine'
+import { METALS, CHARMS, ITEMS, RULES } from './config'
+import { price, value, saleValue, knifeName, flowNeed } from './engine'
 import type { GameEvent, Run } from './engine'
 import { profile } from './knives'
 import unityBuild from './unity-build.json'
+import { ForgePointerGesture } from './input'
 
 type Hooks = { ready: () => void; settled: () => void; select: (id: number) => void; drop: (id: number, spot: string) => void; hit: () => void; spot: (spot: string) => void; gesture: () => void; labels: (positions: Record<string, { x: number; y: number }>) => void; error: (message: string) => void; context: (hint: string) => void; near: (spot: string) => void; command: (kind: string, id: number, key?: string) => void; notice: (text: string) => void }
 type UnityInstance = { SendMessage: (object: string, method: string, value: string) => void; Quit: () => Promise<void>; SetFullscreen: (value: number) => void }
@@ -32,6 +33,7 @@ export class ForgeUnity {
   private disposed = false
   private engineReady = false
   private impact?: () => void
+  private gesture = new ForgePointerGesture()
   private release!: () => void
   private labels: Record<string, { x: number; y: number }> = {}
   private motion = matchMedia('(prefers-reduced-motion: reduce)')
@@ -39,7 +41,7 @@ export class ForgeUnity {
     this.root = root; this.hooks = hooks
     this.clearState()
     this.canvas.id = 'forge-unity-canvas'; this.canvas.className = 'ff-unity-canvas'; this.canvas.tabIndex = -1
-    this.canvas.setAttribute('aria-label', 'Unity 3D workshop. Move with WASD or the touch pad, handle objects with E, and hammer with Space. Drag to look around.')
+    this.canvas.setAttribute('aria-label', 'First-person Unity workshop. Move with WASD or the touch pad, handle objects with E, and hammer with Space. Drag to look around.')
     this.loading.className = 'ff-unity-loading'; this.loading.setAttribute('role', 'status')
     this.loading.innerHTML = '<span>FORGE / FOLD</span><strong>Lighting the forge</strong><p></p><progress max="1" value="0"></progress>'
     root.replaceChildren(this.canvas, this.loading)
@@ -47,6 +49,7 @@ export class ForgeUnity {
     this.canvas.addEventListener('pointerdown', this.down); this.canvas.addEventListener('pointermove', this.move)
     window.addEventListener('keydown', this.keyDown); window.addEventListener('keyup', this.keyUp); window.addEventListener('blur', this.clearKeys); document.addEventListener('visibilitychange', this.clearKeys)
     this.canvas.addEventListener('pointerup', this.up); this.canvas.addEventListener('pointercancel', this.cancel)
+    this.canvas.addEventListener('lostpointercapture', this.cancel)
     const previous = lifetime
     lifetime = new Promise<void>(resolve => { this.release = resolve })
     void this.boot(previous)
@@ -107,23 +110,24 @@ export class ForgeUnity {
     const r = this.canvas.getBoundingClientRect()
     this.instance?.SendMessage('Forge', 'Pointer', JSON.stringify({ phase, x: (event.clientX - r.left) / r.width, y: (event.clientY - r.top) / r.height }))
   }
-  private down = (e: PointerEvent) => { if (e.button !== 0) return; this.hooks.gesture(); this.canvas.setPointerCapture(e.pointerId); this.pointer(e, 'down'); e.preventDefault() }
-  private move = (e: PointerEvent) => { if (this.canvas.hasPointerCapture(e.pointerId)) { this.pointer(e, 'move'); e.preventDefault() } }
-  private up = (e: PointerEvent) => { this.pointer(e, 'up'); if (this.canvas.hasPointerCapture(e.pointerId)) this.canvas.releasePointerCapture(e.pointerId) }
-  private cancel = (e: PointerEvent) => { this.pointer(e, 'cancel'); if (this.canvas.hasPointerCapture(e.pointerId)) this.canvas.releasePointerCapture(e.pointerId) }
+  private point(e: PointerEvent) { const r=this.canvas.getBoundingClientRect();return { x:(e.clientX-r.left)/r.width, y:(e.clientY-r.top)/r.height } }
+  private down = (e: PointerEvent) => { const p=this.point(e);if(e.button!==0||!this.gesture.begin(e.pointerId,p.x,p.y))return;this.hooks.gesture();this.canvas.setPointerCapture(e.pointerId);this.pointer(e,'down');e.preventDefault() }
+  private move = (e: PointerEvent) => { const p=this.point(e);if(this.gesture.move(e.pointerId,p.x,p.y)){this.pointer(e,'move');e.preventDefault()} }
+  private up = (e: PointerEvent) => { const p=this.point(e),phase=this.gesture.end(e.pointerId,p.x,p.y);if(phase)this.pointer(e,phase);if(this.canvas.hasPointerCapture(e.pointerId))this.canvas.releasePointerCapture(e.pointerId) }
+  private cancel = (e: PointerEvent) => { if(this.gesture.cancel(e.pointerId))this.pointer(e,'cancel');if(this.canvas.hasPointerCapture(e.pointerId))this.canvas.releasePointerCapture(e.pointerId) }
   focus() { this.instance?.SendMessage('Forge','Quick','focus') }
   control(key: string, down: boolean) { if(down)this.hooks.gesture();this.instance?.SendMessage('Forge','Control',JSON.stringify({key,down})) }
   private isControl(code: string) { return /^(Key[WASDEQRF]|Arrow(Left|Right|Up|Down)|Space|ShiftLeft|Digit[1-4])$/.test(code) }
   private keyDown = (event: KeyboardEvent) => { if (!this.isControl(event.code) || event.repeat || document.querySelector('dialog[open]') || (event.target instanceof HTMLElement && /^(INPUT|TEXTAREA|SELECT)$/.test(event.target.tagName))) return; event.preventDefault(); this.hooks.gesture(); this.instance?.SendMessage('Forge', 'Control', JSON.stringify({key:event.code,down:true})) }
   private keyUp = (event: KeyboardEvent) => { if (this.isControl(event.code)) this.instance?.SendMessage('Forge', 'Control', JSON.stringify({key:event.code,down:false})) }
-  private clearKeys = () => { this.instance?.SendMessage('Forge', 'Control', JSON.stringify({key:'clear',down:false})) }
+  private clearKeys = () => { this.gesture.cancel();this.instance?.SendMessage('Forge', 'Control', JSON.stringify({key:'clear',down:false})) }
   private clearState() { for (const key of ['renderer','player','renderStats','station','drop','quality']) delete this.root.dataset[key] }
   get busy() { return !this.instance || !!this.impact }
   strike(impact: () => void) { if (this.busy) return false; this.impact = impact; this.instance!.SendMessage('Forge', 'Strike', ''); return true }
   sync(state: Run, selected: number | null, event?: GameEvent) {
-    const payload = { knives: state.knives.map(k => ({ ...k, ...METALS[k.metal], heldValue:value(k,state),saleValue:saleValue(state,k),displayName:knifeName(k),rough: METALS[k.metal].roughness, metal: k.metal, profile: profile(k).map(([x, y]) => ({ x, y })) })), selected: selected || 0, day: state.day, ended: state.ended, reduced: this.motion.matches, offers: Object.entries(state.stock).filter(([,stock])=>stock>0).map(([key,stock])=>({key,stock,price:price(state,key),label:key.startsWith('metal:')?METALS[key.slice(6) as keyof typeof METALS].name:key.startsWith('charm:')?CHARMS[key.slice(6) as keyof typeof CHARMS].name:ITEMS[key as keyof typeof ITEMS].name})) }
+    const payload = { flowNeed:flowNeed(state),flowSpeed:RULES.flowSpeed,knives: state.knives.map(k => ({ ...k, ...METALS[k.metal], heldValue:value(k,state),saleValue:saleValue(state,k),displayName:knifeName(k),rough: METALS[k.metal].roughness, metal: k.metal, profile: profile(k).map(([x, y]) => ({ x, y })) })), selected: selected || 0, day: state.day, ended: state.ended, reduced: this.motion.matches, offers: Object.entries(state.stock).filter(([,stock])=>stock>0).map(([key,stock])=>({key,stock,price:price(state,key),label:key.startsWith('metal:')?METALS[key.slice(6) as keyof typeof METALS].name:key.startsWith('charm:')?CHARMS[key.slice(6) as keyof typeof CHARMS].name:ITEMS[key as keyof typeof ITEMS].name})) }
     this.latest = JSON.stringify(payload)
-    if (this.instance) this.instance.SendMessage('Forge', 'Sync', JSON.stringify({ ...payload, effect: event?.kind === 'wait' ? undefined : event }))
+    if (this.instance) this.instance.SendMessage('Forge', 'Sync', JSON.stringify({ ...payload, effect: event?.kind === 'wait'||event?.kind === 'tick' ? undefined : event }))
   }
   dispose() {
     this.clearKeys(); window.removeEventListener('keydown',this.keyDown);window.removeEventListener('keyup',this.keyUp);window.removeEventListener('blur',this.clearKeys);document.removeEventListener('visibilitychange',this.clearKeys)
@@ -132,6 +136,7 @@ export class ForgeUnity {
     this.canvas.removeEventListener('forge-unity', this.receive)
     this.canvas.removeEventListener('pointerdown', this.down); this.canvas.removeEventListener('pointermove', this.move)
     this.canvas.removeEventListener('pointerup', this.up); this.canvas.removeEventListener('pointercancel', this.cancel)
+    this.canvas.removeEventListener('lostpointercapture', this.cancel)
     if (this.instance) { const instance = this.instance; this.instance = undefined; void instance.Quit().finally(this.release) }
     this.root.replaceChildren()
   }

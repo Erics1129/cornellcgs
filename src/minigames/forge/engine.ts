@@ -9,10 +9,10 @@ export type Run = {
   knives: Knife[]; nextId: number; charms: Charm[]; items: Record<Item, number>;
   market: Record<Metal, number>; previousMarket: Record<Metal, number>;
   stock: Record<string, number>; hitsToday: number; totalHits: number; seconds: number;
-  offer: Offer | null; lastHit: Hit | null; ended: boolean;
+  offer: Offer | null; lastHit: Hit | null; ended: boolean; clockMs?: number; nextHitAt?: number;
 }
-export type Action = { type: 'move'; id: number; to: Place } | { type: 'heat' | 'hit' | 'flow' | 'sell' | 'offer'; id: number } | { type: 'use'; item: Item; id?: number } | { type: 'buy'; key: string } | { type: 'wait'; seconds: number } | { type: 'end' }
-export type GameEvent = { kind: string; text: string; id?: number; outcome?: Outcome; before?: Knife; after?: Knife; amount?: number; evolution?: boolean }
+export type Action = { type: 'move'; id: number; to: Place } | { type: 'heat' | 'hit' | 'flow' | 'sell' | 'offer'; id: number } | { type: 'use'; item: Item; id?: number } | { type: 'buy'; key: string } | { type: 'wait'; seconds: number } | { type: 'end' | 'upgrade' } | { type: 'tick'; ms: number }
+export type GameEvent = { kind: string; text: string; id?: number; outcome?: Outcome; before?: Knife; after?: Knife; amount?: number; evolution?: boolean; flowStarted?: boolean }
 export type Transition = { state: Run; event: GameEvent; ok: boolean }
 const metals = Object.keys(METALS) as Metal[]
 const charms = Object.keys(CHARMS) as Charm[]
@@ -23,6 +23,7 @@ function addKnife(s: Run, metal: Metal) { const k: Knife = { id: s.nextId++, met
 export function stage(k: Knife) { return EVOLUTIONS.filter(l => k.level >= l).length - 1 }
 export function knifeName(k: Knife) { return `${TITLES[stage(k)]} ${METALS[k.metal].name} ${FAMILIES[k.family]}` }
 export function value(k: Knife, s?: Run): number { return Math.round(METALS[k.metal].base * RULES.levelFactor ** k.level * (k.sharpened ? 1 + RULES.sharpenBonus : 1) * (s ? 1 + bonus(s, 'value') : 1)) }
+export function flowDuration(s: Run) { return RULES.flowSeconds + bonus(s, 'flow') }
 export function flowNeed(s: Run) { return RULES.flowPips + bonus(s, 'pips') }
 export function odds(k: Knife, s: Run): Record<Outcome, number> {
   let shatter = Math.max(0, Math.min(RULES.shatterCap, RULES.shatterPerLevel * k.level) + bonus(s, 'shatter'))
@@ -30,7 +31,7 @@ export function odds(k: Knife, s: Run): Record<Outcome, number> {
   let dull = Math.max(0, RULES.dull + bonus(s, 'dull'))
   const perfect = Math.max(RULES.perfectFloor, RULES.perfect - RULES.perfectDecay * k.level) + bonus(s, 'perfect')
   let good = 1 - shatter - chip - dull - perfect
-  if (k.flow > 0) { good += shatter; shatter = 0 }
+  if (k.flow > 0 || (s.version>=2 && k.pips>=flowNeed(s))) { good += shatter; shatter = 0 }
   else if (k.guard) { chip += shatter; shatter = 0 }
   if (k.level === 0) { dull += chip; chip = 0 }
   return { perfect, good, dull, chip, shatter }
@@ -46,13 +47,13 @@ function morning(s: Run) {
     s.market[metal] = Math.round(Math.max(RULES.marketMin, Math.min(RULES.marketMax, (s.market[metal] || 1) + (random(s) - .5) * RULES.marketDrift * 2)) * 100) / 100
     if (random(s) < METALS[metal].chance) s.stock[`metal:${metal}`] = metal === 'iron' || metal === 'bronze' ? 3 : 1
   }
-  for (const item of items) s.stock[item] = ITEMS[item].stock
-  const available = charms.filter(c => !s.charms.includes(c))
+  for (const item of items) if(s.version<2 || item!=='stamina') s.stock[item] = ITEMS[item].stock
+  const available = charms.filter(c => !s.charms.includes(c) && (s.version<2 || c!=='lungs'))
   for (let i = 0; i < 3 && available.length; i++) s.stock[`charm:${available.splice(Math.floor(random(s) * available.length), 1)[0]}`] = 1
   for (let i = 0; i < RULES.dailyBlanks + bonus(s, 'blanks'); i++) addKnife(s, 'iron')
 }
-export function createRun(seed: number): Run {
-  const s: Run = { version: RULES.version, seed: seed >>> 0, rng: seed >>> 0, day: 1, gold: RULES.initialGold, stamina: 0, knives: [], nextId: 1, charms: [], items: { ...START_ITEMS }, market: Object.fromEntries(metals.map(m => [m, 1])) as Record<Metal, number>, previousMarket: {} as Record<Metal, number>, stock: {}, hitsToday: 0, totalHits: 0, seconds: 0, offer: null, lastHit: null, ended: false }
+export function createRun(seed: number, version: number = RULES.version): Run {
+  const s: Run = { version, seed: seed >>> 0, rng: seed >>> 0, day: 1, gold: RULES.initialGold, stamina: 0, knives: [], nextId: 1, charms: [], items: { ...START_ITEMS }, market: Object.fromEntries(metals.map(m => [m, 1])) as Record<Metal, number>, previousMarket: {} as Record<Metal, number>, stock: {}, hitsToday: 0, totalHits: 0, seconds: 0, offer: null, lastHit: null, ended: false }
   morning(s); return s
 }
 /** Pure transition: no drawing, browser, timers or ambient randomness. Invalid actions never mutate state. */
@@ -72,27 +73,30 @@ export function act(state: Run, action: Action): Transition {
     k.heated = true; s.lastHit = null; event = { kind: 'heat', id: k.id, text: 'White hot. Move it to the anvil.' }
   } else if (action.type === 'hit') {
     if (!k || k.place !== 'anvil' || !k.heated) return fail('Heat a blank, then place it on the anvil.')
-    if (s.stamina <= 0) return fail('Out of stamina. Drink Ember tea or end the day.')
+    if (s.version<2 && s.stamina <= 0) return fail('Out of stamina. Drink Ember tea or end the day.')
+    if(s.version>=2 && (s.clockMs||0)<(s.nextHitAt||0))return fail('The hammer is returning.')
     const before = { ...k }, previousStamina = s.stamina
+    const flowStarted=s.version>=2 && !k.flow && k.pips>=flowNeed(s)
+    if(flowStarted){k.flow=flowDuration(s);k.pips=0}
     // Roll the raw distribution so a guard only gets consumed when it actually catches a shatter.
     const p = odds({ ...k, guard: false }, s); const roll = random(s)
     let acc = 0, result: Outcome = 'shatter'
     for (const outcome of Object.keys(p) as Outcome[]) { acc += p[outcome]; if (roll < acc) { result = outcome; break } }
     let guarded = false
     if (result === 'shatter' && k.guard) { result = k.level ? 'chip' : 'dull'; k.guard = false; guarded = true }
-    if (k.flow) k.flow--; else k.pips = Math.min(flowNeed(s), k.pips + 1)
+    if(k.flow){if(s.version<2)k.flow--}else k.pips=Math.min(flowNeed(s),k.pips+1)
     if (result === 'perfect') k.level += 2
     if (result === 'good') k.level++
     if (result === 'chip') k.level = Math.max(0, k.level - 1)
     if (result === 'shatter') s.knives = s.knives.filter(n => n.id !== k.id)
-    s.stamina--; s.hitsToday++; s.totalHits++
+    if(s.version<2)s.stamina--;else s.nextHitAt=(s.clockMs||0)+RULES.replayMinHitMs; s.hitsToday++; s.totalHits++
     s.lastHit = { knife: before, stamina: previousStamina, outcome: result }
     const messages = { perfect: 'Perfect. Two levels, one strike.', good: 'Good. Worth a little more.', dull: 'Dull. Nothing gained. Nothing lost.', chip: 'Chipped. One level lost.', shatter: 'Gone. The forge keeps no promises.' }
-    event = { kind: 'hit', outcome: result, id: k.id, before, after: result === 'shatter' ? undefined : { ...k }, text: guarded ? 'Guard spent. A shatter became a chip.' : messages[result], evolution: result !== 'shatter' && stage(k) > stage(before) }
+    event = { kind: 'hit', flowStarted, outcome: result, id: k.id, before, after: result === 'shatter' ? undefined : { ...k }, text: guarded ? 'Guard spent. A shatter became a chip.' : messages[result], evolution: result !== 'shatter' && stage(k) > stage(before) }
     if ((RULES.buyerAt as readonly number[]).includes(s.hitsToday) && result !== 'shatter') s.offer = { knifeId: k.id, multiplier: Math.round((RULES.buyerMin + random(s) * (RULES.buyerMax - RULES.buyerMin)) * 100) / 100, remaining: RULES.buyerSeconds }
   } else if (action.type === 'flow') {
-    if (!k || k.pips < flowNeed(s) || k.flow) return fail('Fill this knife’s Flow pips first.')
-    k.flow = RULES.flowHits + bonus(s, 'flow'); k.pips = 0; s.lastHit = null; event = { kind: 'flow', id: k.id, text: `Flow. The next ${k.flow} strikes cannot shatter.` }
+    if (!k || k.pips < flowNeed(s) || k.flow || (s.version>=2 && (!k.heated || k.place!=='anvil'))) return fail('Fill this knife’s Flow pips first.')
+    k.flow = s.version>=2?flowDuration(s):RULES.flowHits+bonus(s,'flow'); k.pips=0; s.lastHit=null; event={kind:'flow',id:k.id,text:s.version>=2?`Flow · ${k.flow}s · No shatter`:`Flow. The next ${k.flow} strikes cannot shatter.`}
   } else if (action.type === 'sell' || action.type === 'offer') {
     if (!k) return fail('Choose a knife to sell.')
     if (action.type === 'offer' && (!s.offer || s.offer.knifeId !== k.id || k.place !== 'anvil' || s.offer.remaining <= 0)) return fail('That offer has passed.')
@@ -116,7 +120,8 @@ export function act(state: Run, action: Action): Transition {
     else if (action.item === 'rewind') {
       if (!s.lastHit) return fail('There is no hit to rewind.')
       const snap = s.lastHit
-      s.knives = s.knives.filter(n => n.id !== snap.knife.id); s.knives.push({ ...snap.knife }); s.knives.sort((a, b) => a.id - b.id)
+      const remainingFlow=s.knives.find(n=>n.id===snap.knife.id)?.flow||0
+      s.knives = s.knives.filter(n => n.id !== snap.knife.id); s.knives.push({ ...snap.knife, flow:s.version>=2?Math.min(snap.knife.flow,remainingFlow):snap.knife.flow }); s.knives.sort((a, b) => a.id - b.id)
       s.stamina = snap.stamina; event.id = snap.knife.id; event.text = 'Hit undone. The next roll is fresh.'
     } else {
       if (!k) return fail('Select a knife first.')
@@ -125,8 +130,21 @@ export function act(state: Run, action: Action): Transition {
       event.id = k.id
     }
     s.items[action.item]--; s.lastHit = null
+  } else if(action.type==='upgrade') {
+    if(s.version!==1)return fail('This run already uses current rules.')
+    s.version=2;s.clockMs=Math.round(s.seconds*1000);s.nextHitAt=0;s.lastHit=null
+    for(const knife of s.knives)if(knife.flow)knife.flow=flowDuration(s)
+    s.gold+=s.items.stamina*ITEMS.stamina.price;s.items.stamina=0
+    if(s.charms.includes('lungs')){s.charms=s.charms.filter(c=>c!=='lungs');s.gold+=CHARMS.lungs.price}
+    delete s.stock.stamina;delete s.stock['charm:lungs']
+  } else if(action.type==='tick') {
+    if(s.version<2 || !Number.isSafeInteger(action.ms) || action.ms<1 || action.ms>RULES.maxWait*1000)return fail('Invalid clock step.')
+    s.clockMs=(s.clockMs??Math.round(s.seconds*1000))+action.ms;s.seconds=s.clockMs/1000
+    for(const knife of s.knives)knife.flow=Math.max(0,(Math.round(knife.flow*1000)-action.ms)/1000)
+    if(s.offer){s.offer.remaining=Math.max(0,(Math.round(s.offer.remaining*1000)-action.ms)/1000);if(!s.offer.remaining)s.offer=null}
   } else if (action.type === 'wait') {
     if (!Number.isInteger(action.seconds) || action.seconds < 1 || action.seconds > RULES.maxWait) return fail('Invalid clock step.')
+    if(s.version>=2)return act(state,{type:'tick',ms:action.seconds*1000})
     s.seconds += action.seconds
     if (s.offer) { s.offer.remaining -= action.seconds; if (s.offer.remaining <= 0) s.offer = null }
   } else if (action.type === 'end') {
@@ -135,9 +153,10 @@ export function act(state: Run, action: Action): Transition {
   } else return fail('Unknown action.')
   return { state: s, event, ok: true }
 }
-export function replay(seed: number, actions: Action[]): Run {
+export function replay(seed: number, actions: Action[], version: number = RULES.version): Run {
   if (!Number.isInteger(seed) || seed < 0 || seed > 0xffffffff || !Array.isArray(actions) || actions.length > RULES.maxActions) throw new Error('Invalid replay')
-  let s = createRun(seed)
+  if(version!==1&&version!==RULES.version)throw new Error('Unsupported rules version')
+  let s = createRun(seed,version)
   for (const a of actions) { const t = act(s, a); if (!t.ok) throw new Error(t.event.text); s = t.state }
   return s
 }
