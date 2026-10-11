@@ -61,19 +61,19 @@
 .ff-heating{display:flex;position:relative;align-items:center;gap:9px;padding:13px 19px;border-radius:8px;overflow:hidden;background:#201d15d9;font-size:13px;color:#f9cb7e}
 .ff-heat-bar{position:absolute;bottom:0;left:0;width:100%;height:2px;background:#efa95a;transform-origin:left;animation:ff-heat 2s linear both}
 .ff-toast{background:#291e14ec;border:1px solid var(--ff-line);padding:10px 16px;border-radius:8px;font-size:12px;max-width:300px}
-.ff-bottom{position:absolute;bottom:24px;left:50%;width:min(720px,calc(100% - 48px));transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:10px}
+.ff-bottom{position:absolute;bottom:18px;left:50%;width:min(720px,calc(100% - 48px));transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:10px}
 .ff-knives{display:flex;gap:7px;max-width:100%;overflow-x:auto;padding:6px 4px;scrollbar-width:thin;scrollbar-color:#c1ae8260 transparent}
-.ff-knife-card{width:105px;min-width:105px;height:85px;padding:7px 8px 5px;position:relative;text-align:left;background:#21180fe6!important;backdrop-filter:blur(12px);border-color:#ffffff14!important;overflow:hidden}
+.ff-knife-card{width:105px;min-width:105px;height:60px;padding:5px 8px 4px;position:relative;text-align:left;background:#21180fe6!important;backdrop-filter:blur(12px);border-color:#ffffff14!important;overflow:hidden}
 .ff-knife-card.is-selected{background:#5b4129df!important;border-color:#dbc28fa0!important}
 .ff-knife-card.is-kept{border-bottom-color:#a4bc96!important}
 .ff-knife-card>span{display:flex;justify-content:space-between;position:relative;z-index:1}
 .ff-knife-card b{font-size:11px;font-weight:600;color:#f0d9ae}
 .ff-knife-card span svg{width:12px!important;height:12px!important;color:#b1c99b}
-.ff-knife-card .ff-portrait{width:110px;height:55px;max-width:none;margin:-7px 0 -9px -11px;transform:rotate(-13deg);filter:drop-shadow(0 3px 5px #0008)}
+.ff-knife-card .ff-portrait{width:106px;height:39px;max-width:none;margin:-7px 0 -8px -9px;transform:rotate(-13deg);filter:drop-shadow(0 3px 5px #0008)}
 .ff-knife-card small{font-size:9px;color:#c5c6b7}
 .ff-new{min-width:60px;padding:8px;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:9px;font-size:10px!important;background:#1c130ddb!important}
 .ff-actionbar{display:grid;grid-template-columns:1fr .85fr 1.9fr .8fr .8fr;gap:7px;width:100%;padding:7px;border:1px solid #ddc99d24;border-radius:5px;background:#1e150eeb;backdrop-filter:blur(18px);box-shadow:0 10px 35px #0004}
-.ff-actionbar>button{display:flex;gap:7px;align-items:center;justify-content:center;min-height:52px;font-size:12px;border:0;background:transparent}
+.ff-actionbar>button{display:flex;gap:7px;align-items:center;justify-content:center;min-height:48px;font-size:12px;border:0;background:transparent}
 .ff-actionbar .ff-strike{background:linear-gradient(135deg,#f1d2a1,#c89a5e);color:#2c2517;font-size:14px;font-weight:650;border:1px solid #ffe6b1;box-shadow:inset 0 1px #fff5,0 2px 16px #b88d3920}
 .ff-strike kbd{color:#624c2f;border-color:#6b51263a}
 .ff-actionbar .ff-strike:hover:not(:disabled){background:#ffe0ae;color:#211c15}
