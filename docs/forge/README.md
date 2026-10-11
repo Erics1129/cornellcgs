@@ -1,6 +1,6 @@
 # Forge or Fold
 
-A Unity 6 forging game embedded at `/minigames/forgeOrFold/`. The mini-games directory links to it alongside Ink Maze. Only this game, its route, and that directory were changed.
+A first-person Unity 6 forging game embedded at `/minigames/forgeOrFold/`. The mini-games directory links to it alongside Ink Maze. Only this game, its route, and that directory were changed.
 
 ## Run locally
 
@@ -27,18 +27,19 @@ node scripts/stubs.mjs
 
 **Keep** puts the selected blade on the rack. **Trade / T** opens a Buy/Sell tray from anywhere. Prices and remaining stock are visible before buying. The Sell tab lists every owned knife with its exact current sale price. **Rest** previews and saves the four most valuable knives using ordinary legal rack moves, then advances the day. It explicitly states how many lower-value blades will be cleared. Day seven scores the best held knife.
 
-You still control a rigged blacksmith in a walkable Unity room. **WASD / arrows** move, **Shift** runs, and dragging the scene turns the camera. Walking or dragging leaves the close-up camera. **E** picks up or places objects near a station; visiting the shop opens the Trade tray. **Q / R** choose local knives, **F** activates Flow, and **1 / 2 / 3 / 4** use guard, rewind, hone and stamina. H opens help and L opens scores.
+You see through the rigged blacksmith’s eyes in a walkable Unity room. **WASD / arrows** move, **Shift** runs, and dragging the scene turns the camera. Walking or dragging releases the anvil focus while keeping the camera at eye level. **E** picks up or places objects near a station; visiting the shop opens the Trade tray. **Q / R** choose local knives, **F** activates Flow, and **1 / 2 / 3 / 4** use guard, rewind, hone and stamina. H opens help and L opens scores.
 
 On touch screens, hold the directional pad to walk; two directions can be held together. Drag the scene to look. **Handle** performs physical interactions, and the large **Forge** control or a tap on the work area swings the hammer. The game fills the viewport by default. **V** or the expand icon requests native fullscreen where supported. Escape exits. The name field submits with Enter. Sound settings are remembered and reduced motion is respected.
 
 ## Art and presentation
 
-The close-up forging camera, larger blades, corrected hammer downstroke, pooled spark trails, metal fragments, bloom and generated surface materials are part of the actual Unity renderer. The generated material atlas is split by `ForgeMaterialImport` and applied to 3D wood, stone, steel and leather. The room includes a curved hearth, quench barrel, bellows, chain links, offcuts and drifting dust. Generated loading and trade illustrations are separate from gameplay. See [the final image prompts and asset paths](GENERATED-ASSETS-V2.md).
+The eye-level camera, human-scale workshop, animated hand grip, corrected hammer downstroke, pooled spark trails, metal fragments, bloom and generated surface materials are part of the actual Unity renderer. The generated material atlas is split by `ForgeMaterialImport` and applied to 3D wood, stone, steel and leather. The room includes a curved hearth, quench barrel, bellows, chain links, offcuts and drifting dust. Generated loading and trade illustrations are separate from gameplay. See [the first-person redesign, current texture prompt, and validation](FIRST-PERSON-REDESIGN.md), plus [the earlier generated assets](GENERATED-ASSETS-V2.md).
 
 ## Source map
 
 - `unity/ForgeOrFold/Assets/Scripts/ForgeWorld.cs`: actual Unity room, procedural knife geometry, carried-object springs, hammer, pooled sparks/shards, evolution, fire and lighting.
-- `unity/ForgeOrFold/Assets/Scripts/ForgeSmith.cs`: controllable human, walk/run/idle blending, hand IK, camera orbit, collision and physical station interactions.
+- `unity/ForgeOrFold/Assets/Scripts/ForgeWorkshop.cs`: human-scale room and station geometry, mixed lighting, reflection capture, and held-hammer motion.
+- `unity/ForgeOrFold/Assets/Scripts/ForgeSmith.cs`: controllable human, walk/run/idle blending, hand IK, first-person camera, collision and physical station interactions.
 - `unity/ForgeOrFold/Assets/Shaders`: physically based blade heat/material shader, animated generated flame, additive ring.
 - `unity/ForgeOrFold/Assets/Editor/ForgeBuild.cs`: reproducible Web player build.
 - `src/minigames/forge/unity.ts`: Unity loading, pointer input and state/event bridge, lifecycle cleanup.
