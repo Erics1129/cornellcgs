@@ -7,6 +7,7 @@ Shader "Forge/Blade" {
    #pragma fragment frag
    #pragma target 3.0
    #pragma multi_compile_fog
+   #define FORGE_NO_GLOW_LAMP
    #include "ForgeLighting.cginc"
    sampler2D _MainTex;float4 _Color,_EmissionColor,_GlowColor;float _Metallic,_Glossiness,_Heat,_Kind,_Stage;
    struct appdata {float4 vertex:POSITION;float3 normal:NORMAL;};

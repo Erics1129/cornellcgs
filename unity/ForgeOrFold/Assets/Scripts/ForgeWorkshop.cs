@@ -1,9 +1,17 @@
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Rendering;
 
 public partial class ForgeWorld {
  // All workshop dimensions are metres. The camera stays at the smith's eyes.
  Material mortar,polished;ReflectionProbe workshopProbe;
+ void MakeMaterials(){
+  wood=Mat("Smoked oak","cdb99c",0,.26f);wood.mainTexture=Resources.Load<Texture2D>("Forge/WoodV3");
+  stone=Mat("Soot blackened masonry","a2917e",0,.08f);stone.mainTexture=Resources.Load<Texture2D>("Forge/BrickV3");
+  iron=Mat("Forged iron","505c61",.87f,.46f);brass=Mat("Aged brass","b59957",.8f,.57f);leather=Mat("Wrapped leather","352b25",0,.29f);coal=Mat("Coal","191c1a",.1f,.1f);
+  wood.SetFloat("_Scale",1.6f);stone.SetFloat("_Scale",1.3f);iron.mainTexture=Resources.Load<Texture2D>("Forge/IronV3");iron.SetFloat("_Scale",1.8f);iron.color=C("676d70");iron.SetFloat("_BumpStrength",.0018f);leather.mainTexture=Resources.Load<Texture2D>("Forge/LeatherV3");leather.color=C("b1a394");leather.SetFloat("_Scale",2);wood.SetFloat("_BumpStrength",.0025f);stone.SetFloat("_BumpStrength",.003f);
+  MakeVfxMaterials();
+ }
  void MakeRoom(){
   mortar=Mat("Recessed lime mortar","282521",0,.05f);
   Box("Workshop foundation",new Vector3(0,-.1f,-.4f),new Vector3(7.6f,.2f,8),mortar);
@@ -64,7 +72,6 @@ public partial class ForgeWorld {
  void MakeScale(){var p=spots["sell"];Primitive("Scale base",PrimitiveType.Cylinder,p-Vector3.up*.04f,new Vector3(.38f,.065f,.32f),brass);Box("Scale stem",p+new Vector3(0,.035f,.12f),new Vector3(.025f,.24f,.025f),brass);scalePan=Group("Balance pan",p+Vector3.up*.12f);Primitive("Scale dish",PrimitiveType.Cylinder,Vector3.zero,new Vector3(.65f,.014f,.42f),brass,scalePan);}
  void MakeStall(){var p=spots["shop"];Box("Merchant display",p-Vector3.up*.04f,new Vector3(.73f,.12f,.62f),wood);for(int i=0;i<6;i++)Box("Trade ingot",p+new Vector3(-.2f+(i%3)*.2f,.045f+(i/3)*.07f,0),new Vector3(.16f,.065f,.28f),i%2==0?brass:iron);}
  void MakeLantern(){var p=spots["lantern"];Box("Lantern base",p,new Vector3(.19f,.027f,.19f),iron);var glow=Mat("Lantern candle","e9b767");glow.SetColor("_EmissionColor",C("ffb952")*2.4f);Primitive("Candle",PrimitiveType.Cylinder,p+Vector3.up*.085f,new Vector3(.045f,.075f,.045f),glow);for(int x=-1;x<=1;x+=2)for(int z=-1;z<=1;z+=2)Box("Lantern frame",p+new Vector3(x*.08f,.13f,z*.08f),new Vector3(.012f,.25f,.012f),iron);Box("Lantern roof",p+Vector3.up*.26f,new Vector3(.21f,.033f,.21f),iron);var light=new GameObject("Candle bounce").AddComponent<Light>();light.type=LightType.Point;light.color=C("ffd098");light.intensity=1.15f;light.range=3;light.transform.position=p+Vector3.up*.22f;}
- void MakeHammer(){hammer=Group("Held smithing hammer",Vector3.zero);Box("Shaped hickory handle",new Vector3(0,.12f,0),new Vector3(.035f,.35f,.043f),wood,hammer);Box("Forged cross peen head",new Vector3(0,.29f,0),new Vector3(.20f,.085f,.084f),iron,hammer);Box("Polished striking face",new Vector3(-.103f,.29f,0),new Vector3(.012f,.082f,.079f),polished,hammer);Box("Handle wedge",new Vector3(0,.335f,0),new Vector3(.024f,.003f,.033f),wood,hammer);}
  void MakeLighting(){
   RenderSettings.ambientMode=AmbientMode.Trilight;RenderSettings.ambientSkyColor=C("8b97a1")*.18f;RenderSettings.ambientEquatorColor=C("6b5640")*.18f;RenderSettings.ambientGroundColor=C("211c18")*.5f;
   RenderSettings.fog=true;RenderSettings.fogMode=FogMode.ExponentialSquared;RenderSettings.fogDensity=.042f;RenderSettings.fogColor=C("151210");
@@ -82,14 +89,5 @@ public partial class ForgeWorld {
   // One room capture at startup, not an expensive capture every frame.
   workshopProbe=new GameObject("Workshop reflection capture").AddComponent<ReflectionProbe>();workshopProbe.transform.position=new Vector3(0,1.35f,-.3f);workshopProbe.size=new Vector3(7,4,7);workshopProbe.mode=ReflectionProbeMode.Realtime;workshopProbe.refreshMode=ReflectionProbeRefreshMode.ViaScripting;workshopProbe.timeSlicingMode=ReflectionProbeTimeSlicingMode.AllFacesAtOnce;workshopProbe.resolution=128;workshopProbe.hdr=true;workshopProbe.boxProjection=true;workshopProbe.intensity=.72f;workshopProbe.clearFlags=ReflectionProbeClearFlags.SolidColor;workshopProbe.backgroundColor=C("241d18");workshopProbe.nearClipPlane=.05f;workshopProbe.farClipPlane=12;workshopProbe.RenderProbe();
  }
- void UpdateFirstPersonHammer(float raw){
-  if(smith==null)return;
-  var yaw=Quaternion.Euler(0,orbitYaw,0);var rest=smith.position+yaw*new Vector3(Screen.width<700?.12f:.28f,1.11f,Screen.width<700?.57f:.43f);var restRotation=yaw*Quaternion.Euler(-9,0,-24);
-  if(swinging){float before=swingTime;swingTime+=raw*swingSpeed;float t=swingTime;var impact=new Vector3(.42f,1.085f,-.4f);var raised=smith.position+new Vector3(.34f,1.48f,.36f);float angle;
-   if(t<.24f){float q=Mathf.SmoothStep(0,1,t/.24f);hammer.position=Vector3.Lerp(rest,raised,q);angle=Mathf.Lerp(-24,-65,q);}
-   else if(t<.34f){float q=(t-.24f)/.1f;hammer.position=Vector3.Lerp(raised,impact,q*q);angle=Mathf.Lerp(-65,74,q*q);}
-   else {float q=Mathf.Clamp01((t-.34f)/.4f);hammer.position=Vector3.Lerp(impact,rest,Mathf.SmoothStep(0,1,q))+Vector3.up*Mathf.Sin(q*Mathf.PI)*.12f;angle=Mathf.Lerp(74,-24,Mathf.Sqrt(q));}
-   hammer.rotation=Quaternion.Euler(0,0,angle);if(before<.34f&&t>=.34f)Send("impact");if(t>.76f){swinging=false;Send("settled");}
-  }else{hammer.position=Vector3.Lerp(hammer.position,rest,1-Mathf.Exp(-raw*16));hammer.rotation=Quaternion.Slerp(hammer.rotation,restRotation,1-Mathf.Exp(-raw*16));}
- }
+ void BatchRoom(){var objects=new List<GameObject>();foreach(var renderer in FindObjectsByType<MeshRenderer>(FindObjectsSortMode.None)){var t=renderer.transform;if(t.name=="Drifting forge dust"||t.IsChildOf(dynamicRoot)||t.IsChildOf(hammer)||t.IsChildOf(scalePan)||t==fire||t==ring)continue;objects.Add(renderer.gameObject);}StaticBatchingUtility.Combine(objects.ToArray(),gameObject);}
 }

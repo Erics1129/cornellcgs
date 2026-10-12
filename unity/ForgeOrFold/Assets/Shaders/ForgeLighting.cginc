@@ -3,6 +3,10 @@
 #include "UnityCG.cginc"
 float4 _ForgeKeyPosition,_ForgeKeyColor,_ForgeRimPosition,_ForgeRimColor,_ForgeFirePosition,_ForgeFireColor;
 float _ForgeImpact;
+// Blade glow lamp (FROZEN names; room-light-post owns the lighting): _ForgeGlowPos.xyz = hottest knife centre,
+// .w = range (0 = off); _ForgeGlowColor.rgb = radiance. Emissive receivers define FORGE_NO_GLOW_LAMP before
+// including this file so a lamp inside their own mesh cannot light them (Blade.shader does).
+float4 _ForgeGlowPos,_ForgeGlowColor;
 float3 ForgeSafeNormal(float3 v){return v*rsqrt(max(dot(v,v),.000001));}
 float3 ForgeLamp(float3 position,float3 radiance,float3 p,float3 n,float3 view,float3 base,float metal,float rough){
  float3 delta=position-p;float d2=max(.01,dot(delta,delta));float3 light=delta*rsqrt(d2);
@@ -25,6 +29,9 @@ float3 ForgeLit(float3 base,float metal,float smooth,float3 p,float3 n,float3 vi
  color+=ForgeLamp(_ForgeRimPosition.xyz,_ForgeRimColor.rgb*3.3,p,n,view,base,metal,rough);
  color+=ForgeLamp(_ForgeFirePosition.xyz,_ForgeFireColor.rgb*2.8,p,n,view,base,metal,rough);
  color+=ForgeLamp(float3(.12,1.12,-.4),float3(1,.58,.25)*_ForgeImpact*.32,p,n,view,base,metal,rough);
+#ifndef FORGE_NO_GLOW_LAMP
+ if(_ForgeGlowPos.w>0)color+=ForgeLamp(_ForgeGlowPos.xyz,_ForgeGlowColor.rgb,p,n,view,base,metal,rough);
+#endif
  float3 reflected=reflect(-view,n);
  float4 env=UNITY_SAMPLE_TEXCUBE_LOD(unity_SpecCube0,reflected,rough*6);
  float3 fresnel=lerp(float3(.04,.04,.04),base,metal);

@@ -1,11 +1,11 @@
-import { METALS, CHARMS, ITEMS, RULES } from './config'
-import { price, value, saleValue, knifeName, flowNeed } from './engine'
 import type { GameEvent, Run } from './engine'
-import { profile } from './knives'
 import unityBuild from './unity-build.json'
+import feelTuning from './feel-tuning.json'
 import { ForgePointerGesture } from './input'
+import { PROTOCOL, QA_MODES, StrikeLedger, forgeView, snapshotPayload, unityEffect } from './bridge'
+import type { ForgeView } from './bridge'
 
-type Hooks = { ready: () => void; settled: () => void; select: (id: number) => void; drop: (id: number, spot: string) => void; hit: () => void; spot: (spot: string) => void; gesture: () => void; labels: (positions: Record<string, { x: number; y: number }>) => void; error: (message: string) => void; context: (hint: string) => void; near: (spot: string) => void; command: (kind: string, id: number, key?: string) => void; notice: (text: string) => void }
+type Hooks = { ready: () => void; settled: (seq: number, latest: boolean, cancelled: boolean) => void; select: (id: number) => void; drop: (id: number, spot: string) => void; hit: () => void; spot: (spot: string) => void; gesture: () => void; labels: (positions: Record<string, { x: number; y: number }>) => void; error: (message: string) => void; context: (hint: string) => void; near: (spot: string) => void; command: (kind: string, id: number, key?: string) => void; notice: (text: string) => void }
 type UnityInstance = { SendMessage: (object: string, method: string, value: string) => void; Quit: () => Promise<void>; SetFullscreen: (value: number) => void }
 type UnityFactory = (canvas: HTMLCanvasElement, config: Record<string, unknown>, progress: (value: number) => void) => Promise<UnityInstance>
 declare global { interface Window { createUnityInstance?: UnityFactory } }
@@ -32,7 +32,11 @@ export class ForgeUnity {
   private latest?: string
   private disposed = false
   private engineReady = false
-  private impact?: () => void
+  private strikes = new StrikeLedger()
+  private protocol = 0
+  private greeted = false
+  private renderDpr = 1
+  private bandsObserver?: ResizeObserver
   private gesture = new ForgePointerGesture()
   private release!: () => void
   private labels: Record<string, { x: number; y: number }> = {}
@@ -66,7 +70,7 @@ export class ForgeUnity {
         codeUrl: '/unity/forge/Build/forge.wasm.unityweb?v='+unityBuild.version,
         streamingAssetsUrl: '/unity/forge/StreamingAssets',
         companyName: 'Cornell Computational Game Society', productName: 'Forge or Fold', productVersion: '1.0',
-        devicePixelRatio: Math.min(devicePixelRatio, innerWidth < 700 ? 1 : 1.5),
+        devicePixelRatio: this.renderDpr = Math.min(devicePixelRatio, innerWidth < 700 ? 1 : 1.5),
         showBanner: (message: string, type: string) => { if (type === 'error') this.fail(message) },
       }, value => {
         const bar = this.loading.querySelector('progress'); if (bar) bar.value = value
@@ -76,6 +80,7 @@ export class ForgeUnity {
       this.instance = instance
       this.root.dataset.renderer = 'unity'; this.loading.remove()
       if (this.latest) instance.SendMessage('Forge', 'Sync', this.latest)
+      this.greet()
       if(this.engineReady)this.hooks.ready()
     } catch (error) { if (!this.disposed) this.fail(error instanceof Error ? error.message : 'Unity could not start.'); this.release() }
   }
@@ -87,8 +92,8 @@ export class ForgeUnity {
   private receive = (event: Event) => {
     if (this.disposed) return
     const m = (event as CustomEvent<{ type: string; id: number; spot: string; x: number; y: number }>).detail
-    if (m.type === 'ready') { this.engineReady=true;if(this.instance)this.hooks.ready() }
-    if (m.type === 'settled') { this.impact=undefined;this.hooks.settled() }
+    if (m.type === 'ready') { this.engineReady=true;this.protocol=m.x||0;this.greet();if(this.instance)this.hooks.ready() }
+    if (m.type === 'settled') { const latest=this.strikes.settle(m.id);this.hooks.settled(m.id,latest,m.x<0) }
     if (m.type === 'context') this.hooks.context(m.spot)
     if (m.type === 'near') { this.root.dataset.station = m.spot; this.hooks.near(m.spot) }
     if (m.type === 'position') this.root.dataset.player = JSON.stringify({x:m.x,z:m.y,carrying:m.id,near:m.spot})
@@ -100,7 +105,8 @@ export class ForgeUnity {
     if (m.type === 'hit') this.hooks.hit()
     if (m.type === 'spot') this.hooks.spot(m.spot)
     if (m.type === 'gesture') this.hooks.gesture()
-    if (m.type === 'impact') { const impact = this.impact; this.impact = undefined; impact?.() }
+    if (m.type === 'impact') this.strikes.impact(m.id)
+    if (m.type === 'tuned') this.root.dataset.tuning = m.spot
     if (m.type === 'hover') this.root.dataset.drop = m.spot
     if (m.type === 'stats') this.root.dataset.renderStats = JSON.stringify({fps: Math.round(m.x), knives: m.y, particles: m.id, renderer: 'Unity'})
     if (m.type === 'quality') this.root.dataset.quality = m.spot
@@ -121,17 +127,41 @@ export class ForgeUnity {
   private keyDown = (event: KeyboardEvent) => { if (!this.isControl(event.code) || event.repeat || document.querySelector('dialog[open]') || (event.target instanceof HTMLElement && /^(INPUT|TEXTAREA|SELECT)$/.test(event.target.tagName))) return; event.preventDefault(); this.hooks.gesture(); this.instance?.SendMessage('Forge', 'Control', JSON.stringify({key:event.code,down:true})) }
   private keyUp = (event: KeyboardEvent) => { if (this.isControl(event.code)) this.instance?.SendMessage('Forge', 'Control', JSON.stringify({key:event.code,down:false})) }
   private clearKeys = () => { this.gesture.cancel();this.instance?.SendMessage('Forge', 'Control', JSON.stringify({key:'clear',down:false})) }
-  private clearState() { for (const key of ['renderer','player','renderStats','station','drop','quality']) delete this.root.dataset[key] }
-  get busy() { return !this.instance || !!this.impact }
-  strike(impact: () => void) { if (this.busy) return false; this.impact = impact; this.instance!.SendMessage('Forge', 'Strike', ''); return true }
+  private clearState() { for (const key of ['renderer','player','renderStats','station','drop','quality','tuning']) delete this.root.dataset[key] }
+  /** Contract handshake, once the instance exists and Unity said 'ready' with protocol >= 2: Tune, Insets, Qa. */
+  private greet() {
+    if (this.greeted || !this.instance || !this.engineReady || this.protocol < PROTOCOL) return
+    this.greeted = true
+    this.instance.SendMessage('Forge', 'Tune', JSON.stringify(feelTuning))
+    const params = new URLSearchParams(location.search)
+    const modes = [...(params.get('forge-telemetry') ? ['telemetry'] : []), ...(params.get('forge-unity-qa') || '').split(',')]
+    for (const mode of modes) if ((QA_MODES as readonly string[]).includes(mode)) this.instance.SendMessage('Forge', 'Qa', mode)
+    this.insets()
+    this.bandsObserver = new ResizeObserver(() => this.insets()); this.bandsObserver.observe(this.canvas)
+    requestAnimationFrame(() => this.insets())
+  }
+  /** Send Insets (ForgeView): the view class and the HUD bands over the canvas. Call again after HUD layout changes. */
+  insets(bands: Partial<Pick<ForgeView, 'top' | 'right' | 'bottom' | 'left' | 'goldX' | 'goldY' | 'panel'>> = {}) {
+    if (!this.instance || !this.greeted) return
+    const c = this.canvas.getBoundingClientRect(), main = this.root.parentElement
+    const edge = (selector: string, side: 'top' | 'bottom') => { let v = 0; for (const e of main?.querySelectorAll(selector) || []) { const r = e.getBoundingClientRect(); if (!r.width || !r.height) continue; v = Math.max(v, side === 'top' ? r.bottom - c.top : c.bottom - r.top) } return Math.max(0, Math.min(c.height, v)) }
+    const gold = main?.querySelector('.ff-stats [title=Gold]')?.getBoundingClientRect()
+    const touch = matchMedia('(pointer: coarse)').matches || navigator.maxTouchPoints > 0
+    const view = forgeView(c.width, c.height, this.renderDpr, touch, { top: edge('.ff-topbar, .ff-blade-info', 'top'), bottom: edge('.ff-bottom', 'bottom'), goldX: gold ? gold.left + gold.width / 2 - c.left : 0, goldY: gold ? gold.top + gold.height / 2 - c.top : 0, panel: !!document.querySelector('dialog[open]'), ...bands })
+    this.instance.SendMessage('Forge', 'Insets', JSON.stringify(view))
+  }
+  get busy() { return !this.instance || this.strikes.inFlight > 0 }
+  /** Start a strike; returns its seq (0 when busy). onImpact runs on that seq's 'impact' only. */
+  strike(onImpact: () => void): number { if (this.busy) return 0; const seq = this.strikes.begin(onImpact); this.instance!.SendMessage('Forge', 'Strike', String(seq)); return seq }
+  get latestStrike() { return this.strikes.latest }
   sync(state: Run, selected: number | null, event?: GameEvent) {
-    const payload = { flowNeed:flowNeed(state),flowSpeed:RULES.flowSpeed,knives: state.knives.map(k => ({ ...k, ...METALS[k.metal], heldValue:value(k,state),saleValue:saleValue(state,k),displayName:knifeName(k),rough: METALS[k.metal].roughness, metal: k.metal, profile: profile(k).map(([x, y]) => ({ x, y })) })), selected: selected || 0, day: state.day, ended: state.ended, reduced: this.motion.matches, offers: Object.entries(state.stock).filter(([,stock])=>stock>0).map(([key,stock])=>({key,stock,price:price(state,key),label:key.startsWith('metal:')?METALS[key.slice(6) as keyof typeof METALS].name:key.startsWith('charm:')?CHARMS[key.slice(6) as keyof typeof CHARMS].name:ITEMS[key as keyof typeof ITEMS].name})) }
+    const payload = snapshotPayload(state, selected, { reduced: this.motion.matches })
     this.latest = JSON.stringify(payload)
-    if (this.instance) this.instance.SendMessage('Forge', 'Sync', JSON.stringify({ ...payload, effect: event?.kind === 'wait'||event?.kind === 'tick' ? undefined : event }))
+    if (this.instance) this.instance.SendMessage('Forge', 'Sync', JSON.stringify({ ...payload, effect: unityEffect(event) }))
   }
   dispose() {
     this.clearKeys(); window.removeEventListener('keydown',this.keyDown);window.removeEventListener('keyup',this.keyUp);window.removeEventListener('blur',this.clearKeys);document.removeEventListener('visibilitychange',this.clearKeys)
-    this.disposed = true; this.impact = undefined
+    this.disposed = true; this.strikes.clear(); this.bandsObserver?.disconnect()
     this.clearState()
     this.canvas.removeEventListener('forge-unity', this.receive)
     this.canvas.removeEventListener('pointerdown', this.down); this.canvas.removeEventListener('pointermove', this.move)

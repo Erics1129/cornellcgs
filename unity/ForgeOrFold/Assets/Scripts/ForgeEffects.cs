@@ -8,12 +8,12 @@ public partial class ForgeWorld {
  readonly List<SmokePuff> smoke=new List<SmokePuff>();
  readonly Stack<SmokePuff> smokePool=new Stack<SmokePuff>();
  readonly List<SaleGhost> sales=new List<SaleGhost>();
- Material smokeMaterial;MaterialPropertyBlock smokeProperties;Mesh coinMesh;float smokeClock;
+ Material smokeMaterial;MaterialPropertyBlock smokeProperties;Mesh coinMesh;
 
  void Puff(Vector3 at,int count,bool hot=false){
   if(reduced)return;
   if(smokeMaterial==null){smokeMaterial=new Material(Shader.Find("Forge/Smoke"));smokeProperties=new MaterialPropertyBlock();}
-  for(int i=0;i<count&&smoke.Count<(Screen.width<700?20:36);i++){
+  for(int i=0;i<count&&smoke.Count<(Narrow?20:36);i++){
    SmokePuff p;if(smokePool.Count>0){p=smokePool.Pop();p.root.gameObject.SetActive(true);}else{var go=Primitive("Forge smoke",PrimitiveType.Quad,at,Vector3.one,smokeMaterial);var renderer=go.GetComponent<Renderer>();renderer.shadowCastingMode=ShadowCastingMode.Off;renderer.receiveShadows=false;p=new SmokePuff{root=go.transform,renderer=renderer};}
    p.root.position=at+Random.insideUnitSphere*.035f;p.velocity=new Vector3(Random.Range(-.09f,.09f),Random.Range(.12f,.3f),Random.Range(-.05f,.06f));p.age=-i*.035f;p.life=Random.Range(.7f,1.4f);p.size=Random.Range(.09f,.19f);p.opacity=hot?.2f:.48f;p.color=hot?new Color(.57f,.43f,.3f):new Color(.5f,.47f,.43f);p.spin=Random.Range(0,360);smoke.Add(p);
   }
@@ -23,7 +23,6 @@ public partial class ForgeWorld {
   sales.Add(new SaleGhost{body=b,start=b.root.transform.position,rotation=b.root.transform.rotation});
  }
  void UpdateEffects(float dt){
-  smokeClock+=dt;if(smokeClock>.55f){smokeClock=0;Puff(spots["furnace"]+new Vector3(0,.22f,-.22f),1,true);}
   for(int i=smoke.Count-1;i>=0;i--){var p=smoke[i];p.age+=dt;float t=p.age/p.life;if(t>=1){p.root.gameObject.SetActive(false);smokePool.Push(p);smoke.RemoveAt(i);continue;}p.root.position+=p.velocity*dt;p.root.rotation=cam.transform.rotation*Quaternion.Euler(0,0,p.spin+p.age*12);p.root.localScale=Vector3.one*p.size*(1+Mathf.Max(0,t)*2.8f);var c=p.color;c.a=Mathf.Sin(Mathf.Clamp01(t)*Mathf.PI)*p.opacity;smokeProperties.SetColor("_Color",c);p.renderer.SetPropertyBlock(smokeProperties);}
   for(int i=sales.Count-1;i>=0;i--){var sale=sales[i];sale.age+=dt;float t=Mathf.Clamp01(sale.age/.48f);var end=spots["sell"]+new Vector3(-.12f,.145f,0);sale.body.root.transform.position=Vector3.Lerp(sale.start,end,Mathf.SmoothStep(0,1,t))+Vector3.up*Mathf.Sin(t*Mathf.PI)*.24f;sale.body.root.transform.rotation=Quaternion.Slerp(sale.rotation,Quaternion.identity,t);if(t>=1&&!sale.paid){sale.paid=true;scaleAge=0;Burst(end+Vector3.up*.06f,reduced?5:22,"coin");}if(sale.age>.83f)sale.body.root.transform.localScale*=Mathf.Exp(-dt*12);if(sale.age>1.2f){DisposeBody(sale.body);sales.RemoveAt(i);}}
  }
