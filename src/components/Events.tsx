@@ -38,12 +38,12 @@ export default function Events() {
     <SectionIndex rank="10" />
     <div className="container-site agenda-layout">
       <header className="agenda-heading">
-        <p className="agenda-eyebrow">TBD</p>
+        <p className="agenda-eyebrow">The calendar</p>
         <h2><ScrollWords text={events.heading} treatment="spread" /></h2>
         <a className="agenda-more" href="/events/">All events <span aria-hidden="true">↗</span></a>
       </header>
       <div className="agenda-list">
-        {!events.items.length && <p>TBD</p>}
+        {!events.items.length && <p>New events will appear here when announced.</p>}
         {events.items.map((item, i) => <article key={`${item.title}-${i}`} className="agenda-row" data-open={open === i}>
           <h3><button className="agenda-trigger" type="button" aria-expanded={open === i} aria-controls={`agenda-detail-${i}`}
             onClick={() => setOpen(open === i ? null : i)}>

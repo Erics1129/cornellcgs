@@ -55,8 +55,8 @@ export function AlphaGoSlide() {
         <div data-go-shade className="go-study-shade" />
       </div>
       <div className="container-site alpha-copy">
-        <h2 id="alphago-title" data-chapter-type="sweep" className="h-section alpha-word">TBD</h2>
-        <p data-alpha-copy className="body-muted support-lead">TBD</p>
+        <h2 id="alphago-title" data-chapter-type="sweep" className="h-section alpha-word">AlphaGo</h2>
+        <p data-alpha-copy className="body-muted support-lead">DeepMind’s Go program beat Lee Sedol in 2016. It’s a big reason we train our agents through self-play.</p>
       </div>
       </div>
       <button type="button" className="alpha-pause" aria-label={paused ? 'Resume Go animation' : 'Pause Go animation'} aria-pressed={paused} onClick={() => setPaused(!paused)}>
@@ -137,11 +137,11 @@ export function AnyoneSlide() {
   return (
     <section ref={root} id="anyone" className="section support-scene anyone-scene" data-chapter-surface="world" aria-labelledby="together-title">
       <div className="container-site anyone-copy">
-        <h2 id="together-title" data-chapter-type="gather" className="anyone-title" aria-label="TBD">
-          <span aria-hidden="true">{'TBD'.split('').map((letter, i) => <span key={i} data-chapter-glyph>{letter}</span>)}</span>
+        <h2 id="together-title" data-chapter-type="gather" className="anyone-title" aria-label="Together">
+          <span aria-hidden="true">{'Together'.split('').map((letter, i) => <span key={i} data-chapter-glyph>{letter}</span>)}</span>
         </h2>
         <div data-anyone-rule className="anyone-rule" aria-hidden="true" />
-        <p data-anyone-copy className="anyone-invitation">TBD</p>
+        <p data-anyone-copy className="anyone-invitation">Any major can join, and you don’t need experience.</p>
       </div>
     </section>
   )

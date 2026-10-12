@@ -43,10 +43,10 @@ export function StatsSlide() {
     return () => media.revert()
   }, [])
   return (
-    <section ref={root} id="stats" className="section support-scene stats-scene" data-chapter-surface="world" aria-label="TBD">
+    <section ref={root} id="stats" className="section support-scene stats-scene" data-chapter-surface="world" aria-label="Current projects">
       <div className="container-site">
-        {STATS.map((stat, n) => (
-          <div key={n} data-stat className="stat-row">
+        {STATS.map((stat) => (
+          <div key={stat.big} data-stat className="stat-row">
             <div data-stat-rule className="stat-rule" aria-hidden="true" />
             <p data-stat-copy className="stat-over">{stat.over}</p>
             <p data-chapter-type="rise" className="stat-big" aria-label={stat.big}>
@@ -356,9 +356,9 @@ export function CodeSlide() {
     <section ref={root} id="code" className="section support-scene code-scene" data-chapter-surface="world" aria-labelledby="code-title">
       <div className="container-site code-layout">
         <div className="code-copy">
-          <p data-code-copy className="code-eyebrow">TBD</p>
-          <h2 id="code-title" data-chapter-type="slide" className="h-section">TBD</h2>
-          <p data-code-copy className="body-muted support-lead">TBD</p>
+          <p data-code-copy className="code-eyebrow">Poker equity</p>
+          <h2 id="code-title" data-chapter-type="slide" className="h-section">Source</h2>
+          <p data-code-copy className="body-muted support-lead">Our hold’em equity calculator. Press Run and it deals 20,000 hands against a random opponent.</p>
         </div>
         <div className="code-device-stage">
           <div ref={laptop} className="code-laptop code-workspace ide" data-run="idle">
