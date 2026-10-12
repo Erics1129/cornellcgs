@@ -12,8 +12,8 @@ gsap.registerPlugin(ScrollTrigger)
 
 /** Current projects, one row each. TODO(club): keep this list up to date. */
 const STATS = [
-  { over: 'TBD', big: 'TBD', under: 'TBD' },
-  { over: 'TBD', big: 'TBD', under: 'TBD' },
+  { over: 'In training', big: 'Guandan', under: 'a card game agent that learns by playing against itself' },
+  { over: 'Working', big: 'Poker', under: 'a hold’em equity calculator, running just below' },
   { over: 'In progress', big: 'Ink Maze', under: 'a puzzle game: roll the ball, color every block' },
 ]
 

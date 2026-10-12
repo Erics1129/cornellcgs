@@ -101,10 +101,11 @@ export function ProjectSlide() {
     <section ref={root} id="project" className="section support-scene project-scene" data-chapter-surface="world" aria-labelledby="project-title">
       <div className="container-site project-layout">
         <div className="project-copy">
-          <h2 id="project-title" data-chapter-type="rise" className="project-title" aria-label="TBD">
-            <span className="chapter-type-mask" aria-hidden="true"><span data-chapter-glyph>TBD</span></span>
+          <h2 id="project-title" data-chapter-type="rise" className="project-title" aria-label="Current projects">
+            <span className="chapter-type-mask" aria-hidden="true"><span data-chapter-glyph>Current</span></span>
+            <span className="chapter-type-mask" aria-hidden="true"><span data-chapter-glyph>projects</span></span>
           </h2>
-          <p data-project-copy className="project-description">TBD</p>
+          <p data-project-copy className="project-description">What members are working on right now.</p>
         </div>
         <div className="project-table" aria-hidden="true">
           <div className="project-table-light" />
