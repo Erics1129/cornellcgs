@@ -27,5 +27,6 @@ for name,file in assets.items():
      attr.data[li].color=pixel
     poly.material_index=0;poly.use_smooth=True
    o.data.materials.clear();o.data.materials.append(mat())
- join_parts();bpy.ops.object.select_all(action='SELECT');bpy.ops.export_scene.fbx(filepath=str(NATURE/(name+'.fbx')),use_selection=True,object_types={'EMPTY','MESH'},axis_forward='-Z',axis_up='Y',bake_anim=False,add_leaf_bones=False)
+ # Same explicit COLOR convention as authored actors; decoded by model materials.
+ join_parts();bpy.ops.object.select_all(action='SELECT');bpy.ops.export_scene.fbx(filepath=str(NATURE/(name+'.fbx')),use_selection=True,object_types={'EMPTY','MESH'},axis_forward='-Z',axis_up='Y',bake_anim=False,add_leaf_bones=False,colors_type='SRGB')
  print('NATURE_READY',name)

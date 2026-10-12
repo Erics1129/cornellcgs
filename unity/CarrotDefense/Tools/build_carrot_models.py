@@ -346,7 +346,9 @@ def export(root,name,animated=False):
   if o.type not in {'MESH','EMPTY','ARMATURE'}:o.select_set(False)
  bpy.context.scene.frame_set(0)
  path=OUT/(name+'.fbx')
- bpy.ops.export_scene.fbx(filepath=str(path),use_selection=True,object_types={'EMPTY','MESH','ARMATURE'},axis_forward='-Z',axis_up='Y',add_leaf_bones=False,bake_anim=animated,bake_anim_use_all_actions=animated,bake_anim_use_nla_strips=False,bake_anim_force_startend_keying=True,bake_anim_simplify_factor=0,mesh_smooth_type='FACE',use_mesh_modifiers=True,path_mode='COPY',embed_textures=True)
+ # Unity preserves FBX COLOR bytes; CarrotModels flags these materials for
+ # sRGB-to-linear decoding in Storybook. Keep this export convention explicit.
+ bpy.ops.export_scene.fbx(filepath=str(path),use_selection=True,object_types={'EMPTY','MESH','ARMATURE'},axis_forward='-Z',axis_up='Y',add_leaf_bones=False,bake_anim=animated,bake_anim_use_all_actions=animated,bake_anim_use_nla_strips=False,bake_anim_force_startend_keying=True,bake_anim_simplify_factor=0,mesh_smooth_type='FACE',use_mesh_modifiers=True,colors_type='SRGB',path_mode='COPY',embed_textures=True)
  tri=sum(len(p.vertices)-2 for o in bpy.context.scene.objects if o.type=='MESH' for p in o.data.polygons)
  manifest.append({'name':name,'triangles':tri,'animated':animated,'meshes':sum(o.type=='MESH' for o in bpy.context.scene.objects),'clips':[a.name for a in bpy.data.actions] if animated else []})
  print('ASSET_READY',name,'triangles',tri,flush=True)

@@ -86,3 +86,17 @@ The saved tower preview is a geometry checkpoint that predates corrected biologi
 ### Biological surface refinement
 
 A bounded surfacing pass adds eight 512px technical normal/roughness textures without altering meshes, rigs, shader code or color artwork. Pattern identity is specific: shallow broken carrot growth creases, raised branching leaf veins, directional long fur fibers, soft irregular cephalopod dermal bumps. Roughness ranges: carrot0.621–0.771, leaf0.391–0.548, fur0.841–0.938, wet hide0.274–0.415. Strength stays restrained; no category borrows a stone normal. Mips, repeat wrapping, normal-map import and linear roughness are explicitly configured. Surface heightfields tile continuously (edge mismatch below1e-9), all output hashes were checked, and CarrotModels.cs compiled against installed Unity assemblies. Runtime visual confirmation remains separate from this data/compile check.
+
+### Imported vertex-color correction
+
+The read-only `CarrotTD.CarrotColorAudit.Run` Editor method inspected Unity's imported `Mesh.colors32`, with `PlayerSettings.colorSpace` confirmed as Linear. Blender's FBX export stores vertex colors in sRGB, and Unity retained those channel values rather than decoding them:
+
+| Sample | Actual Unity RGB bytes | Decoded linear RGB, matching authored colors |
+| --- | --- | --- |
+| Nibble brown body | 195, 139, 85 | 0.545724, 0.258183, 0.090842 |
+| Shell dark legs | 58, 58, 58 | 0.042311, 0.042311, 0.042311 |
+| Shell brown body | 134, 105, 56 | 0.238398, 0.141263, 0.039546 |
+
+The previous shader treated the encoded vertex colors as linear, lifting dark surfaces. `CarrotModels.Surface` now marks imported actor and Kenney materials with `_VertexColorSRGB=1`; Storybook decodes these vertex RGB values before interpolation in linear projects. Texture sampling, procedural terrain colors and scanned scenery materials retain their existing handling. Export scripts explicitly retain `colors_type='SRGB'` to make the convention stable. This is a measured color-space correction, not a palette adjustment. The audit method writes its diagnostic report to `/tmp/carrot-unity-vertex-colors.json` without changing source assets or import settings.
+
+The same runtime review found that Frostglass terrain multiplied a dark lichen texture by a pale tint. Snow now uses a pale base, subtle grain relief and broad terrain variation; its paths use a cooler packed surface. Winter scatter omits summer ferns, marsh paths are brighter, and cached planting-pad material names include the biome to prevent color carryover when switching levels.

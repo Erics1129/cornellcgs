@@ -53,6 +53,7 @@ Material:
     - _TextureScale: 1
     - _UseOcclusionMap: 1
     - _UseRoughnessMap: 1
+    - _VertexColorSRGB: 0
     - _Wind: 0
     - _WorldTexture: 0
     m_Colors:

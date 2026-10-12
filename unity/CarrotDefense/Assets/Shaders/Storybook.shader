@@ -1,6 +1,6 @@
 Shader "Carrot/Storybook" {
  Properties {
-  _Color("Tint",Color)=(1,1,1,1) _AlbedoSaturation("Albedo saturation",Range(0,1))=1 _AlbedoGain("Albedo gain",Range(0,4))=1 _MainTex("Albedo",2D)="white"{}
+  _Color("Tint",Color)=(1,1,1,1) _VertexColorSRGB("Imported vertex colors are sRGB",Float)=0 _AlbedoSaturation("Albedo saturation",Range(0,1))=1 _AlbedoGain("Albedo gain",Range(0,4))=1 _MainTex("Albedo",2D)="white"{}
   _BumpMap("Normal",2D)="bump"{} _BumpScale("Normal strength",Range(0,2))=1
   _Metallic("Metal",Range(0,1))=0 _Glossiness("Smoothness fallback",Range(0,1))=.35
   _RoughnessMap("Roughness",2D)="white"{} _UseRoughnessMap("Use roughness",Float)=0
@@ -21,10 +21,15 @@ Shader "Carrot/Storybook" {
    #include "AutoLight.cginc"
    sampler2D _MainTex,_BumpMap,_RoughnessMap,_OcclusionMap;
    float4 _MainTex_ST,_Color,_EmissionColor;
-   float _Metallic,_Glossiness,_WorldTexture,_TextureScale,_BumpScale,_UseRoughnessMap,_UseOcclusionMap,_OcclusionStrength,_ReflectionStrength,_Cutoff,_AlbedoSaturation,_AlbedoGain,_Wind,_CarrotTime;
+   float _Metallic,_Glossiness,_WorldTexture,_TextureScale,_BumpScale,_UseRoughnessMap,_UseOcclusionMap,_OcclusionStrength,_ReflectionStrength,_Cutoff,_AlbedoSaturation,_AlbedoGain,_Wind,_CarrotTime,_VertexColorSRGB;
    struct appdata {float4 vertex:POSITION;float3 normal:NORMAL;float4 tangent:TANGENT;float2 uv:TEXCOORD0;float4 color:COLOR;};
    struct v2f {float4 pos:SV_POSITION;float3 world:TEXCOORD0;float3 normal:TEXCOORD1;float2 uv:TEXCOORD2;float4 tangent:TEXCOORD3;float4 color:COLOR;SHADOW_COORDS(4) UNITY_FOG_COORDS(5)};
-   v2f vert(appdata v){v2f o;o.world=mul(unity_ObjectToWorld,v.vertex).xyz;o.world.x+=sin(o.world.z*2.8+o.world.x*1.7+_CarrotTime*1.5)*_Wind*v.uv.y;o.pos=mul(UNITY_MATRIX_VP,float4(o.world,1));o.normal=UnityObjectToWorldNormal(v.normal);o.tangent=float4(UnityObjectToWorldDir(v.tangent.xyz),v.tangent.w*unity_WorldTransformParams.w);o.uv=TRANSFORM_TEX(v.uv,_MainTex);o.color=v.color;TRANSFER_SHADOW(o);UNITY_TRANSFER_FOG(o,o.pos);return o;}
+   v2f vert(appdata v){v2f o;o.world=mul(unity_ObjectToWorld,v.vertex).xyz;o.world.x+=sin(o.world.z*2.8+o.world.x*1.7+_CarrotTime*1.5)*_Wind*v.uv.y;o.pos=mul(UNITY_MATRIX_VP,float4(o.world,1));o.normal=UnityObjectToWorldNormal(v.normal);o.tangent=float4(UnityObjectToWorldDir(v.tangent.xyz),v.tangent.w*unity_WorldTransformParams.w);o.uv=TRANSFORM_TEX(v.uv,_MainTex);o.color=v.color;
+    #ifndef UNITY_COLORSPACE_GAMMA
+    // FBX stores display-encoded colors; textures already receive their own sRGB decode.
+    if(_VertexColorSRGB>.5)o.color.rgb=GammaToLinearSpace(o.color.rgb);
+    #endif
+    TRANSFER_SHADOW(o);UNITY_TRANSFER_FOG(o,o.pos);return o;}
    float3 safeUnit(float3 p){return p*rsqrt(max(dot(p,p),.00001));}
    float3 normalSample(float2 uv){float3 n=UnpackNormal(tex2D(_BumpMap,uv));n.xy*=_BumpScale;return safeUnit(n);}
    float2 worldUV(float2 p){return (frac(p*_TextureScale)*.96+.02)*_MainTex_ST.xy+_MainTex_ST.zw;}

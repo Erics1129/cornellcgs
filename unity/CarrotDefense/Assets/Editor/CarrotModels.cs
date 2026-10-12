@@ -117,6 +117,9 @@ public static class CarrotModels {
         if (!shader) throw new InvalidOperationException("Carrot/Storybook shader must exist before preparing models.");
         if (!material) {material=new Material(shader); AssetDatabase.CreateAsset(material,path);}
         material.shader=shader;material.SetColor("_Color",Color.white);
+        // Blender writes FBX COLOR in sRGB; Unity preserves those channel values
+        // even in a linear project. Decode only these imported model palettes.
+        material.SetFloat("_VertexColorSRGB",1f);
         var detail=AssetDatabase.LoadAssetAtPath<Texture2D>(Root+"/Models/Materials/"+category+"Detail.png");
         material.SetTexture("_MainTex",detail);
         material.SetTextureScale("_MainTex",new Vector2(category=="Carrot"?3f:2f,2f));
