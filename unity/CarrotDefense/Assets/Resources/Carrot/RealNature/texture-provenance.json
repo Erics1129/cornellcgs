@@ -1,0 +1,146 @@
+[
+  {
+    "file": "FernAlbedo.png",
+    "dimensions": [
+      1024,
+      1024
+    ],
+    "derivation": "original CC0 1K map; ARM channel split / fern alpha packed; no synthetic repaint",
+    "sha256": "c53438a086f4021e9ac4e95b71a93fada1e5c2632c9ce8e90fb2287b1d49e1cc"
+  },
+  {
+    "file": "FernNormal.png",
+    "dimensions": [
+      1024,
+      1024
+    ],
+    "derivation": "original CC0 1K map; ARM channel split / fern alpha packed; no synthetic repaint",
+    "sha256": "1672c63f5e2cd20c2efc46b254b710daf09d591c1d2bae564fddd71c0034022a"
+  },
+  {
+    "file": "FernAO.png",
+    "dimensions": [
+      1024,
+      1024
+    ],
+    "derivation": "original CC0 1K map; ARM channel split / fern alpha packed; no synthetic repaint",
+    "sha256": "6cbba938538d6f2dde36b0fab15ad1232e947049d809a09b031801f4fb0e45ff"
+  },
+  {
+    "file": "FernRoughness.png",
+    "dimensions": [
+      1024,
+      1024
+    ],
+    "derivation": "original CC0 1K map; ARM channel split / fern alpha packed; no synthetic repaint",
+    "sha256": "43eb922b3b7fb3fc2f011893e0e0ad6ba10d7d0cbd4d453b4651e9a763bf3746"
+  },
+  {
+    "file": "StumpAlbedo.png",
+    "dimensions": [
+      1024,
+      1024
+    ],
+    "derivation": "original CC0 1K map; ARM channel split / fern alpha packed; no synthetic repaint",
+    "sha256": "21082db64682579569e613f8987dd632d5a3eec6860773f42147e79394994db2"
+  },
+  {
+    "file": "StumpNormal.png",
+    "dimensions": [
+      1024,
+      1024
+    ],
+    "derivation": "original CC0 1K map; ARM channel split / fern alpha packed; no synthetic repaint",
+    "sha256": "fe9eb6478087b192f0891ecf1a2ddde7297c74e446fbd3745fdf71c099c50219"
+  },
+  {
+    "file": "StumpAO.png",
+    "dimensions": [
+      1024,
+      1024
+    ],
+    "derivation": "original CC0 1K map; ARM channel split / fern alpha packed; no synthetic repaint",
+    "sha256": "e06039b91bf974055da18081b672dc0ea6ac7b73894b31cd35fb241e29460ea9"
+  },
+  {
+    "file": "StumpRoughness.png",
+    "dimensions": [
+      1024,
+      1024
+    ],
+    "derivation": "original CC0 1K map; ARM channel split / fern alpha packed; no synthetic repaint",
+    "sha256": "7d2720c86a093fe03a50609fb52a55e49d3c389515d191e590aefda9fa7084ca"
+  },
+  {
+    "file": "MossRockAlbedo.png",
+    "dimensions": [
+      1024,
+      1024
+    ],
+    "derivation": "original CC0 1K map; ARM channel split / fern alpha packed; no synthetic repaint",
+    "sha256": "fbda4f80bb0548af647d470abff57060316702851fe165dc63033f1dd90e429d"
+  },
+  {
+    "file": "MossRockNormal.png",
+    "dimensions": [
+      1024,
+      1024
+    ],
+    "derivation": "original CC0 1K map; ARM channel split / fern alpha packed; no synthetic repaint",
+    "sha256": "bcce5557cd754585d8e7f71677e1b3354bf41b73ac801b6e096edf0b76676dc8"
+  },
+  {
+    "file": "MossRockAO.png",
+    "dimensions": [
+      1024,
+      1024
+    ],
+    "derivation": "original CC0 1K map; ARM channel split / fern alpha packed; no synthetic repaint",
+    "sha256": "ed2595fcf3159455009cb594f8b5c649d891f97d4d24ce107a37daa64ce745ac"
+  },
+  {
+    "file": "MossRockRoughness.png",
+    "dimensions": [
+      1024,
+      1024
+    ],
+    "derivation": "original CC0 1K map; ARM channel split / fern alpha packed; no synthetic repaint",
+    "sha256": "552465c6b835fcd54ede7b944a7a443d9d050b406a8debd57aaf89e8f5c2e325"
+  },
+  {
+    "file": "ShrubAlbedo.png",
+    "dimensions": [
+      1024,
+      1024
+    ],
+    "derivation": "original CC0 1K map; ARM channel split / fern alpha packed; no synthetic repaint",
+    "sha256": "d520975f6609a56bd68fa400a348e24f613aace1dfcefd21fcf7ad159906854e"
+  },
+  {
+    "file": "ShrubNormal.png",
+    "dimensions": [
+      1024,
+      1024
+    ],
+    "derivation": "original CC0 1K map; ARM channel split / fern alpha packed; no synthetic repaint",
+    "sha256": "28cf0e56d58cb0501363d1fea49423c7f9a98ac97fdfcd29f8bce7f38e3e408e"
+  },
+  {
+    "file": "ShrubAO.png",
+    "dimensions": [
+      1024,
+      1024
+    ],
+    "derivation": "original CC0 1K map; ARM channel split / fern alpha packed; no synthetic repaint",
+    "sha256": "7449c67f5b5d9ff2d3ba934cff70e1d392b313222474a3cb16567555653959c4"
+  },
+  {
+    "file": "ShrubRoughness.png",
+    "dimensions": [
+      1024,
+      1024
+    ],
+    "derivation": "original CC0 1K map; ARM channel split / fern alpha packed; no synthetic repaint",
+    "sha256": "4a0cf91e6e5529d8a3b9ed059a0d847d1eb0cf32650606c41f3c0733ebe079a6"
+  }
+]

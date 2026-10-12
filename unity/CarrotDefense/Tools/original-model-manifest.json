@@ -1,0 +1,289 @@
+[
+  {
+    "name": "Carrot",
+    "triangles": 23056,
+    "animated": false,
+    "meshes": 16,
+    "clips": []
+  },
+  {
+    "name": "seed-1",
+    "triangles": 8424,
+    "animated": false,
+    "meshes": 8,
+    "clips": []
+  },
+  {
+    "name": "seed-2",
+    "triangles": 8880,
+    "animated": false,
+    "meshes": 8,
+    "clips": []
+  },
+  {
+    "name": "seed-3",
+    "triangles": 10688,
+    "animated": false,
+    "meshes": 8,
+    "clips": []
+  },
+  {
+    "name": "seed-4",
+    "triangles": 12976,
+    "animated": false,
+    "meshes": 9,
+    "clips": []
+  },
+  {
+    "name": "frost-1",
+    "triangles": 4980,
+    "animated": false,
+    "meshes": 7,
+    "clips": []
+  },
+  {
+    "name": "frost-2",
+    "triangles": 5420,
+    "animated": false,
+    "meshes": 7,
+    "clips": []
+  },
+  {
+    "name": "frost-3",
+    "triangles": 6440,
+    "animated": false,
+    "meshes": 8,
+    "clips": []
+  },
+  {
+    "name": "frost-4",
+    "triangles": 8036,
+    "animated": false,
+    "meshes": 9,
+    "clips": []
+  },
+  {
+    "name": "mortar-1",
+    "triangles": 2998,
+    "animated": false,
+    "meshes": 4,
+    "clips": []
+  },
+  {
+    "name": "mortar-2",
+    "triangles": 3662,
+    "animated": false,
+    "meshes": 4,
+    "clips": []
+  },
+  {
+    "name": "mortar-3",
+    "triangles": 4186,
+    "animated": false,
+    "meshes": 5,
+    "clips": []
+  },
+  {
+    "name": "mortar-4",
+    "triangles": 4570,
+    "animated": false,
+    "meshes": 6,
+    "clips": []
+  },
+  {
+    "name": "prism-1",
+    "triangles": 4408,
+    "animated": false,
+    "meshes": 5,
+    "clips": []
+  },
+  {
+    "name": "prism-2",
+    "triangles": 4590,
+    "animated": false,
+    "meshes": 6,
+    "clips": []
+  },
+  {
+    "name": "prism-3",
+    "triangles": 5316,
+    "animated": false,
+    "meshes": 7,
+    "clips": []
+  },
+  {
+    "name": "prism-4",
+    "triangles": 6158,
+    "animated": false,
+    "meshes": 8,
+    "clips": []
+  },
+  {
+    "name": "storm-1",
+    "triangles": 2896,
+    "animated": false,
+    "meshes": 6,
+    "clips": []
+  },
+  {
+    "name": "storm-2",
+    "triangles": 4516,
+    "animated": false,
+    "meshes": 10,
+    "clips": []
+  },
+  {
+    "name": "storm-3",
+    "triangles": 4552,
+    "animated": false,
+    "meshes": 11,
+    "clips": []
+  },
+  {
+    "name": "storm-4",
+    "triangles": 4700,
+    "animated": false,
+    "meshes": 12,
+    "clips": []
+  },
+  {
+    "name": "blossom-1",
+    "triangles": 8436,
+    "animated": false,
+    "meshes": 8,
+    "clips": []
+  },
+  {
+    "name": "blossom-2",
+    "triangles": 10154,
+    "animated": false,
+    "meshes": 8,
+    "clips": []
+  },
+  {
+    "name": "blossom-3",
+    "triangles": 11008,
+    "animated": false,
+    "meshes": 8,
+    "clips": []
+  },
+  {
+    "name": "blossom-4",
+    "triangles": 14478,
+    "animated": false,
+    "meshes": 9,
+    "clips": []
+  },
+  {
+    "name": "starfruit-1",
+    "triangles": 6812,
+    "animated": false,
+    "meshes": 8,
+    "clips": []
+  },
+  {
+    "name": "starfruit-2",
+    "triangles": 7500,
+    "animated": false,
+    "meshes": 9,
+    "clips": []
+  },
+  {
+    "name": "starfruit-3",
+    "triangles": 7824,
+    "animated": false,
+    "meshes": 9,
+    "clips": []
+  },
+  {
+    "name": "starfruit-4",
+    "triangles": 8512,
+    "animated": false,
+    "meshes": 10,
+    "clips": []
+  },
+  {
+    "name": "gravity-1",
+    "triangles": 3812,
+    "animated": false,
+    "meshes": 7,
+    "clips": []
+  },
+  {
+    "name": "gravity-2",
+    "triangles": 4592,
+    "animated": false,
+    "meshes": 8,
+    "clips": []
+  },
+  {
+    "name": "gravity-3",
+    "triangles": 5516,
+    "animated": false,
+    "meshes": 10,
+    "clips": []
+  },
+  {
+    "name": "gravity-4",
+    "triangles": 6856,
+    "animated": false,
+    "meshes": 12,
+    "clips": []
+  },
+  {
+    "name": "book-1",
+    "triangles": 2356,
+    "animated": false,
+    "meshes": 8,
+    "clips": []
+  },
+  {
+    "name": "book-2",
+    "triangles": 2932,
+    "animated": false,
+    "meshes": 9,
+    "clips": []
+  },
+  {
+    "name": "book-3",
+    "triangles": 3632,
+    "animated": false,
+    "meshes": 10,
+    "clips": []
+  },
+  {
+    "name": "book-4",
+    "triangles": 4004,
+    "animated": false,
+    "meshes": 11,
+    "clips": []
+  },
+  {
+    "name": "thunder-1",
+    "triangles": 8516,
+    "animated": false,
+    "meshes": 5,
+    "clips": []
+  },
+  {
+    "name": "thunder-2",
+    "triangles": 9050,
+    "animated": false,
+    "meshes": 5,
+    "clips": []
+  },
+  {
+    "name": "thunder-3",
+    "triangles": 10018,
+    "animated": false,
+    "meshes": 6,
+    "clips": []
+  },
+  {
+    "name": "thunder-4",
+    "triangles": 10568,
+    "animated": false,
+    "meshes": 6,
+    "clips": []
+  }
+]

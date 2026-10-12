@@ -1,0 +1,66 @@
+[
+  {
+    "category": "Carrot",
+    "size": 512,
+    "source": "Original deterministic analytic heightfield; not reconstructed from albedo or a borrowed rock surface.",
+    "normal": "CarrotMicroNormal.png",
+    "normalSHA256": "2ae303a577d3c5eb396860b76c9929294333fd3135cac3a2ea8ec622d52bf93e",
+    "roughness": "CarrotMicroRoughness.png",
+    "roughnessSHA256": "38f209a02c7a57e884c29dc669fdbd1cdd6582c884c2b1d880174c0fe5a523c1",
+    "roughnessRange": [
+      0.6211,
+      0.7705
+    ],
+    "maxNormalSlope": 0.3823,
+    "meanNormalSlope": 0.0447,
+    "normalConvention": "Tangent space, OpenGL Y+, imported as Unity NormalMap; roughness is linear data."
+  },
+  {
+    "category": "Leaf",
+    "size": 512,
+    "source": "Original deterministic analytic heightfield; not reconstructed from albedo or a borrowed rock surface.",
+    "normal": "LeafMicroNormal.png",
+    "normalSHA256": "e837d0cf9ae4784bea56e06b4910463dc2549f449a4b363aa9364cab87df9769",
+    "roughness": "LeafMicroRoughness.png",
+    "roughnessSHA256": "dda13fe8c0edf0cd8fa41ab50a7f799bea274b8855b46aae4619fa97c11dc3a1",
+    "roughnessRange": [
+      0.3912,
+      0.5484
+    ],
+    "maxNormalSlope": 0.2952,
+    "meanNormalSlope": 0.019,
+    "normalConvention": "Tangent space, OpenGL Y+, imported as Unity NormalMap; roughness is linear data."
+  },
+  {
+    "category": "Fur",
+    "size": 512,
+    "source": "Original deterministic analytic heightfield; not reconstructed from albedo or a borrowed rock surface.",
+    "normal": "FurMicroNormal.png",
+    "normalSHA256": "6af9748400317236bf965397e410269de6f75b07deca888c55e44744dd2116a3",
+    "roughness": "FurMicroRoughness.png",
+    "roughnessSHA256": "3d757cb5780b92a1d781d9762d208d0415e5ded3b0e0434a4535912d1eeac044",
+    "roughnessRange": [
+      0.8409,
+      0.9376
+    ],
+    "maxNormalSlope": 0.287,
+    "meanNormalSlope": 0.1365,
+    "normalConvention": "Tangent space, OpenGL Y+, imported as Unity NormalMap; roughness is linear data."
+  },
+  {
+    "category": "Scale",
+    "size": 512,
+    "source": "Original deterministic analytic heightfield; not reconstructed from albedo or a borrowed rock surface.",
+    "normal": "ScaleMicroNormal.png",
+    "normalSHA256": "15393e229e3385409d52b24484263cfb6fcee2f421e6efa86d6ef2dafc48741a",
+    "roughness": "ScaleMicroRoughness.png",
+    "roughnessSHA256": "232b1e8e2e421f0bf4016c3fc46f97941e08080b770562708e677831e688f718",
+    "roughnessRange": [
+      0.2736,
+      0.4154
+    ],
+    "maxNormalSlope": 0.1225,
+    "meanNormalSlope": 0.0698,
+    "normalConvention": "Tangent space, OpenGL Y+, imported as Unity NormalMap; roughness is linear data."
+  }
+]

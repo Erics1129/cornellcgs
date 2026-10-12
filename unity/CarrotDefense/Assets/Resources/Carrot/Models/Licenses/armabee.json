@@ -1,0 +1,91 @@
+{
+  "Title": "Armabee",
+  "UploadDate": "2022-10-23T01:01:38.023Z",
+  "ResourceID": "de63aaf6-9170-47f7-933d-439af68826a6",
+  "PublicID": "42djT5zJnx",
+  "Likes": 1,
+  "CommentCount": 0,
+  "Tris": 1544,
+  "Views": "1.27k",
+  "Downloads": "3.44k",
+  "Creator": {
+    "Username": "Quaternius",
+    "DPURL": "https://static.poly.pizza/dp%2Ff63b655a-051c-4c4b-8dcc-3b346a39ece0.jpg",
+    "Socials": {
+      "Twitter": "quaternius",
+      "Pateron": "quaternius",
+      "Website": "https://quaternius.com/"
+    }
+  },
+  "Category": "Animals",
+  "Tags": [
+    "Animal",
+    "Invertebrate",
+    "Insect",
+    "Bird"
+  ],
+  "Orbit": {
+    "phi": "1.37207",
+    "radius": "100%",
+    "theta": "-0.03153"
+  },
+  "Background": {
+    "one": "#5e35b1",
+    "two": "hsl(260deg, 54%, 15%)",
+    "type": "Radial"
+  },
+  "Visibility": "Public",
+  "Type": "FBX",
+  "Licence": "CC0 1.0",
+  "Animated": true,
+  "source": "https://poly.pizza/m/42djT5zJnx",
+  "download": "https://static.poly.pizza/de63aaf6-9170-47f7-933d-439af68826a6.glb",
+  "file": "armabee.glb",
+  "bytes": 143736,
+  "sha256": "9a47899a2320aa42d5f550598a981c26517c6e27723980f5d2080a557eb88dc2",
+  "animations": [
+    {
+      "name": "CharacterArmature|Death",
+      "seconds": 0.667,
+      "channels": 13
+    },
+    {
+      "name": "CharacterArmature|Fast_Flying",
+      "seconds": 0.833,
+      "channels": 9
+    },
+    {
+      "name": "CharacterArmature|Flying_Idle",
+      "seconds": 1.167,
+      "channels": 9
+    },
+    {
+      "name": "CharacterArmature|Headbutt",
+      "seconds": 1.167,
+      "channels": 11
+    },
+    {
+      "name": "CharacterArmature|HitReact",
+      "seconds": 0.458,
+      "channels": 11
+    },
+    {
+      "name": "CharacterArmature|No",
+      "seconds": 1.167,
+      "channels": 10
+    },
+    {
+      "name": "CharacterArmature|Punch",
+      "seconds": 1.167,
+      "channels": 11
+    },
+    {
+      "name": "CharacterArmature|Yes",
+      "seconds": 1.167,
+      "channels": 10
+    }
+  ],
+  "skins": 1,
+  "actualTriangles": 2280,
+  "requiredExtensions": []
+}

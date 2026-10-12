@@ -1,0 +1,96 @@
+{
+  "Title": "Green Spiky Blob",
+  "UploadDate": "2022-10-23T01:01:34.319Z",
+  "ResourceID": "cd25a048-719e-4ec4-bbf5-a266776fe129",
+  "PublicID": "IoWG5F9WUc",
+  "Likes": 4,
+  "CommentCount": 0,
+  "Tris": 4520,
+  "Views": 671,
+  "Downloads": "3.43k",
+  "Creator": {
+    "Username": "Quaternius",
+    "DPURL": "https://static.poly.pizza/dp%2Ff63b655a-051c-4c4b-8dcc-3b346a39ece0.jpg",
+    "Socials": {
+      "Twitter": "quaternius",
+      "Pateron": "quaternius",
+      "Website": "https://quaternius.com/"
+    }
+  },
+  "Category": "Animals",
+  "Tags": [
+    "Animal",
+    "Slime",
+    "Enemy",
+    "Monster"
+  ],
+  "Orbit": {
+    "phi": "1.37207",
+    "radius": "100%",
+    "theta": "-0.03153"
+  },
+  "Background": {
+    "one": "#5e35b1",
+    "two": "hsl(260deg, 54%, 15%)",
+    "type": "Radial"
+  },
+  "Visibility": "Public",
+  "Type": "FBX",
+  "Licence": "CC0 1.0",
+  "Animated": true,
+  "source": "https://poly.pizza/m/IoWG5F9WUc",
+  "download": "https://static.poly.pizza/cd25a048-719e-4ec4-bbf5-a266776fe129.glb",
+  "file": "spiky-blob.glb",
+  "bytes": 185820,
+  "sha256": "ad5e8b1cdf8c0d328b4b44537d3da8fa98119a9a99fb6163e2f325dbb8bbecc1",
+  "animations": [
+    {
+      "name": "CharacterArmature|Bite_Front",
+      "seconds": 0.375,
+      "channels": 3
+    },
+    {
+      "name": "CharacterArmature|Dance",
+      "seconds": 0.667,
+      "channels": 4
+    },
+    {
+      "name": "CharacterArmature|Death",
+      "seconds": 0.333,
+      "channels": 5
+    },
+    {
+      "name": "CharacterArmature|HitRecieve",
+      "seconds": 0.292,
+      "channels": 5
+    },
+    {
+      "name": "CharacterArmature|Idle",
+      "seconds": 2.0,
+      "channels": 2
+    },
+    {
+      "name": "CharacterArmature|Jump",
+      "seconds": 0.417,
+      "channels": 4
+    },
+    {
+      "name": "CharacterArmature|No",
+      "seconds": 1.0,
+      "channels": 3
+    },
+    {
+      "name": "CharacterArmature|Walk",
+      "seconds": 0.417,
+      "channels": 5
+    },
+    {
+      "name": "CharacterArmature|Yes",
+      "seconds": 0.958,
+      "channels": 3
+    }
+  ],
+  "skins": 2,
+  "actualTriangles": 4888,
+  "requiredExtensions": []
+}

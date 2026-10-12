@@ -23,6 +23,7 @@ const SLUGS = {
   minigames: 'minigames',
   'ink-maze': 'minigames/inkMaze',
   'forge-or-fold': 'minigames/forgeOrFold',
+  'carrot-defense': 'minigames/carrotDefense',
 }
 
 // Titles/descriptions state nothing the site itself doesn't already say.
@@ -61,12 +62,17 @@ const PAGES = {
   },
   minigames: {
     title: 'Mini games · Cornell Computational Game Society',
-    desc: 'Small games from the Cornell Computational Game Society that you can play in your browser: Ink Maze and Forge or Fold.',
+    desc: 'Play Carrot Defense 3D, Forge or Fold, and Ink Maze from the Cornell Computational Game Society, on your computer or phone.',
     image: '/assets/minigames/ink-maze/cover.png',
   },
   'forge-or-fold': {
     title: 'Forge or Fold — Cornell CGS',
     desc: 'A seven-day 3D forging game. Heat, strike, sell and learn when to stop. Keep your best knife.',
+  },
+  'carrot-defense': {
+    title: 'Carrot Defense 3D — Cornell CGS',
+    desc: 'Protect the carrot across twelve original 3D landscapes. Grow ten tower families, cover branching paths, and defeat three unique guardians.',
+    image: '/assets/minigames/carrot/01-garden-keyart.jpg',
   },
   // the numbers must match src/minigames/inkmaze/levels.ts
   'ink-maze': {

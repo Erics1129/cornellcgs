@@ -1,0 +1,90 @@
+{
+  "Title": "Dragon Evolved",
+  "UploadDate": "2022-10-23T01:01:40.613Z",
+  "ResourceID": "90ed3740-d8c4-4910-88ce-ac2ed426022d",
+  "PublicID": "LlwD0QNUPj",
+  "Likes": 9,
+  "CommentCount": 0,
+  "Tris": 6702,
+  "Views": "2.81k",
+  "Downloads": "3.75k",
+  "Creator": {
+    "Username": "Quaternius",
+    "DPURL": "https://static.poly.pizza/dp%2Ff63b655a-051c-4c4b-8dcc-3b346a39ece0.jpg",
+    "Socials": {
+      "Twitter": "quaternius",
+      "Pateron": "quaternius",
+      "Website": "https://quaternius.com/"
+    }
+  },
+  "Category": "Animals",
+  "Tags": [
+    "Seafood",
+    "Food",
+    "Monster"
+  ],
+  "Orbit": {
+    "phi": "1.37207",
+    "radius": "100%",
+    "theta": "-0.03153"
+  },
+  "Background": {
+    "one": "#5e35b1",
+    "two": "hsl(260deg, 54%, 15%)",
+    "type": "Radial"
+  },
+  "Visibility": "Public",
+  "Type": "FBX",
+  "Licence": "CC0 1.0",
+  "Animated": true,
+  "source": "https://poly.pizza/m/LlwD0QNUPj",
+  "download": "https://static.poly.pizza/90ed3740-d8c4-4910-88ce-ac2ed426022d.glb",
+  "file": "dragon-evolved.glb",
+  "bytes": 436000,
+  "sha256": "f660d8f48be4ea3f39639f6206a0181127e7fe7503cb4bad8d07d27d80528f3a",
+  "animations": [
+    {
+      "name": "CharacterArmature|Death",
+      "seconds": 0.667,
+      "channels": 19
+    },
+    {
+      "name": "CharacterArmature|Fast_Flying",
+      "seconds": 0.833,
+      "channels": 16
+    },
+    {
+      "name": "CharacterArmature|Flying_Idle",
+      "seconds": 1.5,
+      "channels": 16
+    },
+    {
+      "name": "CharacterArmature|Headbutt",
+      "seconds": 1.5,
+      "channels": 34
+    },
+    {
+      "name": "CharacterArmature|HitReact",
+      "seconds": 0.667,
+      "channels": 18
+    },
+    {
+      "name": "CharacterArmature|No",
+      "seconds": 1.167,
+      "channels": 17
+    },
+    {
+      "name": "CharacterArmature|Punch",
+      "seconds": 1.333,
+      "channels": 26
+    },
+    {
+      "name": "CharacterArmature|Yes",
+      "seconds": 1.167,
+      "channels": 17
+    }
+  ],
+  "skins": 1,
+  "actualTriangles": 7438,
+  "requiredExtensions": []
+}

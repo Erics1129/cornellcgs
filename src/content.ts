@@ -318,17 +318,18 @@ export const pageSlugs: Record<string, string> = {
   minigames: 'minigames',
   'ink-maze': 'minigames/inkMaze',
   'forge-or-fold': 'minigames/forgeOrFold',
+  'carrot-defense': 'minigames/carrotDefense',
 }
 
 /** The mini games: the list at /minigames/, each game's page, and the card on What We Do. */
 export const minigames = {
   title: 'Mini games',
   eyebrow: 'Play',
-  lead: 'Small puzzles you can play in your browser, on a computer or a phone.',
+  lead: 'Strategy, craft, and puzzles. Play on your computer or phone.',
   card: {
     eyebrow: 'Play',
     title: 'Mini games',
-    body: 'Small games you can play in your browser: Ink Maze and Forge or Fold.',
+    body: 'Play Carrot Defense 3D, Forge or Fold, and Ink Maze in your browser.',
     cta: 'See the games',
   },
   inkMaze: {

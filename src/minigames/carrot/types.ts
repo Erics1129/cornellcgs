@@ -1,0 +1,9 @@
+export type TowerDefinition = { id:string; name:string; role:string; unlock:number; air:boolean; cost:number[]; damage:number[]; interval:number[]; range:number[] }
+export type LevelDefinition = { id:number; name:string; biome:string; waves:number; startingGold:number; boss?:string; routes?:Array<Array<{x:number;y?:number;z:number}|number[]>>; pads?:unknown[] }
+export type GameDefinitions = { towers:TowerDefinition[]; levels:LevelDefinition[] }
+export type Selection = { type:string; id:number; kind:string; tier:number; hp:number; maxHp:number; refund:number; x:number; y:number }
+export type Boss = { id:number;kind:string;name:string;hp:number;maxHp:number;shield:number;maxShield:number;phase:number;ability:string;castRemaining:number }
+export type Monster = { id:number;kind:string;hp:number;maxHp:number;shield:number;maxShield:number;x:number;y:number;visible:boolean }
+export type GameState = { level:number;name:string;biome:string;wave:number;waves:number;coins:number;health:number;progress:number;phase:'ready'|'playing'|'won'|'lost';paused:boolean;speed:number;nextWave:number;enemyCount:number;selection:Selection|null;boss:Boss|null;monsters:Monster[];notice:string;cleared?:number;blockersRemaining?:number;towerCount?:number }
+export type Command = {type:string;[key:string]:string|number|boolean}
+export type CampaignSave = { version:1; unlocked:number; medals:Record<string,number>; sound:boolean }
