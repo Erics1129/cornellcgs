@@ -228,7 +228,7 @@ async function analyse(dirs) {
     check(trails === 0, 'no laser trails in any frame (outside the glowing blade; static lit edges excluded)', { trails, bladeShapes: bladeTrails, staticEdges })
     for (const n of ['good-33', 'good-100', 'perfect-33', 'perfect-100', 'chip-33']) { const s = shot(n); if (!s) continue; const p = s.probe; const c = p && p.contact; const reg = c ? [c[0] - .2, 1 - c[1] - .2, c[0] + .2, 1 - c[1] + .14] : null
       const r = await L.laserTrailCount(h, s.path, { threshold: 120, aspect: 30, minLen: .5, region: reg, minBlobPx: 2 }); report.shots[n] = { blobs: r.blobs, probe: p && { flakes: p.flakes, sheets: p.sheets, sparks: p.sparks, forks: p.forks, chips: p.chips } }
-      if (n.endsWith('-100') || n === 'chip-33') check(r.blobs >= 8, `${n}: at least 8 bright blobs >= 2 px near the contact`, r.blobs) }
+      if (!REDUCED && (n.endsWith('-100') || n === 'chip-33')) check(r.blobs >= 8, `${n}: at least 8 bright blobs >= 2 px near the contact`, r.blobs) }
     // Counts per outcome (probe right after contact). Phones throw .6x; reduced motion 5 flakes and no sparks.
     const counts = n => { const s = shot(n); return s && s.probe }
     const k = view === 'phone' ? .6 : 1, R = n => Math.round(n * k)

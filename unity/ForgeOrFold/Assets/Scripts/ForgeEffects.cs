@@ -30,9 +30,10 @@ public partial class ForgeWorld {
   if(reduced)return;
   for(int i=0;i<count&&smokeCount<MaxSmoke;i++)smoke[smokeCount++]=new SmokeBit{p=at+Random.insideUnitSphere*.02f,v=new Vector3(Random.Range(-.12f,.12f),Random.Range(.06f,.18f),Random.Range(-.08f,.08f)),age=-i*.02f,life=Random.Range(.45f,.8f),size=Random.Range(.03f,.06f),grow=2.2f,opacity=.4f,color=new Color32(96,90,84,255),spin=Random.Range(0,360f),seed=Random.value,lit=1,drag=2.5f};
  }
- /// Quench steam: translucent, lamp-lit vapour that leaves the water fast, spreads and thins over about `seconds`.
+ /// Quench steam: translucent, lamp-lit vapour that leaves the water fast, spreads and thins over about `seconds`
+ /// (a third of the puffs under reduced motion).
  void SteamPuff(Vector3 at,int count,float seconds){
-  if(reduced)return;
+  if(reduced)count=Mathf.Max(1,count/3);   // a quench still shows under reduced motion, as a thinner plume
   for(int i=0;i<count&&smokeCount<MaxSmoke;i++){float k=i/(float)Mathf.Max(1,count);smoke[smokeCount++]=new SmokeBit{p=at+new Vector3(Random.Range(-.05f,.05f),0,Random.Range(-.04f,.04f)),v=new Vector3(Random.Range(-.07f,.07f),Random.Range(.45f,.85f)*(1-.4f*k),Random.Range(-.05f,.05f)),age=-k*seconds*.6f,life=Random.Range(.8f,1.5f),size=Random.Range(.035f,.06f),grow=5f,opacity=.24f*(1-.35f*k),color=new Color32(236,236,234,255),spin=Random.Range(0,360f),seed=Random.value,lit=1,drag=1.1f};}
  }
  void KeepSale(Body b){

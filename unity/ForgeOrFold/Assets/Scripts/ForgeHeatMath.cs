@@ -95,6 +95,7 @@ using System;
   glowCap=ForgeTuning.Fit(glowCap,0,10,2.5f);glowLiftCm=ForgeTuning.Fit(glowLiftCm,0,30,3);glowRangeM=ForgeTuning.Fit(glowRangeM,0,4,.8f);hazeStrength=ForgeTuning.Fit(hazeStrength,0,.02f,.0025f);
   evolutionEmissionCap=ForgeTuning.Fit(evolutionEmissionCap,0,2,.6f);evolutionLiftCm=ForgeTuning.Fit(evolutionLiftCm,0,10,2);
   notchDepthMm=ForgeTuning.Fit(notchDepthMm,0,12,7);notchWidthCm=ForgeTuning.Fit(notchWidthCm,.2f,4,1.8f);spreadMaxMm=ForgeTuning.Fit(spreadMaxMm,0,8,3);
+  crackDarkAboveC=ForgeTuning.Fit(crackDarkAboveC,300,1400,900);crackPerM=ForgeTuning.Fit(crackPerM,4,200,40);crackGlow=ForgeTuning.Fit(crackGlow,0,4,.6f);
   steamPuffs=ForgeTuning.Fit(steamPuffs,0,32,16);quenchBubbles=ForgeTuning.Fit(quenchBubbles,0,40,14);quenchRings=ForgeTuning.Fit(quenchRings,0,6,3);
  }
  /// Pull temperature (C) of a metal key from the engine (config.ts METALS).

@@ -8,7 +8,7 @@
 #include "UnityCG.cginc"
 struct ForgeBB { float4 pos; float3 world; float2 local; float tail; float grow; };
 ForgeBB ForgeBillboard(float3 centre,float2 corner,float size,float3 vel,float stretch,float flat,float minPx,float angle){
- ForgeBB o;
+ ForgeBB o=(ForgeBB)0;
  float3 wc=mul(unity_ObjectToWorld,float4(centre,1)).xyz;
  float3 vc=mul(UNITY_MATRIX_V,float4(wc,1)).xyz;
  float depth=max(-vc.z,.01);

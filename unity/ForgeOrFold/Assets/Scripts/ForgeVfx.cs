@@ -161,7 +161,10 @@ public partial class ForgeWorld {
   float w=WorldDt(dt);var t=tuning.metal;
   MetalGlobals();UpdateSwatch();MetalProbe(dt);
   fxClock+=w;
-  float faceY=ForgeLayout.AnvilTopY;landKnife=null;foreach(var b in bodies.Values)if(b.knife.place=="anvil"){faceY=b.root.transform.position.y-.006f;landKnife=b;break;}
+  // The anvil face is where a settled anvil knife lies (its root sits 6 mm above the face); remembered for when the
+  // anvil is empty (after a Shatter or a Sell), ForgeLayout.AnvilTopY until a knife has settled there.
+  landKnife=null;foreach(var b in bodies.Values)if(b.knife.place=="anvil"){landKnife=b;if(b.velocity.sqrMagnitude<.0025f&&carriedId!=b.knife.id)anvilFaceY=b.root.transform.position.y-.006f;break;}
+  float faceY=anvilFaceY;
   if(landKnife!=null&&(landKnife.bladeRenderer==null||landKnife.heatState==null))landKnife=null;
   if(landKnife!=null){landBlade=landKnife.bladeRenderer.bounds;landBladeId=landKnife.knife.id;}else landBladeId=-1;
   for(int i=bitCount-1;i>=0;i--){
@@ -202,7 +205,7 @@ public partial class ForgeWorld {
   else{p.v.y=-p.v.y*p.bounce;p.v.x*=1-t.flakeFriction*.5f;p.v.z*=1-t.flakeFriction*.5f;}
   bool first=!p.landed;p.landed=true;return first;
  }
- Body landKnife;Bounds landBlade;int landBladeId=-1;
+ Body landKnife;Bounds landBlade;int landBladeId=-1;float anvilFaceY=ForgeLayout.AnvilTopY;
  static bool InXZ(Bounds b,Vector3 p)=>p.x>=b.min.x&&p.x<=b.max.x&&p.z>=b.min.z&&p.z<=b.max.z;
  /// The highest collision plane crossed between prev and p (y out). Planes: the top of the knife on the anvil (inside
  /// its outline), ForgeLayout stations (anvil face at faceY, stump, bench, hearth top) and the floor.

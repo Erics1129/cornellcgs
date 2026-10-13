@@ -45,6 +45,10 @@ static class ForgeHeatTests {
  static void Hex(string h,out float r,out float g,out float b){r=Convert.ToInt32(h.Substring(1,2),16)/255f;g=Convert.ToInt32(h.Substring(3,2),16)/255f;b=Convert.ToInt32(h.Substring(5,2),16)/255f;}
  /// Displayed sRGB of the emission at c degrees C on black (exposure 1.13 + ACES, then sRGB encode).
  static void Display(float c,ForgeMetalTuning t,out float r,out float g,out float b){ForgeHeatMath.Emission(c,t,out r,out g,out b);r=ForgeHeatMath.Encode(ForgeHeatMath.Tonemap(r));g=ForgeHeatMath.Encode(ForgeHeatMath.Tonemap(g));b=ForgeHeatMath.Encode(ForgeHeatMath.Tonemap(b));}
+ /// Area (knife units squared, projected on xz) of the upward-facing triangles of a part (0 = blade).
+ static double TopArea(ForgeMeshBuffer o,int part){double sum=0;for(int i=0;i<o.tris.Count;i+=3){int a=o.tris[i],b=o.tris[i+1],c=o.tris[i+2];if(o.uv1[a*4+1]!=part)continue;
+   double ux=o.pos[b*3]-o.pos[a*3],uy=o.pos[b*3+1]-o.pos[a*3+1],uz=o.pos[b*3+2]-o.pos[a*3+2],vx=o.pos[c*3]-o.pos[a*3],vy=o.pos[c*3+1]-o.pos[a*3+1],vz=o.pos[c*3+2]-o.pos[a*3+2];
+   double nx=uy*vz-uz*vy,ny=uz*vx-ux*vz,nz=ux*vy-uy*vx,l=Math.Sqrt(nx*nx+ny*ny+nz*nz);if(l<1e-12||ny/l<.7)continue;sum+=Math.Abs(ny)*.5;}return sum;}
  static float Luma(float c,ForgeMetalTuning t){ForgeHeatMath.Emission(c,t,out var r,out var g,out var b);return .2126f*ForgeHeatMath.Tonemap(r)+.7152f*ForgeHeatMath.Tonemap(g)+.0722f*ForgeHeatMath.Tonemap(b);}
 
  static int Main(){
@@ -152,6 +156,19 @@ static class ForgeHeatTests {
    // Normalized coordinates: a mark keeps its (u, v) while the blade draws out (Locate inverts Point).
    Profile(0,2,out var xl,out var zl);shape.Build(xl,zl,xl.Length,2,0,t);shape.Point(40,.3f,out var px,out var pz);shape.Locate(px,pz,out var lu,out var lvv);Check(Math.Abs(lu-shape.U(40))<.011f&&Math.Abs(lvv-.3f)<.02f,"Locate inverts Point");
   }
+
+  // 10. Jagged shatter pieces tile the blade: their upward faces add up to the blade's top area (no gaps, no overlaps).
+  {var shape=new ForgeBladeShape();var buf=new ForgeMeshBuffer();var pieces=new List<ForgeShardPiece>();var rnd=new Random(11);float worstGap=0;
+   for(int f=0;f<8;f++)foreach(int lv in new[]{3,7,13}){
+    Profile(f,lv,out var xs,out var zs);Array.Clear(shape.spread,0,ForgeBladeShape.S);shape.notchU=-1;shape.Build(xs,zs,xs.Length,lv,f,t);
+    shape.Mesh(buf,t,false,0,null,null);double blade=TopArea(buf,0);shape.Shatter(pieces,t,()=>(float)rnd.NextDouble());double sum=0;
+    for(int k=0;k<pieces.Count-1;k++)sum+=TopArea(pieces[k].mesh,0);
+    float gap=(float)Math.Abs(sum/blade-1);worstGap=Math.Max(worstGap,gap);Check(gap<.03f,$"family {f} level {lv}: shatter pieces cover the blade ({sum/blade*100:0.0}% of its top area)");}
+   Info($"shatter pieces vs blade top area: worst {worstGap*100:0.0}%");
+  }
+  // 11. Tuning clamps: a hostile feel-tuning.json cannot break the look.
+  {var bad=new ForgeMetalTuning{notchDepthMm=100,oxideCellCm=0,crackDarkAboveC=float.NaN,glowLiftCm=-5,capDesktop=5000,shardsMax=99,sparksPerfect=40,emissionScale=float.PositiveInfinity};bad.Clamp();
+   Check(bad.notchDepthMm<=12&&bad.oxideCellCm>=.1f&&!float.IsNaN(bad.crackDarkAboveC)&&bad.glowLiftCm>=0&&bad.capDesktop<=220&&bad.shardsMax<=16&&bad.sparksPerfect<=4&&bad.emissionScale==2.2f,"metal tuning clamps hostile values (cap 220, 16 pieces, at most 4 Perfect sparks)");}
 
   if(failures>0){Console.WriteLine($"FAIL ForgeHeatTests: {failures} of {checks} checks failed");return 1;}
   Console.WriteLine($"PASS ForgeHeatTests ({checks} checks)");return 0;
