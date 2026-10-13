@@ -1,7 +1,7 @@
 // strike-feel visual loop: the hearth reach on a timeline, the hammer at press +1 frame, apex and contact, close-ups
 // of the hands, and the per-outcome hit-stop frames, rendered by the frozen editor rig (ForgeSnapshots.Capture).
 // usage: node scripts/forge-qa/strike-snapshots.mjs --out <dir> [--project unity/ForgeOrFold] [--view desktop|phone|landscape]
-//          [--sheet] [--fixtures-only] [--only hearth,hearthside,quenchside,strike,closeup,outcomes,flow,moves,look]
+//          [--sheet] [--fixtures-only] [--only hearth,hearthside,quenchside,strike,closeup,outcomes,flow,moves,sell,look]
 // Steps it adds on top of the rig: Qa('strike-press=<seq>') presses without the rig resolving the hit (pose frames),
 // Qa('strike-cam=ex,ey,ez,tx,ty,tz,fov') / Qa('strike-cam=off') overrides the camera (editor only), Qa('strike-bones')
 // logs the arm bones (FORGE_BONES in unity.log). Telemetry frames land in index.json messages.
@@ -18,7 +18,7 @@ const repo = resolve(dirname(fileURLToPath(import.meta.url)), '../..')
 const project = resolve(arg('project', join(repo, 'unity/ForgeOrFold')))
 const out = resolve(arg('out', join(repo, 'output/strike-snapshots')))
 const view = arg('view', 'desktop'), dt = Number(arg('dt', 1 / 120))
-const only = new Set((arg('only', 'hearth,hearthside,quenchside,strike,closeup,outcomes,flow,moves,look')).split(','))
+const only = new Set((arg('only', 'hearth,hearthside,quenchside,strike,closeup,outcomes,flow,moves,sell,look')).split(','))
 const editor = process.env.UNITY_EDITOR || '/Applications/Unity/Hub/Editor/6000.3.18f1/Unity.app/Contents/MacOS/Unity'
 
 const payload = (state, event, selected = 1, extra = {}) => JSON.stringify({ ...snapshotPayload(state, selected, { reduced: false, ...extra }), effect: unityEffect(event) })
@@ -121,6 +121,14 @@ if (only.has('moves')) {
   const R = (st, ev) => payload(st, ev, 1, { reduced: true })
   steps.push({ do: 'sync', json: R(r0.state, r0.event) }, W8(.3), { do: 'sync', json: R(r1.state, r1.event) }, W8(.3), C('reduced-300'), W8(1.4), { do: 'sync', json: R(r2.state, r2.event) }, { do: 'sync', json: R(r3.state, r3.event) }, W8(.07), C('reduced-fade-70'), W8(.2), C('reduced-seated'))
   steps.push({ do: 'sync', json: payload(r3.state) }, W8(.3))
+}
+if (only.has('sell')) {
+  // Sell from the anvil: the sale arc to the scale with a 35 deg glance toward it (.3 s out, .25 hold, .35 back).
+  const sold = step(seated.state, { type: 'sell', id: 1 })
+  steps.push({ do: 'sync', json: payload(heated.state, heated.event) }, { do: 'sync', json: payload(seated.state, seated.event) }, W8(.8), { do: 'sync', json: payload(sold.state, sold.event) })
+  let t = 0
+  for (const at of [.15, .3, .5, .75, 1.0]) { steps.push(W8(+(at - t).toFixed(4)), C('sell-' + Math.round(at * 1000))); t = at }
+  steps.push({ do: 'sync', json: payload(seated.state) }, W8(.4))
 }
 if (only.has('look')) {
   steps.push({ do: 'sync', json: payload(seated.state) }, W8(.6))

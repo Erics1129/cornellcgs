@@ -82,8 +82,9 @@ public partial class ForgeWorld {
   float shakeAmount=reduced?0:trauma*trauma*(state!=null?state.shake:1);
   float sp=shakeAmount*k.shakeMaxDeg*ForgeFeel.Noise(shakeTime*k.shakeHz,11),sy=shakeAmount*k.shakeMaxDeg*ForgeFeel.Noise(shakeTime*k.shakeHz,23),sr=shakeAmount*k.shakeRollDeg*ForgeFeel.Noise(shakeTime*k.shakeHz,37);
   var shakePos=new Vector3(ForgeFeel.Noise(shakeTime*k.shakeHz,41),ForgeFeel.Noise(shakeTime*k.shakeHz,43),0)*(.001f*k.shakeMm*shakeAmount);
-  float glanceYaw=0;if(glanceT>=0){glanceT+=dt;float g=ForgeFeel.Glance(k,glanceT);if(g<0||reduced)glanceT=-1;else{var to=spots["sell"]-camBasePos;float d=Mathf.DeltaAngle(camBaseRot.eulerAngles.y,Mathf.Atan2(to.x,to.z)*Mathf.Rad2Deg);glanceYaw=Mathf.Clamp(d,-k.glanceDeg,k.glanceDeg)*g;}}
-  var finalRot=Quaternion.Euler(0,glanceYaw,0)*camBaseRot*Quaternion.Euler(kickPitch+headDip+sp,sy,kickRoll+sr+bobRoll);
+  // The sale glance turns the view toward the scale (yaw and pitch), at most glanceDeg.
+  var lookRot=camBaseRot;if(glanceT>=0){glanceT+=dt;float g=ForgeFeel.Glance(k,glanceT);if(g<0||reduced)glanceT=-1;else{var want=Quaternion.LookRotation(spots["sell"]+Vector3.up*.08f-camBasePos);float ang=Quaternion.Angle(camBaseRot,want);if(ang>1e-3f)lookRot=Quaternion.Slerp(camBaseRot,want,g*Mathf.Min(1,k.glanceDeg/ang));}}
+  var finalRot=lookRot*Quaternion.Euler(kickPitch+headDip+sp,sy,kickRoll+sr+bobRoll);
   cam.transform.position=camBasePos+finalRot*(new Vector3(bobSide,bobUp,0)+shakePos)+Vector3.down*kickDrop;cam.transform.rotation=finalRot;
   cameraHome=camBasePos;
   // ---- FOV: eased 0.3 s, plus the punch, minus the risk push-in ----
