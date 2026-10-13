@@ -230,8 +230,18 @@ export class ForgeUnity {
   }
   get renderDpr() { return this.renderDprValue }
   get busy() { return !this.instance || this.strikes.inFlight > 0 }
-  /** Start a strike; returns its seq (0 when busy). onImpact runs on that seq's 'impact' only. */
-  strike(onImpact: () => void): number { if (this.busy) return 0; const seq = this.strikes.begin(onImpact); this.instance!.SendMessage('Forge', 'Strike', String(seq)); return seq }
+  /**
+   * Start a strike; returns its seq (0 when busy). onImpact runs on that seq's 'impact' only. onSend runs with
+   * the seq just before the SendMessage, because Unity answers inside that call ('swing', or 'settled'
+   * x = -1 when it refuses), so the page must already know the strike it is answering.
+   */
+  strike(onImpact: () => void, onSend?: (seq: number) => void): number {
+    if (this.busy) return 0
+    const seq = this.strikes.begin(onImpact)
+    onSend?.(seq)
+    this.instance!.SendMessage('Forge', 'Strike', String(seq))
+    return seq
+  }
   get latestStrike() { return this.strikes.latest }
   /** The HUD Motion setting: 'reduced' runs the reduced-motion choreography, 'off' also drops kicks and turns. */
   setMotion(m: Motion) { this.motionSetting = m }

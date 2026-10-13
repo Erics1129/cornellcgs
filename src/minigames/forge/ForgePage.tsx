@@ -11,7 +11,7 @@ import { ForgeAudio } from './audio'
 import { audioTuning } from './audio-spec'
 import { anvilRisk, viewClass } from './bridge'
 import type { Motion, ViewClass } from './bridge'
-import { HeatClock, StrikeGate, coinFallback, coinStep, hapticPattern, hitHaptic, labelPlacement, nextRoll, oddsAtContact, outcomeLabel, prepareTarget, survival, tension, webTuning } from './feel'
+import { HeatClock, StrikeGate, bladePoint, coinFallback, coinStep, hapticPattern, hitHaptic, labelPlacement, nextRoll, oddsAtContact, outcomeLabel, prepareTarget, survival, tension, webTuning } from './feel'
 import type { GateInput, OutcomeLabel, RefuseReason } from './feel'
 import feelTuning from './feel-tuning.json'
 import KnifePortrait from './KnifePortrait'
@@ -41,13 +41,17 @@ const canVibrate=typeof navigator!=='undefined'&&typeof navigator.vibrate==='fun
 const isTouch=()=>matchMedia('(pointer: coarse)').matches||navigator.maxTouchPoints>0
 const readSetting=<T extends string>(key:string,allowed:readonly T[],fallback:T):T=>{try{const v=localStorage.getItem(key) as T|null;return v&&allowed.includes(v)?v:fallback}catch{return fallback}}
 const writeSetting=(key:string,v:string)=>{try{localStorage.setItem(key,v)}catch{/* settings are optional */}}
-/** Restart a one-shot CSS animation class without remounting (focus stays where it is). */
 /** QA only (?forge-telemetry=1): every press decision, refusal, sent strike and lock change, for scripts/forge-qa/web.mjs. */
 type QaEntry={t:number;kind:string;reason?:string;seq?:number;on?:boolean}
 declare global{interface Window{__forgePresses?:QaEntry[]}}
 const qaLog=(e:Omit<QaEntry,'t'>)=>{if(typeof window==='undefined'||!window.__forgePresses)return;window.__forgePresses.push({t:performance.now(),...e});if(window.__forgePresses.length>5000)window.__forgePresses.splice(0,1000)}
 if(typeof window!=='undefined'&&new URLSearchParams(location.search).get('forge-telemetry')==='1')window.__forgePresses=[]
-const restart=(el:HTMLElement|null,cls:string)=>{if(!el)return;el.classList.remove(cls);void el.offsetWidth;el.classList.add(cls)}
+/**
+ * Restart a one-shot CSS cue class without remounting (focus stays where it is). The class comes off after
+ * `ms`, so reduced motion can show it as a short static ring instead of the shake or glow.
+ */
+const cueTimers=new WeakMap<HTMLElement,Map<string,ReturnType<typeof setTimeout>>>()
+const restart=(el:HTMLElement|null,cls:string,ms=240)=>{if(!el)return;el.classList.remove(cls);void el.offsetWidth;el.classList.add(cls);let m=cueTimers.get(el);if(!m)cueTimers.set(el,m=new Map());clearTimeout(m.get(cls));m.set(cls,setTimeout(()=>el.classList.remove(cls),ms))}
 
 /** Centered dialog, or a docked tray (Trade, Rest) that leaves the anvil in view. */
 function Modal({title,close,children,accessory,tray=false}:{title:string;close:()=>void;children:ReactNode;accessory?:ReactNode;tray?:boolean}){
@@ -58,6 +62,7 @@ function Modal({title,close,children,accessory,tray=false}:{title:string;close:(
  </dialog>
 }
 type Callout={id:number;label:OutcomeLabel;x:number;y:number}
+type Mark={id:number;x:number;y:number}
 type Held={knife:Knife;value:number}
 type SaleCount={from:number;amount:number;start:number;coins:boolean}
 
@@ -83,7 +88,7 @@ export default function ForgePage(){
  const [osReduced,setOsReduced]=useState(()=>matchMedia('(prefers-reduced-motion: reduce)').matches)
  const [view,setView]=useState<ViewClass>(()=>viewClass(innerWidth,innerHeight,isTouch()))
  const [workFocus,setWorkFocus]=useState(false),workFocusRef=useRef(workFocus);workFocusRef.current=workFocus
- const [callout,setCallout]=useState<Callout|null>(null)
+ const [callout,setCallout]=useState<Callout|null>(null),[mark,setMark]=useState<Mark|null>(null),markId=useRef(0)
  const [held,setHeld]=useState<Held|null>(null),holdTimers=useRef<ReturnType<typeof setTimeout>[]>([])
  const [history,setHistory]=useState<Outcome[]>([]),[roll,setRoll]=useState<Roll|null>(null)
  const [goldCount,setGoldCount]=useState<number|null>(null),saleCount=useRef<SaleCount|null>(null)
@@ -119,11 +124,13 @@ export default function ForgePage(){
  /** Refusal feedback: the Forge key shakes, a dry tick, a scene hint, and a short text hint at most every 1.8 s. */
  const refuse=(reason:RefuseReason)=>{
   const now=performance.now()
-  restart(strikeKey.current,'is-refused');audio.ui('refuse');scene.current?.refuse(reason);qaLog({kind:'feedback',reason})
+  restart(strikeKey.current,'is-refused',TUNING.hud.keyCueMs);audio.ui('refuse');scene.current?.refuse(reason);qaLog({kind:'feedback',reason})
+  // In the scene too: a small ring on the blade, where the player is looking (not only on the key).
+  if(reason==='risk'||reason==='hold'||reason==='cancelled'){const m=mainRef.current;if(m){const r=m.getBoundingClientRect(),p=bladePoint(anvilLabel.current,r.width,r.height,scene.current?.measureBands()||{top:0,bottom:0,left:0,right:0});setMark({id:++markId.current,x:Math.round(p.x),y:Math.round(p.y)})}}
   const hint=reason==='risk'?'High risk · watch each result first':reason==='heating'?'Still heating':reason==='cancelled'?'Swing cancelled':''
   if(hint&&now-lastHint.current>TUNING.hud.refuseHintMs){lastHint.current=now;setNotice(hint)}
  }
- const acknowledge=()=>restart(strikeKey.current,'is-queued')
+ const acknowledge=()=>restart(strikeKey.current,'is-queued',TUNING.hud.keyCueMs)
  const scheduleDue=()=>{
   clearTimeout(dueTimer.current)
   const now=performance.now(),p={protocol:protocol()},times=[gate.nextDue(p),gate.seatDeadline(p),gate.unlockAt(),gate.heatDeadline()].filter((t):t is number=>t!==null&&Number.isFinite(t))
@@ -183,7 +190,8 @@ export default function ForgePage(){
     if(flowing&&now-lastPulse.current>=TUNING.hud.flowPulseMs){lastPulse.current=now;setFlowPulse(n=>n+1)}
     if(a.outcome==='shatter'){
      // Hold the loss on screen: the broken knife's card for 1.5 s, the next knife chosen at 1.2 s.
-     gate.shatter(now);heatClock.left(a.before.id);setHeld({knife:a.before,value:value(a.before,current.state)})
+     if(gate.shatter(now)){restart(strikeKey.current,'is-refused',TUNING.hud.keyCueMs);qaLog({kind:'feedback',reason:'hold'})}
+     heatClock.left(a.before.id);setHeld({knife:a.before,value:value(a.before,current.state)})
      holdTimers.current.forEach(clearTimeout)
      holdTimers.current=[setTimeout(()=>{const st=sessionRef.current.state;if(!st.knives.some(n=>n.id===selectedRef.current))choose(st.knives.find(n=>n.place==='anvil')?.id||prepareTarget(st)?.id||st.knives[0]?.id||0)},TUNING.gate.shatterChooseMs),setTimeout(()=>{gate.endHold();setHeld(null)},TUNING.gate.shatterHoldMs)]
     }
@@ -230,9 +238,12 @@ export default function ForgePage(){
   if(tradeLock.current||prepareId.current){refuse('busy');return}
   const input=gateInput(now)
   choose(target.id)
-  const seq=scene.current?.strike(()=>sendRef.current({type:'hit',id:target.id}))||0
+  // The gate learns the seq before the SendMessage: Unity answers inside it ('swing', or 'settled' x = -1).
+  let accepted=true
+  const seq=scene.current?.strike(()=>sendRef.current({type:'hit',id:target.id}),s=>{accepted=gate.sent(s,now,input);qaLog({kind:'sent',seq:s})})||0
   if(!seq){refuse('busy');return}
-  gate.sent(seq,now,input);setWorkFocus(true);qaLog({kind:'sent',seq})
+  if(!accepted)refuse('cancelled')
+  setWorkFocus(true)
   if(legacy())audio.swingFoley(gate.predictContact(now,input)-now)
   scheduleDue();refreshBusy()
  }
@@ -312,6 +323,7 @@ export default function ForgePage(){
  useEffect(()=>{if(!receipt)return;const t=setTimeout(()=>setReceipt(null),2600);return()=>clearTimeout(t)},[receipt])
  useEffect(()=>{if(!notice)return;const t=setTimeout(()=>setNotice(''),2400);return()=>clearTimeout(t)},[notice])
  useEffect(()=>{if(!callout)return;const t=setTimeout(()=>setCallout(null),callout.label.holdMs);return()=>clearTimeout(t)},[callout])
+ useEffect(()=>{if(!mark)return;const t=setTimeout(()=>setMark(null),TUNING.hud.refuseMarkMs);return()=>clearTimeout(t)},[mark])
  useEffect(()=>{if(!roll)return;const t=setTimeout(()=>setRoll(null),roll.holdMs);return()=>clearTimeout(t)},[roll])
  // Sale count fallback when no coin-land events arrive: hold, then ease to the exact total by 1.1 s.
  useEffect(()=>{if(goldCount===null)return;let frame=0;const tick=()=>{const c=saleCount.current;if(!c){setGoldCount(null);return}const ms=performance.now()-c.start;if(c.coins){if(ms>TUNING.hud.coinFallbackEndMs*2.5){saleCount.current=null;setGoldCount(null);return}}else{setGoldCount(coinFallback(c.from,c.amount,ms,TUNING.hud));if(ms>=TUNING.hud.coinFallbackEndMs){saleCount.current=null;setGoldCount(null);return}}frame=requestAnimationFrame(tick)};frame=requestAnimationFrame(tick);return()=>cancelAnimationFrame(frame)},[goldCount===null])
@@ -319,7 +331,7 @@ export default function ForgePage(){
  },[panel])
  useEffect(()=>{const tick=setInterval(()=>advanceRef.current(),100);const save=()=>{clockMark.current=performance.now();gate.cancelBuffer();saveSession(sessionRef.current);if(document.hidden)audio.suspend()};window.addEventListener('pagehide',save);document.addEventListener('visibilitychange',save);return()=>{clearInterval(tick);clearTimeout(dueTimer.current);holdTimers.current.forEach(clearTimeout);saveSession(sessionRef.current);window.removeEventListener('pagehide',save);document.removeEventListener('visibilitychange',save);audio.dispose()}},[audio,gate])
  // Unity frames the anvil inside the HUD-free band: re-send the bands whenever the HUD layout changes.
- useLayoutEffect(()=>{const f=requestAnimationFrame(()=>scene.current?.insets());return()=>cancelAnimationFrame(f)},[panel,view,ready,oddsOpen,workFocus,s.knives.length,s.ended,!!s.offer])
+ useLayoutEffect(()=>{const f=requestAnimationFrame(()=>scene.current?.insets());return()=>cancelAnimationFrame(f)},[panel,view,ready,oddsOpen,workFocus,s.knives.length,s.ended,!!s.offer,!!held])
  useEffect(()=>{const key=(e:KeyboardEvent)=>{
   if(e.key==='Escape'){if(document.querySelector('dialog[open]'))return;setImmersive(false);setPanel(null);return}
   if(e.target instanceof HTMLElement&&(e.target.isContentEditable||/^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)))return
@@ -332,7 +344,7 @@ export default function ForgePage(){
  },[])
  const refreshBoard=async()=>{if(!API){setScores(localScores());return}try{const data=await api<{scores:Score[];player:Score|null}>(`/scores?playerId=${encodeURIComponent(player.playerId)}`);setScores(data.scores);setMyScore(data.player);setBoardStatus('World board · Verified runs')}catch{setScores(localScores());setBoardStatus('World board offline · Local scores on this device')}}
  useEffect(()=>{if(panel!=='board')return;void refreshBoard();const t=setInterval(()=>void refreshBoard(),RULES.leaderboardRefreshMs);return()=>clearInterval(t)},[panel])
- const resetFeel=()=>{gate.reset();holdTimers.current.forEach(clearTimeout);holdTimers.current=[];setHeld(null);setCallout(null);setHistory([]);setRoll(null);flowStep.current=0;refreshBusy()}
+ const resetFeel=()=>{gate.reset();holdTimers.current.forEach(clearTimeout);holdTimers.current=[];setHeld(null);setCallout(null);setMark(null);setHistory([]);setRoll(null);flowStep.current=0;refreshBusy()}
  const newRun=async()=>{setPosting(true);let next:Session;try{if(API){const ticket=await api<Ticket>('/runs',{playerId:player.playerId,proof:player.proof});next=fresh(ticket.seed,ticket)}else next=fresh()}catch(e){setNotice(`Starting locally. ${(e as Error).message}`);next=fresh()}sessionRef.current=next;clockMark.current=performance.now();resetFeel();setSession(next);choose(next.state.knives[0].id);saveSession(next);scene.current?.sync(next.state,next.state.knives[0].id);setPosting(false);setPanel(null)}
  const autoTicket=useRef<Promise<Ticket>|null>(null)
  useEffect(()=>{if(!API||sessionRef.current.ticket||sessionRef.current.actions.some(a=>a.type!=='wait'&&a.type!=='tick'))return;let active=true;if(!autoTicket.current)autoTicket.current=api<Ticket>('/runs',{playerId:player.playerId,proof:player.proof});void autoTicket.current.then(ticket=>{if(!active||sessionRef.current.ticket||sessionRef.current.actions.some(a=>a.type!=='wait'&&a.type!=='tick'))return;const next=fresh(ticket.seed,ticket);sessionRef.current=next;setSession(next);choose(next.state.knives[0].id);saveSession(next);scene.current?.sync(next.state,next.state.knives[0].id)}).catch(()=>{if(active)setBoardStatus('World board offline · Local scores on this device')});return()=>{active=false}},[player])
@@ -371,7 +383,8 @@ export default function ForgePage(){
  const flowExpiring=!!shown?.expiring
  const survive=boardKnife?survival(boardKnife,s,TUNING.hud.surviveStrikes,{firstContactMs:contactMs,flowCycleMs:TUNING.gate.flowCycleMs}):1
  const phone=view!=='desktop'
- const strikeLabel=preparing?'Heating':!anvil?'Prepare and forge':'Forge'
+ // The accessible name matches the visible text (WCAG 2.5.3).
+ const strikeLabel=preparing?'Heating':!anvil?'Start forging':'Forge'
  return <MinigameShell pageId="forge-or-fold" title="Forge or Fold" back={{href:'/minigames/',label:'All games'}} skip={{href:'#forge-main',label:'Skip to forge'}} className={`ff-page view-${view} ${immersive?'is-immersive':''} ${calm?'is-calm':''}`}>
  <main id="forge-main" ref={mainRef} className={`ff-main ${workFocus?'is-work-focus':''} ${panel==='shop'||(panel==='end'&&!s.ended)?'is-tray-open':''} ${flowing?'is-flowing':flowReady?'is-flow-ready':''} ${oddsOpen?'is-odds-open':''}`} tabIndex={-1}>
   <div className="ff-scene" ref={root} data-testid="forge-scene"/>
@@ -406,6 +419,7 @@ export default function ForgePage(){
     {heating&&<span key={heating.id} className="ff-heating"><ForgeIcon name="fire"/>Heating<span className="ff-heat-bar"/></span>}
     {callout&&<div key={callout.id} className={`ff-callout ff-outcome ff-outcome-${callout.label.kind}`} style={{left:callout.x,top:callout.y,'--hold':`${callout.label.holdMs}ms`} as CSSProperties}><b>{callout.label.title}</b><span>{callout.label.delta}</span>{callout.label.sub&&<small>{callout.label.sub}</small>}</div>}
     {notice&&<span className="ff-toast">{notice}</span>}
+    {mark&&<i key={mark.id} className="ff-refuse-mark" aria-hidden="true" style={{left:mark.x,top:mark.y,'--hold':`${TUNING.hud.refuseMarkMs}ms`} as CSSProperties}/>}
    </div>
    <div className="ff-touch-controls" aria-label="Touch movement"><div className="ff-dpad">{touchControl('KeyW','Move forward','▲','ff-pad-up')}{touchControl('KeyA','Move left','◀','ff-pad-left')}<span className="ff-pad-center"/>{touchControl('KeyD','Move right','▶','ff-pad-right')}{touchControl('KeyS','Move backward','▼','ff-pad-down')}</div>{touchControl('KeyE','Handle','✋','ff-pad-handle')}</div>
    <div className="ff-control-hint"><kbd>WASD</kbd> Move <span>Drag to look</span><kbd>E</kbd> Handle</div>
@@ -415,7 +429,7 @@ export default function ForgePage(){
     <div className="ff-actionbar">
      <button className="ff-trade" disabled={unavailable} aria-disabled={blocked||undefined} onClick={guard(()=>trade('buy'))}><ForgeIcon name="shop"/><span>Trade</span><kbd>T</kbd></button>
      <button className="ff-keep" disabled={unavailable||!k||k.place==='rack'} aria-disabled={blocked||undefined} onClick={guard(keep)}><ForgeIcon name="keep"/><span>Keep</span></button>
-     <button ref={strikeKey} className="ff-strike" disabled={unavailable} aria-disabled={trading||undefined} aria-label={strikeLabel} onClick={hit}><ForgeIcon name={preparing?'fire':'hammer'}/><span>{preparing?'Heating':!anvil?'Start forging':'Forge'}</span><kbd>Space</kbd></button>
+     <button ref={strikeKey} className="ff-strike" disabled={unavailable} aria-disabled={trading||undefined} aria-label={strikeLabel} onClick={hit}><ForgeIcon name={preparing?'fire':'hammer'}/><span>{strikeLabel}</span><kbd>Space</kbd></button>
      <button className="ff-quick-sell" disabled={unavailable||!k} aria-disabled={blocked||undefined} aria-label={k?`Sell ${METALS[k.metal].name} ${FAMILIES[k.family]} for ${saleValue(s,k)} gold`:"Sell knife"} title="Sells this knife immediately" onClick={guard(()=>{if(k)sell(k.id)})}><ForgeIcon name="sell"/><span>Sell <b>{k?format(saleValue(s,k)):"—"}</b></span></button>
      <button className="ff-rest" disabled={unavailable} aria-disabled={blocked||undefined} onClick={guard(()=>setPanel('end'))}><ForgeIcon name="moon"/><span>Rest</span></button>
     </div>

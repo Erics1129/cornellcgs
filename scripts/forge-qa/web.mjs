@@ -132,6 +132,7 @@ async function desktop(kind = 'desktop') {
     await h.page.keyboard.press('Escape'); await sleep(300)
     r.console = h.consoleLines.filter(l => /\[(error|pageerror)\]/.test(l) && !/loading-v3\.webp/.test(l))
     check(kind, 'no console errors (loading-v3.webp is created at integration)', r.console.length === 0, r.console.slice(0, 5))
+    if (kind === 'desktop') await heatingBuffer(h, kind)
     if (kind === 'desktop' && fuzzN > 0) await fuzz(h, kind, fuzzN)
   } finally { await h.close() }
 }
@@ -168,7 +169,27 @@ async function fuzz(h, kind, n) {
   const lockedAt = t => { const b = busy.filter(e => e.t <= t).at(-1); return !!b?.on }
   let worst = 0; for (const ti of impacts) { const later = sentLog.find(s => s > ti); const until = Math.min(later ?? Infinity, ti + 3000); for (let t = ti; t < until; t += 25) if (lockedAt(t)) worst = Math.max(worst, t - ti) }
   check(kind, 'fuzz: HUD never locked more than 1.2 s after an impact', worst <= 1250, { worstMs: Math.round(worst) })
+  // Protocol 2: every Strike the page sent got its impact or its settled, and Unity never refused one at the
+  // moment it was sent (a refusal inside the SendMessage is the frame race or a page/Unity timing mismatch).
+  if (report.profiles[kind].open?.protocol >= 2) {
+    const sentSeqs = log.filter(e => e.kind === 'sent'), resolved = id => ev.some(e => (e.type === 'impact' || e.type === 'settled') && e.id === id)
+    const atSend = sentSeqs.filter(sq => ev.some(e => e.type === 'settled' && e.x < 0 && e.id === sq.seq && Math.abs(e.t - sq.t) < 5))
+    check(kind, 'fuzz: every sent strike resolved (impact or settled), none refused by Unity when sent', sentSeqs.every(sq => resolved(sq.seq)) && atSend.length === 0, { sent: sentSeqs.length, unresolved: sentSeqs.filter(sq => !resolved(sq.seq)).map(sq => sq.seq).slice(0, 5), refusedAtSend: atSend.map(sq => sq.seq).slice(0, 5) })
+  }
   report.profiles[kind].fuzz = { tally, impacts: impacts.length, worstLockMs: Math.round(worst) }
+}
+
+/** One press in the last 600 ms of heating is held and fires once the blank is seated (never into an empty anvil). */
+async function heatingBuffer(h, kind) {
+  // Sell the anvil knife if there is one, so Space starts forging a blank.
+  if ((await hud(h)).strike === 'Forge') { await h.page.locator('.ff-quick-sell').click(); await sleep(900) }
+  const t0 = await press(h, 'Space'); await sleep(1550)
+  await press(h, 'Space', 12)
+  const seated = await waitEvent(h, 'seated', t0, 5000); await sleep(1200)
+  const log = (await presses(h, t0)).filter(e => e.kind !== 'busy'), ev = await unityEvents(h, t0)
+  const held = log.find(e => e.kind === 'buffer' && e.reason === 'seated'), sent = log.find(e => e.kind === 'sent' && held && e.t > held.t)
+  const impact = sent && ev.find(e => e.type === 'impact' && e.t > sent.t)
+  check(kind, "a press in the last 600 ms of heating is held and fires once the blank is seated", !!held && !!sent && !!impact && (!seated || sent.t >= seated.t - 1), { held: held && Math.round(held.t - t0), seated: seated && Math.round(seated.t - t0), sent: sent && Math.round(sent.t - t0), impact: impact && Math.round(impact.t - t0) })
 }
 
 async function shatterHold(kind = 'desktop') {
@@ -183,7 +204,7 @@ async function shatterHold(kind = 'desktop') {
     const seen = []; let pressed300 = false, fit = null
     while ((await now(h)) - imp.t < 2200) {
       const ms = (await now(h)) - imp.t
-      if (!pressed300 && ms > 300) { pressed300 = true; await press(h, 'Space', 12) }
+      if (!pressed300 && ms > 300) { pressed300 = true; await press(h, 'Space', 12); seen.mark = await h.page.evaluate(() => { const m = document.querySelector('.ff-refuse-mark'); if (!m) return null; const r = m.getBoundingClientRect(); return { x: Math.round(r.left + r.width / 2), y: Math.round(r.top + r.height / 2), w: Math.round(r.width) } }) }
       seen.push({ ms, callout: await h.page.evaluate(() => !!document.querySelector('.ff-outcome-shatter')), text: await h.page.evaluate(() => document.querySelector('.ff-outcome-shatter')?.textContent || ''), held: await h.page.evaluate(() => !!document.querySelector('.ff-blade-info.is-held')), selected: await h.page.evaluate(() => document.querySelector('.ff-knife-card.is-selected')?.getAttribute('aria-label') || '') })
       if (Math.abs(ms - 700) < 40) { await h.shot('shatter-held'); fit = await h.page.evaluate(() => { const c = document.querySelector('.ff-outcome-shatter'); if (!c) return null; const r = c.getBoundingClientRect(), b = c.querySelector('b').getBoundingClientRect(), sp = c.querySelector('span').getBoundingClientRect(); return { left: Math.round(r.left), right: Math.round(r.right), vw: innerWidth, oneLine: Math.abs(b.top - sp.top) < b.height / 2 } }) }
       await sleep(30)
@@ -195,6 +216,7 @@ async function shatterHold(kind = 'desktop') {
     check(kind, 'next knife chosen no earlier than 1.2 s after impact', firstSel === null || firstSel >= 1200 - 40, { firstSelectedMs: firstSel && Math.round(firstSel) })
     const log = await presses(h, imp.t)
     check(kind, 'a press 300 ms after a Shatter is refused (hold)', log.some(e => e.kind === 'refuse' && e.reason === 'hold'), log.filter(e => e.kind !== 'busy').slice(0, 4))
+    check(kind, 'the refused press is marked on the blade, not only on the key', !!seen.mark && seen.mark.y > (await rect(h, '.ff-blade-info')).bottom && seen.mark.y < (await rect(h, '.ff-bottom')).y, seen.mark)
     // A press after 600 ms ends the hold and goes on (starts the next blank).
     const h2 = await launch(kind, { out: path.join(outDir, kind + '-shatter2') })
     try {
@@ -283,6 +305,13 @@ async function reduced() {
     const t = await press(h, 'Space'); await waitEvent(h, 'impact', t, 3000); await sleep(80)
     const st = await h.page.evaluate(() => { const c = document.querySelector('.ff-callout'); return c ? { anim: getComputedStyle(c).animationName, opacity: getComputedStyle(c).opacity } : null })
     check('reduced', 'callouts are static (no animation) under reduced motion', st && (st.anim === 'none' || st.anim === '') && st.opacity === '1', st)
+    // A refusal under reduced motion: a short static ring on the key (no shake), gone again after the cue.
+    await waitEvent(h, 'settled', t, 3000); await sleep(150)
+    await h.page.locator('.ff-quick-sell').click(); await sleep(900)
+    await press(h, 'Space'); await sleep(400); await press(h, 'Space', 12); await sleep(40)
+    const cue = await h.page.evaluate(() => { const b = document.querySelector('.ff-strike'); return { cls: b.classList.contains('is-refused'), shadow: getComputedStyle(b).boxShadow, anim: getComputedStyle(b).animationName } })
+    await sleep(400); const gone = await h.page.evaluate(() => !document.querySelector('.ff-strike').classList.contains('is-refused'))
+    check('reduced', 'a refused press shows a static ring on the key, then clears', cue.cls && /255, 122, 92/.test(cue.shadow) && gone, { ...cue, gone })
     // The Motion setting reaches Unity: Off sends shake 0 and reduced true.
     await h.page.keyboard.press('KeyH'); await sleep(300)
     await h.page.locator('.ff-segmented [role=radio]', { hasText: 'Off' }).click(); await sleep(200)

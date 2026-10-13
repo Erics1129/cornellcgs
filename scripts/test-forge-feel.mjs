@@ -27,16 +27,17 @@ const G = WEB_TUNING.gate
   const r1 = g.press(300, low)
   eq(r1.kind, 'buffer', 'low risk: a press within 150 ms of contact is buffered, not refused')
   eq(g.press(320, low).kind, 'absorb', 'at most one press is buffered; another joins it')
-  eq(g.nextDue(low), 365, 'the buffered press is due at contact + 150 ms')
-  eq(g.due(364, low), null); eq(g.due(365, low), 'fire', 'and fires exactly then')
-  g.sent(2, 365, low)
-  near(g.predictContact(365, low), 855, .001, 'the scheduled contact respects the 640 ms cycle')
-  g.swing(2, 373, 482, false)
+  eq(g.nextDue(low), 215 + 150 + G.frameSlackMs, 'the buffered press is due at contact + 150 ms + one frame of slack')
+  eq(G.frameSlackMs, 50)
+  eq(g.due(414, low), null); eq(g.due(415, low), 'fire', 'and fires exactly then')
+  g.sent(2, 415, low)
+  near(g.predictContact(415, low), 855, .001, 'the scheduled contact respects the 640 ms cycle (the slack costs nothing)')
+  g.swing(2, 423, 432, false)
   eq(g.press(700, low).kind, 'absorb', 'before the reported apex the press joins the swing')
   eq(g.press(800, low).kind, 'buffer', 'from the apex on, one press is buffered (critique #32)')
   g.impact(2, 855)
-  eq(g.due(1004, low), null); eq(g.due(1005, low), 'fire')
-  g.sent(3, 1005, low); g.impact(3, 1495)
+  eq(g.due(1054, low), null); eq(g.due(1055, low), 'fire')
+  g.sent(3, 1055, low); g.impact(3, 1495)
   // High risk: refuse until contact + 250 ms, with feedback; then a press is sent at once.
   eq(g.press(1600, high).kind, 'refuse', 'high risk: a press 105 ms after contact is refused')
   eq(g.press(1700, high).kind, 'refuse', 'high risk: and 205 ms after contact')
@@ -56,8 +57,30 @@ const G = WEB_TUNING.gate
   near(g.predictContact(10, flow), 125, .001, 'Flow contact at 125 ms')
   eq(g.press(30, flow).kind, 'buffer', 'Flow: a press during the windup is buffered (mashing never scolds)')
   g.impact(1, 125)
-  eq(g.due(275, flow), 'fire'); g.sent(2, 275, flow)
-  near(g.predictContact(280, flow), 125 + 595, .001, 'the Flow cycle (595 ms) spaces Flow contacts')
+  eq(g.due(274, flow), null); eq(g.due(325, flow), 'fire'); g.sent(2, 325, flow)
+  near(g.predictContact(330, flow), 125 + 595, .001, 'the Flow cycle (595 ms) spaces Flow contacts')
+}
+// Unity answers a Strike inside the SendMessage. The page tells the gate first (unity.ts strike(onImpact, onSend));
+// if an answer still arrives first it is kept: a refusal makes sent() return false, a swing sets the contact.
+{
+  const g = new StrikeGate(), low = { risk: .05, flow: false, protocol: 2, armed: true }
+  g.press(0, low); ok(g.sent(1, 0, low)); g.impact(1, 215)
+  eq(g.settled(2, 420, true, true), false, 'a refusal for a seq the gate has not seen yet is noted, not lost')
+  eq(g.sent(2, 420, low), false, 'sent() reports that Unity already refused it')
+  ok(!g.inFlight, 'so nothing is left in flight (no 8 s phantom strike)')
+  g.settled(1, 475, false, false)
+  ok(!g.locked(476), 'and the HUD unlocks when the landed strike settles')
+  eq(g.press(500, low).kind, 'strike')
+  g.swing(3, 500, 455, false)
+  ok(g.sent(3, 500, low)); near(g.predictContact(510, low), 955, .001, 'an early swing still sets the contact time')
+  // Per-seq settles: a refused newer strike cannot unlock an older one that is still rebounding.
+  const h = new StrikeGate(); h.press(0, low); h.sent(1, 0, low); h.impact(1, 215); h.sent(2, 420, low)
+  eq(h.settled(2, 421, true, true), true, 'the refused strike in flight is dropped (the page answers it)')
+  ok(h.locked(430), 'strike 1 has not settled yet: Keep/Sell stay locked')
+  h.settled(1, 475, false, false); ok(!h.locked(476), 'until its own settled')
+  // A Shatter drops a press held for the next blow (the page answers it), but never a heating press.
+  const k = new StrikeGate(); k.press(0, low); k.sent(1, 0, low); eq(k.press(150, low).kind, 'buffer'); k.impact(1, 215)
+  eq(k.shatter(215), true, 'shatter() reports the dropped held press'); ok(!k.queued)
 }
 // settled x = -1 clears the pending strike; the gate recovers.
 {
@@ -163,27 +186,35 @@ for (const protocol of [2, 0]) {
 // ---------------------------------------------------------------------------------------------
 function rng(seed) { let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ t >>> 15, t | 1); t ^= t + Math.imul(t ^ t >>> 7, t | 61); return ((t ^ t >>> 14) >>> 0) / 4294967296 } }
 /**
- * Unity model. Protocol 2 (ForgeStrikeTuning): a Strike more than 150 ms after the last contact is
- * scheduled at max(press + windup, lastContact + cycle); earlier while swinging it replies
- * settled(seq, -1). Protocol 0: a Strike while swinging is ignored; contact at 340 ms, settled at 760 ms.
- * Messages arrive on frame boundaries (frameMs), plus a 'seated' 230 ms after a move to the anvil.
+ * Unity model. Protocol 2 (ForgeStrikeTuning, ForgeStrikeMachine.Press): a Strike that reads at least 150 ms
+ * after the last contact on Unity's strike clock is scheduled at max(press + windup, lastContact + cycle);
+ * earlier, while a swing is current, it is refused with settled(seq, -1). Unity's strike clock advances once per
+ * frame (strikeNow += unscaled dt in Update), so a Strike arriving between frames reads the last frame's start.
+ * Unity answers a Strike inside the SendMessage: 'swing' or the refusal are delivered synchronously (reply).
+ * Contacts and settles land on frame boundaries. Protocol 0: a Strike while swinging is ignored; contact at
+ * 340 ms, settled at 760 ms. A 'seated' arrives 230 ms after a move to the anvil.
  */
 class UnitySim {
-  constructor(protocol, frameMs, push) { this.protocol = protocol; this.frameMs = frameMs; this.push = push; this.swing = null; this.lastContact = -Infinity; this.contacts = [] }
-  frame(t) { return Math.ceil(t / this.frameMs) * this.frameMs }
+  constructor(protocol, frameMs, push, reply) { this.protocol = protocol; this.frameMs = frameMs; this.push = push; this.reply = reply; this.swing = null; this.lastContact = -Infinity; this.contacts = []; this.refused = 0 }
+  /** The next frame boundary at or after t. */
+  frame(t) { return Math.ceil(t / this.frameMs - 1e-9) * this.frameMs }
+  /** Unity's strike clock at page time t: the start of the last frame. */
+  clock(t) { return Math.floor(t / this.frameMs + 1e-9) * this.frameMs }
   strike(seq, now, flow) {
+    const u = this.clock(now)
     if (this.protocol < 2) {
-      if (this.swing && now < this.swing.settledAt) return
-      const contactAt = now + (flow ? 227 : 340), settledAt = now + (flow ? 507 : 760)
-      this.swing = { seq: 0, contactAt, settledAt, events: [this.push(this.frame(contactAt), 'impact', 0, 0), this.push(this.frame(settledAt), 'settled', 0, 0)] }
+      if (this.swing && u < this.swing.settledAt) return
+      const contactAt = this.frame(now + (flow ? 227 : 340)), settledAt = this.frame(now + (flow ? 507 : 760))
+      this.swing = { seq: 0, contactAt, settledAt, events: [this.push(contactAt, 'impact', 0, 0), this.push(settledAt, 'settled', 0, 0)] }
       return
     }
-    if (this.swing && now < this.swing.contactAt + 150) { this.push(this.frame(now + 1), 'settled', seq, -1); return }
-    const idle = now - this.lastContact > 1200
-    const contactAt = Math.max(now + (flow ? 125 : idle ? 215 : 190), this.lastContact + (flow ? 595 : 640))
-    const settledAt = contactAt + (flow ? 180 : 260)
+    if (this.swing && u < this.swing.contactAt + 150) { this.refused++; this.reply({ t: now, type: 'settled', id: seq, x: -1 }); return }
+    const idle = u - this.lastContact > 1200
+    const contactAt = this.frame(Math.max(u + (flow ? 125 : idle ? 215 : 190), this.lastContact + (flow ? 595 : 640)))
+    const settledAt = this.frame(contactAt + (flow ? 180 : 260))
     this.lastContact = contactAt
-    this.swing = { seq, contactAt, settledAt, events: [this.push(this.frame(now + 1), 'swing', seq, contactAt - this.frame(now + 1)), this.push(this.frame(contactAt), 'impact', seq, 0), this.push(this.frame(settledAt), 'settled', seq, 0)] }
+    this.swing = { seq, contactAt, settledAt, events: [this.push(contactAt, 'impact', seq, 0), this.push(settledAt, 'settled', seq, 0)] }
+    this.reply({ t: now, type: 'swing', id: seq, x: contactAt - now })
   }
   /** Walking cancels a swing that has not reached contact. */
   walk(now) {
@@ -194,7 +225,6 @@ class UnitySim {
     this.swing = null
   }
 }
-/** A run of presses (and walks / Trade openings) against the gate, the ledger and the real engine. */
 /** Binary min-heap of events by (t, samples last, insertion order): the same order a stable sort gives. */
 class EventQueue {
   constructor() { this.a = []; this.n = 0 }
@@ -203,10 +233,15 @@ class EventQueue {
   push(e) { e.k = this.n++; e.sample = e.type === 'sample'; const a = this.a; a.push(e); let i = a.length - 1; while (i > 0) { const p = (i - 1) >> 1; if (!this.less(a[i], a[p])) break; [a[i], a[p]] = [a[p], a[i]]; i = p } }
   shift() { const a = this.a, top = a[0], last = a.pop(); if (a.length) { a[0] = last; let i = 0; for (;;) { const l = 2 * i + 1, r = l + 1; let m = i; if (l < a.length && this.less(a[l], a[m])) m = l; if (r < a.length && this.less(a[r], a[m])) m = r; if (m === i) break; [a[i], a[m]] = [a[m], a[i]]; i = m } } return top }
 }
-function simulate({ protocol = 2, frameMs = 8.33, presses, walks = [], trays = [], seed = 1, level = 0, flowFrom = Infinity, guard = false, pinLevel = false }) {
+/**
+ * A run of presses (and walks / Trade openings) against the gate, the ledger and the real engine.
+ * order 'page': the page's order (ForgePage.fire: the gate learns the seq, then the SendMessage);
+ * 'reply-first': Unity's synchronous answer reaches the gate before sent() (the gate must still recover).
+ */
+function simulate({ protocol = 2, frameMs = 8.33, presses, walks = [], trays = [], seed = 1, level = 0, flowFrom = Infinity, guard = false, pinLevel = false, tuning, order = 'page' }) {
   const queue = new EventQueue(), log = [], impacts = [], refusalsByReason = {}
   const push = (t, type, id = 0, x = 0, extra = {}) => { const e = { t, type, id, x, ...extra }; queue.push(e); return e }
-  const unity = new UnitySim(protocol, frameMs, push), gate = new StrikeGate(), ledger = new StrikeLedger()
+  const unity = new UnitySim(protocol, frameMs, push, e => handle(e)), gate = new StrikeGate(tuning), ledger = new StrikeLedger()
   let s = createRun(seed), clock = 0
   const send = a => { const r = act(s, a); if (r.ok) s = r.state; return r }
   const tick = now => { const ms = Math.round(now - clock); if (ms > 0) { const r = act(s, { type: 'tick', ms: Math.min(ms, 60000) }); if (r.ok) s = r.state; clock = now } }
@@ -231,15 +266,32 @@ function simulate({ protocol = 2, frameMs = 8.33, presses, walks = [], trays = [
   const fire = (now, press) => {
     tick(now); const k = anvil(); if (!k?.heated) { press.result = 'refuse:busy'; return }
     const i = input(now)
-    const seq = ledger.begin(() => { tick(curT); const r = send({ type: 'hit', id: k.id }); impacts.push({ t: curT, ok: r.ok, outcome: r.event.outcome, text: r.event.text, press: press.i }); if (r.ok && r.event.outcome === 'shatter') gate.shatter(curT); if (pinLevel && r.ok) { const n = s.knives.find(x => x.id === k.id); if (n) n.level = level } })
-    gate.sent(seq, now, i); press.sent = now; press.seq = seq; unity.strike(protocol >= 2 ? seq : 0, now, i.flow)
-    pendingPress = press
+    const seq = ledger.begin(() => {
+      tick(curT); const r = send({ type: 'hit', id: k.id }); impacts.push({ t: curT, ok: r.ok, outcome: r.event.outcome, text: r.event.text, press: press.i })
+      if (r.ok && r.event.outcome === 'shatter' && gate.shatter(curT) && held) { held.result = 'cancelled:shatter'; held = null }
+      if (pinLevel && r.ok) { const n = s.knives.find(x => x.id === k.id); if (n) n.level = level }
+    })
+    press.sent = now; press.seq = seq; pendingPress = press
+    const strikeUnity = () => unity.strike(protocol >= 2 ? seq : 0, now, i.flow)
+    if (order === 'reply-first') { strikeUnity(); if (!gate.sent(seq, now, i)) press.result = 'refuse:cancelled' }
+    else { if (!gate.sent(seq, now, i)) press.result = 'refuse:cancelled'; else strikeUnity() }
   }
   let curT = 0, held = null
   const checkDue = now => {
     const r = gate.due(now, input(now)); if (!r) return
     if (r === 'fire') { const p = held; held = null; if (anvil()?.heated) fire(now, p); else { p.result = 'prepare'; prepare(now) } }
     else { held.result = 'refuse:risk-rose'; held = null }
+  }
+  // Unity -> page messages (from the queue, or synchronously from inside Strike).
+  const handle = e => {
+    if (e.type === 'swing') { gate.swing(e.id, curT, e.x, input(curT).flow) }
+    else if (e.type === 'impact') { unity.contacts.push(curT); gate.impact(e.id, curT); lastImpact = curT; ledger.impact(e.id); checkDue(curT) }
+    else if (e.type === 'settled') {
+      const latest = ledger.settle(e.id), dropped = gate.settled(e.id, curT, e.x < 0, latest)
+      if (dropped && pendingPress && pendingPress.seq === e.id && !impacts.some(m => m.press === pendingPress.i)) pendingPress.result = 'refuse:cancelled'
+      if (held && !gate.queued) { held.result = 'cancelled:walk'; held = null }
+      checkDue(curT)
+    } else if (e.type === 'seated') { gate.seated(curT); checkDue(curT) }
   }
   for (const [i, t] of presses.entries()) push(t, 'press', i)
   for (const t of walks) push(t, 'walk')
@@ -273,18 +325,9 @@ function simulate({ protocol = 2, frameMs = 8.33, presses, walks = [], trays = [
     else if (e.type === 'heat-done') {
       tick(curT); send({ type: 'heat', id: e.id }); send({ type: 'move', id: e.id, to: 'anvil' }); gate.heated(curT)
       if (protocol >= 2) push(curT + 230, 'seated', e.id)
-    } else if (e.type === 'seated') { gate.seated(curT); checkDue(curT) }
-    else if (e.type === 'swing') { gate.swing(e.id, curT, e.x, input(curT).flow) }
-    else if (e.type === 'impact') {
-      unity.contacts.push(curT); gate.impact(e.id, curT); lastImpact = curT; ledger.impact(e.id); checkDue(curT)
-    } else if (e.type === 'settled') {
-      const latest = ledger.settle(e.id), dropped = gate.settled(e.id, curT, e.x < 0, latest)
-      if (dropped && pendingPress && pendingPress.seq === e.id && !impacts.some(m => m.press === pendingPress.i)) pendingPress.result = 'refuse:cancelled'
-      if (held && !gate.queued) { held.result = 'cancelled:walk'; held = null }
-      checkDue(curT)
-    }
+    } else handle(e)
   }
-  return { records, impacts, refusalsByReason, maxLockAfterImpact, contacts: unity.contacts, state: s }
+  return { records, impacts, refusalsByReason, maxLockAfterImpact, contacts: unity.contacts, unityRefused: unity.refused, state: s, log }
 }
 const ANSWERED = /^(strike|prepare|buffer|absorb:queued|absorb:early|refuse:\w[\w-]*|cancelled:\w+)$/
 
@@ -302,6 +345,32 @@ for (const protocol of [2, 0]) for (const seed of [1, 2, 3, 4, 5]) {
   ok(out.maxLockAfterImpact <= G.settleWatchdogMs + 5, `protocol ${protocol} seed ${seed}: the HUD never stays locked more than 1.2 s after an impact (${out.maxLockAfterImpact})`)
   const fired = new Set(out.impacts.map(m => m.press)); ok(fired.size === out.impacts.length, 'one impact per press at most (no auto-repeat)')
   ok(out.impacts.every(m => ['strike', 'buffer'].includes(out.records[m.press].result)), 'only strikes and buffered presses produce impacts')
+  eq(out.unityRefused, 0, `protocol ${protocol} seed ${seed}: Unity never refuses a Strike the gate sent (its clock reads per frame)`)
+}
+// The frame race: Unity reads its strike clock once per frame, so a Strike sent right at contact + 150 ms reads
+// under 150 there and is refused. With no slack that happens on most buffered blows at 120 Hz; with the default
+// slack never, from 120 Hz down to 30 Hz, and the cadence is unchanged.
+{
+  const presses = Array.from({ length: 30 }, (_, i) => 300 + i * 400)
+  const noSlack = simulate({ protocol: 2, presses, level: 2, pinLevel: true, tuning: { ...WEB_TUNING.gate, frameSlackMs: 0 } })
+  ok(noSlack.unityRefused >= 5, `without slack Unity refuses buffered strikes at 120 Hz (${noSlack.unityRefused} of ${noSlack.impacts.length + noSlack.unityRefused})`)
+  for (const frameMs of [8.33, 16.67, 33.3]) {
+    const out = simulate({ protocol: 2, presses, level: 2, pinLevel: true, frameMs })
+    eq(out.unityRefused, 0, `with ${G.frameSlackMs} ms slack Unity accepts every Strike at ${Math.round(1000 / frameMs)} Hz`)
+    const gaps = out.contacts.slice(1).map((c, i) => c - out.contacts[i])
+    const onCycle = g => [640, 595].some(c => g >= c - 1e-6 && g <= c + frameMs + 1e-6)
+    ok(gaps.every(onCycle), `and the 640 ms cycle (595 once Flow starts) holds at ${Math.round(1000 / frameMs)} Hz: ${[...new Set(gaps.map(Math.round))]}`)
+  }
+  // If Unity's answer reached the gate before sent() (the order the page used to have), the press is still
+  // answered (refused with feedback), nothing stays in flight, and the HUD never locks for the 8 s watchdog.
+  for (const seed of [1, 2, 3]) {
+    const r = rng(seed * 104729), ps = []; let t = 300
+    for (let i = 0; i < 200; i++) { t += 30 + r() * 870; ps.push(Math.round(t)) }
+    const out = simulate({ protocol: 2, presses: ps, seed, level: 2 + seed, order: 'reply-first', tuning: { ...WEB_TUNING.gate, frameSlackMs: 0 } })
+    ok(out.records.every(rec => rec.result && ANSWERED.test(rec.result)), `reply-first seed ${seed}: every press answered`)
+    ok(out.maxLockAfterImpact <= G.settleWatchdogMs + 5, `reply-first seed ${seed}: no phantom strike holds the HUD (${out.maxLockAfterImpact} ms)`)
+    eq(out.records.filter(x => x.result === 'refuse:cancelled').length >= out.unityRefused, true, `reply-first seed ${seed}: each Unity refusal reached the player as a refusal`)
+  }
 }
 // Rhythm run, 2-3 presses/s at low risk (the level is held below the 20% gate): refusals at most 10% of presses (critique #32).
 for (const protocol of [2, 0]) for (const rate of [2, 2.5, 3]) {

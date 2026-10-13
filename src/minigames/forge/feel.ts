@@ -17,6 +17,12 @@ export const WEB_TUNING = {
     riskGate: .2,
     /** Unity schedules a Strike that arrives at least this long after the previous contact. */
     scheduleAfterContactMs: 150,
+    /**
+     * Unity reads its strike clock once per frame, so a Strike sent right at contact + 150 ms can still read
+     * under 150 there and be refused (settled x = -1; seen at 120 Hz with the strike-feel build). Sending this
+     * much later costs nothing: the next contact waits for the 640 / 595 ms cycle and the rebound anyway.
+     */
+    frameSlackMs: 50,
     /** At high risk, presses before contact + this are refused so the player sees the result first. */
     riskAfterContactMs: 250,
     /** Shatter: presses this soon are refused; a later press ends the hold and goes on. */
@@ -50,6 +56,11 @@ export const WEB_TUNING = {
     labelLift: .16,
     /** Refusal feedback: the Forge key shakes this many px for this long. */
     refuseShakePx: 2, refuseShakeMs: 120,
+    /**
+     * A refusal also marks the blade itself (where the player is looking) with a small ring for refuseMarkMs;
+     * key cues stay on this long, so reduced motion shows them as a static ring instead of a shake or glow.
+     */
+    refuseMarkMs: 240, keyCueMs: 240,
     /** A scene-side refusal hint is shown at most once per this many ms. */
     refuseHintMs: 1800,
     /** Flow edge glow pulses at most once per this many ms. */
@@ -94,6 +105,8 @@ export function webTuning(overrides: unknown): WebTuning {
   const g = out.gate as WebTuning['gate']
   // The gate may never send earlier than Unity accepts (a refused Strike would drop the press).
   g.scheduleAfterContactMs = Math.max(150, g.scheduleAfterContactMs as number)
+  // At least one 60 Hz frame and a timer tick; at most what the 640 ms cycle can absorb for free.
+  g.frameSlackMs = Math.min(150, Math.max(20, g.frameSlackMs as number))
   g.riskAfterContactMs = Math.max(g.scheduleAfterContactMs, g.riskAfterContactMs as number)
   g.settleWatchdogMs = Math.min(1200, Math.max(400, g.settleWatchdogMs as number))
   // Balance floors (ForgeTuning.cs): the page predicts with the same clamped cycles Unity enforces.
@@ -145,13 +158,18 @@ export class StrikeGate {
   private committed: Committed | null = null
   private lastContact = -Infinity
   private impactAt = -Infinity
-  private awaitingSettle = false
+  /** Strikes sent (and not refused) whose 'settled' has not arrived; legacy builds use seq 0. */
+  private unsettled = new Set<number>()
+  private get awaitingSettle() { return this.unsettled.size > 0 }
   private buffer: { at: number; until: 'contact' | 'settled' | 'seated'; high?: boolean } | null = null
   private shatterAt = -Infinity
   private holding = false
   private heatUntil: number | null = null
   private anvilAt: number | null = null
   private seatedAt: number | null = null
+  /** The last seq passed to sent(); a 'swing' or 'settled' for a later seq came before it (see sent()). */
+  private lastSent = 0
+  private early: { seq: number; cancelled: boolean; contactAt?: number } | null = null
   constructor(tuning: WebTuning['gate'] = WEB_TUNING.gate) { this.t = tuning }
 
   get queued() { return !!this.buffer }
@@ -215,10 +233,15 @@ export class StrikeGate {
   private settling(now: number) {
     return this.awaitingSettle && !(this.impactAt > -Infinity && now - this.impactAt >= this.t.settleWatchdogMs)
   }
+  /** How long after a contact a Strike goes out: Unity's 150 ms plus a frame of slack, or the risk wait. */
+  private sendAfter(high: boolean) {
+    const t = this.t, after = t.scheduleAfterContactMs + t.frameSlackMs
+    return high ? Math.max(after, t.riskAfterContactMs) : after
+  }
   /** Earliest time a new Strike may be sent (no strike in flight). */
   private earliest(now: number, input: GateInput) {
     if (input.protocol < 2) return this.settling(now) ? Infinity : -Infinity
-    return this.lastContact + (this.highRisk(input) ? this.t.riskAfterContactMs : this.t.scheduleAfterContactMs)
+    return this.lastContact + this.sendAfter(this.highRisk(input))
   }
 
   /** A held press is due: 'fire' (send it now), 'drop' (the risk rose past the gate: refuse it) or null. */
@@ -242,7 +265,7 @@ export class StrikeGate {
     if (b.until === 'seated') return this.seatDeadline(input)
     if (this.committed) return null
     if (b.until === 'settled') return this.awaitingSettle ? (this.impactAt > -Infinity ? this.impactAt + this.t.settleWatchdogMs : null) : 0
-    return this.lastContact + this.t.scheduleAfterContactMs
+    return this.lastContact + this.sendAfter(!!b.high)
   }
   private seatReady(now: number, input: Pick<GateInput, 'protocol'>) {
     if (this.anvilAt === null) return false
@@ -250,16 +273,29 @@ export class StrikeGate {
     return now >= this.anvilAt + (input.protocol < 2 ? this.t.legacySeatMs : this.t.seatTimeoutMs)
   }
 
-  /** The page sent Strike(seq) at `now`. */
+  /**
+   * The page sends Strike(seq) at `now`. Call it before the SendMessage: Unity answers a Strike inside that
+   * call ('swing', or 'settled' x = -1 when it refuses). If those answers still came first they were kept,
+   * and a strike Unity already refused returns false (nothing is in flight; the page answers the press).
+   */
   sent(seq: number, now: number, input: Pick<GateInput, 'flow' | 'protocol'>) {
-    const contactAt = this.predictContact(now, input), t = this.t
+    const early = this.early && this.early.seq === seq ? this.early : null
+    this.early = null; if (seq) this.lastSent = Math.max(this.lastSent, seq)
+    if (early?.cancelled) return false
+    const contactAt = early?.contactAt ?? this.predictContact(now, input), t = this.t
     const before = input.protocol < 2 ? (input.flow ? (t.legacyContactMs - t.legacyApexMs) / 1.5 : t.legacyContactMs - t.legacyApexMs) : input.flow ? t.flowApexBeforeContactMs : t.apexBeforeContactMs
     this.committed = { seq, sentAt: now, contactAt, apexAt: contactAt - before }
-    this.awaitingSettle = true
+    this.unsettled.add(seq)
+    return true
   }
+  /** A reply for a seq the gate has not been told about yet (Unity answered inside the SendMessage). */
+  private note(seq: number) { if (!this.early || this.early.seq !== seq) this.early = { seq, cancelled: false }; return this.early }
   /** Unity 'swing' (x = ms to contact). */
   swing(seq: number, now: number, msToContact: number, flow: boolean) {
-    const c = this.committed; if (!c || (seq && c.seq !== seq) || !(msToContact >= 0)) return
+    if (!(msToContact >= 0)) return
+    const c = this.committed
+    if (seq > this.lastSent && (!c || c.seq !== seq)) { this.note(seq).contactAt = now + msToContact; return }
+    if (!c || (seq && c.seq !== seq)) return
     c.contactAt = now + msToContact; c.apexAt = c.contactAt - (flow ? this.t.flowApexBeforeContactMs : this.t.apexBeforeContactMs)
   }
   /** Unity 'impact' (contact). */
@@ -273,18 +309,27 @@ export class StrikeGate {
    */
   settled(seq: number, now: number, cancelled: boolean, latest: boolean) {
     let dropped = false
+    if (cancelled && seq > this.lastSent && (!this.committed || this.committed.seq !== seq)) { this.note(seq).cancelled = true; return false }
     if (cancelled && this.committed && (!seq || this.committed.seq === seq)) { this.committed = null; dropped = true; if (this.buffer?.until !== 'seated') this.buffer = null }
-    if (latest) this.awaitingSettle = false
+    // Each seq settles itself, so a refused newer strike cannot unlock an older one that is still rebounding.
+    if (seq) this.unsettled.delete(seq); else if (latest) this.unsettled.clear()
     return dropped
   }
-  /** A Shatter landed: hold the loss on screen and refuse presses for shatterIgnoreMs. */
-  shatter(now: number) { this.holding = true; this.shatterAt = now; if (this.buffer?.until !== 'seated') this.buffer = null }
+  /**
+   * A Shatter landed: hold the loss on screen and refuse presses for shatterIgnoreMs. Returns true when it
+   * dropped a held press (it was meant for a blade that is gone; the page answers it).
+   */
+  shatter(now: number) {
+    this.holding = true; this.shatterAt = now
+    const dropped = !!this.buffer && this.buffer.until !== 'seated'
+    if (dropped) this.buffer = null
+    return dropped
+  }
   endHold() { this.holding = false }
   /** Heating started; the heat event and the move to the anvil land after `ms`. */
   heatingStarted(now: number, ms: number) { this.heatUntil = now + ms; this.anvilAt = null; this.seatedAt = null }
   /** The engine moved the heated blank to the anvil. */
   heated(now: number) { if (this.heatUntil !== null) this.anvilAt = now }
-  /** Unity 'seated'. */
   /**
    * Unity 'seated'. A 'seated' that arrives before the engine's move to the anvil (critique #13: it should
    * not) is remembered, and the held press fires once the move has landed, never into an empty anvil.
@@ -305,8 +350,8 @@ export class StrikeGate {
   /** Watchdogs: a strike that never landed, or an impact whose 'settled' never came. Returns true when it released something. */
   watchdog(now: number) {
     let released = false
-    if (this.committed && now - this.committed.sentAt > this.t.strikeWatchdogMs) { this.committed = null; this.awaitingSettle = false; this.buffer = null; released = true }
-    if (!this.committed && this.awaitingSettle && this.impactAt > -Infinity && now - this.impactAt >= this.t.settleWatchdogMs) { this.awaitingSettle = false; released = true }
+    if (this.committed && now - this.committed.sentAt > this.t.strikeWatchdogMs) { this.committed = null; this.unsettled.clear(); this.buffer = null; released = true }
+    if (!this.committed && this.awaitingSettle && this.impactAt > -Infinity && now - this.impactAt >= this.t.settleWatchdogMs) { this.unsettled.clear(); released = true }
     return released
   }
   /** Keep, Sell, New, Trade and items wait for the latest 'settled' (about 260 ms after contact). */
@@ -316,7 +361,7 @@ export class StrikeGate {
   }
   /** When locked() may change by time alone (for a timer), or null. */
   unlockAt() { return this.committed ? this.committed.sentAt + this.t.strikeWatchdogMs : this.awaitingSettle && this.impactAt > -Infinity ? this.impactAt + this.t.settleWatchdogMs : null }
-  reset() { this.committed = null; this.buffer = null; this.awaitingSettle = false; this.holding = false; this.heatUntil = null; this.anvilAt = null; this.seatedAt = null }
+  reset() { this.committed = null; this.buffer = null; this.unsettled.clear(); this.early = null; this.holding = false; this.heatUntil = null; this.anvilAt = null; this.seatedAt = null }
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -439,15 +484,21 @@ export function qualityTier(spot: string): number | null {
 
 export type Bands = { top: number; bottom: number; left: number; right: number }
 /**
+ * The blade on screen in CSS px from the canvas top-left: Unity's anvil label (percent of the canvas) when it
+ * lies in the HUD-free band, else the work view's usual spot. A label outside the band is stale (an older
+ * build sends it once, from the walking camera). `known` says which.
+ */
+export function bladePoint(anvil: { x: number; y: number } | undefined, w: number, h: number, bands: Bands) {
+  const inBand = (px: number, py: number) => px > bands.left && px < w - bands.right && py > bands.top && py < h - bands.bottom
+  const known = !!anvil && Number.isFinite(anvil.x) && Number.isFinite(anvil.y) && inBand(anvil.x / 100 * w, anvil.y / 100 * h)
+  return { x: known ? anvil!.x / 100 * w : (bands.left + w - bands.right) / 2, y: known ? anvil!.y / 100 * h : h * .62, known }
+}
+/**
  * Where the outcome callout goes, in CSS px from the canvas top-left: above the anvil label, inside the
  * HUD-free band, and never within `clearance` of the view height from the blade centre.
  */
 export function labelPlacement(anvil: { x: number; y: number } | undefined, w: number, h: number, bands: Bands, labelH: number, hud: WebTuning['hud'] = WEB_TUNING.hud) {
-  const inBand = (px: number, py: number) => px > bands.left && px < w - bands.right && py > bands.top && py < h - bands.bottom
-  // A label outside the HUD-free band is stale (an older build sends it once, from the walking camera).
-  const known = !!anvil && Number.isFinite(anvil.x) && Number.isFinite(anvil.y) && inBand(anvil.x / 100 * w, anvil.y / 100 * h)
-  const bladeX = known ? anvil!.x / 100 * w : (bands.left + w - bands.right) / 2
-  const bladeY = known ? anvil!.y / 100 * h : h * .62
+  const { x: bladeX, y: bladeY } = bladePoint(anvil, w, h, bands)
   const minY = bands.top + labelH / 2 + 6, maxY = h - bands.bottom - labelH / 2 - 6
   const clear = hud.labelClearance * h + labelH / 2
   let y = Math.min(maxY, Math.max(minY, bladeY - Math.max(hud.labelLift * h, clear)))
