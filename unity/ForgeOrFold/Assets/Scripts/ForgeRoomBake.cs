@@ -21,7 +21,9 @@ public partial class ForgeWorld {
  /// Per-object vertex tint used by the merge (rgb, multiplies the material colour).
  readonly Dictionary<GameObject,Color> roomTint=new Dictionary<GameObject,Color>();
  /// AO detail per renderer: none (emissive or glowing parts) or cheap (small details: 5 rays). Everything else gets 12.
- readonly HashSet<GameObject> roomNoAo=new HashSet<GameObject>(),roomCheapAo=new HashSet<GameObject>();
+ /// Lumpy renderers (coal heaps, chains: many tiny pieces) share one 5-ray sample per 3 cm cell, facing up.
+ readonly HashSet<GameObject> roomNoAo=new HashSet<GameObject>(),roomCheapAo=new HashSet<GameObject>(),roomLumpAo=new HashSet<GameObject>();
+ readonly Dictionary<Vector3Int,float> roomLumpCache=new Dictionary<Vector3Int,float>();
  /// Source material -> its merged "_VertexAO" clone (animated emissives are driven through the clone).
  readonly Dictionary<Material,Material> roomBakedOf=new Dictionary<Material,Material>();
  int roomMergedRenderers,roomMergedMeshes,roomBakedVertices;float roomBakeMs;
@@ -120,14 +122,14 @@ public partial class ForgeWorld {
    void Flush(){if(mb.v.Count==0)return;var go=MeshObject(m.name+" · merged "+(part++),mb.Build(m.name+" merged"),baked);go.transform.SetParent(merged,false);var r=go.GetComponent<MeshRenderer>();r.shadowCastingMode=UnityEngine.Rendering.ShadowCastingMode.Off;r.receiveShadows=false;roomMergedMeshes++;mb=new RoomMesh();}
    foreach(var renderer in groups[m]){
     var filter=renderer.GetComponent<MeshFilter>();var mesh=filter.sharedMesh;var verts=mesh.vertices;var normals=mesh.normals;var colors=mesh.colors;var tris=mesh.triangles;
-    var go=renderer.gameObject;bool noAo=roomNoAo.Contains(go)||m.GetColor("_EmissionColor").maxColorComponent>.05f;var size=renderer.bounds.size;
+    var go=renderer.gameObject;bool noAo=roomNoAo.Contains(go)||m.GetColor("_EmissionColor").maxColorComponent>.05f;var size=renderer.bounds.size;bool lumpy=roomLumpAo.Contains(go);
     var dirs=roomCheapAo.Contains(go)||Mathf.Max(size.x,Mathf.Max(size.y,size.z))<.3f?roomAoDirsCheap:roomAoDirs;
     if(mb.v.Count+verts.Length>60000)Flush();
     var l2w=renderer.transform.localToWorldMatrix;var nm=l2w.inverse.transpose;int baseIndex=mb.v.Count;
     roomTint.TryGetValue(renderer.gameObject,out var tint);if(!roomTint.ContainsKey(renderer.gameObject))tint=Color.white;
     for(int i=0;i<verts.Length;i++){
      var p=l2w.MultiplyPoint3x4(verts[i]);var n=normals.Length==verts.Length?nm.MultiplyVector(normals[i]).normalized:Vector3.up;
-     float ao=noAo?1:Mathf.Lerp(1,RoomAo(p,n,reach,dirs),room.aoStrength);
+     float ao=noAo?1:Mathf.Lerp(1,lumpy?RoomLumpAo(p,reach):RoomAo(p,n,reach,dirs),room.aoStrength);
      var col=pulse&&colors.Length==verts.Length?colors[i]:tint;col.a=ao;
      mb.v.Add(p);mb.n.Add(n);mb.c.Add(col);
     }
@@ -140,6 +142,8 @@ public partial class ForgeWorld {
   roomBakeMs=(Time.realtimeSinceStartup-started)*1000;
   Debug.Log($"FORGE_ROOM merged {roomMergedRenderers} renderers into {roomMergedMeshes} meshes ({order.Count} materials), baked AO on {roomBakedVertices} vertices against {roomOccluders.Count} occluders in {roomBakeMs:0} ms");
  }
+ /// Shared AO for tiny pieces: one upward 5-ray sample per 3 cm cell (a coal lump or chain link reads as one tone).
+ float RoomLumpAo(Vector3 p,float reach){var k=new Vector3Int(Mathf.FloorToInt(p.x/.03f),Mathf.FloorToInt(p.y/.03f),Mathf.FloorToInt(p.z/.03f));if(!roomLumpCache.TryGetValue(k,out var ao)){ao=RoomAo(new Vector3((k.x+.5f)*.03f,(k.y+.5f)*.03f,(k.z+.5f)*.03f),Vector3.up,reach,roomAoDirsCheap);roomLumpCache[k]=ao;}return ao;}
  /// AO for a renderer that keeps its own transform and material (object-space mapping): bake into a mesh copy.
  void RoomBakeSeparate(MeshRenderer renderer,MeshFilter filter,float reach){
   var mesh=Instantiate(filter.sharedMesh);mesh.name=filter.sharedMesh.name+" (baked AO)";var verts=mesh.vertices;var normals=mesh.normals;var colors=new Color[verts.Length];var l2w=renderer.transform.localToWorldMatrix;var nm=l2w.inverse.transpose;

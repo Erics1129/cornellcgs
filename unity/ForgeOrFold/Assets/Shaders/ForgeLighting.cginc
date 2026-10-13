@@ -35,7 +35,7 @@ float4 _ForgeFireShadowRect,_ForgeFireShadowY,_ForgeFireHoodRect;
 float4 _ForgeSconcePosition,_ForgeSconceColor,_ForgeCandlePosition,_ForgeCandleColor;
 // Room fill floor (rgb; a > 0 = set): the trilight SH is far below it, so this is the ambient level.
 float4 _ForgeAmbient;
-// Hearth bounce: xyz = centre of the lit hearth front, w > 0 = on; _ForgeBounceColor = its radiance, set every frame
+// Hearth bounce: xyz = centre of the lit hearth front, w = falloff k in 1 / (1 + k d^2) (0 = off); _ForgeBounceColor = its radiance, set every frame
 // with the fire's flicker (a less saturated amber than the fire itself: it has bounced off brick, stone and wood).
 float4 _ForgeFireBounce,_ForgeBounceColor;
 // The reflection capture's share of the hearth flicker, as an offset (0 = steady; the capture itself is static).
@@ -112,7 +112,7 @@ float ForgeFireVisibility(float3 p,float3 fire){
 float3 ForgeFireBounce(float3 p,float3 n){
  if(_ForgeFireBounce.w<=0)return 0;float3 delta=_ForgeFireBounce.xyz-p;float d2=dot(delta,delta);
  float wrap=saturate(dot(n,delta*rsqrt(max(d2,.0001)))*.5+.5);
- return _ForgeBounceColor.rgb*wrap*wrap/(1+d2*.22);
+ return _ForgeBounceColor.rgb*wrap*wrap/(1+d2*_ForgeFireBounce.w);
 }
 /// Diffuse-only candle with a short falloff.
 float3 ForgeCandle(float4 position,float4 radiance,float3 p,float3 n,float3 base,float metal){

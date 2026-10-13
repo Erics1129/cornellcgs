@@ -10,7 +10,7 @@ using L = ForgeLayoutData;
 // per material in BatchRoom (ForgeRoomBake.cs). Moving parts (bellows) are kept out of the merge.
 public partial class ForgeWorld {
  Material mortar,polished;ReflectionProbe workshopProbe;
- Material woodUp,ceilingWood,brickWall,flagstone,anvilSteel,sootIron,hoodIron,tin,enamel,hotCoal,water,lampGlass,candleWax,daylight,clay,hearthTop;
+ Material tarnish,woodUp,ceilingWood,brickWall,flagstone,anvilSteel,sootIron,hoodIron,tin,enamel,hotCoal,water,lampGlass,candleWax,daylight,clay,hearthTop;
  GameObject anvilObject;
  static Vector3 LV(L.F3 v)=>new Vector3(v.x,v.y,v.z);
  /// Room interior: inner wall faces (x -3.425..3.425, z -3.79..2.01), floor 0, ceiling planks underside 3.62.
@@ -21,7 +21,7 @@ public partial class ForgeWorld {
  void MakeMaterials(){
   wood=Mat("Smoked oak","b4b0aa",0,.26f);wood.mainTexture=Resources.Load<Texture2D>("Forge/WoodV3");
   stone=Mat("Soot blackened masonry","a2917e",0,.08f);stone.mainTexture=Resources.Load<Texture2D>("Forge/BrickV3");
-  iron=Mat("Forged iron","505c61",.87f,.46f);brass=Mat("Aged brass","b59957",.8f,.57f);leather=Mat("Wrapped leather","352b25",0,.29f);coal=Mat("Coal","191c1a",.1f,.1f);
+  iron=Mat("Forged iron","505c61",.87f,.46f);brass=Mat("Aged brass","b59957",.8f,.57f);tarnish=Mat("Tarnished brass","8a7748",.78f,.40f);tarnish.mainTexture=Resources.Load<Texture2D>("Forge/IronV3");tarnish.SetFloat("_Scale",4.5f);tarnish.SetFloat("_ObjectSpace",1);leather=Mat("Wrapped leather","352b25",0,.29f);coal=Mat("Coal","191c1a",.1f,.1f);
   wood.SetFloat("_Scale",1.6f);stone.SetFloat("_Scale",1.3f);iron.mainTexture=Resources.Load<Texture2D>("Forge/IronV3");iron.SetFloat("_Scale",1.8f);iron.color=C("676d70");iron.SetFloat("_BumpStrength",.0018f);leather.mainTexture=Resources.Load<Texture2D>("Forge/LeatherV3");leather.color=C("b1a394");leather.SetFloat("_Scale",2);wood.SetFloat("_BumpStrength",.0025f);stone.SetFloat("_BumpStrength",.003f);
   coal.mainTexture=Resources.Load<Texture2D>("Forge/IronV3");coal.SetFloat("_Scale",6);
   // The hammer's striking face (strike-feel) uses `polished`, so it exists before MakeHammer.
@@ -177,7 +177,7 @@ public partial class ForgeWorld {
   var link=RoomChainLink(.042f,.024f,.0042f);var path=RoomRoundRect(-.007f,0,.215f,.10f,.06f,6,8,4);var chain=new RoomMesh();int count=0;float acc=0;
   for(int i=0;i<path.Length;i++){var a=path[i];var b=path[(i+1)%path.Length];float seg=(b-a).magnitude;for(float s=acc;s<seg;s+=.031f){var p=Vector2.Lerp(a,b,s/seg);var dir=(b-a).normalized;var m=Matrix4x4.TRS(new Vector3(p.x,-.205f,p.y),Quaternion.LookRotation(new Vector3(dir.x,0,dir.y))*Quaternion.Euler(0,90,0)*Quaternion.Euler(count%2==0?0:90,0,0),Vector3.one);chain.Append(link,m);count++;acc=s+.031f-seg;}if(acc<0)acc=0;}
   for(int k=0;k<5;k++){var m=Matrix4x4.TRS(new Vector3(-.22f-.006f*k,-.24f-k*.031f,-.105f-.004f*k),Quaternion.Euler(0,k%2==0?0:90,90),Vector3.one);chain.Append(link,m);}
-  roomCheapAo.Add(RoomBuild("Anvil chain",chain,sootIron,c,Quaternion.identity));
+  roomLumpAo.Add(RoomBuild("Anvil chain",chain,sootIron,c,Quaternion.identity));
   RoomBox("Chain staple",new Vector3(c.x-.24f,.38f,c.z-.27f),new Vector3(.03f,.04f,.02f),sootIron,.006f,.3f);
  }
 
@@ -216,7 +216,7 @@ public partial class ForgeWorld {
    (d<.75f&&i%4!=0?lumpsHot:lumpsDark).Append(lump,m);}
   // Unburnt coal banked on the hearth top behind and beside the firepot.
   for(int i=0;i<70;i++){float a=(float)rng.NextDouble()*Mathf.PI*2;float rr=.20f+(float)rng.NextDouble()*.20f;float x=bed.x+Mathf.Cos(a)*rr*1.25f,z=bed.z+.08f+Mathf.Sin(a)*rr;if(x<x0+.04f||x>tx0-.03f||z<z0+.04f||z>z1-.05f)continue;if(x>bx0-.035f&&x<bx1+.035f&&z>bz0-.035f&&z<bz1+.035f)continue;float size=.03f*(.7f+.6f*(float)rng.NextDouble());var m=Matrix4x4.TRS(new Vector3(x,top+size*.25f,z),Quaternion.Euler((float)rng.NextDouble()*360,(float)rng.NextDouble()*360,(float)rng.NextDouble()*360),new Vector3(size,size*.7f,size*1.1f));lumpsDark.Append(RoomCoalLump(100+i),m);}
-  RoomBuild("Glowing coals",lumpsHot,hotCoal,Vector3.zero,Quaternion.identity);roomCheapAo.Add(RoomBuild("Banked coal",lumpsDark,coal,Vector3.zero,Quaternion.identity));
+  RoomBuild("Glowing coals",lumpsHot,hotCoal,Vector3.zero,Quaternion.identity);roomLumpAo.Add(RoomBuild("Banked coal",lumpsDark,coal,Vector3.zero,Quaternion.identity));
   // Flames: two quads crossed at +/- 35 degrees and a camera-facing core, one mesh, one draw call.
   var flames=new Mesh{name="Hearth flames"};var fv=new List<Vector3>();var fuv=new List<Vector2>();var fc=new List<Vector2>();var fcol=new List<Color>();var ft=new List<int>();
   void FlameQuad(Vector3 centre,float yaw,float w,float h,float phase,float bright,bool billboard){int s=fv.Count;var right=Quaternion.Euler(0,yaw,0)*Vector3.right;
@@ -248,7 +248,7 @@ public partial class ForgeWorld {
   // Fire tools on a hook bar along the hood skirt, and a chain with spare tongs from the joist beside it.
   RoomBox("Hook bar",new Vector3(hmax.x+.03f,lip+.05f,hc.z),new Vector3(.02f,.02f,.9f),sootIron,.005f,.3f);
   for(int i=0;i<3;i++){var t=Group("Fire tool",new Vector3(hmax.x+.035f,lip+.03f,hc.z-.3f+i*.3f));RoomBox("Tool shaft",new Vector3(0,-.36f,0),new Vector3(.018f,.72f,.018f),sootIron,.005f,.3f,default,RoomFaceAll,t);RoomBox("Tool ring",new Vector3(0,.0f,0),new Vector3(.012f,.06f,.04f),sootIron,.004f,.3f,default,RoomFaceAll,t);RoomBox(i==0?"Poker hook":i==1?"Rake":"Shovel",new Vector3(0,-.74f,i==2?.0f:.03f),i==2?new Vector3(.015f,.12f,.11f):new Vector3(.016f,.05f,.07f),sootIron,.004f,.3f,default,RoomFaceAll,t);t.Rotate(0,0,4-i*3);}
-  {var hang=new Vector3(JoistX[1],CeilingY-.2f,-.86f);var chain=new RoomMesh();var link=RoomChainLink(.04f,.022f,.0038f);for(int k=0;k<14;k++)chain.Append(link,Matrix4x4.TRS(hang+Vector3.down*(.02f+k*.03f),Quaternion.Euler(0,k%2==0?0:90,90),Vector3.one));roomCheapAo.Add(RoomBuild("Hanging chain",chain,sootIron,Vector3.zero,Quaternion.identity));
+  {var hang=new Vector3(JoistX[1],CeilingY-.2f,-.86f);var chain=new RoomMesh();var link=RoomChainLink(.04f,.022f,.0038f);for(int k=0;k<14;k++)chain.Append(link,Matrix4x4.TRS(hang+Vector3.down*(.02f+k*.03f),Quaternion.Euler(0,k%2==0?0:90,90),Vector3.one));roomLumpAo.Add(RoomBuild("Hanging chain",chain,sootIron,Vector3.zero,Quaternion.identity));
    var tg=Group("Spare tongs on the chain",hang+Vector3.down*.47f);RoomBox("Tong rein",new Vector3(-.012f,-.2f,0),new Vector3(.009f,.42f,.009f),sootIron,.003f,.3f,new Vector3(0,0,2),RoomFaceAll,tg);RoomBox("Tong rein",new Vector3(.012f,-.2f,0),new Vector3(.009f,.42f,.009f),sootIron,.003f,.3f,new Vector3(0,0,-2),RoomFaceAll,tg);RoomBox("Tong jaws",new Vector3(0,.02f,0),new Vector3(.03f,.06f,.014f),sootIron,.004f,.3f,default,RoomFaceAll,tg);}
  }
 
@@ -272,9 +272,11 @@ public partial class ForgeWorld {
   // A turned wooden pedestal carries the brass balance (it stands in front of the bench).
   var post=RoomLathe(new[]{0,.04f,.06f,.12f,baseY-.06f,baseY-.03f,baseY},new[]{.20f,.19f,.075f,.055f,.05f,.16f,.17f},20,true,false);RoomBuild("Turned scale pedestal",post,woodUp,new Vector3(p.x,0,p.z),Quaternion.identity);
   RoomSolidCylinder("Scale pedestal",new Vector3(p.x,0,p.z),.05f,baseY);RoomSolidCylinder("Scale foot",new Vector3(p.x,0,p.z),.18f,.05f);
-  Primitive("Scale base",PrimitiveType.Cylinder,p-Vector3.up*.04f,new Vector3(.38f,.065f,.32f),brass);Box("Scale stem",p+new Vector3(0,.035f,.12f),new Vector3(.025f,.24f,.025f),brass);
-  RoomSolid("Scale",p-Vector3.up*.04f,new Vector3(.36f,.13f,.30f));
-  scalePan=Group("Balance pan",p+Vector3.up*.12f);Primitive("Scale dish",PrimitiveType.Cylinder,Vector3.zero,new Vector3(.65f,.014f,.42f),brass,scalePan);}
+  // A pan scale in tarnished brass: a turned foot and column, and a 30 cm pan (strike-feel animates the pan's group).
+  RoomBuild("Turned brass scale foot",RoomLathe(new[]{baseY,baseY+.012f,baseY+.03f,baseY+.05f,baseY+.07f,p.y+.09f,p.y+.105f},new[]{.15f,.15f,.13f,.06f,.026f,.016f,.03f},28,true,false),tarnish,new Vector3(p.x,0,p.z),Quaternion.identity);
+  RoomSolid("Scale",p-Vector3.up*.04f,new Vector3(.30f,.13f,.30f));
+  scalePan=Group("Balance pan",p+Vector3.up*.12f);
+  var pan=RoomLathe(new[]{-.012f,-.008f,.0f,.006f,.008f},new[]{.02f,.11f,.145f,.152f,.148f},32,true,false);var panGo=RoomBuild("Spun brass scale pan",pan,tarnish,Vector3.zero,Quaternion.identity,scalePan);panGo.transform.localPosition=Vector3.zero;}
  void MakeStall(){var p=LV(L.Shop);float bottom=p.y-.10f;
   RoomBox("Merchant display",p-Vector3.up*.04f,new Vector3(.73f,.12f,.62f),wood,.008f,.15f);for(int i=0;i<6;i++)RoomBox("Trade ingot",p+new Vector3(-.2f+(i%3)*.2f,.045f+(i/3)*.07f,0),new Vector3(.16f,.065f,.28f),i%2==0?brass:iron,.008f,.2f);
   foreach(var z in new[]{-.25f,.25f})RoomBox("Display batten",new Vector3(p.x,(L.BenchTopY+bottom)/2,p.z+z),new Vector3(.70f,bottom-L.BenchTopY,.06f),wood,.004f,.2f);
@@ -284,7 +286,7 @@ public partial class ForgeWorld {
   Box("Lantern base",p,new Vector3(.19f,.027f,.19f),iron);Primitive("Candle",PrimitiveType.Cylinder,p+Vector3.up*.085f,new Vector3(.045f,.075f,.045f),candleWax);for(int x=-1;x<=1;x+=2)for(int z=-1;z<=1;z+=2)Box("Lantern frame",p+new Vector3(x*.08f,.13f,z*.08f),new Vector3(.012f,.25f,.012f),iron);Box("Lantern roof",p+Vector3.up*.26f,new Vector3(.21f,.033f,.21f),iron);
   RoomSolid("Lantern",p+Vector3.up*.1f,new Vector3(.19f,.24f,.19f),default,true,false);
   // The coin dish by the scale (ForgeLayout.CoinDish), turned brass.
-  var d=LV(L.CoinDish);float R=L.CoinDishRadius;var dish=RoomLathe(new[]{L.BenchTopY,L.BenchTopY+.004f,d.y-.004f,d.y+.006f},new[]{R*.55f,R*.8f,R,R*.97f},24,true,false);RoomBuild("Brass coin dish",dish,brass,new Vector3(d.x,0,d.z),Quaternion.identity);
+  var d=LV(L.CoinDish);float R=L.CoinDishRadius;var dish=RoomLathe(new[]{L.BenchTopY,L.BenchTopY+.004f,d.y-.004f,d.y+.006f},new[]{R*.55f,R*.8f,R,R*.97f},24,true,false);RoomBuild("Brass coin dish",dish,tarnish,new Vector3(d.x,0,d.z),Quaternion.identity);
  }
 
  // ---------- Lighting rig ----------
@@ -302,7 +304,7 @@ public partial class ForgeWorld {
  void MakeHangingLamp(){
   var p=LV(L.HangingLamp);float joistBottom=CeilingY-.2f;
   var chain=new RoomMesh();var link=RoomChainLink(.034f,.019f,.0032f);float topY=p.y+.17f;int links=Mathf.CeilToInt((joistBottom-topY)/.026f);for(int k=0;k<links;k++)chain.Append(link,Matrix4x4.TRS(new Vector3(p.x,joistBottom-.015f-k*.026f,p.z),Quaternion.Euler(0,k%2==0?0:90,90),Vector3.one));
-  roomCheapAo.Add(RoomBuild("Lamp chain",chain,sootIron,Vector3.zero,Quaternion.identity));RoomBox("Ceiling hook plate",new Vector3(p.x,joistBottom-.006f,p.z),new Vector3(.06f,.012f,.06f),sootIron,.003f,.2f);
+  roomLumpAo.Add(RoomBuild("Lamp chain",chain,sootIron,Vector3.zero,Quaternion.identity));RoomBox("Ceiling hook plate",new Vector3(p.x,joistBottom-.006f,p.z),new Vector3(.06f,.012f,.06f),sootIron,.003f,.2f);
   var shadeOuter=RoomLathe(new[]{p.y+.03f,p.y+.05f,p.y+.12f,p.y+.17f},new[]{.185f,.175f,.09f,.05f},24,false,false);RoomBuild("Tin lamp shade",shadeOuter,tin,new Vector3(p.x,0,p.z),Quaternion.identity);
   var shadeInner=RoomLathe(new[]{p.y+.032f,p.y+.05f,p.y+.12f,p.y+.168f},new[]{.18f,.17f,.085f,.046f},24,false,false);for(int i=0;i<shadeInner.n.Count;i++)shadeInner.n[i]=-shadeInner.n[i];for(int i=0;i<shadeInner.t.Count;i+=3){var s=shadeInner.t[i+1];shadeInner.t[i+1]=shadeInner.t[i+2];shadeInner.t[i+2]=s;}
   RoomBuild("Enamel shade lining",shadeInner,enamel,new Vector3(p.x,0,p.z),Quaternion.identity);

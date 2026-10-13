@@ -12,7 +12,7 @@ public partial class ForgeWorld {
  /// Particle multiplier for the current tier (1, 1, .6, .4).
  float QualityParticleScale=>ForgeQualityGovernor.ParticleScale(QualityTier);
  ForgeTuning appliedTuning;Color fireBase,bounceBase,rimBase,candleBase;float flashLevel,fireFrame;
- float bellowsSince=99,bellowsStrength;
+ float bellowsSince=99,bellowsStrength;bool bellowsUnseen;   // unseen: the swell without the handle stroke (dawn: no hand is on it)
  // Day transition state (AtmosDay) and the levels it drives.
  float dayClock=-1;bool dayReduced,dawnSent;float fireDay=1,lanternLevel=1,lampLevel=1,doorLevel=1;Color windowNow;
  static readonly Color WindowDay=new Color(.62f,.71f,.84f)*.22f,WindowNight=new Color(.043f,.071f,.094f)*.3f;
@@ -57,7 +57,7 @@ public partial class ForgeWorld {
   // The steady level until UpdateLighting runs (the reflection probe is captured in Start, before the first frame).
   Shader.SetGlobalColor(ForgeContract.Globals.FireColor,fireBase);
   // The bounce comes off the lit hearth front and the floor in front of it, toward the anvil.
-  var hb=LV(L.HearthBoxCenter);var hs=LV(L.HearthBoxSize);Shader.SetGlobalVector(FireBounceId,new Vector4(hb.x+.12f,.70f,hb.z-hs.z/2-.18f,r.fireBounce>0?1:0));
+  var hb=LV(L.HearthBoxCenter);var hs=LV(L.HearthBoxSize);Shader.SetGlobalVector(FireBounceId,new Vector4(hb.x+.12f,.70f,hb.z-hs.z/2-.18f,r.fireBounce>0?r.bounceFalloff:0));
   bounceBase=C(r.bounceColor).linear*r.fireIntensity*r.fireScale*r.fireBounce;Shader.SetGlobalColor(BounceColorId,bounceBase);
   Shader.SetGlobalVector(SconcePosId,new Vector3(1.25f,1.84f,RoomFrontZ+.13f));var sconce=C(r.sconceColor).linear*r.sconceIntensity;sconce.a=1;Shader.SetGlobalColor(SconceColId,sconce);
   Shader.SetGlobalVector(CandlePosId,LV(L.Lantern)+Vector3.up*.15f);candleBase=sconce*.8f;candleBase.a=1;
@@ -68,7 +68,7 @@ public partial class ForgeWorld {
   if(cam!=null&&!QaOn(ForgeContract.QaModes.Void))cam.backgroundColor=C(r.fogColor);
  }
  /// One bellows stroke of strength 0..1: fire swell, board animation, Send('sfx','bellows').
- void Bellows(float strength){bellowsSince=0;bellowsStrength=Mathf.Clamp01(strength);Send("sfx",0,ForgeContract.Sfx.Bellows,bellowsStrength);}
+ void Bellows(float strength){bellowsSince=0;bellowsStrength=Mathf.Clamp01(strength);bellowsUnseen=false;Send("sfx",0,ForgeContract.Sfx.Bellows,bellowsStrength);}
  /// Called by Sync when snapshot.day changes: the fire banks down, the window goes to night, then dawn
  /// (2.2 s; under reduced motion a .4 s crossfade).
  void AtmosDay(int day){dayClock=0;dayReduced=reduced;dawnSent=false;if(dayReduced){dawnSent=true;Send("sfx",day,ForgeContract.Sfx.Dawn);}}
@@ -91,7 +91,7 @@ public partial class ForgeWorld {
   if(dayReduced){float k=Mathf.Clamp01(t/.4f);windowNow=Color.Lerp(WindowNight,WindowDay,k);fireDay=1;lanternLevel=1;if(k>=1)dayClock=-1;return;}
   if(t<.6f){float k=Mathf.SmoothStep(0,1,t/.6f);fireDay=Mathf.Lerp(1,.35f,k);windowNow=Color.Lerp(WindowDay,WindowNight,k);lanternLevel=Mathf.Lerp(1,.45f,k);}
   else if(t<1.4f){fireDay=.35f;windowNow=WindowNight;lanternLevel=.45f;}
-  else if(t<2.2f){if(!dawnSent){dawnSent=true;Bellows(1);Send("sfx",state!=null?state.day:0,ForgeContract.Sfx.Dawn);}float k=Mathf.SmoothStep(0,1,(t-1.4f)/.8f);fireDay=Mathf.Lerp(.35f,1,k);windowNow=Color.Lerp(WindowNight,WindowDay*1.3f,k);lanternLevel=Mathf.Lerp(.45f,1,k);}
+  else if(t<2.2f){if(!dawnSent){dawnSent=true;Bellows(1);bellowsUnseen=true;Send("sfx",state!=null?state.day:0,ForgeContract.Sfx.Dawn);}float k=Mathf.SmoothStep(0,1,(t-1.4f)/.8f);fireDay=Mathf.Lerp(.35f,1,k);windowNow=Color.Lerp(WindowNight,WindowDay*1.3f,k);lanternLevel=Mathf.Lerp(.45f,1,k);}
   else{float k=Mathf.Clamp01((t-2.2f)/3);windowNow=Color.Lerp(WindowDay*1.3f,WindowDay,k);fireDay=1;lanternLevel=1;if(k>=1)dayClock=-1;}
  }
  void UpdateLighting(float dt){

@@ -18,7 +18,7 @@
 //   and the quality/perf messages.
 //
 // usage: node scripts/forge-qa/room.mjs --out <dir> [--project unity/ForgeOrFold] [--only looks,void,brick,lamp,contact,flicker]
-//          [--baseline <dir>] [--tune <json overrides>] [--analyze] [--keep-frames]
+//          [--baseline <dir>] [--tune <json overrides>] [--view desktop|phone] [--analyze] [--keep-frames]
 //        node scripts/forge-qa/room.mjs --out <dir> --url http://127.0.0.1:4173/minigames/forgeOrFold/ [--profiles desktop,phone]
 // Writes <out>/room-report.json and prints a summary. Exit code 1 when a measured check fails.
 import { spawn, execSync } from 'node:child_process'
@@ -143,7 +143,7 @@ export function cardNow(r, p = L.faceCentre) {
   c = v3.add(c, lampOnCard([2.35, 2.36, 1.76], v3.mul(hexLin(r.rimColor), r.rimIntensity), p))
   c = v3.add(c, lampOnCard([-1.15, .88 + r.fireLift, -.42], v3.mul(hexLin(r.fireColor), r.fireIntensity * r.fireScale), p))
   const bp = [-1.10, .70, -.80], d = v3.sub(bp, p), d2 = v3.dot(d, d), wrap = Math.min(1, Math.max(0, d[1] / Math.sqrt(d2) * .5 + .5))
-  c = v3.add(c, v3.mul(hexLin(r.bounceColor), r.fireIntensity * r.fireScale * r.fireBounce * wrap * wrap / (1 + d2 * .22)))
+  c = v3.add(c, v3.mul(hexLin(r.bounceColor), r.fireIntensity * r.fireScale * r.fireBounce * wrap * wrap / (1 + d2 * (r.bounceFalloff ?? .22))))
   return lumY(v3.add(c, v3.mul([.13, .11, .09], r.ambientScale)))
 }
 /** The same card on the pre-upgrade face (phase-0 lights: key, rim and furnace omni lamps, fill .13/.11/.09). */
@@ -186,7 +186,7 @@ if (arg('url')) {
       const msaa = await h.page.evaluate(() => window.__roomMsaa)
       const canvas = (await lib.hud(h)).canvas
       await h.shot('work-view')
-      report.profiles[kind] = { open: o, canvas, drawCalls: { idle, anvil, striking }, frames, quality, perf, msaa: msaa.map(m => ({ samples: m.samples, w: m.w, h: m.h })), console: h.consoleLines.filter(l => /error|exception/i.test(l)).slice(0, 10) }
+      report.profiles[kind] = { open: o, canvas, drawCalls: { idle, anvil, striking }, frames, quality, perf, msaa: msaa.map(m => ({ samples: m.samples, w: m.w, h: m.h })), console: h.consoleLines.filter(l => /error|exception/i.test(l)).slice(0, 10), room: h.consoleLines.filter(l => /FORGE_ROOM/.test(l)).slice(0, 10), transfer: lib.transferBytes(h) }
       const p = report.profiles[kind]
       console.log(`${kind}: ready ${o.readyMs} ms, canvas ${canvas?.w}x${canvas?.h}; draw calls idle ${idle.calls_med}, anvil ${anvil.calls_med}, striking ${striking.calls_med} (p95 ${striking.calls_p95}); frames p95 ${frames.p95} ms, max ${frames.max}; tiers ${quality.map(q => q.tier).join('>') || '-'}; MSAA ${[...new Set(p.msaa.map(m => m.samples))].join(',') || 'none'}`)
     } finally { await h.close() }
@@ -207,10 +207,13 @@ const heated = step(furnace.state, { type: 'heat', id: 1 })
 const seated = step(heated.state, { type: 'move', id: 1, to: 'anvil' })
 // --tune '{"room":{"lampIntensity":4}}' merges overrides into feel-tuning.json for this run (quick A/B without edits).
 const tuning = (() => { const t = JSON.parse(readFileSync(join(repo, 'src/minigames/forge/feel-tuning.json'), 'utf8')); const o = JSON.parse(arg('tune', '{}')); for (const k of Object.keys(o)) t[k] = { ...(t[k] || {}), ...o[k] }; return JSON.stringify(t) })()
-const insets = forgeView(1440, 900, 1, false)
+// --view phone renders the steady job at a 390 x 844 CSS phone (DPR 2, work FOV 62) for the looks; the measured checks
+// are calibrated for the desktop work view.
+const phone = arg('view', 'desktop') === 'phone', VW = phone ? 780 : 1440, VH = phone ? 1688 : 900, workFov = phone ? 62 : L.fovDesktop
+const insets = phone ? forgeView(390, 844, 2, true) : forgeView(1440, 900, 1, false)
 const W8 = s => ({ do: 'wait', s }), C = name => ({ do: 'capture', name }), Q = mode => ({ do: 'qa', mode })
 const pin = (x, y, z, yaw, pitch, fov) => Q(`room-cam:${[x, y, z, yaw, pitch, fov].map(v => +(+v).toFixed(4)).join(',')}`)
-const work = () => pin(...L.workEye, L.workYaw, L.workPitch, L.fovDesktop)
+const work = () => pin(...L.workEye, L.workYaw, L.workPitch, workFov)
 const head = [{ do: 'tune', json: tuning }, { do: 'insets', json: JSON.stringify(insets) }, { do: 'sync', json: payload(s0) }, W8(1.0), { do: 'focus' }, W8(.6)]
 
 // Straight-on wall views for the brick module (camera on the wall normal, distance d, vertical FOV 30).
@@ -222,7 +225,7 @@ const walls = [
 const voidViews = []
 for (const yaw of [0, 90, 180, 270]) for (const pitch of [-70, 0, 70]) voidViews.push({ name: `void-y${yaw}-p${pitch}`, cam: [...L.workEye, yaw, pitch, 62] })
 const looks = [
-  ['look-work', [...L.workEye, L.workYaw, L.workPitch, L.fovDesktop]], ['look-face', [.05, 1.12, -.78, 0, 52, 45]], ['look-anvil-right', [.95, 1.25, -.95, -52, 24, 50]],
+  ['look-work', [...L.workEye, L.workYaw, L.workPitch, workFov]], ['look-face', [.05, 1.12, -.78, 0, 52, 45]], ['look-anvil-right', [.95, 1.25, -.95, -52, 24, 50]],
   ['look-anvil-left', [-.62, 1.05, -1.0, 38, 14, 50]], ['look-hearth', [.5, 1.55, -2.2, -32, 16, 60]], ['look-hearth-close', [-.42, 1.45, -1.35, -38, 32, 50]],
   ['look-door', [2.7, 2.1, -3.4, -38, 14, 72]], ['look-backleft', [-2.9, 2.0, 1.5, 148, 14, 72]], ['look-ceiling', [0, 1.6, -2.0, 0, -40, 72]],
   ['look-low', [-.2, .35, -1.6, 10, -8, 60]], ['look-lamp', [.9, 1.75, -1.6, -35, -14, 40]], ['look-front', [0, 1.7, 1.3, 180, 8, 72]],
@@ -247,7 +250,7 @@ function steadyJob() {
     s.push(Q('room-cam:off'), W8(.2))
     for (const [n, yaw, pitch] of [['front', 0, 0], ['right', 90, 0], ['back', 180, 0], ['left', -90, 0], ['up', 0, -65], ['down', 0, 78]]) s.push({ do: 'look', yaw, pitch }, W8(1.0), C('void-look-' + n))
   }
-  return { view: 'desktop', width: 1440, height: 900, dt: 1 / 120, timeout: 300, steps: s }
+  return { view: phone ? 'phone' : 'desktop', width: VW, height: VH, dt: 1 / 120, timeout: 300, steps: s }
 }
 const FLICKER_N = 300, FLICKER_RATE = 30, FLAME_N = 120
 function flickerJob() {

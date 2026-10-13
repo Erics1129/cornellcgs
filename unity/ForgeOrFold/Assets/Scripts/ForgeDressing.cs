@@ -31,7 +31,7 @@ public partial class ForgeWorld {
   RoomSolid("Fuel bin",fc+Vector3.up*fh/2,new Vector3(fw-.02f,fh,fd-.02f));
   var heap=new RoomMesh();for(int i=0;i<90;i++){float u=(float)rng.NextDouble()-.5f,w=(float)rng.NextDouble()-.5f;float d=Mathf.Sqrt(u*u*4+w*w*4);float y=fh-.08f+.07f*(1-Mathf.Min(1,d))+(float)rng.NextDouble()*.01f;float size=.035f*(.7f+.6f*(float)rng.NextDouble());heap.Append(RoomCoalLump(300+i),Matrix4x4.TRS(fc+new Vector3(u*(fw-.06f),y,w*(fd-.06f)),Quaternion.Euler((float)rng.NextDouble()*360,(float)rng.NextDouble()*360,(float)rng.NextDouble()*360),new Vector3(size,size*.7f,size*1.1f)));}
   RoomBox("Coal fill",fc+Vector3.up*(fh-.10f),new Vector3(fw-.05f,.02f,fd-.05f),coal,.004f,.2f);
-  RoomBuild("Coal in the bin",heap,coal,Vector3.zero,Quaternion.identity);
+  roomLumpAo.Add(RoomBuild("Coal in the bin",heap,coal,Vector3.zero,Quaternion.identity));
   var shovel=Group("Coal shovel",fc+new Vector3(fw/2+.06f,.0f,-.08f));RoomBox("Shovel shaft",new Vector3(0,.48f,0),new Vector3(.025f,.85f,.025f),woodUp,.006f,.3f,default,RoomFaceAll,shovel);RoomBox("Shovel blade",new Vector3(0,.04f,0),new Vector3(.02f,.2f,.17f),sootIron,.004f,.3f,default,RoomFaceAll,shovel);shovel.Rotate(0,0,-9);
   // Steel offcuts and clay flux pots on the bench.
   for(int i=0;i<12;i++){float a=i*.77f;RoomBox("Steel offcut",new Vector3(.58f+Mathf.Cos(a)*.18f,L.BenchTopY+.003f,.42f+Mathf.Sin(a)*.14f),new Vector3(.02f,.006f,.08f),iron,.002f,.3f,new Vector3(0,i*43,0));}
@@ -83,7 +83,7 @@ public partial class ForgeWorld {
   var p=new Vector3(1.25f,1.70f,RoomFrontZ);
   RoomBox("Sconce back plate",p+new Vector3(0,.04f,.006f),new Vector3(.08f,.17f,.012f),sootIron,.004f,.2f);
   RoomBox("Sconce arm",p+new Vector3(0,-.02f,.065f),new Vector3(.014f,.014f,.12f),sootIron,.004f,.2f);
-  RoomBuild("Sconce drip pan",RoomLathe(new[]{-.03f,-.022f,-.012f},new[]{.03f,.05f,.052f},16,true,true),brass,p+new Vector3(0,0,.12f),Quaternion.identity);
+  RoomBuild("Sconce drip pan",RoomLathe(new[]{-.03f,-.022f,-.012f},new[]{.03f,.05f,.052f},16,true,true),tarnish,p+new Vector3(0,0,.12f),Quaternion.identity);
   RoomBuild("Sconce candle",RoomLathe(new[]{-.012f,.08f,.09f},new[]{.012f,.012f,.008f},10,true,false),candleWax,p+new Vector3(0,0,.12f),Quaternion.identity);
  }
 
@@ -130,7 +130,7 @@ public partial class ForgeWorld {
   glowMesh.vertices=glowV;glowMesh.colors=glowC;
   // Bellows: the handle follows the hand's stroke (down and back up, ForgeFlicker.HandlePull); the beam rocks on its
   // pin (lever ratio .375), the lifting chain and the bottom board rise, the leather folds.
-  if(bellowsBeam!=null){float pull=ForgeFlicker.HandlePull(bellowsSince,room)*Mathf.Clamp01(bellowsStrength)*room.bellowsPullCm/100;float lift=pull*.375f;
+  if(bellowsBeam!=null){float pull=bellowsUnseen?0:ForgeFlicker.HandlePull(bellowsSince,room)*Mathf.Clamp01(bellowsStrength)*room.bellowsPullCm/100;float lift=pull*.375f;
    float lever=(bellowsHandleRest-bellowsPivot).magnitude;bellowsBeam.localRotation=Quaternion.AngleAxis(-Mathf.Asin(Mathf.Clamp(pull/lever,-1,1))*Mathf.Rad2Deg,bellowsAxis);
    bellowsHandle.localPosition=bellowsHandleRest+Vector3.down*pull;bellowsLift.localPosition=bellowsLiftRest+Vector3.up*lift;
    bellowsBottom.localPosition=bellowsBottomRest+Vector3.up*lift;bellowsLeather.localScale=new Vector3(1,1-lift/.155f,1);}
