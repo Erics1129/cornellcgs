@@ -7,6 +7,8 @@
  *   node scripts/inkmaze-generate.mjs --seed 7 --count 800 --sizes 8-9 --top 30 --show 5
  *   node scripts/inkmaze-generate.mjs --pick             also choose ten to follow the current last level
  *   node scripts/inkmaze-generate.mjs --board s1-9-0042  print one board again, by its id
+ *   node scripts/inkmaze-generate.mjs --hardness 20-25   the quick measures of how hard levels 20 to 25 are
+ *   node scripts/inkmaze-generate.mjs --hardness 20-25 --slow   all eleven, and how the levels compare
  *
  * Options
  *   --seed n        the run's seed (default 1); the same seed gives the same boards
@@ -23,6 +25,11 @@
  *   --step n        least rise in score from one pick to the next (default 1)
  *   --json file     write every kept board and its numbers to a JSON file
  *   --from file     rank (and pick from) the boards in a file written by --json instead of generating
+ *   --hardness a-b  print the quick measures (scripts/inkmaze-hardness.mjs) for levels a to b, or
+ *                   for every level without a-b, then stop
+ *   --slow          with --hardness, also the beam search, the nested Monte Carlo runs and the
+ *                   planner (minutes for a large level), the rows for the curve table in
+ *                   scripts/test-inkmaze.mjs, and how each level compares with the ones before it
  *
  * What it does with each board
  *  1. Walls at random, a random start on floor. Floor that no roll from the
@@ -48,12 +55,46 @@
  * 24 direction orders for breaking ties, and the best of those runs counts.
  *
  * Levels 11 to 20 came from `--count 1500 --sizes 7-9 --pick`, run while the
- * game had ten levels (about three minutes). With all twenty in levels.ts the
- * same command looks for ten more beyond them.
+ * game had ten levels (about three minutes).
+ *
+ * Levels 21 to 25 were chosen differently. The score above rewards long
+ * lines and rolling back over colored blocks, but it does not see what makes
+ * a level hard for a player who simply never makes a move that visibly loses
+ * (more blocks left than ink, or a block no roll can reach again): boards it
+ * ranks above level 20 can be easier for that player. So they were picked on
+ * the eleven measures in scripts/inkmaze-hardness.mjs (MEASURES), all at par
+ * ink. Five are about that careful player: its chance to clear the level by
+ * picking at random among the moves it would make, how many moves on the
+ * line look safe but cannot win, how long such a move lets it play on before
+ * the dead end shows, the smallest beam search that clears the level, and
+ * how many of six seeded nested Monte Carlo searches do. Six are the plainer
+ * ones: least-ink lines, decision points, the lookahead a simple planner
+ * needs, this script's greedy player, moves, and ink per floor block.
+ *
+ * The boards came from an annealing search outside this script, written in C
+ * for speed (toggle or move a wall, move the start, fill in floor no roll
+ * reaches, keep one least-ink line, walls at most 40%), aimed at bands of the
+ * quick measures and kept at least 25% away from every level already here.
+ * Several hundred 9 x 9 boards came out between level 20 and level 25 on the
+ * quick measures; about three hundred were measured on all eleven. The four
+ * for levels 21 to 24 are a set with the widest margin: each of levels 21 to
+ * 25 is harder than every level from 20 up to it on at least four more
+ * measures than it is easier, and from 21 to 24 no level is easier than the
+ * one before it on anything. Against level 20 they give way only on the
+ * planner (levels 21 and 22) and on ink per floor block, where level 20 is
+ * unusually high. Level 25 is a 7 x 7 from the same search on small boards,
+ * started from one an earlier review proposed; a small board needs a
+ * narrower beam search, and this one has a second least-ink line, but it is
+ * harder than every 9 x 9 here on everything else that differs.
+ * `--hardness 20-25 --slow` prints all eleven numbers and how each level
+ * compares with the ones before it; scripts/test-inkmaze.mjs keeps them in a
+ * table and checks the order. With all twenty-five levels in levels.ts,
+ * `--pick` looks for ten more after level 25 by this script's own score.
  */
 import { DIRECTIONS, FLOOR, WALL, START, applyMove, floorCount, initialState, rollPath } from '../src/minigames/inkmaze/engine.ts'
 import { minInk, solvableWith } from '../src/minigames/inkmaze/solver.ts'
 import { LEVELS } from '../src/minigames/inkmaze/levels.ts'
+import { CAREFUL_MEASURES, MEASURES, compare, difference, hardness, nmcsWins, plannerDepth, smallestBeam } from './inkmaze-hardness.mjs'
 import { readFileSync, writeFileSync } from 'node:fs'
 
 // ------------------------------------------------------------------ options
@@ -77,6 +118,8 @@ const PICK = argv.includes('--pick')
 const JSON_OUT = option('json', '')
 const BOARD = option('board', '')
 const FROM = option('from', '')
+const HARDNESS = argv.includes('--hardness') ? option('hardness', 'all') : ''
+const SLOW = argv.includes('--slow')
 
 if (SIZE_MIN < 4 || SIZE_MAX > 12 || SIZE_MIN > SIZE_MAX) throw new Error('--sizes must be within 4-12, smallest first')
 if (WALL_MIN < 0 || WALL_MAX > 60 || WALL_MIN > WALL_MAX) throw new Error('--walls must be within 0-60, smallest first')
@@ -367,34 +410,6 @@ const printGrid = (m, label = m.id) => {
   for (const row of m.grid) console.log(`  '${row}',`)
 }
 
-// --------------------------------------------------------- symmetry checks
-/** The 8 rotations and mirror images of a wall layout (start ignored), as strings. */
-function symmetries(grid) {
-  const n = grid.length
-  const at = (x, y) => (grid[y][x] === WALL ? '#' : '.')
-  const maps = [
-    (x, y) => at(x, y), (x, y) => at(n - 1 - y, x), (x, y) => at(n - 1 - x, n - 1 - y), (x, y) => at(y, n - 1 - x),
-    (x, y) => at(n - 1 - x, y), (x, y) => at(x, n - 1 - y), (x, y) => at(y, x), (x, y) => at(n - 1 - y, n - 1 - x),
-  ]
-  return maps.map((f) => {
-    let s = ''
-    for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) s += f(x, y)
-    return s
-  })
-}
-/** Share of blocks two same-size layouts differ in, after the best rotation or mirror (1 for different sizes). */
-function difference(a, b) {
-  if (a.length !== b.length || a[0].length !== b[0].length) return 1
-  const target = symmetries(b)[0]
-  let fewest = Infinity
-  for (const s of symmetries(a)) {
-    let d = 0
-    for (let i = 0; i < s.length; i++) if (s[i] !== target[i]) d++
-    fewest = Math.min(fewest, d)
-  }
-  return fewest / target.length
-}
-
 // --------------------------------------------------------------------- run
 if (BOARD) {
   const match = /^s(\d+)-(\d+)-(\d+)$/.exec(BOARD)
@@ -403,6 +418,60 @@ if (BOARD) {
   const m = measure(makeGrid(seed, size, n), BOARD)
   if (m.drop) console.log(`${BOARD}: dropped (${m.drop})`)
   else { console.table([fmt(m, 1)]); printGrid(m) }
+  process.exit(0)
+}
+
+if (HARDNESS) {
+  // how hard some of the current levels are, on the measures in scripts/inkmaze-hardness.mjs
+  const [from, to] = /^\d+(-\d+)?$/.test(HARDNESS) ? range(HARDNESS) : [1, LEVELS.length]
+  const rows = []
+  const curve = []
+  for (let n = from; n <= Math.min(to, LEVELS.length); n++) {
+    const level = LEVELS[n - 1]
+    const t = performance.now()
+    const h = hardness(level)
+    const greedyOver = bestGreedy(level.grid) - h.par
+    const row = {
+      '#': n, id: level.id, size: `${level.grid[0].length}x${level.grid.length}`, par: h.par,
+      careful: h.careful.toExponential(3), 'safe-wrong': h.safeWrong, horizon: h.horizon.toFixed(2),
+      lines: h.lines, decisions: h.decisions, greedy: Number.isFinite(greedyOver) ? `+${greedyOver}` : 'stuck', moves: h.moves,
+      'ink/floor': h.inkPerFloor.toFixed(3),
+    }
+    const measures = {
+      id: level.id, careful: Number(h.careful.toExponential(3)), safeWrong: h.safeWrong, horizon: Number(h.horizon.toFixed(2)),
+      lines: h.lines, decisions: h.decisions, greedy: greedyOver, moves: h.moves, inkPerFloor: Number(h.inkPerFloor.toFixed(3)),
+    }
+    if (SLOW) {
+      const beam = smallestBeam(level, 17)
+      measures.beam = beam.width
+      measures.nmcs = nmcsWins(level)
+      measures.planner = plannerDepth(level)
+      row.beam = Number.isFinite(beam.width) ? `${beam.width} ${beam.scoring}` : '> 131072'
+      row.nmcs = `${measures.nmcs}/6`
+      row.planner = Number.isFinite(measures.planner) ? measures.planner : '> 70'
+      console.log(`level ${n} measured`)
+    }
+    row.s = ((performance.now() - t) / 1000).toFixed(1)
+    rows.push(row)
+    curve.push(measures)
+  }
+  console.table(rows)
+  if (SLOW) {
+    // rows for the CURVE table in scripts/test-inkmaze.mjs, and how each level compares with the ones before it
+    const keys = Object.keys(MEASURES)
+    const text = (v) => (v === Infinity ? 'Infinity' : String(v))
+    console.log('\nFor the CURVE table in scripts/test-inkmaze.mjs:')
+    for (const m of curve) console.log(`  { id: '${m.id}', ${keys.map((key) => `${key}: ${text(m[key])}`).join(', ')} },`)
+    console.log('\nHarder / easier than each level before it (all eleven measures; the five careful-player ones):')
+    curve.forEach((m, i) => {
+      const against = curve.slice(0, i).map((o) => {
+        const all = compare(o, m)
+        const careful = compare(o, m, CAREFUL_MEASURES)
+        return `${o.id} ${all.harder}/${all.easier} (${careful.harder}/${careful.easier})`
+      })
+      if (against.length) console.log(`  ${m.id}: ${against.join(', ')}`)
+    })
+  }
   process.exit(0)
 }
 
