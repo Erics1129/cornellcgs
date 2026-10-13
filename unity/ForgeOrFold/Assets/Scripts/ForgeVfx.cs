@@ -17,6 +17,8 @@ public partial class ForgeWorld {
  readonly float[] flakeSfxTimes=new float[16];int flakeSfxNext;float fxClock;
  /// What the last ImpactFx threw (QA probe): outcome, flakes, sheets, chips, sparks.
  string lastBurstOutcome="";int lastBurstFlakes,lastBurstSheets,lastBurstChips,lastBurstSparks,lastBurstId,landN,nearN;
+ /// Where the last strike's debris came from (StrikeOrigin), and the shatter's break point.
+ Vector3 fxOrigin;
  /// Particle materials. particleGold/Iron/Ash/Hot stay for any caller of the old names; the batches use litMaterial and addMaterial.
  Material particleGold,particleIron,particleAsh,particleHot,sparkTrail,litMaterial,addMaterial;
  class Batch { public GameObject go; public Mesh mesh; public MeshRenderer renderer; public int capacity, used; public readonly List<Vector3> v=new List<Vector3>(); public readonly List<Vector4> a=new List<Vector4>(),b=new List<Vector4>(),c=new List<Vector4>(),d=new List<Vector4>(); public readonly List<Color32> col=new List<Color32>(); }
@@ -24,9 +26,11 @@ public partial class ForgeWorld {
  void MakeVfxMaterials(){
   particleGold=Mat("Golden impact","fbc987",.75f,.7f);particleIron=Mat("Metal shards","9ba5ac",.9f,.6f);particleAsh=Mat("Dust","878778",0,.1f);particleHot=Mat("White orange embers","ffc680",.45f,.6f);
   foreach(var m in new[]{particleGold,particleHot}){m.EnableKeyword("_EMISSION");m.SetColor("_EmissionColor",m.color*2);}
-  var lit=Shader.Find(ForgeContract.Shaders.ParticleLit);var add=Shader.Find(ForgeContract.Shaders.ParticleAdd);
-  if(lit==null)Debug.LogWarning("Forge: shader Forge/ParticleLit is missing from the build (add it to ForgeBuild's always-included list)");
-  litMaterial=new Material(lit!=null?lit:add){name="Hammer scale"};addMaterial=new Material(add){name="Burning sparks"};
+  // Both particle shaders must be in ForgeBuild's always-included list. If one is missing from a player build the
+  // particles fall back to an always-included shader and draw nothing (the quads are collapsed), instead of throwing.
+  var lit=Shader.Find(ForgeContract.Shaders.ParticleLit);var add=Shader.Find(ForgeContract.Shaders.ParticleAdd);var safe=Shader.Find(ForgeContract.Shaders.Spark)??Shader.Find(ForgeContract.Shaders.Glow);
+  if(lit==null||add==null)Debug.LogWarning("Forge: particle shader missing from the build (add Forge/ParticleLit and Forge/ParticleAdd to ForgeBuild's always-included list)");
+  litMaterial=new Material(lit??add??safe){name="Hammer scale"};addMaterial=new Material(add??safe){name="Burning sparks"};
   addMaterial.SetFloat("_Billboard",1);addMaterial.SetFloat("_Intensity",1);addMaterial.SetColor("_Color",Color.white);addMaterial.SetFloat("_Soft",.6f);
   sparkTrail=addMaterial;
  }
@@ -88,9 +92,28 @@ public partial class ForgeWorld {
    Spawn(KSpark,at+Vector3.up*.006f,dir*Random.Range(t.sparkSpeedMin,t.sparkSpeedMax),Random.Range(.0012f,.0022f),1700,0,Random.Range(t.sparkLifeMin,t.sparkLifeMax),Oxide,t.sparkIntensity+Random.Range(-t.sparkIntensityJitter,t.sparkIntensityJitter));
   }
  }
+ /// Where a strike's scale comes from: the struck knife's top surface under the hammer. The contact is projected onto
+ /// the blade when it lands within 8 cm of the outline (the hammer face is wider than a bar's end), so flakes, the
+ /// footprint and the dimple always sit on the metal. u, v: normalized blade coordinates of that point.
+ Vector3 StrikeOrigin(Body b,Vector3 contact,out float u,out float v)=>StrikeOrigin(b.heatState.shape,b.blade.transform.localToWorldMatrix,contact,out u,out v);
+ Vector3 StrikeOrigin(ForgeBladeShape shape,Matrix4x4 toWorld,Vector3 contact,out float u,out float v){
+  var local=toWorld.inverse.MultiplyPoint3x4(contact);shape.Locate(local.x,local.z,out u,out v);
+  bool inside=shape.Inside(local.x,local.z);if(!inside){u=Mathf.Clamp(u,.04f,.96f);v=Mathf.Clamp(v,.15f,.85f);}
+  float st=u*(ForgeBladeShape.S-1);float x=local.x,z=local.z;if(!inside)shape.Point(st,v,out x,out z);
+  var top=toWorld.MultiplyPoint3x4(new Vector3(x,shape.Thickness(st,v,tuning.metal)*.5f/KnifeUnitMm,z));
+  return inside||Vector3.Distance(new Vector3(top.x,contact.y,top.z),contact)<.08f?top:contact;
+ }
  /// Contact-frame effects for a hit. b is null when the knife is gone (Shatter).
  void ImpactFx(ForgeEvent e,Body b,Vector3 contact){
   var t=tuning.metal;string o=e.outcome;float s=ParticleScale;float tempC=b!=null?KnifeTemperature(b):breakTempC;
+  float u=.5f,v=.5f;bool onBlade=b!=null&&b.heatState!=null&&b.blade!=null;
+  // QA 'metal-strikepoint': strike where the integrated layout will (ForgeLayout.StrikePoint relative to KnifeAnvilRoot),
+  // whatever this checkout's hammer does, so snapshots show footprints, notches and debris where players will see them.
+  if(QaOn("metal-strikepoint")){var knife=onBlade?b:null;if(knife==null)foreach(var kb in bodies.Values)if(kb.knife.place=="anvil")knife=kb;var root=knife!=null?knife.root.transform.position:breakToWorld.MultiplyPoint3x4(Vector3.zero);contact=root+(ForgeLayout.StrikePoint-ForgeLayout.KnifeAnvilRoot);}
+  var origin=onBlade?StrikeOrigin(b,contact,out u,out v):contact;
+  // Shatter: the body is gone, BreakBlade kept its outline and pose; launch the pieces away from the real contact.
+  if(!onBlade&&o=="shatter"&&breakShape!=null&&shards.Count>0&&shardAge<=0){origin=StrikeOrigin(breakShape,breakToWorld,contact,out u,out v);LaunchShards(origin);}
+  fxOrigin=origin;
   int flakes=0,sparks=0,sheets=0,chips=0;float speed=t.flakeMaxSpeed;
   switch(o){
    case "good":flakes=Mathf.RoundToInt(t.flakesGood+Random.Range(-t.flakesGoodJitter,t.flakesGoodJitter));sparks=Random.value<t.sparksGood?1:0;break;
@@ -101,12 +124,12 @@ public partial class ForgeWorld {
   if(e.evolution){flakes=0;sheets=0;sparks=0;}   // EvolutionFx (called right after) throws the evolution burst
   flakes=Mathf.RoundToInt(flakes*s);sheets=Mathf.RoundToInt(sheets*s);sparks=Mathf.RoundToInt(sparks*s);
   if(reduced){flakes=o=="dull"?0:(int)t.flakesReduced;sheets=0;sparks=0;chips=Mathf.Min(chips,2);}
-  Debris(contact,o,flakes,sparks,sheets,chips,speed,tempC);
+  Debris(origin,o,flakes,sparks,sheets,chips,speed,tempC);
   lastBurstOutcome=o;lastBurstFlakes=flakes;lastBurstSheets=sheets;lastBurstChips=chips;lastBurstSparks=sparks;lastBurstId++;landN=nearN=0;
-  if(o=="dull")Puff(contact,6,false);else if(o=="shatter")ScaleDust(contact,4);
-  if(b==null||b.heatState==null)return;
-  // Marks on the blade, in normalized blade coordinates at the real contact.
-  var h=b.heatState;var local=b.blade.transform.InverseTransformPoint(contact);h.shape.Locate(local.x,local.z,out var u,out var v);u=Mathf.Clamp(u,.12f,.88f);
+  if(o=="dull")Puff(origin,6,false);
+  if(!onBlade)return;
+  // Marks on the blade, in normalized blade coordinates under the hammer.
+  var h=b.heatState;u=Mathf.Clamp(u,.06f,.94f);
   float gain=o=="perfect"?t.footprintFlashGain*1.3f:o=="dull"?t.footprintFlashGain*.4f:t.footprintFlashGain;
   h.hits[h.hitNext]=new Vector4(u,v,0,gain);h.hitNext=(h.hitNext+1)%h.hits.Length;
   float dimple=o=="perfect"?t.dimplePerfectMm:o=="good"?t.dimpleGoodMm:o=="chip"?t.dimpleChipMm:t.dimpleDullMm;
@@ -115,7 +138,7 @@ public partial class ForgeWorld {
   if(spread>0){h.shape.AddSpread(u,spread,t);h.dirty=true;}
   if(o=="chip"){h.shape.notchU=u;h.dirty=true;}
   if(o=="perfect"){h.model.OxideAge=0;h.flashAge=0;h.flashDur=t.perfectFlashMs/1000;h.flashGain=t.perfectFlashGain;}
-  KnifeMeshIfDirty(b);ApplyHeatUniforms(b);
+  ApplyHeatUniforms(b);   // the footprint flash shows on the contact frame; the outline edit is rebuilt once in KnifeVisual
  }
  /// A level gain crossed an evolution stage: a 2 cm lift with a glint sweep, scale and burning sparks.
  void EvolutionFx(Body b){
@@ -123,7 +146,7 @@ public partial class ForgeWorld {
   var at=b.heatState!=null?b.blade.transform.TransformPoint(b.heatState.mesh.bounds.center):b.root.transform.position;
   float s=ParticleScale;int flakes=Mathf.RoundToInt(t.flakesEvolution*s),sparks=Mathf.RoundToInt(t.sparksEvolution*s);
   if(reduced){flakes=(int)t.flakesReduced;sparks=0;}
-  Debris(lastContact!=Vector3.zero?lastContact:at,"evolution",flakes,sparks,0,0,t.perfectMaxSpeed,KnifeTemperature(b));
+  Debris(fxOrigin!=Vector3.zero&&Vector3.Distance(fxOrigin,at)<.4f?fxOrigin:at,"evolution",flakes,sparks,0,0,t.perfectMaxSpeed,KnifeTemperature(b));
  }
  /// Called on every Sync for each knife: risk = next-hit shatter probability (anvil knife), else 0.
  /// Hairline cracks near the edge and tip grow with smoothstep(crackLow, crackHigh, risk).
@@ -149,7 +172,7 @@ public partial class ForgeWorld {
      // A flake resting on the blade falls off when the knife leaves the anvil.
      if(p.rest&&p.onBlade&&(landBladeId<0||p.p.y>landBlade.max.y+.003f||!InXZ(landBlade,p.p))){p.rest=false;p.onBlade=false;}
      if(!p.rest)p.p+=p.v*w;else p.v=Vector3.zero;
-     if(!p.rest&&Land(ref p,prev,faceY)){if(!p.sfx){p.sfx=true;landN++;if(new Vector2(p.p.x-lastContact.x,p.p.z-lastContact.z).magnitude<1)nearN++;if(p.kind==KChip)Send("sfx",0,ForgeContract.Sfx.ChipLand,p.v.magnitude+1,p.temp);else if(FlakeSfxAllowed()){Send("sfx",0,ForgeContract.Sfx.FlakeLand,p.v.magnitude,p.temp);}}}
+     if(!p.rest&&Land(ref p,prev,faceY)){if(!p.sfx){p.sfx=true;landN++;if(new Vector2(p.p.x-fxOrigin.x,p.p.z-fxOrigin.z).magnitude<1)nearN++;if(p.kind==KChip)Send("sfx",0,ForgeContract.Sfx.ChipLand,p.v.magnitude+1,p.temp);else if(FlakeSfxAllowed()){Send("sfx",0,ForgeContract.Sfx.FlakeLand,p.v.magnitude,p.temp);}}}
      if(p.temp>25)p.temp=ForgeHeatMath.FlakeStep(p.temp,w,p.thick);
      if(p.dark<0&&p.temp<(p.kind==KChip?500:t.flakeDarkC))p.dark=p.age;
      if(p.dark>=0&&p.age-p.dark>t.flakeRestS+t.flakeFadeS&&(p.rest||p.p.y<.01f||p.age>8))dead=true;
@@ -230,7 +253,9 @@ public partial class ForgeWorld {
  static void Flush(Batch b,int n){
   for(int q=n;q<b.used;q++)for(int k=0;k<4;k++){int i=q*4+k;b.a[i]=Vector4.zero;b.c[i]=Vector4.zero;b.d[i]=Vector4.zero;}
   bool any=n>0||b.used>0;b.used=n;b.renderer.enabled=n>0;if(!any)return;
-  b.mesh.SetVertices(b.v);b.mesh.SetUVs(0,b.a);b.mesh.SetUVs(1,b.b);b.mesh.SetUVs(2,b.c);b.mesh.SetUVs(3,b.d);b.mesh.SetColors(b.col);
+  // Fixed, generous bounds (set in MakeBatch): billboards extend past their centres, so never recompute them.
+  const MeshUpdateFlags keep=MeshUpdateFlags.DontRecalculateBounds|MeshUpdateFlags.DontValidateIndices|MeshUpdateFlags.DontNotifyMeshUsers;int count=b.v.Count;
+  b.mesh.SetVertices(b.v,0,count,keep);b.mesh.SetUVs(0,b.a,0,count,keep);b.mesh.SetUVs(1,b.b,0,count,keep);b.mesh.SetUVs(2,b.c,0,count,keep);b.mesh.SetUVs(3,b.d,0,count,keep);b.mesh.SetColors(b.col,0,count,keep);
  }
  /// Quench: a steam plume from the blade, rings and bubbles on the slack-tub surface.
  void QuenchFx(Vector3 blade,float tempC){

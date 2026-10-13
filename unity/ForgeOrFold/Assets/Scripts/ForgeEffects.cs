@@ -8,14 +8,14 @@ public partial class ForgeWorld {
  struct SmokeBit { public Vector3 p,v; public float age,life,size,grow,opacity,spin,seed,lit,drag; public Color32 color; }
  class SaleGhost {public Body body;public Vector3 start;public Quaternion rotation;public float age;public bool paid;public int amount;}
  class Coin {public GameObject go;public Vector3 start,end,p,v,axis;public float age,delay,flight,spin;public int phase,index,total,bounces;public bool sent;public Quaternion rot;}
- class Shard {public int index,v0,count;public Vector3 p,v,w;public Quaternion r;public float scale,sfxClock;public bool rest,landed;public float[] hull;}
+ class Shard {public int index,v0,count;public Vector3 p,v,w;public Quaternion r;public float scale,sfxClock,seed;public bool rest,landed;public float[] hull;}
  const int MaxSmoke=64;
  readonly SmokeBit[] smoke=new SmokeBit[MaxSmoke];int smokeCount;
  readonly List<SaleGhost> sales=new List<SaleGhost>();
  readonly List<Coin> coins=new List<Coin>();readonly Stack<GameObject> coinPool=new Stack<GameObject>();
  readonly List<Shard> shards=new List<Shard>();
  Material smokeMaterial,shardMaterial;Mesh coinMesh,shardMesh;Batch smokeBatch;GameObject shardObject;
- ForgeHeatModel shardModel;float shardAge,breakTempC,breakFaceY=ForgeLayout.AnvilTopY;
+ ForgeHeatModel shardModel;float shardAge,breakTempC,breakFaceY=ForgeLayout.AnvilTopY;ForgeBladeShape breakShape;Matrix4x4 breakToWorld;
  readonly List<Vector3> shardLocalV=new List<Vector3>(),shardLocalN=new List<Vector3>(),shardV=new List<Vector3>(),shardN=new List<Vector3>();
 
  /// Frozen entry point: a few dust (hot = false, lit by the workshop lamps) or hearth-smoke (hot = true, the
@@ -92,15 +92,13 @@ public partial class ForgeWorld {
   if(shardMaterial!=null)Destroy(shardMaterial);shardMaterial=new Material(body.metal){name="Shatter pieces"};
   shardModel=h.model.Clone();shardModel.Rebase(t);shardAge=0;
   var bt=body.blade.transform;float scale=bt.lossyScale.x;
-  // Contact: the real one when it is on this blade, else the blade centre.
-  var centre=bt.TransformPoint(h.mesh.bounds.center);var from=Vector3.Distance(lastContact,centre)<.4f?lastContact:centre;
+  // Launched from the blade centre here; ImpactFx (right after, same Sync) relaunches them from the real contact.
+  breakShape=h.shape;breakToWorld=bt.localToWorldMatrix;var centre=bt.TransformPoint(h.mesh.bounds.center);var from=centre;
   shardLocalV.Clear();shardLocalN.Clear();var uv0=new List<Vector2>();var uv1=new List<Vector4>();var col=new List<Color32>();var tris=new List<int>();
-  float speed=t.shardSpeed*(reduced?.35f:1);
   foreach(var piece in pieces){
    var s=new Shard{index=shards.Count,v0=shardLocalV.Count,count=piece.mesh.count,r=bt.rotation,scale=scale,hull=piece.hull};
    s.p=bt.TransformPoint(new Vector3(piece.cx,piece.cy,piece.cz));
-   var out_=s.p-from;out_.y=0;if(out_.sqrMagnitude<1e-6f)out_=Random.insideUnitSphere;out_.y=0;out_.Normalize();
-   s.v=(out_*Random.Range(.35f,1.1f)+Vector3.up*Random.Range(.6f,1.5f)+Random.insideUnitSphere*.25f)*speed;s.w=Random.onUnitSphere*Random.Range(4f,11f)*(reduced?.3f:1);
+   s.seed=Random.value;s.v=ShardVelocity(s,from);s.w=Random.onUnitSphere*Random.Range(4f,11f)*(reduced?.3f:1);
    var o=piece.mesh;for(int i=0;i<o.count;i++){shardLocalV.Add(new Vector3(o.pos[i*3],o.pos[i*3+1],o.pos[i*3+2]));shardLocalN.Add(new Vector3(o.nrm[i*3],o.nrm[i*3+1],o.nrm[i*3+2]));uv0.Add(new Vector2(o.uv0[i*2],o.uv0[i*2+1]));uv1.Add(new Vector4(o.uv1[i*4],o.uv1[i*4+1],o.uv1[i*4+2],o.uv1[i*4+3]));col.Add(new Color32(255,255,255,0));}
    foreach(var k in o.tris)tris.Add(k+s.v0);shards.Add(s);
   }
@@ -109,6 +107,13 @@ public partial class ForgeWorld {
   shardMesh.Clear();PoseShards();shardMesh.SetVertices(shardV);shardMesh.SetNormals(shardN);shardMesh.SetUVs(0,uv0);shardMesh.SetUVs(1,uv1);shardMesh.SetColors(col);shardMesh.SetTriangles(tris,0,false);shardMesh.bounds=new Bounds(new Vector3(0,1,-1),new Vector3(14,4,12));
   shardMaterial.SetVector(CrackId,new Vector4(1,t.crackGlow,t.crackPerM,0));shardMaterial.SetFloat(CrackFlashId,1);shardMaterial.SetFloat(DissolveId,0);shardMaterial.SetFloat("_Shard",1);ShardUniforms();
  }
+ /// Pieces leave away from the contact (in the anvil plane), up, with some scatter; the same seed gives the same throw.
+ Vector3 ShardVelocity(Shard s,Vector3 from){
+  var t=tuning.metal;float speed=t.shardSpeed*(reduced?.35f:1);var rnd=new System.Random((int)(s.seed*1e6f)+s.index);float R()=>(float)rnd.NextDouble();
+  var out_=s.p-from;out_.y=0;if(out_.sqrMagnitude<1e-6f)out_=new Vector3(R()-.5f,0,R()-.5f);out_.Normalize();
+  return (out_*Mathf.Lerp(.35f,1.1f,R())+Vector3.up*Mathf.Lerp(.6f,1.5f,R())+new Vector3(R()-.5f,R()-.5f,R()-.5f)*.5f)*speed;
+ }
+ void LaunchShards(Vector3 from){foreach(var s in shards)s.v=ShardVelocity(s,from);}
  void PoseShards(){
   shardV.Clear();shardN.Clear();
   foreach(var s in shards)for(int i=0;i<s.count;i++){var lv=shardLocalV[s.v0+i];shardV.Add(s.p+s.r*(lv*s.scale));shardN.Add(s.r*shardLocalN[s.v0+i]);}

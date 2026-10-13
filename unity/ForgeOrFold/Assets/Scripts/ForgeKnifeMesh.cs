@@ -17,10 +17,12 @@ public partial class ForgeWorld {
  const float KnifeUnitMm=ForgeLayout.KnifeScale*1000;
  /// Rebuild an existing knife in place when its signature changes. The Body, its Material and HeatState
  /// (temperature, marks, footprints, notch, spread, oxide) survive; a level gain clears the chip notch.
+ /// The rebuild itself runs once in the next KnifeVisual (Sync sets b.knife = k right after this call), so
+ /// a strike that edits the outline and levels up in the same Sync costs one mesh build, not two.
  void KnifeRefresh(Body b,ForgeKnife k){
-  var h=b.heatState??(b.heatState=new HeatState());
+  var h=b.heatState;if(h==null){h=b.heatState=new HeatState();h.mesh=new Mesh{name="Forged blade "+k.id};h.mesh.MarkDynamic();b.blade.GetComponent<MeshFilter>().sharedMesh=h.mesh;BuildKnifeMesh(b,k);KnifeLook(b,k);return;}
   if(b.knife!=null&&k.level>b.knife.level)h.shape.notchU=-1;
-  BuildKnifeMesh(b,k);KnifeLook(b,k);
+  h.rebuild=true;
  }
  Body MakeKnife(ForgeKnife k){
   var root=new GameObject("Knife "+k.id);if(dynamicRoot!=null)root.transform.SetParent(dynamicRoot,false);root.transform.localScale=Vector3.one*KnifeRootScale;
@@ -32,6 +34,8 @@ public partial class ForgeWorld {
   float pull=tuning.metal.Pull(k.metal);
   h.model.Reset(k.heated&&k.place=="anvil"?tuning.metal.restoredC:k.heated&&k.place=="furnace"?pull:20);
   h.firstHeat=!k.heated;h.crackSeed=(k.id*.6180339f)%1;
+  // Pointer picking (ForgeKnifeTag + a box around the mesh), as before the one-mesh knives.
+  h.collider=root.AddComponent<BoxCollider>();root.AddComponent<ForgeKnifeTag>().id=k.id;
   BuildKnifeMesh(b,k);KnifeLook(b,k);
   return b;
  }
@@ -53,10 +57,11 @@ public partial class ForgeWorld {
   h.finished=KnifePlaceClass(k)=="finished";int stage=Stage(k.level);
   var handle=k.metal=="iron"||k.metal=="bronze"?Walnut:k.metal=="steel"||k.metal=="silver"?Leather:Ebony;
   h.shape.Mesh(knifeBuffer,t,h.finished,stage,handle,Rgb(k.glow,"ffa263"));
-  Upload(h.mesh,knifeBuffer);h.mesh.RecalculateBounds();h.dirty=false;h.level=k.level;
+  Upload(h.mesh,knifeBuffer);h.mesh.RecalculateBounds();h.dirty=false;h.rebuild=false;h.level=k.level;
   // The underside sits 6 mm below the knife root, so a knife root at ForgeLayout.KnifeAnvilRoot lies on the face.
   float maxHalf=0;for(int i=0;i<ForgeBladeShape.S;i+=4)maxHalf=Mathf.Max(maxHalf,h.shape.Thickness(i,1,t)*.5f);h.baseY=(maxHalf-6)/KnifeUnitMm;
   b.blade.transform.localPosition=new Vector3(0,h.baseY+h.liftU,0);
+  if(h.collider!=null){var bb=h.mesh.bounds;h.collider.center=bb.center+new Vector3(0,h.baseY,0);h.collider.size=bb.size+new Vector3(.08f,.25f,.08f);}
  }
  /// Rebuild only if a strike edited the outline (called on the contact frame and from KnifeVisual).
  void KnifeMeshIfDirty(Body b){var h=b.heatState;if(h==null||!h.dirty)return;h.shape.ApplyEdits(tuning.metal);h.shape.Mesh(knifeBuffer,tuning.metal,h.finished,Stage(b.knife.level),b.knife.metal=="iron"||b.knife.metal=="bronze"?Walnut:b.knife.metal=="steel"||b.knife.metal=="silver"?Leather:Ebony,Rgb(b.knife.glow,"ffa263"));Upload(h.mesh,knifeBuffer);h.mesh.RecalculateBounds();h.dirty=false;}

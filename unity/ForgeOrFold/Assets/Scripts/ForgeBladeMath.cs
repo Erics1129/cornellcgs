@@ -215,25 +215,33 @@ public sealed class ForgeBladeShape {
   pieces.Clear();float lcm=LengthCm;
   // About one cross cut per 3.2 cm, each piece split in two, plus the tang: target pieces within [shardsMin, shardsMax].
   int target=Math.Max((int)t.shardsMin,Math.Min((int)t.shardsMax,2*(int)Math.Round(lcm/3.2f)+1));int cross=Math.Max(1,(target-1+1)/2);
-  // Cut positions in station units at v = 0 and v = 1 (angled), irregularly spaced.
-  var cuts=new float[cross+1,2];cuts[0,0]=cuts[0,1]=0;cuts[cross,0]=cuts[cross,1]=S-1;
-  for(int k=1;k<cross;k++){float c=(S-1)*(k+(rnd()-.5f)*.55f)/cross;float tilt=(rnd()-.5f)*(S-1)*.09f;cuts[k,0]=Math.Max(1,Math.Min(S-2,c-tilt));cuts[k,1]=Math.Max(1,Math.Min(S-2,c+tilt));}
+  // Cut positions in station units at v = 0 and v = 1 (angled), irregularly spaced, each with its own jagged profile.
+  var cuts=new float[cross+1,2];cuts[0,0]=cuts[0,1]=0;cuts[cross,0]=cuts[cross,1]=S-1;var cutJag=new Jag[cross+1];
+  for(int k=1;k<cross;k++){float c=(S-1)*(k+(rnd()-.5f)*.55f)/cross;float tilt=(rnd()-.5f)*(S-1)*.09f;cuts[k,0]=Math.Max(1,Math.Min(S-2,c-tilt));cuts[k,1]=Math.Max(1,Math.Min(S-2,c+tilt));
+   cutJag[k]=new Jag(Math.Min(1.7f,.22f*(S-1)/cross),1.2f+rnd(),3.1f+rnd()*1.5f,rnd()*6.283f,rnd()*6.283f);}
   int splits=Math.Max(0,target-cross-1);   // the tang is one piece
   for(int k=0;k<cross;k++){
    bool split=splits>0&&(k<cross-1||splits>=cross-k);if(split)splits--;
-   float vs0=.38f+rnd()*.24f,vs1=.38f+rnd()*.24f;
-   if(split){Patch(pieces,t,cuts[k,0],cuts[k,1],cuts[k+1,0],cuts[k+1,1],0,0,vs0,vs1);Patch(pieces,t,cuts[k,0],cuts[k,1],cuts[k+1,0],cuts[k+1,1],vs0,vs1,1,1);}
-   else Patch(pieces,t,cuts[k,0],cuts[k,1],cuts[k+1,0],cuts[k+1,1],0,0,1,1);
+   float vs0=.38f+rnd()*.24f,vs1=.38f+rnd()*.24f;var sj=new Jag(.07f,1.1f+rnd(),2.7f+rnd()*1.5f,rnd()*6.283f,rnd()*6.283f);
+   var cut=new Cut{l0=cuts[k,0],l1=cuts[k,1],r0=cuts[k+1,0],r1=cuts[k+1,1],jl=cutJag[k],jr=cutJag[k+1]};
+   if(split){Patch(pieces,t,cut,0,0,default,vs0,vs1,sj);Patch(pieces,t,cut,vs0,vs1,sj,1,1,default);}
+   else Patch(pieces,t,cut,0,0,default,1,1,default);
   }
   // The tang (with the heel stub).
   {var p=new ForgeShardPiece{index=pieces.Count};float len=t.tangLengthCm*10/unitMm,w=Math.Min(Width(0)*.5f,14/unitMm)*.5f,th=Lerp(t.barThickMm,t.tangMm,m),h=th*.5f/unitMm,zc=Lerp(ez[0],sz[0],.5f);
    BoxPart(p.mesh,0,-len,zc,w,w*.72f,h,h*.9f,th,1,255,255,255,0,0);p.mesh.Normals();Center(p,true);pieces.Add(p);}
   return pieces.Count;
  }
- void Patch(List<ForgeShardPiece> pieces,ForgeMetalTuning t,float l0,float l1,float r0,float r1,float lo0,float lo1,float hi0,float hi1){
-  const int K=5,R=3;var p=new ForgeShardPiece{index=pieces.Count};var o=p.mesh;
-  int top=o.count;for(int a=0;a<=K;a++)for(int b=0;b<=R;b++)Vertex(o,t,a/(float)K,b/(float)R,l0,l1,r0,r1,lo0,lo1,hi0,hi1,1);
-  int bot=o.count;for(int a=0;a<=K;a++)for(int b=0;b<=R;b++)Vertex(o,t,a/(float)K,b/(float)R,l0,l1,r0,r1,lo0,lo1,hi0,hi1,-1);
+ /// A jagged fracture profile: an offset of amplitude a (two sines) along the line's own parameter x in 0..1.
+ struct Jag { public float a,f1,f2,p1,p2; public Jag(float a,float f1,float f2,float p1,float p2){this.a=a;this.f1=f1;this.f2=f2;this.p1=p1;this.p2=p2;}
+  public float At(float x)=>a==0?0:a*(.65f*(float)Math.Sin(6.2832f*f1*x+p1)+.35f*(float)Math.Sin(6.2832f*f2*x+p2)); }
+ /// The two cross cuts bounding a column of pieces: station positions at v = 0 and 1, and their jagged profiles (in v).
+ struct Cut { public float l0,l1,r0,r1; public Jag jl,jr; }
+ void Patch(List<ForgeShardPiece> pieces,ForgeMetalTuning t,Cut cut,float lo0,float lo1,Jag jlo,float hi0,float hi1,Jag jhi){
+  const int K=8,R=6;var p=new ForgeShardPiece{index=pieces.Count};var o=p.mesh;
+  int top=o.count;for(int a=0;a<=K;a++)for(int b=0;b<=R;b++)Vertex(o,t,a/(float)K,b/(float)R,cut,lo0,lo1,jlo,hi0,hi1,jhi,1);
+  int bot=o.count;for(int a=0;a<=K;a++)for(int b=0;b<=R;b++)Vertex(o,t,a/(float)K,b/(float)R,cut,lo0,lo1,jlo,hi0,hi1,jhi,-1);
+  float l0=cut.l0,l1=cut.l1,r0=cut.r0,r1=cut.r1;
   int N=R+1;for(int a=0;a<K;a++)for(int b=0;b<R;b++){int i=top+a*N+b,j=i+1,k=i+N,l=k+1;o.Tri(i,j,k);o.Tri(k,j,l);int i2=bot+a*N+b,j2=i2+1,k2=i2+N,l2=k2+1;o.Tri(i2,k2,j2);o.Tri(k2,l2,j2);}
   // Which sides are fresh fractures: the cuts (not the heel or the tip) and the split along the width (not the
   // blade's own edge and spine). Each grid vertex stores its distance (mm, along the grid) to the nearest one.
@@ -257,8 +265,9 @@ public sealed class ForgeBladeShape {
   pieces.Add(p);
  }
  static float Seg(ForgeMeshBuffer o,int i,int j){float dx=o.pos[j*3]-o.pos[i*3],dy=o.pos[j*3+1]-o.pos[i*3+1],dz=o.pos[j*3+2]-o.pos[i*3+2];return (float)Math.Sqrt(dx*dx+dy*dy+dz*dz);}
- void Vertex(ForgeMeshBuffer o,ForgeMetalTuning t,float a,float b,float l0,float l1,float r0,float r1,float lo0,float lo1,float hi0,float hi1,float side){
-  float v=Lerp(Lerp(lo0,lo1,a),Lerp(hi0,hi1,a),b);float s=Lerp(Lerp(l0,l1,v),Lerp(r0,r1,v),a);
+ void Vertex(ForgeMeshBuffer o,ForgeMetalTuning t,float a,float b,Cut c,float lo0,float lo1,Jag jlo,float hi0,float hi1,Jag jhi,float side){
+  float lo=Lerp(lo0,lo1,a)+jlo.At(a),hi=Lerp(hi0,hi1,a)+jhi.At(a);float v=ForgeHeatMath.Sat(Lerp(lo,hi,b));
+  float s=Lerp(Lerp(c.l0,c.l1,v)+c.jl.At(v),Lerp(c.r0,c.r1,v)+c.jr.At(v),a);s=Math.Max(0,Math.Min(S-1,s));
   Point(s,v,out var x,out var z);float th=Thickness(s,v,t);o.Add(x,side*th*.5f/unitMm,z,s/(S-1),v,th,0);
  }
  /// Move a piece's vertices around its centroid (cx, cy, cz), measure its size and (for boxes) set the hull to its bounds.

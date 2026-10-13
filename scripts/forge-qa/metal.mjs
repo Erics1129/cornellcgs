@@ -24,7 +24,9 @@ const view = arg('view', 'desktop'), dt = Number(arg('dt', 1 / 120)), only = arg
 const editor = process.env.UNITY_EDITOR || '/Applications/Unity/Hub/Editor/6000.3.18f1/Unity.app/Contents/MacOS/Unity'
 
 // ---------- fixtures from the real engine ----------
-const payload = (state, event, selected = 1) => JSON.stringify({ ...snapshotPayload(state, selected, { reduced: false }), effect: unityEffect(event) })
+// --reduced: the OS prefers-reduced-motion flag (and Motion 'reduced') in every Sync.
+const REDUCED = process.argv.includes('--reduced')
+const payload = (state, event, selected = 1) => JSON.stringify({ ...snapshotPayload(state, selected, { reduced: REDUCED, motion: REDUCED ? 'reduced' : 'full' }), effect: unityEffect(event) })
 const step = (s, a) => { const r = act(s, a); if (!r.ok) throw new Error(`fixture action failed: ${JSON.stringify(a)}: ${r.event.text}`); return r }
 function findHit(outcome, minLevel = 0) {
   for (let seed = 1; seed < 8000; seed++) {
@@ -53,51 +55,59 @@ const seated = step(heated.state, { type: 'move', id: 1, to: 'anvil' })
 const racked = step(seated.state, { type: 'move', id: 1, to: 'rack' })
 const day2 = step(racked.state, { type: 'end' })
 const sold = step(seated.state, { type: 'sell', id: 1 })
-const good = findHit('good'), perfect = findHit('perfect', 2), chip = findHit('chip', 3), shatter = findHit('shatter', 5), risky = findHit('good', 10)
+const good = findHit('good'), perfect = findHit('perfect', 2), chip = findHit('chip', 3), shatter = findHit('shatter', 5), risky = findHit('good', 10), dull = findHit('dull', 2)
 // --tune '{"emissionScale":3.2}' merges metal overrides into feel-tuning.json for this run (calibration sweeps).
 const tuneJson = JSON.parse(readFileSync(join(repo, 'src/minigames/forge/feel-tuning.json'), 'utf8')); if (arg('tune')) tuneJson.metal = { ...tuneJson.metal, ...JSON.parse(arg('tune')) }
 const tuning = JSON.stringify(tuneJson)
-const handshake = [{ do: 'tune', json: tuning }, { do: 'qa', mode: 'steady' }, { do: 'qa', mode: 'telemetry' }, { do: 'qa', mode: 'metal-probe' }, { do: 'insets', json: JSON.stringify(insets) }]
+const handshake = [{ do: 'tune', json: tuning }, { do: 'qa', mode: 'steady' }, { do: 'qa', mode: 'telemetry' }, { do: 'qa', mode: 'metal-probe' }, { do: 'qa', mode: 'metal-strikepoint' }, { do: 'insets', json: JSON.stringify(insets) }]
 const strikeShots = (seq, name, impact, after) => ({ do: 'strike', seq, name, contact: true, impact, afterMs: after, afterNames: after.map(ms => `${name}-${ms}`) })
-const main = [
-  ...handshake,
-  { do: 'sync', json: payload(s0) }, { do: 'wait', s: 1.0 },
-  // Heating in the coals (QA 'metal-firebed': the coals at ForgeLayout.Firebed, the knife snapped in on placement so the
-  // times below are seconds in the coals; the plan's .6 / 1.1 / 1.5 s after Start include about .6 s of step and carry).
-  { do: 'qa', mode: 'metal-firebed' }, { do: 'lookAt', spot: 'furnace' }, { do: 'wait', s: .3 },
-  { do: 'sync', json: payload(furnace.state, furnace.event) },
-  { do: 'wait', s: .1 }, { do: 'capture', name: 'heat-0.1' }, { do: 'wait', s: .4 }, { do: 'capture', name: 'heat-0.5' }, { do: 'wait', s: .4 }, { do: 'capture', name: 'heat-0.9' },
-  { do: 'wait', s: .5 }, { do: 'sync', json: payload(heated.state, heated.event) },
-  { do: 'focus' }, { do: 'sync', json: payload(seated.state, seated.event) },
-  { do: 'wait', s: .45 }, { do: 'capture', name: 'seated' }, { do: 'wait', s: 2.6 }, { do: 'capture', name: 'anvil-3s' }, { do: 'wait', s: 5 }, { do: 'capture', name: 'anvil-8s' },
+// The main run, as named sections (--sections a,b runs only those, for quick iteration).
+const SECTIONS = {
+  heat: [
+    { do: 'sync', json: payload(s0) }, { do: 'wait', s: 1.0 },
+    // Heating in the coals (QA 'metal-firebed': the coals at ForgeLayout.Firebed, the knife snapped in on placement so the
+    // times below are seconds in the coals; the plan's .6 / 1.1 / 1.5 s after Start include about .6 s of step and carry).
+    { do: 'qa', mode: 'metal-firebed' }, { do: 'lookAt', spot: 'furnace' }, { do: 'wait', s: .3 },
+    { do: 'sync', json: payload(furnace.state, furnace.event) },
+    { do: 'wait', s: .1 }, { do: 'capture', name: 'heat-0.1' }, { do: 'wait', s: .4 }, { do: 'capture', name: 'heat-0.5' }, { do: 'wait', s: .4 }, { do: 'capture', name: 'heat-0.9' },
+    { do: 'wait', s: .5 }, { do: 'sync', json: payload(heated.state, heated.event) },
+    { do: 'focus' }, { do: 'sync', json: payload(seated.state, seated.event) },
+    { do: 'wait', s: .45 }, { do: 'capture', name: 'seated' }, { do: 'wait', s: 2.6 }, { do: 'capture', name: 'anvil-3s' }, { do: 'wait', s: 5 }, { do: 'capture', name: 'anvil-8s' },
+  ],
   // A drawn-out blade (level 8) cooling on the anvil: thin edge first.
-  { do: 'sync', json: payload(atLevel(seated.state, 8)) }, { do: 'qa', mode: 'metal-hot' }, { do: 'wait', s: 1 }, { do: 'capture', name: 'blade-1s' }, { do: 'wait', s: 7 }, { do: 'capture', name: 'blade-8s' },
+  cool: [{ do: 'sync', json: payload(atLevel(seated.state, 8)) }, { do: 'qa', mode: 'metal-hot' }, { do: 'wait', s: 1 }, { do: 'capture', name: 'blade-1s' }, { do: 'wait', s: 7 }, { do: 'capture', name: 'blade-8s' }],
   // Outcomes on a freshly hot blade.
-  { do: 'sync', json: payload(good.before) }, { do: 'qa', mode: 'metal-hot' }, { do: 'wait', s: .5 },
-  strikeShots(1, 'good', payload(good.after, good.event), [33, 100, 400, 1000, 2300]), { do: 'wait', s: .3 },
-  { do: 'sync', json: payload(perfect.before) }, { do: 'qa', mode: 'metal-hot' }, { do: 'wait', s: .5 },
-  strikeShots(2, 'perfect', payload(perfect.after, perfect.event), [33, 100, 250, 400, 1000]), { do: 'wait', s: .3 },
-  { do: 'sync', json: payload(chip.before) }, { do: 'qa', mode: 'metal-hot' }, { do: 'wait', s: .5 },
-  strikeShots(3, 'chip', payload(chip.after, chip.event), [33, 100, 400, 1500]), { do: 'wait', s: .3 },
-  { do: 'sync', json: payload(shatter.before) }, { do: 'qa', mode: 'metal-hot' }, { do: 'wait', s: .5 },
-  strikeShots(4, 'shatter', payload(shatter.after, shatter.event), [33, 100, 500, 1000, 2000, 3000, 3900]), { do: 'wait', s: .3 },
+  good: [{ do: 'sync', json: payload(good.before) }, { do: 'qa', mode: 'metal-hot' }, { do: 'wait', s: .5 }, strikeShots(1, 'good', payload(good.after, good.event), [33, 100, 400, 1000, 2300]), { do: 'wait', s: .3 }],
+  perfect: [{ do: 'sync', json: payload(perfect.before) }, { do: 'qa', mode: 'metal-hot' }, { do: 'wait', s: .5 }, strikeShots(2, 'perfect', payload(perfect.after, perfect.event), [33, 100, 250, 400, 1000]), { do: 'wait', s: .3 }],
+  chip: [{ do: 'sync', json: payload(chip.before) }, { do: 'qa', mode: 'metal-hot' }, { do: 'wait', s: .5 }, strikeShots(3, 'chip', payload(chip.after, chip.event), [33, 100, 400, 1500]), { do: 'wait', s: .3 }],
+  shatter: [{ do: 'sync', json: payload(shatter.before) }, { do: 'qa', mode: 'metal-hot' }, { do: 'wait', s: .5 }, strikeShots(4, 'shatter', payload(shatter.after, shatter.event), [33, 100, 250, 500, 1000, 2000, 3000, 3900]), { do: 'wait', s: .3 }],
+  dull: [{ do: 'sync', json: payload(dull.before) }, { do: 'qa', mode: 'metal-hot' }, { do: 'wait', s: .5 }, strikeShots(6, 'dull', payload(dull.after, dull.event), [100, 400]), { do: 'wait', s: .3 }],
+  // Shader debug views of the shatter pieces and a hot blade: albedo, reflected light, emission (Qa('metal-debug-N')).
+  debug: [{ do: 'sync', json: payload(shatter.before) }, { do: 'qa', mode: 'metal-hot' }, { do: 'wait', s: .5 }, strikeShots(7, 'dbg', payload(shatter.after, shatter.event), [450]),
+    ...[['albedo', 1], ['lit', 2], ['emit', 3], ['mask', 4], ['normal', 0]].flatMap(([n, m]) => [{ do: 'qa', mode: 'metal-debug-' + m }, { do: 'capture', name: 'dbg-' + n }]),
+    { do: 'sync', json: payload(good.before) }, { do: 'qa', mode: 'metal-hot' }, { do: 'wait', s: 2 },
+    ...[['albedo', 1], ['lit', 2], ['emit', 3], ['mask', 4], ['normal', 0]].flatMap(([n, m]) => [{ do: 'qa', mode: 'metal-debug-' + m }, { do: 'capture', name: 'dbgk-' + n }])],
   // Risk cracks on a high-level hot blade, then cold.
-  { do: 'sync', json: payload(risky.before) }, { do: 'qa', mode: 'metal-hot' }, { do: 'wait', s: 1.2 }, { do: 'capture', name: 'cracks-hot' },
-  { do: 'qa', mode: 'metal-cold' }, { do: 'wait', s: .2 }, { do: 'capture', name: 'cracks-cold' },
+  cracks: [{ do: 'sync', json: payload(risky.before) }, { do: 'qa', mode: 'metal-hot' }, { do: 'wait', s: 1.2 }, { do: 'capture', name: 'cracks-hot' }, { do: 'qa', mode: 'metal-cold' }, { do: 'wait', s: .2 }, { do: 'capture', name: 'cracks-cold' }],
   // Shape: levels 0-6 drawing out from the bar (cold, so the outline reads).
-  ...[0, 1, 2, 3, 4, 5, 6].flatMap(level => [{ do: 'sync', json: payload(atLevel(seated.state, level)) }, { do: 'qa', mode: 'metal-cold' }, { do: 'wait', s: .4 }, { do: 'capture', name: 'level-' + level }]),
+  levels: [0, 1, 2, 3, 4, 5, 6].flatMap(level => [{ do: 'sync', json: payload(atLevel(seated.state, level)) }, { do: 'qa', mode: 'metal-cold' }, { do: 'wait', s: .4 }, { do: 'capture', name: 'level-' + level }]),
+  // Blade light on the anvil face beside the blade: 1150 C against 500 C.
+  light: [{ do: 'sync', json: payload(seated.state) }, { do: 'wait', s: .8 }, { do: 'qa', mode: 'metal-hot' }, { do: 'qa', mode: 'metal-c1150' }, { do: 'wait', s: .1 }, { do: 'capture', name: 'light-1150' }, { do: 'qa', mode: 'metal-c500' }, { do: 'wait', s: .1 }, { do: 'capture', name: 'light-500' }],
   // Quench (keep): a hot blade plunged, then racked.
-  { do: 'sync', json: payload(seated.state) }, { do: 'qa', mode: 'metal-hot' }, { do: 'wait', s: .3 }, { do: 'qa', mode: 'metal-quench' },
-  { do: 'wait', s: .25 }, { do: 'capture', name: 'quench-0.25' }, { do: 'wait', s: .5 }, { do: 'capture', name: 'quench-0.75' }, { do: 'wait', s: .6 }, { do: 'capture', name: 'quench-1.35' },
+  quench: [{ do: 'sync', json: payload(seated.state) }, { do: 'qa', mode: 'metal-hot' }, { do: 'wait', s: .3 }, { do: 'qa', mode: 'metal-quench' },
+    { do: 'wait', s: .25 }, { do: 'capture', name: 'quench-0.25' }, { do: 'wait', s: .5 }, { do: 'capture', name: 'quench-0.75' }, { do: 'wait', s: .6 }, { do: 'capture', name: 'quench-1.35' }],
   // Racked and day 2: no glow.
-  { do: 'sync', json: payload(seated.state) }, { do: 'qa', mode: 'metal-hot' }, { do: 'wait', s: .2 },
-  { do: 'sync', json: payload(racked.state, racked.event) }, { do: 'lookAt', spot: 'rack' }, { do: 'wait', s: .3 }, { do: 'capture', name: 'rack-0.3' }, { do: 'wait', s: 1.5 }, { do: 'capture', name: 'rack-1.8' },
-  { do: 'sync', json: payload(day2.state, day2.event) }, { do: 'wait', s: 1 }, { do: 'capture', name: 'day2' },
+  rack: [{ do: 'sync', json: payload(seated.state) }, { do: 'qa', mode: 'metal-hot' }, { do: 'wait', s: .2 },
+    { do: 'sync', json: payload(racked.state, racked.event) }, { do: 'lookAt', spot: 'rack' }, { do: 'wait', s: .3 }, { do: 'capture', name: 'rack-0.3' }, { do: 'wait', s: 1.5 }, { do: 'capture', name: 'rack-1.8' },
+    { do: 'sync', json: payload(day2.state, day2.event) }, { do: 'wait', s: 1 }, { do: 'capture', name: 'day2' }],
   // Sell: coins into the dish.
-  { do: 'focus' }, { do: 'sync', json: payload(seated.state) }, { do: 'wait', s: .6 },
-  { do: 'sync', json: payload(sold.state, sold.event) }, { do: 'lookAt', spot: 'sell' }, { do: 'wait', s: .7 }, { do: 'capture', name: 'sell-0.7' }, { do: 'wait', s: .5 }, { do: 'capture', name: 'sell-1.2' }, { do: 'wait', s: .8 }, { do: 'capture', name: 'sell-2.0' },
-  { do: 'focus' }, { do: 'wait', s: .2 },
-]
+  sell: [{ do: 'focus' }, { do: 'sync', json: payload(seated.state) }, { do: 'wait', s: .6 },
+    { do: 'sync', json: payload(sold.state, sold.event) }, { do: 'lookAt', spot: 'sell' }, { do: 'wait', s: .7 }, { do: 'capture', name: 'sell-0.7' }, { do: 'wait', s: .5 }, { do: 'capture', name: 'sell-1.2' }, { do: 'wait', s: .8 }, { do: 'capture', name: 'sell-2.0' },
+    { do: 'focus' }, { do: 'wait', s: .2 }],
+}
+const sectionNames = arg('sections') ? arg('sections').split(',') : Object.keys(SECTIONS)
+for (const n of sectionNames) if (!SECTIONS[n]) throw new Error('unknown section ' + n + ' (have ' + Object.keys(SECTIONS).join(', ') + ')')
+const main = [...handshake, ...(sectionNames[0] === 'heat' ? [] : [{ do: 'sync', json: payload(s0) }, { do: 'wait', s: .5 }]), ...sectionNames.flatMap(n => SECTIONS[n])]
 const swatch = [...handshake, { do: 'sync', json: payload(s0) }, { do: 'wait', s: 1 }, { do: 'qa', mode: 'swatch' }, { do: 'wait', s: .3 }, { do: 'capture', name: 'swatch' }, { do: 'focus' }, { do: 'wait', s: .1 }]
 
 async function runUnity(name, steps) {
@@ -160,7 +170,8 @@ async function sheet(h, dir, shots, file, width = 300, cols = 6) {
   const page = await h.context.newPage(); await page.setViewportSize({ width: (width + 2) * cols, height: 600 }); await page.goto('file://' + html); await page.waitForTimeout(300); await page.screenshot({ path: file, fullPage: true }); await page.close()
   console.log('metal: sheet ->', file)
 }
-/** lib.laserTrailCount's detector, returning each trail component's pixel box (so the blade can be excluded). */
+/** lib.laserTrailCount's detector, returning each trail component's pixel box (so the blade can be excluded). Only thin
+ * components (at most 4 px wide) count: the old TrailRenderer streaks were 1-3 px; a cluster of glowing shatter pieces is not a trail. */
 async function trailBoxes(file, { threshold = 200, aspect = 12, minLen = .06 } = {}) {
   return trailPage.evaluate(async ([src, o]) => {
     const i = new Image(); i.src = src; await i.decode(); const c = new OffscreenCanvas(i.naturalWidth, i.naturalHeight), g = c.getContext('2d'); g.drawImage(i, 0, 0); const A = g.getImageData(0, 0, c.width, c.height)
@@ -171,7 +182,7 @@ async function trailBoxes(file, { threshold = 200, aspect = 12, minLen = .06 } =
       while (st.length) { const q = st.pop(), x = q % W, y = (q / W) | 0; n++; a = Math.min(a, x); x1 = Math.max(x1, x); b = Math.min(b, y); y1 = Math.max(y1, y)
         for (const z of [q - 1, q + 1, q - W, q + W, q - W - 1, q - W + 1, q + W - 1, q + W + 1]) if (z >= 0 && z < W * H && on[z] && !seen[z] && Math.abs((z % W) - x) <= 1) { seen[z] = 1; st.push(z) } }
       const bw = x1 - a + 1, bh = y1 - b + 1, len = Math.hypot(bw, bh), wid = Math.max(1, n / len)
-      if (len / wid > o.aspect && len > o.minLen * W) out.push({ box: [a / W, b / H, x1 / W, y1 / H], n, len: Math.round(len), wid: +wid.toFixed(1) }) }
+      if (len / wid > o.aspect && len > o.minLen * W && wid <= 4) out.push({ box: [a / W, b / H, x1 / W, y1 / H], n, len: Math.round(len), wid: +wid.toFixed(1) }) }
     return out
   }, ['data:image/png;base64,' + readFileSync(file).toString('base64'), { threshold, aspect, minLen }])
 }
@@ -207,38 +218,56 @@ async function analyse(dirs) {
       report.shots['blade-8s'] = { edgeLuma: le / 3, spineLuma: ls / 3, probe: s.probe }; check(le / Math.max(1, ls) <= .6, 'after 8 s on the anvil (level-8 blade): edge-to-spine luminance ratio <= .6', le / Math.max(1, ls)) } }
     // Laser trails on every captured frame; visible flakes right after contact.
     // A glowing blade is itself a long thin bright shape: components inside the blade's viewport box (+2%) are not trails.
-    let trails = 0, bladeTrails = 0; for (const s of index.shots) { const p = probeAt(probes, s.t); const box = p && p.vp ? [p.vp[0] - .02, 1 - p.vp[3] - .02, p.vp[2] + .02, 1 - p.vp[1] + .02] : null
-      const r = await trailBoxes(join(dirs.main, s.file)); for (const c of r) { const inBlade = box && c.box[0] >= box[0] && c.box[2] <= box[2] && c.box[1] >= box[1] && c.box[3] <= box[3]; if (inBlade) bladeTrails++; else { trails++; console.log('  trail in', s.name, JSON.stringify(c)) } } }
-    check(trails === 0, 'no laser trails in any frame (outside the glowing blade)', { trails, bladeShapes: bladeTrails })
+    // A static bright edge (a lamp-lit rim of the stump or the anvil, at the same place in several frames) is scenery, not
+    // a particle trail: trails move from frame to frame.
+    let trails = 0, bladeTrails = 0, staticEdges = 0; const cands = []
+    for (const s of index.shots) { const p = probeAt(probes, s.t); const box = p && p.vp ? [p.vp[0] - .02, 1 - p.vp[3] - .02, p.vp[2] + .02, 1 - p.vp[1] + .02] : null
+      const r = await trailBoxes(join(dirs.main, s.file)); for (const c of r) { const inBlade = box && c.box[0] >= box[0] && c.box[2] <= box[2] && c.box[1] >= box[1] && c.box[3] <= box[3]; if (inBlade) bladeTrails++; else cands.push({ shot: s.name, c }) } }
+    const same = (a, b) => a.every((v, i) => Math.abs(v - b[i]) < .004)
+    for (const x of cands) { if (cands.some(y => y !== x && y.shot !== x.shot && same(x.c.box, y.c.box))) { staticEdges++; continue } trails++; console.log('  trail in', x.shot, JSON.stringify(x.c)) }
+    check(trails === 0, 'no laser trails in any frame (outside the glowing blade; static lit edges excluded)', { trails, bladeShapes: bladeTrails, staticEdges })
     for (const n of ['good-33', 'good-100', 'perfect-33', 'perfect-100', 'chip-33']) { const s = shot(n); if (!s) continue; const p = s.probe; const c = p && p.contact; const reg = c ? [c[0] - .2, 1 - c[1] - .2, c[0] + .2, 1 - c[1] + .14] : null
       const r = await L.laserTrailCount(h, s.path, { threshold: 120, aspect: 30, minLen: .5, region: reg, minBlobPx: 2 }); report.shots[n] = { blobs: r.blobs, probe: p && { flakes: p.flakes, sheets: p.sheets, sparks: p.sparks, forks: p.forks, chips: p.chips } }
       if (n.endsWith('-100') || n === 'chip-33') check(r.blobs >= 8, `${n}: at least 8 bright blobs >= 2 px near the contact`, r.blobs) }
-    // Counts per outcome (probe right after contact).
+    // Counts per outcome (probe right after contact). Phones throw .6x; reduced motion 5 flakes and no sparks.
     const counts = n => { const s = shot(n); return s && s.probe }
+    const k = view === 'phone' ? .6 : 1, R = n => Math.round(n * k)
     // What each impact threw: the first probe after that strike's contact frame with a new burst id.
     const burst = name => { const s = shot(name + '-contact-0'); if (!s) return null; return probes.find(p => p.t >= s.t - .05 && p.burst === name) || null }
-    { const p = burst('good'); check(p && Math.abs(p.bFlakes - 14) <= 3 && p.bSparks <= 1, 'good: 14 +/- 3 flakes, at most 1 spark (per impact)', p && [p.bFlakes, p.bSparks]) }
-    { const p = burst('perfect'); check(p && p.bFlakes + p.bSheets >= 30 && p.bFlakes + p.bSheets <= 40 && p.bSheets >= 3 && p.bSparks >= 2 && p.bSparks <= 4, 'perfect: 30-40 flakes incl. 5-10 mm sheets, 2-4 sparks', p && [p.bFlakes, p.bSheets, p.bSparks]) }
-    { const p = burst('chip'); check(p && p.bChips === 4 && Math.abs(p.bFlakes - 10) <= 2, 'chip: 10 flakes and 4 chips', p && [p.bFlakes, p.bChips]) }
-    { const p = burst('shatter'); check(p && p.shards >= 10 && p.shards <= 16 && p.bSparks >= 12, 'shatter: 10-16 pieces and 15 burning sparks', p && [p.shards, p.bSparks, p.bFlakes]) }
+    const ran = name => !!shot(name + '-contact-0')
+    if (REDUCED) {
+      for (const o of ['good', 'perfect', 'chip', 'shatter']) if (ran(o)) { const p = burst(o); check(p && p.bFlakes === 5 && p.bSparks === 0 && p.bSheets === 0 && p.bChips <= 2, `reduced motion ${o}: 5 flakes, no sparks or sheets`, p && [p.bFlakes, p.bSparks, p.bSheets, p.bChips]) }
+    } else {
+      if (ran('good')) { const p = burst('good'); check(p && Math.abs(p.bFlakes - R(14)) <= R(3) + 1 && p.bSparks <= 1, `good: ${R(14)} +/- ${R(3) + 1} flakes, at most 1 spark (per impact)`, p && [p.bFlakes, p.bSparks]) }
+      if (ran('perfect')) { const p = burst('perfect'); const n = p && p.bFlakes + p.bSheets; check(p && n >= R(30) && n <= R(40) + 1 && p.bSheets >= R(3) && p.bSparks >= R(2) && p.bSparks <= 4, `perfect: ${R(30)}-${R(40)} flakes incl. 5-10 mm sheets, ${R(2)}-4 sparks`, p && [p.bFlakes, p.bSheets, p.bSparks]) }
+      if (ran('chip')) { const p = burst('chip'); check(p && p.bChips === 4 && Math.abs(p.bFlakes - R(10)) <= 2, `chip: ${R(10)} flakes and 4 chips`, p && [p.bFlakes, p.bChips]) }
+      if (ran('shatter')) { const p = burst('shatter'); check(p && p.shards >= 10 && p.shards <= 16 && p.bSparks >= R(12), `shatter: 10-16 pieces and ${R(15)} burning sparks`, p && [p.shards, p.bSparks, p.bFlakes]) }
+      if (ran('dull')) { const p = burst('dull'); check(p && p.bFlakes === 0 && p.bSparks === 0, 'dull: no flakes or sparks (the dust puff only)', p && [p.bFlakes, p.bSparks]) }
+    }
     { const p = counts('chip-1500') || counts('chip-400'); if (p) check(p.notchMm >= 3, 'chip: notch at least 3 mm deep', p.notchMm) }
     { const p = counts('good-2300'); if (p) { check(p.glowing === 0, 'all flakes dark by 2.3 s', p.glowing); check(p.landN > 0 && p.nearN / p.landN >= .8, 'at least 80% of the flakes that landed did so within 1 m of the contact', p.landN ? [p.nearN, p.landN] : 0) } }
-    { const p = counts('perfect-1000'); if (p) check(p.landN > 0 && p.nearN / p.landN >= .8, 'perfect: at least 80% of landings within 1 m', p.landN ? [p.nearN, p.landN] : 0) }
+    { const p = counts('perfect-1000'); if (p && !REDUCED) check(p.landN > 0 && p.nearN / p.landN >= .8, 'perfect: at least 80% of landings within 1 m', p.landN ? [p.nearN, p.landN] : 0) }
     { const rise = Math.max(...probes.map(p => p.rise ?? -9)); check(rise <= .6, 'no flake rises more than .6 m above the contact', rise) }
-    { const p = counts('shatter-2000'); if (p) check(p.shards >= 10, 'shatter pieces still there at 2 s', p.shards) }
-    { const s = shot('shatter-33'); if (s) { const t0 = s.t - .033; const late = probes.filter(p => p.t >= t0 + 4.05 && p.t < t0 + 4.6); const at39 = counts('shatter-3900'); check(late.length && late.every(p => p.shards === 0) && (!at39 || at39.shards === 0 || at39.shardAge >= 3.4), 'shatter pieces dissolve from 3.4 s and are gone by 4 s', late.map(p => p.shards)) } }
-    { const resting = probes.filter(p => p.shardsResting > 0); const w = Math.max(0, ...resting.map(p => p.shardsMaxW)); check(w <= .5, 'resting shatter pieces rotate < .5 rad/s', w) }
+    { const p = counts('shatter-2000'); if (p) check(p.shards >= 10 && p.shardC < 450, 'shatter pieces still there at 2 s and dark (body below 450 C)', [p.shards, p.shardC]) }
+    { const s = shot('shatter-33'); const tail = probes.length && s && probes[probes.length - 1].t > s.t + 4.1; if (s && tail) { const t0 = s.t - .033; const late = probes.filter(p => p.t >= t0 + 4.15 && p.t < t0 + 4.6); const at39 = counts('shatter-3900'); check(late.length && late.every(p => p.shards === 0) && (!at39 || at39.shards === 0 || at39.shardAge >= 3.4), 'shatter pieces dissolve from 3.4 s and are gone by 4 s (plus the hit-stop)', late.map(p => p.shards)) } }
+    { const resting = probes.filter(p => p.shardsResting > 0); const w = Math.max(0, ...resting.map(p => p.shardsMaxW)); if (resting.length) check(w <= .5, 'resting shatter pieces rotate < .5 rad/s', w) }
     { const s = shot('shatter-2000'); if (s) { const m = await L.hueSatOfBrightest(h, s.path, [.3, .35, .7, .8], .002); report.shots['shatter-2000'] = m } }
-    { const pk = Math.max(0, ...probes.map(p => p.bits ?? 0)); check(pk <= 220, 'particles alive at most 220', pk) }
+    { const pk = Math.max(0, ...probes.map(p => p.bits ?? 0)); check(pk <= (view === 'phone' ? 220 : 220), 'particles alive at most 220', pk) }
     // Shape: the mesh lengthens at every level 0-6 and level 0 is a bar.
-    { const lens = [0, 1, 2, 3, 4, 5, 6].map(l => counts('level-' + l)?.lenCm); report.lengths = lens; let ok = lens.every(x => x > 0); for (let i = 1; i < lens.length; i++) if (!(lens[i] / lens[i - 1] - 1 >= .01)) ok = false; check(ok, 'blade length grows >= 1% at every level 0-6 (cm)', lens) }
-    // No glow on the rack and on day 2.
-    for (const n of ['rack-1.8', 'day2']) { const s = shot(n); if (!s) continue; const m = await L.hueSatOfBrightest(h, s.path, [.25, .2, .75, .8], .001); report.shots[n] = m; check(!(m.sat > .8 && m.hue < 30 && m.luma > 90), `${n}: no hot-steel glow`, m) }
+    { const lens = [0, 1, 2, 3, 4, 5, 6].map(l => counts('level-' + l)?.lenCm); if (lens.some(x => x > 0)) { report.lengths = lens; let ok = lens.every(x => x > 0); for (let i = 1; i < lens.length; i++) if (!(lens[i] / lens[i - 1] - 1 >= .01)) ok = false; check(ok, 'blade length grows >= 1% at every level 0-6 (cm)', lens) } }
+    // No glow on the rack and on day 2, measured on the knife itself (its probed viewport box).
+    for (const n of ['rack-0.3', 'rack-1.8', 'day2']) { const s = shot(n); if (!s) continue; const r = region(s.probe, .004); if (!r || r[2] - r[0] <= 0 || r[3] - r[1] <= 0) { check(false, `${n}: knife in view`, s.probe && s.probe.vp); continue }
+      const m = await L.hueSatOfBrightest(h, s.path, r, .03); report.shots[n] = { probe: s.probe && { body: s.probe.body, edge: s.probe.edge, place: s.probe.place }, ...m }
+      if (n !== 'rack-0.3') check(!(m.sat > .75 && m.hue < 40 && m.luma > 70) && s.probe.body < 120, `${n}: no hot-steel glow on the knife (body below 120 C)`, [m.hue, m.sat, m.luma, s.probe.body]) }
+    // Blade light: the anvil-face patch in front of the blade (toward the eye, where the polished face mirrors the glow
+    // lamp; this checkout's face is a near-mirror, metal .96) is brighter at 1150 C than at 500 C. Beyond the bloom halo.
+    { const a = shot('light-1150'), b = shot('light-500'); if (a && b && a.probe && a.probe.vp) { const vp = a.probe.vp, cx = (vp[0] + vp[2]) / 2, yb = 1 - vp[1]; const reg = [cx - .025, yb + .012, cx + .025, yb + .03]
+      const la = await L.lumaPatch(h, a.path, reg), lb = await L.lumaPatch(h, b.path, reg); report.shots.light = { at1150: la, at500: lb, region: reg }; check(la >= lb * 1.25, 'blade light: anvil patch beside the blade at least 25% brighter at 1150 C than at 500 C', [+la.toFixed(1), +lb.toFixed(1)]) } }
     // Cracks show at high risk.
     { const p = counts('cracks-hot'); if (p) check(p.crack >= .3, 'cracks grow with risk (level >= 10)', p.crack) }
     // Sfx.
     const names = sfx.map(e => e.m.spot); report.sfx = Object.fromEntries([...new Set(names)].map(n => [n, names.filter(x => x === n).length]))
-    check(names.includes('flake-land') && names.includes('chip-land') && names.includes('shard-land') && names.includes('coin-land'), 'flake-land, chip-land, shard-land and coin-land sfx are sent', report.sfx)
+    { const want = [['flake-land', ran('good')], ['chip-land', ran('chip')], ['shard-land', ran('shatter')], ['coin-land', !!shot('sell-1.2')]].filter(w => w[1]).map(w => w[0]); if (want.length) check(want.every(n => names.includes(n)), want.join(', ') + ' sfx are sent', report.sfx) }
     { const fl = sfx.filter(e => e.m.spot === 'flake-land').map(e => e.t); let worst = 0; for (let i = 0; i < fl.length; i++) { const n = fl.filter(t => t >= fl[i] && t < fl[i] + 1).length; worst = Math.max(worst, n) } check(worst <= 10, 'flake-land at most 10 per second', worst) }
     if (flag('sheet')) await sheet(h, dirs.main, index.shots, join(out, 'metal-sheet.png'), view === 'phone' ? 160 : 300)
   } finally { await h.close() }

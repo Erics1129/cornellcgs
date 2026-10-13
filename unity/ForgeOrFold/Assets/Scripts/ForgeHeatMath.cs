@@ -30,6 +30,9 @@ using System;
  // Hot-steel surface: metallic and smoothness fall over surfaceFromC..surfaceToC; oxide scale grows as 1-exp(-t/oxideGrowS)
  // while the body is above oxideAboveC and dims emission by up to oxideDim in noise patches.
  public float surfaceFromC=450, surfaceToC=900, hotMetallic=.35f, hotSmoothness=.25f, oxideAboveC=900, oxideGrowS=6, oxideDim=.4f;
+ // Scale islands: the oxide skin breaks into plates about oxideCellCm across; the gaps between them glow brighter
+ // (oxideGapGlow of the dimming removed in the gaps), so mature scale reads as dark plates on bright metal.
+ public float oxideCellCm=1, oxideGapGlow=.85f;
  // Contact footprint: scale cleared locally (regrows with oxideGrowS) plus a short flash; Perfect clears it all and
  // flashes the whole blade.
  public float footprintRadiusCm=1.8f, footprintFlashMs=120, footprintFlashGain=1.2f, perfectFlashMs=320, perfectFlashGain=.9f;
@@ -56,18 +59,19 @@ using System;
  public float sparkIntensity=18, sparkIntensityJitter=6, sparkLifeMin=.25f, sparkLifeMax=.45f, sparkSpeedMin=2.5f, sparkSpeedMax=6, sparkStretchS=.012f, sparkMaxStreakCm=3, sparkForkMin=2, sparkForkMax=3, sparkForkLifeMin=.15f, sparkForkLifeMax=.3f, sparkDrag=2.5f;
  // Chips (Chip outcome): 4-8 mm, leave at the blade temperature, cool like thick scale, grey below 500 C.
  public float chipMinMm=4, chipMaxMm=8, chipThickMm=.35f, chipBounce=.3f;
- // Chip notch (5 mm x 1.3 cm: the plan's 4 mm x 1 cm is about 3 px at 1 m on a desktop, under a phone's pixel), shatter
+ // Chip notch (7 mm x 1.8 cm: the plan's 4 mm x 1 cm shows as a 1-2 px dent at the work framing, under a phone's pixel), shatter
  // pieces, risk cracks.
- public float notchDepthMm=5, notchWidthCm=1.3f, shardsMin=10, shardsMax=16, shardDarkS=2, shardRestS=3.4f, shardGoneS=4, shardBounce=.25f, shardFriction=.6f, shardCrackFlashS=.18f, shardSpeed=1.2f;
- // crackDarkHot 1: on glowing steel the crack lips run cooler, so cracks read as dark jagged lines (much higher contrast
- // on a yellow blade than warm-white lines); 0 draws them glowing warm white at crackGlow.
- public float crackLow=.15f, crackHigh=.6f, crackPerM=40, crackGlow=.6f, crackEaseS=.6f, crackDarkHot=1;
+ public float notchDepthMm=7, notchWidthCm=1.8f, shardsMin=10, shardsMax=16, shardDarkS=2, shardRestS=3.4f, shardGoneS=4, shardBounce=.25f, shardFriction=.6f, shardCrackFlashS=.18f, shardSpeed=1.2f;
+ // Cracks are drawn dark on bright steel (the cooler lips against a yellow-orange glow: much higher contrast than a
+ // light line) and as glowing veins on dull red steel (the crack mouth radiates hotter than the skin, crackGlow brighter),
+ // handing over around crackDarkAboveC. Cold, they are dark hairlines with a faint lighter lip.
+ public float crackLow=.15f, crackHigh=.6f, crackPerM=40, crackGlow=.6f, crackEaseS=.6f, crackDarkAboveC=900;
  // Evolution: blade lift (cm), emission lift cap, glint sweep (s).
  public float evolutionLiftCm=2, evolutionEmissionCap=.6f, glintS=.5f;
  // Sale coins: clamp(round(coinsBase + coinsLog * log10(amount)), coinsMin, coinsMax); gold dust above coinsDustAt.
  public float coinsBase=2, coinsLog=2.2f, coinsMin=4, coinsMax=14, coinsDustAt=10000, coinBounce=.3f, coinSpinDamp=.3f, coinStaggerS=.07f, coinArcM=.22f, coinRestS=2.5f;
  // Blade glow lamp and heat haze.
- public float glowScale=.5f, glowCap=2.5f, glowRangeM=.8f, glowMinC=600, hazeStrength=.0025f, hazeFromC=700, hazeToC=1150, hazeRadius=.6f;
+ public float glowScale=.5f, glowCap=2.5f, glowRangeM=.8f, glowMinC=600, glowLiftCm=3, hazeStrength=.0025f, hazeFromC=700, hazeToC=1150, hazeRadius=.6f;
  // Quench steam plume and tub disturbance.
  public float steamPuffs=16, steamS=1.2f, quenchRings=3, quenchBubbles=14;
 
@@ -78,7 +82,7 @@ using System;
   coolK=ForgeTuning.Fit(coolK,1e-16f,1e-12f,1.87e-14f);anvilTauScale=ForgeTuning.Fit(anvilTauScale,0,20,2);floorEaseS=ForgeTuning.Fit(floorEaseS,.05f,10,1);
   floorBodyC=ForgeTuning.Fit(floorBodyC,20,1100,650);floorEdgeC=ForgeTuning.Fit(floorEdgeC,20,floorBodyC,600);
   quenchS=ForgeTuning.Fit(quenchS,.05f,5,.8f);rackCoolS=ForgeTuning.Fit(rackCoolS,.05f,5,1);shardTauScale=ForgeTuning.Fit(shardTauScale,1,1000,95);
-  oxideGrowS=ForgeTuning.Fit(oxideGrowS,.1f,120,6);oxideDim=ForgeTuning.Fit(oxideDim,0,1,.4f);
+  oxideGrowS=ForgeTuning.Fit(oxideGrowS,.1f,120,6);oxideDim=ForgeTuning.Fit(oxideDim,0,1,.4f);oxideCellCm=ForgeTuning.Fit(oxideCellCm,.1f,10,1);oxideGapGlow=ForgeTuning.Fit(oxideGapGlow,0,1,.85f);
   drawLevels=ForgeTuning.Fit(drawLevels,.5f,20,5.5f);barLength=ForgeTuning.Fit(barLength,.2f,1,.68f);barWidth=ForgeTuning.Fit(barWidth,.1f,2,.55f);barAspect=ForgeTuning.Fit(barAspect,0,1,.27f);
   barThickMm=ForgeTuning.Fit(barThickMm,1,20,8);spineMm=ForgeTuning.Fit(spineMm,.5f,12,5);edgeMm=ForgeTuning.Fit(edgeMm,.1f,spineMm,.8f);tipMm=ForgeTuning.Fit(tipMm,.1f,spineMm,1);tangMm=ForgeTuning.Fit(tangMm,.5f,12,6);bevelV=ForgeTuning.Fit(bevelV,.1f,1,.5f);
   phoneScale=ForgeTuning.Fit(phoneScale,0,1,.6f);capDesktop=ForgeTuning.Fit(capDesktop,0,220,220);capTier2=ForgeTuning.Fit(capTier2,0,capDesktop,120);
@@ -88,9 +92,9 @@ using System;
   sparksPerfect=ForgeTuning.Fit(sparksPerfect,0,4,3);sparksGood=ForgeTuning.Fit(sparksGood,0,1,0);sparksEvolution=ForgeTuning.Fit(sparksEvolution,0,30,12);sparksShatter=ForgeTuning.Fit(sparksShatter,0,30,15);
   shardsMin=ForgeTuning.Fit(shardsMin,0,16,10);shardsMax=ForgeTuning.Fit(shardsMax,shardsMin,16,16);shardGoneS=ForgeTuning.Fit(shardGoneS,.5f,4,4);shardRestS=ForgeTuning.Fit(shardRestS,.1f,shardGoneS,3.4f);
   coinsMin=ForgeTuning.Fit(coinsMin,0,14,4);coinsMax=ForgeTuning.Fit(coinsMax,coinsMin,14,14);
-  glowCap=ForgeTuning.Fit(glowCap,0,10,2.5f);glowRangeM=ForgeTuning.Fit(glowRangeM,0,4,.8f);hazeStrength=ForgeTuning.Fit(hazeStrength,0,.02f,.0025f);
+  glowCap=ForgeTuning.Fit(glowCap,0,10,2.5f);glowLiftCm=ForgeTuning.Fit(glowLiftCm,0,30,3);glowRangeM=ForgeTuning.Fit(glowRangeM,0,4,.8f);hazeStrength=ForgeTuning.Fit(hazeStrength,0,.02f,.0025f);
   evolutionEmissionCap=ForgeTuning.Fit(evolutionEmissionCap,0,2,.6f);evolutionLiftCm=ForgeTuning.Fit(evolutionLiftCm,0,10,2);
-  notchDepthMm=ForgeTuning.Fit(notchDepthMm,0,12,5);notchWidthCm=ForgeTuning.Fit(notchWidthCm,.2f,4,1.3f);spreadMaxMm=ForgeTuning.Fit(spreadMaxMm,0,8,3);
+  notchDepthMm=ForgeTuning.Fit(notchDepthMm,0,12,7);notchWidthCm=ForgeTuning.Fit(notchWidthCm,.2f,4,1.8f);spreadMaxMm=ForgeTuning.Fit(spreadMaxMm,0,8,3);
   steamPuffs=ForgeTuning.Fit(steamPuffs,0,32,16);quenchBubbles=ForgeTuning.Fit(quenchBubbles,0,40,14);quenchRings=ForgeTuning.Fit(quenchRings,0,6,3);
  }
  /// Pull temperature (C) of a metal key from the engine (config.ts METALS).
