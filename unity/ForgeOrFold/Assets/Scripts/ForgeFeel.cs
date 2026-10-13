@@ -43,8 +43,9 @@ using System.Collections.Generic;
  public float fovDesktop=42, fovDesktopWalk=62, fovPortrait=62, fovPortraitWalk=74, fovLandscape=46, fovLandscapeWalk=60;
  public float frameShiftX=-.03f, frameShiftXPortrait=-.06f, frameTargetWPortrait=.52f, frameFill=.60f, frameFillMin=.55f, frameFillMax=.65f, frameTargetW=.45f, frameTargetH=.35f, frameWidthFill=.85f, fovMin=34, fovMax=70, fovEaseS=.3f, lookEase=28, workEase=14;
  // Walk bob locked to steps. Free-look pitch limits (deg, + looks down): the body renders arms only, so looking
- // straight down would show the cut shoulders.
- public float strideM=.72f, bobMm=7, bobLateralMm=4, bobRollDeg=.25f, pitchMinDeg=-65, pitchMaxDeg=60;
+ // straight down would show the cut shoulders. Looking down, the head pivots on the neck: the eye moves neckForwardM
+ // forward and neckDropM down at the pitch limit (out past the shoulders).
+ public float strideM=.72f, bobMm=7, bobLateralMm=4, bobRollDeg=.25f, pitchMinDeg=-65, pitchMaxDeg=60, neckForwardM=.10f, neckDropM=.04f;
  // Hearth reach (s from the trigger): step out, plunge, heat with the bellows, pull out, step back, lay down. The bellows
  // is the room's rocker (ForgeDressing): Bellows() pulls its handle down bellowsPullCm over bellowsDownS and lets it rise
  // over bellowsUpS, restarting from the top on every call, so a second pull (bellowsPull2S > bellowsPull1S) only looks
@@ -101,7 +102,7 @@ using System.Collections.Generic;
   frameShiftX=ForgeTuning.Fit(frameShiftX,-.2f,.2f,-.03f);frameShiftXPortrait=ForgeTuning.Fit(frameShiftXPortrait,-.2f,.2f,-.06f);frameTargetWPortrait=ForgeTuning.Fit(frameTargetWPortrait,.1f,2,.52f);  frameTargetW=ForgeTuning.Fit(frameTargetW,.1f,2,.45f);frameTargetH=ForgeTuning.Fit(frameTargetH,.1f,2,.35f);frameWidthFill=ForgeTuning.Fit(frameWidthFill,.3f,1,.85f);fovEaseS=ForgeTuning.Fit(fovEaseS,.02f,2,.3f);
   fovDesktop=ForgeTuning.Fit(fovDesktop,fovMin,fovMax,42);fovPortrait=ForgeTuning.Fit(fovPortrait,fovMin,fovMax,62);fovLandscape=ForgeTuning.Fit(fovLandscape,fovMin,fovMax,46);
   fovDesktopWalk=ForgeTuning.Fit(fovDesktopWalk,20,100,62);fovPortraitWalk=ForgeTuning.Fit(fovPortraitWalk,20,100,74);fovLandscapeWalk=ForgeTuning.Fit(fovLandscapeWalk,20,100,60);
-  lookEase=ForgeTuning.Fit(lookEase,1,120,28);workEase=ForgeTuning.Fit(workEase,1,120,14);strideM=ForgeTuning.Fit(strideM,.3f,2,.72f);bobMm=ForgeTuning.Fit(bobMm,0,20,7);bobLateralMm=ForgeTuning.Fit(bobLateralMm,0,20,4);bobRollDeg=ForgeTuning.Fit(bobRollDeg,0,2,.25f);pitchMinDeg=ForgeTuning.Fit(pitchMinDeg,-85,0,-65);pitchMaxDeg=ForgeTuning.Fit(pitchMaxDeg,50,85,60);
+  lookEase=ForgeTuning.Fit(lookEase,1,120,28);workEase=ForgeTuning.Fit(workEase,1,120,14);strideM=ForgeTuning.Fit(strideM,.3f,2,.72f);bobMm=ForgeTuning.Fit(bobMm,0,20,7);bobLateralMm=ForgeTuning.Fit(bobLateralMm,0,20,4);bobRollDeg=ForgeTuning.Fit(bobRollDeg,0,2,.25f);pitchMinDeg=ForgeTuning.Fit(pitchMinDeg,-85,0,-65);pitchMaxDeg=ForgeTuning.Fit(pitchMaxDeg,50,85,60);neckForwardM=ForgeTuning.Fit(neckForwardM,0,.2f,.10f);neckDropM=ForgeTuning.Fit(neckDropM,0,.1f,.04f);
   // Hearth: the step takes at least .5 s each way (critique: comfortable), the phases stay in order.
   hearthStepS=ForgeTuning.Fit(hearthStepS,.5f,1.2f,.5f);hearthPlungeS=ForgeTuning.Fit(hearthPlungeS,.05f,.6f,.22f);hearthPlungeAtS=ForgeTuning.Fit(hearthPlungeAtS,.1f,hearthStepS+.3f,.42f);
   hearthPullS=ForgeTuning.Fit(hearthPullS,hearthPlungeAtS+hearthPlungeS+.2f,3,1.38f);hearthPullDurS=ForgeTuning.Fit(hearthPullDurS,.05f,.4f,.14f);hearthBackS=ForgeTuning.Fit(hearthBackS,hearthPullS+hearthPullDurS*.5f,3.5f,1.50f);
@@ -212,6 +213,8 @@ public static class ForgeFeel {
  public static void SpringStep(ref float x,ref float v,float target,float omega,float dt){float d=x-target;float e=MathF.Exp(-omega*dt);float nx=(d+(v+omega*d)*dt)*e;float nv=(v-omega*(v+omega*d)*dt)*e;x=target+nx;v=nv;}
  /// The sale glance (0..1 of glanceDeg toward the scale) at t s: turn over glanceS, hold, turn back; -1 when over.
  public static float Glance(ForgeStrikeTuning t,float s){if(s<0)return -1;if(s<t.glanceS)return Smooth(s/t.glanceS);s-=t.glanceS;if(s<t.glanceHoldS)return 1;s-=t.glanceHoldS;return s<t.glanceBackS?1-Smooth(s/t.glanceBackS):-1;}
+ /// Neck pivot of the free-look eye for a pitch (deg, + down): (forward, down) metres, smooth from level to pitchMaxDeg.
+ public static void Neck(ForgeStrikeTuning t,float pitchDeg,out float forward,out float down){float s=Smooth(pitchDeg/Math.Max(1,t.pitchMaxDeg));forward=t.neckForwardM*s;down=t.neckDropM*s;}
  /// Linear trauma decay.
  public static float Decay(float trauma,float perSecond,float dt)=>Math.Max(0,trauma-perSecond*dt);
  /// Exponential ease factor for a rate (1/s) over dt (s).

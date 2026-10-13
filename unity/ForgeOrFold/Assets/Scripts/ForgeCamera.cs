@@ -64,7 +64,8 @@ public partial class ForgeWorld {
    float ease=reduced?1:ForgeFeel.Ease(k.workEase,dt);rot=Quaternion.Slerp(camBaseRot,want,ease);fovTarget=WorkFov();
    var e=rot.eulerAngles;orbitYaw=e.y;orbitPitch=e.x>180?e.x-360:e.x;
   }else{
-   eye=smith.position+Vector3.up*ForgeLayout.EyeHeight;
+   // The head pivots on the neck as the view tips down (the eye moves forward, past the shoulders).
+   ForgeFeel.Neck(k,orbitPitch,out float neckF,out float neckD);eye=smith.position+Vector3.up*(ForgeLayout.EyeHeight-neckD)+Quaternion.Euler(0,orbitYaw,0)*Vector3.forward*neckF;
    var want=Quaternion.Euler(orbitPitch,orbitYaw,0);rot=reduced?want:Quaternion.Slerp(camBaseRot,want,ForgeFeel.Ease(k.lookEase,dt));fovTarget=workFocus?WorkFov():WalkFov();
   }
   // Ease the eye between the work lean and the standing eye (no snap when work focus toggles).
