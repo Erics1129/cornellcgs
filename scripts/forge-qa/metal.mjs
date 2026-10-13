@@ -158,7 +158,8 @@ function loadIndex(dir) {
 }
 // A probe is sent in Update and stamped with the previous LateUpdate's time, so the probe that describes a frame captured
 // at t carries a time strictly before t (the one stamped t already includes the next fixture step).
-const probeAt = (probes, t) => { let best = null; for (const p of probes) if (p.t <= t - 1e-4) best = p; return best }
+// Message stamps are rounded to 1 ms while shot times are exact, so compare with half a frame of slack (dt is 8.3 ms).
+const probeAt = (probes, t) => { let best = null; for (const p of probes) if (p.t <= t - 2e-3) best = p; return best }
 const region = (p, pad = .01) => p && p.vp ? [Math.max(0, p.vp[0] - pad), Math.max(0, 1 - p.vp[3] - pad), Math.min(1, p.vp[2] + pad), Math.min(1, 1 - p.vp[1] + pad)] : null
 const around = (pt, r = .006) => [pt[0] - r, 1 - pt[1] - r, pt[0] + r, 1 - pt[1] + r]
 // Swatch targets (the plan's displayed colours after the unchanged tonemap).
