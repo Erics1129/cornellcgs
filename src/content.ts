@@ -314,6 +314,8 @@ export const pageSlugs: Record<string, string> = {
   advisors: 'advisors',
   join: 'join',
   contact: 'contact',
+  privacy: 'privacy',
+  terms: 'terms',
   /** the mini games live under /minigames/; they are pages of their own, not info pages (no entry in `pages`) */
   minigames: 'minigames',
   'ink-maze': 'minigames/inkMaze',
@@ -461,6 +463,30 @@ export const pages: Record<string, SubPageDef> = {
       { heading: 'Finance', alt: 'Sponsors', body: 'finance@cornellcgs.org' },
       { heading: 'Marketing', alt: 'Outreach', body: 'marketing@cornellcgs.org' },
       { heading: 'Social', alt: 'Say hello', body: 'social@cornellcgs.org' },
+    ],
+  },
+  privacy: {
+    title: 'Privacy',
+    lead: 'What the site keeps when you sign in to a game, and how to remove it.',
+    sections: [
+      { heading: 'Signed out', alt: 'Default', body: 'Every game works without an account. Progress stays in your browser and nothing is sent anywhere.' },
+      { heading: 'Signed in', alt: 'With Google', body: 'Signing in with Google adds a server copy of that same progress so it follows you to other devices. We store a hash of your Google account id, your display name, your profile picture link, and your game saves. No email address, no password, no token from Google.' },
+      { heading: 'Signing out', alt: 'All devices', body: 'Sign out on any device and every other device is signed out too. Handy on a shared computer.' },
+      { heading: 'Deleting', alt: 'Your call', body: 'Open the sign-in menu in any game and choose Delete account. Your server data is removed at once. What is in your browser stays, and you keep playing signed out.' },
+      { heading: 'Google', alt: 'Their side', body: 'Google records that you used Sign in with Google here. You can review or remove that in your Google account under connections.', link: { label: 'Google account connections', href: 'https://myaccount.google.com/connections' } },
+      { heading: 'Questions', alt: 'Contact', body: 'Write to the club and we will answer or delete on request.', link: { label: 'Contact', href: '/contact/' } },
+    ],
+  },
+  terms: {
+    title: 'Terms',
+    lead: 'The short version of using this site and its games.',
+    sections: [
+      { heading: 'Free to use', alt: 'No cost', body: 'The site and the games are free. No purchases, no ads, no paid tiers.' },
+      { heading: 'Accounts', alt: 'Optional', body: 'An account only carries game progress between devices. Keep your Google account secure; we cannot recover a sign-in for you.' },
+      { heading: 'Fair play', alt: 'Scores', body: 'Leaderboards are for play by hand. Scripted or forged scores may be removed without notice.' },
+      { heading: 'Availability', alt: 'Best effort', body: 'A student club runs this site. Games and sign-in can be down or change at any time, and saved progress can be lost. Nothing here is a warranty.' },
+      { heading: 'Content', alt: 'Ownership', body: 'Game code and artwork belong to the club or their listed authors. Third-party assets are used under their own licenses.' },
+      { heading: 'Changes', alt: 'This page', body: 'We may update these terms. The date of the last change is in the site repository history.' },
     ],
   },
 }

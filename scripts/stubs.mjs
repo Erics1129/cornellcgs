@@ -22,6 +22,8 @@ const SLUGS = {
   advisors: 'advisors',
   join: 'join',
   contact: 'contact',
+  privacy: 'privacy',
+  terms: 'terms',
   minigames: 'minigames',
   'ink-maze': 'minigames/inkMaze',
   'forge-or-fold': 'minigames/forgeOrFold',
@@ -53,6 +55,14 @@ const PAGES = {
   advisors: {
     title: 'Advisors \u2014 Cornell Computational Game Society',
     desc: 'Advisors and team of the Cornell Computational Game Society (Cornell CGS).',
+  },
+  privacy: {
+    title: 'Privacy \u2014 Cornell Computational Game Society',
+    desc: 'What cornellcgs.org stores when you sign in to a mini game, and how to delete it.',
+  },
+  terms: {
+    title: 'Terms \u2014 Cornell Computational Game Society',
+    desc: 'Terms of use for cornellcgs.org and its mini games.',
   },
   people: {
     title: 'Our Team — Cornell Computational Game Society',

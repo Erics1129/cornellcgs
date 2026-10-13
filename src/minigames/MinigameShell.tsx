@@ -7,6 +7,7 @@ import type { MouseEvent, ReactNode } from 'react'
 import { site } from '../content'
 import Dice from '../components/Dice'
 import PageNavigator from '../components/PageNavigator'
+import SignIn from '../lib/account/SignIn.tsx'
 import '../styles/subpages.css'
 
 type Props = {
@@ -49,7 +50,7 @@ export default function MinigameShell({ pageId, title, back, skip, className, ch
     <header className="sp-bar"><nav className="sp-bar__inner" aria-label="Page navigation">
       <a className="sp-back" href={back.href} onClick={goBack}><span aria-hidden="true">←</span> Back</a>
       <a className="sp-brand" href="/"><Dice size={24} /><span>{site.name}</span></a>
-      <PageNavigator currentId={pageId} />
+      <span className="sp-bar__end"><PageNavigator currentId={pageId} /><SignIn /></span>
     </nav></header>
 
     {children}

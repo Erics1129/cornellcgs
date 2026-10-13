@@ -12,7 +12,9 @@ import MinigamesCard from '../minigames/MinigamesCard'
 import type { Algo } from './GraphAlgo'
 import '../styles/subpages.css'
 
-const CHAPTER: Record<string, string> = { advisors: 'people', contact: 'join' }
+const CHAPTER: Record<string, string> = { advisors: 'people', contact: 'join', privacy: 'join', terms: 'join' }
+/** The legal pages have no film of their own; they borrow one and stay out of the page order. */
+const SCENE_ALIAS: Record<string, PageSceneId> = { privacy: 'contact', terms: 'join' }
 const GraphAlgo = lazy(() => import('./GraphAlgo'))
 const NetworkFlow = lazy(() => import('./NetworkFlow'))
 const ALGO: Record<string, Algo> = { 'what-we-do': 'dijkstra', 'ml-process': 'astar', world: 'kruskal', people: 'prim' }
@@ -73,7 +75,7 @@ function ContentSection({ section, index, numbered = false }: { section: Section
 }
 
 function Title({ def, index }: { def: SubPageDef; index: number }) {
-  return <header className="sp-intro"><p className="sp-eyebrow"><span aria-hidden="true">{String(index + 1).padStart(2, '0')} / </span>{site.fullName}</p><h1 id="page-title">{def.title}</h1><p className="sp-lead"><Copy text={def.lead} /></p></header>
+  return <header className="sp-intro"><p className="sp-eyebrow">{index >= 0 && <span aria-hidden="true">{String(index + 1).padStart(2, '0')} / </span>}{site.fullName}</p><h1 id="page-title">{def.title}</h1><p className="sp-lead"><Copy text={def.lead} /></p></header>
 }
 
 function Portrait({ advisor }: { advisor: (typeof advisors)[number] }) {
@@ -105,8 +107,8 @@ function PageStudy({ id, paused }: { id: string; paused: boolean }) {
 export default function SubPage({ id }: { id: string }) {
   const [paused, setPaused] = useState(false)
   const def = pages[id]
-  const sceneId = id as PageSceneId
-  const index = PAGE_ORDER.indexOf(sceneId)
+  const sceneId = SCENE_ALIAS[id] ?? (id as PageSceneId)
+  const index = SCENE_ALIAS[id] ? -1 : PAGE_ORDER.indexOf(sceneId)
   const root = useRef<HTMLDivElement>(null)
   usePageEntrances(root, id)
   useEffect(() => {
@@ -160,6 +162,8 @@ export default function SubPage({ id }: { id: string }) {
       composition = <><div className="sp-invitation">{scene}{title}</div><div className="sp-join-notes">{sections(true)}</div></>
       break
     case 'contact':
+    case 'privacy':
+    case 'terms':
       composition = <><div className="sp-contact-cover">{title}{scene}</div><div className="sp-directory">{sections(true)}</div></>
       break
   }
