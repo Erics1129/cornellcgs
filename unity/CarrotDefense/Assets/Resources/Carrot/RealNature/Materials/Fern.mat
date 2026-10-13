@@ -1,0 +1,68 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!21 &2100000
+Material:
+  serializedVersion: 8
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: Fern
+  m_Shader: {fileID: 4800000, guid: 7edd5366f825b41859fbedbb7bc8ef01, type: 3}
+  m_Parent: {fileID: 0}
+  m_ModifiedSerializedProperties: 0
+  m_ValidKeywords: []
+  m_InvalidKeywords: []
+  m_LightmapFlags: 4
+  m_EnableInstancingVariants: 1
+  m_DoubleSidedGI: 0
+  m_CustomRenderQueue: 2450
+  stringTagMap: {}
+  disabledShaderPasses: []
+  m_LockedProperties: 
+  m_SavedProperties:
+    serializedVersion: 3
+    m_TexEnvs:
+    - _BumpMap:
+        m_Texture: {fileID: 2800000, guid: 49100b664f3004c9a857a5415ed8c160, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _MainTex:
+        m_Texture: {fileID: 2800000, guid: 46328bbd5a75f4c45ae634872bb6f5e5, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _OcclusionMap:
+        m_Texture: {fileID: 2800000, guid: b627e960d68d343ad9a97850afcdcb9c, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _RoughnessMap:
+        m_Texture: {fileID: 2800000, guid: 83de9ab9a07314733950e105df4eb700, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    m_Ints: []
+    m_Floats:
+    - _AlbedoGain: 1
+    - _AlbedoSaturation: 1
+    - _Bend: 0
+    - _BumpScale: 0.8
+    - _Cull: 0
+    - _Cutoff: 0.38
+    - _Dissolve: 0
+    - _Glossiness: 0.4
+    - _Metallic: 0
+    - _OcclusionStrength: 0.7
+    - _ReflectionStrength: 0.6
+    - _SnowStrength: 0.5
+    - _TextureScale: 1
+    - _Translucency: 0.55
+    - _UseOcclusionMap: 1
+    - _UseRoughnessMap: 1
+    - _VertexColorSRGB: 0
+    - _Wind: 0.012
+    - _WorldTexture: 0
+    m_Colors:
+    - _Color: {r: 1, g: 1, b: 1, a: 1}
+    - _DissolveEdge: {r: 1, g: 0.6, b: 0.19999996, a: 1}
+    - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
+  m_BuildTextureStacks: []
+  m_AllowLocking: 1

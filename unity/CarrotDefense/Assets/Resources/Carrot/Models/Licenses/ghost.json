@@ -1,0 +1,89 @@
+{
+  "Title": "Ghost",
+  "UploadDate": "2022-10-23T01:01:42.045Z",
+  "ResourceID": "810f60a2-6e45-4c4e-a0d5-da91cd7288bd",
+  "PublicID": "Iip30bDHmu",
+  "Likes": 10,
+  "CommentCount": 0,
+  "Tris": 2056,
+  "Views": "2.23k",
+  "Downloads": "3.69k",
+  "Creator": {
+    "Username": "Quaternius",
+    "DPURL": "https://static.poly.pizza/dp%2Ff63b655a-051c-4c4b-8dcc-3b346a39ece0.jpg",
+    "Socials": {
+      "Twitter": "quaternius",
+      "Pateron": "quaternius",
+      "Website": "https://quaternius.com/"
+    }
+  },
+  "Category": "Objects",
+  "Tags": [
+    "Enemy",
+    "Monster"
+  ],
+  "Orbit": {
+    "phi": "1.37207",
+    "radius": "100%",
+    "theta": "-0.03153"
+  },
+  "Background": {
+    "one": "#5e35b1",
+    "two": "hsl(260deg, 54%, 15%)",
+    "type": "Radial"
+  },
+  "Visibility": "Public",
+  "Type": "FBX",
+  "Licence": "CC0 1.0",
+  "Animated": true,
+  "source": "https://poly.pizza/m/Iip30bDHmu",
+  "download": "https://static.poly.pizza/810f60a2-6e45-4c4e-a0d5-da91cd7288bd.glb",
+  "file": "ghost.glb",
+  "bytes": 203360,
+  "sha256": "4ed7656e2155d47b7d5fe08f31a7e764d79255f477d90040e4472552d7d5ac68",
+  "animations": [
+    {
+      "name": "CharacterArmature|Death",
+      "seconds": 0.667,
+      "channels": 13
+    },
+    {
+      "name": "CharacterArmature|Fast_Flying",
+      "seconds": 0.833,
+      "channels": 10
+    },
+    {
+      "name": "CharacterArmature|Flying_Idle",
+      "seconds": 1.167,
+      "channels": 10
+    },
+    {
+      "name": "CharacterArmature|Headbutt",
+      "seconds": 1.167,
+      "channels": 28
+    },
+    {
+      "name": "CharacterArmature|HitReact",
+      "seconds": 0.458,
+      "channels": 12
+    },
+    {
+      "name": "CharacterArmature|No",
+      "seconds": 1.167,
+      "channels": 11
+    },
+    {
+      "name": "CharacterArmature|Punch",
+      "seconds": 1.167,
+      "channels": 20
+    },
+    {
+      "name": "CharacterArmature|Yes",
+      "seconds": 1.167,
+      "channels": 11
+    }
+  ],
+  "skins": 1,
+  "actualTriangles": 3192,
+  "requiredExtensions": []
+}

@@ -23,5 +23,9 @@ unity/**/UserSettings/
 unity/**/*.csproj
 unity/**/*.sln
 unity/**/Builds/
+unity/**/__pycache__/
 # deploy.sh works in this folder while publishing
 .pages-publish/
+
+# Local research downloads; used assets carry licenses in the Unity project.
+docs/carrot-defense/source-assets/

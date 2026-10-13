@@ -1,0 +1,97 @@
+{
+  "Title": "Mushnub",
+  "Description": " ",
+  "UploadDate": "2022-10-23T01:01:33.065Z",
+  "ResourceID": "55c64684-49a4-4fcc-b393-113126add89b",
+  "PublicID": "LWKmS30Xxl",
+  "Likes": 4,
+  "CommentCount": 0,
+  "Tris": 1200,
+  "Views": 854,
+  "Downloads": "3.48k",
+  "Creator": {
+    "Username": "Quaternius",
+    "DPURL": "https://static.poly.pizza/dp%2Ff63b655a-051c-4c4b-8dcc-3b346a39ece0.jpg",
+    "Socials": {
+      "Twitter": "quaternius",
+      "Pateron": "quaternius",
+      "Website": "https://quaternius.com/"
+    }
+  },
+  "Category": "Animals",
+  "Tags": [
+    "Plant",
+    "Mushroom",
+    "Enemy",
+    "Monster"
+  ],
+  "Orbit": {
+    "phi": "1.37207",
+    "radius": "4.541067343629343",
+    "theta": "-0.03153"
+  },
+  "Background": {
+    "one": "#5e35b1",
+    "two": "hsl(260deg, 54%, 15%)",
+    "type": "Radial"
+  },
+  "Visibility": "Public",
+  "Type": "FBX",
+  "Licence": "CC0 1.0",
+  "Animated": true,
+  "source": "https://poly.pizza/m/LWKmS30Xxl",
+  "download": "https://static.poly.pizza/55c64684-49a4-4fcc-b393-113126add89b.glb",
+  "file": "mushnub.glb",
+  "bytes": 67900,
+  "sha256": "04614a9d0db2a00d17cd85f4ef9c54e19cd3692530c0724b46809aa928e161e9",
+  "animations": [
+    {
+      "name": "CharacterArmature|Bite_Front",
+      "seconds": 0.375,
+      "channels": 3
+    },
+    {
+      "name": "CharacterArmature|Dance",
+      "seconds": 0.667,
+      "channels": 4
+    },
+    {
+      "name": "CharacterArmature|Death",
+      "seconds": 0.333,
+      "channels": 5
+    },
+    {
+      "name": "CharacterArmature|HitRecieve",
+      "seconds": 0.292,
+      "channels": 5
+    },
+    {
+      "name": "CharacterArmature|Idle",
+      "seconds": 2.0,
+      "channels": 2
+    },
+    {
+      "name": "CharacterArmature|Jump",
+      "seconds": 0.417,
+      "channels": 4
+    },
+    {
+      "name": "CharacterArmature|No",
+      "seconds": 1.0,
+      "channels": 3
+    },
+    {
+      "name": "CharacterArmature|Walk",
+      "seconds": 0.417,
+      "channels": 5
+    },
+    {
+      "name": "CharacterArmature|Yes",
+      "seconds": 0.958,
+      "channels": 3
+    }
+  ],
+  "skins": 1,
+  "actualTriangles": 1248,
+  "requiredExtensions": []
+}

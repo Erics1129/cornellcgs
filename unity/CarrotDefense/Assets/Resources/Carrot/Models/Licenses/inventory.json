@@ -1,0 +1,763 @@
+[
+  {
+    "Title": "Armabee",
+    "file": "armabee.glb",
+    "bytes": 143736,
+    "actualTriangles": 2280,
+    "skins": 1,
+    "animations": [
+      {
+        "name": "CharacterArmature|Death",
+        "seconds": 0.667,
+        "channels": 13
+      },
+      {
+        "name": "CharacterArmature|Fast_Flying",
+        "seconds": 0.833,
+        "channels": 9
+      },
+      {
+        "name": "CharacterArmature|Flying_Idle",
+        "seconds": 1.167,
+        "channels": 9
+      },
+      {
+        "name": "CharacterArmature|Headbutt",
+        "seconds": 1.167,
+        "channels": 11
+      },
+      {
+        "name": "CharacterArmature|HitReact",
+        "seconds": 0.458,
+        "channels": 11
+      },
+      {
+        "name": "CharacterArmature|No",
+        "seconds": 1.167,
+        "channels": 10
+      },
+      {
+        "name": "CharacterArmature|Punch",
+        "seconds": 1.167,
+        "channels": 11
+      },
+      {
+        "name": "CharacterArmature|Yes",
+        "seconds": 1.167,
+        "channels": 10
+      }
+    ]
+  },
+  {
+    "Title": "Bunny",
+    "file": "bunny.glb",
+    "bytes": 538360,
+    "actualTriangles": 8284,
+    "skins": 2,
+    "animations": [
+      {
+        "name": "CharacterArmature|Death",
+        "seconds": 0.75,
+        "channels": 28
+      },
+      {
+        "name": "CharacterArmature|Duck",
+        "seconds": 1.667,
+        "channels": 16
+      },
+      {
+        "name": "CharacterArmature|HitReact",
+        "seconds": 0.583,
+        "channels": 18
+      },
+      {
+        "name": "CharacterArmature|Idle",
+        "seconds": 1.0,
+        "channels": 17
+      },
+      {
+        "name": "CharacterArmature|Jump",
+        "seconds": 0.333,
+        "channels": 20
+      },
+      {
+        "name": "CharacterArmature|Jump_Idle",
+        "seconds": 0.5,
+        "channels": 20
+      },
+      {
+        "name": "CharacterArmature|Jump_Land",
+        "seconds": 0.333,
+        "channels": 20
+      },
+      {
+        "name": "CharacterArmature|No",
+        "seconds": 1.667,
+        "channels": 13
+      },
+      {
+        "name": "CharacterArmature|Punch",
+        "seconds": 0.833,
+        "channels": 29
+      },
+      {
+        "name": "CharacterArmature|Run",
+        "seconds": 0.542,
+        "channels": 31
+      },
+      {
+        "name": "CharacterArmature|Walk",
+        "seconds": 1.0,
+        "channels": 39
+      },
+      {
+        "name": "CharacterArmature|Wave",
+        "seconds": 1.667,
+        "channels": 19
+      },
+      {
+        "name": "CharacterArmature|Weapon",
+        "seconds": 0.833,
+        "channels": 28
+      },
+      {
+        "name": "CharacterArmature|Yes",
+        "seconds": 1.667,
+        "channels": 17
+      }
+    ]
+  },
+  {
+    "Title": "Dragon Evolved",
+    "file": "dragon-evolved.glb",
+    "bytes": 436000,
+    "actualTriangles": 7438,
+    "skins": 1,
+    "animations": [
+      {
+        "name": "CharacterArmature|Death",
+        "seconds": 0.667,
+        "channels": 19
+      },
+      {
+        "name": "CharacterArmature|Fast_Flying",
+        "seconds": 0.833,
+        "channels": 16
+      },
+      {
+        "name": "CharacterArmature|Flying_Idle",
+        "seconds": 1.5,
+        "channels": 16
+      },
+      {
+        "name": "CharacterArmature|Headbutt",
+        "seconds": 1.5,
+        "channels": 34
+      },
+      {
+        "name": "CharacterArmature|HitReact",
+        "seconds": 0.667,
+        "channels": 18
+      },
+      {
+        "name": "CharacterArmature|No",
+        "seconds": 1.167,
+        "channels": 17
+      },
+      {
+        "name": "CharacterArmature|Punch",
+        "seconds": 1.333,
+        "channels": 26
+      },
+      {
+        "name": "CharacterArmature|Yes",
+        "seconds": 1.167,
+        "channels": 17
+      }
+    ]
+  },
+  {
+    "Title": "Frog",
+    "file": "frog.glb",
+    "bytes": 379892,
+    "actualTriangles": 5016,
+    "skins": 1,
+    "animations": [
+      {
+        "name": "CharacterArmature|Death",
+        "seconds": 0.75,
+        "channels": 24
+      },
+      {
+        "name": "CharacterArmature|Duck",
+        "seconds": 1.667,
+        "channels": 12
+      },
+      {
+        "name": "CharacterArmature|HitReact",
+        "seconds": 0.583,
+        "channels": 14
+      },
+      {
+        "name": "CharacterArmature|Idle",
+        "seconds": 1.0,
+        "channels": 13
+      },
+      {
+        "name": "CharacterArmature|Jump",
+        "seconds": 0.333,
+        "channels": 16
+      },
+      {
+        "name": "CharacterArmature|Jump_Idle",
+        "seconds": 0.5,
+        "channels": 16
+      },
+      {
+        "name": "CharacterArmature|Jump_Land",
+        "seconds": 0.333,
+        "channels": 16
+      },
+      {
+        "name": "CharacterArmature|No",
+        "seconds": 1.667,
+        "channels": 13
+      },
+      {
+        "name": "CharacterArmature|Punch",
+        "seconds": 0.833,
+        "channels": 25
+      },
+      {
+        "name": "CharacterArmature|Run",
+        "seconds": 0.542,
+        "channels": 27
+      },
+      {
+        "name": "CharacterArmature|Walk",
+        "seconds": 1.0,
+        "channels": 35
+      },
+      {
+        "name": "CharacterArmature|Wave",
+        "seconds": 1.667,
+        "channels": 15
+      },
+      {
+        "name": "CharacterArmature|Weapon",
+        "seconds": 0.833,
+        "channels": 32
+      },
+      {
+        "name": "CharacterArmature|Yes",
+        "seconds": 1.667,
+        "channels": 13
+      }
+    ]
+  },
+  {
+    "Title": "Ghost",
+    "file": "ghost.glb",
+    "bytes": 203360,
+    "actualTriangles": 3192,
+    "skins": 1,
+    "animations": [
+      {
+        "name": "CharacterArmature|Death",
+        "seconds": 0.667,
+        "channels": 13
+      },
+      {
+        "name": "CharacterArmature|Fast_Flying",
+        "seconds": 0.833,
+        "channels": 10
+      },
+      {
+        "name": "CharacterArmature|Flying_Idle",
+        "seconds": 1.167,
+        "channels": 10
+      },
+      {
+        "name": "CharacterArmature|Headbutt",
+        "seconds": 1.167,
+        "channels": 28
+      },
+      {
+        "name": "CharacterArmature|HitReact",
+        "seconds": 0.458,
+        "channels": 12
+      },
+      {
+        "name": "CharacterArmature|No",
+        "seconds": 1.167,
+        "channels": 11
+      },
+      {
+        "name": "CharacterArmature|Punch",
+        "seconds": 1.167,
+        "channels": 20
+      },
+      {
+        "name": "CharacterArmature|Yes",
+        "seconds": 1.167,
+        "channels": 11
+      }
+    ]
+  },
+  {
+    "Title": "Goleling",
+    "file": "goleling.glb",
+    "bytes": 217332,
+    "actualTriangles": 3696,
+    "skins": 1,
+    "animations": [
+      {
+        "name": "CharacterArmature|Death",
+        "seconds": 0.667,
+        "channels": 13
+      },
+      {
+        "name": "CharacterArmature|Fast_Flying",
+        "seconds": 0.833,
+        "channels": 9
+      },
+      {
+        "name": "CharacterArmature|Flying_Idle",
+        "seconds": 1.167,
+        "channels": 9
+      },
+      {
+        "name": "CharacterArmature|Headbutt",
+        "seconds": 1.167,
+        "channels": 11
+      },
+      {
+        "name": "CharacterArmature|HitReact",
+        "seconds": 0.458,
+        "channels": 11
+      },
+      {
+        "name": "CharacterArmature|No",
+        "seconds": 1.167,
+        "channels": 10
+      },
+      {
+        "name": "CharacterArmature|Punch",
+        "seconds": 1.167,
+        "channels": 11
+      },
+      {
+        "name": "CharacterArmature|Yes",
+        "seconds": 1.167,
+        "channels": 10
+      }
+    ]
+  },
+  {
+    "Title": "Green Blob",
+    "file": "green-blob.glb",
+    "bytes": 74812,
+    "actualTriangles": 1520,
+    "skins": 2,
+    "animations": [
+      {
+        "name": "CharacterArmature|Bite_Front",
+        "seconds": 0.375,
+        "channels": 3
+      },
+      {
+        "name": "CharacterArmature|Dance",
+        "seconds": 0.667,
+        "channels": 4
+      },
+      {
+        "name": "CharacterArmature|Death",
+        "seconds": 0.333,
+        "channels": 5
+      },
+      {
+        "name": "CharacterArmature|HitRecieve",
+        "seconds": 0.292,
+        "channels": 5
+      },
+      {
+        "name": "CharacterArmature|Idle",
+        "seconds": 2.0,
+        "channels": 2
+      },
+      {
+        "name": "CharacterArmature|Jump",
+        "seconds": 0.417,
+        "channels": 4
+      },
+      {
+        "name": "CharacterArmature|No",
+        "seconds": 1.0,
+        "channels": 3
+      },
+      {
+        "name": "CharacterArmature|Walk",
+        "seconds": 0.417,
+        "channels": 5
+      },
+      {
+        "name": "CharacterArmature|Yes",
+        "seconds": 0.958,
+        "channels": 3
+      }
+    ]
+  },
+  {
+    "Title": "Mushnub",
+    "file": "mushnub.glb",
+    "bytes": 67900,
+    "actualTriangles": 1248,
+    "skins": 1,
+    "animations": [
+      {
+        "name": "CharacterArmature|Bite_Front",
+        "seconds": 0.375,
+        "channels": 3
+      },
+      {
+        "name": "CharacterArmature|Dance",
+        "seconds": 0.667,
+        "channels": 4
+      },
+      {
+        "name": "CharacterArmature|Death",
+        "seconds": 0.333,
+        "channels": 5
+      },
+      {
+        "name": "CharacterArmature|HitRecieve",
+        "seconds": 0.292,
+        "channels": 5
+      },
+      {
+        "name": "CharacterArmature|Idle",
+        "seconds": 2.0,
+        "channels": 2
+      },
+      {
+        "name": "CharacterArmature|Jump",
+        "seconds": 0.417,
+        "channels": 4
+      },
+      {
+        "name": "CharacterArmature|No",
+        "seconds": 1.0,
+        "channels": 3
+      },
+      {
+        "name": "CharacterArmature|Walk",
+        "seconds": 0.417,
+        "channels": 5
+      },
+      {
+        "name": "CharacterArmature|Yes",
+        "seconds": 0.958,
+        "channels": 3
+      }
+    ]
+  },
+  {
+    "Title": "Mushroom King",
+    "file": "mushroom-king.glb",
+    "bytes": 444228,
+    "actualTriangles": 6044,
+    "skins": 2,
+    "animations": [
+      {
+        "name": "CharacterArmature|Death",
+        "seconds": 0.75,
+        "channels": 28
+      },
+      {
+        "name": "CharacterArmature|Duck",
+        "seconds": 1.667,
+        "channels": 16
+      },
+      {
+        "name": "CharacterArmature|HitReact",
+        "seconds": 0.583,
+        "channels": 18
+      },
+      {
+        "name": "CharacterArmature|Idle",
+        "seconds": 1.0,
+        "channels": 13
+      },
+      {
+        "name": "CharacterArmature|Jump",
+        "seconds": 0.333,
+        "channels": 20
+      },
+      {
+        "name": "CharacterArmature|Jump_Idle",
+        "seconds": 0.5,
+        "channels": 22
+      },
+      {
+        "name": "CharacterArmature|Jump_Land",
+        "seconds": 0.333,
+        "channels": 21
+      },
+      {
+        "name": "CharacterArmature|No",
+        "seconds": 1.667,
+        "channels": 14
+      },
+      {
+        "name": "CharacterArmature|Punch",
+        "seconds": 0.833,
+        "channels": 25
+      },
+      {
+        "name": "CharacterArmature|Run",
+        "seconds": 0.542,
+        "channels": 27
+      },
+      {
+        "name": "CharacterArmature|Walk",
+        "seconds": 1.0,
+        "channels": 34
+      },
+      {
+        "name": "CharacterArmature|Wave",
+        "seconds": 1.667,
+        "channels": 16
+      },
+      {
+        "name": "CharacterArmature|Weapon",
+        "seconds": 0.833,
+        "channels": 30
+      },
+      {
+        "name": "CharacterArmature|Yes",
+        "seconds": 1.667,
+        "channels": 14
+      }
+    ]
+  },
+  {
+    "Title": "Snake",
+    "file": "snake.glb",
+    "bytes": 216696,
+    "actualTriangles": 1618,
+    "skins": 1,
+    "animations": [
+      {
+        "name": "SnakeArmature|Snake_Attack",
+        "seconds": 0.667,
+        "channels": 12
+      },
+      {
+        "name": "SnakeArmature|Snake_Idle",
+        "seconds": 2.083,
+        "channels": 10
+      },
+      {
+        "name": "SnakeArmature|Snake_Jump",
+        "seconds": 0.958,
+        "channels": 12
+      },
+      {
+        "name": "SnakeArmature|Snake_Walk",
+        "seconds": 0.833,
+        "channels": 13
+      }
+    ]
+  },
+  {
+    "Title": "Spider",
+    "file": "spider.glb",
+    "bytes": 449008,
+    "actualTriangles": 2712,
+    "skins": 1,
+    "animations": [
+      {
+        "name": "SpiderArmature|Spider_Attack",
+        "seconds": 0.75,
+        "channels": 37
+      },
+      {
+        "name": "SpiderArmature|Spider_Death",
+        "seconds": 1.042,
+        "channels": 37
+      },
+      {
+        "name": "SpiderArmature|Spider_Idle",
+        "seconds": 4.167,
+        "channels": 34
+      },
+      {
+        "name": "SpiderArmature|Spider_Jump",
+        "seconds": 0.708,
+        "channels": 36
+      },
+      {
+        "name": "SpiderArmature|Spider_Walk",
+        "seconds": 0.833,
+        "channels": 36
+      }
+    ]
+  },
+  {
+    "Title": "Green Spiky Blob",
+    "file": "spiky-blob.glb",
+    "bytes": 185820,
+    "actualTriangles": 4888,
+    "skins": 2,
+    "animations": [
+      {
+        "name": "CharacterArmature|Bite_Front",
+        "seconds": 0.375,
+        "channels": 3
+      },
+      {
+        "name": "CharacterArmature|Dance",
+        "seconds": 0.667,
+        "channels": 4
+      },
+      {
+        "name": "CharacterArmature|Death",
+        "seconds": 0.333,
+        "channels": 5
+      },
+      {
+        "name": "CharacterArmature|HitRecieve",
+        "seconds": 0.292,
+        "channels": 5
+      },
+      {
+        "name": "CharacterArmature|Idle",
+        "seconds": 2.0,
+        "channels": 2
+      },
+      {
+        "name": "CharacterArmature|Jump",
+        "seconds": 0.417,
+        "channels": 4
+      },
+      {
+        "name": "CharacterArmature|No",
+        "seconds": 1.0,
+        "channels": 3
+      },
+      {
+        "name": "CharacterArmature|Walk",
+        "seconds": 0.417,
+        "channels": 5
+      },
+      {
+        "name": "CharacterArmature|Yes",
+        "seconds": 0.958,
+        "channels": 3
+      }
+    ]
+  },
+  {
+    "Title": "Squidle",
+    "file": "squidle.glb",
+    "bytes": 308816,
+    "actualTriangles": 4880,
+    "skins": 1,
+    "animations": [
+      {
+        "name": "CharacterArmature|Death",
+        "seconds": 0.667,
+        "channels": 17
+      },
+      {
+        "name": "CharacterArmature|Fast_Flying",
+        "seconds": 0.833,
+        "channels": 13
+      },
+      {
+        "name": "CharacterArmature|Flying_Idle",
+        "seconds": 1.167,
+        "channels": 13
+      },
+      {
+        "name": "CharacterArmature|Headbutt",
+        "seconds": 1.167,
+        "channels": 31
+      },
+      {
+        "name": "CharacterArmature|HitReact",
+        "seconds": 0.458,
+        "channels": 15
+      },
+      {
+        "name": "CharacterArmature|No",
+        "seconds": 1.167,
+        "channels": 14
+      },
+      {
+        "name": "CharacterArmature|Punch",
+        "seconds": 1.167,
+        "channels": 23
+      },
+      {
+        "name": "CharacterArmature|Yes",
+        "seconds": 1.167,
+        "channels": 14
+      }
+    ]
+  },
+  {
+    "Title": "Yeti",
+    "file": "yeti.glb",
+    "bytes": 111224,
+    "actualTriangles": 2136,
+    "skins": 1,
+    "animations": [
+      {
+        "name": "CharacterArmature|Bite_Front",
+        "seconds": 0.375,
+        "channels": 3
+      },
+      {
+        "name": "CharacterArmature|Dance",
+        "seconds": 0.667,
+        "channels": 4
+      },
+      {
+        "name": "CharacterArmature|Death",
+        "seconds": 0.333,
+        "channels": 5
+      },
+      {
+        "name": "CharacterArmature|HitRecieve",
+        "seconds": 0.292,
+        "channels": 5
+      },
+      {
+        "name": "CharacterArmature|Idle",
+        "seconds": 2.0,
+        "channels": 2
+      },
+      {
+        "name": "CharacterArmature|Jump",
+        "seconds": 0.417,
+        "channels": 4
+      },
+      {
+        "name": "CharacterArmature|No",
+        "seconds": 1.0,
+        "channels": 3
+      },
+      {
+        "name": "CharacterArmature|Walk",
+        "seconds": 0.417,
+        "channels": 5
+      },
+      {
+        "name": "CharacterArmature|Yes",
+        "seconds": 0.958,
+        "channels": 3
+      }
+    ]
+  }
+]

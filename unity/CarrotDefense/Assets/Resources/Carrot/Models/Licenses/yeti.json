@@ -1,0 +1,95 @@
+{
+  "Title": "Yeti",
+  "UploadDate": "2022-10-23T01:01:42.515Z",
+  "ResourceID": "085b078d-b72a-4d8e-a030-000d36c58447",
+  "PublicID": "S1E7idPFhe",
+  "Likes": 3,
+  "CommentCount": 0,
+  "Tris": 2088,
+  "Views": 679,
+  "Downloads": "3.38k",
+  "Creator": {
+    "Username": "Quaternius",
+    "DPURL": "https://static.poly.pizza/dp%2Ff63b655a-051c-4c4b-8dcc-3b346a39ece0.jpg",
+    "Socials": {
+      "Twitter": "quaternius",
+      "Pateron": "quaternius",
+      "Website": "https://quaternius.com/"
+    }
+  },
+  "Category": "Animals",
+  "Tags": [
+    "Mouth",
+    "Lip",
+    "Monster"
+  ],
+  "Orbit": {
+    "phi": "1.37207",
+    "radius": "100%",
+    "theta": "-0.03153"
+  },
+  "Background": {
+    "one": "#5e35b1",
+    "two": "hsl(260deg, 54%, 15%)",
+    "type": "Radial"
+  },
+  "Visibility": "Public",
+  "Type": "FBX",
+  "Licence": "CC0 1.0",
+  "Animated": true,
+  "source": "https://poly.pizza/m/S1E7idPFhe",
+  "download": "https://static.poly.pizza/085b078d-b72a-4d8e-a030-000d36c58447.glb",
+  "file": "yeti.glb",
+  "bytes": 111224,
+  "sha256": "20aaa4fc5fc3b9fe30b6109f88061f2d6f49e03b26a51ebee08f50bd1c26caaf",
+  "animations": [
+    {
+      "name": "CharacterArmature|Bite_Front",
+      "seconds": 0.375,
+      "channels": 3
+    },
+    {
+      "name": "CharacterArmature|Dance",
+      "seconds": 0.667,
+      "channels": 4
+    },
+    {
+      "name": "CharacterArmature|Death",
+      "seconds": 0.333,
+      "channels": 5
+    },
+    {
+      "name": "CharacterArmature|HitRecieve",
+      "seconds": 0.292,
+      "channels": 5
+    },
+    {
+      "name": "CharacterArmature|Idle",
+      "seconds": 2.0,
+      "channels": 2
+    },
+    {
+      "name": "CharacterArmature|Jump",
+      "seconds": 0.417,
+      "channels": 4
+    },
+    {
+      "name": "CharacterArmature|No",
+      "seconds": 1.0,
+      "channels": 3
+    },
+    {
+      "name": "CharacterArmature|Walk",
+      "seconds": 0.417,
+      "channels": 5
+    },
+    {
+      "name": "CharacterArmature|Yes",
+      "seconds": 0.958,
+      "channels": 3
+    }
+  ],
+  "skins": 1,
+  "actualTriangles": 2136,
+  "requiredExtensions": []
+}

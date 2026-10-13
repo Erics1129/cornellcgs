@@ -1,0 +1,122 @@
+{
+  "Title": "Frog",
+  "UploadDate": "2022-10-23T10:14:01.413Z",
+  "ResourceID": "9018566d-c4e9-4f20-9c99-964622a6e674",
+  "PublicID": "37wofOCOzG",
+  "Likes": 5,
+  "CommentCount": 0,
+  "Tris": 4280,
+  "Views": "2.29k",
+  "Downloads": "3.9k",
+  "Creator": {
+    "Username": "Quaternius",
+    "DPURL": "https://static.poly.pizza/dp%2Ff63b655a-051c-4c4b-8dcc-3b346a39ece0.jpg",
+    "Socials": {
+      "Twitter": "quaternius",
+      "Pateron": "quaternius",
+      "Website": "https://quaternius.com/"
+    }
+  },
+  "Category": "Animals",
+  "Tags": [
+    "Animal",
+    "Wildlife",
+    "Amphibian",
+    "Enemy",
+    "Monster"
+  ],
+  "Orbit": {
+    "phi": "1.30900",
+    "radius": "100%",
+    "theta": "0.00000"
+  },
+  "Background": {
+    "one": "#5e35b1",
+    "two": "hsl(260deg, 54%, 15%)",
+    "type": "Radial"
+  },
+  "Visibility": "Public",
+  "Type": "FBX",
+  "Licence": "CC0 1.0",
+  "Animated": true,
+  "source": "https://poly.pizza/m/37wofOCOzG",
+  "download": "https://static.poly.pizza/9018566d-c4e9-4f20-9c99-964622a6e674.glb",
+  "file": "frog.glb",
+  "bytes": 379892,
+  "sha256": "e649e23848548c74f22a22071ebcd5ddcf78254a9f4ce94417078a7431482309",
+  "animations": [
+    {
+      "name": "CharacterArmature|Death",
+      "seconds": 0.75,
+      "channels": 24
+    },
+    {
+      "name": "CharacterArmature|Duck",
+      "seconds": 1.667,
+      "channels": 12
+    },
+    {
+      "name": "CharacterArmature|HitReact",
+      "seconds": 0.583,
+      "channels": 14
+    },
+    {
+      "name": "CharacterArmature|Idle",
+      "seconds": 1.0,
+      "channels": 13
+    },
+    {
+      "name": "CharacterArmature|Jump",
+      "seconds": 0.333,
+      "channels": 16
+    },
+    {
+      "name": "CharacterArmature|Jump_Idle",
+      "seconds": 0.5,
+      "channels": 16
+    },
+    {
+      "name": "CharacterArmature|Jump_Land",
+      "seconds": 0.333,
+      "channels": 16
+    },
+    {
+      "name": "CharacterArmature|No",
+      "seconds": 1.667,
+      "channels": 13
+    },
+    {
+      "name": "CharacterArmature|Punch",
+      "seconds": 0.833,
+      "channels": 25
+    },
+    {
+      "name": "CharacterArmature|Run",
+      "seconds": 0.542,
+      "channels": 27
+    },
+    {
+      "name": "CharacterArmature|Walk",
+      "seconds": 1.0,
+      "channels": 35
+    },
+    {
+      "name": "CharacterArmature|Wave",
+      "seconds": 1.667,
+      "channels": 15
+    },
+    {
+      "name": "CharacterArmature|Weapon",
+      "seconds": 0.833,
+      "channels": 32
+    },
+    {
+      "name": "CharacterArmature|Yes",
+      "seconds": 1.667,
+      "channels": 13
+    }
+  ],
+  "skins": 1,
+  "actualTriangles": 5016,
+  "requiredExtensions": []
+}

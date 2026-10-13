@@ -1,0 +1,75 @@
+{
+  "Title": "Spider",
+  "Description": " ",
+  "UploadDate": "2021-08-19T13:01:09.164Z",
+  "ResourceID": "4259fbdb-afb5-4d40-9108-363625dd6b6e",
+  "PublicID": "yRYJiAJyiM",
+  "Likes": 21,
+  "CommentCount": 1,
+  "Tris": 0,
+  "Views": "3.59k",
+  "Downloads": "3.03k",
+  "Creator": {
+    "Username": "Quaternius",
+    "DPURL": "https://static.poly.pizza/dp%2Ff63b655a-051c-4c4b-8dcc-3b346a39ece0.jpg",
+    "Socials": {
+      "Twitter": "quaternius",
+      "Pateron": "quaternius",
+      "Website": "https://quaternius.com/"
+    }
+  },
+  "Category": "Animals",
+  "Tags": [
+    "Insect",
+    "Invertebrate"
+  ],
+  "Orbit": {
+    "phi": "1.17201",
+    "radius": "8.733984828260136",
+    "theta": "0.44073"
+  },
+  "Background": {
+    "one": "#5e35b1",
+    "two": "hsl(260deg, 54%, 15%)",
+    "type": "Radial"
+  },
+  "Visibility": "Public",
+  "Type": "FBX",
+  "Licence": "CC0 1.0",
+  "Animated": true,
+  "source": "https://poly.pizza/m/yRYJiAJyiM",
+  "download": "https://static.poly.pizza/4259fbdb-afb5-4d40-9108-363625dd6b6e.glb",
+  "file": "spider.glb",
+  "bytes": 449008,
+  "sha256": "d759e35f6cf5adc7eb7e3f70135cd2a808787fc36337a523015592ba840ccd6d",
+  "animations": [
+    {
+      "name": "SpiderArmature|Spider_Attack",
+      "seconds": 0.75,
+      "channels": 37
+    },
+    {
+      "name": "SpiderArmature|Spider_Death",
+      "seconds": 1.042,
+      "channels": 37
+    },
+    {
+      "name": "SpiderArmature|Spider_Idle",
+      "seconds": 4.167,
+      "channels": 34
+    },
+    {
+      "name": "SpiderArmature|Spider_Jump",
+      "seconds": 0.708,
+      "channels": 36
+    },
+    {
+      "name": "SpiderArmature|Spider_Walk",
+      "seconds": 0.833,
+      "channels": 36
+    }
+  ],
+  "skins": 1,
+  "actualTriangles": 2712,
+  "requiredExtensions": []
+}

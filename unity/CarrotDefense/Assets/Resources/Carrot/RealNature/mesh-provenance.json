@@ -1,0 +1,77 @@
+[
+  {
+    "name": "Fern",
+    "source": "fern_02",
+    "sourceObject": "fern_02_b",
+    "sourceTriangles": 2384,
+    "triangles": 2384,
+    "materials": 1,
+    "boundsMeters": [
+      0.9897474050521851,
+      0.893689751625061,
+      0.427694708108902
+    ],
+    "sha256": "da050ebf53b6017185a17372ff22d2c4dd039bb6dd853a9aad0d2803e4022fa7",
+    "resource": "Carrot/RealNature/Fern"
+  },
+  {
+    "name": "Stump",
+    "source": "tree_stump_01",
+    "sourceObject": "tree_stump_01",
+    "sourceTriangles": 41046,
+    "triangles": 7970,
+    "materials": 1,
+    "boundsMeters": [
+      1.4255504608154297,
+      1.5903143882751465,
+      0.5726675391197205
+    ],
+    "sha256": "4b850013f8b1e02d5c0770f168e477f5f72bd5e1b9ef10156070556cb9e3817e",
+    "resource": "Carrot/RealNature/Stump"
+  },
+  {
+    "name": "MossRockA",
+    "source": "rock_moss_set_01",
+    "sourceObject": "rock_moss_set_01_rock04",
+    "sourceTriangles": 10589,
+    "triangles": 6970,
+    "materials": 1,
+    "boundsMeters": [
+      2.127629280090332,
+      1.9647413492202759,
+      1.768319845199585
+    ],
+    "sha256": "ce3f2645331fa7eeb17b45eb7b46d32c291252c4541924ce5ea08e29273b538a",
+    "resource": "Carrot/RealNature/MossRockA"
+  },
+  {
+    "name": "MossRockB",
+    "source": "rock_moss_set_01",
+    "sourceObject": "rock_moss_set_01_rock03",
+    "sourceTriangles": 5000,
+    "triangles": 5000,
+    "materials": 1,
+    "boundsMeters": [
+      2.1085824966430664,
+      2.079585552215576,
+      1.0996944904327393
+    ],
+    "sha256": "6ddb1afc1b3aaae89158dd09e229b4ce3c479238b2c70d43ffc281f36b2cbd34",
+    "resource": "Carrot/RealNature/MossRockB"
+  },
+  {
+    "name": "Shrub",
+    "source": "shrub_02",
+    "sourceObject": "shrub_02_a+shrub_02_b+shrub_02_d",
+    "sourceTriangles": 18020,
+    "triangles": 18020,
+    "materials": 1,
+    "boundsMeters": [
+      1.4061198234558105,
+      1.6410069465637207,
+      1.6889771223068237
+    ],
+    "sha256": "ba1f71fa0d2cdc2e2f1eadefe4391dc964f55d9fcfa8378f8b4fdf3577ea7e86",
+    "resource": "Carrot/RealNature/Shrub"
+  }
+]

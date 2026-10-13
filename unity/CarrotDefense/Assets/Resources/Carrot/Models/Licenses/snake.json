@@ -1,0 +1,69 @@
+{
+  "Title": "Snake",
+  "UploadDate": "2021-08-19T13:01:06.067Z",
+  "ResourceID": "0f3a551e-743e-48f5-936f-804c6c3b88bd",
+  "PublicID": "x9x0viZs8V",
+  "Likes": 15,
+  "CommentCount": 1,
+  "Tris": 0,
+  "Views": "1.72k",
+  "Downloads": "2.25k",
+  "Creator": {
+    "Username": "Quaternius",
+    "DPURL": "https://static.poly.pizza/dp%2Ff63b655a-051c-4c4b-8dcc-3b346a39ece0.jpg",
+    "Socials": {
+      "Twitter": "quaternius",
+      "Pateron": "quaternius",
+      "Website": "https://quaternius.com/"
+    }
+  },
+  "Category": "Animals",
+  "Tags": [
+    "Reptile",
+    "Animal"
+  ],
+  "Orbit": {
+    "phi": "1.16709",
+    "radius": "100%",
+    "theta": "0.81989"
+  },
+  "Background": {
+    "one": "#5e35b1",
+    "two": "hsl(260deg, 54%, 15%)",
+    "type": "Radial"
+  },
+  "Visibility": "Public",
+  "Type": "FBX",
+  "Licence": "CC0 1.0",
+  "Animated": true,
+  "source": "https://poly.pizza/m/x9x0viZs8V",
+  "download": "https://static.poly.pizza/0f3a551e-743e-48f5-936f-804c6c3b88bd.glb",
+  "file": "snake.glb",
+  "bytes": 216696,
+  "sha256": "70b4af1088dec939e167b07c0a5e69992a4851beac8bd24a9da1189b65ae101c",
+  "animations": [
+    {
+      "name": "SnakeArmature|Snake_Attack",
+      "seconds": 0.667,
+      "channels": 12
+    },
+    {
+      "name": "SnakeArmature|Snake_Idle",
+      "seconds": 2.083,
+      "channels": 10
+    },
+    {
+      "name": "SnakeArmature|Snake_Jump",
+      "seconds": 0.958,
+      "channels": 12
+    },
+    {
+      "name": "SnakeArmature|Snake_Walk",
+      "seconds": 0.833,
+      "channels": 13
+    }
+  ],
+  "skins": 1,
+  "actualTriangles": 1618,
+  "requiredExtensions": []
+}

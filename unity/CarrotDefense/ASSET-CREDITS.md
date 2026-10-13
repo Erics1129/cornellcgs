@@ -1,0 +1,76 @@
+# Carrot Defense asset credits and provenance
+
+## Original work
+
+Carrot model with articulated eyes, brows, limbs, leaves and mouth states; ten tower families with four physically distinct tiers; custom boss bodies/armor/crowns/antlers/tentacles; and creature costume additions were authored in Blender for this project. Model authoring sources are in `Tools/build_carrot_models.py`, `Tools/sculpt_carrot_details.py` and `Tools/build_carrot_characters.py`. Twenty-two generated reference plates, a material atlas, an effects atlas and four generated biological albedos (carrot skin, leaf tissue, white fur and teal cephalopod skin) were used for art direction and surface detail. Generated artwork is separate from the licensed CC0 source assets below. The biological color images are supplemented by eight original analytic normal/roughness textures authored in `Tools/bake_biological_relief.py` (carrot creases/pores, leaf veins, fur fibers and soft pebbled hide). They are authored approximations, not measured PBR scans. Exact texture hashes and technical ranges are in `Assets/Resources/Carrot/Models/Materials/biological-relief-provenance.json`. These are genuinely modeled meshes, not image planes.
+
+## Character animation source (CC0)
+
+Quaternius animated creature assets, acquired from author-attributed Poly Pizza listings under CC0 1.0. Original visible creatures were adapted for regular enemies; three original boss bodies use the licensed animation skeletons. Source records, exact download links, checksums and original clip metadata are preserved in `Assets/Resources/Carrot/Models/Licenses/`.
+
+- Quaternius: https://quaternius.com/packs/ultimatemonsters.html
+- Mushnub: https://poly.pizza/m/LWKmS30Xxl
+- Bunny: https://poly.pizza/m/irZjWFARyl
+- Spider: https://poly.pizza/m/yRYJiAJyiM
+- Green Blob: https://poly.pizza/m/y4kJh8EeYS
+- Armabee: https://poly.pizza/m/42djT5zJnx
+- Mushroom King: https://poly.pizza/m/grnFTziU8u
+- Yeti: https://poly.pizza/m/S1E7idPFhe
+- Spiky Blob: https://poly.pizza/m/IoWG5F9WUc
+- Squidle: https://poly.pizza/m/54QyRcsogk
+
+## Nature and foley (CC0)
+
+Kenney Nature Kit, Impact Sounds and RPG Audio. Publisher license files preserved beside the imported assets.
+
+- https://kenney.nl/assets/nature-kit
+- https://kenney.nl/assets/impact-sounds
+- https://kenney.nl/assets/rpg-audio
+
+## Four separate music compositions (CC0)
+
+These are licensed existing compositions, not a claim of an original exclusive score.
+
+- Exploration: **Fantasy Orchestral Theme**, Joth — https://opengameart.org/content/fantasy-orchestral-theme
+- Garden boss: **A Legend Will Rise**, CodeManu — https://opengameart.org/content/a-legend-will-rise-orchestral
+- Marsh boss: **Determined Pursuit**, Emma_MA — https://opengameart.org/content/determined-pursuit-epic-orchestra-loop
+- Frost boss: **The Ancient Legend**, Vitalezzz — https://opengameart.org/content/the-ancient-legend
+
+License records and original filenames are under `Assets/Resources/Carrot/Audio/Licenses` and `Audio/provenance.json`. CC0 legal instrument: https://creativecommons.org/publicdomain/zero/1.0/
+
+## Scope and rendering limits
+
+The runtime uses optimized real-time geometry, skeletal animation, authored effects and generated texture details. It is not an offline feature-film renderer. Every tower tier has different geometry. The animated model inventory is in `Tools/character-model-manifest.json`; the original tower/carrot inventory is in `Tools/original-model-manifest.json`. Root integration must validate Unity/WebGL performance and gameplay timing on actual browser hardware.
+
+## Physically based surfaces and lighting (CC0)
+
+Poly Haven: Forest Ground 04, Lichen Rock, Bark Brown 02, Metal Plate and Forest Grove HDRI. Original albedo, OpenGL normal, roughness and ambient-occlusion maps were downloaded from the official API and verified against its checksums. Runtime maps are imported at 1K; the reflection cubemap is 256 pixels per face. Exact URLs and hashes are in `Assets/Resources/Carrot/Textures/PBR-provenance.json`.
+
+- https://polyhaven.com/license
+- https://polyhaven.com/a/forest_ground_04
+- https://polyhaven.com/a/lichen_rock
+- https://polyhaven.com/a/bark_brown_02
+- https://polyhaven.com/a/metal_plate
+- https://polyhaven.com/a/forest_grove
+
+
+## Scanned environment meshes (CC0)
+
+Five finished natural props come from four Poly Haven model sources. They are distinct from the stylized Kenney Nature Kit props.
+
+- **Fern 02** — Rob Tuytel (scanning), Rico Cilliers (modeling): https://polyhaven.com/a/fern_02
+- **Tree Stump 01** — Rob Tuytel: https://polyhaven.com/a/tree_stump_01
+- **Rock Moss Set 01** — Kless Gyzen: https://polyhaven.com/a/rock_moss_set_01 — two rock variants used.
+- **Shrub 02** — Rico Cilliers: https://polyhaven.com/a/shrub_02 — three source variants combined into one clump.
+
+Their meshes were selected/optimized and source texture channels prepared for Unity. Source attribution, official checksum records, transformed mesh SHA-256 and texture SHA-256 are in `Assets/Resources/Carrot/RealNature/LICENSE.md`, `source-provenance.json`, `mesh-provenance.json` and `texture-provenance.json`. Publisher asset license: https://polyhaven.com/license (CC0). No website preview renders are reused as game assets.
+
+
+## Recorded creature voices (CC0)
+
+Thirty-three edited vocal excerpts serve eight ordinary creatures (Call/Hit/Attack) and three bosses (Roar/Growl/Hit). Sources are recordings, separate from the synthesized musical/impact stingers.
+
+- rubberduck — https://opengameart.org/content/80-cc0-creature-sfx
+- Darsycho — https://opengameart.org/content/monster-snarls
+
+Exact source filenames, trims, mono conversion, normalization, durations and output SHA-256 are preserved in `Assets/Resources/Carrot/Audio/Licenses/creature-voices.json`. License/source notice: `Audio/Licenses/CREATURE-VOICES.md`. Original recordings and source pages are retained in `carrot-defense-preproduction/source-assets/creature-voices/`.

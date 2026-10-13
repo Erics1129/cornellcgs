@@ -1,0 +1,155 @@
+[
+  {
+    "asset": "forest_ground_04",
+    "source": "https://polyhaven.com/a/forest_ground_04",
+    "license": "CC0-1.0",
+    "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/forest_ground_04/forest_ground_04_diff_1k.jpg",
+    "md5": "6ad9df4d731a238299806f739a26af83",
+    "file": "PBR/SoilAlbedo.jpg",
+    "size": 1113899
+  },
+  {
+    "asset": "forest_ground_04",
+    "source": "https://polyhaven.com/a/forest_ground_04",
+    "license": "CC0-1.0",
+    "url": "https://dl.polyhaven.org/file/ph-assets/Textures/png/1k/forest_ground_04/forest_ground_04_nor_gl_1k.png",
+    "md5": "77c2337c8c8c47357f69b598e73a72de",
+    "file": "PBR/SoilNormal.png",
+    "size": 2537954
+  },
+  {
+    "asset": "forest_ground_04",
+    "source": "https://polyhaven.com/a/forest_ground_04",
+    "license": "CC0-1.0",
+    "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/forest_ground_04/forest_ground_04_rough_1k.jpg",
+    "md5": "b5c7ba5c16f00261e9a765d52cf7e0ac",
+    "file": "PBR/SoilRoughness.jpg",
+    "size": 627507
+  },
+  {
+    "asset": "forest_ground_04",
+    "source": "https://polyhaven.com/a/forest_ground_04",
+    "license": "CC0-1.0",
+    "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/forest_ground_04/forest_ground_04_ao_1k.jpg",
+    "md5": "289bfcedb4676de2632c678a35eeea63",
+    "file": "PBR/SoilAO.jpg",
+    "size": 831864
+  },
+  {
+    "asset": "lichen_rock",
+    "source": "https://polyhaven.com/a/lichen_rock",
+    "license": "CC0-1.0",
+    "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/lichen_rock/lichen_rock_diff_1k.jpg",
+    "md5": "453cc496091c1be83d0151249c97cecd",
+    "file": "PBR/StoneAlbedo.jpg",
+    "size": 1070311
+  },
+  {
+    "asset": "lichen_rock",
+    "source": "https://polyhaven.com/a/lichen_rock",
+    "license": "CC0-1.0",
+    "url": "https://dl.polyhaven.org/file/ph-assets/Textures/png/1k/lichen_rock/lichen_rock_nor_gl_1k.png",
+    "md5": "94894d88e77d88090f617be070ce9ed8",
+    "file": "PBR/StoneNormal.png",
+    "size": 5926665
+  },
+  {
+    "asset": "lichen_rock",
+    "source": "https://polyhaven.com/a/lichen_rock",
+    "license": "CC0-1.0",
+    "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/lichen_rock/lichen_rock_rough_1k.jpg",
+    "md5": "29bc56b1e789e65d7fa821d31b775f4b",
+    "file": "PBR/StoneRoughness.jpg",
+    "size": 573955
+  },
+  {
+    "asset": "lichen_rock",
+    "source": "https://polyhaven.com/a/lichen_rock",
+    "license": "CC0-1.0",
+    "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/lichen_rock/lichen_rock_ao_1k.jpg",
+    "md5": "36a39151f6a7fcb5c74806707725432f",
+    "file": "PBR/StoneAO.jpg",
+    "size": 708601
+  },
+  {
+    "asset": "bark_brown_02",
+    "source": "https://polyhaven.com/a/bark_brown_02",
+    "license": "CC0-1.0",
+    "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/bark_brown_02/bark_brown_02_diff_1k.jpg",
+    "md5": "6669cca520594bdca19f94084984ab72",
+    "file": "PBR/BarkAlbedo.jpg",
+    "size": 659592
+  },
+  {
+    "asset": "bark_brown_02",
+    "source": "https://polyhaven.com/a/bark_brown_02",
+    "license": "CC0-1.0",
+    "url": "https://dl.polyhaven.org/file/ph-assets/Textures/png/1k/bark_brown_02/bark_brown_02_nor_gl_1k.png",
+    "md5": "00616c5620413e714ea8a35848c6b2fc",
+    "file": "PBR/BarkNormal.png",
+    "size": 2436328
+  },
+  {
+    "asset": "bark_brown_02",
+    "source": "https://polyhaven.com/a/bark_brown_02",
+    "license": "CC0-1.0",
+    "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/bark_brown_02/bark_brown_02_rough_1k.jpg",
+    "md5": "bbcde696e5b9418cdcb2abe638965417",
+    "file": "PBR/BarkRoughness.jpg",
+    "size": 337946
+  },
+  {
+    "asset": "bark_brown_02",
+    "source": "https://polyhaven.com/a/bark_brown_02",
+    "license": "CC0-1.0",
+    "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/bark_brown_02/bark_brown_02_ao_1k.jpg",
+    "md5": "6034e9a388be7d4774da4671993ebb61",
+    "file": "PBR/BarkAO.jpg",
+    "size": 514586
+  },
+  {
+    "asset": "metal_plate",
+    "source": "https://polyhaven.com/a/metal_plate",
+    "license": "CC0-1.0",
+    "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/metal_plate/metal_plate_diff_1k.jpg",
+    "md5": "bd9daf4c04046ca392a38b8df955ed26",
+    "file": "PBR/MetalAlbedo.jpg",
+    "size": 692234
+  },
+  {
+    "asset": "metal_plate",
+    "source": "https://polyhaven.com/a/metal_plate",
+    "license": "CC0-1.0",
+    "url": "https://dl.polyhaven.org/file/ph-assets/Textures/png/1k/metal_plate/metal_plate_nor_gl_1k.png",
+    "md5": "970b1bfeb59ec31a165341e05757dfc3",
+    "file": "PBR/MetalNormal.png",
+    "size": 5359071
+  },
+  {
+    "asset": "metal_plate",
+    "source": "https://polyhaven.com/a/metal_plate",
+    "license": "CC0-1.0",
+    "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/metal_plate/metal_plate_rough_1k.jpg",
+    "md5": "6e1c8672d804b90546a23db621515b16",
+    "file": "PBR/MetalRoughness.jpg",
+    "size": 775206
+  },
+  {
+    "asset": "metal_plate",
+    "source": "https://polyhaven.com/a/metal_plate",
+    "license": "CC0-1.0",
+    "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/metal_plate/metal_plate_ao_1k.jpg",
+    "md5": "544f16f963e8904495834a94c71c7078",
+    "file": "PBR/MetalAO.jpg",
+    "size": 565996
+  },
+  {
+    "asset": "forest_grove",
+    "source": "https://polyhaven.com/a/forest_grove",
+    "license": "CC0-1.0",
+    "url": "https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/1k/forest_grove_1k.hdr",
+    "md5": "e1b083a9c3e307558ba434b9d7bc9f2e",
+    "file": "Environment.hdr",
+    "size": 1922024
+  }
+]

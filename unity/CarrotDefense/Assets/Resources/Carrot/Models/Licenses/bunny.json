@@ -1,0 +1,119 @@
+{
+  "Title": "Bunny",
+  "UploadDate": "2022-10-23T10:14:03.064Z",
+  "ResourceID": "084b5ebe-c3eb-4e64-9b17-06e2d1e3da5d",
+  "PublicID": "irZjWFARyl",
+  "Likes": 7,
+  "CommentCount": 1,
+  "Tris": 5948,
+  "Views": "2.8k",
+  "Downloads": "3.74k",
+  "Creator": {
+    "Username": "Quaternius",
+    "DPURL": "https://static.poly.pizza/dp%2Ff63b655a-051c-4c4b-8dcc-3b346a39ece0.jpg",
+    "Socials": {
+      "Twitter": "quaternius",
+      "Pateron": "quaternius",
+      "Website": "https://quaternius.com/"
+    }
+  },
+  "Category": "Animals",
+  "Tags": [
+    "Animal",
+    "Rabbit"
+  ],
+  "Orbit": {
+    "phi": "1.30900",
+    "radius": "100%",
+    "theta": "0.00000"
+  },
+  "Background": {
+    "one": "#5e35b1",
+    "two": "hsl(260deg, 54%, 15%)",
+    "type": "Radial"
+  },
+  "Visibility": "Public",
+  "Type": "FBX",
+  "Licence": "CC0 1.0",
+  "Animated": true,
+  "source": "https://poly.pizza/m/irZjWFARyl",
+  "download": "https://static.poly.pizza/084b5ebe-c3eb-4e64-9b17-06e2d1e3da5d.glb",
+  "file": "bunny.glb",
+  "bytes": 538360,
+  "sha256": "4a71eb8a80a573560fd93b39cd3c547c978d54ddd288b63000667df757dd50a2",
+  "animations": [
+    {
+      "name": "CharacterArmature|Death",
+      "seconds": 0.75,
+      "channels": 28
+    },
+    {
+      "name": "CharacterArmature|Duck",
+      "seconds": 1.667,
+      "channels": 16
+    },
+    {
+      "name": "CharacterArmature|HitReact",
+      "seconds": 0.583,
+      "channels": 18
+    },
+    {
+      "name": "CharacterArmature|Idle",
+      "seconds": 1.0,
+      "channels": 17
+    },
+    {
+      "name": "CharacterArmature|Jump",
+      "seconds": 0.333,
+      "channels": 20
+    },
+    {
+      "name": "CharacterArmature|Jump_Idle",
+      "seconds": 0.5,
+      "channels": 20
+    },
+    {
+      "name": "CharacterArmature|Jump_Land",
+      "seconds": 0.333,
+      "channels": 20
+    },
+    {
+      "name": "CharacterArmature|No",
+      "seconds": 1.667,
+      "channels": 13
+    },
+    {
+      "name": "CharacterArmature|Punch",
+      "seconds": 0.833,
+      "channels": 29
+    },
+    {
+      "name": "CharacterArmature|Run",
+      "seconds": 0.542,
+      "channels": 31
+    },
+    {
+      "name": "CharacterArmature|Walk",
+      "seconds": 1.0,
+      "channels": 39
+    },
+    {
+      "name": "CharacterArmature|Wave",
+      "seconds": 1.667,
+      "channels": 19
+    },
+    {
+      "name": "CharacterArmature|Weapon",
+      "seconds": 0.833,
+      "channels": 28
+    },
+    {
+      "name": "CharacterArmature|Yes",
+      "seconds": 1.667,
+      "channels": 17
+    }
+  ],
+  "skins": 2,
+  "actualTriangles": 8284,
+  "requiredExtensions": []
+}

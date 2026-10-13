@@ -1,0 +1,94 @@
+{
+  "Title": "Green Blob",
+  "UploadDate": "2022-10-23T01:01:34.829Z",
+  "ResourceID": "64ab590e-1f77-4678-b357-78c430fd73bf",
+  "PublicID": "y4kJh8EeYS",
+  "Likes": 2,
+  "CommentCount": 0,
+  "Tris": 1496,
+  "Views": 703,
+  "Downloads": "3.43k",
+  "Creator": {
+    "Username": "Quaternius",
+    "DPURL": "https://static.poly.pizza/dp%2Ff63b655a-051c-4c4b-8dcc-3b346a39ece0.jpg",
+    "Socials": {
+      "Twitter": "quaternius",
+      "Pateron": "quaternius",
+      "Website": "https://quaternius.com/"
+    }
+  },
+  "Category": "Animals",
+  "Tags": [
+    "Slime",
+    "Monster"
+  ],
+  "Orbit": {
+    "phi": "1.37207",
+    "radius": "100%",
+    "theta": "-0.03153"
+  },
+  "Background": {
+    "one": "#5e35b1",
+    "two": "hsl(260deg, 54%, 15%)",
+    "type": "Radial"
+  },
+  "Visibility": "Public",
+  "Type": "FBX",
+  "Licence": "CC0 1.0",
+  "Animated": true,
+  "source": "https://poly.pizza/m/y4kJh8EeYS",
+  "download": "https://static.poly.pizza/64ab590e-1f77-4678-b357-78c430fd73bf.glb",
+  "file": "green-blob.glb",
+  "bytes": 74812,
+  "sha256": "31c46edd6306e4ab21bec4608b41003baa74f430f27d357b90c9b6401d88a584",
+  "animations": [
+    {
+      "name": "CharacterArmature|Bite_Front",
+      "seconds": 0.375,
+      "channels": 3
+    },
+    {
+      "name": "CharacterArmature|Dance",
+      "seconds": 0.667,
+      "channels": 4
+    },
+    {
+      "name": "CharacterArmature|Death",
+      "seconds": 0.333,
+      "channels": 5
+    },
+    {
+      "name": "CharacterArmature|HitRecieve",
+      "seconds": 0.292,
+      "channels": 5
+    },
+    {
+      "name": "CharacterArmature|Idle",
+      "seconds": 2.0,
+      "channels": 2
+    },
+    {
+      "name": "CharacterArmature|Jump",
+      "seconds": 0.417,
+      "channels": 4
+    },
+    {
+      "name": "CharacterArmature|No",
+      "seconds": 1.0,
+      "channels": 3
+    },
+    {
+      "name": "CharacterArmature|Walk",
+      "seconds": 0.417,
+      "channels": 5
+    },
+    {
+      "name": "CharacterArmature|Yes",
+      "seconds": 0.958,
+      "channels": 3
+    }
+  ],
+  "skins": 2,
+  "actualTriangles": 1520,
+  "requiredExtensions": []
+}

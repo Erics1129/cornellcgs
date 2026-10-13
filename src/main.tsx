@@ -25,6 +25,7 @@ import './styles/global.css'
 const MinigamesPage = React.lazy(() => import('./minigames/MinigamesPage'))
 const InkMazePage = React.lazy(() => import('./minigames/inkmaze/InkMazePage'))
 const ForgePage = React.lazy(() => import('./minigames/forge/ForgePage'))
+const CarrotPage = React.lazy(() => import('./minigames/carrot/CarrotPage'))
 
 // Device class + design scale first: everything below measures in rem.
 installDevice()
@@ -38,7 +39,7 @@ if (legacy && pages[legacy[1]]) {
 
 // Info pages are REAL pages: render the standalone view, not the deck.
 const page = currentPage()
-const Game = page === 'minigames' ? MinigamesPage : page === 'ink-maze' ? InkMazePage : page === 'forge-or-fold' ? ForgePage : null
+const Game = page === 'minigames' ? MinigamesPage : page === 'ink-maze' ? InkMazePage : page === 'forge-or-fold' ? ForgePage : page === 'carrot-defense' ? CarrotPage : null
 const infoPage = page !== null && !!pages[page]
 const standalone = Game !== null || infoPage
 

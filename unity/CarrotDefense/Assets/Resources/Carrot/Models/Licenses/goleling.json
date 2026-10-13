@@ -1,0 +1,90 @@
+{
+  "Title": "Goleling",
+  "UploadDate": "2022-10-23T01:01:42.877Z",
+  "ResourceID": "51bf31d7-1aee-4a51-acb1-d667843af205",
+  "PublicID": "71gomWolax",
+  "Likes": 2,
+  "CommentCount": 0,
+  "Tris": 3648,
+  "Views": 783,
+  "Downloads": "3.41k",
+  "Creator": {
+    "Username": "Quaternius",
+    "DPURL": "https://static.poly.pizza/dp%2Ff63b655a-051c-4c4b-8dcc-3b346a39ece0.jpg",
+    "Socials": {
+      "Twitter": "quaternius",
+      "Pateron": "quaternius",
+      "Website": "https://quaternius.com/"
+    }
+  },
+  "Category": "Animals",
+  "Tags": [
+    "Animal",
+    "Bat",
+    "Monster"
+  ],
+  "Orbit": {
+    "phi": "1.37207",
+    "radius": "100%",
+    "theta": "-0.03153"
+  },
+  "Background": {
+    "one": "#5e35b1",
+    "two": "hsl(260deg, 54%, 15%)",
+    "type": "Radial"
+  },
+  "Visibility": "Public",
+  "Type": "FBX",
+  "Licence": "CC0 1.0",
+  "Animated": true,
+  "source": "https://poly.pizza/m/71gomWolax",
+  "download": "https://static.poly.pizza/51bf31d7-1aee-4a51-acb1-d667843af205.glb",
+  "file": "goleling.glb",
+  "bytes": 217332,
+  "sha256": "fe6b5a04aef77aa9b38afee216802823b543d2409674bc86bd8bd152cb8cebce",
+  "animations": [
+    {
+      "name": "CharacterArmature|Death",
+      "seconds": 0.667,
+      "channels": 13
+    },
+    {
+      "name": "CharacterArmature|Fast_Flying",
+      "seconds": 0.833,
+      "channels": 9
+    },
+    {
+      "name": "CharacterArmature|Flying_Idle",
+      "seconds": 1.167,
+      "channels": 9
+    },
+    {
+      "name": "CharacterArmature|Headbutt",
+      "seconds": 1.167,
+      "channels": 11
+    },
+    {
+      "name": "CharacterArmature|HitReact",
+      "seconds": 0.458,
+      "channels": 11
+    },
+    {
+      "name": "CharacterArmature|No",
+      "seconds": 1.167,
+      "channels": 10
+    },
+    {
+      "name": "CharacterArmature|Punch",
+      "seconds": 1.167,
+      "channels": 11
+    },
+    {
+      "name": "CharacterArmature|Yes",
+      "seconds": 1.167,
+      "channels": 10
+    }
+  ],
+  "skins": 1,
+  "actualTriangles": 3696,
+  "requiredExtensions": []
+}
