@@ -11,7 +11,7 @@ import { ForgeAudio } from './audio'
 import { audioTuning } from './audio-spec'
 import { anvilRisk, viewClass } from './bridge'
 import type { Motion, ViewClass } from './bridge'
-import { HeatClock, StrikeGate, coinFallback, coinStep, hapticPattern, hitHaptic, labelPlacement, oddsAtContact, outcomeLabel, prepareTarget, survival, tension, webTuning } from './feel'
+import { HeatClock, StrikeGate, coinFallback, coinStep, hapticPattern, hitHaptic, labelPlacement, nextRoll, oddsAtContact, outcomeLabel, prepareTarget, survival, tension, webTuning } from './feel'
 import type { GateInput, OutcomeLabel, RefuseReason } from './feel'
 import feelTuning from './feel-tuning.json'
 import KnifePortrait from './KnifePortrait'
@@ -19,6 +19,7 @@ import ForgeIcon from './ForgeIcon'
 import { GoldCounter, MarketBoard } from './TradeDetails'
 import { panelShortcut } from './input'
 import ChanceBar, { SurviveLine } from './ChanceBar'
+import type { Roll } from './ChanceBar'
 import './forge.css'
 
 const format=(n:number)=>Math.round(n).toLocaleString('en-US')
@@ -84,7 +85,7 @@ export default function ForgePage(){
  const [workFocus,setWorkFocus]=useState(false),workFocusRef=useRef(workFocus);workFocusRef.current=workFocus
  const [callout,setCallout]=useState<Callout|null>(null)
  const [held,setHeld]=useState<Held|null>(null),holdTimers=useRef<ReturnType<typeof setTimeout>[]>([])
- const [history,setHistory]=useState<Outcome[]>([])
+ const [history,setHistory]=useState<Outcome[]>([]),[roll,setRoll]=useState<Roll|null>(null)
  const [goldCount,setGoldCount]=useState<number|null>(null),saleCount=useRef<SaleCount|null>(null)
  const [flowPulse,setFlowPulse]=useState(0),lastPulse=useRef(-Infinity)
  const strikeKey=useRef<HTMLButtonElement>(null),lastHint=useRef(-Infinity)
@@ -154,7 +155,10 @@ export default function ForgePage(){
   const clockAction=action.type==='tick'||action.type==='wait'
   if(!clockAction)advanceRef.current()
   if(['buy','sell','offer'].includes(action.type)&&(tradeLock.current||gate.locked(performance.now())||prepareId.current))return false
-  const current=sessionRef.current,result=act(current.state,action)
+  const current=sessionRef.current
+  // The honest roll needle: the strike's roll, read from the pre-hit state (display only).
+  const hitKnife=action.type==='hit'?current.state.knives.find(n=>n.id===action.id):undefined,preRoll=hitKnife?nextRoll(hitKnife,current.state):null
+  const result=act(current.state,action)
   if(!result.ok){setNotice(result.event.text);if(!clockAction)qaLog({kind:'engine-fail',reason:`${action.type}: ${result.event.text}`});return false}
   const actions=[...current.actions],last=actions.at(-1)
   if(action.type==='tick'&&last?.type==='tick'&&last.ms+action.ms<=RULES.maxWait*1000)actions[actions.length-1]={type:'tick',ms:last.ms+action.ms};else if(action.type==='wait'&&last?.type==='wait'&&last.seconds+action.seconds<=RULES.maxWait)actions[actions.length-1]={type:'wait',seconds:last.seconds+action.seconds};else actions.push(action)
@@ -175,6 +179,7 @@ export default function ForgePage(){
     const h=hitHaptic(a);if(h)vibrate(hapticPattern(h,flowing))
     const label=outcomeLabel(a,current.state,TUNING);if(label)place(label,result.state.totalHits)
     setHistory(list=>[...list,a.outcome!].slice(-TUNING.hud.historyLength))
+    if(preRoll)setRoll({id:result.state.totalHits,u:preRoll.u,chances:preRoll.chances,sweepMs:TUNING.hud.rollSweepMs,holdMs:a.outcome==='shatter'?TUNING.gate.shatterHoldMs:TUNING.hud.rollHoldMs})
     if(flowing&&now-lastPulse.current>=TUNING.hud.flowPulseMs){lastPulse.current=now;setFlowPulse(n=>n+1)}
     if(a.outcome==='shatter'){
      // Hold the loss on screen: the broken knife's card for 1.5 s, the next knife chosen at 1.2 s.
@@ -307,6 +312,7 @@ export default function ForgePage(){
  useEffect(()=>{if(!receipt)return;const t=setTimeout(()=>setReceipt(null),2600);return()=>clearTimeout(t)},[receipt])
  useEffect(()=>{if(!notice)return;const t=setTimeout(()=>setNotice(''),2400);return()=>clearTimeout(t)},[notice])
  useEffect(()=>{if(!callout)return;const t=setTimeout(()=>setCallout(null),callout.label.holdMs);return()=>clearTimeout(t)},[callout])
+ useEffect(()=>{if(!roll)return;const t=setTimeout(()=>setRoll(null),roll.holdMs);return()=>clearTimeout(t)},[roll])
  // Sale count fallback when no coin-land events arrive: hold, then ease to the exact total by 1.1 s.
  useEffect(()=>{if(goldCount===null)return;let frame=0;const tick=()=>{const c=saleCount.current;if(!c){setGoldCount(null);return}const ms=performance.now()-c.start;if(c.coins){if(ms>TUNING.hud.coinFallbackEndMs*2.5){saleCount.current=null;setGoldCount(null);return}}else{setGoldCount(coinFallback(c.from,c.amount,ms,TUNING.hud));if(ms>=TUNING.hud.coinFallbackEndMs){saleCount.current=null;setGoldCount(null);return}}frame=requestAnimationFrame(tick)};frame=requestAnimationFrame(tick);return()=>cancelAnimationFrame(frame)},[goldCount===null])
  useEffect(()=>{if(!panel)return;if(gate.cancelBuffer())refuse('busy');scene.current?.control('clear',false);refreshBusy()
@@ -326,7 +332,7 @@ export default function ForgePage(){
  },[])
  const refreshBoard=async()=>{if(!API){setScores(localScores());return}try{const data=await api<{scores:Score[];player:Score|null}>(`/scores?playerId=${encodeURIComponent(player.playerId)}`);setScores(data.scores);setMyScore(data.player);setBoardStatus('World board · Verified runs')}catch{setScores(localScores());setBoardStatus('World board offline · Local scores on this device')}}
  useEffect(()=>{if(panel!=='board')return;void refreshBoard();const t=setInterval(()=>void refreshBoard(),RULES.leaderboardRefreshMs);return()=>clearInterval(t)},[panel])
- const resetFeel=()=>{gate.reset();holdTimers.current.forEach(clearTimeout);holdTimers.current=[];setHeld(null);setCallout(null);setHistory([]);flowStep.current=0;refreshBusy()}
+ const resetFeel=()=>{gate.reset();holdTimers.current.forEach(clearTimeout);holdTimers.current=[];setHeld(null);setCallout(null);setHistory([]);setRoll(null);flowStep.current=0;refreshBusy()}
  const newRun=async()=>{setPosting(true);let next:Session;try{if(API){const ticket=await api<Ticket>('/runs',{playerId:player.playerId,proof:player.proof});next=fresh(ticket.seed,ticket)}else next=fresh()}catch(e){setNotice(`Starting locally. ${(e as Error).message}`);next=fresh()}sessionRef.current=next;clockMark.current=performance.now();resetFeel();setSession(next);choose(next.state.knives[0].id);saveSession(next);scene.current?.sync(next.state,next.state.knives[0].id);setPosting(false);setPanel(null)}
  const autoTicket=useRef<Promise<Ticket>|null>(null)
  useEffect(()=>{if(!API||sessionRef.current.ticket||sessionRef.current.actions.some(a=>a.type!=='wait'&&a.type!=='tick'))return;let active=true;if(!autoTicket.current)autoTicket.current=api<Ticket>('/runs',{playerId:player.playerId,proof:player.proof});void autoTicket.current.then(ticket=>{if(!active||sessionRef.current.ticket||sessionRef.current.actions.some(a=>a.type!=='wait'&&a.type!=='tick'))return;const next=fresh(ticket.seed,ticket);sessionRef.current=next;setSession(next);choose(next.state.knives[0].id);saveSession(next);scene.current?.sync(next.state,next.state.knives[0].id)}).catch(()=>{if(active)setBoardStatus('World board offline · Local scores on this device')});return()=>{active=false}},[player])
@@ -387,9 +393,9 @@ export default function ForgePage(){
   {ready&&<>
    <section className={`ff-blade-info ${held?'is-held':''}`} aria-label="Blade and exact odds" onClick={phone?()=>setOddsOpen(o=>!o):undefined} aria-expanded={phone?oddsOpen:undefined} role={phone?'button':undefined} tabIndex={phone?0:undefined} onKeyDown={phone?e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();setOddsOpen(o=>!o)}}:undefined}>
     <div className="ff-blade-title"><span>{forgeKnife?METALS[forgeKnife.metal].name:'The forge'}</span><b>{forgeKnife?FAMILIES[forgeKnife.family]:'Ready.'}</b>{forgeKnife&&<em>+{forgeKnife.level}</em>}</div>
-    {held?<div className="ff-blade-value ff-loss"><strong>−{format(held.value)}</strong><span>shattered</span></div>:boardKnife&&<>
+    {held?<><div className="ff-blade-value ff-loss"><strong>−{format(held.value)}</strong><span>shattered</span></div>{roll&&<ChanceBar chances={roll.chances} roll={roll}/>}</>:boardKnife&&<>
      <div className="ff-blade-value"><strong>{format(value(boardKnife,s))}</strong><span>value</span><small title="Expected value after one more hit">Next avg. {format(ev)}</small></div>
-     {t&&<ChanceBar chances={t}/>}
+     {t&&<ChanceBar chances={t} roll={roll&&boardKnife.place==='anvil'?roll:null}/>}
      <b className="ff-shatter-chip" aria-hidden="true">{t&&t.shatter>0?`${Math.round(t.shatter*1000)/10}%`:'0%'}</b>
      <SurviveLine strikes={TUNING.hud.surviveStrikes} chance={survive} history={history}/>
      <div className="ff-status-marks">{boardKnife.guard&&<span><ForgeIcon name="guard"/>Guarded</span>}{boardKnife.flow>0&&<span className={flowExpiring?'is-expiring':''}><ForgeIcon name="bolt"/>{boardKnife.flow.toFixed(1)}s · {flowExpiring?'Ends before contact':'No shatter'}</span>}</div>

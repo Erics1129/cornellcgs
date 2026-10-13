@@ -56,6 +56,8 @@ export const WEB_TUNING = {
     flowPulseMs: 1000,
     /** Survive-N-more horizon and the outcome history length. */
     surviveStrikes: 3, historyLength: 10,
+    /** Roll needle: sweeps onto the odds bar in rollSweepMs (at most 250), stays rollHoldMs after the impact. */
+    rollSweepMs: 220, rollHoldMs: 600,
     /** Sale count: no coin-land events by fallbackStartMs, then count up until fallbackEndMs. */
     coinFallbackStartMs: 480, coinFallbackEndMs: 1100,
     /** How long each outcome callout stays (the Shatter callout uses gate.shatterHoldMs). */
@@ -97,6 +99,7 @@ export function webTuning(overrides: unknown): WebTuning {
   // Balance floors (ForgeTuning.cs): the page predicts with the same clamped cycles Unity enforces.
   g.cycleMs = Math.min(900, Math.max(640, g.cycleMs as number)); g.flowCycleMs = Math.min(605, Math.max(585, g.flowCycleMs as number))
   g.shatterIgnoreMs = Math.min(g.shatterChooseMs as number, g.shatterIgnoreMs as number)
+  const h = out.hud as WebTuning['hud']; h.rollSweepMs = Math.min(250, h.rollSweepMs as number)
   return out as unknown as WebTuning
 }
 
@@ -354,6 +357,23 @@ export function survival(k: Knife, s: Run, n: number, { firstContactMs = 0, flow
   // Flow left at the first contact.
   const flowAtFirst = Math.max(0, k.flow * 1000 - firstContactMs)
   return go(0, k.level, k.guard, k.pips, flowAtFirst)
+}
+
+/** The engine's next random() for a state, without advancing it: the same mulberry32 step as engine.ts random(). */
+export function peekRandom(state: Pick<Run, 'rng'>) { const s = { rng: state.rng }; let t = s.rng += 0x6D2B79F5; s.rng >>>= 0; t = Math.imul(t ^ t >>> 15, t | 1); t ^= t + Math.imul(t ^ t >>> 7, t | 61); return ((t ^ t >>> 14) >>> 0) / 4294967296 }
+/**
+ * The honest roll of the next 'hit' on knife k, read from the pre-hit state (display only, critique #34):
+ * u is the first random() call in act('hit'), placed on the unguarded distribution in the engine's order
+ * perfect | good | dull | chip | shatter, after Flow starts when the bar is full. outcome is what the engine
+ * resolves (a Guard turns a raw shatter into a chip, or a dull at level 0).
+ */
+export function nextRoll(k: Knife, s: Run) {
+  const flowStarted = s.version >= 2 && !k.flow && k.pips >= flowNeed(s)
+  const chances = odds({ ...(flowStarted ? { ...k, flow: flowDuration(s), pips: 0 } : k), guard: false }, s), u = peekRandom(s)
+  let acc = 0, raw: Outcome = 'shatter'
+  for (const o of Object.keys(chances) as Outcome[]) { acc += chances[o]; if (u < acc) { raw = o; break } }
+  const outcome: Outcome = raw === 'shatter' && k.guard ? (k.level ? 'chip' : 'dull') : raw
+  return { u, chances, raw, outcome, guarded: raw !== outcome }
 }
 
 /** The knife Start forging will pick (mirrors ForgePage.prepare() without an id). */

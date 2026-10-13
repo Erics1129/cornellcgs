@@ -2,7 +2,8 @@
 // Unity on both protocols), survival odds, outcome labels, haptics, render resolution, label placement,
 // the sale count and the tuning merge. Run: node scripts/test-forge-feel.mjs
 import assert from 'node:assert/strict'
-import { StrikeGate, WEB_TUNING, webTuning, survival, oddsAtContact, riskKnife, prepareTarget, outcomeLabel, HAPTICS, hapticPattern, hitHaptic, FLOW_PULSE_MAX_MS, motionOptions, renderDpr, qualityTier, labelPlacement, coinStep, coinFallback, coolC, HeatClock, tension } from '../src/minigames/forge/feel.ts'
+import fs from 'node:fs'
+import { StrikeGate, WEB_TUNING, webTuning, nextRoll, peekRandom, survival, oddsAtContact, riskKnife, prepareTarget, outcomeLabel, HAPTICS, hapticPattern, hitHaptic, FLOW_PULSE_MAX_MS, motionOptions, renderDpr, qualityTier, labelPlacement, coinStep, coinFallback, coolC, HeatClock, tension } from '../src/minigames/forge/feel.ts'
 import { StrikeLedger } from '../src/minigames/forge/bridge.ts'
 import { act, createRun, odds, flowNeed } from '../src/minigames/forge/engine.ts'
 import { RULES } from '../src/minigames/forge/config.ts'
@@ -366,6 +367,31 @@ for (const protocol of [2, 0]) for (const rate of [2, 2.5, 3]) {
   eq(riskKnife(withAnvil).id, rackK.id, 'the anvil knife wins')
 }
 
+// Honest roll needle (critique #34): the roll read from the pre-hit state predicts the engine's outcome for
+// 10,000 seeded hits across levels, Guard, Flow, full bars, charms and level 0.
+{
+  let n = 0, raws = {}, guardedSeen = 0
+  for (let seed = 1; n < 10000; seed++) {
+    let s = createRun(seed * 2654435761 >>> 0)
+    for (const a of [{ type: 'move', id: 1, to: 'furnace' }, { type: 'heat', id: 1 }, { type: 'move', id: 1, to: 'anvil' }]) s = act(s, a).state
+    const r = rng(seed); if (r() < .3) s = { ...s, charms: ['shelter', 'steady', 'ember', 'patience'].filter(() => r() < .5) }
+    for (let i = 0; i < 40 && n < 10000; i++) {
+      s = act(s, { type: 'tick', ms: 400 + Math.floor(r() * 900) }).state
+      let k = s.knives.find(x => x.place === 'anvil'); if (!k) break
+      if (r() < .15 && !k.guard) { s = structuredClone(s); s.knives.find(x => x.id === k.id).guard = true; k = s.knives.find(x => x.id === k.id) }
+      const roll = nextRoll(k, s), t = act(s, { type: 'hit', id: k.id })
+      assert.ok(t.ok, t.event.text)
+      eq(roll.outcome, t.event.outcome, `seed ${seed} hit ${i}: the roll predicts the engine outcome`)
+      ok(roll.u >= 0 && roll.u < 1 && Math.abs(Object.values(roll.chances).reduce((a, b) => a + b, 0) - 1) < 1e-9)
+      raws[roll.raw] = (raws[roll.raw] || 0) + 1; if (roll.guarded) guardedSeen++
+      s = t.state; n++
+    }
+  }
+  ok(Object.keys(raws).length === 5 && guardedSeen > 0, `every outcome and a Guard catch were covered: ${JSON.stringify(raws)}, guarded ${guardedSeen}`)
+  const s0 = createRun(77); eq(peekRandom(s0), peekRandom(s0), 'peeking never advances the state'); eq(s0.rng, createRun(77).rng)
+  ok(WEB_TUNING.hud.rollSweepMs <= 250 && webTuning({ hud: { rollSweepMs: 900 } }).hud.rollSweepMs === 250, 'the needle sweep is at most 250 ms')
+}
+
 // ---------------------------------------------------------------------------------------------
 // Outcome labels, haptics, motion, render resolution, placement, coins, temperature, tuning
 // ---------------------------------------------------------------------------------------------
@@ -412,6 +438,9 @@ for (const protocol of [2, 0]) for (const rate of [2, 2.5, 3]) {
   eq(t.gate.riskGate, .3); eq(t.gate.cycleMs, 640); eq(t.gate.flowCycleMs, 605); eq(t.gate.scheduleAfterContactMs, 150); eq(t.hud.labelLift, WEB_TUNING.hud.labelLift); assert.deepEqual(t.render.phoneDpr, [3, 2, 1.5, 1]); checks++
   eq(t.gate.bogus, undefined, 'unknown keys are ignored')
   eq(webTuning(null).gate.riskGate, .2)
+  // The shipped overrides file merges cleanly (web section read by the page, audio by audio-spec).
+  const shipped = JSON.parse(fs.readFileSync(new URL('../src/minigames/forge/feel-tuning.json', import.meta.url), 'utf8'))
+  ok(shipped.web && typeof shipped.web === 'object' && webTuning(shipped.web).gate.cycleMs >= 640, 'feel-tuning.json web section applies')
 }
 if (process.env.FORGE_FEEL_VERBOSE) console.log(fuzzTally)
 console.log(`PASS Forge feel: strike gate (protocol 2 and 0, ${checks} checks: buffering, risk gate, Shatter hold, heating seat, settled -1, 200-press fuzz, rhythm, Flow cadence), Markov survival .464/.286, labels, haptics, render tiers, placement, coin count, temperature, tuning.`)

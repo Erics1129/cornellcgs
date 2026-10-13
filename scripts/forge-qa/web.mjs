@@ -90,6 +90,16 @@ async function desktop(kind = 'desktop') {
     // Outcome callouts: placement above the blade, inside the band, clear of the blade centre.
     let placed = null
     for (let i = 0; i < 6 && !placed; i++) { const t = await press(h, 'Space'); await waitEvent(h, 'impact', t, 3000); await sleep(60); placed = await rect(h, '.ff-callout'); await waitEvent(h, 'settled', t, 3000); await sleep(150) }
+    // Roll needle: lands inside the segment of the outcome the engine resolved, sweeping in at most 250 ms.
+    const needles = []
+    for (let i = 0; i < 6; i++) {
+      const t = await press(h, 'Space'); await waitEvent(h, 'impact', t, 3000); await sleep(40)
+      needles.push(await h.page.evaluate(() => { const n = document.querySelector('.ff-roll'), c = document.querySelector('.ff-callout'); if (!n || !c) return null; const segs = [...document.querySelectorAll('.ff-chance-track>span')].map(x => [x.className.replace('ff-prob-', ''), +x.dataset.probability]); const u = +n.dataset.roll; let acc = 0, at = null; for (const [k, p] of segs) { acc += p; if (u < acc) { at = k; break } } const kind = [...c.classList].find(x => x.startsWith('ff-outcome-') && x !== 'ff-outcome')?.slice(11); return { u: +u.toFixed(3), at, kind, sweep: getComputedStyle(n).animationDuration } }))
+      await waitEvent(h, 'settled', t, 3000); await sleep(150)
+    }
+    const nOk = needles.filter(Boolean)
+    check(kind, 'roll needle lands in the segment of the resolved outcome', nOk.length >= 4 && nOk.every(n => n.at === n.kind || (n.kind === 'evolved' && ['good', 'perfect'].includes(n.at))), needles)
+    check(kind, 'roll needle sweeps in at most 250 ms', nOk.every(n => parseFloat(n.sweep) * (n.sweep.endsWith('ms') ? 1 : 1000) <= 250), nOk.map(n => n.sweep))
     const label = await anvilLabel(h), info = await rect(h, '.ff-blade-info'), bottom = await rect(h, '.ff-bottom')
     if (placed && label) {
       const cy = placed.y + placed.h / 2, by = label.y / 100 * vh
@@ -170,15 +180,16 @@ async function shatterHold(kind = 'desktop') {
     const t = await press(h, 'Space'); const imp = await waitEvent(h, 'impact', t, 3000)
     if (!imp) { check(kind, 'Shatter fixture struck', false); return }
     // Poll the callout and the selected knife; one press at +300 ms (refused), none later.
-    const seen = []; let pressed300 = false
+    const seen = []; let pressed300 = false, fit = null
     while ((await now(h)) - imp.t < 2200) {
       const ms = (await now(h)) - imp.t
       if (!pressed300 && ms > 300) { pressed300 = true; await press(h, 'Space', 12) }
       seen.push({ ms, callout: await h.page.evaluate(() => !!document.querySelector('.ff-outcome-shatter')), text: await h.page.evaluate(() => document.querySelector('.ff-outcome-shatter')?.textContent || ''), held: await h.page.evaluate(() => !!document.querySelector('.ff-blade-info.is-held')), selected: await h.page.evaluate(() => document.querySelector('.ff-knife-card.is-selected')?.getAttribute('aria-label') || '') })
-      if (Math.abs(ms - 700) < 40) await h.shot('shatter-held')
+      if (Math.abs(ms - 700) < 40) { await h.shot('shatter-held'); fit = await h.page.evaluate(() => { const c = document.querySelector('.ff-outcome-shatter'); if (!c) return null; const r = c.getBoundingClientRect(), b = c.querySelector('b').getBoundingClientRect(), sp = c.querySelector('span').getBoundingClientRect(); return { left: Math.round(r.left), right: Math.round(r.right), vw: innerWidth, oneLine: Math.abs(b.top - sp.top) < b.height / 2 } }) }
       await sleep(30)
     }
     const lastCallout = seen.filter(x => x.callout).at(-1)?.ms ?? 0, firstSel = seen.find(x => x.selected)?.ms ?? null
+    check(kind, "the Shatter callout fits on screen with 'Shattered' and the loss on one line", fit && fit.left >= 0 && fit.right <= fit.vw && fit.oneLine, fit)
     check(kind, 'Shatter callout lasts at least 1.5 s', lastCallout >= 1500 - 60, { lastMs: Math.round(lastCallout), text: seen.find(x => x.text)?.text, before: title0 })
     check(kind, "Shatter callout shows the lost value ('Shattered -N')", /Shattered\s*−[\d,]+/.test(seen.find(x => x.text)?.text || ''), seen.find(x => x.text)?.text)
     check(kind, 'next knife chosen no earlier than 1.2 s after impact', firstSel === null || firstSel >= 1200 - 40, { firstSelectedMs: firstSel && Math.round(firstSel) })
@@ -283,6 +294,7 @@ async function reduced() {
 fs.mkdirSync(outDir, { recursive: true })
 if (only.includes('desktop')) { await desktop('desktop'); await shatterHold('desktop'); await rackBoard('desktop') }
 for (const k of ['phone', 'landscape', 'webkit-phone']) if (only.includes(k)) await phone(k)
+if (only.includes('phone')) await shatterHold('phone')
 if (only.includes('reduced')) await reduced()
 const failed = report.checks.filter(c => !c.pass)
 writeJson(path.join(outDir, 'web.json'), report)

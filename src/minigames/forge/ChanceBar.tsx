@@ -1,15 +1,24 @@
+import type { CSSProperties } from 'react'
 import { RESULT_LABELS } from './config'
 import type { Outcome } from './config'
 import type { odds } from './engine'
 
-/** Segment lengths use the same modified probabilities that resolve the next hit. */
-export default function ChanceBar({ chances }: { chances: ReturnType<typeof odds> }) {
+/** The last strike's roll (feel.ts nextRoll): where u fell on the distribution it was rolled against. */
+export type Roll = { id: number; u: number; chances: ReturnType<typeof odds>; sweepMs: number; holdMs: number }
+/**
+ * Segment lengths use the same modified probabilities that resolve the next hit. Right after a strike the
+ * track shows the distribution that strike was rolled on, with a needle sweeping to the roll, then it
+ * morphs to the next odds; the numbers below always show the next strike.
+ */
+export default function ChanceBar({ chances, roll }: { chances: ReturnType<typeof odds>; roll?: Roll | null }) {
   const entries = Object.entries(chances) as [keyof typeof RESULT_LABELS, number][]
+  const track = Object.entries(roll ? roll.chances : chances) as [keyof typeof RESULT_LABELS, number][]
   const percent = (p: number) => `${Math.round(p * 1000) / 10}%`
   return <div className="ff-chances">
     <div className="ff-chance-track" role="img" aria-label={`Next strike: ${entries.map(([key,p])=>`${RESULT_LABELS[key]} ${percent(p)}`).join(', ')}`}>
-      {entries.map(([key,p])=><span key={key} className={`ff-prob-${key}`} style={{width:`${p*100}%`}} data-probability={p} aria-hidden="true"/>)}
+      {track.map(([key,p])=><span key={key} className={`ff-prob-${key}`} style={{width:`${p*100}%`}} data-probability={p} aria-hidden="true"/>)}
     </div>
+    {roll&&<i key={roll.id} className="ff-roll" aria-hidden="true" data-roll={roll.u} style={{'--u':`${roll.u*100}%`,'--sweep':`${roll.sweepMs}ms`} as CSSProperties}/>}
     <div className="ff-chance-legend" aria-hidden="true">{entries.map(([key,p])=><span key={key} className={`ff-prob-${key} ${p===0?'is-zero':''}`}><i/><small>{RESULT_LABELS[key]}</small><b>{percent(p)}</b></span>)}</div>
   </div>
 }

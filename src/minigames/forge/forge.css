@@ -405,7 +405,7 @@ to{opacity:1;transform:none}
 @keyframes ff-queued{0%{box-shadow:inset 0 1px #fff5,0 0 0 0 #ffe2a2a0}100%{box-shadow:inset 0 1px #fff5,0 0 0 9px #ffe2a200}}
 
 /* Outcome callouts: one look per outcome, placed above the blade from the anvil label. */
-.ff-callout{position:absolute;translate:-50% -50%;display:flex;flex-direction:column;align-items:center;gap:3px;white-space:nowrap;line-height:1;text-shadow:0 2px 14px #000d,0 0 2px #000;animation:ff-callout-life var(--hold,900ms) linear both}
+.ff-callout{position:absolute;translate:-50% -50%;width:max-content;max-width:94vw;display:flex;flex-direction:column;align-items:center;gap:3px;white-space:nowrap;line-height:1;text-shadow:0 2px 14px #000d,0 0 2px #000;animation:ff-callout-life var(--hold,900ms) linear both}
 .ff-callout>b{font-family:Georgia,serif;font-weight:400;font-size:1em;letter-spacing:-.01em}
 .ff-callout>span{font-size:.78em;font-weight:600;font-variant-numeric:tabular-nums}
 .ff-callout>small{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:#eadfca;opacity:.86}
@@ -416,9 +416,13 @@ to{opacity:1;transform:none}
 .ff-outcome-chip{font-size:34px;color:#ff6a55}
 .ff-outcome-chip>b,.ff-outcome-chip>span{animation:ff-chip-shake .22s linear both}
 .ff-outcome-dull{font-size:28px;color:#a7aca6}
-.ff-outcome-shatter{font-size:46px;color:#ff3b2f;flex-direction:row;flex-wrap:wrap;justify-content:center;column-gap:.32em;max-width:92vw}
+.ff-outcome-shatter{font-size:46px;color:#ff3b2f;display:grid;grid-template-columns:auto auto;justify-content:center;align-items:baseline;column-gap:.32em}
 .ff-outcome-shatter>span{font-size:1em;font-weight:500}
-.ff-outcome-shatter>small{flex-basis:100%;text-align:center;margin-top:4px}
+.ff-outcome-shatter>small{grid-column:1/-1;text-align:center;margin-top:4px}
+/* Narrow screens: the same looks, scaled to fit one line ('Shattered -29,193' at 390 px). */
+.view-phone-portrait .ff-outcome-shatter{font-size:min(46px,8.6vw)}
+.view-phone-portrait .ff-outcome-perfect{font-size:min(42px,10vw)}
+.view-phone-portrait .ff-outcome-evolved{font-size:min(40px,9.5vw)}
 .ff-outcome-evolved{font-size:40px;color:#f5c542;text-shadow:0 0 16px #f5b64266,0 2px 14px #000c}
 .ff-outcome-evolved>small{color:#ffe6a3}
 @keyframes ff-callout-life{0%{opacity:0}5%{opacity:1}80%{opacity:1}100%{opacity:0}}
@@ -447,6 +451,14 @@ to{opacity:1;transform:none}
 .ff-status-marks .is-expiring{color:#ffcf8a;animation:ff-expiring .5s ease-in-out infinite alternate}
 .ff-flow.is-expiring{animation:ff-expiring .5s ease-in-out infinite alternate}
 @keyframes ff-expiring{to{opacity:.55}}
+
+/* The roll needle: sweeps onto the bar where the strike's roll fell (at most 250 ms), never blocks input. */
+.ff-chances{position:relative}
+.ff-roll{position:absolute;top:-3px;left:var(--u);width:2px;height:18px;margin-left:-1px;border-radius:1px;background:#fff6e2;box-shadow:0 0 0 1px #000a,0 0 7px #fff9;pointer-events:none;animation:ff-roll-sweep var(--sweep,220ms) cubic-bezier(.2,.75,.3,1) both}
+@keyframes ff-roll-sweep{from{left:0;opacity:.25}to{left:var(--u);opacity:1}}
+@media(max-width:1100px){.ff-roll{height:16px}}
+.view-phone-portrait .ff-roll,.view-phone-landscape .ff-roll{height:14px}
+.ff-blade-info.is-held .ff-chances{grid-column:1/-1}
 
 /* Trade and Rest: docked trays that leave the anvil in view. Desktop: a right-hand tray, no blur. */
 .ff-modal.ff-tray{--ff-edge:right;position:fixed;inset:0 0 0 auto;margin:0;width:min(400px,34vw);max-width:none;height:100dvh;max-height:none;border-radius:0;border-width:0 0 0 1px;padding:16px 16px calc(16px + env(safe-area-inset-bottom));animation:ff-tray-in .2s ease-out;box-shadow:-18px 0 60px #0008}
