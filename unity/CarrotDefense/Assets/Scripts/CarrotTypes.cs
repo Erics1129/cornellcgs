@@ -19,7 +19,7 @@ namespace CarrotTD {
  [Serializable] public class EnemyState {
   public int id,route,phase; public string kind,boss,ability;
   public Vector3 position,direction;
-  public float hp,maxHp,shield,maxShield,distance,routeLength,speed,hitAt,slowUntil,slowFactor,age;
+  public float hp,maxHp,shield,maxShield,distance,routeLength,speed,hitAt,slowUntil,slowFactor,rushUntil,age;
   public float castRemaining,abilityRemaining,biteRemaining,deadFor;
   public bool alive=true,air,hidden,summoned; public int reward;
  }

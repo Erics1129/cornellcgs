@@ -12,7 +12,7 @@ namespace CarrotTD {
   [MenuItem("Carrot/Run simulation checks")]
   public static void Run(){
    assertions=0;Geometry();Shopping();ContactsAndOutcomes();Bosses();PresentationEvents();Powers();Campaign();PoorCoverage();
-   Debug.Log("CARROT_TESTS_OK "+assertions+" assertions; 24 campaign victories with earned coins; all ten powers and poor-coverage losses checked.");
+   Debug.Log("CARROT_TESTS_OK "+assertions+" assertions; "+(2*CarrotData.Levels.Length)+" campaign victories with earned coins; all ten powers, four bosses and poor-coverage losses checked.");
   }
   public static void Geometry(){
    Check(CarrotData.Towers.Length==10,"ten tower families");
@@ -49,6 +49,27 @@ namespace CarrotTD {
    var garden=New(4);garden.phase="playing";garden.TestClearScheduled();QuietTowers(garden);var b=garden.TestSpawn("boss",0,0,true);b.hp=b.maxHp*.5f;garden.StepSimulation(15);Check(garden.blockers.Exists(x=>x.ownerEnemy==b.id),"root creates real focusable weakpoint");Check(garden.towers.Exists(x=>x.slowFor>0),"root slows real towers");var knot=garden.blockers.Find(x=>x.ownerEnemy==b.id);garden.TestDamageScenery(knot.id,100);Check(!garden.towers.Exists(x=>x.slowFor>0),"breaking root releases snare");Done(garden);
    var marsh=New(8);marsh.phase="playing";marsh.TestClearScheduled();var m=marsh.TestSpawn("boss",0,0,true);m.hp=m.maxHp*.5f;marsh.StepSimulation(16);Check(marsh.enemies.Exists(x=>x.summoned&&x.alive),"marsh summons real finite enemies");marsh.TestDamage(m.id,100000);marsh.StepSimulation(.1f);Check(marsh.phase=="playing","boss death with living adds is not victory");foreach(var add in marsh.enemies.ToArray())if(add.alive)marsh.TestDamage(add.id,100000);marsh.StepSimulation(.2f);Check(marsh.phase=="won"&&marsh.PendingSummons==0,"victory waits for summons");Done(marsh);
    var frost=New(12);frost.phase="playing";frost.TestClearScheduled();QuietTowers(frost);var f=frost.TestSpawn("boss",0,0,true);f.hp=f.maxHp*.5f;frost.StepSimulation(8);Check(f.shield==360,"mantle grants exact shield");float hp=f.hp;frost.TestDamage(f.id,100,"prism");Check(Mathf.Abs(f.shield-260)<.01f&&Mathf.Abs(f.hp-(hp-25))<.01f,"prism damages shield with health bypass");frost.StepSimulation(10);Check(frost.towers.Exists(x=>x.disabledFor>0),"breath affects real tower cadence");f.hp=f.maxHp*.25f;frost.StepSimulation(5);Check(f.shield==0&&frost.enemies.Exists(x=>x.kind=="fragment"&&x.summoned),"last phase trades shield for finite shards");Done(frost);
+   // Brambleback returns on level 16 scaled from its home level and still casts bark and root.
+   var cider=New(16);cider.phase="playing";cider.TestClearScheduled();QuietTowers(cider);var back=cider.TestSpawn("boss",0,0,true);var backCasts=new List<string>();cider.Effect+=e=>{if(e.type=="ability"&&e.id==back.id)backCasts.Add(e.kind);};
+   Check(back.boss=="garden"&&Mathf.Abs(back.maxHp-1800*CarrotData.BossScale(16,"garden"))<.01f&&back.maxHp>1800*2.5f,"returning Brambleback scales from its home level");
+   back.hp=back.maxHp*.5f;cider.StepSimulation(15);Check(backCasts.Contains("bark")&&backCasts.Contains("root")&&cider.blockers.Exists(x=>x.ownerEnemy==back.id)&&cider.towers.Exists(x=>x.slowFor>0),"returning Brambleback still casts bark and roots real towers");Done(cider);
+   // Old Hollowhead: Harvest Rush, Flock and Straw Heap through the shared telegraph/ability path.
+   var field=New(20);field.phase="playing";field.TestClearScheduled();QuietTowers(field);var h=field.TestSpawn("boss",0,0,true);var casts=new List<string>();field.Effect+=e=>{if(e.id==h.id&&(e.type=="ability"||e.type=="telegraph"))casts.Add(e.type+":"+e.kind);};
+   Check(h.boss=="orchard"&&Mathf.Abs(h.maxHp-7000)<.01f&&CarrotData.BossName(h.boss)=="Old Hollowhead","Old Hollowhead spawns with its authored health");
+   field.StepSimulation(7.1f);var rallied=Durable(field,"nibble",h.distance+.5f);field.StepSimulation(.2f);
+   Check(casts.Contains("telegraph:rush")&&casts.Contains("ability:rush"),"harvest rush is telegraphed then committed");
+   Check(h.speed>.34f*2&&rallied.speed>.9f*1.4f,"rush more than doubles the boss and rallies an ally within three units");
+   field.StepSimulation(2.6f);Check(Mathf.Abs(h.speed-.34f)<.01f&&Mathf.Abs(rallied.speed-.9f)<.01f,"rush ends after 2.5 s");
+   h.hp=h.maxHp*.5f;field.StepSimulation(1.9f);Check(h.phase==2&&h.ability=="flock"&&field.PendingSummons==3,"flock reserves three summons during its windup");
+   field.StepSimulation(.8f);Check(field.enemies.FindAll(x=>x.kind=="moth"&&x.summoned&&x.air&&x.alive).Count==3&&field.PendingSummons==0,"flock spawns exactly three summoned air moths and releases the reservation");
+   field.StepSimulation(.9f);Check(h.hidden&&casts.Contains("ability:heap"),"straw heap hides the boss");float heapHp=h.hp;field.TestDamage(h.id,500);Check(h.hp==heapHp,"a heaped boss takes no damage");
+   field.StepSimulation(2.1f);Check(!h.hidden&&casts.Contains("ability:emerge"),"straw heap ends after two seconds");
+   field.TestDamage(h.id,100000);field.StepSimulation(.1f);Check(field.phase=="playing","Hollowhead death with living flock adds is not victory");foreach(var add in field.enemies.ToArray())if(add.alive)field.TestDamage(add.id,100000);field.StepSimulation(.2f);Check(field.phase=="won"&&field.PendingSummons==0,"victory waits for the flock");Done(field);
+   var near=New(20);near.phase="playing";near.TestClearScheduled();QuietTowers(near);var hn=near.TestSpawn("boss",0,0,true);var nearCasts=new List<string>();near.Effect+=e=>{if(e.type=="ability"&&e.id==hn.id)nearCasts.Add(e.kind);};
+   near.StepSimulation(13.2f);Check(hn.hidden,"first-phase straw heap follows the rush");hn.distance=hn.routeLength-1.9f;near.StepSimulation(.1f);Check(!hn.hidden&&nearCasts.Contains("emerge"),"a heaped boss reappears within two units of the carrot");Done(near);
+   var last=New(20);last.phase="playing";last.TestClearScheduled();QuietTowers(last);var hl=last.TestSpawn("boss",0,0,true);var lastCasts=new List<string>();last.Effect+=e=>{if(e.type=="ability"&&e.id==hl.id)lastCasts.Add(e.kind);};
+   last.StepSimulation(12.3f);Check(hl.ability=="heap"&&hl.castRemaining>0,"straw heap windup in progress");hl.hp=hl.maxHp*.25f;last.StepSimulation(.1f);Check(hl.phase==3&&hl.castRemaining==0&&!hl.hidden,"phase 3 cancels a pending straw heap");
+   last.StepSimulation(1.5f);Check(!hl.hidden&&!lastCasts.Contains("heap")&&Mathf.Abs(hl.speed-.46f)<.02f,"phase 3 drops the heap and walks at .46");Done(last);
   }
   static CarrotGame Arena(){var g=New(12);g.phase="playing";g.TestClearScheduled();return g;}
   static void PresentationEvents(){
@@ -100,7 +121,7 @@ namespace CarrotTD {
    Check(thunder.enemies.FindAll(e=>e.maxHp-e.hp>=70).Count==3,"thunder charges and damages three distinct targets");Done(thunder);
   }
   static void PoorCoverage(){
-   foreach(int level in new[]{1,4,8,12}){var g=New(level);int poor=-1;float score=float.MaxValue;
+   foreach(int level in new[]{1,4,8,12,16,20,24}){var g=New(level);int poor=-1;float score=float.MaxValue;
     for(int pad=0;pad<g.level.pads.Length;pad++)if(!g.blockers.Exists(b=>b.pad==pad)){float value=Coverage(g,g.level.pads[pad],3);if(value<score){score=value;poor=pad;}}
     g.Select("pad",poor);g.Command("{\"type\":\"buy\",\"kind\":\"seed\"}");g.Command("{\"type\":\"start\"}");
     for(float time=0;time<600&&g.phase=="playing";time+=.25f){if(g.towers.Count>0){g.Select("tower",g.towers[0].id);g.Command("{\"type\":\"upgrade\"}");}g.StepSimulation(.25f);}
@@ -109,7 +130,7 @@ namespace CarrotTD {
    }
   }
   public static void Campaign(){
-   for(int strategy=0;strategy<2;strategy++)for(int level=1;level<=12;level++){
+   for(int strategy=0;strategy<2;strategy++)for(int level=1;level<=CarrotData.Levels.Length;level++){
     var g=New(level);if(strategy==1&&level==1){g.Select("pad",0);g.Command("{\"type\":\"buy\",\"kind\":\"seed\"}");g.Select("pad",1);g.Command("{\"type\":\"buy\",\"kind\":\"frost\"}");}BuyBest(g,strategy);BuyBest(g,strategy);g.Command("{\"type\":\"start\"}");float limit=0;
     while(g.phase=="playing"&&limit<900){for(int i=0;i<4;i++)if(!BuyBest(g,strategy))break;var knot=g.blockers.Find(x=>x.ownerEnemy>0);if(knot!=null&&g.selectionId!=knot.id)g.Select("blocker",knot.id);g.StepSimulation(.25f);limit+=.25f;Check(g.coins>=0,"never spend nonexistent coins "+level);}
     string roster="";foreach(var t in g.towers)roster+=t.kind+"/"+t.tier+",";

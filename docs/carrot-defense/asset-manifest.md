@@ -82,15 +82,17 @@ Kenney Nature Kit contributes ten selected CC0 meshes: TreeOak, TreeAutumn, Tree
 
 Five finished `Carrot/RealNature/{name}` props come from four Poly Haven model sources:
 
-| Resource | Source | Exported triangles | Materials |
-|---|---|---:|---:|
-| `Fern` | `fern_02` / `fern_02_b` | 2,384 | 1 |
-| `Stump` | `tree_stump_01` / `tree_stump_01` | 7,970 | 1 |
-| `MossRockA` | `rock_moss_set_01` / `rock_moss_set_01_rock04` | 6,970 | 1 |
-| `MossRockB` | `rock_moss_set_01` / `rock_moss_set_01_rock03` | 5,000 | 1 |
-| `Shrub` | `shrub_02` / `shrub_02_a+shrub_02_b+shrub_02_d` | 18,020 | 1 |
+| Resource | Source | Exported triangles | Small LOD | Shadow caster | Materials |
+|---|---|---:|---:|---:|---:|
+| `Fern` | `fern_02` / `fern_02_b` | 2,384 | 1,479 | 480 | 1 |
+| `Stump` | `tree_stump_01` / `tree_stump_01` | 7,970 | 2,480 | 480 | 1 |
+| `MossRockA` | `rock_moss_set_01` / `rock_moss_set_01_rock04` | 6,970 | 1,479 | 479 | 1 |
+| `MossRockB` | `rock_moss_set_01` / `rock_moss_set_01_rock03` | 5,000 | 1,480 | 480 | 1 |
+| `Shrub` | `shrub_02` / `shrub_02_a+shrub_02_b+shrub_02_d` | 18,020 | 3,979 | 780 | 1 |
 
-Scanned props use 1K source albedo/normal/roughness/occlusion and foliage opacity where supplied. Stump and one rock were decimated with UVs preserved; the shrub combines three source variants. Meshes remain readable for runtime environment combining. Nature preview images were rendered from the exported assets in Blender, not copied from source websites.
+The Small LOD and shadow-caster columns are the Blender collapse decimations from `Tools/decimate_carrot_scans.py` (`<Name>Small.fbx`, `<Name>Caster.fbx`, counts in `RealNature/lod-provenance.json`). A level places the full scan only on its eight hero anchors (plus the hero shrubs and the frost border rocks); the roughly one hundred other placements at 18-40 px on screen use the `<Name>Small` prefab, whose visible mesh casts no shadow and carries a shadows-only child built from the caster mesh. The decoration combiner batches these per material and shadow mode.
+
+Scanned props use 1K source albedo/normal/roughness/occlusion (imported at 512 px, 256 px for occlusion and roughness: at 46-97 px per world unit the 1024 mip was never sampled) and foliage opacity where supplied. Stump and one rock were decimated with UVs preserved; the shrub combines three source variants. Meshes remain readable for runtime environment combining. Nature preview images were rendered from the exported assets in Blender, not copied from source websites.
 
 Separate Poly Haven CC0 material sets: Forest Ground 04 → Soil, Lichen Rock → Stone, Bark Brown 02 → Bark, Metal Plate → Metal, and Forest Grove HDRI → Environment. See `Textures/PBR-provenance.json` for official URLs/checksums.
 

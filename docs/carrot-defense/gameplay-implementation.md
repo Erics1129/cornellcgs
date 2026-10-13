@@ -1,6 +1,6 @@
 # Carrot Defense: implemented gameplay
 
-Audited 12 October 2026. This is the authoritative implementation record, separate from preproduction illustrations and runtime visual acceptance. [Balance evidence](balance-results.md) records the completed simulation checks and their limits.
+Audited 12 October 2026; extended to the 24-level campaign on 13 October 2026. This is the authoritative implementation record, separate from preproduction illustrations and runtime visual acceptance. [Balance evidence](balance-results.md) records the completed simulation checks and their limits.
 
 ## Sources and ownership
 
@@ -11,7 +11,7 @@ Audited 12 October 2026. This is the authoritative implementation record, separa
 
 ## Campaign and placement
 
-All 12 maps have two or three fixed routes, multiple entrances and one shared carrot. The 15 × 11 logical grid uses `[x,z]`; world position is `(x−7,0,z−5)`. Routes are 27–56 units long. The complete campaign contains 28 routes, 208 build pads and 105 waves. Routes can merge and share a tail. Ordinary enemies use the authored route at ground height; moths follow that route in flight and require an air-capable tower.
+All 24 maps have two or three fixed routes, multiple entrances and one shared carrot. The 15 × 11 logical grid uses `[x,z]`; world position is `(x−7,0,z−5)`. Routes are 27–59 units long. The complete campaign contains 60 routes, 448 build pads, 156 scenery blockers and 263 waves. `game-data.json` is generated from `CarrotData.cs` by `scripts/carrot-game-data.mjs`; `npm run carrot:test` fails if the two drift. Routes can merge and share a tail. Ordinary enemies use the authored route at ground height; moths follow that route in flight and require an air-capable tower.
 
 Pads remain at least 0.85 units from every logical route. Scenery occupies authored pads, must be shot to clear, and pays a one-time reward. Tapping scenery explicitly focuses available towers on it; tower purchases cannot overwrite it. The remaining open positions permit alternate coverage choices from the opening wave. Decorative plants do not alter routes or create extra legal pads.
 
@@ -29,8 +29,20 @@ Pads remain at least 0.85 units from every logical route. Scenery occupies autho
 | 10 · Split Summit | 3 | 38 / 40 / 43 | 18 / 6 | 10 | 360 |
 | 11 · Aurora Steps | 3 | 34 / 49 / 27 | 18 / 6 | 11 | 360 |
 | 12 · Last Harvest | 3 | 34 / 40 / 44 | 18 / 7 | 12 | 360 |
+| 13 · Late Bloom Terrace | 2 | 38 / 33 | 20 / 7 | 11 | 500 |
+| 14 · Heron Shallows | 3 | 35 / 30 / 30 | 20 / 7 | 11 | 550 |
+| 15 · Frozen Falls | 2 | 44 / 34 | 20 / 8 | 12 | 600 |
+| 16 · Cider Gate | 3 | 35 / 33 / 31 | 20 / 8 | 12 | 650 |
+| 17 · Beehive Hollow | 2 | 53 / 42 | 20 / 8 | 12 | 620 |
+| 18 · Bogfire Crossing | 3 | 40 / 40 / 34 | 20 / 8 | 13 | 670 |
+| 19 · Pumpkin Rows | 2 | 37 / 31 | 20 / 8 | 13 | 740 |
+| 20 · Scarecrow Field | 3 | 41 / 41 / 36 | 20 / 9 | 14 | 770 |
+| 21 · Glacier Stair | 3 | 59 / 45 / 31 | 20 / 8 | 14 | 780 |
+| 22 · Windfall Grove | 3 | 38 / 46 / 31 | 20 / 9 | 15 | 830 |
+| 23 · Lantern Harvest | 3 | 37 / 33 / 31 | 20 / 9 | 15 | 860 |
+| 24 · The Last Light | 3 | 34 / 37 / 28 | 20 / 9 | 16 | 890 |
 
-First introductions are runners in level 1, swarms in 2, armor in 3, Brambleback in 4, flying moths in 5, denser mixed waves in 6, healing shamans in 7, Lantern Regent in 8, crystal shields in 9, three-route mixed pressure in 10, burrowers in 11 and Crown of Winter in 12. Every route remains available; wave packets distribute creatures across entrances instead of forcing an invisible lane switch.
+First introductions are runners in level 1, swarms in 2, armor in 3, Brambleback in 4, flying moths in 5, denser mixed waves in 6, healing shamans in 7, Lantern Regent in 8, crystal shields in 9, three-route mixed pressure in 10, burrowers in 11 and Crown of Winter in 12. The harvest road (13–24) alternates the three earlier lands with the fourth, Ember Orchard (biome `orchard`, levels 16, 19, 20, 22, 23 and 24): 13 fields the full creature roster in the garden, 16 brings Brambleback back scaled to the curve, 19 (Pumpkin Rows) is a switchback board with a long outer lane, 20 introduces Old Hollowhead, and 24 (The Last Light, 16 waves) is the finale against Old Hollowhead II. Every level from 13 on opens with slow kinds (shells, then nibbles), brings swarms from wave 4 and runners from wave 3, and ends with a three-wave "harvest storm" whose last wave carries a +50% surge. Every route remains available; wave packets distribute creatures across entrances instead of forcing an invisible lane switch.
 
 The next wave starts after the previous wave's enemies, reserved summons and carrot contacts resolve, followed by a five-second breather. Calling it early awards the remaining whole seconds as coins. Normal spawns are 0.78s apart, swarms 0.24s apart; packet breaks make clustered groups legible. Bosses arrive in the final wave. The wave event names the first actual spawn entrance.
 
@@ -68,7 +80,7 @@ Explicit enemy focus is honored by all families, including one guaranteed slot a
 
 ## Enemies and boss encounters
 
-Eight normal families have different gameplay: `nibble` is the baseline; `dash` is fast; `shell` reduces kinetic damage by 40%; `swarm` arrives in dense fragile groups; `moth` flies; `shaman` telegraphs an 8%-max-health heal for nearby ordinary allies; `burrow` periodically hides for 1.8s after a 0.7s warning; `crystal` has a breakable shield and accelerates after its break. Normal HP/shield scales with level, from ×1 to ×3.1. Summoned enemies have no coin reward.
+Eight normal families have different gameplay: `nibble` is the baseline; `dash` is fast; `shell` reduces kinetic damage by 40%; `swarm` arrives in dense fragile groups; `moth` flies; `shaman` telegraphs an 8%-max-health heal for nearby ordinary allies; `burrow` periodically hides for 1.8s after a 0.7s warning; `crystal` has a breakable shield and accelerates after its break. Normal HP/shield scales with level, from ×1 to ×3.1 on levels 1–12 and on in 0.15 steps to ×4.9 on level 24 (`CarrotData.HPScale`). Summoned enemies have no coin reward.
 
 All living, nonhidden ordinary monsters in the viewport provide an HP bar. Boss HP, shield, actual phase and cast countdown use authoritative values. Boss phase thresholds differ; the HUD must use each boss's actual thresholds.
 
@@ -77,12 +89,15 @@ All living, nonhidden ordinary monsters in the viewport provide an HP bar. Boss 
 | Brambleback · level 4 | 1,800; 60% / 25% | Bark: 1.2s warning, 35% kinetic protection for 5s. Roots: 1.3s warning, up to two nearby towers slowed to 60% cadence for 3.5s. | Roots expose a 70-HP knot; breaking it releases the snare. Final phase drops bark and moves faster. |
 | Lantern Regent · level 8 | 3,400; 55% / 25% | Mist: 1.4s warning, nearby ordinary allies take 30% less damage for 5s. Summon: 1.5s warning, three actual minions. | At most three summon casts, phase 2 only; final mist lasts 3s. No self-heal. |
 | Crown of Winter · level 12 | 5,600; 65% / 30% | Mantle: 1.5s warning, 360 shield for up to 7s. Breath: 1.5s warning, up to three towers in a three-unit cone reduced to 50% cadence for 4s. Shatter: 1.2s warning, three actual fragments. | At most three mantles; final phase drops shielding and can cast shatter at most twice. |
+| Old Hollowhead · levels 20 and 24 | 7,000 (7,977 on 24); 60% / 30% | Harvest Rush: 1.2s warning, the boss moves at 2.2× for 2.5s and every ordinary ally within three units runs at 1.5×; the warning marks the charge lane three units ahead. Flock: 1.4s warning, three summoned air moths (phase 2 only). Straw Heap: 0.9s warning, the boss is untargetable for 2s while it keeps walking. | At most three flocks and three heaps; a heap always ends within two units of the carrot (the burrow rule); phase 3 cancels heap and flock, walks at 0.46 and rushes every 9s instead of 14s. Slows and stuns still apply during a rush. |
+
+Returning bosses keep pace with the curve: past level 12 a boss's health is multiplied by `CarrotData.BossScale(level, boss) = HPScale(level) / HPScale(home)` with home levels 4 (Brambleback), 8 (Lantern Regent), 12 (Crown of Winter) and 20 (Old Hollowhead), so Brambleback arrives on Cider Gate (16) with 4,593 HP and Old Hollowhead returns on The Last Light with 7,977. Levels 1–12 are unaffected (the scale is exactly 1 there).
 
 Boss casts serialize. Root/breath choose and lock their target IDs when the windup begins. Every affected tower receives a warning and committed target event; selling it before commitment prevents that target's effect. Primary `telegraph`/`ability` events drive the boss source effect/audio once, and `telegraphTarget`/`abilityTarget` cover additional targets without repeating those cues. Boss death and contact cancel uncommitted casts and release reserved summon counts. Spawned adds must still resolve before victory.
 
 ## Economy, outcomes and progress
 
-Each level starts with 240 / 300 / 360 coins by biome. Kills, one-time scenery rewards, wave stipends (15 / 20 / 25) and the small early-call bonus are the only new currency sources. Selling returns `floor(totalSpent × 0.70)`; buying and selling cannot create money. Purchases reject locked families, insufficient funds, invalid pads and occupied pads. There are exactly three upgrades, with no fifth tier.
+Levels 1–12 start with 240 / 300 / 360 coins by biome; the harvest road starts with a growing fund of 500–890 coins (500 + 30 per level past 13, plus 0 / 20 / 40 / 60 for garden / marsh / frost / orchard), because a tier-1 opening against ×3.3+ enemies on shorter tails cannot otherwise survive wave 1. Kills, one-time scenery rewards, wave stipends (15 / 20 / 25 / 30 by biome tier) and the small early-call bonus are the only new currency sources. Scenery health scales ×1 / ×1.5 / ×2 / ×2.25 by biome tier. Selling returns `floor(totalSpent × 0.70)`; buying and selling cannot create money. Purchases reject locked families, insufficient funds, invalid pads and occupied pads. There are exactly three upgrades, with no fifth tier.
 
 The carrot begins at 10 HP. An ordinary arrival costs one HP, a boss arrival three. The 0.65s bite animation applies its single deduction near the middle. The encounter resolves after the contact finishes; a fatal last bite takes precedence over final-wave victory. A surviving carrot may win after a boss reaches it, with the corresponding three-HP loss. Enemies that bite pay no kill bounty.
 
@@ -100,6 +115,6 @@ Campaign progression is local and single-player: victories unlock the next level
 
 ## Verification boundary
 
-The 39,822-assertion Unity run validates the original finished campaign and ten powers. The subsequent managed run passes 39,845 assertions, adding 23 checks for all locked boss targets, one source cue per cast, correct entrance reporting, ordinary HP visibility and multi-target focus precedence; the 24 campaign results remain identical. See [balance-results.md](balance-results.md) and the retained [raw result log](simulation-results.txt).
+The 97,831-assertion Unity run validates the 24-level campaign, ten powers and four bosses: 48 policy-bot campaigns (two policies × 24 levels) won with earned coins, poor single-position coverage lost on levels 1, 4, 8, 12, 16, 20 and 24, and the new boss checks cover Brambleback's scaled return on 16 and Old Hollowhead's rush, flock, heap, near-carrot emergence, phase-3 cancellation and flock-blocked victory. The 24 result lines for levels 1–12 are byte-identical to the previous 12-level run. See [balance-results.md](balance-results.md) and the retained [raw result log](simulation-results.txt).
 
 These checks establish simulation behavior and legal economy. They do not certify rendering quality, phone frame rate, touch usability, music quality or every possible tower strategy. Runtime visual acceptance is a separate gate.

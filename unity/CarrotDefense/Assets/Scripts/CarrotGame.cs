@@ -44,8 +44,8 @@ namespace CarrotTD {
   class FocusState {public int target,hits;}
   class Aura {public float until,strength;}
   class Actor {
-   public int wave,phase=1,bogCalls,mantles,shatters,reserved,seedMarks;
-   public float seedBurstAt,freezeAt,conductiveUntil,rewindUntil,rewindReady,gravityReady,pullUntil;
+   public int wave,phase=1,bogCalls,mantles,shatters,flocks,heaps,reserved,seedMarks;
+   public float seedBurstAt,freezeAt,conductiveUntil,rewindUntil,rewindReady,gravityReady,pullUntil,rushMult=1;
    public Vector3 pullCenter;
    public float baseSpeed,armor,armorUntil,veilUntil,shieldUntil,healAt,burrowAt,emergeAt,abilityA=6,abilityB=11,abilityC=12,castEnd,activeUntil,stunUntil,contactEnd;
    public bool contactApplied,work=true;
@@ -77,7 +77,7 @@ namespace CarrotTD {
    for(int w=0;w<level.waves;w++)foreach(string part in CarrotData.Waves[level.id-1][w].Split(',')){
     string[] bits=part.Split(':');int n=int.Parse(bits[1],CultureInfo.InvariantCulture);totalWork+=n*(bits[0]=="boss"?8:1);wavePending[w+1]+=n;
    }
-   float hpScale=level.biome=="garden"?1:level.biome=="marsh"?1.5f:2;
+   float hpScale=new float[]{1f,1.5f,2f,2.25f}[CarrotData.BiomeTier(level.biome)];
    foreach(var seed in level.blockers){
     int rank=seed.kind=="hedge"?0:seed.kind=="stump"?1:2;float hp=(rank==0?70:rank==1?160:300)*hpScale;
     blockers.Add(new BlockerState{id=nextId++,pad=seed.pad,kind=seed.kind,position=level.pads[seed.pad],hp=hp,maxHp=hp,reward=rank==0?15:rank==1?30:50});
@@ -171,7 +171,7 @@ namespace CarrotTD {
     if(actors.TryGetValue(e.id,out var a)&&a.contactEnd>0&&elapsed>=a.contactEnd){a.contactEnd=0;unresolvedContacts=Mathf.Max(0,unresolvedContacts-1);}
     if(e.deadFor>=.8f){enemies.RemoveAt(i);actors.Remove(e.id);}
    }
-   for(int w=1;w<=wave;w++)if(waveStarted[w]&&!wavePaid[w]&&wavePending[w]==0&&waveLiving[w]==0){wavePaid[w]=true;int pay=level.biome=="garden"?15:level.biome=="marsh"?20:25;coins+=pay;TotalEarned+=pay;Emit("coins","wave",level.routes[0][level.routes[0].Length-1],value:pay);}
+   for(int w=1;w<=wave;w++)if(waveStarted[w]&&!wavePaid[w]&&wavePending[w]==0&&waveLiving[w]==0){wavePaid[w]=true;int pay=new int[]{15,20,25,30}[CarrotData.BiomeTier(level.biome)];coins+=pay;TotalEarned+=pay;Emit("coins","wave",level.routes[0][level.routes[0].Length-1],value:pay);}
    if(phase!="playing")return;
    if(CurrentWaveResolved()){
     if(wave==level.waves){SetOutcome(true);}
@@ -193,8 +193,11 @@ namespace CarrotTD {
     case "garden":hp=1800;velocity=.36f;reward=120;break;
     case "marsh":hp=3400;velocity=.32f;reward=180;break;
     case "frost":hp=5600;velocity=.3f;reward=250;break;
+    case "orchard":hp=7000;velocity=.34f;reward=320;break;
    }
    if(!boss&&id!="fragment"){hp*=CarrotData.HPScale(level.id);shield*=CarrotData.HPScale(level.id);}
+   // Returning and new bosses past level 12 keep pace with the ordinary curve (BossScale is 1 on levels 1-12).
+   if(boss)hp*=CarrotData.BossScale(level.id,id);
    route=Mathf.Clamp(route,0,level.routes.Length-1);
    var e=new EnemyState{id=nextId++,kind=id,boss=boss?id:"",route=route,hp=hp,maxHp=hp,shield=shield,maxShield=shield,speed=velocity,distance=distance,routeLength=CarrotData.RouteLength(level.routes[route]),air=id=="moth",summoned=summoned,reward=summoned?0:reward,hitAt=-10,phase=1,slowFactor=1};
    e.position=CarrotData.RoutePoint(level.routes[route],distance,out e.direction);enemies.Add(e);waveLiving[fromWave]++;
@@ -221,7 +224,10 @@ namespace CarrotTD {
     }
     if(e.routeLength-e.distance<=2)e.hidden=false;
    }
+   // Straw Heap: the orchard boss walks on untargetable, then reappears at the end of the window or within two units of the carrot (the burrow rule).
+   if(e.boss=="orchard"&&e.hidden&&(elapsed>=a.activeUntil||e.routeLength-e.distance<=2)){e.hidden=false;e.ability="";a.activeUntil=elapsed;e.abilityRemaining=0;Emit("ability","emerge",e.position,id:e.id,duration:.3f);}
    float slow=elapsed<e.slowUntil?e.slowFactor:1;e.speed=a.baseSpeed*slow;
+   if(elapsed<e.rushUntil)e.speed*=a.rushMult;
    if(elapsed<a.stunUntil)e.speed=0;
    bool rewind=elapsed<a.rewindUntil&&string.IsNullOrEmpty(e.boss);
    e.distance=Mathf.Clamp(e.distance+e.speed*dt*(rewind?-1:1),0,e.routeLength);e.position=CarrotData.RoutePoint(level.routes[e.route],e.distance,out e.direction);if(rewind)e.direction=-e.direction;
@@ -237,14 +243,15 @@ namespace CarrotTD {
    UpdateProgress();
   }
   void TickBoss(EnemyState e,Actor a,float dt){
-   float fraction=e.hp/e.maxHp;int newPhase=e.boss=="garden"?(fraction<=.25f?3:fraction<=.6f?2:1):e.boss=="marsh"?(fraction<=.25f?3:fraction<=.55f?2:1):(fraction<=.3f?3:fraction<=.65f?2:1);
+   float fraction=e.hp/e.maxHp;int newPhase=e.boss=="garden"?(fraction<=.25f?3:fraction<=.6f?2:1):e.boss=="marsh"?(fraction<=.25f?3:fraction<=.55f?2:1):e.boss=="orchard"?(fraction<=.3f?3:fraction<=.6f?2:1):(fraction<=.3f?3:fraction<=.65f?2:1);
    if(newPhase>a.phase){
     a.phase=newPhase;e.phase=newPhase;Emit("ability","phase",e.position,id:e.id,value:newPhase,duration:.9f);
     if(newPhase==3){
-     a.baseSpeed=e.boss=="garden"?.48f:e.boss=="marsh"?.46f:.42f;
+     a.baseSpeed=e.boss=="garden"?.48f:e.boss=="marsh"?.46f:e.boss=="orchard"?.46f:.42f;
      if(e.boss=="garden"){a.armorUntil=0;if(a.cast=="bark")CancelCast(e,a);}
      if(e.boss=="marsh"&&a.cast=="summon")CancelCast(e,a);
      if(e.boss=="frost"){e.shield=0;a.shieldUntil=0;if(a.cast=="mantle")CancelCast(e,a);a.abilityC=elapsed+3;}
+     if(e.boss=="orchard"){if(a.cast=="heap"||a.cast=="flock")CancelCast(e,a);if(e.hidden){e.hidden=false;a.activeUntil=elapsed;e.abilityRemaining=0;Emit("ability","emerge",e.position,id:e.id,duration:.3f);}a.abilityA=Mathf.Min(a.abilityA,elapsed+3);}
     }
    }
    if(a.shieldUntil>0&&elapsed>=a.shieldUntil){e.shield=0;a.shieldUntil=0;}
@@ -261,6 +268,12 @@ namespace CarrotTD {
    }else if(e.boss=="marsh"){
     if(a.phase==2&&elapsed>=a.abilityB&&a.bogCalls<3&&e.routeLength-e.distance>4)BeginCast(e,a,"summon",1.5f,0);
     else if(elapsed>=a.abilityA)BeginCast(e,a,"mist",1.4f,a.phase==3?3:5);
+   }else if(e.boss=="orchard"){
+    // Old Hollowhead: Flock (phase 2, three casts) > Straw Heap (phases 1-2, three casts) > Harvest Rush (always).
+    bool far=e.routeLength-e.distance>4;
+    if(a.phase==2&&elapsed>=a.abilityB&&a.flocks<3&&far)BeginCast(e,a,"flock",1.4f,0);
+    else if(a.phase<3&&elapsed>=a.abilityC&&a.heaps<3&&far)BeginCast(e,a,"heap",.9f,2);
+    else if(elapsed>=a.abilityA)BeginCast(e,a,"rush",1.2f,2.5f);
    }else{
     if(a.phase==3&&elapsed>=a.abilityC&&a.shatters<2&&e.routeLength-e.distance>4)BeginCast(e,a,"shatter",1.2f,0);
     else if(a.phase>=2&&elapsed>=a.abilityB&&towers.Count>0)BeginCast(e,a,"breath",1.5f,4);
@@ -274,8 +287,10 @@ namespace CarrotTD {
     if(kind=="root"){foreach(var t in candidates)if(FlatDistance(e.position,t.position)<=4&&a.targets.Count<2)a.targets.Add(t.id);}
     else if(candidates.Count>0){a.castDirection=(candidates[0].position-e.position).normalized;foreach(var t in candidates){Vector3 delta=t.position-e.position;if(delta.magnitude<=3&&Vector3.Dot(a.castDirection,delta.normalized)>.72f&&a.targets.Count<3)a.targets.Add(t.id);}}
    }
-   if(kind=="summon"||kind=="shatter"){a.reserved=3;pendingSummons+=3;}
+   if(kind=="summon"||kind=="shatter"||kind=="flock"){a.reserved=3;pendingSummons+=3;}
    Vector3 target=e.position;int targetId=0;if(a.targets.Count>0){var t=towers.Find(x=>x.id==a.targets[0]);if(t!=null){target=t.position;targetId=t.id;}}
+   // Harvest Rush warns along the charge lane: the telegraph's `to` is the route point three units ahead.
+   if(kind=="rush"){Vector3 ahead;target=CarrotData.RoutePoint(level.routes[e.route],Mathf.Min(e.routeLength,e.distance+3),out ahead);}
    Emit("telegraph",kind,e.position,target,e.id,targetId,duration:windup,value:duration);
    // Secondary target events add warnings without replaying the cast's source burst or audio.
    for(int i=1;i<a.targets.Count;i++){var t=towers.Find(x=>x.id==a.targets[i]);if(t!=null)Emit("telegraphTarget",kind,e.position,t.position,e.id,t.id,duration:windup,value:duration);}
@@ -300,6 +315,16 @@ namespace CarrotTD {
     case "shatter":
      a.shatters++;for(int i=0;i<3;i++)Spawn("fragment",e.route,a.wave,true,Mathf.Min(e.distance+.4f+i*.35f,Mathf.Max(0,e.routeLength-3)));
      pendingSummons=Mathf.Max(0,pendingSummons-a.reserved);a.reserved=0;a.abilityC=elapsed+12;break;
+    case "rush":
+     // The boss charges at 2.2x for 2.5 s and rallies every ordinary ally within three units to 1.5x; slows and stuns still apply on top.
+     duration=2.5f;e.rushUntil=elapsed+duration;a.rushMult=2.2f;Vector3 dir;target=CarrotData.RoutePoint(level.routes[e.route],Mathf.Min(e.routeLength,e.distance+3),out dir);
+     foreach(var ally in enemies)if(ally.id!=e.id&&ally.alive&&string.IsNullOrEmpty(ally.boss)&&FlatDistance(e.position,ally.position)<=3){ally.rushUntil=elapsed+duration;actors[ally.id].rushMult=1.5f;}
+     a.abilityA=elapsed+duration+(a.phase==3?9:14);break;
+    case "flock":
+     a.flocks++;for(int i=0;i<3;i++)Spawn("moth",e.route,a.wave,true,Mathf.Min(e.distance+.3f*i,Mathf.Max(0,e.routeLength-4)));
+     pendingSummons=Mathf.Max(0,pendingSummons-a.reserved);a.reserved=0;a.abilityB=elapsed+16;break;
+    case "heap":
+     duration=2;a.heaps++;e.hidden=true;a.abilityC=elapsed+duration+15;break;
    }
    a.activeUntil=elapsed+duration;e.ability=kind;e.abilityRemaining=duration;
    Emit("ability",kind,e.position,target,e.id,targetId,duration:Mathf.Max(.6f,duration));

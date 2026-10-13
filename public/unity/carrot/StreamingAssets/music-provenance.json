@@ -1,0 +1,58 @@
+[
+  {
+    "source": "MusicExplore.mp3",
+    "output": "MusicExplore.mp3",
+    "seconds": 191.7,
+    "bytes": 2684386,
+    "bitrateKbps": 112
+  },
+  {
+    "source": "MusicExplore.mp3",
+    "output": "MusicExplore.ogg",
+    "seconds": 191.7,
+    "bytes": 2295355,
+    "bitrateKbps": 112
+  },
+  {
+    "source": "MusicFrost.mp3",
+    "output": "MusicFrost.mp3",
+    "seconds": 186.2,
+    "bytes": 2607220,
+    "bitrateKbps": 112
+  },
+  {
+    "source": "MusicFrost.mp3",
+    "output": "MusicFrost.ogg",
+    "seconds": 186.2,
+    "bytes": 2448629,
+    "bitrateKbps": 112
+  },
+  {
+    "source": "MusicGarden.mp3",
+    "output": "MusicGarden.mp3",
+    "seconds": 69.6,
+    "bytes": 975769,
+    "bitrateKbps": 112
+  },
+  {
+    "source": "MusicGarden.mp3",
+    "output": "MusicGarden.ogg",
+    "seconds": 69.6,
+    "bytes": 958676,
+    "bitrateKbps": 112
+  },
+  {
+    "source": "MusicMarsh.wav",
+    "output": "MusicMarsh.mp3",
+    "seconds": 108.0,
+    "bytes": 1513003,
+    "bitrateKbps": 112
+  },
+  {
+    "source": "MusicMarsh.wav",
+    "output": "MusicMarsh.ogg",
+    "seconds": 108.0,
+    "bytes": 1520836,
+    "bitrateKbps": 112
+  }
+]

@@ -181,8 +181,80 @@ def frost(parent):
   for j in range(3):branch('DarkClaw',[(s*.61+(j-1)*.075,-.31,.59),(s*.62+(j-1)*.08,-.37,.47)],.031,parent,(.22,.31,.36,1),False)
  for j in range(5):g.crystal('IceCrown',((j-2)*.081,.08,1.77),.046,.22+.12*(1-abs(j-2)/3),g.ICE,parent,5)
 
+def clothplate(parent,x,y,ztop,length,width,col,angle=0,name='BurlapPanel'):
+ # A hanging cloth panel: the bark-plate loft with a sag instead of a bulge, in coat colours on the Organic surface.
+ vs=[];fs=[];rows=8;columns=5
+ for j in range(rows):
+  t=j/(rows-1);w=width*(.9+.1*sin(pi*t))*(1-.25*t)
+  for i in range(columns):
+   u=(i/(columns-1)-.5)*2;xx=x+u*w*.5+sin(t*2)*angle;z=ztop-t*length+.01*sin(i*2.1+j);yy=y-.02*(1-u*u)+.02*sin(pi*t);vs.append((xx,yy,z))
+ for j in range(rows-1):
+  for i in range(columns-1):k=j*columns+i;fs.append((k,k+1,k+columns+1,k+columns))
+ o=g.mesh(name,vs,fs,col,parent,'Organic');mod=o.modifiers.new('Cloth thickness','SOLIDIFY');mod.thickness=.022;mod.offset=0;bpy.context.view_layer.objects.active=o;bpy.ops.object.modifier_apply(modifier=mod.name)
+ return o
+
+def straw_tuft(parent,center,z,count,length,radius=.055,col=(.86,.72,.32,1),droop=.1):
+ x,y=center
+ for j in range(count):
+  a=j*2*pi/count+.3*sin(j*2.7);r0=radius*.4;r1=radius+length*.55
+  g.tube('StrawTuft',[(x+r0*cos(a),y+r0*sin(a),z+.02),(x+(r0+length*.45)*cos(a),y+(r0+length*.45)*sin(a),z-length*.35),(x+r1*cos(a),y+r1*sin(a),z-length*.35-droop)],[.013,.009,.002],col,parent,5)
+
+def orchard(parent):
+ # Old Hollowhead: a gangly scarecrow on a pole and crossbar, lanky rope-wrapped limbs, a patched burlap coat,
+ # a carved pumpkin-lantern head under a wide straw brim and a crow on the right crossbar.
+ BURLAP=(.55,.42,.25,1);PATCH=(.42,.30,.20,1);STRAW=(.86,.72,.32,1);PUMP=(.93,.47,.12,1);ROPE=(.62,.50,.30,1);DARK=(.06,.045,.03,1);LANTERN=(1,.62,.12,1);STEM=(.25,.35,.12,1)
+ # Pole and crossbar: the blended trunk binding follows the spine so the pole sways with the idle.
+ branch('LivingTrunkPole',[(0,.02,.04),(.012,0,.52),(-.012,.012,1.02),(0,0,1.50)],.075,parent,g.WOOD,True)
+ branch('CrossbarWood',[(-.80,.03,1.32),(-.30,0,1.345),(.30,0,1.345),(.80,.03,1.32)],.052,parent,g.WOOD,True)
+ for j in range(6):
+  a=j*2*pi/6;g.tube('BindingRope',[(.085*cos(a),.085*sin(a),1.30),(.09*cos(a+.9),.09*sin(a+.9),1.36),(.085*cos(a+1.8),.085*sin(a+1.8),1.42)],[.014,.014,.014],ROPE,parent,6)
+ for s in [-1,1]:
+  shoulder=(s*.44,0,1.33);elbow=(s*.66,-.06,.98);wrist=(s*.71,-.17,.58)
+  branch('TwistedArmRope',[shoulder,(s*.56,-.02,1.18),elbow,(s*.69,-.12,.78),wrist],.082,parent,ROPE,True)
+  for j in range(4):branch('StrawFinger',[wrist,(s*(.73+(j-1.5)*.05),-.21,.47),(s*(.75+(j-1.5)*.075),-.23,.38)],.015,parent,STRAW,False)
+  straw_tuft(parent,(s*.71,-.17),.60,10,.14)
+  # Patched sleeve cuffs.
+  for j in range(3):clothplate(parent,s*(.60+j*.04),-.08-j*.03,1.06-j*.14,.22,.17,BURLAP if j%2==0 else PATCH,s*.012,'SleeveCloth')
+  # Stilt legs with boots.
+  branch('LegMuscleStilt',[(s*.15,0,.64),(s*.19,-.02,.36),(s*.20,-.06,.10)],.068,parent,ROPE,True)
+  straw_tuft(parent,(s*.20,-.06),.16,10,.13)
+  g.ellipsoid('BootFoot',(s*.21,-.11,.07),(.11,.17,.065),DARK,parent,16,10)
+ # Burlap coat: overlapping hanging panels down the torso, a rope belt and three stitched patches.
+ for row in range(3):
+  for j in range(7):
+   a=2*pi*(j+.5*(row%2))/7;r=.26-.02*row;z=1.30-row*.21
+   clothplate(parent,r*cos(a),r*sin(a),z,.27,.15,BURLAP,.006*sin(j),'CoatPanel')
+ clothplate(parent,0,-.27,1.33,.62,.34,BURLAP,0,'CoatFront')
+ clothplate(parent,0,.27,1.33,.62,.34,BURLAP,0,'CoatBack')
+ g.ring('RopeBelt',.265,.80,ROPE,parent,.022,32,(0,0),'Organic')
+ for (x,y,z,w) in [(-.13,-.265,1.12,.11),(.11,-.262,.92,.09),(.2,.2,1.05,.1)]:
+  g.box('StitchedPatch',(x,y,z),(w,.012,w*.8),PATCH,parent,.004)
+ straw_tuft(parent,(0,0),1.47,14,.16,.09)
+ # Pumpkin lantern head: eight overlapping lobes, a dark interior shell and glowing carved eyes and a jagged mouth.
+ for i in range(8):
+  a=i*2*pi/8+.2;g.ellipsoid('PumpkinLobe',(.20*cos(a),.185*sin(a),1.74),(.185,.17,.27),PUMP,parent,16,10)
+ g.ellipsoid('PumpkinCore',(0,0,1.74),(.30,.28,.255),PUMP,parent,20,12)
+ g.tube('PumpkinStem',[(0,0,1.98),(.02,-.01,2.06),(.06,-.03,2.11)],[.04,.032,.018],STEM,parent,8)
+ for s in [-1,1]:
+  g.ellipsoid('CarvedEyeSocket',(s*.12,-.335,1.80),(.075,.035,.08),DARK,parent,12,8)
+  g.ellipsoid('LanternEye',(s*.12,-.352,1.80),(.055,.03,.055),LANTERN,parent,12,8,'Glow')
+ g.ellipsoid('CarvedMouth',(0,-.335,1.635),(.17,.035,.05),DARK,parent,20,10)
+ g.ellipsoid('LanternMouth',(0,-.352,1.635),(.15,.03,.034),LANTERN,parent,20,10,'Glow')
+ for j in range(5):
+  x=(j-2)*.07;g.box('CarvedTooth',(x,-.35,1.66 if j%2==0 else 1.61),(.03,.03,.035),PUMP,parent,.004)
+ # Wide straw brim and crown.
+ g.lathe('StrawBrim',[(.44,0),(.45,.02),(.29,.028),(.26,.12),(.20,.27),(0,.33)],STRAW,parent,(0,0,2.03),28,'Organic')
+ g.ring('HatBand',.275,2.10,ROPE,parent,.02,28,(0,0),'Organic')
+ # A small crow perched on the right end of the crossbar.
+ g.ellipsoid('CrowBody',(.60,-.02,1.46),(.065,.11,.06),DARK,parent,14,9)
+ g.ellipsoid('CrowHead',(.60,-.12,1.53),(.045,.05,.045),DARK,parent,12,8)
+ g.leaf('CrowBeak',(.60,-.16,1.53),(.60,-.22,1.52),.025,(.85,.65,.2,1),parent,0)
+ g.leaf('CrowTail',(.60,.06,1.47),(.61,.2,1.50),.05,DARK,parent,.02)
+ for s in [-1,1]:g.leaf('CrowWing',(.60+s*.04,-.02,1.49),(.60+s*.10,.07,1.47),.05,DARK,parent,.02)
+ g.ellipsoid('CrowEye',(.63,-.15,1.545),(.01,.01,.01),LANTERN,parent,8,6,'Glow')
+
 def build_boss(kind,parent):
- {'garden':garden,'marsh':marsh,'frost':frost}[kind](parent)
+ {'garden':garden,'marsh':marsh,'frost':frost,'orchard':orchard}[kind](parent)
  if kind=='garden':
   for j in range(7):
    x=(j-3)*.066;y=-.16+.05*abs(j-3)/3;barkplate(parent,x,y,1.88+.04*sin(j*1.3),.23+.035*(j%3),.095,.008*sin(j))
@@ -199,7 +271,7 @@ def build_boss(kind,parent):
    branch('HookedIvoryBeak',[(s*.083,-.33,1.12),(s*.125,-.41,1.02),(s*.11,-.47,.87),(s*.03,-.45,.79)],.045,parent,(.61,.65,.47,1),False)
   for j in range(3):
    a=j*2.1;branch('CrownFiligree',[(.18*cos(a),.18*sin(a),1.6),(.32*cos(a+.1),.32*sin(a+.1),1.77),(.25*cos(a+.3),.25*sin(a+.3),2.12)],.022,parent,g.GOLD,False)
- else:
+ elif kind=='frost':
   for s in [-1,1]:
    for row in range(5):
     z=1.42-row*.125

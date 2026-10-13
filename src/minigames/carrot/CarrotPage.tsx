@@ -2,15 +2,17 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import { CarrotUnity } from './unity'
 import { menuSound, stopMenuSound } from './uiAudio'
-import { awardCampaign, readCampaign, saveCampaign } from './progress'
+import { LevelCount, awardCampaign, readCampaign, saveCampaign } from './progress'
 import { BossPortrait, CarrotPortrait, RouteDrawing, TowerPortrait, chapterArt, meterStyle } from './art'
 import Icon from './Icon'
 import type { CampaignSave, Command, GameDefinitions, GameState, LevelDefinition } from './types'
 import './carrot.css'
 
-const chapters=[{id:'garden',name:'Sunlit Garden',number:'01'},{id:'marsh',name:'Moonlit Marsh',number:'02'},{id:'frost',name:'Frostglass Highlands',number:'03'}]
+// Four chapters by level id: the three lands of the first twelve levels, then the harvest road (13-24), the fourth chapter, which alternates reprises of those lands with Ember Orchard; grouping by biome would file the reprises under chapters whose boss is already beaten, so the cards there carry their land as a subtitle.
+const chapters=[{index:1,name:'Sunlit Garden',number:'01',from:1,to:4},{index:2,name:'Moonlit Marsh',number:'02',from:5,to:8},{index:3,name:'Frostglass Highlands',number:'03',from:9,to:12},{index:4,name:'Ember Orchard',number:'04',from:13,to:24,road:'Harvest Road'}]
+const biomeNames:Record<string,string>={garden:'Sunlit Garden',marsh:'Moonlit Marsh',frost:'Frostglass Highlands',orchard:'Ember Orchard'}
 const roman=['I','II','III','IV']
-const bossPhaseMarks:Record<string,number[]>={garden:[.25,.6],marsh:[.25,.55],frost:[.3,.65]}
+const bossPhaseMarks:Record<string,number[]>={garden:[.25,.6],marsh:[.25,.55],frost:[.3,.65],orchard:[.3,.6]}
 const friendly=(s:string)=>s?.replace(/([a-z])([A-Z])/g,'$1 $2').replace(/[_-]/g,' ')||''
 const pct=(n:number)=>`${Math.round(Math.max(0,Math.min(1,n))*100)}%`
 
@@ -22,11 +24,11 @@ function Modal({title,children,onClose,className=''}:{title:string;children:Reac
  </dialog>
 }
 function Medals({value=0}:{value?:number}){return <span className="ct-medals" aria-label={`${value&1?'Completed. ':''}${value&2?'Carrot unharmed. ':''}${value&4?'Scenery cleared.':''}`}>{[1,2,4].map((v,i)=><i className={value&v?'is-earned':''} key={v}><Icon name={['check','heart','leaf'][i]}/></i>)}</span>}
-function LevelCard({level,save,choose,preview=false}:{level:LevelDefinition;save:CampaignSave;choose:(level:number)=>void;preview?:boolean}){
+function LevelCard({level,save,choose,preview=false,subtitle}:{level:LevelDefinition;save:CampaignSave;choose:(level:number)=>void;preview?:boolean;subtitle?:string}){
  const locked=level.id>save.unlocked&&!preview
- return <button className={`ct-level ${locked?'is-locked':''}`} disabled={locked} onClick={()=>choose(level.id)} aria-label={`${level.id}. ${level.name}${locked?', locked':''}`}>
+ return <button className={`ct-level ${locked?'is-locked':''}`} disabled={locked} onClick={()=>choose(level.id)} aria-label={`${level.id}. ${level.name}${subtitle?`, ${subtitle}`:''}${locked?', locked':''}`}>
   <span className="ct-level__scene" style={{backgroundImage:`url(${chapterArt(level.biome)})`}}><RouteDrawing routes={level.routes}/><b>{String(level.id).padStart(2,'0')}</b>{locked?<span className="ct-level__lock"><Icon name="lock"/></span>:level.boss?<span className="ct-level__boss"><BossPortrait kind={level.boss}/></span>:null}</span>
-  <span className="ct-level__caption"><strong>{level.name}</strong><Medals value={save.medals[level.id]}/></span>
+  <span className="ct-level__caption"><strong>{level.name}{subtitle&&<small> · {subtitle}</small>}</strong><Medals value={save.medals[level.id]}/></span>
  </button>
 }
 
@@ -39,9 +41,11 @@ export default function CarrotPage(){
  const current=useRef(state),saved=useRef(save),wasPlaying=useRef(false),lastBoss=useRef(''),award=useRef(''),noticeTimer=useRef<number>(),warningTimer=useRef<number>()
  const [notice,setNotice]=useState('')
  const preview=import.meta.env.DEV&&new URLSearchParams(location.search).has('carrot-preview')
- const qaLevel=preview?Math.max(1,Math.min(12,Number(new URLSearchParams(location.search).get('carrot-preview'))||1)):1
+ const qaLevel=preview?Math.max(1,Math.min(LevelCount,Number(new URLSearchParams(location.search).get('carrot-preview'))||1)):1
  current.current=state;saved.current=save
  const send=useCallback((command:Command)=>engine.current?.send(command),[])
+ // Development preview only (tree-shaken from production): a QA harness can drive the level and read the live state.
+ useEffect(()=>{if(!preview)return;const w=window as unknown as {__carrot?:{send:(c:Command)=>void;state:()=>GameState|null}};w.__carrot={send:c=>engine.current?.send(c),state:()=>current.current};return()=>{delete w.__carrot}},[preview])
  useEffect(()=>{let active=true;fetch('/assets/minigames/carrot/game-data.json').then(r=>{if(!r.ok)throw new Error('The garden guide could not download. Please retry.');return r.json()}).then((d:GameDefinitions)=>{if(active&&Array.isArray(d.towers)&&Array.isArray(d.levels))setDefinitions(d)}).catch(e=>{if(active)setError(e.message)});return()=>{active=false}},[])
  useEffect(()=>{const oldTitle=document.title;document.title='Carrot Defense 3D · Cornell CGS';document.documentElement.classList.add('ct-document');return()=>{document.title=oldTitle;document.documentElement.classList.remove('ct-document')}},[])
  useEffect(()=>{
@@ -77,7 +81,7 @@ export default function CarrotPage(){
  }}>
   {!entered?<main className="ct-lobby" style={{backgroundImage:`url(${chapterArt('garden')})`}}>
    <nav className="ct-lobby-nav"><a href="/minigames/"><Icon name="back"/>All games</a><span>CORNELL CGS</span><button onClick={()=>openPanel('help')} className="ct-icon" aria-label="How to play"><Icon name="help"/></button></nav>
-   <div className="ct-lobby-copy"><p className="ct-kicker">A little garden. A grand defense.</p><h1>Carrot<br/>Defense <em>3D</em></h1><p className="ct-chinese">保卫萝卜 · 3D</p><div className="ct-lobby-actions"><button className="ct-primary" disabled={!definitions} onClick={()=>choose(preview?qaLevel:save.unlocked)}>{save.unlocked>1?'Continue':'Enter the garden'}<Icon name="arrow"/></button><button className="ct-secondary" disabled={!definitions} onClick={()=>openPanel('campaign')}>Choose a level</button></div>{error&&<p role="alert" className="ct-error">{error} <button onClick={()=>location.reload()}>Retry</button></p>}<p className="ct-lobby-meta">12 landscapes <i/> 10 towers <i/> 3 guardians</p></div>
+   <div className="ct-lobby-copy"><p className="ct-kicker">A little garden. A grand defense.</p><h1>Carrot<br/>Defense <em>3D</em></h1><p className="ct-chinese">保卫萝卜 · 3D</p><div className="ct-lobby-actions"><button className="ct-primary" disabled={!definitions} onClick={()=>choose(preview?qaLevel:save.unlocked)}>{save.unlocked>1?'Continue':'Enter the garden'}<Icon name="arrow"/></button><button className="ct-secondary" disabled={!definitions} onClick={()=>openPanel('campaign')}>Choose a level</button></div>{error&&<p role="alert" className="ct-error">{error} <button onClick={()=>location.reload()}>Retry</button></p>}<p className="ct-lobby-meta">{LevelCount} landscapes <i/> 10 towers <i/> 4 guardians</p></div>
    <footer className="ct-lobby-foot"><span>Original maps & artwork · Fan project</span><button onClick={()=>openPanel('collection')}>Meet your defenses<Icon name="arrow"/></button></footer>
   </main>:<main className="ct-game" aria-label="Carrot Defense battlefield">
    <div className="ct-scene" ref={mount}/>
@@ -100,10 +104,10 @@ export default function CarrotPage(){
      {(selection.type==='blocker'||selection.type==='enemy')&&<div className="ct-focus-detail"><Icon name={selection.type==='blocker'?'leaf':'target'}/><div><h3>{friendly(selection.kind)}</h3><div className="ct-meter" style={meterStyle(getHealth(selection.hp,selection.maxHp))}><i/></div><p>{Math.ceil(selection.hp)} / {Math.ceil(selection.maxHp)}</p></div><span>{selection.type==='blocker'?'Towers clearing':'Towers focused'}</span></div>}
     </aside>}
     <footer className="ct-bottom"><button className="ct-icon ct-glass" aria-label="How to play" onClick={()=>openPanel('help')}><Icon name="help"/></button>{state.phase==='ready'?<div className="ct-ready"><span className="ct-glass">Tap a clearing to build</span><button className="ct-primary" onClick={()=>send({type:'start'})}>Start wave<Icon name="play"/></button></div>:state.phase==='playing'?<div className="ct-wave-actions ct-glass"><span>{state.nextWave>0?`Next wave ${Math.ceil(state.nextWave)}s`:`${state.enemyCount} on the paths`}</span>{state.nextWave>0&&<button onClick={()=>send({type:'next'})} aria-label="Send next wave early">Send<Icon name="arrow"/></button>}<button onClick={()=>send({type:'speed',value:state.speed===2?1:2})} aria-label={`Game speed ${state.speed} times. Change speed.`}>{state.speed}×</button></div>:null}<button className="ct-icon ct-glass ct-retry" aria-label="Restart level" onClick={()=>openPanel('campaign')}><Icon name="levels"/></button></footer>
-    {result&&<div className={`ct-outcome ct-outcome--${state.phase}`}><div className="ct-outcome__card ct-glass"><CarrotPortrait pose={state.phase==='won'?11:6}/><span className="ct-kicker">{state.name}</span><h2>{state.phase==='won'?'Safe & sound.':'One more try?'}</h2>{state.phase==='won'?<><Medals value={1|(state.health===10?2:0)|(state.blockersRemaining===0?4:0)}/><p>{state.level===12?'Every garden protected.':`${state.health}/10 carrot health`}</p></>:<p>Try another tower combination.</p>}<button className="ct-primary" onClick={()=>choose(state.phase==='won'?Math.min(12,state.level+1):state.level)}>{state.phase==='won'&&state.level<12?'Next landscape':'Play again'}<Icon name="arrow"/></button><button className="ct-text-button" onClick={()=>openPanel('campaign')}>Choose a level</button></div></div>}
+    {result&&<div className={`ct-outcome ct-outcome--${state.phase}`}><div className="ct-outcome__card ct-glass"><CarrotPortrait pose={state.phase==='won'?11:6}/><span className="ct-kicker">{state.name}</span><h2>{state.phase==='won'?'Safe & sound.':'One more try?'}</h2>{state.phase==='won'?<><Medals value={1|(state.health===10?2:0)|(state.blockersRemaining===0?4:0)}/><p>{state.level===LevelCount?'Every garden protected, to the last light.':`${state.health}/10 carrot health`}</p></>:<p>Try another tower combination.</p>}<button className="ct-primary" onClick={()=>choose(state.phase==='won'?Math.min(LevelCount,state.level+1):state.level)}>{state.phase==='won'&&state.level<LevelCount?'Next landscape':'Play again'}<Icon name="arrow"/></button><button className="ct-text-button" onClick={()=>openPanel('campaign')}>Choose a level</button></div></div>}
    </>}
   </main>}
-  {panel==='campaign'&&<Modal title="Your journey" onClose={closePanel} className="ct-campaign"><div className="ct-campaign-chapters">{chapters.map(ch=><section key={ch.id}><header><span>{ch.number}</span><h3>{ch.name}</h3></header><div>{definitions?.levels.filter(l=>l.biome===ch.id).map(l=><LevelCard key={l.id} level={l} save={save} choose={choose} preview={preview}/>)}</div></section>)}</div><a className="ct-back-link" href="/minigames/"><Icon name="back"/>All games</a></Modal>}
+  {panel==='campaign'&&<Modal title="Your journey" onClose={closePanel} className="ct-campaign"><div className="ct-campaign-chapters">{chapters.map(ch=>{const levels=definitions?.levels.filter(l=>l.id>=ch.from&&l.id<=ch.to)||[];if(!levels.length)return null;const mixed=levels.some(l=>biomeNames[l.biome]!==ch.name);return <section key={ch.index}><header><span>{ch.number}</span><h3>{ch.name}</h3>{mixed&&<small>{ch.road?`${ch.road} · `:''}Levels {levels[0].id}–{levels[levels.length-1].id}</small>}</header><div>{levels.map(l=><LevelCard key={l.id} level={l} save={save} choose={choose} preview={preview} subtitle={mixed&&biomeNames[l.biome]!==ch.name?biomeNames[l.biome]:undefined}/>)}</div></section>})}</div><a className="ct-back-link" href="/minigames/"><Icon name="back"/>All games</a></Modal>}
   {panel==='collection'&&<Modal title="A defense for every danger" onClose={closePanel} className="ct-collection"><div>{definitions?.towers.map(t=><article key={t.id}><TowerPortrait kind={t.id} tier={4}/><h3>{t.name}</h3><p>{t.role}</p><small>Four forms · {t.air?'Ground + air':'Ground'}</small></article>)}</div></Modal>}
   {panel==='help'&&<Modal title="Protect the carrot" onClose={closePanel} className="ct-help"><div className="ct-help-steps"><article><Icon name="leaf"/><h3>Plant</h3><p>Tap a clearing. Choose your tower, then build.</p></article><article><Icon name="upgrade"/><h3>Grow</h3><p>Upgrade three times. Clear scenery for coins and space.</p></article><article><Icon name="target"/><h3>Defend</h3><p>Cover every path. Tap a monster to focus your towers.</p></article></div><p className="ct-help-gestures">Pinch or scroll to zoom. Drag to explore.</p><p className="ct-help-shortcuts"><kbd>Space</kbd> Pause <kbd>U</kbd> Upgrade <kbd>Esc</kbd> Close</p><details><summary>Credits</summary><p>A fan-made carrot-defense game for Cornell CGS. Original maps and tower designs. Original modeled characters use animation foundations by Quaternius. Scanned materials and vegetation by Poly Haven; additional nature and sound effects by Kenney. Full music and asset credits are included with the game.</p><a href="/assets/minigames/carrot/credits.txt" target="_blank" rel="noreferrer">Asset credits ↗</a></details></Modal>}
  </div>

@@ -11,7 +11,7 @@ public static class CarrotModels {
     const string Root = "Assets/Resources/Carrot";
     static readonly string[] Kinds = { "seed", "frost", "mortar", "prism", "storm", "blossom", "starfruit", "gravity", "book", "thunder" };
     static readonly string[] Enemies = { "nibble", "dash", "shell", "swarm", "moth", "shaman", "burrow", "crystal" };
-    static readonly string[] Bosses = { "garden", "marsh", "frost" };
+    static readonly string[] Bosses = { "garden", "marsh", "frost", "orchard" };
     public static void Prepare() {
         Directory.CreateDirectory(Root + "/Models/Materials");
         Directory.CreateDirectory(Root + "/Models/Towers");
@@ -30,7 +30,7 @@ public static class CarrotModels {
         ConfigureAudio();
         AssetDatabase.SaveAssets();
         AssetDatabase.Refresh();
-        Debug.Log("Carrot models prepared: 40 physical tower tiers, articulated carrot, 11 animated creatures, curated nature and licensed audio.");
+        Debug.Log("Carrot models prepared: 40 physical tower tiers, articulated carrot, 12 animated creatures, curated nature and licensed audio.");
     }
     static void Configure(string path) {
         var importer = AssetImporter.GetAtPath(path) as ModelImporter;
@@ -89,7 +89,7 @@ public static class CarrotModels {
             var ti=AssetImporter.GetAtPath(path) as TextureImporter;
             if(ti!=null){ti.wrapMode=TextureWrapMode.Repeat;ti.maxTextureSize=512;ti.isReadable=false;CarrotBuild.WebTexture(ti,512,70);ti.SaveAndReimport();}
         }
-        importer.isReadable=false;importer.maxTextureSize=1024;CarrotBuild.WebTexture(importer,1024,70);importer.SaveAndReimport();
+        importer.isReadable=false;importer.maxTextureSize=512;CarrotBuild.WebTexture(importer,512,70);importer.SaveAndReimport();
     }
     static void ConfigureBiologicalRelief() {
         // Shallow, surface-specific relief keeps painted color from reading as
@@ -145,7 +145,7 @@ public static class CarrotModels {
         material.SetTexture("_BumpMap",normal);material.SetFloat("_BumpScale",normal?reliefStrength:0f);
         material.SetTexture("_RoughnessMap",roughness);material.SetFloat("_UseRoughnessMap",roughness?1:0);
         material.SetTexture("_OcclusionMap",occlusion);material.SetFloat("_UseOcclusionMap",occlusion?1:0);material.SetFloat("_OcclusionStrength",.63f);
-        material.enableInstancing=true;EditorUtility.SetDirty(material);return material;
+        material.enableInstancing=false;EditorUtility.SetDirty(material);return material;
     }
     static void Make(string source,string destination,bool animated,bool nature=false) {
         string path=Root+(nature?"/Nature/Source/":"/Models/Source/")+source+".fbx";

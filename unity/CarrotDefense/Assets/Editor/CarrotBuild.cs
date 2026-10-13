@@ -58,8 +58,9 @@ public static class CarrotBuild {
    importer.textureType=normal?TextureImporterType.NormalMap:TextureImporterType.Default;
    importer.sRGBTexture=!linear;importer.isReadable=false;importer.mipmapEnabled=true;
    bool detail=path.Contains("AO")||path.Contains("Roughness");
-   importer.maxTextureSize=detail?512:1024;importer.anisoLevel=path.Contains("Soil")?4:2;importer.wrapMode=TextureWrapMode.Repeat;
-   WebTexture(importer,detail?512:1024,normal?85:70);importer.SaveAndReimport();
+   // 512 px albedo and normal, 256 px AO and roughness: at 46-97 px per world unit with TextureScale 0.85-1.3 the 1024 mip is never sampled, so this is lossless on screen and halves the texture download.
+   importer.maxTextureSize=detail?256:512;importer.anisoLevel=path.Contains("Soil")?4:2;importer.wrapMode=TextureWrapMode.Repeat;
+   WebTexture(importer,detail?256:512,normal?85:70);importer.SaveAndReimport();
   }
   var environment=AssetImporter.GetAtPath(root+"/Environment.hdr") as TextureImporter;
   if(environment!=null) {

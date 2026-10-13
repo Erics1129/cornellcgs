@@ -10,6 +10,18 @@ CARROT_CAMPAIGN strategy=0 level=9 result=won hearts=7 seconds=541.1 towers=5 ea
 CARROT_CAMPAIGN strategy=0 level=10 result=won hearts=7 seconds=471.7 towers=5 earned=3624 roster=thunder/4,prism/4,starfruit/4,mortar/2,thunder/4,
 CARROT_CAMPAIGN strategy=0 level=11 result=won hearts=10 seconds=563.4 towers=5 earned=3566 roster=thunder/4,prism/4,thunder/4,starfruit/4,mortar/1,
 CARROT_CAMPAIGN strategy=0 level=12 result=won hearts=9 seconds=580.5 towers=6 earned=4511 roster=thunder/4,prism/4,thunder/4,starfruit/4,mortar/4,seed/3,
+CARROT_CAMPAIGN strategy=0 level=13 result=won hearts=10 seconds=432.5 towers=4 earned=3052 roster=thunder/4,prism/4,mortar/4,thunder/3,
+CARROT_CAMPAIGN strategy=0 level=14 result=won hearts=10 seconds=431.5 towers=4 earned=3357 roster=thunder/4,prism/4,mortar/4,thunder/4,
+CARROT_CAMPAIGN strategy=0 level=15 result=won hearts=10 seconds=567.4 towers=5 earned=3990 roster=thunder/4,prism/4,thunder/4,mortar/4,starfruit/3,
+CARROT_CAMPAIGN strategy=0 level=16 result=won hearts=10 seconds=513.4 towers=6 earned=4137 roster=thunder/4,prism/4,mortar/4,thunder/4,starfruit/4,prism/1,
+CARROT_CAMPAIGN strategy=0 level=17 result=won hearts=10 seconds=567.7 towers=6 earned=4259 roster=thunder/4,prism/4,mortar/4,thunder/4,starfruit/4,seed/3,
+CARROT_CAMPAIGN strategy=0 level=18 result=won hearts=10 seconds=521.8 towers=7 earned=4779 roster=thunder/4,prism/4,starfruit/4,mortar/4,thunder/4,prism/4,seed/1,
+CARROT_CAMPAIGN strategy=0 level=19 result=won hearts=10 seconds=610.0 towers=7 earned=5222 roster=thunder/4,prism/4,thunder/4,mortar/4,prism/4,starfruit/4,thunder/2,
+CARROT_CAMPAIGN strategy=0 level=20 result=won hearts=10 seconds=575.9 towers=8 earned=5796 roster=thunder/4,prism/4,mortar/4,thunder/4,starfruit/4,prism/4,thunder/4,seed/1,
+CARROT_CAMPAIGN strategy=0 level=21 result=won hearts=10 seconds=584.5 towers=7 earned=5738 roster=thunder/4,prism/4,thunder/4,mortar/4,prism/4,starfruit/4,thunder/4,
+CARROT_CAMPAIGN strategy=0 level=22 result=won hearts=10 seconds=728.6 towers=9 earned=6609 roster=thunder/4,prism/4,mortar/4,thunder/4,starfruit/4,prism/4,thunder/4,seed/4,prism/3,
+CARROT_CAMPAIGN strategy=0 level=23 result=won hearts=10 seconds=763.6 towers=9 earned=6797 roster=thunder/4,prism/4,starfruit/4,mortar/4,thunder/4,prism/4,thunder/4,prism/4,book/2,
+CARROT_CAMPAIGN strategy=0 level=24 result=won hearts=8 seconds=813.7 towers=10 earned=7342 roster=thunder/4,prism/4,starfruit/4,mortar/4,thunder/4,prism/4,seed/4,thunder/4,prism/4,thunder/2,
 CARROT_CAMPAIGN strategy=1 level=1 result=won hearts=10 seconds=199.6 towers=3 earned=791 roster=seed/4,frost/1,seed/2,
 CARROT_CAMPAIGN strategy=1 level=2 result=won hearts=10 seconds=246.0 towers=3 earned=1114 roster=starfruit/4,seed/1,starfruit/3,
 CARROT_CAMPAIGN strategy=1 level=3 result=won hearts=10 seconds=202.0 towers=3 earned=1363 roster=starfruit/4,seed/1,starfruit/3,
@@ -22,8 +34,23 @@ CARROT_CAMPAIGN strategy=1 level=9 result=won hearts=7 seconds=557.6 towers=5 ea
 CARROT_CAMPAIGN strategy=1 level=10 result=won hearts=5 seconds=460.1 towers=5 earned=3590 roster=starfruit/4,thunder/4,mortar/4,starfruit/4,prism/3,
 CARROT_CAMPAIGN strategy=1 level=11 result=won hearts=7 seconds=579.7 towers=5 earned=3524 roster=starfruit/4,starfruit/4,thunder/4,mortar/4,starfruit/3,
 CARROT_CAMPAIGN strategy=1 level=12 result=won hearts=10 seconds=564.1 towers=6 earned=4526 roster=starfruit/4,starfruit/4,thunder/4,mortar/4,prism/4,starfruit/4,
+CARROT_CAMPAIGN strategy=1 level=13 result=won hearts=10 seconds=422.3 towers=4 earned=3052 roster=starfruit/4,mortar/4,thunder/4,starfruit/4,
+CARROT_CAMPAIGN strategy=1 level=14 result=won hearts=10 seconds=425.4 towers=5 earned=3357 roster=thunder/4,starfruit/4,mortar/4,starfruit/4,prism/2,
+CARROT_CAMPAIGN strategy=1 level=15 result=won hearts=10 seconds=590.8 towers=6 earned=3990 roster=starfruit/4,thunder/4,mortar/4,starfruit/4,prism/4,starfruit/2,
+CARROT_CAMPAIGN strategy=1 level=16 result=won hearts=10 seconds=501.0 towers=6 earned=4137 roster=starfruit/4,thunder/4,mortar/4,starfruit/4,starfruit/4,prism/3,
+CARROT_CAMPAIGN strategy=1 level=17 result=won hearts=10 seconds=539.0 towers=6 earned=4259 roster=starfruit/4,mortar/4,thunder/4,starfruit/4,prism/4,starfruit/4,
+CARROT_CAMPAIGN strategy=1 level=18 result=won hearts=10 seconds=546.1 towers=7 earned=4779 roster=starfruit/4,mortar/4,starfruit/4,thunder/4,starfruit/4,prism/4,thunder/2,
+CARROT_CAMPAIGN strategy=1 level=19 result=won hearts=9 seconds=617.5 towers=7 earned=5207 roster=starfruit/4,thunder/4,mortar/4,starfruit/4,prism/4,thunder/4,starfruit/3,
+CARROT_CAMPAIGN strategy=1 level=20 result=won hearts=10 seconds=565.1 towers=8 earned=5796 roster=starfruit/4,starfruit/4,thunder/4,mortar/4,starfruit/4,prism/4,thunder/4,mortar/2,
+CARROT_CAMPAIGN strategy=1 level=21 result=won hearts=10 seconds=591.4 towers=8 earned=5738 roster=starfruit/4,mortar/4,thunder/4,starfruit/4,prism/4,starfruit/4,thunder/4,mortar/3,
+CARROT_CAMPAIGN strategy=1 level=22 result=won hearts=10 seconds=737.1 towers=9 earned=6609 roster=starfruit/4,starfruit/4,mortar/4,thunder/4,starfruit/4,prism/4,thunder/4,mortar/4,thunder/3,
+CARROT_CAMPAIGN strategy=1 level=23 result=won hearts=10 seconds=777.3 towers=10 earned=6797 roster=starfruit/4,mortar/4,thunder/4,starfruit/4,starfruit/4,prism/4,thunder/4,mortar/4,book/4,mortar/1,
+CARROT_CAMPAIGN strategy=1 level=24 result=won hearts=10 seconds=781.3 towers=10 earned=7361 roster=starfruit/4,thunder/4,mortar/4,starfruit/4,starfruit/4,prism/4,thunder/4,mortar/4,thunder/4,prism/1,
 CARROT_POOR_COVERAGE level=1 result=lost hearts=0 invested=265
 CARROT_POOR_COVERAGE level=4 result=lost hearts=0 invested=145
 CARROT_POOR_COVERAGE level=8 result=lost hearts=0 invested=265
 CARROT_POOR_COVERAGE level=12 result=lost hearts=0 invested=265
-CARROT_TESTS_OK 39845 assertions; 24 campaign victories with earned coins; all ten powers and poor-coverage losses checked.
+CARROT_POOR_COVERAGE level=16 result=lost hearts=0 invested=465
+CARROT_POOR_COVERAGE level=20 result=lost hearts=0 invested=465
+CARROT_POOR_COVERAGE level=24 result=lost hearts=0 invested=465
+CARROT_TESTS_OK 97831 assertions; 48 campaign victories with earned coins; all ten powers, four bosses and poor-coverage losses checked.

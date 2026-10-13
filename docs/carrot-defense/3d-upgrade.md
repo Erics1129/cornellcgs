@@ -104,3 +104,7 @@ Three builds: `78eb04adde45ec84` (all fixes), `14fc14eecf548bac` (tree colour, i
 | Victory modal delay (could) | `CarrotPage.tsx` shows the "won" card after 2200 ms (was 1100) so the orbit is seen. | `desktop-l4-won-*` |
 
 Not changed: SSAO stays out (WebGL2 blur, see Stage 7 follow-ups); no new third-party assets (the border trees, fence and logs are runtime primitives); Low tier still gets no effect lights and only scorch/ice/telegraph decals, but the enlarged flashes, discs and rings apply on both tiers (Low halves particle counts).
+
+## Speed plan follow-up
+
+The rendering speed plan (three URP tiers, after-opaques depth copy, one shadow cascade, decimated scan props with shadow casters, first-frame shader warm-up, streamed music, 512 px textures, render-scale governor and 120 Hz frame pacer, physics in script mode) is recorded with its before/after measurements in `validation.md` ("Speed plan"). The Stage 7 note above that the forced depth prepass "stays for DoF, soft particles and water" is superseded: with High and Medium at MSAA 1 the depth is copied after opaques and the prepass is gone.

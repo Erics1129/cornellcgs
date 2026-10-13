@@ -1,0 +1,62 @@
+[
+  {
+    "name": "FernSmall",
+    "source": "Fern.fbx",
+    "sourceTriangles": 2384,
+    "triangles": 1479
+  },
+  {
+    "name": "FernCaster",
+    "source": "Fern.fbx",
+    "sourceTriangles": 2384,
+    "triangles": 480
+  },
+  {
+    "name": "ShrubSmall",
+    "source": "Shrub.fbx",
+    "sourceTriangles": 18020,
+    "triangles": 3979
+  },
+  {
+    "name": "ShrubCaster",
+    "source": "Shrub.fbx",
+    "sourceTriangles": 18020,
+    "triangles": 780
+  },
+  {
+    "name": "MossRockASmall",
+    "source": "MossRockA.fbx",
+    "sourceTriangles": 6970,
+    "triangles": 1479
+  },
+  {
+    "name": "MossRockACaster",
+    "source": "MossRockA.fbx",
+    "sourceTriangles": 6970,
+    "triangles": 479
+  },
+  {
+    "name": "MossRockBSmall",
+    "source": "MossRockB.fbx",
+    "sourceTriangles": 5000,
+    "triangles": 1480
+  },
+  {
+    "name": "MossRockBCaster",
+    "source": "MossRockB.fbx",
+    "sourceTriangles": 5000,
+    "triangles": 480
+  },
+  {
+    "name": "StumpSmall",
+    "source": "Stump.fbx",
+    "sourceTriangles": 7970,
+    "triangles": 2480
+  },
+  {
+    "name": "StumpCaster",
+    "source": "Stump.fbx",
+    "sourceTriangles": 7970,
+    "triangles": 480
+  }
+]

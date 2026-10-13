@@ -16,7 +16,7 @@
     "lint": "eslint src/minigames/forge src/minigames/carrot backend/forge/worker.ts src/minigames/MinigamesPage.tsx",
     "forge:unity": "node scripts/forge-unity-build.mjs",
     "carrot:unity": "node scripts/carrot-unity-build.mjs",
-    "carrot:test": "node scripts/test-carrot-progress.mjs && node scripts/carrot-unity-build.mjs --test",
+    "carrot:test": "node scripts/test-carrot-progress.mjs && node scripts/carrot-game-data.mjs && node scripts/carrot-unity-build.mjs --test",
     "forge:worker": "node scripts/forge-worker-build.mjs"
   },
   "dependencies": {

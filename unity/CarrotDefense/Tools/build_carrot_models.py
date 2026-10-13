@@ -9,7 +9,8 @@ from mathutils import Vector, Matrix
 from pathlib import Path
 from math import sin,cos,pi,sqrt
 random.seed(7341)
-ROOT=Path('/Users/eric/Claude/cornellcgs-carrot/unity/CarrotDefense')
+# The Unity project that owns this Tools folder; CARROT_UNITY_ROOT overrides it for scratch copies.
+ROOT=Path(os.environ.get('CARROT_UNITY_ROOT') or Path(__file__).resolve().parents[1])
 OUT=ROOT/'Assets/Resources/Carrot/Models/Source';OUT.mkdir(parents=True,exist_ok=True)
 SOURCE=Path('/Users/eric/Claude/carrot-defense-preproduction/source-assets/quaternius-poly-pizza')
 GOLD=(.69,.39,.095,1);BRASS=(.88,.64,.24,1);WOOD=(.22,.095,.025,1);BARK=(.36,.17,.052,1);GREEN=(.19,.40,.075,1);LEAF=(.38,.58,.12,1);STONE=(.36,.40,.34,1);ICE=(.38,.83,.98,1);VIOLET=(.52,.18,.80,1);CREAM=(.92,.83,.63,1);DARK=(.045,.032,.025,1)
