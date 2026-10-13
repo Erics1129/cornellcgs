@@ -1,0 +1,48 @@
+Ink Maze level 26 — JavaScript runtime provenance
+==================================================
+
+What runs the player's JavaScript
+---------------------------------
+QuickJS (Fabrice Bellard & Charlie Gordon), compiled to WebAssembly and driven
+from JavaScript by quickjs-emscripten. The player's code never runs as the
+worker's own JavaScript: it is compiled and executed inside a fresh QuickJS
+runtime, which gives a hard memory cap and a cooperative time limit (the
+interrupt handler) and keeps the worker's globals out of reach.
+
+Pinned packages (npm, offline copies in the research workspace)
+---------------------------------------------------------------
+  quickjs-emscripten-core            0.32.0   MIT
+  @jitl/quickjs-wasmfile-release-sync 0.32.0   MIT   (QuickJS compiled to wasm)
+Both published 2026-02-16. Licence texts: LICENSE-quickjs.txt (it carries both
+the quickjs-emscripten MIT notice and the QuickJS MIT notice).
+
+Shipped files
+-------------
+  runtime.js    the Runtime (src/minigames/inkmaze/code/contract.ts), with
+                quickjs-emscripten-core, the release-sync loader and the hidden
+                harness bundled in by esbuild. One ES module, absolute/no imports.
+  quickjs.wasm  the QuickJS WebAssembly module, copied verbatim from
+                @jitl/quickjs-wasmfile-release-sync/dist/emscripten-module.wasm.
+                It is loaded through the page (host.asset), not fetched by the
+                worker, so it stays under the sandbox CSP.
+
+SHA-256
+-------
+  quickjs.wasm  105c3bed22d457e43e3d1c3c1c6959fda62a8fe06f0fc8a985303c3a2be72232
+  runtime.js    (rebuild to regenerate; esbuild minified output)
+
+Rebuild
+-------
+  export PATH="$HOME/.local/node/bin:$PATH"
+  INK_NPM=/path/to/node_modules node scripts/inkmaze-code/build/build-javascript.mjs
+The entry is scripts/inkmaze-code/build/js-runtime.src.js; the harness is
+scripts/inkmaze-code/build/js-harness.js. INK_NPM defaults to the research
+workspace's node_modules; point it at a fresh
+  npm i quickjs-emscripten-core@0.32.0 @jitl/quickjs-wasmfile-release-sync@0.32.0 esbuild
+to rebuild from clean packages.
+
+Not shipped
+-----------
+The reference and naive solutions live in
+scripts/inkmaze-code/solutions/javascript-{reference,naive}.js and are used only
+by the tests; they are never served to the player.

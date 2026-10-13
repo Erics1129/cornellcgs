@@ -1,0 +1,197 @@
+#!/usr/bin/env node
+/*
+ * Ink Maze level 26: the Python runtime (Pyodide) in real browsers.
+ *
+ *   node scripts/inkmaze-code/test-runtime-python.mjs            both engines
+ *   node scripts/inkmaze-code/test-runtime-python.mjs webkit     one engine
+ *   CGS_TEST_URL=http://localhost:5190 node scripts/inkmaze-code/test-runtime-python.mjs
+ *
+ * Needs Playwright (CGS_PLAYWRIGHT_MODULE, see scripts/inkmaze-code-browser.mjs)
+ * and runs with the repo's Node 24 (export PATH="$HOME/.local/node/bin:$PATH").
+ * Not part of `npm test`: it drives browsers, loads Pyodide from the CDN and
+ * takes a few minutes.
+ *
+ * It proves, against src/minigames/inkmaze/code/sandbox.ts + problem.ts and the
+ * production runtime in public/minigames/ink-maze-code/python/:
+ *   - the reference and the naive solution clear a full submission (the visible
+ *     map + the 12 hidden tests), accepted by the real engine, and time them;
+ *   - compile errors, runtime errors (with the player's line and the board
+ *     index), wrong return types and a printed answer-marker are reported right;
+ *   - every runaway (tight loop, a loop inside `except`/`finally`, a loop deep
+ *     in recursion, deep recursion itself, an allocation bomb, an output flood,
+ *     harness tampering) is stopped and reported, the next run works, and the
+ *     browser's CPU is back to idle within ~1 s of the limit (contract D9) --
+ *     the WebKit case, where terminate() cannot stop a WebAssembly loop, is the
+ *     point of the cooperative deadline;
+ *   - a positive control (CPU high WHILE a loop runs, idle after it stops)
+ *     shows the meter really sees the Pyodide worker.
+ */
+import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
+import { judgeAll, randomBoard, submissionTests } from '../../src/minigames/inkmaze/code/problem.ts'
+import { LIMITS } from '../../src/minigames/inkmaze/code/contract.ts'
+import { checkConsistency } from '../../src/minigames/inkmaze/code/runtimes/python.ts'
+import { cpuMeter, devServer, launch, openCodePage, pause, runOnPage } from '../inkmaze-code-browser.mjs'
+
+assert.deepEqual(checkConsistency(), [], 'contract.ts / problem.ts agree with the Python runtime')
+
+const SOL = fileURLToPath(new URL('./solutions/', import.meta.url))
+const REF = readFileSync(SOL + 'python-reference.py', 'utf8')
+const NAIVE = readFileSync(SOL + 'python-naive.py', 'utf8')
+const solution = (body) => `class Solution:\n    def solve(self, grid, ink):\n${body.split('\n').map((l) => '        ' + l).join('\n')}\n`
+
+const names = process.argv.slice(2).filter((a) => !a.startsWith('-'))
+const BROWSERS = names.length ? names : ['chromium', 'webkit']
+const CPU_SLACK = 0.3
+
+const visible = randomBoard(7)
+const ONE = [{ grid: visible.grid, ink: visible.ink }]
+const SUBMIT = submissionTests(visible).map((b) => ({ grid: b.grid, ink: b.ink }))
+
+const server = await devServer()
+console.log(`ink maze python runtime: ${server.base}`)
+try {
+  for (const name of BROWSERS) await suite(name)
+} finally {
+  server.stop()
+}
+console.log(`PASS ink maze python runtime (${BROWSERS.join(', ')})`)
+
+async function suite(name) {
+  const meter = cpuMeter()
+  const browser = await launch(name)
+  const log = (m) => console.log(`  ${name}: ${m}`)
+  try {
+    const page = await openCodePage(browser, server.base)
+    meter.capture()
+    const run = (source, tests = ONE, extra = {}) => runOnPage(page, { language: 'python', source, tests, kind: 'run', ...extra })
+    const cpuAfter = async (label, idle) => {
+      const cores = await meter.cores(1500)
+      log(`${label}: ${cores.toFixed(2)} cores (idle ${idle.toFixed(2)})${cores > idle + CPU_SLACK ? `\n      ${meter.detail.join('\n      ')}` : ''}`)
+      return cores
+    }
+
+    // ---- lazy, cold load
+    assert.equal(await page.evaluate(() => document.querySelectorAll('iframe').length), 0, 'no iframe before load()')
+    const tLoad = Date.now()
+    await page.evaluate(() => window.sb.load('python'))
+    const loadMs = Date.now() - tLoad
+    const info = await page.evaluate(() => window.sb.runtimeInfo('python'))
+    log(`cold load (empty cache): ${loadMs} ms; ${JSON.stringify(info.info)}; download est ${(info.downloadBytes / 1e6).toFixed(1)} MB`)
+    assert.equal(info.status, 'ready')
+    assert.equal(info.info.engine, 'pyodide')
+    assert.ok(!page.requests.some((u) => /unpkg|skypack/.test(u)), 'only the pinned jsDelivr CDN')
+    assert.ok(page.requests.some((u) => u.includes('cdn.jsdelivr.net/pyodide/v314.0.7/full/')), 'Pyodide from the pinned CDN')
+    await pause(400)
+    const idle = await cpuAfter('idle after load', 0)
+    assert.ok(idle < 0.6, `quiet enough to measure (${idle.toFixed(2)})`)
+
+    // ---- correctness + timings
+    let r = await run(REF, SUBMIT, { kind: 'submit' })
+    assert.equal(r.status, 'ok', r.message)
+    assert.equal(r.answered, SUBMIT.length)
+    assert.ok(judgeAll(SUBMIT, r.answers).accepted, 'reference accepted on all 13 boards')
+    log(`reference submit (13 boards): ${r.timings.runMs} ms run, ${r.timings.totalMs} ms total`)
+    const warm = await run(REF, ONE)
+    log(`warm run (1 board): ${warm.timings.runMs} ms`)
+    r = await run(NAIVE, SUBMIT, { kind: 'submit' })
+    assert.equal(r.status, 'ok', `naive: ${r.message}`)
+    assert.ok(judgeAll(SUBMIT, r.answers).accepted, 'naive accepted on all 13 boards')
+    log(`naive submit (13 boards): ${r.timings.runMs} ms run (limit ${r.limits.timeLimitMs} ms)`)
+    assert.ok(r.timings.runMs < r.limits.timeLimitMs, 'naive fits the submit limit')
+    const mem = await page.evaluate(() => window.sb.runtimeInfo('python').memoryBytes)
+    log(`heap after runs: ${(mem / 1e6).toFixed(0)} MB`)
+
+    // ---- the player's own mistakes
+    const compile = await run(solution('return grid[0]\n  bad indent'))
+    assert.equal(compile.status, 'compile_error')
+    assert.ok(compile.diagnostics[0].line >= 1, 'compile error carries a line')
+    const err = await run(solution('return grid[999]'))
+    assert.equal(err.status, 'runtime_error')
+    assert.equal(err.error.type, 'IndexError')
+    assert.equal(err.error.test, 0, 'the board it was on')
+    assert.equal(err.error.line, 3, "the player's own line")
+    const wrong = await run(solution('return 42'))
+    assert.equal(wrong.status, 'runtime_error')
+    assert.equal(wrong.error.type, 'TypeError')
+    assert.match(wrong.error.message, /must return a string/)
+    const marker = await run(solution('print("@@ANSWER@@ RRRR")\nreturn ""'))
+    assert.equal(marker.status, 'crashed', `printing the marker is a crash (${marker.status})`)
+    assert.match(marker.message, /@@ANSWER@@/)
+    const printed = await run(solution('print("thinking...")\nreturn ""'))
+    assert.equal(printed.status, 'ok')
+    assert.equal(printed.stdout, 'thinking...\n', 'console keeps the prints, not the answers')
+
+    // ---- runaways: stopped, reported, CPU back to idle (D9)
+    // A cooperative stop (time_limit / output_limit) keeps the worker, so the
+    // CPU must be idle right away. A memory_limit recycles the worker (the wasm
+    // heap never shrinks), so Pyodide reloads -- a bounded, expected ~1.5 s of
+    // CPU, measured AFTER the recovering run, not counted as a leak.
+    const runaway = async (name, source, status, { timeLimitMs = 1000, settleMs = 300, recycles = false } = {}) => {
+      const res = await run(source, ONE, { timeLimitMs })
+      assert.equal(res.status, status, `${name}: got ${res.status} (${res.message})`)
+      assert.equal(res.stoppedBy, 'runtime', `${name}: stopped by the runtime, not the host`)
+      if (recycles) {
+        assert.equal((await run(REF, ONE)).status, 'ok', `a normal run works after ${name} (worker rebuilt)`)
+        await pause(settleMs)
+        const cores = await cpuAfter(`after ${name} (+ rebuild)`, idle)
+        assert.ok(cores < idle + CPU_SLACK, `${name}: CPU idle once the rebuilt worker is ready (${cores.toFixed(2)})`)
+      } else {
+        await pause(settleMs)
+        const cores = await cpuAfter(`after ${name}`, idle)
+        assert.ok(cores < idle + CPU_SLACK, `${name}: CPU back to idle within ~1 s of the limit (${cores.toFixed(2)})`)
+        assert.equal((await run(REF, ONE)).status, 'ok', `a normal run works after ${name}`)
+      }
+      return res
+    }
+    const spin = await runaway('tight loop', solution('while True:\n    pass'), 'time_limit')
+    assert.equal(spin.phase, 'run')
+    assert.ok(spin.timings.runMs >= 950 && spin.timings.runMs <= 1000 + LIMITS.selfStopSlackMs + 400, `stopped near its deadline (${spin.timings.runMs} ms)`)
+    assert.equal(spin.sandboxRestarted, false, 'a cooperative stop does not rebuild the iframe')
+    await runaway('loop in except', solution('while True:\n    try:\n        pass\n    except BaseException:\n        pass'), 'time_limit')
+    await runaway('looping finally', solution('try:\n    while True:\n        pass\nfinally:\n    while True:\n        pass'), 'time_limit')
+    await runaway('loop deep in recursion', solution('def f(n):\n    if n > 40:\n        while True:\n            pass\n    return f(n + 1)\nreturn f(0)'), 'time_limit')
+    await runaway('output flood', solution('while True:\n    print("x" * 2000)'), 'output_limit', { timeLimitMs: 4000 })
+    await runaway('allocation bomb', solution('x = []\nwhile True:\n    x.append(bytearray(1024 * 1024))'), 'memory_limit', { timeLimitMs: 4000, settleMs: 300, recycles: true })
+    const deep = await run(solution('def f(n):\n    return f(n + 1)\nreturn f(0)'))
+    assert.equal(deep.status, 'runtime_error')
+    assert.equal(deep.error.type, 'RecursionError', 'deep recursion is a clean RecursionError, not a hang')
+    await pause(300)
+    assert.ok((await cpuAfter('after deep recursion', idle)) < idle + CPU_SLACK, 'deep recursion left the CPU idle')
+
+    // ---- harness / interpreter tampering: reported, and the next run still works
+    const tamper = async (source, note) => {
+      const res = await run(source, ONE, { timeLimitMs: 4000 })
+      const after = await run(REF, ONE)
+      log(`tamper ${note}: ${res.status}; next run ${after.status}`)
+      assert.equal(after.status, 'ok', `a normal run works after ${note}`)
+      return res
+    }
+    await tamper(solution('import io\nio.open = lambda *a, **k: None\nreturn ""'), 'poison io.open')
+    await tamper(solution('import sys\nsys.addaudithook(lambda e, a: None)\nreturn ""'), 'add audit hook')
+    await tamper(solution('import os\nos.close(1)\nreturn ""'), 'close stdout fd')
+    await tamper(solution('import builtins\nbuiltins.len = None\nreturn ""'), 'tamper builtins')
+    const reserved = await run(solution('__ink_tick__ = None\nreturn ""'))
+    assert.equal(reserved.status, 'compile_error', 'player cannot touch the reserved deadline name')
+    assert.match(reserved.message.toLowerCase(), /reserved/)
+
+    // ---- positive control: the meter DOES see the Pyodide worker's CPU
+    const control = page.evaluate((tests) => window.sb.run({ language: 'python', source: 'class Solution:\n    def solve(self, grid, ink):\n        while True:\n            pass\n', tests, kind: 'run', timeLimitMs: 3000 }), ONE)
+    await pause(700)
+    const busy = await meter.cores(1200)
+    log(`positive control: CPU WHILE a loop runs = ${busy.toFixed(2)} cores`)
+    assert.ok(busy > idle + 0.5, `the meter sees the running Pyodide worker (${busy.toFixed(2)} cores)`)
+    const cres = await control
+    assert.equal(cres.status, 'time_limit')
+    await pause(300)
+    assert.ok((await cpuAfter('positive control, after the limit', idle)) < idle + CPU_SLACK, 'and the CPU drops once it stops itself')
+
+    if (page.errors.length) log(`page errors: ${page.errors.slice(0, 4).join(' | ')}`)
+    assert.equal(page.errors.length, 0, 'no uncaught page errors')
+    log('pass')
+  } finally {
+    await browser.close()
+  }
+}
+
