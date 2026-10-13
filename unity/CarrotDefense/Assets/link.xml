@@ -6,4 +6,8 @@
     <type fullname="UnityEngine.BoxCollider" preserve="all" />
     <type fullname="UnityEngine.MeshCollider" preserve="all" />
   </assembly>
+  <!-- JsonUtility DTOs and the SendMessage entry points must survive managed stripping. -->
+  <assembly fullname="Assembly-CSharp">
+    <type fullname="CarrotTD.*" preserve="all" />
+  </assembly>
 </linker>

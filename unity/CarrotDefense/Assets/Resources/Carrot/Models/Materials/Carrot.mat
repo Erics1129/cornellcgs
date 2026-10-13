@@ -46,11 +46,14 @@ Material:
     - _BumpScale: 0.68
     - _Cull: 2
     - _Cutoff: 0
+    - _Dissolve: 0
     - _Glossiness: 0.4
     - _Metallic: 0
     - _OcclusionStrength: 0.63
     - _ReflectionStrength: 0.8
+    - _SnowStrength: 0.35
     - _TextureScale: 1
+    - _Translucency: 0.15
     - _UseOcclusionMap: 0
     - _UseRoughnessMap: 1
     - _VertexColorSRGB: 1
@@ -58,6 +61,7 @@ Material:
     - _WorldTexture: 0
     m_Colors:
     - _Color: {r: 1, g: 1, b: 1, a: 1}
+    - _DissolveEdge: {r: 1, g: 0.6, b: 0.19999996, a: 1}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
   m_BuildTextureStacks: []
   m_AllowLocking: 1

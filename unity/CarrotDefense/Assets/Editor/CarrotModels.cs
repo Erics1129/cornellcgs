@@ -45,7 +45,7 @@ public static class CarrotModels {
         importer.importBlendShapes=true;
         importer.importNormals=ModelImporterNormals.Import;
         importer.importTangents=ModelImporterTangents.CalculateMikk;
-        importer.meshCompression=ModelImporterMeshCompression.Low;
+        importer.meshCompression=Path.GetFileNameWithoutExtension(path)=="Carrot"?ModelImporterMeshCompression.Low:ModelImporterMeshCompression.Medium;
         importer.isReadable=path.Contains("/Nature/");
         importer.optimizeMeshPolygons=true; importer.optimizeMeshVertices=true;
         importer.materialImportMode=ModelImporterMaterialImportMode.ImportStandard;
@@ -87,9 +87,9 @@ public static class CarrotModels {
             string path=Root+"/Models/Materials/"+names[i]+"Detail.png";File.WriteAllBytes(path,tile.EncodeToPNG());UnityEngine.Object.DestroyImmediate(tile);
             AssetDatabase.ImportAsset(path);
             var ti=AssetImporter.GetAtPath(path) as TextureImporter;
-            if(ti!=null){ti.wrapMode=TextureWrapMode.Repeat;ti.maxTextureSize=512;ti.isReadable=false;ti.textureCompression=TextureImporterCompression.Compressed;ti.SaveAndReimport();}
+            if(ti!=null){ti.wrapMode=TextureWrapMode.Repeat;ti.maxTextureSize=512;ti.isReadable=false;CarrotBuild.WebTexture(ti,512,70);ti.SaveAndReimport();}
         }
-        importer.isReadable=false;importer.textureCompression=TextureImporterCompression.Compressed;importer.SaveAndReimport();
+        importer.isReadable=false;importer.maxTextureSize=1024;CarrotBuild.WebTexture(importer,1024,70);importer.SaveAndReimport();
     }
     static void ConfigureBiologicalRelief() {
         // Shallow, surface-specific relief keeps painted color from reading as
@@ -103,7 +103,7 @@ public static class CarrotModels {
                 importer.sRGBTexture=false;importer.convertToNormalmap=false;
                 importer.wrapMode=TextureWrapMode.Repeat;importer.filterMode=FilterMode.Trilinear;
                 importer.anisoLevel=2;importer.mipmapEnabled=true;importer.isReadable=false;
-                importer.maxTextureSize=512;importer.textureCompression=TextureImporterCompression.CompressedHQ;
+                importer.maxTextureSize=512;CarrotBuild.WebTexture(importer,512,normal?85:70);
                 importer.SaveAndReimport();
             }
         }
@@ -123,9 +123,11 @@ public static class CarrotModels {
         var detail=AssetDatabase.LoadAssetAtPath<Texture2D>(Root+"/Models/Materials/"+category+"Detail.png");
         material.SetTexture("_MainTex",detail);
         material.SetTextureScale("_MainTex",new Vector2(category=="Carrot"?3f:2f,2f));
-        material.SetFloat("_Metallic",category=="Metal"?.65f:0f);
-        material.SetFloat("_Glossiness",category=="Metal"?.65f:category=="Glow"?.88f:category=="Scale"?.68f:category=="Carrot"?.40f:category=="Fur"?.16f:.28f);
-        material.SetColor("_EmissionColor",category=="Glow"?new Color(.11f,.13f,.14f,1):Color.black);
+        material.SetFloat("_Metallic",category=="Metal"?.85f:0f);
+        material.SetFloat("_Glossiness",category=="Metal"?.68f:category=="Glow"?.88f:category=="Scale"?.62f:category=="Carrot"?.40f:category=="Fur"?.14f:category=="Leaf"?.45f:category=="Petal"?.42f:category=="Bark"?.30f:category=="Stone"?.22f:.38f);
+        material.SetFloat("_Translucency",category=="Leaf"?.55f:category=="Petal"?.45f:category=="Fur"?.25f:category=="Carrot"?.15f:0f);
+        material.SetFloat("_SnowStrength",.35f);
+        material.SetColor("_EmissionColor",category=="Glow"?new Color(.11f,.13f,.14f,1)*2.2f:Color.black);
         string pbr=Root+"/Textures/PBR/"+category;
         if(category=="Carrot"||category=="Leaf"||category=="Fur"||category=="Scale") {
             var biological=AssetDatabase.LoadAssetAtPath<Texture2D>(pbr+"Albedo.png")??AssetDatabase.LoadAssetAtPath<Texture2D>(pbr+"Albedo.jpg");
@@ -139,7 +141,7 @@ public static class CarrotModels {
             normal=AssetDatabase.LoadAssetAtPath<Texture2D>(Root+"/Models/Materials/"+category+"MicroNormal.png");
             roughness=AssetDatabase.LoadAssetAtPath<Texture2D>(Root+"/Models/Materials/"+category+"MicroRoughness.png");
         }
-        float reliefStrength=category=="Fur"?.82f:category=="Scale"?.86f:category=="Carrot"?.68f:category=="Leaf"?.72f:category=="Bark"?1.0f:.72f;
+        float reliefStrength=category=="Fur"?.82f:category=="Scale"?.86f:category=="Carrot"?.68f:category=="Leaf"?.72f:category=="Bark"?1.0f:category=="Stone"?.9f:.72f;
         material.SetTexture("_BumpMap",normal);material.SetFloat("_BumpScale",normal?reliefStrength:0f);
         material.SetTexture("_RoughnessMap",roughness);material.SetFloat("_UseRoughnessMap",roughness?1:0);
         material.SetTexture("_OcclusionMap",occlusion);material.SetFloat("_UseOcclusionMap",occlusion?1:0);material.SetFloat("_OcclusionStrength",.63f);
@@ -191,13 +193,14 @@ public static class CarrotModels {
         foreach(string file in Directory.GetFiles(Root+"/Audio")) {
             var importer=AssetImporter.GetAtPath(file.Replace('\\','/')) as AudioImporter;
             if(importer==null)continue;
-            bool music=Path.GetFileName(file).StartsWith("Music");
-            importer.forceToMono=!music;
+            string name=Path.GetFileName(file);bool music=name.StartsWith("Music"),voice=name.StartsWith("Voice");
+            importer.forceToMono=!music;importer.loadInBackground=music;
             var settings=importer.defaultSampleSettings;
             settings.loadType=music?AudioClipLoadType.CompressedInMemory:AudioClipLoadType.DecompressOnLoad;
             settings.compressionFormat=AudioCompressionFormat.Vorbis;
-            settings.quality=music?.72f:.8f;
-            settings.sampleRateSetting=AudioSampleRateSetting.OptimizeSampleRate;
+            settings.quality=music?.5f:voice?.5f:.65f;
+            settings.sampleRateSetting=voice?AudioSampleRateSetting.OverrideSampleRate:AudioSampleRateSetting.OptimizeSampleRate;
+            settings.sampleRateOverride=voice?32000u:44100u;
             importer.defaultSampleSettings=settings;importer.SaveAndReimport();
         }
     }
