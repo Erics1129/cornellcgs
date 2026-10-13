@@ -6,7 +6,7 @@ using L = ForgeLayoutData;
 // ForgeTuning.room (ForgeFlicker.cs), so feel-tuning.json can retune it without a Unity build.
 public partial class ForgeWorld {
  float qualityTime;int frameCount;float frameTotal;float smokeClock;
- ForgeQualityGovernor governor;int appliedMsaa=-1,msaaSupport=-1,sentTier=-1;float perfClock;ForgeFinish finish;
+ ForgeQualityGovernor governor;int appliedMsaa=-1,msaaSupport=-1,sentTier=-1;float perfClock;ForgeFinish finish;bool tierPinned;
  /// Quality tier 0 (best) to 3. The web maps it to the canvas DPR.
  int QualityTier=>governor!=null?governor.Tier:0;
  /// Particle multiplier for the current tier (1, 1, .6, .4).
@@ -20,7 +20,7 @@ public partial class ForgeWorld {
  static readonly int FireShadowRectId=Shader.PropertyToID("_ForgeFireShadowRect"),FireShadowYId=Shader.PropertyToID("_ForgeFireShadowY"),FireHoodRectId=Shader.PropertyToID("_ForgeFireHoodRect"),
   KeyDirId=Shader.PropertyToID("_ForgeKeyDir"),KeyConeId=Shader.PropertyToID("_ForgeKeyCone"),SconcePosId=Shader.PropertyToID("_ForgeSconcePosition"),SconceColId=Shader.PropertyToID("_ForgeSconceColor"),
   CandlePosId=Shader.PropertyToID("_ForgeCandlePosition"),CandleColId=Shader.PropertyToID("_ForgeCandleColor"),AmbientId=Shader.PropertyToID("_ForgeAmbient"),SootId=Shader.PropertyToID("_ForgeSoot"),SootFlueId=Shader.PropertyToID("_ForgeSootFlue"),
-  AoDirectId=Shader.PropertyToID("_ForgeAoDirect"),FireBounceId=Shader.PropertyToID("_ForgeFireBounce"),BounceColorId=Shader.PropertyToID("_ForgeBounceColor"),ShadowZoneId=Shader.PropertyToID("_ForgeShadowZone"),FrameId=Shader.PropertyToID("_Frame"),GlowId=Shader.PropertyToID("_Glow"),EmissionId=Shader.PropertyToID("_EmissionColor");
+  AoDirectId=Shader.PropertyToID("_ForgeAoDirect"),FireBounceId=Shader.PropertyToID("_ForgeFireBounce"),EnvFlickerId=Shader.PropertyToID("_ForgeEnvFlicker"),BounceColorId=Shader.PropertyToID("_ForgeBounceColor"),ShadowZoneId=Shader.PropertyToID("_ForgeShadowZone"),FrameId=Shader.PropertyToID("_Frame"),GlowId=Shader.PropertyToID("_Glow"),EmissionId=Shader.PropertyToID("_EmissionColor");
 
  /// Called once in Start after MakeDressing and before BatchRoom (static room geometry goes in before batching).
  void AtmosBuild(){
@@ -73,10 +73,16 @@ public partial class ForgeWorld {
  /// (2.2 s; under reduced motion a .4 s crossfade).
  void AtmosDay(int day){dayClock=0;dayReduced=reduced;dawnSent=false;if(dayReduced){dawnSent=true;Send("sfx",day,ForgeContract.Sfx.Dawn);}}
  void AtmosQa(string mode){if(mode==ForgeContract.QaModes.Void&&cam!=null)cam.backgroundColor=Color.magenta;
+  // 'tier0'..'tier3' (any build, e.g. ?forge-unity-qa=tier2 on a device): pin the quality tier; the governor stops adapting.
+  if(mode.Length==5&&mode.StartsWith("tier")&&mode[4]>='0'&&mode[4]<='3'&&governor!=null){tierPinned=true;governor.Restart(mode[4]-'0');governor.Pinned=true;ApplyTier();}
 #if UNITY_EDITOR
-  // Editor QA (scripts/forge-qa/room.mjs snapshot views): 'room-cam:x,y,z,yaw,pitch[,fov]' pins the camera, 'room-cam:off' frees it.
-  if(mode.StartsWith("room-cam:")&&cam!=null){var qc=cam.GetComponent<ForgeQaCamera>();if(qc==null)qc=cam.gameObject.AddComponent<ForgeQaCamera>();qc.cam=cam;var a=mode.Substring(9).Split(',');
-   if(a.Length>=5){float F(int i)=>float.Parse(a[i],System.Globalization.CultureInfo.InvariantCulture);qc.pos=new Vector3(F(0),F(1),F(2));qc.euler=new Vector3(F(4),F(3),0);qc.fov=a.Length>5?F(5):cam.fieldOfView;qc.on=true;}else qc.on=false;}
+  // Editor QA (scripts/forge-qa/room.mjs snapshot views): 'room-cam:x,y,z,yaw,pitch[,fov]' pins the camera, 'room-cam:off' frees it;
+  // 'room-occluder:x,y,z,r' sets _ForgeOccluders[0] every frame (after any stream writes them), 'room-occluder:off' clears it.
+  ForgeQaCamera Pin(){var qc=cam.GetComponent<ForgeQaCamera>();if(qc==null)qc=cam.gameObject.AddComponent<ForgeQaCamera>();qc.cam=cam;return qc;}
+  float[] Args(string s){var a=s.Split(',');var v=new float[a.Length];for(int i=0;i<a.Length;i++)if(!float.TryParse(a[i],System.Globalization.NumberStyles.Float,System.Globalization.CultureInfo.InvariantCulture,out v[i]))return new float[0];return v;}
+  if(mode.StartsWith("room-cam:")&&cam!=null){var qc=Pin();var a=Args(mode.Substring(9));
+   if(a.Length>=5){qc.pos=new Vector3(a[0],a[1],a[2]);qc.euler=new Vector3(a[4],a[3],0);qc.fov=a.Length>5?a[5]:cam.fieldOfView;qc.on=true;}else qc.on=false;}
+  if(mode.StartsWith("room-occluder:")&&cam!=null){var qc=Pin();var a=Args(mode.Substring(14));qc.occluder=a.Length>=4?new Vector4(a[0],a[1],a[2],a[3]):Vector4.zero;qc.occluderOn=a.Length>=4;if(!qc.occluderOn)Shader.SetGlobalVectorArray(ForgeContract.Globals.Occluders,new Vector4[4]);}
 #endif
  }
  void UpdateDay(float dt){
@@ -95,7 +101,7 @@ public partial class ForgeWorld {
   // The hearth breathes: band-limited flicker (2-4 Hz, +/- 18%), the bellows swell, the night banking.
   float flick=steady?1:ForgeFlicker.Fire(elapsed,r,reduced);float swell=ForgeFlicker.Bellows(bellowsSince,bellowsStrength,r);
   float level=flick*(1+swell)*fireDay;
-  Shader.SetGlobalColor(ForgeContract.Globals.FireColor,fireBase*level);Shader.SetGlobalColor(BounceColorId,bounceBase*level);
+  Shader.SetGlobalColor(ForgeContract.Globals.FireColor,fireBase*level);Shader.SetGlobalColor(BounceColorId,bounceBase*level);Shader.SetGlobalFloat(EnvFlickerId,r.envFireShare*(level-1));
   if(fireMat!=null){if(!steady)fireFrame+=dt*14*(1+swell*1.5f);fireMat.SetFloat(FrameId,fireFrame);fireMat.SetFloat(GlowId,level);}
   Shader.SetGlobalVector(ForgeContract.Globals.CoalPulse,new Vector4(steady?0:elapsed,(.82f+.18f*flick)*(1+swell*1.4f)*fireDay,reduced?.08f:.3f,0));
   // Window, rim light and the lantern follow the day.
@@ -129,7 +135,7 @@ public partial class ForgeWorld {
  /// still warming up, a view class that arrived late (Insets) restarts it at that view's start tier.
  void ResizeQuality(){
   if(governor==null)return;
-  if(governor.Seconds<tuning.room.tierIgnoreS){int want=StartTier();if(want!=governor.StartTier){governor.Restart(want);}}
+  if(!tierPinned&&governor.Seconds<tuning.room.tierIgnoreS){int want=StartTier();if(want!=governor.StartTier){governor.Restart(want);}}
   ApplyTier();
  }
  /// AA, FXAA and the lite shader path for the current tier.
@@ -155,7 +161,11 @@ public partial class ForgeWorld {
 #if UNITY_EDITOR
 /// Editor-only QA camera pin (see AtmosQa 'room-cam:'): runs after ForgeWorld's camera update and before the snapshot rig renders.
 [DefaultExecutionOrder(9000)] public class ForgeQaCamera:MonoBehaviour {
- public Camera cam;public bool on;public Vector3 pos,euler;public float fov=60;
- void LateUpdate(){if(on&&cam!=null){cam.transform.SetPositionAndRotation(pos,Quaternion.Euler(euler));cam.fieldOfView=fov;}}
+ public Camera cam;public bool on,occluderOn;public Vector3 pos,euler;public float fov=60;public Vector4 occluder;
+ readonly Vector4[] occluders=new Vector4[4];
+ void LateUpdate(){
+  if(on&&cam!=null){cam.ResetProjectionMatrix();cam.transform.SetPositionAndRotation(pos,Quaternion.Euler(euler));cam.fieldOfView=fov;}
+  if(occluderOn){occluders[0]=occluder;for(int i=1;i<4;i++)occluders[i]=Vector4.zero;Shader.SetGlobalVectorArray(ForgeContract.Globals.Occluders,occluders);}
+ }
 }
 #endif

@@ -30,7 +30,7 @@ public partial class ForgeWorld {
   ceilingWood=new Material(wood){name="Smoke-blackened ceiling boards",color=C("9c8a74")};ceilingWood.SetFloat("_Soot",1);ceilingWood.SetFloat("_Scale",1.2f);
   brickWall=Mat("Hand-fired brick in lime mortar","c4beb6",0,.12f);brickWall.mainTexture=Resources.Load<Texture2D>("Forge/BrickV3");brickWall.SetFloat("_Scale",2.4f);brickWall.SetFloat("_Brick",1);brickWall.SetFloat("_Soot",1);brickWall.SetColor("_MortarColor",C("2a2621"));brickWall.SetFloat("_BumpStrength",.0016f);
   // The floor is the brick code laid flat: staggered 70 x 56 cm flagstones, 15 mm grout, each slab at its own slight tilt.
-  flagstone=Mat("Worn flagstone","8f877c",0,.10f);flagstone.mainTexture=Resources.Load<Texture2D>("Forge/IronV3");flagstone.SetFloat("_Scale",1.4f);flagstone.SetFloat("_BumpStrength",.0025f);
+  flagstone=Mat("Worn flagstone","857e74",0,.10f);flagstone.mainTexture=Resources.Load<Texture2D>("Forge/IronV3");flagstone.SetFloat("_Scale",3.1f);flagstone.SetFloat("_BumpStrength",.0025f);
   flagstone.SetFloat("_Brick",1);flagstone.SetVector("_BrickSize",new Vector4(.70f,.56f,.015f,.008f));flagstone.SetFloat("_BrickStagger",.17f);flagstone.SetFloat("_BrickTilt",.022f);flagstone.SetColor("_MortarColor",C("26221e"));
   hearthTop=Mat("Fire-scarred hearth slab","4a4440",0,.12f);hearthTop.mainTexture=Resources.Load<Texture2D>("Forge/IronV3");hearthTop.SetFloat("_Scale",2.2f);hearthTop.SetFloat("_BumpStrength",.002f);
   anvilSteel=Mat("Forged anvil steel","555a5c",.82f,.40f);anvilSteel.mainTexture=Resources.Load<Texture2D>("Forge/IronV3");anvilSteel.SetTexture("_FaceTex",Resources.Load<Texture2D>("Forge/SteelV2"));anvilSteel.SetFloat("_Scale",3.2f);anvilSteel.SetFloat("_ObjectSpace",1);anvilSteel.SetFloat("_Wear",1);anvilSteel.SetFloat("_BumpStrength",.0011f);
@@ -54,7 +54,8 @@ public partial class ForgeWorld {
   RoomSolid("Floor",new Vector3(0,-.1f,-.89f),new Vector3(7.2f,.2f,6.2f));
   // Walls: one bevelled panel per wall section, inner face only, subdivided for the corner AO.
   float H=CeilingY;
-  void Wall(string name,Vector3 a,Vector3 b,int face){var c=(a+b)/2;var s=b-a;s=new Vector3(Mathf.Max(.02f,Mathf.Abs(s.x)),Mathf.Abs(s.y),Mathf.Max(.02f,Mathf.Abs(s.z)));RoomBox(name,c,s,brickWall,0,.22f,default,face);}
+  // Walls that reach the ceiling run 6 cm on into the ceiling void, so no slit shows between the wall top and the boards.
+  void Wall(string name,Vector3 a,Vector3 b,int face){if(b.y>=H-.001f)b.y=H+.06f;var c=(a+b)/2;var s=b-a;s=new Vector3(Mathf.Max(.02f,Mathf.Abs(s.x)),Mathf.Abs(s.y),Mathf.Max(.02f,Mathf.Abs(s.z)));RoomBox(name,c,s,brickWall,0,.22f,default,face);}
   // Back wall (z 2.01) with the window opening.
   Wall("Back wall",new Vector3(-RoomX,0,RoomBackZ),new Vector3(WindowMin.x,H,RoomBackZ+.02f),32);
   Wall("Back wall right of the window",new Vector3(WindowMax.x,0,RoomBackZ),new Vector3(RoomX,H,RoomBackZ+.02f),32);
@@ -66,7 +67,8 @@ public partial class ForgeWorld {
   RoomBox("Window reveal head",new Vector3((WindowMin.x+WindowMax.x)/2,WindowMax.y+.01f,RoomBackZ+.15f),new Vector3(WindowMax.x-WindowMin.x,.02f,.30f),brickWall,0,.2f,default,8);
   RoomBox("Stone window sill",new Vector3((WindowMin.x+WindowMax.x)/2,WindowMin.y-.04f,RoomBackZ+.10f),new Vector3(WindowMax.x-WindowMin.x+.16f,.08f,.44f),hearthTop,.008f,.2f);
   RoomSolid("Window sill",new Vector3((WindowMin.x+WindowMax.x)/2,WindowMin.y-.04f,RoomBackZ+.10f),new Vector3(WindowMax.x-WindowMin.x+.12f,.07f,.42f));
-  Box("Sky beyond the window",new Vector3((WindowMin.x+WindowMax.x)/2,(WindowMin.y+WindowMax.y)/2,RoomBackZ+.29f),new Vector3(WindowMax.x-WindowMin.x,WindowMax.y-WindowMin.y,.02f),daylight);
+  // The sky overlaps the reveals by 8 cm on every side, so no hairline of the clear colour shows at the joints.
+  Box("Sky beyond the window",new Vector3((WindowMin.x+WindowMax.x)/2,(WindowMin.y+WindowMax.y)/2,RoomBackZ+.29f),new Vector3(WindowMax.x-WindowMin.x+.16f,WindowMax.y-WindowMin.y+.16f,.02f),daylight);
   for(int i=0;i<6;i++)RoomBox("Wrought window bar",new Vector3(WindowMin.x+.2f+i*.22f,(WindowMin.y+WindowMax.y)/2,RoomBackZ+.20f),new Vector3(.022f,WindowMax.y-WindowMin.y,.022f),iron,.006f,.5f);
   RoomBox("Window transom",new Vector3((WindowMin.x+WindowMax.x)/2,2.42f,RoomBackZ+.20f),new Vector3(WindowMax.x-WindowMin.x,.03f,.035f),iron,.006f,.5f);
   // A soldier-course brick lintel over the window and the door (real protruding bricks, about 40).
@@ -92,6 +94,8 @@ public partial class ForgeWorld {
   foreach(var x in JoistX){RoomBox("Ceiling joist",new Vector3(x,H-.1f,(RoomBackZ+RoomFrontZ)/2),new Vector3(.12f,.2f,RoomBackZ-RoomFrontZ),ceilingWood,.01f,.5f);RoomSolid("Joist",new Vector3(x,H-.1f,(RoomBackZ+RoomFrontZ)/2),new Vector3(.11f,.19f,RoomBackZ-RoomFrontZ));}
   var rng=new System.Random(7);
   for(float z=RoomFrontZ;z<RoomBackZ-.01f;z+=.206f){float w=Mathf.Min(.198f,RoomBackZ-z);var board=RoomBox("Ceiling board",new Vector3(0,H+.018f,z+w/2),new Vector3(2*RoomX,.035f,w),ceilingWood,.004f,.45f,default,8);RoomTinted(board,Color.Lerp(C("8f8577"),Color.white,(float)rng.NextDouble()));}
+  // The floor of the loft above: dark boards seen through the 8 mm gaps between the ceiling boards (no void).
+  var backing=RoomBox("Loft floor seen between the ceiling boards",new Vector3(0,H+.04f,(RoomFrontZ+RoomBackZ)/2),new Vector3(2*RoomX,.008f,RoomBackZ-RoomFrontZ),ceilingWood,0,1.2f,default,8);RoomTinted(backing,C("4a4038"));roomNoAo.Add(backing);
   RoomSolid("Ceiling",new Vector3(0,H+.1f,-.89f),new Vector3(7.2f,.2f,6.2f));
   // Tool rail over the back of the bench.
   RoomBox("Tool rail",new Vector3(1.3f,1.78f,RoomBackZ-.05f),new Vector3(2.4f,.07f,.07f),wood,.008f,.5f);
@@ -307,11 +311,27 @@ public partial class ForgeWorld {
   var font=RoomLathe(new[]{p.y-.13f,p.y-.12f,p.y-.09f,p.y-.065f,p.y-.06f},new[]{.03f,.055f,.058f,.04f,.03f},18,true,true);RoomBuild("Brass oil font",font,brass,new Vector3(p.x,0,p.z),Quaternion.identity);
   for(int k=0;k<3;k++){float a=k*Mathf.PI*2/3;var a0=new Vector3(p.x+Mathf.Cos(a)*.05f,p.y-.08f,p.z+Mathf.Sin(a)*.05f);var a1=new Vector3(p.x+Mathf.Cos(a)*.17f,p.y+.04f,p.z+Mathf.Sin(a)*.17f);RoomBuild("Lamp frame wire",RoomTube(new[]{a0,a1},new[]{.0025f,.0025f},5,Vector3.up),sootIron,Vector3.zero,Quaternion.identity);}
  }
+ RenderTexture workshopCube;
  void BakeWorkshopReflection(){
   // One room capture at startup, not an expensive capture every frame. The box matches the room interior.
   workshopProbe=new GameObject("Workshop reflection capture").AddComponent<ReflectionProbe>();workshopProbe.transform.position=new Vector3(0,1.35f,-.6f);
   var roomCentre=new Vector3(0,CeilingY/2,(RoomBackZ+RoomFrontZ)/2);workshopProbe.center=roomCentre-workshopProbe.transform.position;workshopProbe.size=new Vector3(2*RoomX,CeilingY,RoomBackZ-RoomFrontZ);
-  workshopProbe.mode=ReflectionProbeMode.Realtime;workshopProbe.refreshMode=ReflectionProbeRefreshMode.ViaScripting;workshopProbe.timeSlicingMode=ReflectionProbeTimeSlicingMode.AllFacesAtOnce;workshopProbe.resolution=128;workshopProbe.hdr=true;workshopProbe.boxProjection=true;workshopProbe.intensity=.72f;workshopProbe.clearFlags=ReflectionProbeClearFlags.SolidColor;workshopProbe.backgroundColor=C(tuning.room.fogColor);workshopProbe.nearClipPlane=.05f;workshopProbe.farClipPlane=12;workshopProbe.RenderProbe();
+  workshopProbe.resolution=128;workshopProbe.hdr=true;workshopProbe.boxProjection=true;workshopProbe.intensity=.72f;workshopProbe.clearFlags=ReflectionProbeClearFlags.SolidColor;workshopProbe.backgroundColor=C(tuning.room.fogColor);workshopProbe.nearClipPlane=.05f;workshopProbe.farClipPlane=12;
+  // Capture the cube with a camera, synchronously, and hand it to a custom probe: the same picture in the Web player
+  // and in the editor snapshot loop (a realtime probe only refreshes inside the player's render loop, so the
+  // batchmode snapshots showed every metal without reflections). The moving objects are hidden for the capture.
+  try{
+   workshopCube=new RenderTexture(128,128,16,RenderTextureFormat.DefaultHDR){name="Workshop reflection cube",dimension=TextureDimension.Cube,useMipMap=true,autoGenerateMips=true,filterMode=FilterMode.Trilinear};workshopCube.Create();
+   var go=new GameObject("Reflection capture camera");var c=go.AddComponent<Camera>();c.enabled=false;c.transform.position=workshopProbe.transform.position;c.nearClipPlane=.05f;c.farClipPlane=12;c.clearFlags=CameraClearFlags.SolidColor;c.backgroundColor=C(tuning.room.fogColor);c.allowHDR=true;c.allowMSAA=false;
+   bool dyn=dynamicRoot!=null&&dynamicRoot.gameObject.activeSelf;if(dyn)dynamicRoot.gameObject.SetActive(false);bool hammerOn=hammer!=null&&hammer.gameObject.activeSelf;if(hammerOn)hammer.gameObject.SetActive(false);
+   bool ok=c.RenderToCubemap(workshopCube,63);
+   if(dyn)dynamicRoot.gameObject.SetActive(true);if(hammerOn)hammer.gameObject.SetActive(true);Destroy(go);
+   if(!ok)throw new System.Exception("RenderToCubemap unsupported");
+   workshopProbe.mode=ReflectionProbeMode.Custom;workshopProbe.customBakedTexture=workshopCube;
+  }catch(System.Exception e){
+   Debug.LogWarning("FORGE_ROOM reflection capture fell back to a realtime probe: "+e.Message);if(workshopCube!=null){workshopCube.Release();workshopCube=null;}
+   workshopProbe.mode=ReflectionProbeMode.Realtime;workshopProbe.refreshMode=ReflectionProbeRefreshMode.ViaScripting;workshopProbe.timeSlicingMode=ReflectionProbeTimeSlicingMode.AllFacesAtOnce;workshopProbe.RenderProbe();
+  }
  }
  /// Bake contact AO and merge the static room per material (ForgeRoomBake.cs). Skips dynamicRoot, the hammer,
  /// the scale pan, the fire, the ring and the moving bellows.

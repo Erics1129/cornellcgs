@@ -89,7 +89,9 @@ public partial class ForgeWorld {
 
  // ---------- Glow batch ----------
  void MakeGlowBatch(){
-  glowMat=new Material(Shader.Find(ForgeContract.Shaders.ParticleAdd)){name="Room glow sprites"};glowMat.SetColor("_Color",Color.white);glowMat.SetFloat("_Intensity",6);glowMat.SetFloat("_Soft",.5f);glowMat.renderQueue=3050;
+  // Forge/ParticleAdd must be in ForgeBuild's always-included shaders (nothing else references it in a player build).
+  var additive=Shader.Find(ForgeContract.Shaders.ParticleAdd);if(additive==null){Debug.LogWarning("FORGE_ROOM "+ForgeContract.Shaders.ParticleAdd+" is not in the build: no embers or flame sprites");return;}
+  glowMat=new Material(additive){name="Room glow sprites"};glowMat.SetColor("_Color",Color.white);glowMat.SetFloat("_Intensity",6);glowMat.SetFloat("_Soft",.5f);glowMat.renderQueue=3050;
   glowMesh=new Mesh{name="Room glow sprites"};glowMesh.MarkDynamic();glowV=new Vector3[GlowMaxQuads*4];glowC=new Color[GlowMaxQuads*4];glowUv=new Vector2[GlowMaxQuads*4];var tris=new int[GlowMaxQuads*6];
   for(int q=0;q<GlowMaxQuads;q++){int v=q*4;glowUv[v]=new Vector2(0,0);glowUv[v+1]=new Vector2(1,0);glowUv[v+2]=new Vector2(0,1);glowUv[v+3]=new Vector2(1,1);int t=q*6;tris[t]=v;tris[t+1]=v+2;tris[t+2]=v+1;tris[t+3]=v+1;tris[t+4]=v+2;tris[t+5]=v+3;}
   glowMesh.vertices=glowV;glowMesh.uv=glowUv;glowMesh.colors=glowC;glowMesh.triangles=tris;glowMesh.bounds=new Bounds(new Vector3(0,1.8f,-.9f),new Vector3(8,4,7));
@@ -126,10 +128,11 @@ public partial class ForgeWorld {
   for(int i=0;i<MoteCount;i++){float ph=motePhase[i]+(still?0:elapsed*.11f);var p=moteHome[i]+new Vector3(Mathf.Sin(ph*1.3f)*.25f,Mathf.Repeat(ph*.06f,1)*.6f,Mathf.Cos(ph*.9f)*.2f);float a=Mathf.Sin(Mathf.Repeat(ph*.06f,1)*Mathf.PI);Quad(p,right*.0025f,up*.0025f,new Color(.9f,.71f,.4f)*.03f*a);}
   for(int k=q;k<GlowMaxQuads;k++){int v=k*4;glowV[v]=glowV[v+1]=glowV[v+2]=glowV[v+3]=Vector3.zero;}
   glowMesh.vertices=glowV;glowMesh.colors=glowC;
-  // Bellows: the handle is pulled down over .35 s and rises back over .8 s; the bottom board follows the beam.
-  if(bellowsBeam!=null){float s=bellowsSince;float k=s<.35f?Mathf.SmoothStep(0,1,s/.35f):s<1.15f?1-Mathf.SmoothStep(0,1,(s-.35f)/.8f):0;k*=Mathf.Clamp01(bellowsStrength);
-   float lever=(bellowsHandleRest-bellowsPivot).magnitude;bellowsBeam.localRotation=Quaternion.AngleAxis(-Mathf.Asin(Mathf.Clamp(.12f*k/lever,-1,1))*Mathf.Rad2Deg,bellowsAxis);
-   bellowsHandle.localPosition=bellowsHandleRest+Vector3.down*.12f*k;bellowsLift.localPosition=bellowsLiftRest+Vector3.up*.045f*k;
-   bellowsBottom.localPosition=bellowsBottomRest+Vector3.up*.045f*k;bellowsLeather.localScale=new Vector3(1,1-.045f*k/.155f,1);}
+  // Bellows: the handle follows the hand's stroke (down and back up, ForgeFlicker.HandlePull); the beam rocks on its
+  // pin (lever ratio .375), the lifting chain and the bottom board rise, the leather folds.
+  if(bellowsBeam!=null){float pull=ForgeFlicker.HandlePull(bellowsSince,room)*Mathf.Clamp01(bellowsStrength)*room.bellowsPullCm/100;float lift=pull*.375f;
+   float lever=(bellowsHandleRest-bellowsPivot).magnitude;bellowsBeam.localRotation=Quaternion.AngleAxis(-Mathf.Asin(Mathf.Clamp(pull/lever,-1,1))*Mathf.Rad2Deg,bellowsAxis);
+   bellowsHandle.localPosition=bellowsHandleRest+Vector3.down*pull;bellowsLift.localPosition=bellowsLiftRest+Vector3.up*lift;
+   bellowsBottom.localPosition=bellowsBottomRest+Vector3.up*lift;bellowsLeather.localScale=new Vector3(1,1-lift/.155f,1);}
  }
 }

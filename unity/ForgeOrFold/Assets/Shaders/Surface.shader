@@ -102,41 +102,42 @@ Shader "Forge/Surface" {
      base*=1-soot*.82;smooth*=1-soot*.7;
     }
     // Anvil (object space, metres from the face-top centre; +x toward the horn). The body is black forge scale over
-    // iron with rust in the hollows; the face is hardened steel: a brushed, hammer-dimpled working zone in the middle,
-    // dark oxide and a little rust toward the margins, scale dust off the striking zone, chipped long edges, worn
-    // bright edge radii, and the hardy (square) and pritchel (round) holes at the heel.
+    // iron (satin, near-black, rust in a few hollows); the face is hardened tool steel: a ground working zone over most
+    // of its length (brushed and scratched, a few hammer dings), dark oxide toward the margins and round the holes,
+    // scale dust where flakes settle, chipped long edges, worn bright edge radii, and the hardy (square) and pritchel
+    // (round) holes at the heel. The horn's crown and the step are burnished where stock is bent over them.
     if(_Wear>.5){
      float3 op=i.mapPos;float top=smoothstep(.8,.95,mn.y)*step(-.009,op.y);
-     float rim=(1-top)*smoothstep(.15,.75,mn.y)*step(-.016,op.y)*step(op.x,.395);
+     // Worn edge radius: the bevel and the top 6 mm of the face plate's sides.
+     float rim=(1-top)*step(-.006,op.y)*step(abs(op.x),.392)*step(abs(op.z),.152);
      float mottle=Noise(op.xy*14+op.z*9)*.6+Noise(op.yz*41+op.x*17)*.4;
-     float rust=smoothstep(.68,.92,Fbm(op.xz*7+op.y*11+5.1))*.45;
-     float3 scale=float3(.052,.050,.048)*(.65+.7*height)*(.8+.4*mottle);
-     base=lerp(scale,float3(.085,.048,.03)*(.75+.5*height),rust);metal=lerp(.55,.25,rust);smooth=lerp(.36,.16,rust)*(.75+.5*height);
-     // Horn top and step: lightly burnished by use.
-     float burnish=smoothstep(.55,.92,mn.y)*step(.40,op.x)*(1-top)*(.55+.45*Noise(op.xz*19+4.2));
-     float3 steel=float3(.50,.50,.51)*(.8+.28*height);
-     base=lerp(base,steel*.32,burnish);metal=lerp(metal,.8,burnish);smooth=lerp(smooth,.42,burnish);
-     // Worn edge radii catch a thin highlight round the face.
-     base=lerp(base,steel*.78,rim);metal=lerp(metal,.9,rim);smooth=lerp(smooth,.52,rim);
-     // Ground and scratched tool steel from the scan, projected on the face (sampled in uniform control flow).
-     float detail=dot(tex2D(_FaceTex,op.xz*2.6+float2(.37,.11)).rgb,Lum)/.055;
+     float rust=smoothstep(.72,.95,Fbm(op.xz*7+op.y*11+5.1))*.4;
+     float3 scale=float3(.024,.024,.026)*(.7+.6*height)*(.8+.4*mottle);
+     base=lerp(scale,float3(.055,.032,.02)*(.75+.5*height),rust);metal=lerp(.72,.2,rust);smooth=lerp(.46,.18,rust)*(.8+.4*height);
+     float3 steel=float3(.40,.40,.41)*(.85+.3*height);
+     float crown=smoothstep(.80,.97,mn.y)*step(.395,op.x)*(1-top)*(.6+.4*Noise(op.xz*19+4.2));
+     base=lerp(base,steel*.55,crown);metal=lerp(metal,.9,crown);smooth=lerp(smooth,.5,crown);
+     base=lerp(base,steel*.85,rim);metal=lerp(metal,.92,rim);smooth=lerp(smooth,.55,rim);
+     // Ground and scratched tool steel from the scan, one tile over the whole face (no seam; uniform control flow).
+     float detail=dot(tex2D(_FaceTex,op.xz*1.2+.5).rgb,Lum)/.055;
      if(top>0){
-      float blob=Fbm(op.xz*6+3.1);float2 warp=float2(Fbm(op.xz*2.3+7.7),Fbm(op.xz*2.3+1.3))-.5;
-      float2 q=float2((op.x-.03)/.34,op.z/.12)+warp*.55;float d=length(q);
-      float polish=(1-smoothstep(.15,1.1,d+(blob-.5)*.6))*(.75+.25*Fbm(op.xz*14+9.1));
+      // Working zone: a rounded rectangle over most of the face, its edge broken up by noise.
+      float2 warp=float2(Fbm(op.xz*3.1+7.7),Fbm(op.xz*3.1+1.3))-.5;
+      float2 qd=abs(op.xz-float2(.03,0))-float2(.29,.085);float sd=length(max(qd,0))+min(max(qd.x,qd.y),0)-.03;
+      float polish=(1-smoothstep(-.02,.035,sd+warp.x*.05+(Fbm(op.xz*9+3.1)-.5)*.03))*(.8+.2*Fbm(op.xz*14+9.1));
       float brush=Noise(float2(op.x*9,op.z*420))*.5+Noise(float2(op.x*3+7,op.z*170))*.5;
-      float3 oxide=float3(.062,.060,.057)*(.6+.8*height)*(.8+.4*blob);
-      float edgeD=min(.15-abs(op.z),.39-abs(op.x));float margin=1-smoothstep(0,.06,edgeD);
-      float3 face=lerp(oxide,steel*clamp(.62+.3*detail,.35,1.25)*(.94+.1*brush),polish);
-      face=lerp(face,float3(.095,.058,.038)*(.7+.6*blob),margin*smoothstep(.5,.85,Noise(op.xz*16+2.3))*.65);
-      float fm=lerp(.62,.95,polish),fs=lerp(.30,clamp(.62+.06*brush-.07*detail,.4,.7),polish);
+      float3 oxide=float3(.045,.043,.041)*(.7+.6*height)*(.85+.3*Fbm(op.xz*6+2));
+      float3 face=lerp(oxide,steel*clamp(.75+.25*detail,.5,1.15)*(.94+.1*brush),polish);
+      // Rust bloom and a brown temper tint in the oxide margin.
+      face=lerp(face,float3(.07,.045,.03)*(.7+.6*Fbm(op.xz*5)),(1-polish)*smoothstep(.55,.85,Noise(op.xz*16+2.3))*.5);
+      float fm=lerp(.6,.96,polish),fs=lerp(.32,clamp(.6+.05*brush-.05*detail,.45,.66),polish);
       // Fine scratches across the working zone and soft hammer dings.
       float2 sr=float2(op.x*.94+op.z*.34,op.z*.94-op.x*.34);
-      float scratch=smoothstep(.88,1,Noise(float2(sr.x*6,sr.y*340)+Noise(op.xz*5)*3))*polish;fs-=scratch*.14;face+=scratch*.03;
-      float ding=smoothstep(.76,.95,Noise(op.xz*60+11.3))*polish;fs-=ding*.12;
+      float scratch=smoothstep(.88,1,Noise(float2(sr.x*6,sr.y*340)+Noise(op.xz*5)*3))*polish;fs-=scratch*.12;face+=scratch*.025;
+      float ding=smoothstep(.76,.95,Noise(op.xz*60+11.3))*polish;fs-=ding*.1;face*=1-ding*.15;
       // Scale dust settles off the striking zone: fine dark flecks.
       float dust=(1-polish)*smoothstep(.55,.85,Noise(op.xz*31+7.3))*.6+(1-polish*.7)*smoothstep(.86,.97,Noise(op.xz*140+2.9))*.5;
-      face=lerp(face,float3(.035,.031,.028),saturate(dust));fs=lerp(fs,.14,saturate(dust));fm=lerp(fm,.3,saturate(dust));
+      face=lerp(face,float3(.022,.02,.019),saturate(dust));fs=lerp(fs,.14,saturate(dust));fm=lerp(fm,.3,saturate(dust));
       base=lerp(base,face,top);metal=lerp(metal,fm,top);smooth=lerp(smooth,fs,top);
       // The scan's blotches are colour, not height: the ground face stays flat (no texture relief).
       n=ForgeSafeNormal(lerp(n,geo,top));
@@ -157,8 +158,8 @@ Shader "Forge/Surface" {
       float hardy=max(abs(op.x+.30),abs(op.z))-.0125,pritchel=length(op.xz-float2(-.215,0))-.008;
       float hole=min(hardy,pritchel);
       float inside=top*(1-smoothstep(-.0006,.0006,hole));float lip=top*(1-smoothstep(0,.003,abs(hole)))*(1-inside);
-      base=lerp(base,float3(.006,.005,.005),inside);smooth=lerp(smooth,.2,inside);metal=lerp(metal,.3,inside);ao*=1-inside*.9;
-      base=lerp(base,steel*.95,lip*.55);smooth=lerp(smooth,.6,lip*.55);metal=lerp(metal,.92,lip*.55);
+      base=lerp(base,float3(.004,.004,.004),inside);smooth=lerp(smooth,.2,inside);metal=lerp(metal,.3,inside);ao*=1-inside*.9;
+      base=lerp(base,steel*.9,lip*.5);smooth=lerp(smooth,.58,lip*.5);metal=lerp(metal,.92,lip*.5);
      }
     }
     if(_Pulse>.5){

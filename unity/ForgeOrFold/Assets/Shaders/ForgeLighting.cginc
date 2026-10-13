@@ -38,6 +38,8 @@ float4 _ForgeAmbient;
 // Hearth bounce: xyz = centre of the lit hearth front, w > 0 = on; _ForgeBounceColor = its radiance, set every frame
 // with the fire's flicker (a less saturated amber than the fire itself: it has bounced off brick, stone and wood).
 float4 _ForgeFireBounce,_ForgeBounceColor;
+// The reflection capture's share of the hearth flicker, as an offset (0 = steady; the capture itself is static).
+float _ForgeEnvFlicker;
 // Moving occluders (strike-feel: hammer head, hands, anvil knife): xyz centre, w radius, 0 = off.
 float4 _ForgeOccluders[4];
 // Where occluder shadows apply: xyz centre (the anvil), w radius (about 1 m). w = 0 turns them off.
@@ -122,9 +124,9 @@ float3 ForgeCandle(float4 position,float4 radiance,float3 p,float3 n,float3 base
 float3 ForgeLitAO(float3 base,float metal,float smooth,float3 p,float3 n,float3 view,float ao,float aoDirect){
  float rough=max(.14,1-smooth);
  float3 fill=_ForgeAmbient.a>0?_ForgeAmbient.rgb:float3(.13,.11,.09);
- float3 ambient=max(fill,ShadeSH9(float4(n,1)))+ForgeFireBounce(p,n);
- // A restrained room fill keeps dark metal readable when a close-up probe direction is black.
- float3 color=base*ambient*(1-metal*.22)*ao;
+ // A restrained room fill keeps dark metal readable when a close-up probe direction is black. The hearth bounce is
+ // diffuse light: dielectrics take it here, metals see it in the reflection capture (which holds the lit hearth).
+ float3 color=base*(max(fill,ShadeSH9(float4(n,1)))*(1-metal*.22)+ForgeFireBounce(p,n)*(1-metal))*ao;
  float direct=lerp(1,ao,aoDirect);
  float3 glowPos=_ForgeGlowPos.w>0?_ForgeGlowPos.xyz:p+n;
  float4 occ=ForgeOccluderShadow(p,n,_ForgeKeyPosition.xyz,_ForgeFirePosition.xyz,glowPos);
@@ -150,7 +152,7 @@ float3 ForgeLitAO(float3 base,float metal,float smooth,float3 p,float3 n,float3 
  float4 env=UNITY_SAMPLE_TEXCUBE_LOD(unity_SpecCube0,reflected,rough*6);
  float3 fresnel=lerp(float3(.04,.04,.04),base,metal);
  fresnel+=(1-fresnel)*pow(1-saturate(dot(n,view)),5);
- color+=DecodeHDR(env,unity_SpecCube0_HDR)*fresnel*(.5+.5*smooth)*ao;
+ color+=DecodeHDR(env,unity_SpecCube0_HDR)*fresnel*(.5+.5*smooth)*ao*(1+_ForgeEnvFlicker);
  return max(0,color);
 }
 /// FROZEN signature: lighting with no static AO.

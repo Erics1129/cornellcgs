@@ -49,6 +49,9 @@ static class ForgeFlickerTests {
   float top=0;double topAt=0;for(double s=0;s<3;s+=.01){float b=ForgeFlicker.Bellows(s,1,r);if(b>top){top=b;topAt=s;}}
   Check(Math.Abs(top-r.bellowsBoost)<.005f&&topAt>=.5&&topAt<=.6,$"swell peaks at {top} at {topAt} s");
   Check(ForgeFlicker.Bellows(3,1,r)<.05f*r.bellowsBoost+.02f,"swell settles");Check(ForgeFlicker.Bellows(.6,.5f,r)<ForgeFlicker.Bellows(.6,1,r),"strength scales it");
+  // The handle follows strike-feel's hand: one sin arch over bellowsStrokeS (.42 s), fully down at the middle, back at the end.
+  Check(ForgeFlicker.HandlePull(0,r)==0&&Math.Abs(ForgeFlicker.HandlePull(r.bellowsStrokeS/2,r)-1)<1e-4&&ForgeFlicker.HandlePull(r.bellowsStrokeS+.01,r)==0&&ForgeFlicker.HandlePull(-.1,r)==0,"handle pull arch");
+  Check(Math.Abs(r.bellowsStrokeS-.42f)<1e-6&&Math.Abs(r.bellowsPullCm-9)<1e-6,"handle stroke defaults match strike-feel (.42 s, 9 cm)");
 
   // ---- Quality governor.
   // Steady 120 Hz: stays at tier 0 and learns an 8.3 ms budget.
@@ -72,6 +75,8 @@ static class ForgeFlickerTests {
   {var g=new ForgeQualityGovernor(r,(int)r.phoneStartTier);Check(g.Tier==2,"phones start at tier 2");Run(g,120,8.33f);Check(g.Tier==2,"no climb above the start tier");}
   // Restart during the warm-up (the phone view class arrives after boot): new start tier, clean history.
   {var g=new ForgeQualityGovernor(r,0);Run(g,1,8.33f);Check(g.Seconds>.9&&g.Seconds<1.1,"seconds fed");g.Restart(2);Check(g.Tier==2&&g.StartTier==2&&g.Seconds==0,"restart sets the start tier");Run(g,60,8.33f);Check(g.Tier==2,"restarted governor holds its start tier");}
+  // QA pin (Qa('tierN')): a pinned governor keeps measuring but never changes the tier.
+  {var g=new ForgeQualityGovernor(r,2);g.Pinned=true;Run(g,10,8.33f);Run(g,30,40);Check(g.Tier==2&&g.Drops==0,"a pinned tier never drops");Check(g.P90Ms>30,"a pinned governor still measures the p90: "+g.P90Ms);}
   // MSAA choice: support, pixel budget, tiers.
   Check(ForgeQualityGovernor.MsaaFor(0,4,1.3f,2.5f)==4,"tier 0 MSAA 4x");Check(ForgeQualityGovernor.MsaaFor(0,4,3.7f,2.5f)==2,"pixel budget caps 4x at 2.5 Mpx");
   Check(ForgeQualityGovernor.MsaaFor(1,8,1,2.5f)==2,"tier 1 MSAA 2x");Check(ForgeQualityGovernor.MsaaFor(0,1,1,2.5f)==1&&ForgeQualityGovernor.MsaaFor(1,1,1,2.5f)==1,"unsupported MSAA falls back to FXAA");

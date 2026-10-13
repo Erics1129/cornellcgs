@@ -9,14 +9,23 @@ using System;
  // Fire flicker on _ForgeFireColor: band-limited noise around flickerHz plus a faster component.
  public float flickerAmp=.18f, flickerHz=3, flicker2Amp=.03f, flicker2Hz=8, reducedFlickerAmp=.04f, reducedFlickerHz=1;
  public float fireScale=1.25f, ambientScale=.6f, bellowsBoost=.25f, bellowsDelayS=.3f, coalPulseC=950;
+ // Bellows handle stroke from a Bellows() call: down and back up as sin(pi t / bellowsStrokeS), bellowsPullCm deep.
+ // Keep equal to strike.bellowsStrokeS / strike.bellowsPullCm (strike-feel's right hand follows the same curve).
+ public float bellowsStrokeS=.42f, bellowsPullCm=9;
  // All intensities are final linear radiance in the shared ForgeLighting.cginc lamp model (falloff 1 / (1 + .4 d^2)).
  // Hearth light (the dominant warm source): colour, radiance before fireScale, and where it sits above the firebed.
- public string fireColor="ff8a3a"; public float fireIntensity=4.0f, fireLift=.24f;
+ // The light's centre sits .32 m over the coals (the bed plus its flames). Lamp 3.2 / fire 4.6 put about half of the
+ // light on the work on the fire, so the work breathes with it (room.mjs 'flicker': face 8.9%, bench 18%, floor 26%
+ // peak to peak, linear luminance) while the total stays within +/- 15% of the pre-upgrade rig (room.mjs 'lamp': x1.06).
+ public string fireColor="ff8a3a"; public float fireIntensity=4.6f, fireLift=.32f;
  // Hearth bounce: the fire's light thrown back by the hearth front and floor, as a warm wrapped fill in the ambient
  // term (a fraction of the fire radiance; it flickers with the fire, so the whole room breathes).
  public float fireBounce=.32f; public string bounceColor="ffc093";
  // Hanging oil lamp (the key): colour, radiance, shade cone (inner and outer half-angles, degrees).
- public string lampColor="ffd29a"; public float lampIntensity=5.0f, lampConeInner=38, lampConeOuter=72, lampUpSpill=.12f;
+ public string lampColor="ffd29a"; public float lampIntensity=3.2f, lampConeInner=38, lampConeOuter=72, lampUpSpill=.12f;
+ // The reflection capture is static, but most of what it shows is lit by the hearth: this share of it breathes
+ // with the fire's flicker (so polished steel flickers with the room instead of holding still).
+ public float envFireShare=.45f;
  // Cool window spill (rim) and the dim door sconce.
  public string rimColor="a4b8d2"; public float rimIntensity=3.2f;
  public string sconceColor="ffb45e"; public float sconceIntensity=.9f;
@@ -43,8 +52,8 @@ using System;
   flickerAmp=ForgeTuning.Fit(flickerAmp,0,.5f,.18f);flickerHz=ForgeTuning.Fit(flickerHz,.2f,12,3);flicker2Amp=ForgeTuning.Fit(flicker2Amp,0,.2f,.03f);flicker2Hz=ForgeTuning.Fit(flicker2Hz,.2f,20,8);
   // Reduced motion: flicker at most 4% (WCAG / invariant), at 1 Hz or slower.
   reducedFlickerAmp=ForgeTuning.Fit(reducedFlickerAmp,0,.04f,.04f);reducedFlickerHz=ForgeTuning.Fit(reducedFlickerHz,.05f,1,1);
-  fireScale=ForgeTuning.Fit(fireScale,0,4,1.25f);ambientScale=ForgeTuning.Fit(ambientScale,0,3,.6f);bellowsBoost=ForgeTuning.Fit(bellowsBoost,0,1,.25f);bellowsDelayS=ForgeTuning.Fit(bellowsDelayS,0,2,.3f);
-  fireIntensity=ForgeTuning.Fit(fireIntensity,0,40,4);fireBounce=ForgeTuning.Fit(fireBounce,0,1,.32f);fireLift=ForgeTuning.Fit(fireLift,0,1,.24f);lampIntensity=ForgeTuning.Fit(lampIntensity,0,40,5.0f);rimIntensity=ForgeTuning.Fit(rimIntensity,0,40,3.2f);sconceIntensity=ForgeTuning.Fit(sconceIntensity,0,10,.9f);
+  fireScale=ForgeTuning.Fit(fireScale,0,4,1.25f);ambientScale=ForgeTuning.Fit(ambientScale,0,3,.6f);bellowsBoost=ForgeTuning.Fit(bellowsBoost,0,1,.25f);bellowsDelayS=ForgeTuning.Fit(bellowsDelayS,0,2,.3f);bellowsStrokeS=ForgeTuning.Fit(bellowsStrokeS,.1f,1,.42f);bellowsPullCm=ForgeTuning.Fit(bellowsPullCm,0,30,9);
+  fireIntensity=ForgeTuning.Fit(fireIntensity,0,40,4.6f);fireBounce=ForgeTuning.Fit(fireBounce,0,1,.32f);fireLift=ForgeTuning.Fit(fireLift,0,1,.32f);lampIntensity=ForgeTuning.Fit(lampIntensity,0,40,3.2f);envFireShare=ForgeTuning.Fit(envFireShare,0,1,.45f);rimIntensity=ForgeTuning.Fit(rimIntensity,0,40,3.2f);sconceIntensity=ForgeTuning.Fit(sconceIntensity,0,10,.9f);
   lampConeInner=ForgeTuning.Fit(lampConeInner,1,89,38);lampConeOuter=ForgeTuning.Fit(lampConeOuter,lampConeInner+1,90,72);lampUpSpill=ForgeTuning.Fit(lampUpSpill,0,1,.12f);
   flashDecay=ForgeTuning.Fit(flashDecay,1,60,12);aoStrength=ForgeTuning.Fit(aoStrength,0,1,.85f);aoDirect=ForgeTuning.Fit(aoDirect,0,1,.55f);
   embersMax=ForgeTuning.Fit(embersMax,0,30,30);embersPerS=ForgeTuning.Fit(embersPerS,0,30,6);embersPerSTier2=ForgeTuning.Fit(embersPerSTier2,0,embersPerS,3);smokeEveryS=ForgeTuning.Fit(smokeEveryS,.1f,10,.55f);
@@ -91,6 +100,8 @@ public static class ForgeFlicker {
  }
  static double Clamp1(double v)=>v>1?1:v<-1?-1:v;
 
+ /// Bellows handle pull (0..1) `since` seconds after a stroke began: one sin(pi t / bellowsStrokeS) arch.
+ public static float HandlePull(double since,ForgeRoomTuning r){if(since<0||since>r.bellowsStrokeS)return 0;return (float)Math.Sin(since/r.bellowsStrokeS*Math.PI);}
  /// Bellows swell (0..bellowsBoost x strength) `since` seconds after a stroke: delayed bellowsDelayS,
  /// a .25 s rise, then a 1.1 s exponential settle. Zero before the delay.
  public static float Bellows(double since,float strength,ForgeRoomTuning r){
@@ -111,6 +122,8 @@ public sealed class ForgeQualityGovernor {
  public int Drops{get;private set;}
  public int Recoveries{get;private set;}
  public float BudgetMs{get;private set;}
+ /// QA: a pinned governor keeps measuring (P90Ms, MedianMs) but never changes the tier.
+ public bool Pinned;
  /// The most recent p90 and median over the window (ms), for the 1 Hz perf message.
  public float P90Ms{get;private set;}
  public float MedianMs{get;private set;}
@@ -143,7 +156,7 @@ public sealed class ForgeQualityGovernor {
    second.Clear();secondClock=0;secondHitch=false;
    int keep=(int)Math.Round(r.tierWindowS);while(windows.Count>keep)windows.RemoveAt(0);
    if(windows.Count>0){var all=new System.Collections.Generic.List<float>();foreach(var w in windows)all.AddRange(w);P90Ms=Percentile(all,.9f);MedianMs=Median(all);}
-   if(windows.Count>=keep){
+   if(windows.Count>=keep&&!Pinned){
     if(P90Ms>r.tierDropRatio*BudgetMs&&Tier<3){Tier++;Drops++;changed=true;windows.Clear();recoverClock=0;lastChange=time;}
     else if(P90Ms<r.tierRecoverRatio*BudgetMs&&Tier>startTier&&Recoveries<r.tierMaxRecoveries){
      recoverClock+=1;double need=r.tierRecoverS*Math.Pow(2,Recoveries);
