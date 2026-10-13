@@ -2,9 +2,11 @@
 .ff-page>.sp-bar,.ff-page>.sp-footer{display:none}
 .ff-page button,.ff-page a{touch-action:manipulation}
 .ff-page button{font:inherit;color:inherit;border:1px solid var(--ff-line);background:#241c15df;border-radius:4px;cursor:pointer;transition:background .16s,transform .16s,border-color .16s}
-.ff-page button:hover:not(:disabled){background:#4d3928;border-color:#dbc39b80}
-.ff-page button:active:not(:disabled){transform:scale(.96)}
+.ff-page button:hover:not(:disabled):not(:where([aria-disabled=true])){background:#4d3928;border-color:#dbc39b80}
+.ff-page button:active:not(:disabled):not(:where([aria-disabled=true])){transform:scale(.96)}
+/* Dimming is for actions that are truly unavailable. Busy because of a swing, a sale or heating: aria-disabled, full opacity. */
 .ff-page button:disabled{opacity:.38;cursor:default}
+.ff-page button[aria-disabled=true]{cursor:default}
 .ff-page button:focus-visible,.ff-page a:focus-visible,.ff-page input:focus-visible{outline:2px solid #f7d397;outline-offset:4px}
 .ff-page svg:not(.ff-portrait){width:21px;height:21px;flex-shrink:0}
 .ff-page kbd{font:10px inherit;border:1px solid #ffffff30;border-radius:4px;padding:3px 5px;color:#b7bcb2}
@@ -56,14 +58,10 @@
 .ff-quick-tools button b{position:absolute;right:5px;top:4px;font-size:9px;color:#d6ba86}
 .ff-quick-tools small{font-size:9px}
 .ff-quick-tools svg{color:#d5c4a3}
-.ff-feedback{position:absolute;left:50%;top:39%;transform:translateX(-50%);text-align:center;pointer-events:none;z-index:2;display:grid;justify-items:center;gap:10px}
-.ff-outcome{display:flex;align-items:center;gap:12px;animation:ff-result 1.8s both;color:#e5d5b7;text-shadow:0 2px 18px #111b14}
-.ff-outcome b{font-family:Georgia,serif;font-size:36px;font-weight:400}
-.ff-outcome>span{font-size:32px;color:#efc67e}
-.ff-outcome-shatter{color:#ffb5a1}
-.ff-outcome-chip{color:#e0b4a1}
-.ff-outcome-dull{color:#c6c7bf}
-.ff-heating{display:flex;position:relative;align-items:center;gap:9px;padding:13px 19px;border-radius:8px;overflow:hidden;background:#201d15d9;font-size:13px;color:#f9cb7e}
+.ff-feedback{position:absolute;inset:0;text-align:center;pointer-events:none;z-index:2}
+.ff-feedback>.ff-heating,.ff-feedback>.ff-toast{position:absolute;left:50%;top:var(--ff-toast-top,31%);transform:translateX(-50%);white-space:nowrap}
+.ff-feedback>.ff-heating+.ff-toast{top:calc(var(--ff-toast-top,31%) + 52px)}
+.ff-heating{display:flex;align-items:center;gap:9px;padding:13px 19px;border-radius:8px;overflow:hidden;background:#201d15d9;font-size:13px;color:#f9cb7e}
 .ff-heat-bar{position:absolute;bottom:0;left:0;width:100%;height:2px;background:#efa95a;transform-origin:left;animation:ff-heat 2s linear both}
 .ff-toast{background:#291e14ec;border:1px solid var(--ff-line);padding:10px 16px;border-radius:8px;font-size:12px;max-width:300px}
 .ff-bottom{position:absolute;bottom:18px;left:50%;width:min(720px,calc(100% - 48px));transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:10px}
@@ -100,7 +98,7 @@
 .ff-touch-controls{display:none}
 .ff-warning{position:absolute;bottom:0;left:20px;font-size:10px;color:#e3b695}
 .ff-scene-error{position:absolute;z-index:6;inset:30% 15% auto;text-align:center;padding:24px;background:#222a22;border:1px solid var(--ff-line);border-radius:12px}
-.ff-unity-loading{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px;background:linear-gradient(#07100b44,#07100b88),url('/assets/forge/generated/workshop-v2.png') center/cover;z-index:4;text-shadow:0 2px 20px #000}
+.ff-unity-loading{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px;background:linear-gradient(#07100b44,#07100b88),url('/assets/forge/generated/loading-v3.webp') center/cover,#16120e;z-index:4;text-shadow:0 2px 20px #000}
 .ff-unity-loading>span{font-size:12px;letter-spacing:.4em;color:#e4c79e}
 .ff-unity-loading strong{font-family:Georgia,serif;font-weight:400;font-size:clamp(28px,5vw,64px)}
 .ff-unity-loading p{font-size:12px;color:#dedccc}
@@ -239,9 +237,6 @@ to{opacity:1;transform:none}
 .ff-quick-tools button>svg{width:16px!important;height:16px!important}
 .ff-quick-tools small{font-size:8px}
 .ff-quick-tools button b{font-size:8px;right:3px;top:3px}
-.ff-feedback{top:32%;width:max-content;max-width:85%}
-.ff-outcome b{font-size:27px}
-.ff-outcome>span{font-size:24px}
 .ff-bottom{bottom:max(12px,env(safe-area-inset-bottom));width:calc(100% - 20px);gap:5px}
 .ff-knives{gap:5px;padding:5px 2px}
 .ff-knife-card{width:79px;min-width:79px;height:69px;padding:5px 6px}
@@ -298,16 +293,18 @@ to{opacity:1;transform:none}
 .ff-flow{min-height:18px;font-size:9px!important}
 .ff-touch-controls{bottom:24px;left:18px;right:18px}
 .ff-buyer{bottom:145px;font-size:9px!important;right:18px;padding:8px}
-.ff-feedback{top:30%}
-.ff-outcome b{font-size:25px}
 .ff-control-hint{display:none}
 .ff-portrait{max-width:100%}
 }
 
 @media(prefers-reduced-motion:reduce){.ff-page *{animation-duration:.001ms!important;transition-duration:.001ms!important}
-.ff-outcome{animation:none!important;opacity:1}
+.ff-outcome,.ff-outcome *{animation:none!important;opacity:1}
 .ff-heat-bar{animation:none!important}
 }
+/* The Motion setting (Reduced / Off) applies the same calm presentation as the system preference. */
+.ff-page.is-calm *{animation-duration:.001ms!important;transition-duration:.001ms!important}
+.ff-page.is-calm .ff-outcome,.ff-page.is-calm .ff-outcome *{animation:none!important;opacity:1}
+.ff-page.is-calm .ff-heat-bar{animation:none!important}
 
 /* Trading stays inside the workshop: prices before the action, feedback after it. */
 .ff-wallet{position:relative;display:inline-flex;align-items:center;gap:7px;font-variant-numeric:tabular-nums;white-space:nowrap}
@@ -390,3 +387,206 @@ to{opacity:1;transform:none}
 @media(prefers-reduced-motion:reduce){.ff-main.is-flow-ready .ff-flow{animation:none}.ff-flow .ff-flow-time{transition:none}}
 
 @media(max-width:360px){.ff-topbar{padding-inline:7px;gap:2px}.ff-topbar h1{font-size:8px;letter-spacing:.06em}.ff-icon-button{width:27px}.ff-stats{gap:9px;padding-inline:2px}.ff-stats b{font-size:13px}.ff-tools{gap:0}.ff-topbar .ff-icon-button svg{width:18px;height:18px}}
+
+/* ---------------------------------------------------------------------------------------------
+   Feel upgrade (web-feel): band edges for Insets, key feedback, outcome callouts, Flow and Shatter
+   edges, survival line, docked trays, phone portrait work band, landscape rails, settings.
+   --------------------------------------------------------------------------------------------- */
+/* Which canvas edge each HUD block covers (read by unity.ts measureBands for Insets). */
+.ff-topbar{--ff-edge:top}
+.ff-blade-info{--ff-edge:top}
+.ff-bottom{--ff-edge:bottom}
+.ff-quick-tools{--ff-edge:right}
+
+/* A refused press: the Forge key shakes 2 px for 120 ms (no dimming). A held press: a short glow. */
+.ff-strike.is-refused,.ff-page .is-nudged{animation:ff-refuse .12s linear}
+.ff-actionbar .ff-strike.is-queued{animation:ff-queued .26s ease-out}
+@keyframes ff-refuse{0%,100%{translate:0}25%{translate:-2px}50%{translate:2px}75%{translate:-1px}}
+@keyframes ff-queued{0%{box-shadow:inset 0 1px #fff5,0 0 0 0 #ffe2a2a0}100%{box-shadow:inset 0 1px #fff5,0 0 0 9px #ffe2a200}}
+
+/* Outcome callouts: one look per outcome, placed above the blade from the anvil label. */
+.ff-callout{position:absolute;translate:-50% -50%;display:flex;flex-direction:column;align-items:center;gap:3px;white-space:nowrap;line-height:1;text-shadow:0 2px 14px #000d,0 0 2px #000;animation:ff-callout-life var(--hold,900ms) linear both}
+.ff-callout>b{font-family:Georgia,serif;font-weight:400;font-size:1em;letter-spacing:-.01em}
+.ff-callout>span{font-size:.78em;font-weight:600;font-variant-numeric:tabular-nums}
+.ff-callout>small{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:#eadfca;opacity:.86}
+.ff-outcome-good{font-size:34px;color:#f2d9a6}
+.ff-outcome-good>span{animation:ff-rise .7s ease-out both}
+.ff-outcome-perfect{font-size:42px;color:#ffd36b;text-shadow:0 0 18px #ff9d2e88,0 2px 14px #000c}
+.ff-outcome-perfect>b,.ff-outcome-perfect>span{animation:ff-pop .24s ease-out both}
+.ff-outcome-chip{font-size:34px;color:#ff6a55}
+.ff-outcome-chip>b,.ff-outcome-chip>span{animation:ff-chip-shake .22s linear both}
+.ff-outcome-dull{font-size:28px;color:#a7aca6}
+.ff-outcome-shatter{font-size:46px;color:#ff3b2f;flex-direction:row;flex-wrap:wrap;justify-content:center;column-gap:.32em;max-width:92vw}
+.ff-outcome-shatter>span{font-size:1em;font-weight:500}
+.ff-outcome-shatter>small{flex-basis:100%;text-align:center;margin-top:4px}
+.ff-outcome-evolved{font-size:40px;color:#f5c542;text-shadow:0 0 16px #f5b64266,0 2px 14px #000c}
+.ff-outcome-evolved>small{color:#ffe6a3}
+@keyframes ff-callout-life{0%{opacity:0}5%{opacity:1}80%{opacity:1}100%{opacity:0}}
+@keyframes ff-rise{from{translate:0 0}to{translate:0 -14px}}
+@keyframes ff-pop{0%{scale:1}45%{scale:1.14}100%{scale:1}}
+@keyframes ff-chip-shake{0%,100%{translate:0}16%{translate:-5px}33%{translate:5px}50%{translate:-5px}66%{translate:5px}83%{translate:-5px}}
+
+/* Flow: an edge glow that pulses at most once per second (the world ring is gone). Shatter: a local
+   red vignette at the edges only (well under .15 luminance change), never a full-screen flash. */
+.ff-flow-edge{position:absolute;inset:0;pointer-events:none;z-index:1;box-shadow:inset 0 0 60px rgba(80,230,220,.35);opacity:.35;animation:ff-flow-pulse .7s ease-out both}
+@keyframes ff-flow-pulse{0%{opacity:.35}25%{opacity:1}100%{opacity:.35}}
+.ff-shatter-vignette{position:absolute;inset:0;pointer-events:none;z-index:1;background:radial-gradient(ellipse at 50% 55%,transparent 52%,rgba(150,18,8,.34) 100%);animation:ff-shatter-edge 1.5s ease-out both}
+@keyframes ff-shatter-edge{0%{opacity:0}12%{opacity:1}70%{opacity:.8}100%{opacity:0}}
+.ff-page.is-calm .ff-flow-edge{animation:none!important;opacity:.5}
+.ff-page.is-calm .ff-shatter-vignette{animation:none!important;opacity:.7}
+@media(prefers-reduced-motion:reduce){.ff-flow-edge{animation:none!important;opacity:.5}.ff-shatter-vignette{animation:none!important;opacity:.7}}
+
+/* The board: survival over the next strikes and the last outcomes; the held loss after a Shatter. */
+.ff-survive{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:10px;color:#cfc4b0}
+.ff-survive b{font-weight:600;font-variant-numeric:tabular-nums;color:#f1dcb5}
+.ff-history{display:flex;gap:3px;list-style:none;margin:0;padding:0}
+.ff-history>li{width:7px;height:7px;border-radius:1.5px;background:var(--chance-color);box-shadow:0 0 0 1px #0007}
+.ff-shatter-chip{display:none}
+.ff-blade-info.is-held{border-color:#d0453480;box-shadow:0 5px 22px #0005,0 0 0 1px #ff3b2f33}
+.ff-blade-value.ff-loss>strong{color:#ff5a45}
+.ff-status-marks .is-expiring{color:#ffcf8a;animation:ff-expiring .5s ease-in-out infinite alternate}
+.ff-flow.is-expiring{animation:ff-expiring .5s ease-in-out infinite alternate}
+@keyframes ff-expiring{to{opacity:.55}}
+
+/* Trade and Rest: docked trays that leave the anvil in view. Desktop: a right-hand tray, no blur. */
+.ff-modal.ff-tray{--ff-edge:right;position:fixed;inset:0 0 0 auto;margin:0;width:min(400px,34vw);max-width:none;height:100dvh;max-height:none;border-radius:0;border-width:0 0 0 1px;padding:16px 16px calc(16px + env(safe-area-inset-bottom));animation:ff-tray-in .2s ease-out;box-shadow:-18px 0 60px #0008}
+.ff-modal.ff-tray::backdrop{background:linear-gradient(90deg,transparent 45%,#0a07044d);backdrop-filter:none}
+@keyframes ff-tray-in{from{translate:24px 0;opacity:.4}to{translate:0 0;opacity:1}}
+.ff-tray .ff-modal-head{margin-bottom:10px}
+.ff-tray .ff-modal-head h2{font-size:24px}
+.ff-tray .ff-modal-head button{width:44px;height:44px}
+.ff-tray .ff-tabs{margin-bottom:10px}
+.ff-tray .ff-tabs>button{min-height:40px;padding:8px}
+.ff-tray .ff-market{margin-bottom:10px}
+.ff-tray .ff-market summary{padding:9px 0}
+.ff-tray .ff-categories{margin-bottom:10px}
+.ff-tray .ff-categories>button{min-height:36px}
+.ff-tray .ff-shop-grid{grid-template-columns:1fr;gap:6px}
+.ff-tray .ff-shop-grid>article{display:grid;grid-template-columns:38px minmax(0,1fr) auto;grid-template-areas:"icon name buy" "icon desc buy" "icon stock forge";align-items:center;gap:2px 10px;padding:8px 10px}
+.ff-tray .ff-shop-grid>article>.ff-ingot{grid-area:icon;width:34px;height:19px;margin:0 0 0 2px}
+.ff-tray .ff-shop-grid>article>svg{grid-area:icon;width:26px!important;height:26px!important;margin:0}
+.ff-tray .ff-shop-grid>article>strong{grid-area:name}
+.ff-tray .ff-shop-grid>article>small{grid-area:desc;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ff-tray .ff-shop-grid .ff-stock{grid-area:stock;padding:0;justify-content:flex-start}
+.ff-tray .ff-shop-grid article>button:not(.ff-buy-forge){grid-area:buy;width:auto;min-width:96px;min-height:36px}
+.ff-tray .ff-shop-grid article>.ff-buy-forge{grid-area:forge;width:auto;min-height:30px;padding:4px 8px}
+.ff-tray .ff-sell-list .ff-portrait{width:96px;height:48px}
+.ff-tray .ff-sell-list>div{gap:8px;padding:6px 8px}
+.ff-tray .ff-trade-message{margin-top:8px}
+.ff-tray .ff-rest-preview{flex-wrap:wrap}
+.ff-tray .ff-rest-preview>div{flex:1 1 40%}
+.view-phone-portrait .ff-modal.ff-tray{--ff-edge:bottom;inset:auto 0 0 0;width:100%;height:60vh;max-height:60vh;border-radius:12px 12px 0 0;border-width:1px 0 0;animation-name:ff-sheet-in;box-shadow:0 -18px 60px #0008}
+@keyframes ff-sheet-in{from{translate:0 28px;opacity:.4}to{translate:0 0;opacity:1}}
+.view-phone-portrait .ff-modal.ff-tray::backdrop{background:linear-gradient(transparent 35%,#0a07044d)}
+.view-phone-landscape .ff-modal.ff-tray{width:46vw;padding:10px 12px}
+.view-phone-landscape .ff-modal.ff-tray .ff-shop-grid{grid-template-columns:1fr}
+
+/* Desktop with a tray open: the HUD re-centres in the part of the view the tray leaves (Unity frames
+   the anvil there from Insets), so nothing of the action bar hides under the tray. */
+.ff-bottom,.ff-blade-info{transition:left .2s ease-out,width .2s ease-out}
+.view-desktop .ff-main.is-tray-open{--ff-tray:min(400px,34vw)}
+.view-desktop .ff-main.is-tray-open :is(.ff-bottom,.ff-blade-info),.view-desktop .ff-main.is-tray-open .ff-feedback>:is(.ff-heating,.ff-toast){left:calc((100% - var(--ff-tray))/2)}
+.view-desktop .ff-main.is-tray-open .ff-bottom{width:min(720px,calc(100% - var(--ff-tray) - 48px))}
+.view-desktop .ff-main.is-tray-open :is(.ff-quick-tools,.ff-buyer){right:calc(var(--ff-tray) + 27px)}
+
+/* Settings (inside Help). */
+.ff-settings{border:1px solid var(--ff-line);border-radius:6px;padding:10px 14px 12px;margin:4px 0 0;display:grid;gap:10px}
+.ff-settings legend{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:#ddc191;padding:0 6px}
+.ff-setting{display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:13px}
+.ff-setting>span{display:flex;flex-direction:column;gap:3px}
+.ff-setting small{font-size:10px;color:#aeb4a6;line-height:1.4}
+.ff-setting>button,.ff-segmented>button{min-height:44px;min-width:64px;padding:8px 12px}
+.ff-setting>button[aria-pressed=true]{background:#60452b;border-color:#dcc59866}
+.ff-segmented{display:flex;gap:2px;padding:2px;border-radius:6px;background:#100a0669}
+.ff-segmented>button{border:0;background:transparent}
+.ff-segmented>button[aria-checked=true]{background:#60452b;color:#f5ecdb;box-shadow:0 1px 4px #0005}
+
+/* Phones: every target is at least 44 x 44 px. */
+.view-phone-portrait .ff-icon-button,.view-phone-landscape .ff-icon-button{width:44px;height:44px}
+.view-phone-portrait .ff-quick-tools button,.view-phone-landscape .ff-quick-tools button{width:44px;min-height:44px}
+.view-phone-portrait .ff-modal-head button,.view-phone-landscape .ff-modal-head button{width:44px;height:44px}
+.view-phone-portrait .ff-tabs>button,.view-phone-landscape .ff-tabs>button,.view-phone-portrait .ff-categories>button,.view-phone-landscape .ff-categories>button,.view-phone-portrait .ff-market summary,.view-phone-landscape .ff-market summary{min-height:44px}
+.view-phone-portrait .ff-tray .ff-shop-grid article>button,.view-phone-landscape .ff-tray .ff-shop-grid article>button{min-height:44px}
+.view-phone-portrait .ff-flow,.view-phone-landscape .ff-flow{min-height:44px}
+/* Work focus on a touch screen: the d-pad steps aside; a touch in the lower-left corner brings it back. */
+.ff-main.is-work-focus .ff-touch-controls{visibility:hidden}
+
+/* Phone portrait: the work band takes at least 60% of the screen. One 44 px odds line (tap to expand),
+   one 48 px knife row. */
+.view-phone-portrait .ff-topbar{min-height:52px;padding:4px 6px;gap:2px}
+.view-phone-portrait .ff-blade-info{top:54px;left:8px;right:8px;width:auto;height:44px;padding:5px 10px 6px;display:grid;grid-template-columns:auto minmax(0,1fr) auto;grid-template-rows:20px 8px;gap:4px 8px;align-items:center;overflow:hidden;pointer-events:auto;cursor:pointer;border-radius:6px}
+.view-phone-portrait .ff-blade-title{grid-row:1;grid-column:1;flex-wrap:nowrap;gap:4px;min-width:0}
+.view-phone-portrait .ff-blade-title>span{display:none}
+.view-phone-portrait .ff-blade-title>b{font-size:17px;white-space:nowrap}
+.view-phone-portrait .ff-blade-title>em{font-size:15px}
+.view-phone-portrait .ff-blade-value{grid-row:1;grid-column:3;max-width:none;flex-wrap:nowrap;gap:3px}
+.view-phone-portrait .ff-blade-value>strong{font-size:15px}
+.view-phone-portrait .ff-blade-value>small{display:none}
+.view-phone-portrait .ff-chances{grid-row:2;grid-column:1/-1}
+.view-phone-portrait .ff-chance-track{height:8px}
+.view-phone-portrait .ff-chance-legend{display:none}
+.view-phone-portrait .ff-survive{grid-row:1;grid-column:2;justify-content:flex-end;font-size:10px;min-width:0;white-space:nowrap}
+.view-phone-portrait .ff-history{display:none}
+.view-phone-portrait .ff-status-marks{display:none}
+.view-phone-portrait .ff-shatter-chip{display:none}
+.view-phone-portrait .ff-main.is-odds-open .ff-blade-info{height:auto;grid-template-rows:auto;grid-template-columns:1fr auto}
+.view-phone-portrait .ff-main.is-odds-open .ff-blade-title{grid-column:1}
+.view-phone-portrait .ff-main.is-odds-open .ff-blade-value{grid-column:2}
+.view-phone-portrait .ff-main.is-odds-open .ff-chances,.view-phone-portrait .ff-main.is-odds-open .ff-survive,.view-phone-portrait .ff-main.is-odds-open .ff-status-marks{grid-row:auto;grid-column:1/-1}
+.view-phone-portrait .ff-main.is-odds-open .ff-chance-legend{display:flex}
+.view-phone-portrait .ff-main.is-odds-open .ff-history{display:flex}
+.view-phone-portrait .ff-main.is-odds-open .ff-status-marks{display:flex}
+.view-phone-portrait .ff-quick-tools{top:106px;right:8px;gap:6px}
+.view-phone-portrait .ff-feedback{--ff-toast-top:112px}
+.view-phone-portrait .ff-bottom{bottom:max(8px,env(safe-area-inset-bottom));width:calc(100% - 16px);gap:4px}
+.view-phone-portrait .ff-knives{height:48px;padding:0 2px;gap:5px;flex-shrink:0;align-self:stretch}
+.view-phone-portrait .ff-knife-card{height:48px;width:66px;min-width:66px;padding:3px 5px}
+.view-phone-portrait .ff-knife-card .ff-portrait{width:72px;height:30px;margin:-2px 0 -6px -8px}
+.view-phone-portrait .ff-knife-card small{display:none}
+.view-phone-portrait .ff-new{min-width:48px;height:48px;padding:4px;gap:2px}
+/* New stays in reach when the strip scrolls (up to eight knives). */
+.view-phone-portrait .ff-new,.view-phone-landscape .ff-new{position:sticky;right:0;z-index:1;flex-shrink:0;background:#1c130df5!important;box-shadow:-8px 0 10px -2px #000a}
+.view-phone-portrait .ff-actionbar{padding:4px;gap:2px}
+.view-phone-portrait .ff-actionbar>button{min-height:48px}
+.view-phone-portrait .ff-flow{max-width:none;padding:0 12px}
+.view-phone-portrait .ff-touch-controls{bottom:184px}
+.view-phone-portrait .ff-buyer{bottom:184px}
+
+/* Phone landscape: the HUD moves into side rails (24vw left, 22vw right) around the anvil band. */
+.view-phone-landscape .ff-main{min-height:300px}
+.view-phone-landscape .ff-topbar{min-height:44px;padding:0 8px;gap:8px}
+.view-phone-landscape .ff-topbar h1{font-size:10px}
+.view-phone-landscape .ff-stats{gap:14px}
+.view-phone-landscape .ff-stats b{font-size:15px}
+.view-phone-landscape .ff-blade-info{--ff-edge:left;top:48px;left:8px;width:calc(24vw - 16px);transform:none;padding:8px 10px;gap:5px 6px;grid-template-columns:minmax(0,1fr) auto}
+.view-phone-landscape .ff-blade-title>span{font-size:8px}
+.view-phone-landscape .ff-blade-title>b{font-size:18px}
+.view-phone-landscape .ff-blade-title>em{font-size:14px}
+.view-phone-landscape .ff-blade-value{max-width:70px}
+.view-phone-landscape .ff-blade-value>strong{font-size:15px}
+.view-phone-landscape .ff-blade-value>span{display:none}
+.view-phone-landscape .ff-blade-value>small{display:none}
+.view-phone-landscape .ff-chance-track{height:8px}
+.view-phone-landscape .ff-chance-legend{gap:2px;margin-top:5px}
+.view-phone-landscape .ff-chance-legend>span{grid-template-columns:1fr;gap:1px}
+.view-phone-landscape .ff-chance-legend i{display:none}
+.view-phone-landscape .ff-chance-legend small{font-size:7px}
+.view-phone-landscape .ff-chance-legend b{grid-column:1;font-size:9px}
+.view-phone-landscape .ff-survive{font-size:9px;flex-wrap:wrap;gap:4px}
+.view-phone-landscape .ff-status-marks{font-size:9px;gap:8px}
+.view-phone-landscape .ff-quick-tools{--ff-edge:left;top:auto;right:auto;left:8px;bottom:112px;flex-direction:row;gap:4px}
+.view-phone-landscape .ff-bottom{display:contents}
+.view-phone-landscape .ff-knives{--ff-edge:left;position:absolute;left:8px;bottom:8px;width:calc(24vw - 16px);height:48px;padding:0;gap:4px}
+.view-phone-landscape .ff-knife-card{height:48px;width:60px;min-width:60px;padding:3px 4px}
+.view-phone-landscape .ff-knife-card .ff-portrait{width:66px;height:28px;margin:-2px 0 -6px -7px}
+.view-phone-landscape .ff-knife-card small{display:none}
+.view-phone-landscape .ff-new{min-width:44px;height:48px;padding:2px}
+.view-phone-landscape .ff-flow{--ff-edge:left;position:absolute;left:8px;bottom:60px;width:calc(24vw - 16px);max-width:none;padding:0 8px;gap:5px}
+.view-phone-landscape .ff-flow>span{display:none}
+.view-phone-landscape .ff-actionbar{--ff-edge:right;position:absolute;right:8px;top:48px;bottom:8px;width:calc(22vw - 16px);grid-template-columns:1fr;grid-template-rows:repeat(4,minmax(44px,1fr)) minmax(64px,2fr);gap:4px;padding:4px}
+.view-phone-landscape .ff-actionbar>button{min-height:44px;flex-direction:row;font-size:11px}
+.view-phone-landscape .ff-actionbar .ff-strike{order:5;font-size:14px}
+.view-phone-landscape .ff-masterwork{position:absolute;left:50%;bottom:8px;translate:-50% 0}
+.view-phone-landscape .ff-touch-controls{left:calc(24vw + 8px);right:calc(22vw + 8px);bottom:8px}
+.view-phone-landscape .ff-buyer{right:calc(22vw + 8px);top:52px;bottom:auto}
+.view-phone-landscape .ff-feedback{--ff-toast-top:52px}
