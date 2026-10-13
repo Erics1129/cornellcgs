@@ -10,7 +10,7 @@ using L = ForgeLayoutData;
 // per material in BatchRoom (ForgeRoomBake.cs). Moving parts (bellows) are kept out of the merge.
 public partial class ForgeWorld {
  Material mortar,polished;ReflectionProbe workshopProbe;
- Material woodUp,ceilingWood,brickWall,flagstone,anvilSteel,sootIron,tin,enamel,hotCoal,water,lampGlass,candleWax,daylight,clay,hearthTop;
+ Material woodUp,ceilingWood,brickWall,flagstone,anvilSteel,sootIron,hoodIron,tin,enamel,hotCoal,water,lampGlass,candleWax,daylight,clay,hearthTop;
  GameObject anvilObject;
  static Vector3 LV(L.F3 v)=>new Vector3(v.x,v.y,v.z);
  /// Room interior: inner wall faces (x -3.425..3.425, z -3.79..2.01), floor 0, ceiling planks underside 3.62.
@@ -19,7 +19,7 @@ public partial class ForgeWorld {
  static readonly float[] JoistX={-2.70f,-1.47f,.35f,1.55f,2.75f};
 
  void MakeMaterials(){
-  wood=Mat("Smoked oak","cdb99c",0,.26f);wood.mainTexture=Resources.Load<Texture2D>("Forge/WoodV3");
+  wood=Mat("Smoked oak","b4b0aa",0,.26f);wood.mainTexture=Resources.Load<Texture2D>("Forge/WoodV3");
   stone=Mat("Soot blackened masonry","a2917e",0,.08f);stone.mainTexture=Resources.Load<Texture2D>("Forge/BrickV3");
   iron=Mat("Forged iron","505c61",.87f,.46f);brass=Mat("Aged brass","b59957",.8f,.57f);leather=Mat("Wrapped leather","352b25",0,.29f);coal=Mat("Coal","191c1a",.1f,.1f);
   wood.SetFloat("_Scale",1.6f);stone.SetFloat("_Scale",1.3f);iron.mainTexture=Resources.Load<Texture2D>("Forge/IronV3");iron.SetFloat("_Scale",1.8f);iron.color=C("676d70");iron.SetFloat("_BumpStrength",.0018f);leather.mainTexture=Resources.Load<Texture2D>("Forge/LeatherV3");leather.color=C("b1a394");leather.SetFloat("_Scale",2);wood.SetFloat("_BumpStrength",.0025f);stone.SetFloat("_BumpStrength",.003f);
@@ -28,20 +28,22 @@ public partial class ForgeWorld {
   polished=Mat("Burnished steel working face","a4a5a2",.96f,.72f);polished.mainTexture=Resources.Load<Texture2D>("Forge/SteelV2");polished.SetFloat("_Scale",2.1f);polished.SetFloat("_BumpStrength",.0008f);
   woodUp=new Material(wood){name="Smoked oak, vertical grain"};woodUp.SetFloat("_GrainUp",1);
   ceilingWood=new Material(wood){name="Smoke-blackened ceiling boards",color=C("9c8a74")};ceilingWood.SetFloat("_Soot",1);ceilingWood.SetFloat("_Scale",1.2f);
-  brickWall=Mat("Hand-fired brick in lime mortar","8c6e5c",0,.12f);brickWall.mainTexture=Resources.Load<Texture2D>("Forge/BrickV3");brickWall.SetFloat("_Scale",2.4f);brickWall.SetFloat("_Brick",1);brickWall.SetFloat("_Soot",1);brickWall.SetColor("_MortarColor",C("2a2621"));brickWall.SetFloat("_BumpStrength",.0016f);
+  brickWall=Mat("Hand-fired brick in lime mortar","c4beb6",0,.12f);brickWall.mainTexture=Resources.Load<Texture2D>("Forge/BrickV3");brickWall.SetFloat("_Scale",2.4f);brickWall.SetFloat("_Brick",1);brickWall.SetFloat("_Soot",1);brickWall.SetColor("_MortarColor",C("2a2621"));brickWall.SetFloat("_BumpStrength",.0016f);
   // The floor is the brick code laid flat: staggered 70 x 56 cm flagstones, 15 mm grout, each slab at its own slight tilt.
-  flagstone=Mat("Worn flagstone","6f685c",0,.10f);flagstone.mainTexture=Resources.Load<Texture2D>("Forge/BrickV3");flagstone.SetFloat("_Scale",1.9f);flagstone.SetFloat("_BumpStrength",.0025f);
+  flagstone=Mat("Worn flagstone","8f877c",0,.10f);flagstone.mainTexture=Resources.Load<Texture2D>("Forge/IronV3");flagstone.SetFloat("_Scale",1.4f);flagstone.SetFloat("_BumpStrength",.0025f);
   flagstone.SetFloat("_Brick",1);flagstone.SetVector("_BrickSize",new Vector4(.70f,.56f,.015f,.008f));flagstone.SetFloat("_BrickStagger",.17f);flagstone.SetFloat("_BrickTilt",.022f);flagstone.SetColor("_MortarColor",C("26221e"));
   hearthTop=Mat("Fire-scarred hearth slab","4a4440",0,.12f);hearthTop.mainTexture=Resources.Load<Texture2D>("Forge/IronV3");hearthTop.SetFloat("_Scale",2.2f);hearthTop.SetFloat("_BumpStrength",.002f);
-  anvilSteel=Mat("Forged anvil steel","555a5c",.82f,.40f);anvilSteel.mainTexture=Resources.Load<Texture2D>("Forge/IronV3");anvilSteel.SetFloat("_Scale",3.2f);anvilSteel.SetFloat("_ObjectSpace",1);anvilSteel.SetFloat("_Wear",1);anvilSteel.SetFloat("_BumpStrength",.0011f);
-  sootIron=Mat("Sooty sheet iron","3b3a38",.55f,.30f);sootIron.mainTexture=Resources.Load<Texture2D>("Forge/IronV3");sootIron.SetFloat("_Scale",1.6f);sootIron.SetFloat("_Soot",.8f);
-  tin=Mat("Tinned lamp shade","6e6c66",.85f,.5f);enamel=Mat("Yellowed enamel shade lining","cdbfa4",0,.45f);enamel.SetColor("_EmissionColor",C("ffd8a0")*.10f);
+  anvilSteel=Mat("Forged anvil steel","555a5c",.82f,.40f);anvilSteel.mainTexture=Resources.Load<Texture2D>("Forge/IronV3");anvilSteel.SetTexture("_FaceTex",Resources.Load<Texture2D>("Forge/SteelV2"));anvilSteel.SetFloat("_Scale",3.2f);anvilSteel.SetFloat("_ObjectSpace",1);anvilSteel.SetFloat("_Wear",1);anvilSteel.SetFloat("_BumpStrength",.0011f);
+  sootIron=Mat("Sooty sheet iron","4a4744",.5f,.30f);sootIron.mainTexture=Resources.Load<Texture2D>("Forge/IronV3");sootIron.SetFloat("_Scale",1.6f);sootIron.SetFloat("_Soot",.8f);
+  // The hood: riveted sheet iron under a matte crust of soot (dark, but its form still reads in the bounce light).
+  hoodIron=Mat("Soot-crusted sheet iron hood","a49c92",.25f,.20f);hoodIron.mainTexture=Resources.Load<Texture2D>("Forge/IronV3");hoodIron.SetFloat("_Scale",1.4f);hoodIron.SetFloat("_BumpStrength",.0015f);
+  tin=Mat("Sooty tinned lamp shade","4c4945",.7f,.36f);tin.mainTexture=Resources.Load<Texture2D>("Forge/IronV3");tin.SetFloat("_Scale",4);enamel=Mat("Smoke-yellowed enamel shade lining","a8997e",0,.4f);enamel.SetColor("_EmissionColor",C("ffd8a0")*.04f);
   hotCoal=Mat("Incandescent charcoal","2a1c16",.1f,.18f);hotCoal.mainTexture=Resources.Load<Texture2D>("Forge/IronV3");hotCoal.SetFloat("_Scale",9);hotCoal.SetFloat("_Pulse",1);hotCoal.SetColor("_EmissionColor",C("ff4e10")*2.3f);
   water=Mat("Slack tub water","0f1517",0,.94f);
   lampGlass=Mat("Lamp chimney glass","ffd9a6",0,.9f);lampGlass.SetColor("_EmissionColor",C("ffc27a")*3.2f);
-  candleWax=Mat("Candle","e9b767");candleWax.SetColor("_EmissionColor",C("ffb952")*2.4f);
+  candleWax=Mat("Tallow candle","e6d3a8",0,.35f);candleWax.SetColor("_EmissionColor",C("ffb952")*.30f);
   daylight=Mat("Daylight through the window","1b2630",0,.1f);daylight.SetColor("_EmissionColor",C("9fb6d6")*.22f);
-  clay=Mat("Unglazed clay","8a6e51",0,.15f);
+  clay=Mat("Unglazed clay","8a7864",0,.15f);clay.mainTexture=Resources.Load<Texture2D>("Forge/IronV3");clay.SetFloat("_Scale",5);
   mortar=Mat("Recessed lime mortar","282521",0,.05f);
   MakeVfxMaterials();
  }
@@ -234,7 +236,7 @@ public partial class ForgeWorld {
   void Band(Vector3[] lo,Vector3[] hi,bool outward){for(int k=0;k<4;k++){var a=lo[k];var b=lo[(k+1)%4];var c2=hi[(k+1)%4];var d=hi[k];var nrm=Vector3.Cross(b-a,d-a).normalized;var mid=(a+b+c2+d)/4;var outDir=new Vector3(mid.x-hc.x,0,mid.z-hc.z);if(Vector3.Dot(nrm,outDir)<0)nrm=-nrm;if(!outward)nrm=-nrm;int s=hood.v.Count;hood.Add(a,nrm);hood.Add(b,nrm);hood.Add(c2,nrm);hood.Add(d,nrm);int t0=hood.t.Count;hood.Tri(s,s+1,s+2);hood.Tri(s,s+2,s+3);var n0=nrm;hood.Orient(t0,_=>n0);}}
   var lipRect=Rect(lip,hmin.x,hmin.z,hmax.x,hmax.z);var skirtTop=Rect(lip+.10f,hmin.x,hmin.z,hmax.x,hmax.z);var throatRect=Rect(throat,flueMin.x,flueMin.z,flueMax.x,flueMax.z);
   Band(lipRect,skirtTop,true);Band(lipRect,skirtTop,false);Band(skirtTop,throatRect,true);Band(skirtTop,throatRect,false);
-  RoomBuild("Sheet iron forge hood",hood,sootIron,Vector3.zero,Quaternion.identity);
+  RoomBuild("Sheet iron forge hood",hood,hoodIron,Vector3.zero,Quaternion.identity);
   RoomBox("Hood angle-iron lip",new Vector3(hc.x,lip+.012f,hmin.z-.006f),new Vector3(hmax.x-hmin.x+.03f,.025f,.012f),sootIron,.004f,.3f);
   RoomBox("Brick flue",(flueMin+flueMax)/2,flueMax-flueMin,brickWall,.004f,.22f,default,RoomFaceAll&~(4|8));
   RoomSolid("Hood",new Vector3(hc.x,(lip+throat)/2+.05f,hc.z),new Vector3((hmax.x-hmin.x)*.8f,throat-lip,(hmax.z-hmin.z)*.8f),default,false,true);

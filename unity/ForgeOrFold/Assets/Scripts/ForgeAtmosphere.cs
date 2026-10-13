@@ -11,7 +11,7 @@ public partial class ForgeWorld {
  int QualityTier=>governor!=null?governor.Tier:0;
  /// Particle multiplier for the current tier (1, 1, .6, .4).
  float QualityParticleScale=>ForgeQualityGovernor.ParticleScale(QualityTier);
- ForgeTuning appliedTuning;Color fireBase,rimBase,candleBase;float flashLevel,fireFrame;
+ ForgeTuning appliedTuning;Color fireBase,bounceBase,rimBase,candleBase;float flashLevel,fireFrame;
  float bellowsSince=99,bellowsStrength;
  // Day transition state (AtmosDay) and the levels it drives.
  float dayClock=-1;bool dayReduced,dawnSent;float fireDay=1,lanternLevel=1,lampLevel=1,doorLevel=1;Color windowNow;
@@ -20,7 +20,7 @@ public partial class ForgeWorld {
  static readonly int FireShadowRectId=Shader.PropertyToID("_ForgeFireShadowRect"),FireShadowYId=Shader.PropertyToID("_ForgeFireShadowY"),FireHoodRectId=Shader.PropertyToID("_ForgeFireHoodRect"),
   KeyDirId=Shader.PropertyToID("_ForgeKeyDir"),KeyConeId=Shader.PropertyToID("_ForgeKeyCone"),SconcePosId=Shader.PropertyToID("_ForgeSconcePosition"),SconceColId=Shader.PropertyToID("_ForgeSconceColor"),
   CandlePosId=Shader.PropertyToID("_ForgeCandlePosition"),CandleColId=Shader.PropertyToID("_ForgeCandleColor"),AmbientId=Shader.PropertyToID("_ForgeAmbient"),SootId=Shader.PropertyToID("_ForgeSoot"),SootFlueId=Shader.PropertyToID("_ForgeSootFlue"),
-  AoDirectId=Shader.PropertyToID("_ForgeAoDirect"),ShadowZoneId=Shader.PropertyToID("_ForgeShadowZone"),FrameId=Shader.PropertyToID("_Frame"),GlowId=Shader.PropertyToID("_Glow"),EmissionId=Shader.PropertyToID("_EmissionColor");
+  AoDirectId=Shader.PropertyToID("_ForgeAoDirect"),FireBounceId=Shader.PropertyToID("_ForgeFireBounce"),BounceColorId=Shader.PropertyToID("_ForgeBounceColor"),ShadowZoneId=Shader.PropertyToID("_ForgeShadowZone"),FrameId=Shader.PropertyToID("_Frame"),GlowId=Shader.PropertyToID("_Glow"),EmissionId=Shader.PropertyToID("_EmissionColor");
 
  /// Called once in Start after MakeDressing and before BatchRoom (static room geometry goes in before batching).
  void AtmosBuild(){
@@ -54,6 +54,11 @@ public partial class ForgeWorld {
   Shader.SetGlobalVector(KeyDirId,new Vector4(0,-1,0,r.lampUpSpill));Shader.SetGlobalVector(KeyConeId,new Vector4(cosO,1/Mathf.Max(.001f,cosI-cosO),0,0));
   Shader.SetGlobalVector(ForgeContract.Globals.RimPosition,new Vector3((WindowMin.x+WindowMax.x)/2,(WindowMin.y+WindowMax.y)/2,RoomBackZ-.25f));rimBase=C(r.rimColor).linear*r.rimIntensity;
   fireBase=C(r.fireColor).linear*r.fireIntensity*r.fireScale;Shader.SetGlobalVector(ForgeContract.Globals.FirePosition,LV(L.Firebed)+Vector3.up*r.fireLift);
+  // The steady level until UpdateLighting runs (the reflection probe is captured in Start, before the first frame).
+  Shader.SetGlobalColor(ForgeContract.Globals.FireColor,fireBase);
+  // The bounce comes off the lit hearth front and the floor in front of it, toward the anvil.
+  var hb=LV(L.HearthBoxCenter);var hs=LV(L.HearthBoxSize);Shader.SetGlobalVector(FireBounceId,new Vector4(hb.x+.12f,.70f,hb.z-hs.z/2-.18f,r.fireBounce>0?1:0));
+  bounceBase=C(r.bounceColor).linear*r.fireIntensity*r.fireScale*r.fireBounce;Shader.SetGlobalColor(BounceColorId,bounceBase);
   Shader.SetGlobalVector(SconcePosId,new Vector3(1.25f,1.84f,RoomFrontZ+.13f));var sconce=C(r.sconceColor).linear*r.sconceIntensity;sconce.a=1;Shader.SetGlobalColor(SconceColId,sconce);
   Shader.SetGlobalVector(CandlePosId,LV(L.Lantern)+Vector3.up*.15f);candleBase=sconce*.8f;candleBase.a=1;
   var fill=new Color(.13f,.11f,.09f,1)*r.ambientScale;fill.a=1;Shader.SetGlobalColor(AmbientId,fill);
@@ -67,7 +72,13 @@ public partial class ForgeWorld {
  /// Called by Sync when snapshot.day changes: the fire banks down, the window goes to night, then dawn
  /// (2.2 s; under reduced motion a .4 s crossfade).
  void AtmosDay(int day){dayClock=0;dayReduced=reduced;dawnSent=false;if(dayReduced){dawnSent=true;Send("sfx",day,ForgeContract.Sfx.Dawn);}}
- void AtmosQa(string mode){if(mode==ForgeContract.QaModes.Void&&cam!=null)cam.backgroundColor=Color.magenta;}
+ void AtmosQa(string mode){if(mode==ForgeContract.QaModes.Void&&cam!=null)cam.backgroundColor=Color.magenta;
+#if UNITY_EDITOR
+  // Editor QA (scripts/forge-qa/room.mjs snapshot views): 'room-cam:x,y,z,yaw,pitch[,fov]' pins the camera, 'room-cam:off' frees it.
+  if(mode.StartsWith("room-cam:")&&cam!=null){var qc=cam.GetComponent<ForgeQaCamera>();if(qc==null)qc=cam.gameObject.AddComponent<ForgeQaCamera>();qc.cam=cam;var a=mode.Substring(9).Split(',');
+   if(a.Length>=5){float F(int i)=>float.Parse(a[i],System.Globalization.CultureInfo.InvariantCulture);qc.pos=new Vector3(F(0),F(1),F(2));qc.euler=new Vector3(F(4),F(3),0);qc.fov=a.Length>5?F(5):cam.fieldOfView;qc.on=true;}else qc.on=false;}
+#endif
+ }
  void UpdateDay(float dt){
   if(dayClock<0){fireDay=1;lanternLevel=1;windowNow=WindowDay;return;}
   dayClock+=dt;float t=dayClock;
@@ -84,14 +95,14 @@ public partial class ForgeWorld {
   // The hearth breathes: band-limited flicker (2-4 Hz, +/- 18%), the bellows swell, the night banking.
   float flick=steady?1:ForgeFlicker.Fire(elapsed,r,reduced);float swell=ForgeFlicker.Bellows(bellowsSince,bellowsStrength,r);
   float level=flick*(1+swell)*fireDay;
-  Shader.SetGlobalColor(ForgeContract.Globals.FireColor,fireBase*level);
+  Shader.SetGlobalColor(ForgeContract.Globals.FireColor,fireBase*level);Shader.SetGlobalColor(BounceColorId,bounceBase*level);
   if(fireMat!=null){if(!steady)fireFrame+=dt*14*(1+swell*1.5f);fireMat.SetFloat(FrameId,fireFrame);fireMat.SetFloat(GlowId,level);}
   Shader.SetGlobalVector(ForgeContract.Globals.CoalPulse,new Vector4(steady?0:elapsed,(.82f+.18f*flick)*(1+swell*1.4f)*fireDay,reduced?.08f:.3f,0));
   // Window, rim light and the lantern follow the day.
   float windowLevel=windowNow.grayscale/Mathf.Max(.0001f,WindowDay.grayscale);
   Shader.SetGlobalColor(ForgeContract.Globals.RimColor,rimBase*windowLevel);
   if(daylightLive!=null)daylightLive.SetColor(EmissionId,windowNow);doorLevel=windowLevel;
-  if(candleLive!=null)candleLive.SetColor(EmissionId,C("ffb952")*2.4f*lanternLevel);Shader.SetGlobalColor(CandleColId,candleBase*lanternLevel);
+  if(candleLive!=null)candleLive.SetColor(EmissionId,C("ffb952")*.30f*lanternLevel);Shader.SetGlobalColor(CandleColId,candleBase*lanternLevel);
   // Contact flash (written only here and in AtmosImpact).
   flashLevel*=Mathf.Exp(-dt*r.flashDecay);if(flashLevel<.002f)flashLevel=0;Shader.SetGlobalFloat(ForgeContract.Globals.Impact,flashLevel);if(flash!=null)flash.intensity=flashLevel;
   // The evolution ring costs a draw call only while it is visible.
@@ -141,3 +152,10 @@ public partial class ForgeWorld {
   smokeClock+=dt;if(smokeClock>tuning.room.smokeEveryS){smokeClock=0;Puff(LV(L.HoodSmokeSource)+new Vector3(Random.Range(-.08f,.08f),0,Random.Range(-.05f,.05f)),1,true);}
  }
 }
+#if UNITY_EDITOR
+/// Editor-only QA camera pin (see AtmosQa 'room-cam:'): runs after ForgeWorld's camera update and before the snapshot rig renders.
+[DefaultExecutionOrder(9000)] public class ForgeQaCamera:MonoBehaviour {
+ public Camera cam;public bool on;public Vector3 pos,euler;public float fov=60;
+ void LateUpdate(){if(on&&cam!=null){cam.transform.SetPositionAndRotation(pos,Quaternion.Euler(euler));cam.fieldOfView=fov;}}
+}
+#endif

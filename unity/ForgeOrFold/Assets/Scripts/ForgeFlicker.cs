@@ -8,10 +8,13 @@ using System;
 [Serializable] public class ForgeRoomTuning {
  // Fire flicker on _ForgeFireColor: band-limited noise around flickerHz plus a faster component.
  public float flickerAmp=.18f, flickerHz=3, flicker2Amp=.03f, flicker2Hz=8, reducedFlickerAmp=.04f, reducedFlickerHz=1;
- public float fireScale=1.25f, ambientScale=.8f, bellowsBoost=.25f, bellowsDelayS=.3f, coalPulseC=950;
+ public float fireScale=1.25f, ambientScale=.6f, bellowsBoost=.25f, bellowsDelayS=.3f, coalPulseC=950;
  // All intensities are final linear radiance in the shared ForgeLighting.cginc lamp model (falloff 1 / (1 + .4 d^2)).
  // Hearth light (the dominant warm source): colour, radiance before fireScale, and where it sits above the firebed.
  public string fireColor="ff8a3a"; public float fireIntensity=4.0f, fireLift=.24f;
+ // Hearth bounce: the fire's light thrown back by the hearth front and floor, as a warm wrapped fill in the ambient
+ // term (a fraction of the fire radiance; it flickers with the fire, so the whole room breathes).
+ public float fireBounce=.32f; public string bounceColor="ffc093";
  // Hanging oil lamp (the key): colour, radiance, shade cone (inner and outer half-angles, degrees).
  public string lampColor="ffd29a"; public float lampIntensity=5.0f, lampConeInner=38, lampConeOuter=72, lampUpSpill=.12f;
  // Cool window spill (rim) and the dim door sconce.
@@ -40,8 +43,8 @@ using System;
   flickerAmp=ForgeTuning.Fit(flickerAmp,0,.5f,.18f);flickerHz=ForgeTuning.Fit(flickerHz,.2f,12,3);flicker2Amp=ForgeTuning.Fit(flicker2Amp,0,.2f,.03f);flicker2Hz=ForgeTuning.Fit(flicker2Hz,.2f,20,8);
   // Reduced motion: flicker at most 4% (WCAG / invariant), at 1 Hz or slower.
   reducedFlickerAmp=ForgeTuning.Fit(reducedFlickerAmp,0,.04f,.04f);reducedFlickerHz=ForgeTuning.Fit(reducedFlickerHz,.05f,1,1);
-  fireScale=ForgeTuning.Fit(fireScale,0,4,1.25f);ambientScale=ForgeTuning.Fit(ambientScale,0,3,.8f);bellowsBoost=ForgeTuning.Fit(bellowsBoost,0,1,.25f);bellowsDelayS=ForgeTuning.Fit(bellowsDelayS,0,2,.3f);
-  fireIntensity=ForgeTuning.Fit(fireIntensity,0,40,4);fireLift=ForgeTuning.Fit(fireLift,0,1,.24f);lampIntensity=ForgeTuning.Fit(lampIntensity,0,40,5.0f);rimIntensity=ForgeTuning.Fit(rimIntensity,0,40,3.2f);sconceIntensity=ForgeTuning.Fit(sconceIntensity,0,10,.9f);
+  fireScale=ForgeTuning.Fit(fireScale,0,4,1.25f);ambientScale=ForgeTuning.Fit(ambientScale,0,3,.6f);bellowsBoost=ForgeTuning.Fit(bellowsBoost,0,1,.25f);bellowsDelayS=ForgeTuning.Fit(bellowsDelayS,0,2,.3f);
+  fireIntensity=ForgeTuning.Fit(fireIntensity,0,40,4);fireBounce=ForgeTuning.Fit(fireBounce,0,1,.32f);fireLift=ForgeTuning.Fit(fireLift,0,1,.24f);lampIntensity=ForgeTuning.Fit(lampIntensity,0,40,5.0f);rimIntensity=ForgeTuning.Fit(rimIntensity,0,40,3.2f);sconceIntensity=ForgeTuning.Fit(sconceIntensity,0,10,.9f);
   lampConeInner=ForgeTuning.Fit(lampConeInner,1,89,38);lampConeOuter=ForgeTuning.Fit(lampConeOuter,lampConeInner+1,90,72);lampUpSpill=ForgeTuning.Fit(lampUpSpill,0,1,.12f);
   flashDecay=ForgeTuning.Fit(flashDecay,1,60,12);aoStrength=ForgeTuning.Fit(aoStrength,0,1,.85f);aoDirect=ForgeTuning.Fit(aoDirect,0,1,.55f);
   embersMax=ForgeTuning.Fit(embersMax,0,30,30);embersPerS=ForgeTuning.Fit(embersPerS,0,30,6);embersPerSTier2=ForgeTuning.Fit(embersPerSTier2,0,embersPerS,3);smokeEveryS=ForgeTuning.Fit(smokeEveryS,.1f,10,.55f);

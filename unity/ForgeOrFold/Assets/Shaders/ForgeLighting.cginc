@@ -8,6 +8,8 @@
 //  rim    cool window spill
 //  fire   hearth fire, the dominant warm source; _ForgeFireColor flickers every frame (ForgeFlicker.cs)
 //         and the hearth box hides its own fire from anything below its top (_ForgeFireShadow*)
+//  bounce the fire's light thrown back by the hearth front, floor and walls: a soft warm fill in the
+//         ambient term (_ForgeFireBounce), so the whole room breathes with the flicker
 //  sconce dim candle by the door, candle = bench lantern (diffuse only; off in FORGE_LITE)
 //  impact contact flash at the real contact point (_ForgeImpactPos/_ForgeImpactColor x _ForgeImpact)
 //  glow   hottest blade (_ForgeGlowPos/_ForgeGlowColor, attenuation 1 / (1 + d^2 / .16), range in .w)
@@ -22,7 +24,8 @@ float4 _ForgeImpactPos,_ForgeImpactColor;
 // .w = range (0 = off); _ForgeGlowColor.rgb = radiance. Emissive receivers define FORGE_NO_GLOW_LAMP before
 // including this file so a lamp inside their own mesh cannot light them (Blade.shader does).
 float4 _ForgeGlowPos,_ForgeGlowColor;
-// Key lamp shade: xyz = cone axis (unit, out of the shade), w = fraction that spills upward through the vent.
+// Key lamp shade: xyz = cone axis (unit, out of the shade), w = fraction that spills upward through the vent
+// (only above the shade; the tin shade itself darkens everything between the cone and the vent).
 // _ForgeKeyCone: x = cos(outer half-angle), y = 1 / (cos inner - cos outer).
 float4 _ForgeKeyDir,_ForgeKeyCone;
 // Hearth self-shadow for the fire lamp: the hearth top rectangle (x0, z0, x1, z1) and its height (_ForgeFireShadowY.x);
@@ -32,6 +35,9 @@ float4 _ForgeFireShadowRect,_ForgeFireShadowY,_ForgeFireHoodRect;
 float4 _ForgeSconcePosition,_ForgeSconceColor,_ForgeCandlePosition,_ForgeCandleColor;
 // Room fill floor (rgb; a > 0 = set): the trilight SH is far below it, so this is the ambient level.
 float4 _ForgeAmbient;
+// Hearth bounce: xyz = centre of the lit hearth front, w > 0 = on; _ForgeBounceColor = its radiance, set every frame
+// with the fire's flicker (a less saturated amber than the fire itself: it has bounced off brick, stone and wood).
+float4 _ForgeFireBounce,_ForgeBounceColor;
 // Moving occluders (strike-feel: hammer head, hands, anvil knife): xyz centre, w radius, 0 = off.
 float4 _ForgeOccluders[4];
 // Where occluder shadows apply: xyz centre (the anvil), w radius (about 1 m). w = 0 turns them off.
@@ -100,6 +106,12 @@ float ForgeFireVisibility(float3 p,float3 fire){
  }
  return vis;
 }
+/// Warm fill from the fire's bounce light: wrapped (no hard terminator), no visibility test, a broad falloff.
+float3 ForgeFireBounce(float3 p,float3 n){
+ if(_ForgeFireBounce.w<=0)return 0;float3 delta=_ForgeFireBounce.xyz-p;float d2=dot(delta,delta);
+ float wrap=saturate(dot(n,delta*rsqrt(max(d2,.0001)))*.5+.5);
+ return _ForgeBounceColor.rgb*wrap*wrap/(1+d2*.22);
+}
 /// Diffuse-only candle with a short falloff.
 float3 ForgeCandle(float4 position,float4 radiance,float3 p,float3 n,float3 base,float metal){
  if(radiance.a<=0)return 0;float3 delta=position.xyz-p;float d2=max(.01,dot(delta,delta));
@@ -110,7 +122,7 @@ float3 ForgeCandle(float4 position,float4 radiance,float3 p,float3 n,float3 base
 float3 ForgeLitAO(float3 base,float metal,float smooth,float3 p,float3 n,float3 view,float ao,float aoDirect){
  float rough=max(.14,1-smooth);
  float3 fill=_ForgeAmbient.a>0?_ForgeAmbient.rgb:float3(.13,.11,.09);
- float3 ambient=max(fill,ShadeSH9(float4(n,1)));
+ float3 ambient=max(fill,ShadeSH9(float4(n,1)))+ForgeFireBounce(p,n);
  // A restrained room fill keeps dark metal readable when a close-up probe direction is black.
  float3 color=base*ambient*(1-metal*.22)*ao;
  float direct=lerp(1,ao,aoDirect);
@@ -119,7 +131,7 @@ float3 ForgeLitAO(float3 base,float metal,float smooth,float3 p,float3 n,float3 
  color*=occ.w;
  // Hanging oil lamp under a tin shade: a soft cone downward plus a little spill through the top vent.
  {float3 delta=_ForgeKeyPosition.xyz-p;float d2=max(.01,dot(delta,delta));float3 l=delta*rsqrt(d2);
-  float cone=saturate((dot(-l,_ForgeKeyDir.xyz)-_ForgeKeyCone.x)*_ForgeKeyCone.y);cone=cone*cone*(3-2*cone);cone=max(cone,_ForgeKeyDir.w);
+  float ca=dot(-l,_ForgeKeyDir.xyz);float cone=saturate((ca-_ForgeKeyCone.x)*_ForgeKeyCone.y);cone=cone*cone*(3-2*cone);cone=max(cone,_ForgeKeyDir.w*saturate(-ca*2.5-.25));
   color+=ForgeLampCore(l,_ForgeKeyColor.rgb,n,view,base,metal,rough)*cone*occ.x*direct/(1+d2*.4);}
  color+=ForgeLamp(_ForgeRimPosition.xyz,_ForgeRimColor.rgb,p,n,view,base,metal,rough)*direct;
  {float3 delta=_ForgeFirePosition.xyz-p;float d2=max(.01,dot(delta,delta));
