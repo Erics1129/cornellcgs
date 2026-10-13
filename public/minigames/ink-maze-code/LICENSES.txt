@@ -1,0 +1,73 @@
+Ink Maze code level — third-party licence notices
+==================================================
+
+The code level runs the player's program in the browser with language
+toolchains compiled to WebAssembly. The big toolchains (the C/C++ compiler and
+Python) load from a pinned CDN; the smaller runtimes are self-hosted under this
+folder. The notices below cover both. This file is served alongside the
+sandbox so the notices travel with the distributed code.
+
+The Cornell CGS site's own code (everything under src/ and the sandbox host,
+public/minigames/ink-maze-code/sandbox.html and sandbox.js) is the site's own
+work and is not covered here.
+
+Each runtime's own folder carries the full licence texts and the exact build
+provenance (PROVENANCE.txt) once that runtime is added. This file is the index;
+the per-runtime engineers fill in their section and drop the texts next to
+their runtime.js.
+
+
+Java  (public/minigames/ink-maze-code/java/, self-hosted, ~4.3 MB)
+------------------------------------------------------------------
+TeaVM-javac: OpenJDK's javac plus the TeaVM ahead-of-time compiler, both
+compiled to WebAssembly.
+  - TeaVM — Apache License 2.0.
+  - OpenJDK javac (the compiler inside compiler.wasm) — GPL v2 with the
+    Classpath Exception. The corresponding source offer and the exact build
+    recipe go in java/PROVENANCE.txt.
+Pinned build and hashes: java/PROVENANCE.txt.
+
+
+Python  (Pyodide 314.0.7, from cdn.jsdelivr.net/pyodide/v314.0.7/full/)
+-----------------------------------------------------------------------
+Pyodide — Mozilla Public License 2.0. Because the compiled form is
+distributed (loaded) to the browser, the MPL asks that the source be findable:
+  https://github.com/pyodide/pyodide  (tag 314.0.7; the Python runtime's
+  engineer confirms the exact tag and link when the runtime is added)
+Bundled with CPython and its libraries, each under its own licence:
+  - CPython — PSF License Agreement
+  - zlib 1.3.1 — zlib licence
+  - bzip2 — BSD-style
+  - libexpat — MIT
+  - mpdecimal — BSD
+  - liblzma (xz) — public domain / 0BSD
+  - HACL* — Apache 2.0 / MIT
+  - SQLite — public domain
+Loading from the CDN means the CDN distributes these; this notice records them
+for the self-host option.
+
+
+JavaScript  (public/minigames/ink-maze-code/javascript/, self-hosted, ~0.6 MB)
+------------------------------------------------------------------------------
+  - QuickJS (the engine, compiled to wasm) — MIT License. Copyright (c)
+    2017-2024 Fabrice Bellard and Charlie Gordon.
+  - quickjs-emscripten — MIT License. Copyright (c) 2019 Jake Teton-Landis.
+  - acorn (syntax-error line numbers) — MIT License. Copyright (c) 2012-2022
+    by various contributors.
+Full texts go in javascript/LICENSE-*.txt.
+
+
+C and C++  (@yowasp/clang 22.0.0-git20542-10, from cdn.jsdelivr.net/npm/@yowasp/clang@…)
+----------------------------------------------------------------------------------------
+  - LLVM/Clang and libc++ — Apache License 2.0 WITH LLVM-exception.
+  - wasi-libc — MIT / BSD-2-Clause / CC0 (per component).
+  - YoWASP packaging (@yowasp/clang, @yowasp/runtime) — the YoWASP project
+    states Apache-2.0 (the npm package.json says ISC; the repository README
+    says Apache-2.0). Keep both notices if self-hosting.
+If the toolchain is ever self-hosted instead of loaded from the CDN, ship the
+LLVM, libc++ and wasi-libc licence texts under clang/.
+
+
+Test runtime  (public/minigames/ink-maze-code/echo/)
+----------------------------------------------------
+The 'echo' runtime is the site's own work; no third-party code.
