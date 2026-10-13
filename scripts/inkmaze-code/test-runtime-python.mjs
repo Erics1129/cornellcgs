@@ -17,12 +17,17 @@
  *     map + the 12 hidden tests), accepted by the real engine, and time them;
  *   - compile errors, runtime errors (with the player's line and the board
  *     index), wrong return types and a printed answer-marker are reported right;
- *   - every runaway (tight loop, a loop inside `except`/`finally`, a loop deep
- *     in recursion, deep recursion itself, an allocation bomb, an output flood,
- *     harness tampering) is stopped and reported, the next run works, and the
- *     browser's CPU is back to idle within ~1 s of the limit (contract D9) --
- *     the WebKit case, where terminate() cannot stop a WebAssembly loop, is the
- *     point of the cooperative deadline;
+ *   - every runaway is stopped BY THE RUNTIME (never the host's terminate()
+ *     backstop), the next run works, and the browser's CPU is back to idle
+ *     within ~1 s of the limit and stays there for 5 s (contract D5/D9) -- the
+ *     WebKit case, where terminate() cannot stop a WebAssembly loop, is the
+ *     point of the cooperative deadline. The cases cover a tight loop, a loop
+ *     inside `except`/`finally`, a loop deep in recursion, deep recursion
+ *     itself, an allocation bomb, an output flood, harness tampering, AND the
+ *     C-level loops the refutation found -- a generator expression /
+ *     comprehension / callable-iterator consumed by a C builtin, a pure-C
+ *     sum(range)/any(iter)/reduce(count)/deque(count), a __del__ that spins a
+ *     comprehension, re backtracking, math.factorial and int<->str bombs;
  *   - a positive control (CPU high WHILE a loop runs, idle after it stops)
  *     shows the meter really sees the Pyodide worker.
  */
@@ -159,6 +164,61 @@ async function suite(name) {
     assert.equal(deep.error.type, 'RecursionError', 'deep recursion is a clean RecursionError, not a hang')
     await pause(300)
     assert.ok((await cpuAfter('after deep recursion', idle)) < idle + CPU_SLACK, 'deep recursion left the CPU idle')
+
+    // ---- C-LEVEL runaways (the refutation): a loop that iterates inside a C
+    // builtin takes no Python back-edge the AST can see, so these used to reach
+    // only the host's terminate() backstop (stoppedBy 'host'), which in WebKit
+    // does NOT stop a wasm thread -- each left a core burning. They must now be
+    // stopped by the runtime itself: the interrupt buffer (bytecode-driven C
+    // loops) or the bounded C consumers / sources (pure-C loops). Assert
+    // stoppedBy 'runtime' AND sandboxRestarted false AND the CPU back to idle,
+    // measured for a full 5 s starting 0.3 s after the limit (contract D5/D9).
+    const cRunaway = async (name, source, { timeLimitMs = 1000 } = {}) => {
+      const res = await run(source, ONE, { timeLimitMs })
+      assert.equal(res.status, 'time_limit', `${name}: got ${res.status} (${res.message})`)
+      assert.equal(res.stoppedBy, 'runtime', `${name}: stopped by the runtime, not the host's terminate() backstop`)
+      assert.equal(res.sandboxRestarted, false, `${name}: a cooperative stop does not rebuild the iframe`)
+      await pause(300)
+      const cores = await meter.cores(5000)
+      log(`after ${name}: ${cores.toFixed(2)} cores (idle ${idle.toFixed(2)}); ${res.timings.runMs} ms${cores > idle + 0.1 ? `\n      ${meter.detail.join('\n      ')}` : ''}`)
+      assert.ok(cores <= idle + 0.1, `${name}: CPU back to <= idle+0.1 within 1 s of the limit, held for 5 s (${cores.toFixed(2)})`)
+      assert.equal((await run(REF, ONE)).status, 'ok', `a normal run works after ${name}`)
+    }
+    // a generator expression / comprehension consumed by a C builtin
+    await cRunaway('genexp sum', solution('return sum(1 for _ in range(10 ** 18))'))
+    await cRunaway('any(genexp)', solution('return any(False for _ in iter(int, 1))'))
+    await cRunaway('set comprehension', solution('return str({x for x in iter(int, 1)})'), { timeLimitMs: 1500 })
+    await cRunaway('module-level genexp', 'X = sum(1 for _ in range(10 ** 18))\n' + solution('return ""'))
+    // a pure-C loop with no bytecode per step (bounded at the source)
+    await cRunaway('sum(range) pure C', solution('return sum(range(10 ** 18))'))
+    await cRunaway('any(iter(int, 1)) pure C', solution('return any(iter(int, 1))'))
+    await cRunaway('max(iter(lambda)) pure C', solution('return max(iter(lambda: 0, 1))'))
+    await cRunaway('reduce(op.add, count)', solution('import functools, operator, itertools\nreturn str(functools.reduce(operator.add, itertools.count()))'))
+    await cRunaway('deque(count, 0) pure C', solution('import collections, itertools\ncollections.deque(itertools.count(), 0)\nreturn ""'))
+    // a finaliser that spins a comprehension during end-of-run gc
+    await cRunaway('__del__ genexp', solution('class B:\n    def __del__(self):\n        [0 for _ in range(10 ** 18)]\nb = B()\nb2 = b\ndel b\nreturn ""'), { timeLimitMs: 1500 })
+
+    // gc.callbacks is cleared between runs, so a poisoned callback cannot spin
+    // during the NEXT run's end-of-run gc; the poisoning run is a clean ok/limit.
+    const poison = await run(solution('import gc\ngc.callbacks.append(lambda *a: [0 for _ in range(10 ** 18)])\nreturn ""'), ONE, { timeLimitMs: 1500 })
+    assert.ok(poison.status === 'ok' || poison.status === 'time_limit', `gc.callbacks poison is contained (${poison.status})`)
+    assert.equal((await run(REF, ONE)).status, 'ok', 'a normal run works after the gc.callbacks poison')
+    await pause(300)
+    assert.ok((await cpuAfter('after gc.callbacks poison', idle)) < idle + CPU_SLACK, 'the poisoned callback does not keep burning CPU')
+
+    // ---- unbounded library code is bounded, not stopped by the backstop (D2)
+    const reBlocked = await run(solution('import re\nreturn str(re.match(r"(a+)+$", "a" * 64 + "!"))'))
+    assert.equal(reBlocked.status, 'runtime_error', 're (catastrophic backtracking has no back-edge to tick) is refused')
+    assert.match(reBlocked.error.message, /not available/i, 're is reported as unavailable, not a hang')
+    const fact = await run(solution('import math\nreturn str(math.factorial(10 ** 8))'))
+    assert.equal(fact.status, 'runtime_error', 'math.factorial of a huge argument is capped, not a hang')
+    assert.equal(fact.error.type, 'ValueError')
+    const intStr = await run(solution('import sys\nsys.set_int_max_str_digits(0)\nreturn str(int("9" * 200000))'))
+    assert.equal(intStr.status, 'runtime_error', 'the int<->str digit cap cannot be lifted to 0 (unlimited)')
+    assert.equal(intStr.error.type, 'ValueError')
+    const osClose = await run(solution('import os\nos.close(1)\nreturn ""'))
+    assert.equal(osClose.status, 'runtime_error', 'closing a standard fd is refused, so it cannot crash the interpreter')
+    assert.equal((await run(REF, ONE)).status, 'ok', 'a normal run works after the os.close(1) attempt')
 
     // ---- harness / interpreter tampering: reported, and the next run still works
     const tamper = async (source, note) => {

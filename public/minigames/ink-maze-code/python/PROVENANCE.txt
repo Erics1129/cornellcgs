@@ -17,13 +17,37 @@ Self-hosted here (the site's own code)
 --------------------------------------
   runtime.js    the Runtime (src/minigames/inkmaze/code/contract.ts): loads
                 Pyodide, caps the wasm heap, routes stdout/stderr to the run's
-                io, installs driver.py and runs the player's code.
-  driver.py     compiles the player's code as solution.py, rewrites it (an AST
-                pass that calls __ink_tick__ at every loop body and function
-                entry so the program stops itself at the deadline -- the
-                WebKit-safe cooperative deadline of contract D1-D9), restores
-                the interpreter between runs, fingerprints the modules it relies
-                on, and reports the outcome.
+                io, installs a ONE-SHOT, self-disarming interrupt buffer (the
+                getter returns SIGINT once past the deadline, then disarms so it
+                cannot re-fire during cleanup), installs driver.py and runs the
+                player's code.
+  driver.py     compiles the player's code as solution.py and enforces the
+                WebKit-safe cooperative deadline of contract D1-D9 three ways,
+                because worker.terminate() does not stop a running wasm loop:
+                 1. an AST pass that calls __ink_tick__ at every loop body,
+                    function entry AND comprehension / generator-expression
+                    iterable (so a `for ... in` driven by a C builtin still
+                    ticks), raising a sticky, uncatchable _InkStop past the
+                    deadline;
+                 2. the runtime's interrupt buffer, which raises KeyboardInterrupt
+                    at the next bytecode boundary so any C-driven bytecode loop
+                    (genexp / comprehension / callable-iterator / key lambda)
+                    stops; the driver disarms it the instant it catches the stop;
+                 3. the pure-C library loops that take no bytecode per step are
+                    bounded at the source: the O(1)-memory C consumers
+                    (sum/any/all/max/min/sorted/math.prod/math.fsum/
+                    functools.reduce/operator.countOf/collections.deque) and the
+                    infinite sources (2-arg iter, itertools.count/cycle/repeat)
+                    are wrapped to drive their input through a ticking generator;
+                    math.factorial/comb/perm and pow() with a huge argument are
+                    capped; sys.set_int_max_str_digits is clamped so int<->str
+                    stays a ValueError; and the re / regex modules (catastrophic
+                    backtracking has no Python back-edge) are refused. os.close
+                    of fd 0/1/2 is refused so it cannot crash the interpreter.
+                It restores the interpreter between runs (builtins, modules, the
+                recursion limit, gc.callbacks, the fd streams, the C-surface
+                wrappers), fingerprints the modules it relies on, runs end-of-run
+                gc under the same deadline, and reports the outcome.
   harness.py    the hidden harness (problem.ts H1-H6): one Solution() per board,
                 one "@@ANSWER@@ <moves>" line per board, escapeAnswer matched to
                 problem.ts exactly.

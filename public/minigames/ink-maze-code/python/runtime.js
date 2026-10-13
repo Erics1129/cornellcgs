@@ -15,13 +15,24 @@
  *
  * Safety (contract D1-D9). The worker is a WebAssembly thread, and in WebKit
  * worker.terminate() does NOT stop a running WebAssembly loop, so the Python
- * program must stop itself at the deadline. driver.py does this two ways, both
- * sticky: an AST rewrite that calls __ink_tick__() at every loop body and
- * function entry (which polls the deadline through _JS_POLL and raises an
- * uncatchable _InkStop), and Pyodide's interrupt buffer, read here as a getter
- * that returns SIGINT once the deadline passed so even a C-level loop in the
- * eval loop is interrupted. A wasm heap cap turns allocation bombs into
- * MemoryError; io.stdout caps the output. terminate() stays only the backstop.
+ * program must stop itself at the deadline. driver.py does this three ways:
+ *   1. an AST rewrite that calls __ink_tick__() at every loop body, function
+ *      entry and comprehension iterable (polls the deadline through _JS_POLL and
+ *      raises a sticky, uncatchable _InkStop);
+ *   2. Pyodide's interrupt buffer, installed here as a getter that returns
+ *      SIGINT (2) once the deadline passed AND while armed; CPython's eval loop
+ *      then raises KeyboardInterrupt at the next bytecode boundary, so a
+ *      generator expression / comprehension / callable-iterator / key lambda
+ *      that the AST never saw is still stopped. The driver calls _JS_DISARM()
+ *      the moment it catches the stop, so the buffer cannot keep re-firing
+ *      during cleanup (which used to escape as a fatal that lost sys.stderr);
+ *   3. for the C-only library loops that run with no bytecode per step
+ *      (sum(range(1e18)), iter(f, s), reduce over itertools.count, deque(count),
+ *      math.factorial, re backtracking), driver.py bounds the source: it wraps
+ *      the C consumers and the infinite sources to tick, caps the heavy math,
+ *      and refuses the re module.
+ * A wasm heap cap turns allocation bombs into MemoryError; io.stdout caps the
+ * output. terminate() stays only the backstop (contract D5: a bug if needed).
  */
 
 const PYODIDE_CDN = 'https://cdn.jsdelivr.net/pyodide/v314.0.7/full/'
@@ -33,6 +44,7 @@ let hostRef = null
 let currentIO = null // the RunIO of the run in flight (read by the interrupt getter and stdout)
 let memCapBytes = 256 * 1024 * 1024 // wasm heap ceiling for the run in flight
 let outputLimitHit = false // io.stdout refused more output this run
+let interruptArmed = false // the interrupt buffer fires SIGINT only while this is true
 
 const decoder = new TextDecoder()
 let outDecoder = new TextDecoder()
@@ -94,14 +106,40 @@ const RUNTIME = {
     pyodide.setStderr({ write: makeWriter('stderr'), isatty: false })
     pyodide.setStdin({ stdin: () => null })
 
-    // The cooperative deadline is driver.py's AST rewrite (every loop body and
-    // function entry calls __ink_tick__, which polls _JS_POLL and raises a
-    // sticky, uncatchable _InkStop once the deadline or an output/memory limit
-    // passed). It stops the program by unwinding back to JS, so the WebAssembly
-    // eval loop exits and the worker thread goes idle without terminate() --
-    // the WebKit-safe stop of contract D1-D9. (Pyodide's interrupt buffer is
-    // NOT used: without SharedArrayBuffer it re-fires during cleanup and
-    // escapes as a KeyboardInterrupt fatal that loses sys.stderr.)
+    // The cooperative deadline has three layers (see the file header and
+    // driver.py). The one installed HERE is layer 2: Pyodide's interrupt
+    // buffer. We give Pyodide a plain (non-shared) object whose [0] getter
+    // returns 2 (SIGINT) once the run's deadline has passed AND interruptArmed
+    // is true. CPython's Emscripten signal check reads it from the eval loop, so
+    // any player code that executes bytecode per step -- a generator expression,
+    // a comprehension, a callable-iterator, a key/reduce lambda -- raises
+    // KeyboardInterrupt at the deadline even though the AST tick never saw it.
+    // No SharedArrayBuffer is needed (this build has none on GitHub Pages); the
+    // getter is read synchronously on the same thread.
+    //
+    // The buffer is ONE-SHOT: the first read past the deadline returns SIGINT
+    // and immediately disarms itself. CPython therefore raises exactly one
+    // KeyboardInterrupt; by the time the driver's `except` handler runs, the
+    // getter returns 0, so it cannot re-fire while the driver formats the result
+    // or runs end-of-run gc. That re-fire -- a new KeyboardInterrupt thrown AT
+    // the handler entry, before the handler could disarm anything -- was why an
+    // earlier version saw the stop escape as a fatal "lost sys.stderr" and had
+    // to leave the buffer off entirely. Stickiness against a player try/except
+    // that swallows the KeyboardInterrupt and loops again does NOT rely on the
+    // buffer: it comes from layer 1 (driver.py's AST tick and wrapped iterables,
+    // whose __ink_stopped flag stays set past the deadline and raises _InkStop
+    // at the next tick). _JS_DISARM below is belt-and-suspenders.
+    const interruptBuffer = {
+      get 0() {
+        if (interruptArmed && currentIO && currentIO.timeLeft() <= 0) {
+          interruptArmed = false
+          return 2
+        }
+        return 0
+      },
+      set 0(_v) { /* Pyodide may clear it after handling; the getter owns the state */ },
+    }
+    pyodide.setInterruptBuffer(interruptBuffer)
 
     // install the driver (compiles the harness once; builds the baseline fingerprint)
     const ns = pyodide.globals.get('dict')()
@@ -111,6 +149,7 @@ const RUNTIME = {
     ns.set('_JS_STARTED', () => { if (currentIO) currentIO.started() })
     ns.set('_JS_POLL', () => (outputLimitHit || (currentIO && currentIO.timeLeft() <= 0) ? 1 : 0))
     ns.set('_JS_LIMITKIND', () => (outputLimitHit ? 'output_limit' : currentIO && currentIO.timeLeft() <= 0 ? 'time_limit' : ''))
+    ns.set('_JS_DISARM', () => { interruptArmed = false })
     pyodide.runPython(driverSource, { globals: ns, filename: 'driver.py' })
     runPy = ns.get('_ink_run')
     ns.destroy()
@@ -124,6 +163,7 @@ const RUNTIME = {
   async run(job, io) {
     currentIO = io
     outputLimitHit = false
+    interruptArmed = true // the driver disarms it the moment it catches the stop
     outDecoder = new TextDecoder()
     errDecoder = new TextDecoder()
     memCapBytes = job.memoryLimitBytes
@@ -134,9 +174,11 @@ const RUNTIME = {
       // a JS-level failure that escaped Python: os._exit, a fatal wasm stack
       // overflow, a corrupted interpreter. Pyodide is unusable; recycle.
       currentIO = null
+      interruptArmed = false
       return describeFatal(e, io)
     }
     currentIO = null
+    interruptArmed = false
 
     const footprint = heapBytes()
     const healthy = res.healthy !== false && footprint < 384 * 1024 * 1024

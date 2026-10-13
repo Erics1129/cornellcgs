@@ -37,7 +37,7 @@ export const PYTHON: RuntimeFacts = {
   version: '314.0.7',
   files: ['python/runtime.js', 'python/driver.py', 'python/harness.py', 'python/PROVENANCE.txt'],
   cdn: [PYODIDE_CDN],
-  about: 'Real CPython 3.14 via Pyodide. Downloads about 6 MB the first time you pick Python; after that it is cached. Your code gets exact Python errors with line numbers.',
+  about: 'Real CPython 3.14 via Pyodide. Downloads about 6 MB the first time you pick Python; after that it is cached. Your code gets exact Python errors with line numbers. A few things are limited so a runaway cannot freeze the tab: the re module is off, math.factorial / pow with huge arguments are capped, and the standard streams stay open.',
 }
 
 /** Problems with how contract.ts / problem.ts describe Python; [] when all is well. */
