@@ -50,8 +50,14 @@ The site's patch (teavm-javac-inkmaze.patch)
                                Patches while TeaVM builds the compiler itself): ticks, allocations
                                and divisions in javac and TeaVM, so compiles stop at their deadline
                                and memory budget (and javac no longer traps on MIN_VALUE / -1).
-                               Runtime support (org.teavm.runtime, .interop, .jso, .platform,
-                               .classlib.impl, *.runtime.*, and the Guard) is never instrumented.
+                               Runtime support is never instrumented: org.teavm.runtime, .interop,
+                               .jso, .platform, *.runtime.* and the Guard (COMPILER mode also leaves
+                               out .classlib.impl). In PROGRAM mode the class library's helpers in
+                               org.teavm.classlib.impl ARE instrumented (since 2026-10-13): they are
+                               ordinary Java the player drives through java.*, e.g. java.util.Base64
+                               runs its whole loop and allocates its result in Base64Impl. Left out,
+                               a Base64 bomb grew WebKit to 4.5 GB unmetered, ran past the deadline
+                               into the host backstop and kept a core busy after terminate().
   WasmBodyPatch.java + Patches a non-void method that can never return (a loop with no exit)
                                made a function body without its result, which every engine
                                rejects; a non-void body that ends with a statement now gets
@@ -70,7 +76,9 @@ The limits runtime.js applies through the guard
               1,024 copied elements, 4 KiB allocated, 64 Throwables); a program stops itself at its
               deadline, catch blocks cannot hold it (TeaVM catches only its Java exception tag)
   memory      one allocation <= job.memoryLimitBytes (256 MiB); everything allocated in a run <= 2x
-              that (512 MiB, garbage included); javac may allocate 384 MiB and TeaVM 2 GiB per compile
+              that (512 MiB, garbage included); javac may allocate 384 MiB and TeaVM 6 GiB per compile (garbage included; a
+              typical solution: TeaVM 0.5-0.6 GiB, a program that pulls in String.format, BigInteger,
+              regex, streams and most collections 2.7 GiB, which the old 2 GiB budget refused)
   output      io.stdout / io.stderr (the output limit); answers go through the harness's own import
   after a limit  a run stopped by its deadline or the output limit keeps the worker; memory_limit and
               any limit while compiling replace it (the guard may have stopped javac or TeaVM anywhere)
@@ -98,40 +106,53 @@ Shipped files (SHA-256)
   InkMazeHarness.class          the hidden harness (scripts/inkmaze-code/build/java/InkMazeHarness.java)
   LICENSE-*.txt, NOTICE-third-party.txt   licence texts (see LICENSES.txt one folder up)
 
-  a310972f11e0db1082318c21255334027fd7df0e291853b4fa68bf52485a28d3  runtime.js  (45,799 bytes)
+  b81bf62badcf61e96b0b7b661c251a2671239e8989d770bcf60616a1b6fe0f6e  runtime.js  (46,137 bytes)
   bd103f277be99fd2f3ffc0248b3558e6c2c85a44902bfeef042c6bedcf0b2c63  teavm-runtime.js  (13,936 bytes)
-  0eee88cd77d792c8869abd90d04c64c32221460fe22f7640093b36baff5ee3ad  compiler.gz.bin  (1,690,823 bytes)
+  3473f12f2b6e30c9f27edb06cb44c4e36b1c97eb00ed71f84e657f90fa07e8c9  compiler.gz.bin  (1,690,834 bytes)
   26bec7c812c2dae0ab4e193687c153555cceb9a51fbadfda9157a3bfba2fd7a0  compile-classlib.bin  (200,186 bytes)
   daa604dae42f032d23a0b5ef0fcf9375ffae4e4034d09e562158df6b3a827690  runtime-classlib.bin  (2,388,353 bytes)
   0e8f5d502437a114c6b61b10e199ad40c947eaebcface06d84e09c608fdff44c  deobfuscator.wasm  (36,608 bytes)
   a8c162101d2de80c6b149a28bf5a53b213ce3ab009f94f0573e5159824344c22  InkMazeHarness.class  (4,236 bytes)
-  fec923031a9be9b93a076f452e9af8e1e41f066a8b998abf4ee6579c4b1c1afe  compiler.wasm, inflated  (4,509,956 bytes)
-  total download: 4,379,941 bytes
+  e7c3e1ed874056773d97ee86784d3f40762d487ceb7ab31ae965877d741a88ef  compiler.wasm, inflated  (4,510,061 bytes)
+  total download: 4,380,290 bytes
 
 Measured (scripts/inkmaze-code/test-runtime-java.mjs, Chromium 151 and WebKit 26.5, M5 Max, localhost,
-2026-10-12; the machine was shared with other test runs, so times are upper bounds)
+2026-10-13, after the guard was extended to org.teavm.classlib.impl; the submission is problem.ts's
+17 boards at that date; the machine was shared with other jobs, so times are upper bounds)
 -------------------------------------------------------------------------------------------------------
                                     Chromium 151            WebKit 26.5
   download (first visit)            4.38 MB                 4.38 MB (compiler.wasm travels gzipped)
-  cold load, empty cache, localhost 184 ms to ready         272 ms
-  cold load at 20 Mbit/s + 40 ms    2.1 s to ready, first accepted submission at 3.3 s (Chromium only)
-  first Run after load (warm-up)    0.44 s                  2.1 s (the prelude waits for warm())
-  warm Run, reference, 13 boards    javac + TeaVM 442 ms,   705 ms, run 5 ms
+  cold load, empty cache, localhost 179 ms to ready         213 ms
+  cold load at 20 Mbit/s + 40 ms    2.1 s to ready, first accepted submission at 3.2 s (Chromium only)
+  first Run after load (warm-up)    0.42 s                  1.4 s (the prelude waits for warm())
+  warm Run, reference, 17 boards    javac + TeaVM 462 ms,   527 ms, run 5 ms
                                     run 1 ms
-  warm Run, naive, 13 boards        439 ms, run 1 ms        580 ms, run 6 ms
-  the same text again (cache)       1 ms                    7 ms
-  memory with Java loaded           +295 MiB (sandbox       +406 MiB (WebContent)
+  warm Run, naive, 17 boards        371 ms, run 5 ms        418 ms, run 15 ms
+  the same text again (cache)       1 ms                    5 ms
+  a library-heavy program           compile 2.5 s, browser  compile 3.0 s, peak 1.26 GiB
+  (format, BigInteger, regex,       peak 1.36 GiB
+  streams, most collections)
+  memory with Java loaded           +291 MiB (sandbox       +406 MiB (WebContent)
                                     renderer + worker)
   recursion (DFS-shaped method)     2000 frames ok,         300 ok, 400 overflows
                                     4000 overflow           (200 is promised)
   a 512 MiB allocation bomb         +0.5 GB peak            +0.6 GB peak in a fresh page; WebKit keeps
-                                                            freed memory resident: ~+1.3 GB after
-                                                            several bombs in one page
-  Every runaway in test-runtime-java.mjs (26 programs: loops in catch / finally / recursion,
-  exponential recursion, threads, sleeping, copies, library loops: streams, regex, String.join,
-  Arrays.fill; output floods; allocation bombs: arrays, small objects, multi-dimensional, string
-  doubling, clones, reflection, exceptions, threads; compile deadline and two compile bombs) was
-  stopped by the guard (stoppedBy 'runtime', never 'host'), the next run worked, and the CPU was
-  back to <= 0.07 cores in the 1.5 s window from 0.3 s after the limit (after memory_limit and
-  compile limits: once the fresh worker had loaded), in both engines. Positive control (an
-  unchecked wasm loop, echo runtime): 1.11 / 0.89 cores after terminate().
+                                                            freed memory resident: ~+2 GB after the
+                                                            suite's bombs in one page
+  Every runaway in test-runtime-java.mjs (33 programs: loops in catch / finally / recursion,
+  exponential recursion, threads, sleeping, wait() forever, threads ping-ponging, copies, a lying
+  comparator, library loops: streams, regex, String.join, Arrays.fill; output floods; allocation
+  bombs: arrays, small objects, multi-dimensional, string doubling, clones, reflection, exceptions,
+  threads, Base64 in the library's helper code; one Base64 decode stopped inside the call; compile
+  deadline and two compile bombs) was stopped by the guard (stoppedBy 'runtime', never 'host'), the
+  next run worked, and the CPU was back to <= 0.03 cores in the 1.5 s window from 0.3 s after the
+  limit (after memory_limit and compile limits: once the fresh worker had loaded), in both engines.
+  Positive control (an unchecked wasm loop, echo runtime): 1.05 / 1.07 cores after terminate().
+  Before the guard covered org.teavm.classlib.impl, a Base64 encode bomb reached the host backstop
+  in WebKit (stoppedBy 'host', 4.5 GB peak, a core still busy after terminate()).
+
+Known class-library gaps (TeaVM 0.13.1; the same with and without the guard; the suite pins each
+as a clean error): String.format / printf %f and %.2f (NullPointerException inside the library),
+%n (UnknownFormatConversionException), EnumMap / EnumSet (NullPointerException: no enum constants
+by reflection), Integer::sum and Collectors.groupingBy(f, mapFactory, downstream) (missing from
+the compile class library: javac says cannot find symbol / incompatible types).

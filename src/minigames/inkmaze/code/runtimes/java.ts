@@ -36,13 +36,20 @@ export type JavaFacts = {
  * values here document them and the tests read them).
  */
 export const JAVA_GUARD = {
-  /** ticks (loop headers, method entries, 256-instruction runs) between two calls into io.check() */
+  /**
+   * ticks (loop headers, method entries, 256-instruction runs) between two calls into io.check(); they are in
+   * the player's classes and the whole class library, its org.teavm.classlib.impl helpers included (only
+   * TeaVM's runtime support is left out)
+   */
   fuel: 16_384,
   /** a program may allocate this many times LIMITS.memoryBytes in total (one allocation: 1x) */
   allocationFactor: 2,
-  /** what javac, then TeaVM, may allocate for one compile (normal: javac 3-7 MiB, TeaVM 500-550 MiB) */
+  /**
+   * what javac, then TeaVM, may allocate for one compile, garbage included (a typical solution: javac 3-7 MiB,
+   * TeaVM 0.5-0.6 GiB; a program using String.format, BigInteger, regex, streams and most collections: 2.7 GiB)
+   */
   javacBudgetBytes: 384 * 1024 * 1024,
-  teavmBudgetBytes: 2048 * 1024 * 1024,
+  teavmBudgetBytes: 6144 * 1024 * 1024,
 } as const
 
 /** The total a program may allocate before memory_limit (the browser cannot measure what is still alive). */
@@ -50,19 +57,24 @@ export const JAVA_ALLOCATION_LIMIT_BYTES = LIMITS.memoryBytes * JAVA_GUARD.alloc
 
 /**
  * Measured with scripts/inkmaze-code/test-runtime-java.mjs (Chromium 151 and
- * WebKit 26.5 on an M5 Max, localhost, 2026-10-12; the machine was shared, so
- * times are upper bounds). Full numbers in java/PROVENANCE.txt.
+ * WebKit 26.5 on an M5 Max, localhost, 2026-10-13, with the 17-board
+ * submission of problem.ts at that date; the machine was shared with other
+ * jobs, so times are upper bounds). Full numbers in java/PROVENANCE.txt.
  */
 export const JAVA_MEASURED = {
   /** the sandbox files a first visit downloads */
   downloadBytes: 4_380_000,
   /** browser memory added by loading Java (Chromium's sandbox renderer and worker / WebKit's WebContent) */
-  memoryBytes: { chromium: 310_000_000, webkit: 425_000_000 },
+  memoryBytes: { chromium: 305_000_000, webkit: 426_000_000 },
   /** cold load to ready, empty cache, localhost (Chromium at 20 Mbit/s + 40 ms: 2.1 s) */
-  coldLoadMs: { chromium: 184, webkit: 272 },
+  coldLoadMs: { chromium: 179, webkit: 213 },
   /** a warm Run of the reference on a full submission: javac + TeaVM, then the program */
-  warmCompileMs: { chromium: 442, webkit: 705 },
+  warmCompileMs: { chromium: 462, webkit: 527 },
   runMs: { chromium: 1, webkit: 5 },
+  /** the naive search (only the ink pruning) on the same submission */
+  naiveRunMs: { chromium: 5, webkit: 15 },
+  /** a program that pulls in String.format, BigInteger, regex, streams and most collections */
+  libraryHeavyCompileMs: { chromium: 2548, webkit: 2979 },
   /** frames of a DFS-shaped method before the browser's stack runs out (LIMITS.recursionDepth is promised) */
   recursionFrames: { chromium: 2000, webkit: 300 },
 } as const
@@ -87,6 +99,7 @@ export const JAVA: JavaFacts = {
     'System.exit() is reported as an error: solve() must return its answer.',
     `Memory: one array may use at most ${LIMITS.memoryBytes / 1024 / 1024} MiB, and a run may allocate ${JAVA_ALLOCATION_LIMIT_BYTES / 1024 / 1024} MiB in total (every object and array counts, garbage too).`,
     'Threads work, but they take turns on one thread (Thread.sleep and join are fine); a thread still running when solve() returns is stopped.',
+    'The in-browser class library has a few gaps: String.format / printf cannot format floating-point numbers (%f, %.2f) or %n, EnumMap and EnumSet do not work, and Integer::sum and Collectors.groupingBy with a map factory are missing. Use println, string concatenation, arrays indexed by ordinal() and lambdas such as (a, b) -> a + b.',
   ],
 }
 

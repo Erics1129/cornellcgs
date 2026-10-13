@@ -496,7 +496,7 @@ diff -ruN a/compiler/src/main/java/org/teavm/javac/guard/Guard.java b/compiler/s
 diff -ruN a/compiler/src/main/java/org/teavm/javac/guard/GuardTransformer.java b/compiler/src/main/java/org/teavm/javac/guard/GuardTransformer.java
 --- a/compiler/src/main/java/org/teavm/javac/guard/GuardTransformer.java
 +++ b/compiler/src/main/java/org/teavm/javac/guard/GuardTransformer.java
-@@ -0,0 +1,417 @@
+@@ -0,0 +1,424 @@
 +/*
 + *  Ink Maze level 26 (Cornell CGS site): instruments TeaVM's IR with calls to
 + *  Guard (the cooperative deadline and the allocation meter).
@@ -626,8 +626,15 @@ diff -ruN a/compiler/src/main/java/org/teavm/javac/guard/GuardTransformer.java b
 +    public boolean excluded(String className) {
 +        if (className.startsWith("org.teavm.")) {
 +            if (mode == Mode.PROGRAM) {
-+                // a program contains no other org.teavm code than runtime support (the policy bans the rest)
-+                return true;
++                // Runtime support only. The class library's helpers in org.teavm.classlib.impl are ordinary Java
++                // the player drives through java.* (java.util.Base64 -> Base64Impl loops over the whole array and
++                // allocates its result there), so they carry ticks and the allocation meter like the rest.
++                return className.startsWith("org.teavm.javac.guard.")
++                        || className.startsWith("org.teavm.runtime.")
++                        || className.startsWith("org.teavm.interop.")
++                        || className.startsWith("org.teavm.jso.")
++                        || className.startsWith("org.teavm.platform.")
++                        || className.contains(".runtime.");
 +            }
 +            return className.startsWith("org.teavm.javac.guard.")
 +                    || className.startsWith("org.teavm.runtime.")

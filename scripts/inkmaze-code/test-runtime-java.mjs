@@ -8,8 +8,8 @@
  *   CGS_TEST_URL=http://localhost:5190 node scripts/inkmaze-code/test-runtime-java.mjs
  *
  * Needs Playwright (CGS_PLAYWRIGHT_MODULE, see scripts/inkmaze-code-browser.mjs)
- * and the repo's Node 24. Not part of `npm test` (it drives browsers; about
- * five minutes for both). The toolchain files are rebuilt with
+ * and the repo's Node 24. Not part of `npm test` (it drives browsers; 6-7 minutes
+ * per engine on a busy machine). The toolchain files are rebuilt with
  * scripts/inkmaze-code/build/java/build.sh (see its PROVENANCE.txt).
  *
  * It proves, against sandbox.ts + problem.ts and the production runtime in
@@ -24,12 +24,18 @@
  *   - runtime errors with the type, the board and (Chromium) the line;
  *     catchable ArrayIndexOutOfBounds / ArithmeticException; exit(); prints;
  *     the answer marker and harness tampering;
+ *   - everyday Java (records, sealed types, pattern switches, streams,
+ *     collections, lambdas...) prints what a JVM prints, and the class
+ *     library's known gaps (%f, %n, EnumMap, Integer::sum, groupingBy with a
+ *     map factory) end as clean errors;
  *   - every runaway is stopped by the program's own guard (stoppedBy
  *     'runtime', never 'host'), the next run works, and the browser's CPU is
  *     back to idle within ~1 s of the limit, WebKit included: tight loops,
  *     loops in catch / finally / deep recursion, exponential recursion, a
- *     thread, sleeping, big copies, output floods, allocation bombs (big,
- *     small, multi-dimensional, string doubling, clone, reflection), compile
+ *     thread, sleeping, wait() forever, threads ping-ponging, big copies, a
+ *     lying comparator, output floods, allocation bombs (big, small,
+ *     multi-dimensional, string doubling, clone, reflection, Base64 in the
+ *     library's helper code), one long library call stopped halfway, compile
  *     bombs (javac's memory, the compile deadline), cancel;
  *   - a positive control (an unchecked WebAssembly loop, run last) shows the
  *     meter sees the sandbox's threads.
@@ -41,6 +47,9 @@ import { fileURLToPath } from 'node:url'
 import { STARTER_CODE, judgeAll, randomBoard, submissionTests } from '../../src/minigames/inkmaze/code/problem.ts'
 import { LIMITS } from '../../src/minigames/inkmaze/code/contract.ts'
 import { cpuMeter, devServer, launch, openCodePage, pause, runOnPage } from '../inkmaze-code-browser.mjs'
+import { checkConsistency } from '../../src/minigames/inkmaze/code/runtimes/java.ts'
+
+assert.deepEqual(checkConsistency(), [], 'contract.ts / problem.ts agree with the Java runtime')
 
 const SOL = fileURLToPath(new URL('./solutions/', import.meta.url))
 const REF = readFileSync(SOL + 'java-reference.java', 'utf8')
@@ -58,6 +67,8 @@ const THREE = SUBMIT.slice(0, 3)
 
 /** a Solution whose solve() has this body */
 const solve = (body, extra = '') => `import java.util.*;\n\nclass Solution {\n${extra}\n    public String solve(String[] grid, int ink) {\n${body}\n    }\n}\n`
+/** a Solution that runs `body` (with the stream and function imports too) and returns no moves */
+const snippet = (body, extra = '') => `import java.util.*;\nimport java.util.function.*;\nimport java.util.stream.*;\n\nclass Solution {\n${extra}\n    public String solve(String[] grid, int ink) {\n        ${body}\n        return "";\n    }\n}\n`
 
 /** Programs that must be stopped by the guard (status, and the CPU back to idle after). */
 const RUNAWAYS = {
@@ -82,10 +93,62 @@ const RUNAWAYS = {
   'string doubling': ['memory_limit', solve('        String s = "x";\n        while (s.length() > 0) s = s + s;\n        return s;')],
   'clone bomb': ['memory_limit', solve('        long[] a = new long[1 << 20];\n        List<long[]> keep = new ArrayList<>();\n        while (keep.size() >= 0) keep.add(a.clone());\n        return "";')],
   'reflection bomb': ['memory_limit', solve('        List<Object> keep = new ArrayList<>();\n        while (keep.size() >= 0) keep.add(java.lang.reflect.Array.newInstance(long.class, 1 << 20));\n        return "";')],
+  // java.util.Base64 does its work (and allocates its result) in TeaVM's helper org.teavm.classlib.impl.Base64Impl:
+  // before the guard covered that package, each call was one unchecked loop and an unmetered array (4.5 GB, host stop)
+  'Base64 encode bomb (library helper code)': [['memory_limit', 'time_limit'], solve('        byte[] a = new byte[180 << 20];\n        List<byte[]> keep = new ArrayList<>();\n        while (true) keep.add(Base64.getEncoder().encode(a));')],
+  'Base64 decode bomb': [['memory_limit', 'time_limit'], solve('        byte[] a = new byte[200 << 20];\n        Arrays.fill(a, (byte) 65);\n        List<byte[]> keep = new ArrayList<>();\n        while (true) keep.add(Base64.getDecoder().decode(a));')],
   // objects that also hold JavaScript memory (a stack trace, a WeakRef, a fiber): charged extra
   'exception bomb': [['memory_limit', 'time_limit'], solve('        List<Throwable> keep = new ArrayList<>();\n        while (keep.size() >= 0) keep.add(new RuntimeException("kept"));\n        return "";')],
   'thread bomb': [['memory_limit', 'time_limit'], solve('        while (true) new Thread(() -> { }).start();')],
   'throwing and catching forever': ['time_limit', solve('        while (true) { try { throw new IllegalStateException("again"); } catch (IllegalStateException e) { } }')],
+  // green threads: parked forever, or handing the turn back and forth forever
+  'wait() with no notify': ['time_limit', solve('        Object lock = new Object();\n        synchronized (lock) { try { lock.wait(); } catch (InterruptedException e) { } }\n        return "";')],
+  'two threads ping-ponging forever': ['time_limit', solve('        final Object lock = new Object();\n        Thread t = new Thread(() -> { synchronized (lock) { while (true) { lock.notify(); try { lock.wait(); } catch (InterruptedException e) { } } } });\n        t.start();\n        synchronized (lock) { while (true) { lock.notify(); try { lock.wait(); } catch (InterruptedException e) { } } }')],
+  'a sort whose comparator lies': ['time_limit', solve('        Integer[] a = new Integer[100000];\n        for (int i = 0; i < a.length; i++) a[i] = i;\n        Random r = new Random(1);\n        while (true) Arrays.sort(a, (x, y) -> r.nextInt(3) - 1);')],
+}
+
+/**
+ * Everyday Java a solution may use, with the exact console output a JVM prints. Each must compile and run as on
+ * a JVM. (Records, sealed types, pattern switches, text blocks, local enums, streams, collections, lambdas.)
+ */
+const FEATURES = {
+  'records as HashMap keys, toString': ['record P(int r, int c) { }\n        var map = new HashMap<P, Integer>(); map.put(new P(1, 2), 3);\n        System.out.println(map.get(new P(1, 2)) + " " + new P(1, 2));', '3 P[r=1, c=2]'],
+  'sealed interface + pattern switch': ['Shape sh = ink >= 0 ? new Sq(2) : new Ci(3);\n        System.out.println(switch (sh) { case Sq s -> s.s() * s.s(); case Ci c -> 3 * c.r() * c.r(); });', '4', '    sealed interface Shape permits Sq, Ci { }\n    record Sq(int s) implements Shape { }\n    record Ci(int r) implements Shape { }'],
+  'deque, priority queue, text block, instanceof pattern': ['var dq = new ArrayDeque<Integer>(); dq.push(1); dq.addLast(2);\n        var pq = new PriorityQueue<int[]>((a, b) -> Integer.compare(a[0], b[0])); pq.add(new int[]{5}); pq.add(new int[]{1});\n        String text = """\n            text block\n            """;\n        Object o = text;\n        System.out.println(dq + " " + pq.poll()[0] + " " + text.strip() + " " + (o instanceof String s && !s.isEmpty() ? s.length() : -1));', '[1, 2] 1 text block 11'],
+  'local enum, switch expression, yield': ['enum Dir { U, D, L, R }\n        StringBuilder sb = new StringBuilder();\n        for (Dir d : Dir.values()) sb.append(switch (d) { case U -> \'u\'; case D -> { yield \'d\'; } default -> d.name().charAt(0); });\n        System.out.println(sb + " " + Dir.valueOf("L").ordinal());', 'udLR 2'],
+  'streams and collectors': ['System.out.println(IntStream.range(0, 5).boxed().map(String::valueOf).collect(Collectors.joining(",")) + " " + Stream.of("a", "bb", "cc").collect(Collectors.groupingBy(String::length)) + " " + Arrays.stream(new int[]{5, 3, 1}).sorted().boxed().toList());', '0,1,2,3,4 {1=[a], 2=[bb, cc]} [1, 3, 5]'],
+  'collections: computeIfAbsent, merge, TreeMap, BitSet, LinkedList': ['Map<String, List<Integer>> m = new HashMap<>(); m.computeIfAbsent("k", k -> new ArrayList<>()).add(1);\n        Map<Character, Integer> c = new TreeMap<>(); for (char ch : "aab".toCharArray()) c.merge(ch, 1, (x, y) -> x + y);\n        BitSet bs = new BitSet(); bs.set(3);\n        List<String> l = new LinkedList<>(List.of("a", "b")); ListIterator<String> it = l.listIterator(); while (it.hasNext()) if (it.next().equals("a")) it.set("z");\n        TreeMap<String, Integer> tm = new TreeMap<>(Comparator.reverseOrder()); tm.put("a", 1); tm.put("b", 2);\n        System.out.println(m + " " + c + " " + bs + " " + l + " " + tm.firstKey());', '{k=[1]} {a=2, b=1} {3} [z, b] b'],
+  'numbers and strings': ['System.out.println(Long.bitCount(0xF0F0L) + " " + Long.toBinaryString(5) + " " + Math.floorMod(-7, 3) + " " + "abc".repeat(2) + " " + Long.parseLong("-123") + " " + Double.parseDouble("1e3") + " " + (0.1 + 0.2) + " " + String.format("%05d|%x|%s|%-3s|", 42, 255, "z", "y") + " " + "%d-%s".formatted(1, "x") + " " + Objects.hash(1, 2, 3) + " " + Arrays.deepToString(new int[][]{{1}, {2}}) + " " + String.join(",", "a,b,,c".split(",")));', '8 101 2 abcabc -123 1000.0 0.30000000000000004 00042|ff|z|y  | 1-x 30817 [[1], [2]] a,b,,c'],
+  'generics, varargs, inner and anonymous classes, custom exceptions': ['Runnable r = new Runnable() { public void run() { System.out.print("ran "); } }; r.run();\n        try { throw new Oops("bad"); } catch (Oops e) { System.out.print(e.getMessage() + " "); } finally { System.out.print("fin "); }\n        System.out.println(max(List.of(3, 9, 2)) + " " + sum(1, 2, 3) + " " + new Inner().v());', 'ran bad fin 9 6 5', '    static class Oops extends Exception { Oops(String m) { super(m); } }\n    class Inner { int v() { return 5; } }\n    static <T extends Comparable<T>> T max(List<T> xs) { T best = xs.get(0); for (T x : xs) if (x.compareTo(best) > 0) best = x; return best; }\n    static int sum(int... xs) { int s = 0; for (int x : xs) s += x; return s; }'],
+  'HashMap<Long, Integer> with 100,000 keys': ['HashMap<Long, Integer> best = new HashMap<>(); for (long i = 0; i < 100000; i++) best.put(i * 64 + 3, (int) i);\n        System.out.println(best.get(64L * 99999 + 3) + " " + best.size());', '99999 100000'],
+}
+
+/**
+ * A legitimate program that pulls in most of the class library a solution could touch: TeaVM allocates about
+ * 2.7 GiB (garbage included) to build it, which the old 2 GiB compile budget refused.
+ */
+const LIBRARY_HEAVY = snippet(`System.out.println(String.format("%05d|%x|%s|%-3s|%o|%c|%b|%,d|%+d", 42, 255, "z", "y", 8, 'q', true, 1234567, 5));
+        System.out.println(String.valueOf(3.25f) + Double.toString(1e-9) + Float.parseFloat("2.5") + Math.sqrt(2) + Math.pow(2, 0.5) + Math.atan2(1, 2));
+        System.out.println(new java.math.BigInteger("123456789012345678901234567890").pow(3).mod(java.math.BigInteger.valueOf(97)));
+        System.out.println(new java.math.BigDecimal("1.25").multiply(new java.math.BigDecimal("3")).toPlainString());
+        System.out.println("a1b22c333".replaceAll("[0-9]+", "#") + java.util.regex.Pattern.compile("(\\\\w)(\\\\d)").matcher("x1").matches());
+        System.out.println(IntStream.range(0, 9).boxed().collect(Collectors.groupingBy(i -> i % 3)) + "" + Stream.of("b", "a").sorted().collect(Collectors.toList()) + LongStream.rangeClosed(1, 5).reduce(1, (a, b) -> a * b));
+        System.out.println(new TreeMap<>(Map.of(1, 2)) + "" + new LinkedHashMap<>(Map.of(3, 4)) + new TreeSet<>(Set.of(5)) + new ArrayDeque<>(List.of(6)) + new PriorityQueue<>(List.of(7)) + new Hashtable<>(Map.of(8, 9)) + new Vector<>(List.of(1)) + new Stack<Integer>());
+        System.out.println(Arrays.deepToString(new int[][]{{1}}) + Arrays.toString("a,b".split(",")) + Arrays.asList(1, 2) + Collections.nCopies(2, "x") + Objects.hash(1, 2) + Optional.of(3).map(x -> x + 1).get());
+        System.out.println(new StringBuilder("abc").reverse() + "x".repeat(3) + "  t ".strip() + String.join("-", List.of("a", "b")) + "abc".chars().sum() + Character.toUpperCase('a') + Integer.toHexString(255) + Long.toBinaryString(5) + Integer.parseInt("-42") + Boolean.parseBoolean("true"));
+        System.out.println(new Random(1).nextInt(10) + " " + new java.util.concurrent.atomic.AtomicInteger(3).incrementAndGet() + " " + new java.util.concurrent.ConcurrentHashMap<>(Map.of(1, 1)) + new BitSet().cardinality());`)
+
+/**
+ * Parts of the JDK that TeaVM 0.13.1's class library gets wrong or lacks (the same before and after the guard):
+ * each must end as a clean compile_error or runtime_error the player can read, never a crash or a hang. If one
+ * starts to work after a rebuild, move it to FEATURES and drop it from java.ts JAVA.differences.
+ */
+const KNOWN_GAPS = {
+  'String.format %f / %.2f': ['System.out.println(String.format("%.2f", 3.14159));', 'runtime_error', /NullPointerException/],
+  'printf %n': ['System.out.printf("%d%n", 1);', 'runtime_error', /UnknownFormatConversionException/],
+  'EnumMap / EnumSet': ['EnumMap<Dir, Integer> m = new EnumMap<>(Dir.class); m.put(Dir.R, 4);\n        System.out.println(m);', 'runtime_error', /NullPointerException/, '    enum Dir { U, D, L, R }'],
+  'Integer::sum': ['Map<Character, Integer> c = new HashMap<>(); c.merge(\'a\', 1, Integer::sum);', 'compile_error', /cannot find symbol/],
+  'Collectors.groupingBy with a map factory': ['System.out.println(Stream.of("a").collect(Collectors.groupingBy(String::length, TreeMap::new, Collectors.counting())));', 'compile_error', /incompatible types/],
 }
 
 /** javac doubles its work for every nested finally (16 levels: 4 GB in 11 s without the budget) */
@@ -345,6 +408,35 @@ async function suite(name) {
     assert.deepEqual([initLoop.status, initLoop.stoppedBy], ['time_limit', 'runtime'], 'a static initializer that never ends')
     log('runtime errors (types, boards, lines), catchable bounds and arithmetic, exit(), prints, marker, tampering, threads')
 
+    // ------------------------------------------------ everyday Java works as on a JVM; the library's known gaps fail cleanly
+    for (const [label, [body, expected, extra]] of Object.entries(FEATURES)) {
+      const r = await run(snippet(body, extra || ''))
+      assert.equal(r.status, 'ok', `${label}: ${r.status} (${r.message})`)
+      assert.equal(r.stdout, `${expected}\n`, `${label}: prints what a JVM prints`)
+    }
+    for (const [label, [body, status, pattern, extra]] of Object.entries(KNOWN_GAPS)) {
+      const r = await run(snippet(body, extra || ''))
+      assert.equal(r.status, status, `${label}: still a clean ${status} (${r.status}: ${r.message})`)
+      assert.match(r.status === 'runtime_error' ? `${r.error.type}: ${r.error.message}` : r.message, pattern, label)
+      assert.equal(r.sandboxRestarted, false, `${label}: the sandbox keeps going`)
+    }
+    assert.equal((await run(STARTER_CODE.java)).status, 'ok', 'a run after the library gaps works')
+    facts.features = `${Object.keys(FEATURES).length} everyday-Java programs as on a JVM; ${Object.keys(KNOWN_GAPS).length} known library gaps end as clean errors`
+    log(facts.features)
+    {
+      const counted = browserPids()
+      let peak = rss(counted)
+      let sampling = true
+      const sampler = (async () => { while (sampling) { peak = Math.max(peak, rss(counted)); await pause(40) } })()
+      const heavy = await run(LIBRARY_HEAVY)
+      sampling = false
+      await sampler
+      assert.equal(heavy.status, 'ok', `a program that pulls in most of the class library compiles and runs (${heavy.status}: ${heavy.message})`)
+      assert.ok(heavy.timings.compileMs < LIMITS.compileMs / 2, `it compiles well inside the compile limit (${heavy.timings.compileMs} ms)`)
+      facts.libraryHeavy = { compileMs: heavy.timings.compileMs, peakRssBytes: peak }
+      log(`library-heavy program (TeaVM allocates ~2.7 GiB): ok, compile ${heavy.timings.compileMs} ms, browser memory peaked at ${mib(peak)}`)
+    }
+
     // ------------------------------------------------ runaways: the guard stops them, the CPU goes idle (D2-D9)
     /** the most resident memory the browser's processes reach while `promise` runs */
     const peakRss = async (promise) => {
@@ -386,6 +478,34 @@ async function suite(name) {
       if (r.status === 'time_limit') assert.ok(r.timings.runMs >= 1150 && r.timings.runMs <= 1200 + LIMITS.selfStopSlackMs + 200, `${label}: stopped at its deadline (${r.timings.runMs} ms)`)
       runawayFacts[label] = `${r.status} after ${r.timings.runMs} ms, ${r.ticks} ticks, stopped by ${r.stoppedBy}`
     }
+    // one call into the library's helper code that would run past the deadline is stopped inside it (Base64Impl
+    // used to be left out of the guard: a single decode of a 200 MiB array ran half a second past any deadline)
+    {
+      const decode = solve('        byte[] a = new byte[200 << 20];\n        Arrays.fill(a, (byte) 65);\n        long t = System.currentTimeMillis();\n        System.out.println("decode starts");\n        byte[] b = Base64.getDecoder().decode(a);\n        System.out.println("decode took " + (System.currentTimeMillis() - t) + " ms");\n        return "";')
+      // a deadline inside the decode (timed on warm runs of the same program): the guard must stop it there, not
+      // when the call returns. An 'ok' past the deadline is what an unchecked call looks like (a failure); an 'ok'
+      // inside it, or a stop before the decode began, only means this machine's timing moved: time it again.
+      let stopped = null
+      for (let attempt = 0; attempt < 4 && !stopped; attempt++) {
+        let timed = null
+        for (let i = 0; i < 2; i++) timed = await run(decode, ONE, { timeLimitMs: 8000 })
+        assert.equal(timed.status, 'ok', `a 200 MiB decode fits the budget (${timed.message})`)
+        const took = Number(/decode took (\d+) ms/.exec(timed.stdout)[1])
+        const limit = Math.round(timed.timings.runMs - took + took * 0.4)
+        const r = await run(decode, ONE, { timeLimitMs: limit })
+        if (r.status === 'ok') {
+          assert.ok(r.timings.runMs <= limit, `an ok run ended before its deadline (${r.timings.runMs} ms, limit ${limit} ms): nothing ran unchecked past it`)
+          continue
+        }
+        assert.deepEqual([r.status, r.stoppedBy], ['time_limit', 'runtime'], `one long Base64 decode stops at the deadline (${r.status}: ${r.message})`)
+        assert.ok(r.timings.runMs <= limit + 100, `stopped close to its deadline (${r.timings.runMs} ms, limit ${limit} ms, the call alone takes ${took} ms)`)
+        if (r.stdout === 'decode starts\n') stopped = { r, took, limit }
+      }
+      assert.ok(stopped, 'a deadline landed inside the decode and the guard stopped the call there')
+      runawayFacts[`one Base64 decode of 200 MiB (takes ${stopped.took} ms), deadline inside it`] = `${stopped.r.status} after ${stopped.r.timings.runMs} ms (limit ${stopped.limit}), stopped by ${stopped.r.stoppedBy}`
+      assert.equal((await run(NAIVE, ONE)).status, 'ok', 'the next run works')
+    }
+
     // the page keeps running its timers while a Java loop spins in the worker
     const responsive = await page.evaluate(async ({ source, tests }) => {
       let last = performance.now()

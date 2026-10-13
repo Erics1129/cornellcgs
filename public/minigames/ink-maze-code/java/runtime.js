@@ -69,9 +69,14 @@ const MIB = 1024 * 1024
  * state, allocates 59 MiB on a full submission), yet keeps what a bomb can hold to about this much.
  */
 const ALLOC_FACTOR = 2
-/** what one compile may allocate (javac, then TeaVM); a normal compile: javac 3-7 MiB, TeaVM 500-550 MiB */
+/**
+ * What one compile may allocate (javac, then TeaVM), garbage included. A typical solution: javac 3-7 MiB, TeaVM
+ * 0.5-0.6 GiB; TeaVM grows with the class library a program pulls in: String.format with a few conversions 1.3 GiB,
+ * format + parsing + regex 2.3 GiB, format + BigInteger + BigDecimal + regex + streams + most collections 2.7 GiB
+ * (2 GiB refused those). The compile deadline is the main stop; this budget is the backstop.
+ */
 const JAVAC_BUDGET = 384 * MIB
-const TEAVM_BUDGET = 2048 * MIB
+const TEAVM_BUDGET = 6144 * MIB
 const PLAYER_FILE = 'Solution.java'
 const HARNESS = 'InkMazeHarness'
 const SOLVE_DESC = '([Ljava/lang/String;I)Ljava/lang/String;'
