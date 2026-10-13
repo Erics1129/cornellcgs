@@ -241,7 +241,7 @@ public partial class ForgeWorld {
  void LateUpdate(){
   if(cam==null)return;
   // Close the hands on the hammer and the reins (after the Animator and IK).
-  if(smithAnimator!=null){CurlFingers(1,rightGoalRot,ForgeFeel.Smooth(rightIk));if(tongs!=null)CurlFingers(0,leftGoalRot,1);}
+  if(smithAnimator!=null){CurlFingers(1,rightGoalRot,ForgeFeel.Smooth(rightIk));if(tongs!=null)CurlFingers(0,leftGoalRot,1);CalibrateFist();}
   UpdateOccluders();
   if(!QaOn(ForgeContract.QaModes.Telemetry)){telemetryQueue.Clear();return;}
   if(hearth!=null){hearthTelemetryClock+=ForgeTime.Raw(Time.unscaledDeltaTime);if(hearthTelemetryClock>=.1f){hearthTelemetryClock=0;telemetryQueue.Add(("hearth",hearth.knifeId,hearth.t*1000));}}
@@ -262,11 +262,17 @@ public partial class ForgeWorld {
  /// closes on the handle; more means the hand has come off it.
  float HandToHandle(){if(rightHand==null||rightMiddle==null||hammer==null||handOnHammer<.5f)return -1;var fist=FistCentre(true);
   var a=hammer.TransformPoint(new Vector3(0,-.07f,0));var b=hammer.TransformPoint(new Vector3(0,.22f,0));var ab=b-a;float u=Mathf.Clamp01(Vector3.Dot(fist-a,ab)/ab.sqrMagnitude);return Vector3.Distance(fist,a+ab*u);}
- /// The fist's grasp centre from the hand, middle, index and little proximal bones.
- Vector3 FistCentre(bool right){var hand=right?rightHand:leftHand;var mid=right?rightMiddle:leftMiddle;var bones=fingerBones[right?1:0];if(hand==null||mid==null)return Vector3.zero;
-  var fingers=(mid.position-hand.position);float len=fingers.magnitude;fingers/=Mathf.Max(1e-4f,len);var ix=bones!=null?bones[3]:null;var li=bones!=null?bones[12]:null;
-  var thumbSide=ix!=null&&li!=null?(ix.position-li.position).normalized:Vector3.up;var palm=right?Vector3.Cross(fingers,thumbSide):Vector3.Cross(thumbSide,fingers);
-  return hand.position+fingers*(K.gripAlongCm*.01f)+palm.normalized*(K.gripPalmCm*.01f);}
+ /// The fist's grasp centre in the posed hand bone's own frame: the goal frame (fingers +z, palm -y) is the bone's
+ /// rotation times a constant rig offset, measured once while the IK holds the hand exactly on its goal. If the hand
+ /// comes off the goal (out of reach, IK weight down), the bone and this point move with it.
+ Quaternion[] boneToGoal=new Quaternion[2];bool[] boneToGoalSet=new bool[2];
+ void CalibrateFist(){
+  for(int s=0;s<2;s++){if(boneToGoalSet[s])continue;var hand=s==1?rightHand:leftHand;if(hand==null)continue;var goal=s==1?rightGoalRot:leftGoalRot;var pos=s==1?rightGoalPos:leftGoalPos;
+   if((s==0||rightIk>=1)&&Vector3.Distance(hand.position,pos)<.002f){boneToGoal[s]=Quaternion.Inverse(hand.rotation)*goal;boneToGoalSet[s]=true;}}
+ }
+ Vector3 FistCentre(bool right){var hand=right?rightHand:leftHand;if(hand==null)return Vector3.zero;int s=right?1:0;
+  var frame=boneToGoalSet[s]?hand.rotation*boneToGoal[s]:(right?rightGoalRot:leftGoalRot);
+  return hand.position+frame*new Vector3(0,-K.gripPalmCm*.01f,K.gripAlongCm*.01f);}
  /// Screen fraction of the blade's box covered by the hammer head's box.
  float HeadCoversBlade(Body b){if(hammerHead==null||b.bladeRenderer==null)return -1;var hb=ScreenRect(hammerHead.bounds);var bb=ScreenRect(b.bladeRenderer.bounds);float area=bb.width*bb.height;if(area<=1e-6f)return -1;
   float ix=Mathf.Max(0,Mathf.Min(hb.xMax,bb.xMax)-Mathf.Max(hb.xMin,bb.xMin)),iy=Mathf.Max(0,Mathf.Min(hb.yMax,bb.yMax)-Mathf.Max(hb.yMin,bb.yMin));return ix*iy/area;}

@@ -55,12 +55,14 @@ async function series(h, n) {
 
 /** Presses every `everyMs` for `forMs`: impacts, impact gaps and 'The hammer is returning.' notices. */
 async function mash(h, everyMs, forMs) {
-  const t0 = await now(h); let presses = 0
+  const t0 = await now(h); let presses = 0; const title0 = (await hud(h)).title
   while ((await now(h)) - t0 < forMs) { await press(h, 'Space', 15); presses++; await sleep(Math.max(0, everyMs - 15)) }
   await sleep(900)
   const imp = (await unityEvents(h, t0, 'impact')).map(e => e.t), gaps = imp.slice(1).map((t, i) => +(t - imp[i]).toFixed(1))
   const notices = await h.page.evaluate(() => document.body.innerText.includes('The hammer is returning.'))
-  return { presses, impacts: imp.length, gaps: summary(gaps), minGap: gaps.length ? Math.min(...gaps) : null, returningNotice: notices }
+  // A shatter (or a sale) ends the run on that blade: the next blank heats for 2 s, so fewer impacts are expected.
+  const title1 = (await hud(h)).title, knifeChanged = (title0 || '').replace(/\+\d+$/, '') !== (title1 || '').replace(/\+\d+$/, '')
+  return { presses, impacts: imp.length, gaps: summary(gaps), minGap: gaps.length ? Math.min(...gaps) : null, returningNotice: notices, title0, title1, knifeChanged }
 }
 
 /** One strike under a screencast: the windup shows within two frames of the keydown, and the on-screen hit-stop. */
@@ -76,9 +78,16 @@ async function filmed(h) {
   const within = after.filter(f => f.t <= t0 + 34 + 17)
   let windup = 0; for (const f of within) windup = Math.max(windup, await frameDiff(h, pre.file, f.file, region))
   const hs = impact ? await hitStopFromFrames(h, cap.frames, impact.t) : { ms: null }
+  // The camera kick lands on the contact frame, during the hit-stop: a wall region (left edge, mid height: no HUD, no
+  // hands or sparks) changes in the first frame or two after the impact (the old build moved only after its 60 ms freeze).
+  let cameraMoveMs = null, cameraDiff = 0
+  if (impact) {
+    const pre = cap.frames.filter(f => f.t <= impact.t).at(-1), post = cap.frames.filter(f => f.t > impact.t).slice(0, 4)
+    for (const f of post) { const d = await frameDiff(h, pre.file, f.file, [.0, .32, .12, .55]); cameraDiff = Math.max(cameraDiff, d); if (d > 1.0 && cameraMoveMs == null) cameraMoveMs = +(f.t - impact.t).toFixed(1) }
+  }
   const pick = cap.frames.filter(f => f.t > t0 - 40 && f.t < (impact ? impact.t : t0) + 260)
   await contactSheet(h, pick.map(f => f.file), path.join(h.out, 'strike-sheet.png'), { cols: 8, width: 240, labels: pick.map(f => Math.round(f.t - t0) + 'ms') })
-  return { windupDiff2Frames: +windup.toFixed(2), region, framesWithin34ms: within.length, hitStopOnScreen: hs, impactMs: impact ? +(impact.t - t0).toFixed(1) : null }
+  return { windupDiff2Frames: +windup.toFixed(2), region, framesWithin34ms: within.length, hitStopOnScreen: hs, cameraMoveMs, cameraDiff: +cameraDiff.toFixed(2), impactMs: impact ? +(impact.t - t0).toFixed(1) : null }
 }
 
 async function run(kind) {
@@ -91,13 +100,18 @@ async function run(kind) {
     r.hearth = await hearth(h)
     await h.shot('seated')
     if (kind === 'desktop' || kind === 'reduced') { await sleep(600); r.filmed = await filmed(h) }
+    // Rhythm on a fresh blade (before the series pushes the risk up): a press every 120 ms for 3 s, then every 940 ms.
+    if (kind === 'desktop') {
+      const arm = async name => { if (await ensureForging(h)) return true; r[name] = { skipped: await hud(h) }; return false }
+      await sleep(800); if (await arm('mash120')) r.mash120 = await mash(h, 120, 3000)
+      await sleep(800); if (await arm('rhythm940')) r.rhythm940 = await mash(h, 640 + 300, 4000)
+    }
     const rows = await series(h, kind === 'desktop' ? N : Math.min(N, 10))
     r.strikes = rows
     const lowRisk = rows.filter(x => (x.risk ?? 0) < .3)
     r.latency = { impactMs: summary(rows.map(x => x.impactMs)), lowRiskImpactMs: summary(lowRisk.map(x => x.impactMs)), settleAfterImpactMs: summary(rows.map(x => x.settleAfterImpactMs)) }
     r.pose = { faceDotMin: Math.min(...rows.map(x => x.faceDot ?? 1)), handToHandleMax: Math.max(...rows.map(x => x.handToHandle ?? 0)), headVp: [Math.min(...rows.map(x => x.headVpMin ?? .5)), Math.max(...rows.map(x => x.headVpMax ?? .5))], coverAtPressMax: Math.max(...rows.map(x => x.coverAtPress ?? 0)), pitch: summary(rows.map(x => x.pitch)), fov: summary(rows.map(x => x.fov)) }
     r.hitStop = rows.filter(x => x.outcome).map(x => ({ outcome: x.outcome, ms: x.hitStopMs, want: kind === 'reduced' ? 0 : HITSTOP[x.outcome] }))
-    if (kind === 'desktop') { if (await ensureForging(h)) r.mash120 = await mash(h, 120, 3000); if (await ensureForging(h)) r.rhythm300 = await mash(h, 640 + 300, 4000) }
     if (kind === 'reduced') { const tele = await telemetry(h, 0); r.reducedCheck = { timeScaleMin: Math.min(...tele.map(f => f.timeScale)), kickMax: Math.max(...tele.map(f => Math.abs(f.kick))), traumaMax: Math.max(...tele.map(f => f.trauma)) } }
     r.console = h.consoleLines.filter(l => /\[error\]|pageerror/i.test(l)).slice(0, 20)
     // Acceptance (strike-feel plan, critique amendments). Rhythm buffering needs web-feel's gate and is reported, not judged.
@@ -110,7 +124,10 @@ async function run(kind) {
       hitStopTable: r.hitStop.every(x => x.want == null || Math.abs((x.ms ?? 0) - x.want) <= 9 || Math.abs((x.ms ?? 0) - x.want / 2) <= 9),
       noConsoleErrors: r.console.length === 0,
     }
-    if (r.filmed) r.pass.windupVisible = kind === 'reduced' || r.filmed.windupDiff2Frames > 2.0
+    if (r.filmed) { r.pass.windupVisible = kind === 'reduced' || r.filmed.windupDiff2Frames > 2.0; if (kind !== 'reduced') r.pass.cameraOnContact = r.filmed.cameraMoveMs != null && r.filmed.cameraMoveMs <= 34 }
+    // Impacts never closer than the 640 ms cycle (a frame of slack on the page clock); one impact per spaced press.
+    if (r.mash120?.impacts) Object.assign(r.pass, { mashSpacing: (r.mash120.minGap ?? 1e9) >= 640 - 9, mashCount: r.mash120.impacts >= 4 || r.mash120.knifeChanged, noReturningNotice: !r.mash120.returningNotice })
+    if (r.rhythm940?.impacts) r.pass.rhythmOnePerPress = r.rhythm940.impacts === r.rhythm940.presses || r.rhythm940.knifeChanged
     if (r.reducedCheck) Object.assign(r.pass, { reducedNoTimeScale: r.reducedCheck.timeScaleMin >= 1, reducedKick: r.reducedCheck.kickMax <= 1.6 * .25 + 1e-3, reducedNoTrauma: r.reducedCheck.traumaMax === 0 })
   } catch (e) { r.error = String(e.stack || e).slice(0, 1500); await h.shot('error').catch(() => {}) }
   finally { await h.close() }
