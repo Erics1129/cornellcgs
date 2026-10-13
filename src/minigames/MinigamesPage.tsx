@@ -14,11 +14,13 @@ import { LEVELS } from './inkmaze/levels'
 import { loadBests } from './inkmaze/progress'
 
 const boardSize = (level: Level) => `${level.grid[0].length} × ${level.grid.length}`
+const area = (level: Level) => level.grid[0].length * level.grid.length
 
 /** The Ink Maze card's text, with its numbers taken from the levels themselves. */
 const inkMazeSummary = minigames.inkMaze.summary({
   levels: LEVELS.length,
   first: boardSize(LEVELS[0]),
+  largest: boardSize(LEVELS.reduce((a, b) => (area(b) > area(a) ? b : a))),
   last: boardSize(LEVELS[LEVELS.length - 1]),
   exact: LEVELS.filter((level) => level.ink === level.par).length,
 })
