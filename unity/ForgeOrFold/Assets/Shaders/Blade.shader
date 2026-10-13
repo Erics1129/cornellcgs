@@ -16,7 +16,7 @@ Shader "Forge/Blade" {
   _Heat("Heat (legacy, unused)",Range(0,1))=0 _EmissionColor("Evolution",Color)=(0,0,0,0) _GlowColor("Aura",Color)=(.5,.8,1,1) _Kind("Metal kind",Float)=0 _Stage("Evolution stage",Float)=0
   _Worked("Being forged",Float)=1 _Swatch("QA swatch",Float)=0 _Shard("Shatter piece",Float)=0 _Dissolve("Dissolve",Range(0,1))=0 _CrackFlash("Crack flash",Float)=0 _Glint("Glint sweep",Float)=-1
   _HeatA("Cooling T0 K, tau, k3, floor",Vector)=(293.15,0,.0561,0) _HeatB("Ease target K, t, dur, lead",Vector)=(293.15,-1000,1,0) _HeatC("Floors K, curve",Vector)=(923.15,873.15,0,0)
-  _Emit("Emission scale, K, cap, white",Vector)=(3,9592,6,.6) _Chroma("Chroma start, slope, 1/scale cell cm, gap glow",Vector)=(580,.000227,1.33,.85) _Surface("Hot surface",Vector)=(450,900,.35,.25)
+  _Emit("Emission scale, K, cap, white",Vector)=(3,9592,6,.6) _Chroma("Chroma start, slope, 1/scale cell cm, gap glow",Vector)=(580,.000227,1.33,.85) _Surface("Hot surface",Vector)=(450,900,.35,.25) _Surface2("Hot reflectance from C, to C, left",Vector)=(300,700,.45,0)
   _Oxide("Oxide amount, dim, regrow s, footprint cm",Vector)=(0,.4,6,1.8) _Crack("Crack amount, glow, per m, dark above C",Vector)=(0,.6,40,900) _Flash("Flash, footprint s, gain",Vector)=(0,.12,1.2,0)
   _BladeDims("Length cm, width cm, seed, unit mm",Vector)=(20,4,0,120) _Notch("Notch u, half width u, depth v, on",Vector)=(0,.02,.1,0)
  }
@@ -30,7 +30,7 @@ Shader "Forge/Blade" {
    #define FORGE_NO_GLOW_LAMP
    #include "ForgeLighting.cginc"
    sampler2D _MainTex;float4 _Color,_EmissionColor,_GlowColor;float _Metallic,_Glossiness,_Kind,_Stage,_Worked,_Swatch,_Shard,_Dissolve,_CrackFlash,_Glint;
-   float4 _HeatA,_HeatB,_HeatC,_Emit,_Chroma,_Surface,_Oxide,_Crack,_Flash,_BladeDims,_Notch;
+   float4 _HeatA,_HeatB,_HeatC,_Emit,_Chroma,_Surface,_Surface2,_Oxide,_Crack,_Flash,_BladeDims,_Notch;
    float4 _Hits[4];float4 _Marks[8];float _ForgeMetalDebug;
    struct appdata {float4 vertex:POSITION;float3 normal:NORMAL;float2 uv:TEXCOORD0;float4 data:TEXCOORD1;float4 color:COLOR;};
    struct v2f {float4 pos:SV_POSITION;float3 worldPos:TEXCOORD0;float3 normal:TEXCOORD1;float3 local:TEXCOORD2;float2 uv:TEXCOORD3;float4 data:TEXCOORD4;float4 color:TEXCOORD5;UNITY_FOG_COORDS(6)};
@@ -160,6 +160,9 @@ Shader "Forge/Blade" {
     // A cold crack is a dark hairline with a faint lighter lip.
     base=lerp(base,base*.15,crack.x*(1-hot));base+=polished*.05*crack.y*(1-crack.x)*(1-hot)*worked;
     float3 lit=ForgeLit(base,metal,smooth,i.worldPos,n,view);
+    // Kirchhoff: oxidised steel at forging heat is a near-black body (emissivity about .85), so it reflects little of the
+    // room; the glow, not the lamp sheen, carries its colour. _Surface2: from C, to C, reflectance left when hot.
+    lit*=lerp(1,_Surface2.z,smoothstep(_Surface2.x,_Surface2.y,TC));
     // Faint blue temper sheen on cold worked oxide.
     lit+=float3(.006,.010,.022)*pow(1-saturate(dot(n,view)),3)*worked*(1-hot);
     // ---- emission: scale plates dim it (their gaps much less), clean footprints and a Perfect flash brighten it

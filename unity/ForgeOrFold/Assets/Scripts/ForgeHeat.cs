@@ -19,7 +19,7 @@ public partial class ForgeWorld {
   public float flashAge=10,flashDur=.32f,flashGain,glint=-1,crack,crackTarget;
   public HeatState(){for(int i=0;i<4;i++)hits[i]=new Vector4(0,0,99,0);for(int i=0;i<8;i++)marks[i]=new Vector4(0,0,0,0);}
  }
- static readonly int HeatA=Shader.PropertyToID("_HeatA"),HeatB=Shader.PropertyToID("_HeatB"),HeatC=Shader.PropertyToID("_HeatC"),OxideId=Shader.PropertyToID("_Oxide"),HitsId=Shader.PropertyToID("_Hits"),MarksId=Shader.PropertyToID("_Marks"),CrackId=Shader.PropertyToID("_Crack"),FlashId=Shader.PropertyToID("_Flash"),GlintId=Shader.PropertyToID("_Glint"),EmissionId=Shader.PropertyToID("_EmissionColor"),DissolveId=Shader.PropertyToID("_Dissolve"),CrackFlashId=Shader.PropertyToID("_CrackFlash"),NotchId=Shader.PropertyToID("_Notch"),SurfaceId=Shader.PropertyToID("_Surface"),EmitId=Shader.PropertyToID("_Emit"),ChromaId=Shader.PropertyToID("_Chroma"),BladeDimsId=Shader.PropertyToID("_BladeDims"),ShardId=Shader.PropertyToID("_Shard");
+ static readonly int HeatA=Shader.PropertyToID("_HeatA"),HeatB=Shader.PropertyToID("_HeatB"),HeatC=Shader.PropertyToID("_HeatC"),OxideId=Shader.PropertyToID("_Oxide"),HitsId=Shader.PropertyToID("_Hits"),MarksId=Shader.PropertyToID("_Marks"),CrackId=Shader.PropertyToID("_Crack"),FlashId=Shader.PropertyToID("_Flash"),GlintId=Shader.PropertyToID("_Glint"),EmissionId=Shader.PropertyToID("_EmissionColor"),DissolveId=Shader.PropertyToID("_Dissolve"),CrackFlashId=Shader.PropertyToID("_CrackFlash"),NotchId=Shader.PropertyToID("_Notch"),SurfaceId=Shader.PropertyToID("_Surface"),Surface2Id=Shader.PropertyToID("_Surface2"),EmitId=Shader.PropertyToID("_Emit"),ChromaId=Shader.PropertyToID("_Chroma"),BladeDimsId=Shader.PropertyToID("_BladeDims"),ShardId=Shader.PropertyToID("_Shard");
  static readonly float[] ua=new float[4],ub=new float[4],uc=new float[4];
  /// World-effect delta time: follows Time.timeScale (slow-mo and hit-stop freezes) whatever clock Update passes.
  float WorldDt(float dt)=>Mathf.Min(dt,Time.deltaTime);
@@ -63,7 +63,7 @@ public partial class ForgeWorld {
   MetalConstants(m);
  }
  /// Tuning-derived constants of the hot-steel surface and emission (a Tune can arrive after the knives exist).
- void MetalConstants(Material m){var t=tuning.metal;m.SetVector(SurfaceId,new Vector4(t.surfaceFromC,t.surfaceToC,t.hotMetallic,t.hotSmoothness));m.SetVector(EmitId,new Vector4(t.emissionScale,t.emissionK,t.emissionCap,t.whiteMix));m.SetVector(ChromaId,new Vector4(t.chromaStart,t.chromaSlope,1/Mathf.Max(.1f,t.oxideCellCm),t.oxideGapGlow));}
+ void MetalConstants(Material m){var t=tuning.metal;m.SetVector(SurfaceId,new Vector4(t.surfaceFromC,t.surfaceToC,t.hotMetallic,t.hotSmoothness));m.SetVector(Surface2Id,new Vector4(t.hotReflectFromC,t.hotReflectToC,t.hotReflect,0));m.SetVector(EmitId,new Vector4(t.emissionScale,t.emissionK,t.emissionCap,t.whiteMix));m.SetVector(ChromaId,new Vector4(t.chromaStart,t.chromaSlope,1/Mathf.Max(.1f,t.oxideCellCm),t.oxideGapGlow));}
  /// The engine heat event arrived for this knife.
  void KnifeHeated(Body b){var h=b.heatState;if(h==null)return;h.model.Heated(tuning.metal.Pull(b.knife.metal),tuning.metal);h.firstHeat=false;}
  /// The knife's logical place entered (true) or left (false) the furnace. Sync calls it on place changes;

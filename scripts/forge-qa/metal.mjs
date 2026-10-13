@@ -44,6 +44,8 @@ function findHit(outcome, minLevel = 0) {
   }
   throw new Error('no fixture for outcome ' + outcome)
 }
+/** A copy of `state` whose knife 1 is made of `metal` — a visual fixture only (pull temperatures differ by metal). */
+function asMetal(state, metal) { const s = structuredClone(state); s.knives.find(n => n.id === 1).metal = metal; return s }
 /** A copy of `state` whose knife 1 has `level` (profile recomputed by bridge.ts) — a visual fixture only. */
 function atLevel(state, level) { const s = structuredClone(state); const k = s.knives.find(n => n.id === 1); k.level = level; return s }
 const W = view === 'phone' ? 780 : 1440, H = view === 'phone' ? 1688 : 900
@@ -87,6 +89,8 @@ const SECTIONS = {
     ...[['albedo', 1], ['lit', 2], ['emit', 3], ['mask', 4], ['normal', 0]].flatMap(([n, m]) => [{ do: 'qa', mode: 'metal-debug-' + m }, { do: 'capture', name: 'dbg-' + n }]),
     { do: 'sync', json: payload(good.before) }, { do: 'qa', mode: 'metal-hot' }, { do: 'wait', s: 2 },
     ...[['albedo', 1], ['lit', 2], ['emit', 3], ['mask', 4], ['normal', 0]].flatMap(([n, m]) => [{ do: 'qa', mode: 'metal-debug-' + m }, { do: 'capture', name: 'dbgk-' + n }])],
+  // Each metal seated at its own pull temperature (silver 720 C, bronze 820 C, obsidian 950 C ... auricite 1250 C).
+  metals: ['iron', 'bronze', 'steel', 'silver', 'damascus', 'obsidian', 'meteor', 'auricite'].flatMap(m => [{ do: 'sync', json: payload(asMetal(seated.state, m)) }, { do: 'qa', mode: 'metal-hot' }, { do: 'wait', s: .25 }, { do: 'capture', name: 'metal-' + m }]),
   // Risk cracks on a high-level hot blade, then cold.
   cracks: [{ do: 'sync', json: payload(risky.before) }, { do: 'qa', mode: 'metal-hot' }, { do: 'wait', s: 1.2 }, { do: 'capture', name: 'cracks-hot' }, { do: 'qa', mode: 'metal-cold' }, { do: 'wait', s: .2 }, { do: 'capture', name: 'cracks-cold' }],
   // Shape: levels 0-6 drawing out from the bar (cold, so the outline reads).
@@ -202,8 +206,8 @@ async function analyse(dirs) {
       console.log('metal: swatch 20 C (lit oxide only)', report.swatchCold)
       report.swatch = row; console.log('metal: swatch', row.map(r => `${r.c} ${r.got}/${r.want} dE ${r.dE}`).join(' | '))
       const hot = Math.max(...row.filter(r => r.c >= 700).map(r => r.dE))
-      check(hot <= 5, 'in-engine swatch (lit, bloom, vignette) within dE2000 5 of the 700-1200 C targets', hot)
-      check(row[0].dE <= 11, '600 C within dE2000 11 (its floor is the lit oxide surface)', row[0].dE)
+      check(hot <= 4, 'in-engine swatch (lit, bloom, vignette) within dE2000 4 of the 700-1200 C targets', hot)
+      check(row[0].dE <= 5, '600 C within dE2000 5 (dull red sits close to the lit surface)', row[0].dE)
     }
     if (!dirs.main) return
     const { index, probes, sfx } = loadIndex(dirs.main); const shot = n => { const s = index.shots.find(x => x.name === n); return s ? { ...s, path: join(dirs.main, s.file), probe: probeAt(probes, s.t) } : null }
@@ -263,6 +267,10 @@ async function analyse(dirs) {
     // lamp; this checkout's face is a near-mirror, metal .96) is brighter at 1150 C than at 500 C. Beyond the bloom halo.
     { const a = shot('light-1150'), b = shot('light-500'); if (a && b && a.probe && a.probe.vp) { const vp = a.probe.vp, cx = (vp[0] + vp[2]) / 2, yb = 1 - vp[1]; const reg = [cx - .025, yb + .012, cx + .025, yb + .03]
       const la = await L.lumaPatch(h, a.path, reg), lb = await L.lumaPatch(h, b.path, reg); report.shots.light = { at1150: la, at500: lb, region: reg }; check(la >= lb * 1.25, 'blade light: anvil patch beside the blade at least 25% brighter at 1150 C than at 500 C', [+la.toFixed(1), +lb.toFixed(1)]) } }
+    // Per-metal glow at the pull temperature: hue rises with it (silver deep red-orange ... auricite pale yellow).
+    { const want = { silver: [5, 26], bronze: [10, 32], obsidian: [20, 40], iron: [38, 55], steel: [36, 54], damascus: [36, 54], meteor: [40, 56], auricite: [42, 60] }; const got = {}
+      for (const [m, [lo, hi]] of Object.entries(want)) { const s = shot('metal-' + m); if (!s) continue; const r = region(s.probe, .002); const x = r && await L.hueSatOfBrightest(h, s.path, r, .03); got[m] = x && [x.hue, +s.probe.body.toFixed(0)]; if (x) check(x.hue >= lo && x.hue <= hi, `${m} at its pull temperature (${s.probe.body.toFixed(0)} C): hue ${lo}-${hi} deg`, x.hue) }
+      report.metals = got }
     // Cracks show at high risk.
     { const p = counts('cracks-hot'); if (p) check(p.crack >= .3, 'cracks grow with risk (level >= 10)', p.crack) }
     // Sfx.

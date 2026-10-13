@@ -11,9 +11,9 @@ using System;
 [Serializable] public class ForgeMetalTuning {
  // Emission E(T) = emissionScale * exp(emissionK * (1/1373.15 - 1/T_K)), capped; chroma (1, (T-chromaStart)*chromaSlope, 0),
  // mixed toward (1,.72,.42) by whiteMix * smoothstep(1200,1450,T). emissionScale is calibrated through the real
- // pipeline (lit oxide albedo, bloom, vignette, exposure 1.13 + ACES) with Qa('swatch') (scripts/forge-qa/metal.mjs):
- // the plan's offline scale 3 reads about 1.36x too bright in engine, so 2.2 puts 700-1200 C within dE2000 1-4.6 of the
- // targets (600 C sits on the lit oxide, #2d2519 at 20 C). Tests/ForgeHeatTests.cs checks the formula at the reference 3.
+ // pipeline (lit hot surface, bloom, vignette, exposure 1.13 + ACES) with Qa('swatch') (scripts/forge-qa/metal.mjs):
+ // the plan's offline scale 3 reads about 1.36x too bright in engine, so 2.2 puts 700-1200 C within dE2000 1.0-3.1 of the
+ // targets and 600 C within 4.3 (with hotReflect below). Tests/ForgeHeatTests.cs checks the formula at the reference 3.
  public const float ReferenceEmissionScale=3;
  public float emissionScale=2.2f, emissionK=9592, emissionCap=6, chromaStart=580, chromaSlope=.000227f, whiteMix=.6f;
  // Pull temperatures (C) by metal.
@@ -30,6 +30,9 @@ using System;
  // Hot-steel surface: metallic and smoothness fall over surfaceFromC..surfaceToC; oxide scale grows as 1-exp(-t/oxideGrowS)
  // while the body is above oxideAboveC and dims emission by up to oxideDim in noise patches.
  public float surfaceFromC=450, surfaceToC=900, hotMetallic=.35f, hotSmoothness=.25f, oxideAboveC=900, oxideGrowS=6, oxideDim=.4f;
+ // Kirchhoff: hot oxidised steel emits well and so reflects little; the lit (reflected) part falls to hotReflect over
+ // hotReflectFromC..hotReflectToC, which keeps dull red pure instead of mixed with lamp sheen.
+ public float hotReflectFromC=300, hotReflectToC=700, hotReflect=.45f;
  // Scale islands: the oxide skin breaks into plates about oxideCellCm across; the gaps between them glow brighter
  // (oxideGapGlow of the dimming removed in the gaps), so mature scale reads as dark plates on bright metal.
  public float oxideCellCm=1, oxideGapGlow=.85f;
@@ -82,7 +85,7 @@ using System;
   coolK=ForgeTuning.Fit(coolK,1e-16f,1e-12f,1.87e-14f);anvilTauScale=ForgeTuning.Fit(anvilTauScale,0,20,2);floorEaseS=ForgeTuning.Fit(floorEaseS,.05f,10,1);
   floorBodyC=ForgeTuning.Fit(floorBodyC,20,1100,650);floorEdgeC=ForgeTuning.Fit(floorEdgeC,20,floorBodyC,600);
   quenchS=ForgeTuning.Fit(quenchS,.05f,5,.8f);rackCoolS=ForgeTuning.Fit(rackCoolS,.05f,5,1);shardTauScale=ForgeTuning.Fit(shardTauScale,1,1000,95);
-  oxideGrowS=ForgeTuning.Fit(oxideGrowS,.1f,120,6);oxideDim=ForgeTuning.Fit(oxideDim,0,1,.4f);oxideCellCm=ForgeTuning.Fit(oxideCellCm,.1f,10,1);oxideGapGlow=ForgeTuning.Fit(oxideGapGlow,0,1,.85f);
+  oxideGrowS=ForgeTuning.Fit(oxideGrowS,.1f,120,6);oxideDim=ForgeTuning.Fit(oxideDim,0,1,.4f);oxideCellCm=ForgeTuning.Fit(oxideCellCm,.1f,10,1);oxideGapGlow=ForgeTuning.Fit(oxideGapGlow,0,1,.85f);hotReflect=ForgeTuning.Fit(hotReflect,0,1,.45f);hotReflectFromC=ForgeTuning.Fit(hotReflectFromC,0,1400,300);hotReflectToC=ForgeTuning.Fit(hotReflectToC,hotReflectFromC+1,1500,700);
   drawLevels=ForgeTuning.Fit(drawLevels,.5f,20,5.5f);barLength=ForgeTuning.Fit(barLength,.2f,1,.68f);barWidth=ForgeTuning.Fit(barWidth,.1f,2,.55f);barAspect=ForgeTuning.Fit(barAspect,0,1,.27f);
   barThickMm=ForgeTuning.Fit(barThickMm,1,20,8);spineMm=ForgeTuning.Fit(spineMm,.5f,12,5);edgeMm=ForgeTuning.Fit(edgeMm,.1f,spineMm,.8f);tipMm=ForgeTuning.Fit(tipMm,.1f,spineMm,1);tangMm=ForgeTuning.Fit(tangMm,.5f,12,6);bevelV=ForgeTuning.Fit(bevelV,.1f,1,.5f);
   phoneScale=ForgeTuning.Fit(phoneScale,0,1,.6f);capDesktop=ForgeTuning.Fit(capDesktop,0,220,220);capTier2=ForgeTuning.Fit(capTier2,0,capDesktop,120);
