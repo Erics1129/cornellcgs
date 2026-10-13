@@ -1,0 +1,86 @@
+Ink Maze level 26 — C and C++ runtime: provenance
+==================================================
+
+What ships in this folder
+--------------------------
+- runtime.js         the C/C++ runtime (the sandbox's `clang` runtime), built
+                     from src/minigames/inkmaze/code/runtimes/c.ts by
+                     scripts/inkmaze-code/build/build-clang.mjs (esbuild, one
+                     ES module, minified). It imports only TYPES from
+                     contract.ts (erased at build), so it is self-contained.
+- harness.c          the hidden C harness (problem.ts H1-H6)
+- harness.cpp        the hidden C++ harness
+- ink-harness.h      shared by both: reads stdin, the undefined-behaviour
+                     handlers, the malloc wrappers, the import declarations
+- ink-pre.h          pre-included in front of the player's solution.c so a
+                     wrong solve() signature is an error at the player's line
+- ink-pre.hpp        pre-included in front of solution.cpp; calls the player's
+                     class Solution from the player's own translation unit
+- include/bits/stdc++.h   the GCC convenience header, which libc++ lacks
+
+What loads from the network, and when
+-------------------------------------
+Nothing here is the compiler. When — and only when — the player opens the
+coding level and picks C or C++, runtime.js loads the toolchain from a single
+pinned URL:
+
+  @yowasp/clang 22.0.0-git20542-10
+  https://cdn.jsdelivr.net/npm/@yowasp/clang@22.0.0-git20542-10/gen/bundle.js
+
+bundle.js then fetches, relative to itself (all under that pinned prefix, which
+is the only https origin the sandbox CSP allows besides Pyodide's):
+  gen/llvm.core.wasm        75,532,134 B  (about 19.4 MB brotli over the wire)
+  gen/llvm-resources.tar    29,665,280 B  (about 3.6 MB brotli; the wasi-libc +
+                                            libc++ sysroot)
+  gen/llvm.core2.wasm, core3, core4   small
+About 23 MB crosses the network on a cold load; jsDelivr sends it immutable
+(max-age=31536000) with CORS, so a second visit serves it from the HTTP cache.
+
+Clang/LLD version: clang 22.1.0, built from
+  https://codeberg.org/YoWASP/llvm-project 9560ae0f2cc440e4fc891fddbc119da6f56daa59
+Target: wasm32-unknown-wasip1. The toolchain reports +assertions.
+
+How the player's program is built and run
+------------------------------------------
+1. The player's file is compiled as its own translation unit (clang -cc1), with
+   only ink-pre.h / ink-pre.hpp in front of it and nothing after, and with
+   -fsanitize=null,array-bounds,vla-bound,integer-divide-by-zero,unreachable,
+   local-bounds (and =return for C++). C: -std=gnu17. C++: -std=gnu++20
+   -fno-exceptions -D_LIBCPP_HARDENING_MODE=_LIBCPP_HARDENING_MODE_DEBUG. Both
+   -O2 -gline-tables-only.
+2. If the player's object defines any symbol the harness defines or needs, it
+   is refused (a hijacked scanf/malloc/fflush, a redefined main).
+3. wasm-ld links it with the precompiled harness object: --stack-first,
+   -z stack-size=8388608, --max-memory=268435456, --export=__stack_pointer,
+   --wrap=malloc,calloc,realloc,aligned_alloc,posix_memalign.
+4. The linked program is rewritten by a WebAssembly "fuel" pass (in c.ts): a
+   check call is inserted at every function entry and loop header, and before
+   every bulk-memory op, so the program calls out to JS often enough to be
+   stopped at a deadline. WebKit's worker.terminate() does NOT stop a running
+   WebAssembly loop, so this self-stopping is what actually enforces the time
+   limit. The same pass (loops only) runs on the 75 MB compiler module at load,
+   so a compile bomb is bounded too; the compiler's memory is capped at 512 MiB.
+5. The program runs on a minimal WASI preview1 shim (stdin from the harness
+   input, stdout/stderr captured, a clock from io.now, random bytes; no files,
+   no environment, no other imports). The only non-WASI imports allowed are the
+   harness's own ink.{check,phase,answer,fault}; any other import is refused.
+
+Recursion and memory, as the player sees them
+----------------------------------------------
+- The C stack is 8 MiB (--stack-first, so an overflow traps cleanly). The
+  browser's own call-stack limit is tighter and differs by engine; the level's
+  problem statement promises only LIMITS.recursionDepth (200) frames, which the
+  reference search stays well inside.
+- All memory (stack, globals, heap) is capped at 256 MiB; the wasm memory
+  maximum is set so growth past it fails inside wasm (no worker is killed).
+  Static/global arrays above about 60 MB do not compile here.
+
+Measured (M5 Max, macOS 26.5, Chromium 151 and WebKit 26.5; see
+scripts/inkmaze-code/test-runtime-c.mjs and the task report):
+  cold load from the CDN: about 1.3-1.8 s (plus the ~23 MB download)
+  cold load self-hosted:  Chromium ~0.3-0.4 s, WebKit ~0.5-0.6 s
+  warm C   compile+run:   Chromium ~0.2 s, WebKit ~0.25-0.35 s
+  warm C++ compile+run:   1.3-2.5 s (libc++ header parsing dominates)
+  browser memory after compiling C and C++: WebKit's WebContent ~1.2-1.3 GB.
+  On a phone this is heavy; runtime.js shows a note (CLANG_PHONE_WARNING) when
+  it detects a phone, and the level offers lighter languages.
