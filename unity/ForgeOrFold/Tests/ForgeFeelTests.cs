@@ -16,10 +16,12 @@ static class ForgeFeelTests {
  static View MakeView(string name,float w,float h,float top,float bottom,ForgeStrikeTuning t){
   var v=new View{name=name,cssW=w,cssH=h,top=top,bottom=bottom,aspect=w/h};
   ForgeFraming.BandSize(w,h,top,0,bottom,0,out float bh,out float bw);ForgeFraming.BandCentre(w,h,top,0,bottom,0,out v.shiftX,out v.shiftY);
-  float dist=(V(L.WorkLook)-V(L.WorkEye)).Length;
+  float dist=(Look(t)-V(L.WorkEye)).Length;
   v.fov=ForgeFraming.FitFov(t.frameTargetW,t.frameTargetH,dist,v.aspect,bh,bw,t.frameFill,t.frameWidthFill,t.fovMin,t.fovMax);return v;
  }
- static FQ WorkRot()=>FQ.LookRotation(V(L.WorkLook)-V(L.WorkEye),FV.Up);
+ static ForgeStrikeTuning tk;
+ static FV Look(ForgeStrikeTuning t)=>V(L.WorkLook)+new FV(t.frameShiftX,0,0);
+ static FQ WorkRot()=>FQ.LookRotation(Look(tk)-V(L.WorkEye),FV.Up);
  static bool Project(View v,FV world,out float x,out float y){var c=ForgeFraming.ToCamera(world,V(L.WorkEye),WorkRot());return ForgeFraming.Viewport(c,v.fov,v.aspect,v.shiftX,v.shiftY,out x,out y);}
  struct Box2 { public float x0,y0,x1,y1; public float Area=>Math.Max(0,x1-x0)*Math.Max(0,y1-y0); }
  static Box2 ScreenBox(View v,IEnumerable<FV> pts){var b=new Box2{x0=9,y0=9,x1=-9,y1=-9};foreach(var p in pts){if(!Project(v,p,out float x,out float y))continue;b.x0=Math.Min(b.x0,x);b.y0=Math.Min(b.y0,y);b.x1=Math.Max(b.x1,x);b.y1=Math.Max(b.y1,y);}return b;}
@@ -30,7 +32,7 @@ static class ForgeFeelTests {
  static ForgeHammerArc Arc(ForgeStrikeTuning t,FV contactWorld){var a=new ForgeHammerArc{tuning=t};a.Solve(contactWorld-Stance);return a;}
 
  static int Main(){
-  var t=new ForgeTuning();t.Clamp();var k=t.strike;
+  var t=new ForgeTuning();t.Clamp();var k=t.strike;tk=k;
   // ---------- 1. Swing timing ----------
   var sched=new ForgeSwingScheduler{tuning=k};
   var p=sched.Plan(1,0,false,0,0);Check(Math.Abs(p.contact-190)<=5,"contact from ready at "+p.contact+" ms (190 +/- 5)");
@@ -70,7 +72,7 @@ static class ForgeFeelTests {
    float minX=1,maxX=0,minY=1,maxY=0;
    // Press to contact: from park (first strike) and from ready, through windup, hold and downstroke, at several feed positions.
    foreach(float u in new[]{k.feedFrom,.5f,k.feedTo}){
-    float L0=.24f,rootX=L.StrikePoint.x-u*L0*(1-k.feedHammerShare)-.0f;float cx=L.StrikePoint.x+(u-.48f)*L0*k.feedHammerShare;
+    float L0=.24f,rootX=ForgeFeel.RootX(k,L.StrikePoint.x,u,L0);float cx=ForgeFeel.ContactX(k,L.StrikePoint.x,u,L0);
     var a=Arc(k,new FV(cx,Contact.y,Contact.z));
     var park=a.Park(new FV(cx,Contact.y,Contact.z)-Stance+new FV(k.parkRight,.017f,-k.parkBack));
     foreach(var from in new[]{a.Ready(),park})for(int i=0;i<=40;i++){float s=i/40f;ForgeHammerPose pose=s<.5f?ForgeHammerPose.Blend(from,a.Arc(1,1),ForgeFeel.WindupEase(s*2,k.windupMs)):a.Arc(1-ForgeFeel.DownElbow((s-.5f)*2,k.elbowPower),1-ForgeFeel.DownWrist((s-.5f)*2,k.wristSnapFrom,k.wristPower));
@@ -139,7 +141,7 @@ static class ForgeFeelTests {
 
   // ---------- 7. Tongs: the left hand reaches the reins at the anvil (every feed) and at the firebed ----------
   {var ls=Stance+V(L.LeftShoulderLocal);
-   foreach(float u in new[]{k.feedFrom,.5f,k.feedTo}){float rootX=L.StrikePoint.x-u*.24f*(1-k.feedHammerShare);var jaws=new FV(rootX+L.TangGripLocal.x*L.KnifeScale,L.StrikePoint.y,L.StrikePoint.z);var rein=ForgeTongModel.ReinDir(k,jaws,new FV(-1,0,0),ls);var hand=ForgeTongModel.Hand(k,jaws,rein);float d=(hand-ls).Length,b=ForgeTongModel.Bend(ls,hand);
+   foreach(float u in new[]{k.feedFrom,.5f,k.feedTo}){float rootX=ForgeFeel.RootX(k,L.StrikePoint.x,u,.24f);var jaws=new FV(rootX+L.TangGripLocal.x*L.KnifeScale,L.StrikePoint.y,L.StrikePoint.z);var rein=ForgeTongModel.ReinDir(k,jaws,new FV(-1,0,0),ls);var hand=ForgeTongModel.Hand(k,jaws,rein);float d=(hand-ls).Length,b=ForgeTongModel.Bend(ls,hand);
     Console.WriteLine($"  tongs at the anvil (u {u:0.00}): left shoulder to hand {d:0.000} m, bend {b:0.0} deg, hand {hand}");Check(d<=.60f&&b>=15,"tong reach at the anvil, u "+u);}
    var hs=V(L.HearthStance);var lh=hs+(FQ.AngleAxis(L.HearthYawDeg,FV.Up)*V(L.LeftShoulderLocal));var fire=V(L.Firebed);
    var reinH=(lh-fire);reinH.y=0;reinH=reinH.Normalized;var handH=ForgeTongModel.Hand(k,fire,reinH);float dh=(handH-lh).Length,bh=ForgeTongModel.Bend(lh,handH);
