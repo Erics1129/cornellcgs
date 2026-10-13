@@ -19,13 +19,14 @@
  *   1. an AST rewrite that calls __ink_tick__() at every loop body, function
  *      entry and comprehension iterable (polls the deadline through _JS_POLL and
  *      raises a sticky, uncatchable _InkStop);
- *   2. Pyodide's interrupt buffer, installed here as a getter that returns
- *      SIGINT (2) once the deadline passed AND while armed; CPython's eval loop
- *      then raises KeyboardInterrupt at the next bytecode boundary, so a
- *      generator expression / comprehension / callable-iterator / key lambda
- *      that the AST never saw is still stopped. The driver calls _JS_DISARM()
- *      the moment it catches the stop, so the buffer cannot keep re-firing
- *      during cleanup (which used to escape as a fatal that lost sys.stderr);
+ *   2. Pyodide's interrupt buffer, installed here as a ONE-SHOT getter that
+ *      returns SIGINT (2) once past the deadline and then disarms; CPython's
+ *      eval loop raises one KeyboardInterrupt at the next bytecode boundary, so
+ *      a key= / reduce lambda or callable-iterator that the AST never saw is
+ *      kicked back out to an instrumented frame. Stickiness against a swallow
+ *      does NOT rely on the buffer (that is layer 1's unshadowable tick), and
+ *      one shot keeps the buffer from re-firing into the tick's _InkStop or the
+ *      driver's cleanup, which would abort the interpreter;
  *   3. for the C-only library loops that run with no bytecode per step
  *      (sum(range(1e18)), iter(f, s), reduce over itertools.count, deque(count),
  *      math.factorial, re backtracking), driver.py bounds the source: it wraps
@@ -109,26 +110,26 @@ const RUNTIME = {
     // The cooperative deadline has three layers (see the file header and
     // driver.py). The one installed HERE is layer 2: Pyodide's interrupt
     // buffer. We give Pyodide a plain (non-shared) object whose [0] getter
-    // returns 2 (SIGINT) once the run's deadline has passed AND interruptArmed
-    // is true. CPython's Emscripten signal check reads it from the eval loop, so
-    // any player code that executes bytecode per step -- a generator expression,
-    // a comprehension, a callable-iterator, a key/reduce lambda -- raises
-    // KeyboardInterrupt at the deadline even though the AST tick never saw it.
-    // No SharedArrayBuffer is needed (this build has none on GitHub Pages); the
-    // getter is read synchronously on the same thread.
+    // returns 2 (SIGINT) on every read while the run's deadline has passed AND
+    // interruptArmed is true. CPython's Emscripten signal check reads it from
+    // the eval loop, so any player code that executes bytecode per step -- a
+    // key/reduce lambda, a callable-iterator -- raises KeyboardInterrupt at the
+    // deadline even though the AST tick never saw it. No SharedArrayBuffer is
+    // needed (this build has none on GitHub Pages); the getter is read
+    // synchronously on the same thread.
     //
     // The buffer is ONE-SHOT: the first read past the deadline returns SIGINT
-    // and immediately disarms itself. CPython therefore raises exactly one
-    // KeyboardInterrupt; by the time the driver's `except` handler runs, the
-    // getter returns 0, so it cannot re-fire while the driver formats the result
-    // or runs end-of-run gc. That re-fire -- a new KeyboardInterrupt thrown AT
-    // the handler entry, before the handler could disarm anything -- was why an
-    // earlier version saw the stop escape as a fatal "lost sys.stderr" and had
-    // to leave the buffer off entirely. Stickiness against a player try/except
-    // that swallows the KeyboardInterrupt and loops again does NOT rely on the
-    // buffer: it comes from layer 1 (driver.py's AST tick and wrapped iterables,
-    // whose __ink_stopped flag stays set past the deadline and raises _InkStop
-    // at the next tick). _JS_DISARM below is belt-and-suspenders.
+    // and immediately disarms, so CPython raises exactly one KeyboardInterrupt
+    // and the buffer cannot keep re-firing WHILE the deadline machinery or the
+    // driver's cleanup is unwinding -- a continuous re-fire collides with the
+    // AST tick's own _InkStop mid-propagation and aborts the interpreter (a
+    // Pyodide fatal). One shot is enough because the terminal, STICKY stop comes
+    // from layer 1: driver.py's AST tick is now resolved through closure cells
+    // the player cannot rebind (globals()['__ink_tick__']=... is a compile
+    // error AND would not be read anyway), so a loop that swallows the single
+    // KeyboardInterrupt still meets _InkStop at the top of its next body and
+    // cannot run free. The buffer only has to kick a C-driven bytecode loop
+    // (key/reduce lambda, callable-iterator) back out to an instrumented frame.
     const interruptBuffer = {
       get 0() {
         if (interruptArmed && currentIO && currentIO.timeLeft() <= 0) {

@@ -236,6 +236,54 @@ async function suite(name) {
     assert.equal(reserved.status, 'compile_error', 'player cannot touch the reserved deadline name')
     assert.match(reserved.message.toLowerCase(), /reserved/)
 
+    // ---- the refutation's attacks: the deadline machinery is unshadowable, the
+    // compile bomb is a clean error, a looping __str__ does not crash, isqrt is
+    // bounded, and sys.addaudithook is actually refused. (contract D3/D5/D9)
+    // 1. shadowing __ink_tick__ through a subscript/exec is a compile error --
+    //    and the injected tick is a closure cell the write could not reach anyway
+    for (const [src, note] of [
+      ["globals()['__ink_tick__'] = lambda: None\nwhile True:\n    pass", 'globals() subscript shadow'],
+      ["d = globals()\nd['__ink_iter__'] = lambda it: it\nreturn str(sum(1 for _ in range(10 ** 18)))", 'aliased globals() subscript shadow'],
+      ['exec("__ink_tick__ = lambda: None")\nwhile True:\n    pass', 'exec() shadow'],
+      ["setattr(__builtins__, '__ink_tick__', None)\nwhile True:\n    pass", 'setattr builtins shadow'],
+      ['t = type(self).solve.__closure__\nwhile True:\n    pass', 'reach the tick via __closure__'],
+    ]) {
+      const r = await run(solution(src), ONE, { timeLimitMs: 1000 })
+      assert.equal(r.status, 'compile_error', `${note} is a compile error (${r.status}: ${r.message})`)
+    }
+    // 2. even if the tick were somehow bypassed, a loop that swallows the single
+    //    interrupt is still stopped (unshadowable tick), stoppedBy runtime, CPU idle
+    await runaway('swallow the interrupt in a bare loop', solution('while True:\n    try:\n        x = 1\n    except BaseException:\n        pass'), 'time_limit')
+    // 3. an exception whose __str__ loops is a clean runtime_error, never a
+    //    Pyodide-fatal crash, and leaves the CPU idle
+    const strExc = await run(solution('class E(Exception):\n    def __str__(self):\n        while True:\n            pass\nraise E()'), ONE, { timeLimitMs: 1000 })
+    assert.equal(strExc.status, 'runtime_error', `a looping __str__ is a clean runtime_error (${strExc.status}: ${strExc.message})`)
+    assert.ok(strExc.stoppedBy !== 'host', 'the looping __str__ was not a host-terminate backstop')
+    await pause(300)
+    assert.ok((await cpuAfter('after looping __str__', idle)) < idle + CPU_SLACK, 'a looping __str__ leaves the CPU idle')
+    assert.equal((await run(REF, ONE)).status, 'ok', 'a normal run works after the looping __str__')
+    // 4. a deeply nested paren bomb (under the source cap) is a clean compile
+    //    error, never a StackOverflow runtime_error / Pyodide fatal + rebuild
+    const errBefore = page.errors.length
+    const bomb = await run(solution('return ' + '('.repeat(20000) + '1' + ')'.repeat(20000)), ONE, { timeLimitMs: 2000 })
+    assert.equal(bomb.status, 'compile_error', `a nested-paren compile bomb is a clean compile_error (${bomb.status})`)
+    assert.equal(page.errors.length, errBefore, 'the compile bomb raised no page / Pyodide fatal errors')
+    // 5. math.isqrt of an astronomically large int is a clean ValueError (its true
+    //    type), never masked as "module re is not available", never a hang
+    const isqrt = await run(solution('import math\nreturn str(math.isqrt(1 << 400000000))'), ONE, { timeLimitMs: 2000 })
+    assert.equal(isqrt.status, 'runtime_error', `isqrt bomb is a clean runtime_error (${isqrt.status})`)
+    assert.equal(isqrt.error.type, 'ValueError', `isqrt bomb reports its true type, not the re error (${isqrt.error.type})`)
+    assert.equal((await run(solution('import math\nreturn str(math.isqrt(1_000_000))'))).status, 'ok', 'an ordinary math.isqrt still works')
+    // 6. sys.addaudithook is actually refused (the audit event is inert here, so
+    //    the refusal wraps the function itself)
+    const audit = await run(solution('import sys\nsys.addaudithook(lambda e, a: None)\nreturn ""'))
+    assert.equal(audit.status, 'runtime_error', 'sys.addaudithook is refused')
+    assert.match(audit.error.message, /addaudithook is not available/)
+    // 7. the wrapper preserves module semantics: a module-level global + helper
+    //    recursion + comprehension still runs
+    const legit = await run('COUNT = 0\ndef bump():\n    global COUNT\n    COUNT += 1\n    return COUNT\nclass Solution:\n    def solve(self, grid, ink):\n        bump()\n        total = sum(1 for _ in range(COUNT))\n        return ""')
+    assert.equal(legit.status, 'ok', `a global + helper + comprehension solution runs (${legit.status}: ${legit.message})`)
+
     // ---- positive control: the meter DOES see the Pyodide worker's CPU
     const control = page.evaluate((tests) => window.sb.run({ language: 'python', source: 'class Solution:\n    def solve(self, grid, ink):\n        while True:\n            pass\n', tests, kind: 'run', timeLimitMs: 3000 }), ONE)
     await pause(700)

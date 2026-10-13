@@ -25,8 +25,15 @@ const HARNESS = '(function(){' + harnessSource.replace(/^export\s+/m, '') + '\nr
 // console inside QuickJS: stringify args in-VM and strip NUL (QuickJS's host
 // string boundary stops at NUL), then hand one string to the host.
 const PREAMBLE = `(function(){
+  // capture the host output functions into this closure, then revoke the
+  // globals so player code cannot call __inkLog/__inkErr directly (forging an
+  // answer marker is already caught as 'crashed', but they need not stay
+  // reachable). console routes through the captured copies.
+  var L = __inkLog, E = __inkErr;
+  try { delete globalThis.__inkLog; delete globalThis.__inkErr; } catch (e) {}
+  try { globalThis.__inkLog = undefined; globalThis.__inkErr = undefined; } catch (e) {}
   function s(v){ try { return typeof v === 'string' ? v : (v === undefined ? 'undefined' : JSON.stringify(v)) ?? String(v) } catch (e) { return String(v) } }
-  function emit(args, err){ var t = Array.prototype.map.call(args, s).join(' ') + '\\n'; (err ? __inkErr : __inkLog)(t.replace(/\\u0000/g, '\\u2400')) }
+  function emit(args, err){ var t = Array.prototype.map.call(args, s).join(' ') + '\\n'; (err ? E : L)(t.replace(/\\u0000/g, '\\u2400')) }
   globalThis.console = { log:function(){emit(arguments,false)}, info:function(){emit(arguments,false)}, debug:function(){emit(arguments,false)}, warn:function(){emit(arguments,true)}, error:function(){emit(arguments,true)} };
 })()`
 

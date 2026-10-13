@@ -7,7 +7,10 @@ QuickJS (Fabrice Bellard & Charlie Gordon), compiled to WebAssembly and driven
 from JavaScript by quickjs-emscripten. The player's code never runs as the
 worker's own JavaScript: it is compiled and executed inside a fresh QuickJS
 runtime, which gives a hard memory cap and a cooperative time limit (the
-interrupt handler) and keeps the worker's globals out of reach.
+interrupt handler) and keeps the worker's globals out of reach. The two host
+output functions (__inkLog / __inkErr) are captured into the console preamble's
+closure and then revoked from the QuickJS global, so player code cannot call
+them directly (forging an answer marker was already caught as 'crashed').
 
 Pinned packages (npm, offline copies in the research workspace)
 ---------------------------------------------------------------
