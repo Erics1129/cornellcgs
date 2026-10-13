@@ -5,17 +5,21 @@
 //   - void:    with Qa('void') (magenta clear colour), at yaw 0/90/180/270 x pitch -70/0/+70 from the work stance and
 //              six smith-camera looks: at most .5% of pixels may show the clear colour;
 //   - brick:   the brick module from straight-on wall frames (row and column autocorrelation): 22.5 +/- 1 x 7.5 +/- .5 cm;
-//   - lamp:    the cold anvil-face luminance in the work view against the pre-upgrade capture (--baseline, heat-0.6.png
-//              of the phase-0 snapshot loop): within +/- 15%;
+//   - lamp:    the light on the work against the pre-upgrade rig: a white Lambert card at the strike point through the
+//              ForgeLighting.cginc model, from the effective tuning Unity echoes ('tuned'), within +/- 15%. The rendered
+//              cold anvil-face luma is reported beside it (and the pre-upgrade one with --baseline <dir of heat-0.6.png>):
+//              the old face was a near-mirror of a black probe (luma about 4), so it cannot be matched literally;
 //   - contact: a 30 px anvil-face patch under a Qa('room-occluder:...') sphere 1 cm above contact against the same
 //              sphere at the apex: at least 25% darker;
-//   - flicker: anvil-face luminance over 10 s at 30 fps: 8-20% peak to peak with the dominant frequency at 2-4 Hz;
-//              reduced motion at most 2%; and the flame's frame-to-frame change at 120 fps has no steps;
+//   - flicker: anvil-face relative luminance (linear light) over 10 s at 30 fps: 8-20% peak to peak, dominant frequency
+//              2-4 Hz; reduced motion at most 2% (the bench and floor beside the anvil are reported too); and the flame's
+//              frame-to-frame change at 120 fps has no steps;
 //   - looks:   the work view (empty and with a knife), the hearth, close-ups and room views, at tier 0 and tier 2
 //              (the FORGE_LITE variant phones start on), for eyeballing.
 //  --url <page>: live checks in the real Web player through lib.mjs, per --profiles (default desktop): work-view draw
 //   calls (idle, anvil, striking), frame times through 10 strikes, the MSAA sample count WebGL actually allocates,
-//   and the quality/perf messages.
+//   the quality messages, the AO bake time (console) and transfer. --qa tier2,bloom0 adds ?forge-room-qa=... (Unity
+//   reads it from the page URL: pin a tier, force the bloom level count). Frame times need an idle machine.
 //
 // usage: node scripts/forge-qa/room.mjs --out <dir> [--project unity/ForgeOrFold] [--only looks,void,brick,lamp,contact,flicker]
 //          [--baseline <dir>] [--tune <json overrides>] [--view desktop|phone] [--analyze] [--keep-frames]
