@@ -37,7 +37,7 @@ public partial class ForgeWorld:MonoBehaviour {
   MakeMaterials();MakeRoom();MakeBench();MakeFurnace();MakeAnvil();MakeCrate();MakeRack();MakeScale();MakeStall();MakeLantern();MakeHammer();MakeTongs();MakeLighting();MakeDressing();AtmosBuild();BatchRoom();FindRoomBellows();BakeWorkshopReflection();
   var cameraObject=new GameObject("Workshop camera");cam=cameraObject.AddComponent<Camera>();cam.nearClipPlane=.035f;cam.farClipPlane=65;cam.clearFlags=CameraClearFlags.SolidColor;cam.backgroundColor=C("111b19");cam.allowHDR=true;cameraObject.AddComponent<ForgeFinish>();cameraObject.AddComponent<ForgeCameraRig>().forge=this;
   AtmosCamera(cam);
-  CreateSmith();Resize();if(queuedSnapshot!=null){var pending=queuedSnapshot;queuedSnapshot=null;Sync(pending);}Quick("focus");Send("ready",0,"",ForgeContract.Protocol);
+  CreateSmith();Resize();if(queuedSnapshot!=null){var pending=queuedSnapshot;queuedSnapshot=null;Sync(pending);}Quick("focus");WarmShaders();Send("ready",0,"",ForgeContract.Protocol);
  }
  void Resize(){oldWidth=Screen.width;oldHeight=Screen.height;if(cameraHome==Vector3.zero){cameraHome=smith.position+Vector3.up*ForgeLayout.EyeHeight;cam.transform.position=cameraHome;}ResizeQuality();labelsDirty=true;}
  void Send(string type,int id=0,string spot="",float x=0,float y=0){var json=JsonUtility.ToJson(new ForgeMessage{type=type,id=id,spot=spot,x=x,y=y});

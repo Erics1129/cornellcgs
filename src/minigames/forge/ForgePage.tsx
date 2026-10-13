@@ -419,8 +419,8 @@ export default function ForgePage(){
    </section>
    <aside className="ff-quick-tools" aria-label="Forging tools">{quickItems.map(item=><button key={item} disabled={unavailable||!s.items[item]||(item==='rewind'&&!s.lastHit)||(!k&&item!=='stamina'&&item!=='rewind')} aria-disabled={blocked||undefined} aria-label={`${itemNames[item]} (${s.items[item]})`} title={`${itemNames[item]} · ${ITEMS[item].description}`} onClick={guard(()=>{unlock();send({type:'use',item,id:k?.id})})}><ForgeIcon name={itemIcons[item]}/><b>{s.items[item]}</b><small>{itemNames[item]}</small></button>)}{s.charms.length>0&&<button className="ff-charms-button" aria-label="View charms" onClick={guard(()=>{trade('buy');setCategory('charms')})}><span>◇</span><b>{s.charms.length}</b><small>Charms</small></button>}</aside>
    <div className="ff-feedback" role="status" aria-live="polite">
-    {heating&&<span key={heating.id} className="ff-heating"><ForgeIcon name="fire"/>Heating<span className="ff-heat-bar"/></span>}
-    {callout&&<div key={callout.id} className={`ff-callout ff-outcome ff-outcome-${callout.label.kind}`} style={{left:callout.x,top:callout.y,'--hold':`${callout.label.holdMs}ms`} as CSSProperties}><b>{callout.label.title}</b><span>{callout.label.delta}</span>{callout.label.sub&&<small>{callout.label.sub}</small>}</div>}
+    {heating&&<span key={`heat-${heating.id}`} className="ff-heating"><ForgeIcon name="fire"/>Heating<span className="ff-heat-bar"/></span>}
+    {callout&&<div key={`outcome-${callout.id}`} className={`ff-callout ff-outcome ff-outcome-${callout.label.kind}`} style={{left:callout.x,top:callout.y,'--hold':`${callout.label.holdMs}ms`} as CSSProperties}><b>{callout.label.title}</b><span>{callout.label.delta}</span>{callout.label.sub&&<small>{callout.label.sub}</small>}</div>}
     {notice&&<span className="ff-toast">{notice}</span>}
     {mark&&<i key={mark.id} className="ff-refuse-mark" aria-hidden="true" style={{left:mark.x,top:mark.y,'--hold':`${TUNING.hud.refuseMarkMs}ms`} as CSSProperties}/>}
    </div>

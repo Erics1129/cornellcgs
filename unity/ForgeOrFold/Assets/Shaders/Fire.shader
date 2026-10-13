@@ -21,7 +21,9 @@ Shader "Forge/Fire" {
     o.uv=float4(Cell(f0,v.uv),Cell(f0+1,v.uv));o.blend=float2(frame-f0,v.color.g);o.local=v.uv;return o;}
    fixed4 frag(v2f i):SV_Target{
     float3 a=tex2D(_MainTex,i.uv.xy).rgb,b=tex2D(_MainTex,i.uv.zw).rgb;float3 c=lerp(a,b,i.blend.x);
-    // Soft sides and base so the quads never show an edge against the hood or the coals.
-    float edge=smoothstep(0,.18,i.local.x)*smoothstep(0,.18,1-i.local.x)*smoothstep(0,.12,i.local.y);
+    // Soft sides, base and top so the quads never show an edge against the hood or the coals. The top fade also hides
+    // the bilinear bleed from the atlas cell above (the bright base of another frame; the atlas has no mipmaps), which
+    // showed as thin red bars across the hearth when strike-feel's hearth camera looks down into the firepot.
+    float edge=smoothstep(0,.18,i.local.x)*smoothstep(0,.18,1-i.local.x)*smoothstep(0,.12,i.local.y)*smoothstep(0,.14,1-i.local.y);
     return fixed4(c*1.65*_Glow*i.blend.y*edge,1);}
   ENDCG } } }
