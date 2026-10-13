@@ -42,9 +42,9 @@ async function series(h, n) {
     const tele = (await telemetry(h, r.inputT - 5)).filter(f => f.seq === seq)
     const contact = tele.find(f => f.ev === 'contact'), stop = tele.find(f => f.ev === 'hitstop')
     const path = tele.filter(f => ['press', 'swing', 'windup', 'apex', 'down', 'contact'].includes(f.ev))
-    const vp = path.flatMap(f => f.headVp || [])
+    const vp = path.flatMap(f => f.headVp || []), swingVp = path.filter(f => ['apex', 'down', 'contact'].includes(f.ev)).flatMap(f => f.headVp || [])
     rows.push({ ...r, seq, outcome: outcomeOf(r.feedback), settleAfterImpactMs: r.settledMs != null && r.impactMs != null ? +(r.settledMs - r.impactMs).toFixed(1) : null,
-      faceDot: contact?.faceDot ?? null, handToHandle: contact?.handToHandle ?? null, headVpMin: vp.length ? Math.min(...vp) : null, headVpMax: vp.length ? Math.max(...vp) : null,
+      faceDot: contact?.faceDot ?? null, handToHandle: contact?.handToHandle ?? null, headVpMin: vp.length ? Math.min(...vp) : null, headVpMax: vp.length ? Math.max(...vp) : null, swingVpMin: swingVp.length ? Math.min(...swingVp) : null, swingVpMax: swingVp.length ? Math.max(...swingVp) : null,
       coverAtPress: tele.find(f => f.ev === 'press')?.headCoverBlade ?? null, hitStopMs: stop?.ms ?? (contact ? 0 : null), pitch: contact?.pitch ?? null, fov: contact?.fov ?? null, kick: contact?.kick ?? null,
       // Risk at the press (the contact frame already shows the next hit's risk, and 0 once Flow starts).
       risk: tele.find(f => f.ev === 'press')?.risk ?? contact?.risk ?? null })
@@ -110,16 +110,19 @@ async function run(kind) {
     r.strikes = rows
     const lowRisk = rows.filter(x => (x.risk ?? 0) < .3)
     r.latency = { impactMs: summary(rows.map(x => x.impactMs)), lowRiskImpactMs: summary(lowRisk.map(x => x.impactMs)), settleAfterImpactMs: summary(rows.map(x => x.settleAfterImpactMs)) }
-    r.pose = { faceDotMin: Math.min(...rows.map(x => x.faceDot ?? 1)), handToHandleMax: Math.max(...rows.map(x => x.handToHandle ?? 0)), headVp: [Math.min(...rows.map(x => x.headVpMin ?? .5)), Math.max(...rows.map(x => x.headVpMax ?? .5))], coverAtPressMax: Math.max(...rows.map(x => x.coverAtPress ?? 0)), pitch: summary(rows.map(x => x.pitch)), fov: summary(rows.map(x => x.fov)) }
+    r.pose = { faceDotMin: Math.min(...rows.map(x => x.faceDot ?? 1)), handToHandleMax: Math.max(...rows.map(x => x.handToHandle ?? 0)), headVp: [Math.min(...rows.map(x => x.headVpMin ?? .5)), Math.max(...rows.map(x => x.headVpMax ?? .5))], swingVp: [Math.min(...rows.map(x => x.swingVpMin ?? .5)), Math.max(...rows.map(x => x.swingVpMax ?? .5))], coverAtPressMax: Math.max(...rows.map(x => x.coverAtPress ?? 0)), pitch: summary(rows.map(x => x.pitch)), fov: summary(rows.map(x => x.fov)) }
     r.hitStop = rows.filter(x => x.outcome).map(x => ({ outcome: x.outcome, ms: x.hitStopMs, want: kind === 'reduced' ? 0 : HITSTOP[x.outcome] }))
     if (kind === 'reduced') { const tele = await telemetry(h, 0); r.reducedCheck = { timeScaleMin: Math.min(...tele.map(f => f.timeScale)), kickMax: Math.max(...tele.map(f => Math.abs(f.kick))), traumaMax: Math.max(...tele.map(f => f.trauma)) } }
     r.console = h.consoleLines.filter(l => /\[error\]|pageerror/i.test(l)).slice(0, 20)
     // Acceptance (strike-feel plan, critique amendments). Rhythm buffering needs web-feel's gate and is reported, not judged.
+    const portrait = h.profile.viewport.height > h.profile.viewport.width
     const lim = { desktop: [200, 230], phone: [215, 260], 'webkit-phone': [225, 270], landscape: [215, 260], reduced: [200, 230] }[kind]
     r.pass = {
       latencyMedian: (r.latency.lowRiskImpactMs.median ?? 1e9) <= lim[0], latencyMax: (r.latency.lowRiskImpactMs.max ?? 1e9) <= lim[1],
       settleWithin300: (r.latency.settleAfterImpactMs.max ?? 1e9) <= 300,
-      faceFlat: r.pose.faceDotMin >= COS3 - 1e-4, handOnHandle: r.pose.handToHandleMax <= .0105, headInFrustum: r.pose.headVp[0] >= .02 && r.pose.headVp[1] <= .98, restOffBlade: r.pose.coverAtPressMax <= .10,
+      faceFlat: r.pose.faceDotMin >= COS3 - 1e-4, handOnHandle: r.pose.handToHandleMax <= .0105, // From the press on desktop and landscape. In portrait the parked hammer lies clear of the blade tip and may start off
+      // the right edge (critique: the rest pose is off-screen right on a phone), so the swing is judged from the apex on.
+      headInFrustum: portrait ? r.pose.swingVp[0] >= .02 && r.pose.swingVp[1] <= .98 : r.pose.headVp[0] >= .02 && r.pose.headVp[1] <= .98, restOffBlade: r.pose.coverAtPressMax <= .10,
       seatedAfterHeat: r.hearth.seatedAfterHeatMs != null && r.hearth.seatedAfterHeatMs <= 250 + 50, tongsOnTang: r.hearth.jawToTangMax == null || r.hearth.jawToTangMax <= .01,
       hitStopTable: r.hitStop.every(x => x.want == null || Math.abs((x.ms ?? 0) - x.want) <= 9 || Math.abs((x.ms ?? 0) - x.want / 2) <= 9),
       noConsoleErrors: r.console.length === 0,

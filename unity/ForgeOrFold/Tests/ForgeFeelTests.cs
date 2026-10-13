@@ -71,14 +71,16 @@ static class ForgeFeelTests {
    Console.WriteLine($"  {v.name}: fov {v.fov:0.0} deg, shift ({v.shiftX:0.00},{v.shiftY:0.00})");
    float minX=1,maxX=0,minY=1,maxY=0;
    // Press to contact: from park (first strike) and from ready, through windup, hold and downstroke, at several feed positions.
-   foreach(float L0 in new[]{.24f,.30f})foreach(float u in new[]{k.feedFrom,.5f,k.feedTo}){
+   foreach(float L0 in new[]{.24f,.30f,.34f})foreach(float u in new[]{k.feedFrom,.5f,k.feedTo}){
     float rootX=ForgeFeel.RootX(k,L.StrikePoint.x,u,L0);float cx=ForgeFeel.ContactX(k,L.StrikePoint.x,u,L0);
     var a=Arc(k,new FV(cx,Contact.y,Contact.z));
     float px=ForgeFeel.ParkX(k,L.StrikePoint.x,rootX+L0,L.AnvilCenter.x+L.AnvilFaceX*.5f);
     var park=a.Park(new FV(px,Contact.y+.017f,Contact.z-k.parkBack)-Stance);
-    // From ready the head is in view all the way; a parked head may start just outside a narrow (portrait) frame, so its
-    // path is checked once the windup is under way (s >= .1: 20% of the windup, most of the lift).
-    foreach(var from in new[]{a.Ready(),park})for(int i=0;i<=40;i++){float s=i/40f;if(from.grip.x==park.grip.x&&from.grip.z==park.grip.z&&s<.1f)continue;ForgeHammerPose pose=s<.5f?ForgeHammerPose.Blend(from,a.Arc(1,1),ForgeFeel.WindupEase(s*2,k.windupMs)):a.Arc(1-ForgeFeel.DownElbow((s-.5f)*2,k.elbowPower),1-ForgeFeel.DownWrist((s-.5f)*2,k.wristSnapFrom,k.wristPower));
+    // From ready the head is in view all the way. A parked head lies clear of the blade tip and may start outside a narrow
+    // frame (the critique's rest pose is off-screen right on a phone), so its path is checked once the windup is under way:
+    // from s = .1 (20% of the windup, most of the lift), from s = .25 in portrait.
+    float parkFrom=v.portrait?.25f:.1f;
+    foreach(var from in new[]{a.Ready(),park})for(int i=0;i<=40;i++){float s=i/40f;if(from.grip.x==park.grip.x&&from.grip.z==park.grip.z&&s<parkFrom)continue;ForgeHammerPose pose=s<.5f?ForgeHammerPose.Blend(from,a.Arc(1,1),ForgeFeel.WindupEase(s*2,k.windupMs)):a.Arc(1-ForgeFeel.DownElbow((s-.5f)*2,k.elbowPower),1-ForgeFeel.DownWrist((s-.5f)*2,k.wristSnapFrom,k.wristPower));
      if(Project(v,Stance+a.Head(pose),out float x,out float y)){minX=Math.Min(minX,x);maxX=Math.Max(maxX,x);minY=Math.Min(minY,y);maxY=Math.Max(maxY,y);}else{minX=-1;}}
     var blade=ScreenBox(v,BladeCorners(rootX,L0));
     float ovReady=Overlap(ScreenBox(v,HeadCorners(a,a.Ready())),blade),ovPark=Overlap(ScreenBox(v,HeadCorners(a,park)),blade);
