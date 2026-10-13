@@ -2,7 +2,8 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import { CarrotUnity } from './unity'
 import { menuSound, stopMenuSound } from './uiAudio'
-import { LevelCount, awardCampaign, readCampaign, saveCampaign } from './progress'
+import { LevelCount, RECORD, awardCampaign, readCampaign, saveCampaign } from './progress'
+import { progress } from '../../lib/account/index.ts'
 import { BossPortrait, CarrotPortrait, RouteDrawing, TowerPortrait, chapterArt, meterStyle } from './art'
 import Icon from './Icon'
 import type { CampaignSave, Command, GameDefinitions, GameState, LevelDefinition } from './types'
@@ -64,10 +65,12 @@ export default function CarrotPage(){
   if(e.key==='Escape'){send({type:'clear'});return}if(e.code==='Space'&&!(e.target instanceof HTMLButtonElement)){e.preventDefault();send({type:current.current?.phase==='ready'?'start':'pause'})}if(e.key.toLowerCase()==='u'&&current.current?.selection?.type==='tower')send({type:'upgrade'})};window.addEventListener('keydown',key);return()=>window.removeEventListener('keydown',key)},[entered,ready,panel,send])
  useEffect(()=>{const f=()=>setExpanded(!!document.fullscreenElement);document.addEventListener('fullscreenchange',f);return()=>document.removeEventListener('fullscreenchange',f)},[])
  useEffect(()=>()=>{clearTimeout(noticeTimer.current);clearTimeout(warningTimer.current);stopMenuSound()},[])
+ // Signing in (or another device playing) can change the stored campaign: adopt it, or the next award overwrites it.
+ useEffect(()=>progress.subscribe(RECORD,()=>setSave(readCampaign())),[])
  const choose=(id:number)=>{if(id>saved.current.unlocked&&!preview)return;setPanel(null);setLevel(id);setResult(false);setWarning(null);lastBoss.current='';award.current='';if(entered){send({type:'load',level:id})}else setEntered(true)}
  const openPanel=(value:typeof panel)=>{wasPlaying.current=!!current.current&&!current.current.paused&&current.current.phase==='playing';if(wasPlaying.current)send({type:'pause'});setPanel(value)}
  const closePanel=()=>{setPanel(null);if(wasPlaying.current&&current.current?.paused)send({type:'pause'});wasPlaying.current=false}
- const toggleSound=()=>{const next={...save,sound:!save.sound};setSave(next);saveCampaign(next);send({type:'mute',value:next.sound?0:1})}
+ const toggleSound=()=>{const next=saveCampaign({...save,sound:!save.sound});setSave(next);send({type:'mute',value:next.sound?0:1})}
  const fullscreen=async()=>{try{if(document.fullscreenElement)await document.exitFullscreen();else if(root.current?.requestFullscreen)await root.current.requestFullscreen();else setExpanded(v=>!v)}catch{setExpanded(v=>!v)}}
  const selection=state?.selection,selectedTower=selection?.type==='tower'?definitions?.towers.find(t=>t.id===selection.kind):undefined
  const buyTower=definitions?.towers.find(t=>t.id===picked),tier=Math.max(1,Math.min(4,selection?.tier||1))

@@ -15,14 +15,27 @@
  * `par` and `ink` (= par + slack) back into this file. `npm test` fails if
  * any level cannot be cleared with its ink.
  *
- * All twenty layouts are original: generated at random for this site, solved
- * exactly, and kept for how much planning they ask for. Levels 11 to 20 come
- * from scripts/inkmaze-generate.mjs (seed 1, 1500 boards each of 7 x 7, 8 x 8
- * and 9 x 9, then --pick). The comment above each of them gives its board id;
+ * All twenty-five layouts are original: generated at random for this site,
+ * solved exactly, and kept for how much planning they ask for. Levels 11 to
+ * 20 come from scripts/inkmaze-generate.mjs (seed 1, 1500 boards each of
+ * 7 x 7, 8 x 8 and 9 x 9, then --pick). The comment above each of them gives
+ * its board id;
  *
  *   node scripts/inkmaze-generate.mjs --board s1-7-0038
  *
  * prints that board and its numbers again.
+ *
+ * Levels 21 to 25 come from an annealing search on wall layouts (the end of
+ * the generator's header says how) and have no board ids. Each one is harder
+ * than level 20 and than the ones before it on a vote of eleven measures,
+ * all computed exactly (nothing is sampled), most of them about a careful
+ * player who never makes a move that visibly loses;
+ *
+ *   node scripts/inkmaze-generate.mjs --hardness 20-25 --slow
+ *
+ * prints them, and the curve table in scripts/test-inkmaze.mjs checks the
+ * order. None gives any slack. Level 25 is a 7 x 7 on purpose: the last level
+ * is the hardest to plan, not the biggest board.
  */
 import type { Level } from './engine.ts'
 
@@ -352,6 +365,99 @@ export const LEVELS: Level[] = [
       '##.......',
       '#....##.#',
       '....#....',
+    ],
+  },
+  // annealed
+  {
+    id: 'the-pantry',
+    name: 'The Pantry',
+    slack: 0,
+    par: 87,
+    ink: 87,
+    grid: [
+      '....#....',
+      '..#..##.#',
+      'o.##.##..',
+      '##...#...',
+      '..#......',
+      '..#....#.',
+      '.#####.#.',
+      '..######.',
+      '#........',
+    ],
+  },
+  // annealed
+  {
+    id: 'long-hall',
+    name: 'Long Hall',
+    slack: 0,
+    par: 93,
+    ink: 93,
+    grid: [
+      '...##...#',
+      '.#......#',
+      '..#......',
+      '#.#..#...',
+      '#.#..#...',
+      '..##.#...',
+      '...#.o..#',
+      '.#.###.##',
+      '#..##....',
+    ],
+  },
+  // annealed
+  {
+    id: 'boiler-room',
+    name: 'Boiler Room',
+    slack: 0,
+    par: 91,
+    ink: 91,
+    grid: [
+      '###.o.#..',
+      '##.....#.',
+      '.........',
+      '##...###.',
+      '..##...##',
+      '..#.##...',
+      '#...####.',
+      '.#.....#.',
+      '...##....',
+    ],
+  },
+  // annealed
+  {
+    id: 'the-study',
+    name: 'The Study',
+    slack: 0,
+    par: 97,
+    ink: 97,
+    grid: [
+      '....###..',
+      '.#....#..',
+      '..###.#..',
+      '#...#.o..',
+      '.....#...',
+      '.#...#...',
+      '##.##...#',
+      '##...#.##',
+      '....#....',
+    ],
+  },
+  // annealed, small on purpose
+  {
+    id: 'locked-room',
+    name: 'Locked Room',
+    slack: 0,
+    par: 83,
+    ink: 83,
+    grid: [
+      '..#..#.',
+      '#..#...',
+      '.#.....',
+      '..#....',
+      '#.....#',
+      '....o..',
+      '...#.##',
     ],
   },
 ]

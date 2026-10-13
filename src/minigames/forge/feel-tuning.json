@@ -1,0 +1,22 @@
+{
+ "_doc": "Overrides on top of the compiled-in defaults (unity/ForgeOrFold/Assets/Scripts/ForgeTuning.cs and its sections). Unity applies strike, metal and room through Tune(json) after ready, clamps them, and echoes the effective values as data-tuning on the scene element. The web section is read by the page.",
+ "version": 1,
+ "strike": {
+  "ringAlpha": 0
+ },
+ "metal": {
+  "floorEdgeC": 520
+ },
+ "room": {
+  "bloomLevelsTier2": 3
+ },
+ "web": {
+  "render": {
+   "phoneStartTier": 2,
+   "phoneDpr": [2, 1.5, 1, 1]
+  },
+  "gate": {
+   "frameSlackMs": 90
+  }
+ }
+}

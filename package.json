@@ -10,14 +10,15 @@
     "deploy": "sh scripts/deploy.sh",
     "admin:connect": "node scripts/admin-connect.mjs",
     "equity": "node scripts/equity.mjs",
-    "test": "node scripts/test-solver.mjs && node scripts/test-inkmaze.mjs && node scripts/test-forge.mjs && node scripts/test-forge-input.mjs && node scripts/test-forge-flow.mjs && node scripts/test-forge-backend.mjs && node scripts/test-carrot-progress.mjs",
+    "test": "node scripts/test-solver.mjs && node scripts/test-inkmaze.mjs && node scripts/test-forge.mjs && node scripts/test-forge-input.mjs && node scripts/test-forge-flow.mjs && node scripts/test-forge-backend.mjs && node scripts/test-forge-bridge.mjs && node scripts/test-forge-feel.mjs && node scripts/test-forge-audio.mjs && node scripts/test-forge-sync.mjs && node scripts/test-carrot-progress.mjs && node scripts/test-account-backend.mjs && node scripts/test-account-sync.mjs",
     "inkmaze:solve": "node scripts/inkmaze-solve.mjs",
     "forge:simulate": "node scripts/forge-simulate.mjs",
-    "lint": "eslint src/minigames/forge src/minigames/carrot backend/forge/worker.ts src/minigames/MinigamesPage.tsx",
+    "lint": "eslint src/minigames/forge src/minigames/carrot backend/forge/worker.ts src/minigames/MinigamesPage.tsx backend/account/worker.ts src/lib/account",
     "forge:unity": "node scripts/forge-unity-build.mjs",
     "carrot:unity": "node scripts/carrot-unity-build.mjs",
     "carrot:test": "node scripts/test-carrot-progress.mjs && node scripts/carrot-game-data.mjs && node scripts/carrot-unity-build.mjs --test",
-    "forge:worker": "node scripts/forge-worker-build.mjs"
+    "forge:worker": "node scripts/forge-worker-build.mjs",
+    "account:worker": "node scripts/account-worker-build.mjs"
   },
   "dependencies": {
     "gsap": "^3.13.0",

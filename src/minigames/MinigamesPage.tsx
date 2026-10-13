@@ -14,11 +14,13 @@ import { LEVELS } from './inkmaze/levels'
 import { loadBests } from './inkmaze/progress'
 
 const boardSize = (level: Level) => `${level.grid[0].length} × ${level.grid.length}`
+const area = (level: Level) => level.grid[0].length * level.grid.length
 
 /** The Ink Maze card's text, with its numbers taken from the levels themselves. */
 const inkMazeSummary = minigames.inkMaze.summary({
   levels: LEVELS.length,
   first: boardSize(LEVELS[0]),
+  largest: boardSize(LEVELS.reduce((a, b) => (area(b) > area(a) ? b : a))),
   last: boardSize(LEVELS[LEVELS.length - 1]),
   exact: LEVELS.filter((level) => level.ink === level.par).length,
 })
@@ -43,7 +45,7 @@ export default function MinigamesPage() {
         <li><GameCard href={pagePath('carrot-defense')} cover="/assets/minigames/carrot/01-garden-keyart.jpg" eyebrow="3D · Tower defense" title="Carrot Defense 3D" body="Twelve landscapes. Ten growing defenses. Protect a little carrot from three extraordinary guardians." cta="Enter the garden" /></li>
         <li><a className="sp-play-card" href={pagePath('forge-or-fold')}>
           <span className="sp-play-card__art ff-game-cover"><KnifePortrait knife={{id:0,metal:'damascus',family:4,level:12,heated:true,pips:0,flow:0,guard:false,sharpened:false,place:'rack'}} /></span>
-          <span className="sp-play-card__copy"><span className="sp-eyebrow">3D · Push your luck</span><span className="sp-play-card__title">Forge or Fold</span><span className="sp-play-card__body">Seven days. A hot blade. One more hit? Build a knife worth keeping in a forge where every strike is a choice.</span><span className="sp-play-card__cta">Enter the forge<span aria-hidden="true">→</span></span></span>
+          <span className="sp-play-card__copy"><span className="sp-eyebrow">3D · Push your luck</span><span className="sp-play-card__title">Forge or Fold</span><span className="sp-play-card__body">Ten days. A hot blade. One more hit? Build a knife worth keeping in a forge where every strike is a choice.</span><span className="sp-play-card__cta">Enter the forge<span aria-hidden="true">→</span></span></span>
         </a></li>
         <li>
           <GameCard

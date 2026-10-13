@@ -1,4 +1,4 @@
-import { act, createRun, odds, expectedValue, value, bestKnife, flowNeed, price } from '../src/minigames/forge/engine.ts'
+import { act, createRun, odds, expectedValue, value, bestKnife, flowNeed, price, runDays } from '../src/minigames/forge/engine.ts'
 const count=Number(process.argv[2]||2000)
 const demo=createRun(1), blank=demo.knives[0]
 console.log('Level | Perfect Good Dull Chip Shatter | value | next-hit EV | change')
@@ -11,7 +11,8 @@ for(const [name,target] of [['careful',9],['balanced',11],['bold',18]]){
   const knife=id=>s.knives.find(k=>k.id===id)
   const buy=key=>s.stock[key]>0&&s.gold>=price(s,key)&&doA({type:'buy',key})
   const heat=id=>{doA({type:'move',id,to:'furnace'});doA({type:'heat',id});doA({type:'move',id,to:'anvil'})}
-  for(let day=1;day<=7;day++){
+  const days=runDays(s)
+  for(let day=1;day<=days;day++){
    // Income: stop at level three on free iron, sell it, then invest in a persistent masterwork.
    // Strategy attention budgets bound a simulation; the game itself has unlimited energy.
    const incomeBudget=day===1?18:focus?8:11,start=s.hitsToday
@@ -27,7 +28,8 @@ for(const [name,target] of [['careful',9],['balanced',11],['bold',18]]){
    }
    if(knife(focus)){
     for(const key of ['guard','rewind'])while(s.items[key]<2&&buy(key)){}
-    if(day<5)for(const key of ['rhythm','patience','shelter','steady','tide'])if(s.charms.length<5&&s.gold>price(s,'charm:'+key)+400)buy('charm:'+key)
+    // Charms pay back over several days, so none in the last three.
+    if(day<days-2)for(const key of ['rhythm','patience','shelter','steady','tide'])if(s.charms.length<5&&s.gold>price(s,'charm:'+key)+400)buy('charm:'+key)
     heat(focus)
     let safety=0
     while(knife(focus)&&knife(focus).level<target&&safety++<60){
@@ -42,7 +44,7 @@ for(const [name,target] of [['careful',9],['balanced',11],['bold',18]]){
      if(!knife(focus)&&s.items.rewind)doA({type:'use',item:'rewind'})
     }
     if(knife(focus)){
-     if(day===7&&s.gold>=price(s,'whetstone')){buy('whetstone');doA({type:'use',item:'whetstone',id:focus})}
+     if(day===days&&s.gold>=price(s,'whetstone')){buy('whetstone');doA({type:'use',item:'whetstone',id:focus})}
      doA({type:'move',id:focus,to:'rack'})
     }
    }

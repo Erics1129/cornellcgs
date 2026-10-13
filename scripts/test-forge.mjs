@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
-import { act, createRun, odds, value, replay, expectedValue, flowNeed, bestKnife } from '../src/minigames/forge/engine.ts'
+import { act, createRun, odds, value, replay, expectedValue, flowNeed, bestKnife, runDays } from '../src/minigames/forge/engine.ts'
 import { METALS, RULES } from '../src/minigames/forge/config.ts'
 const seed = 74623
 const setup = () => { let s = createRun(seed,1); for (const a of [{type:'move',id:1,to:'furnace'},{type:'heat',id:1},{type:'move',id:1,to:'anvil'}]) s=act(s,a).state;return s }
@@ -28,7 +28,12 @@ assert.deepEqual(replay(seed,actions,1),replay(seed,actions,1));assert.deepEqual
 assert.equal(act(createRun(seed,1),{type:'hit',id:1}).ok,false)
 let r=setup();r=act(r,{type:'move',id:1,to:'rack'}).state;r=act(r,{type:'end'}).state;assert.equal(r.knives.length,4);assert.equal(r.stamina,20)
 for(let day=2;day<=7;day++)r=act(r,{type:'end'}).state
-assert.equal(r.ended,true);assert.equal(bestKnife(r).id,1);assert.equal(act(r,{type:'end'}).ok,false)
+assert.equal(r.ended,true);assert.equal(r.day,7,'a version 1 run still lasts seven days');assert.equal(bestKnife(r).id,1);assert.equal(act(r,{type:'end'}).ok,false)
+// Rules 3: ten days. Day 9 rests like any other day; day 10 ends the run and scores every knife still owned.
+{let t=createRun(seed);assert.equal(t.version,3);assert.equal(runDays(t),10);assert.equal(runDays({version:2}),7);t=act(t,{type:'move',id:1,to:'rack'}).state
+ for(let day=1;day<10;day++){const e=act(t,{type:'end'});assert.equal(e.ok,true);t=e.state;assert.equal(t.day,day+1);assert.equal(t.ended,false);assert.equal(t.knives.filter(k=>k.place==='crate').length,RULES.dailyBlanks,'fresh blanks every morning')}
+ const last=act(t,{type:'end'});assert.equal(last.ok,true);assert.equal(last.state.ended,true);assert.equal(last.state.day,10);assert.equal(last.event.text,'Ten days. One knife. Yours.');assert.equal(last.state.knives.length,t.knives.length,'the last day keeps every knife for the score');assert.equal(act(last.state,{type:'end'}).ok,false)
+ assert.equal(replay(seed,[{type:'move',id:1,to:'rack'},...Array(7).fill({type:'end'})],2).ended,true,'a version 2 log still ends on day 7')}
 const sold=act(setup(),{type:'sell',id:1}).state;assert.ok(!sold.knives.some(k=>k.id===1));assert.equal(sold.lastHit,null)
 assert.throws(()=>replay(seed,[{type:'buy',key:'made-up'}]));assert.equal(act(s,{type:'wait',seconds:-1}).ok,false)
 for(const file of ['engine','config'])assert.doesNotMatch(readFileSync(new URL(`../src/minigames/forge/${file}.ts`,import.meta.url),'utf8'),/\b(window|document|localStorage|Math\.random|setTimeout)\b/)

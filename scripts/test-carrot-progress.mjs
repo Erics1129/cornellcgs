@@ -15,9 +15,10 @@ assert.equal(campaign.medals[1],7,'a weaker replay never erases previous medals'
 assert.deepEqual(readCampaign(),campaign,'progress survives a reload')
 assert.equal(awardCampaign(campaign,2,0),campaign,'a loss cannot award progress')
 assert.equal(awardCampaign(campaign,25,10),campaign,'no phantom twenty-fifth level')
-assert.equal(awardCampaign(campaign,13,10).unlocked,14,'the harvest road continues past level 12')
 assert.equal(awardCampaign(campaign,2,NaN),campaign)
 assert.equal(awardCampaign(campaign,12,10).unlocked,13,'winning level 12 unlocks the harvest road')
+// saveCampaign unions with what is stored, so the stored unlock is now 13 and a level-13 win moves it to 14
+assert.equal(awardCampaign(campaign,13,10).unlocked,14,'the harvest road continues past level 12')
 assert.equal(awardCampaign(campaign,24,10).unlocked,24,'the finale caps the unlock at 24')
 assert.equal(awardCampaign(campaign,23,10).medals[23],3,'a flawless win on a new level earns its medals')
 assert.equal(values.get('cgs-forge-v1'),'untouched forge save')

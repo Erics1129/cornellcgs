@@ -14,7 +14,7 @@ export function verifyRun(seed:number,actions:unknown,knife:unknown){
  if(!Array.isArray(actions)||actions.length>RULES.maxActions)throw new Error('Invalid action log.')
  for(const a of actions){if(!a||typeof a!=='object'||typeof a.type!=='string'||JSON.stringify(a).length>180)throw new Error('Invalid action.');if('id'in a&&(!Number.isSafeInteger(a.id)||a.id<1))throw new Error('Invalid knife id.')}
  const run=replay(seed,actions as Action[])
- if(!run.ended||run.day!==RULES.days)throw new Error('Finish all seven days first.')
+ if(!run.ended||run.day!==RULES.days)throw new Error(`Finish all ${RULES.days} days first.`)
  const best=bestKnife(run)
  if(!equalKnife(knife,best))throw new Error('This knife does not match your finished run.')
  const score=best?value(best,run):0
