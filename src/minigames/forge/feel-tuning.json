@@ -4,5 +4,9 @@
  "strike": {},
  "metal": {},
  "room": {},
- "web": {}
+ "web": {
+  "render": {
+   "phoneStartTier": 2
+  }
+ }
 }

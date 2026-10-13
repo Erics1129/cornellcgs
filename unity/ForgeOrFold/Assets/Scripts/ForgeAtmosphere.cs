@@ -20,7 +20,7 @@ public partial class ForgeWorld {
  static readonly int FireShadowRectId=Shader.PropertyToID("_ForgeFireShadowRect"),FireShadowYId=Shader.PropertyToID("_ForgeFireShadowY"),FireHoodRectId=Shader.PropertyToID("_ForgeFireHoodRect"),
   KeyDirId=Shader.PropertyToID("_ForgeKeyDir"),KeyConeId=Shader.PropertyToID("_ForgeKeyCone"),SconcePosId=Shader.PropertyToID("_ForgeSconcePosition"),SconceColId=Shader.PropertyToID("_ForgeSconceColor"),
   CandlePosId=Shader.PropertyToID("_ForgeCandlePosition"),CandleColId=Shader.PropertyToID("_ForgeCandleColor"),AmbientId=Shader.PropertyToID("_ForgeAmbient"),SootId=Shader.PropertyToID("_ForgeSoot"),SootFlueId=Shader.PropertyToID("_ForgeSootFlue"),
-  AoDirectId=Shader.PropertyToID("_ForgeAoDirect"),FireBounceId=Shader.PropertyToID("_ForgeFireBounce"),EnvFlickerId=Shader.PropertyToID("_ForgeEnvFlicker"),HazeClockId=Shader.PropertyToID("_ForgeHazeClock"),BounceColorId=Shader.PropertyToID("_ForgeBounceColor"),ShadowZoneId=Shader.PropertyToID("_ForgeShadowZone"),FrameId=Shader.PropertyToID("_Frame"),GlowId=Shader.PropertyToID("_Glow"),EmissionId=Shader.PropertyToID("_EmissionColor");
+  AoDirectId=Shader.PropertyToID("_ForgeAoDirect"),FireBounceId=Shader.PropertyToID("_ForgeFireBounce"),EnvFlickerId=Shader.PropertyToID("_ForgeEnvFlicker"),HazeClockId=Shader.PropertyToID("_ForgeHazeClock"),BounceColorId=Shader.PropertyToID("_ForgeBounceColor"),ShadowZoneId=Shader.PropertyToID("_ForgeShadowZone"),FrameId=Shader.PropertyToID("_Frame"),GlowId=Shader.PropertyToID("_Glow"),AtmosEmissionId=Shader.PropertyToID("_EmissionColor");
 
  /// Called once in Start after MakeDressing and before BatchRoom (static room geometry goes in before batching).
  void AtmosBuild(){
@@ -120,8 +120,8 @@ public partial class ForgeWorld {
   // Window, rim light and the lantern follow the day.
   float windowLevel=windowNow.grayscale/Mathf.Max(.0001f,WindowDay.grayscale);
   Shader.SetGlobalColor(ForgeContract.Globals.RimColor,rimBase*windowLevel);
-  if(daylightLive!=null)daylightLive.SetColor(EmissionId,windowNow);doorLevel=windowLevel;
-  if(candleLive!=null)candleLive.SetColor(EmissionId,C("ffb952")*.30f*lanternLevel);Shader.SetGlobalColor(CandleColId,candleBase*lanternLevel);
+  if(daylightLive!=null)daylightLive.SetColor(AtmosEmissionId,windowNow);doorLevel=windowLevel;
+  if(candleLive!=null)candleLive.SetColor(AtmosEmissionId,C("ffb952")*.30f*lanternLevel);Shader.SetGlobalColor(CandleColId,candleBase*lanternLevel);
   // Contact flash (written only here and in AtmosImpact).
   flashLevel*=Mathf.Exp(-dt*r.flashDecay);if(flashLevel<.002f)flashLevel=0;Shader.SetGlobalFloat(ForgeContract.Globals.Impact,flashLevel);if(flash!=null)flash.intensity=flashLevel;
   // The evolution ring costs a draw call only while it is visible.

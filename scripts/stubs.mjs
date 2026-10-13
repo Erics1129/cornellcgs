@@ -67,6 +67,8 @@ const PAGES = {
   'forge-or-fold': {
     title: 'Forge or Fold — Cornell CGS',
     desc: 'A seven-day 3D forging game. Heat, strike, sell and learn when to stop. Keep your best knife.',
+    // the game page is dark; a white first paint flashes before the app mounts
+    background: '#0d0c0b',
   },
   // the numbers must match src/minigames/inkmaze/levels.ts
   'ink-maze': {
@@ -83,7 +85,7 @@ const PAGES = {
 const esc = (s) => s.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;')
 const base = readFileSync(join(root, 'dist/index.html'), 'utf8')
 
-for (const [id, { title, desc, image }] of Object.entries(PAGES)) {
+for (const [id, { title, desc, image, background = '#fff' }] of Object.entries(PAGES)) {
   const slug = SLUGS[id] ?? id
   const html = base
     .replace(/<title>[^<]*<\/title>/, `<title>${esc(title)}</title>`)
@@ -92,7 +94,7 @@ for (const [id, { title, desc, image }] of Object.entries(PAGES)) {
     .replace(/(<meta property="og:description" content=")[^"]*(")/, `$1${esc(desc)}$2`)
     .replace(/(<meta property="og:url" content=")[^"]*(")/, `$1${ORIGIN}/${slug}/$2`)
     .replace(/<link rel="canonical" href="[^"]*"\s*\/>/, `<link rel="canonical" href="${ORIGIN}/${slug}/" />`)
-    .replace('</head>', `${image ? `  <meta property="og:image" content="${ORIGIN}${image}" />\n` : ''}  <style>html{background:#fff}</style>\n  <script>window.__cgsPage='${id}'</script>\n  </head>`)
+    .replace('</head>', `${image ? `  <meta property="og:image" content="${ORIGIN}${image}" />\n` : ''}  <style>html{background:${background}}</style>\n  <script>window.__cgsPage='${id}'</script>\n  </head>`)
   mkdirSync(join(root, 'dist', slug), { recursive: true })
   writeFileSync(join(root, 'dist', slug, 'index.html'), html)
   console.log(`stub: /${slug}/`)
