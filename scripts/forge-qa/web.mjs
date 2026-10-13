@@ -199,22 +199,41 @@ async function shatterHold(kind = 'desktop') {
     await allEvents(h); await withSave(h, shatterSave().json)
     await open(h, url, { telemetry: true }); await sleep(1500)
     const title0 = (await hud(h)).title
+    // Sampled inside the page on every frame (a slow screenshot or a loaded machine cannot skew it): the callout's
+    // lifetime, its fit at ~700 ms, the selected knife, the refusal mark. The +300 ms press is dispatched in the page
+    // too (unity.ts listens for keydown on window), so it lands inside the 600 ms hold however busy the runner is.
+    await h.page.evaluate(() => {
+      const w = window, q = w.__qaShatter = { impact: null, callout: [], text: '', fit: null, selected: [], mark: null, pressAt: null }
+      const key = type => w.dispatchEvent(new KeyboardEvent(type, { code: 'Space', key: ' ', bubbles: true }))
+      const loop = () => {
+        const now = performance.now()
+        if (q.impact === null) { const e = w.__forge.events.find(x => x.type === 'impact'); if (e) { q.impact = e.t; setTimeout(() => { q.pressAt = performance.now(); key('keydown'); setTimeout(() => key('keyup'), 12) }, 300 - (now - e.t)) } }
+        const c = document.querySelector('.ff-outcome-shatter')
+        if (c && q.impact !== null) {
+          q.callout.push(now - q.impact); q.text = q.text || c.textContent
+          if (!q.fit && now - q.impact >= 650) { const r = c.getBoundingClientRect(), b = c.querySelector('b').getBoundingClientRect(), sp = c.querySelector('span').getBoundingClientRect(); q.fit = { left: Math.round(r.left), right: Math.round(r.right), vw: innerWidth, oneLine: Math.abs(b.top - sp.top) < b.height / 2 } }
+        }
+        const sel = document.querySelector('.ff-knife-card.is-selected')?.getAttribute('aria-label') || ''
+        if (q.impact !== null && (q.selected.at(-1)?.v ?? null) !== sel) q.selected.push({ ms: now - q.impact, v: sel })
+        const m = document.querySelector('.ff-refuse-mark')
+        if (m && !q.mark) { const r = m.getBoundingClientRect(); q.mark = { x: Math.round(r.left + r.width / 2), y: Math.round(r.top + r.height / 2), w: Math.round(r.width), ms: Math.round(now - (q.impact ?? now)) } }
+        if (q.impact === null || now - q.impact < 2300) requestAnimationFrame(loop)
+      }
+      requestAnimationFrame(loop)
+    })
     const t = await press(h, 'Space'); const imp = await waitEvent(h, 'impact', t, 3000)
     if (!imp) { check(kind, 'Shatter fixture struck', false); return }
-    // Poll the callout and the selected knife; one press at +300 ms (refused), none later.
-    const seen = []; let pressed300 = false, fit = null
-    while ((await now(h)) - imp.t < 2200) {
-      const ms = (await now(h)) - imp.t
-      if (!pressed300 && ms > 300) { pressed300 = true; await press(h, 'Space', 12); seen.mark = await h.page.evaluate(() => { const m = document.querySelector('.ff-refuse-mark'); if (!m) return null; const r = m.getBoundingClientRect(); return { x: Math.round(r.left + r.width / 2), y: Math.round(r.top + r.height / 2), w: Math.round(r.width) } }) }
-      seen.push({ ms, callout: await h.page.evaluate(() => !!document.querySelector('.ff-outcome-shatter')), text: await h.page.evaluate(() => document.querySelector('.ff-outcome-shatter')?.textContent || ''), held: await h.page.evaluate(() => !!document.querySelector('.ff-blade-info.is-held')), selected: await h.page.evaluate(() => document.querySelector('.ff-knife-card.is-selected')?.getAttribute('aria-label') || '') })
-      if (Math.abs(ms - 700) < 40) { await h.shot('shatter-held'); fit = await h.page.evaluate(() => { const c = document.querySelector('.ff-outcome-shatter'); if (!c) return null; const r = c.getBoundingClientRect(), b = c.querySelector('b').getBoundingClientRect(), sp = c.querySelector('span').getBoundingClientRect(); return { left: Math.round(r.left), right: Math.round(r.right), vw: innerWidth, oneLine: Math.abs(b.top - sp.top) < b.height / 2 } }) }
-      await sleep(30)
-    }
-    const lastCallout = seen.filter(x => x.callout).at(-1)?.ms ?? 0, firstSel = seen.find(x => x.selected)?.ms ?? null
+    // No screenshot here: capturing one blocks the page's frames for hundreds of ms (the held shot is taken in h2).
+    while ((await now(h)) - imp.t < 2400) await sleep(50)
+    const q = await h.page.evaluate(() => window.__qaShatter)
+    // The broken knife can stay selected for a frame or two; the next knife is the first selection after none.
+    const none = q.selected.findIndex(x => !x.v), firstSel = none >= 0 ? q.selected.slice(none).find(x => x.v)?.ms ?? null : null
+    const lastCallout = q.callout.at(-1) ?? 0, fit = q.fit
     check(kind, "the Shatter callout fits on screen with 'Shattered' and the loss on one line", fit && fit.left >= 0 && fit.right <= fit.vw && fit.oneLine, fit)
-    check(kind, 'Shatter callout lasts at least 1.5 s', lastCallout >= 1500 - 60, { lastMs: Math.round(lastCallout), text: seen.find(x => x.text)?.text, before: title0 })
-    check(kind, "Shatter callout shows the lost value ('Shattered -N')", /Shattered\s*−[\d,]+/.test(seen.find(x => x.text)?.text || ''), seen.find(x => x.text)?.text)
-    check(kind, 'next knife chosen no earlier than 1.2 s after impact', firstSel === null || firstSel >= 1200 - 40, { firstSelectedMs: firstSel && Math.round(firstSel) })
+    check(kind, 'Shatter callout lasts at least 1.5 s', lastCallout >= 1500 - 60, { lastMs: Math.round(lastCallout), text: q.text, before: title0 })
+    check(kind, "Shatter callout shows the lost value ('Shattered -N')", /Shattered\s*−[\d,]+/.test(q.text || ''), q.text)
+    check(kind, 'next knife chosen no earlier than 1.2 s after impact', firstSel === null || firstSel >= 1200 - 40, { firstSelectedMs: firstSel && Math.round(firstSel), pressAtMs: q.pressAt && Math.round(q.pressAt - q.impact) })
+    const seen = { mark: q.mark }
     const log = await presses(h, imp.t)
     check(kind, 'a press 300 ms after a Shatter is refused (hold)', log.some(e => e.kind === 'refuse' && e.reason === 'hold'), log.filter(e => e.kind !== 'busy').slice(0, 4))
     check(kind, 'the refused press is marked on the blade, not only on the key', !!seen.mark && seen.mark.y > (await rect(h, '.ff-blade-info')).bottom && seen.mark.y < (await rect(h, '.ff-bottom')).y, seen.mark)
@@ -223,6 +242,8 @@ async function shatterHold(kind = 'desktop') {
     try {
       await allEvents(h2); await withSave(h2, shatterSave().json); await open(h2, url, { telemetry: true }); await sleep(1500)
       const t2 = await press(h2, 'Space'); const imp2 = await waitEvent(h2, 'impact', t2, 3000)
+      while ((await now(h2)) - imp2.t < 300) await sleep(10)
+      await h2.shot('shatter-held')
       while ((await now(h2)) - imp2.t < 700) await sleep(10)
       await press(h2, 'Space', 12); await sleep(250)
       const st = await hud(h2), l2 = await presses(h2, imp2.t)
