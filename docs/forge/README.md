@@ -33,7 +33,7 @@ On touch screens, hold the directional pad to walk; two directions can be held t
 
 ## Art and presentation
 
-The eye-level camera, human-scale workshop, animated hand grip, corrected hammer downstroke, pooled spark trails, metal fragments, bloom and generated surface materials are part of the actual Unity renderer. The generated material atlas is split by `ForgeMaterialImport` and applied to 3D wood, stone, steel and leather. The room includes a curved hearth, quench barrel, bellows, chain links, offcuts and drifting dust. Generated loading and trade illustrations are separate from gameplay. See [the first-person redesign, current texture prompt, and validation](FIRST-PERSON-REDESIGN.md), plus [the earlier generated assets](GENERATED-ASSETS-V2.md).
+The eye-level camera, human-scale workshop, animated hand grip, hammer arc, tongs, scale flakes, shatter pieces, bloom and generated surface materials are part of the actual Unity renderer (built-in render pipeline, no URP). The generated material atlas is split by `ForgeMaterialImport` and applied to 3D wood, stone, steel and leather. The room includes a curved hearth, quench barrel, bellows, chain links, offcuts and drifting dust. Generated loading and trade illustrations are separate from gameplay. See [the first-person redesign, current texture prompt, and validation](FIRST-PERSON-REDESIGN.md), plus [the earlier generated assets](GENERATED-ASSETS-V2.md).
 
 ## Source map
 
@@ -69,7 +69,7 @@ The bold policy finished without a surviving knife in 598/2,000 runs. Careful su
 
 `npm test` covers existing solver and Ink Maze, 501 levels of normalized forge odds, value/EV, guards, rewind with fresh RNG, Flow, ownership, day transitions and deterministic replay. It also runs the actual Worker against an in-memory SQLite implementation of D1: tampered/unfinished runs, identity proof, cooldown, one-use tickets, name cleaning, top 50 and an own rank outside the top 50. `npm run lint` checks the new game and backend; `npm run build` typechecks the entire site.
 
-Browser checks use Chromium desktop and WebKit at 390×844, with an actual Unity Web player. Physical mid-range phone performance is not certified by browser emulation. Unity targets 60 fps, caps web rendering resolution, batches the static room, reuses impact particles and reduces shadows after sustained slow frames.
+Browser checks use Chromium desktop and WebKit at 390×844, with an actual Unity Web player. Physical mid-range phone performance is not certified by browser emulation. Unity follows the browser's frame rate (targetFrameRate -1 with vSync on the WebGL quality level), chooses the render resolution and anti-aliasing per quality tier, batches the static room into about 21 meshes, draws all particles in at most three batched meshes, and steps down a tier after sustained slow frames (at most one recovery per session).
 
 ## Decisions and assumptions
 
@@ -90,10 +90,23 @@ Character source and license are recorded in `public/unity/forge/THIRD-PARTY-NOT
 
 Energy is unlimited. Rest remains a deliberate choice to advance the market/day and retain the four best knives. Obsolete energy items are no longer sold; migration refunds unused tea and the energy charm at their base prices.
 
-Flow now charges over 10 strikes on the same knife (8 with Copper rhythm). The next strike automatically starts a 4-second window with no shatter risk, a 1.5× hammer animation and a visible countdown. Quiet tide extends it to 5 seconds. Players may also activate a charged blade using F or the Flow control. Chip and Dull remain possible. One extra manual tap can be buffered during a swing; no automatic repeat occurs without input. The bar above the anvil uses the exact modified next-hit probabilities, including charged/active Flow and Guard.
+Flow now charges over 10 strikes on the same knife (8 with Copper rhythm). The next strike automatically starts a 4-second window with no shatter risk, a 1.5× hammer animation and a visible countdown. Quiet tide extends it to 5 seconds. Players may also activate a charged blade using F or the Flow control. Chip and Dull remain possible. One press can be held during a swing and lands on the next beat (below 20% shatter risk, or in Flow); at 20% or more, presses within 250 ms of a result are refused with a dry tick and a small ring on the blade, so you see the result first. No strike repeats without input. The bar above the anvil uses the exact modified next-hit probabilities, including charged/active Flow and Guard.
 
 Rules version 2 records integer millisecond clock actions and rejects strikes closer than 350 ms during replay. The animation is slower than that bound. Old action logs replay under version 1 before a deterministic upgrade preserves knives, market, day and gold; old world tickets become local runs rather than being submitted under different rules. Existing local scores remain. The backend must use the current shared rules when configured.
 
 Panels open only through intentional controls. Empty inventory produces a small prompt instead of opening Trade. Looking toward the shop or lantern approaches the station; interaction is separate. The masterwork view can close without reopening Scores or another result dialog.
 
 For development QA only, `?forge-qa=flow`, `?forge-qa=ended`, and `?forge-qa=empty` load actual seed-1 action replays and do not write a run save. The fixture branch is removed from production builds. `test-forge-input.mjs` covers drag-return and shortcut regressions; `test-forge-flow.mjs` covers timing, unlimited energy, odds, cooldown, migration and deterministic replay.
+
+## October 12 feel upgrade
+
+Everything below is presentation; the rules, odds, prices, Flow strike count (7 protected strikes in 4 s, about 595 ms apart), saves, replays and scores are unchanged, and `node scripts/forge-simulate.mjs` prints the same bytes as before.
+
+- Each strike carries a sequence id (Strike(seq) -> swing, impact, settled with that id). Only Unity's `impact` resolves a hit. The hammer lands about 190 ms after the press (215 ms from rest), each outcome has its own hit-stop and directional camera kick, and the swing cycle is 640 ms (595 ms in Flow).
+- Start forging is a short step to the hearth with tongs, a bellows pull and a return; the Motion setting (Full / Reduced / Off) and the OS reduced-motion flag turn off camera turns, shake, hit-stop and slow motion.
+- Temperature is presentation only: blackbody colour calibrated through the real lighting and tonemap, edge-first cooling to a 650 C floor on the anvil, no reheat dip, quench on Keep, continuous cooling on the rack. Heat is still required once per knife.
+- Scale flakes (CPU batched billboards with plane collisions) replace the cube sparks, which removes the old laser-trail bug. A Chip cuts a visible notch; a Shatter breaks the blade into 10-16 pieces and the HUD holds what was lost.
+- The room is closed (door, ceiling, sealed window), lit by a hanging oil lamp and a flickering hearth, with a London-pattern anvil (48 x 13 cm face, 25 cm horn), baked contact shading and properly scaled brick. The static room is merged per material and per spatial cell, so frustum culling drops what the work view cannot see.
+- Feel numbers live in `src/minigames/forge/feel-tuning.json` (sections strike, metal, room and web). Unity clamps them and echoes the effective values as `data-tuning`; changing them needs only `npm run build`, not a Unity rebuild. Shipped overrides: phones start at quality tier 2 and render tier 2 at DPR 1 (`web.render.phoneDpr`) until a real-phone run passes, the evolution ring is off (`strike.ringAlpha` 0), and the edge's anvil floor is 520 C (`metal.floorEdgeC`), so a darker rim outlines a hot blade.
+- QA: `node scripts/forge-qa/run-all.mjs --url <served page> --baseline <baseline.json>` runs the baseline metrics and every stream's live checks; `scripts/forge-qa/sheets.mjs` films live contact sheets; `node scripts/forge-cs-check.mjs` compiles the Unity C# and runs its pure tests without the editor. See [FEEL-UPGRADE.md](FEEL-UPGRADE.md) for the before/after numbers.
+
