@@ -55,7 +55,7 @@ namespace CarrotTD {
    if(state!=1){if(state!=-2)Debug.LogWarning("Carrot music unavailable: "+name+(state==0?" (timed out)":" (download or decode failed)"));yield break;}
    musicReady.Add(name);Debug.Log("CARROT_MUSIC_LOADED "+name+" seconds="+Carrot_MusicSeconds(name).ToString("F0")+" after="+waited.ToString("F1"));
    // The page's own Play click already resumed the audio context, so the first track starts as soon as it is decoded rather than waiting for a tap in the garden.
-   if(!unlocked&&Carrot_MusicRunning()==1){Unlock();return;}
+   if(!unlocked&&Carrot_MusicRunning()==1){Unlock();yield break;}
    if(desired==name&&playing!=name)Transition(name,pendingFade);}
   void Transition(string name,float duration){desired=name;if(!unlocked||name==playing)return;if(!musicReady.Contains(name)){pendingFade=duration;EnsureMusic(name);return;}targetA=!targetA;int slot=targetA?0:1;ReleaseSlot(slot);if(Carrot_MusicPlay(slot,name,0)==0){Debug.LogWarning("Carrot music could not start: "+name);return;}slotTrack[slot]=name;slotVolume[slot]=0;if(paused)Carrot_MusicPause(slot,1);playing=name;blend=0;fadeSeconds=duration;}
   // Stops a slot and drops its decoded buffer from browser memory unless the other slot still plays the same track.
