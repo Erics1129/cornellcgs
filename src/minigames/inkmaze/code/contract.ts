@@ -259,8 +259,8 @@ export type LanguageInfo = {
 
 export const LANGUAGE_INFO: Record<RunLanguage, LanguageInfo> = {
   java: { id: 'java', label: 'Java', runtime: 'java', fileName: 'Solution.java', editor: 'java', version: 'Java 25 (javac + TeaVM 0.13.1, WebAssembly)', timeFactor: 1 },
-  python: { id: 'python', label: 'Python', runtime: 'python', fileName: 'solution.py', editor: 'python', version: 'Python 3.14 (Pyodide 314.0.7)', timeFactor: 1 },
-  javascript: { id: 'javascript', label: 'JavaScript', runtime: 'javascript', fileName: 'solution.js', editor: 'javascript', version: 'ES2023 (QuickJS)', timeFactor: 1 },
+  python: { id: 'python', label: 'Python', runtime: 'python', fileName: 'solution.py', editor: 'python', version: 'Python 3.14 (Pyodide 314.0.7)', timeFactor: 1.5 },
+  javascript: { id: 'javascript', label: 'JavaScript', runtime: 'javascript', fileName: 'solution.js', editor: 'javascript', version: 'ES2023 (QuickJS)', timeFactor: 1.5 },
   c: { id: 'c', label: 'C', runtime: 'clang', fileName: 'solution.c', editor: 'c', version: 'C17 (Clang 22, wasm32-wasi)', timeFactor: 1 },
   cpp: { id: 'cpp', label: 'C++', runtime: 'clang', fileName: 'solution.cpp', editor: 'cpp', version: 'C++20 (Clang 22, wasm32-wasi)', timeFactor: 1 },
   echo: { id: 'echo', label: 'Echo (test)', runtime: 'echo', fileName: 'program.echo', editor: 'plaintext', version: 'echo test runtime 1', timeFactor: 1 },

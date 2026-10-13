@@ -11,10 +11,12 @@ The Cornell CGS site's own code (everything under src/ and the sandbox host,
 public/minigames/ink-maze-code/sandbox.html and sandbox.js) is the site's own
 work and is not covered here.
 
-Each runtime's own folder carries the full licence texts and the exact build
-provenance (PROVENANCE.txt) once that runtime is added. This file is the index;
-the per-runtime engineers fill in their section and drop the texts next to
-their runtime.js.
+Each self-hosted runtime's folder carries the full licence texts next to its
+runtime.js, and every runtime folder has its exact build provenance
+(PROVENANCE.txt). This file is the index. Self-hosted here: Java (~4.4 MB),
+JavaScript (~0.57 MB), the Python and C/C++ glue (the site's own harness and
+loader code, ~0.13 MB) and the sandbox host; Pyodide and the C/C++ compiler
+load from the pinned CDN URLs below.
 
 
 Java  (public/minigames/ink-maze-code/java/, self-hosted, ~4.4 MB)

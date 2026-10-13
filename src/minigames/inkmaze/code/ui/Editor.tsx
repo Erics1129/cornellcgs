@@ -120,7 +120,8 @@ const Editor = forwardRef<EditorHandle, Props>(function Editor({ language, initi
       for (const d of list) {
         if (!d.line || d.line < 1) continue
         const line = doc.line(Math.min(d.line, doc.lines))
-        const from = line.from + Math.min(Math.max(0, (d.column ?? 1) - 1), line.length)
+        // a column past the last character (javac's "';' expected") marks the last character: a mark over the line break alone shows nothing
+        const from = line.from + Math.min(Math.max(0, (d.column ?? 1) - 1), Math.max(0, line.length - 1))
         let to = line.to
         if (d.endLine && d.endLine >= d.line) {
           const end = doc.line(Math.min(d.endLine, doc.lines))

@@ -418,6 +418,8 @@ export default function CodeLevel({ number, levelCount, onLeave }: Props) {
   else if (runtime?.status === 'failed') status = { kind: 'failed', text: `${info.label} could not be loaded.` }
   else if (runtime?.status === 'ready') status = { kind: 'ready', text: `${info.label} ready` }
   else status = { kind: 'idle', text: '' }
+  // a runtime's own note about this device, once it is loaded (C and C++ on a phone: the compiler's memory)
+  const note = status.kind === 'ready' && typeof runtime?.info.warning === 'string' ? runtime.info.warning : ''
 
   let progress = ''
   if (busy) {
@@ -500,6 +502,7 @@ export default function CodeLevel({ number, levelCount, onLeave }: Props) {
               </>}
             </div>
           )}
+          {note && <p className="imc-loadline imc-loadline--note" data-kind="note">{note}</p>}
           <div className="imc-editor" id="ink-code-editor" tabIndex={-1}>
             <Editor ref={editor} language={language} initialSource={initialSource} onChange={onChange} onCursor={onCursor} onRun={onRun} onSubmit={onSubmit} />
           </div>

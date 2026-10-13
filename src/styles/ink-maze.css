@@ -213,7 +213,7 @@
   display: grid;
   place-items: center;
   width: 100%;
-  height: 3rem; /* twenty levels make four short rows */
+  height: 3rem; /* twenty-five levels make five short rows, then the coding tile */
   min-height: 44px;
   border: 1px solid var(--sp-rule);
   border-radius: 10px;

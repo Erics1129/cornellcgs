@@ -234,6 +234,7 @@
 
 .imc-loadline { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; padding: 6px 12px; background: var(--imc-dark-3); border-bottom: 1px solid var(--imc-dark-rule); font-size: 0.8rem; color: var(--imc-dark-dim); }
 .imc-loadline[data-kind='failed'], .imc-loadline[data-kind='unsupported'] { color: var(--imc-amber-text); }
+.imc-loadline--note { margin: 0; line-height: 1.45; color: var(--imc-amber-text); }
 .imc-loadline__why { flex-basis: 100%; font: 500 0.72rem/1.4 var(--font-mono); color: var(--imc-dark-dim); overflow-wrap: anywhere; }
 .imc-loadline .imc-link { color: var(--imc-accent); min-height: 24px; font-size: 0.8rem; }
 .imc-loadline__bar { flex: 1 1 8rem; height: 3px; border-radius: 2px; background: rgb(122 167 255 / 0.15); overflow: hidden; }

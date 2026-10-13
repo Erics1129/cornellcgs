@@ -69,8 +69,10 @@ export type Board = BoardInput & {
   slack: number
 }
 
-/** Rows and columns of every board the level hands out (hidden tests and random maps), each 4 to 6. */
-export const BOARD_SIZES = { min: 4, max: 6 } as const
+/** Rows and columns of every board the level hands out, each 4 to 8 (the larger hidden boards are 7 and 8). */
+export const BOARD_SIZES = { min: 4, max: 8 } as const
+/** Rows and columns of the random maps (randomBoard) and of the small hidden tests, each 4 to 6. */
+export const MAP_SIZES = { min: 4, max: 6 } as const
 /** The visible random map is at least this big (5 x 5 to 6 x 6). */
 export const VISIBLE_MIN_SIZE = 5
 export const MAX_SLACK = 2
@@ -78,11 +80,17 @@ export const MAX_SLACK = 2
 export const MIN_FLOOR_SHARE = 0.5
 /** No board hands out more ink than this (the statement promises it), so no answer needs more than 60 moves. */
 export const MAX_INK = 60
+/** No board has more floor blocks than this, so the colored blocks always fit in one 64-bit mask (with room for the ball's index). */
+export const MAX_FLOORS = 50
 
 /**
- * The time limit for all boards of a run together, from io.started(), before
- * the language's timeFactor. A correct plain search (PLAIN_SEARCH_BUDGET) needs
- * a small part of it in every runtime.
+ * The time limit for all boards of a run together, from io.started() (after
+ * compiling), before the language's timeFactor (LANGUAGE_INFO). Calibrated in
+ * Chromium and WebKit (scripts/test-inkmaze-code-flow.mjs measures it again):
+ * a search with the ink pruning (PRUNED_SEARCH_BUDGET) needs a small part of
+ * it in every language, and one without the pruning cannot finish the larger
+ * hidden boards in any language (each needs more than UNPRUNED_SEARCH_FLOOR
+ * calls in every move order; compiled C runs about 90 million a second natively).
  */
 export const TIME_LIMIT_MS: Record<RunKind, number> = { run: 4000, submit: 8000 }
 
@@ -92,18 +100,41 @@ export function timeLimitFor(language: RunLanguage, kind: RunKind): number {
 }
 
 /**
+ * How long compiling may take (job to io.started()), per language: C++
+ * parses large standard headers (about 1.5-7 s on a busy desktop, more on a
+ * phone), so it gets twice the default (contract LIMITS.compileMs).
+ */
+export const COMPILE_LIMIT_MS: Record<RunLanguage, number> = {
+  java: LIMITS.compileMs, python: LIMITS.compileMs, javascript: LIMITS.compileMs, c: LIMITS.compileMs, cpp: 2 * LIMITS.compileMs, echo: LIMITS.compileMs,
+}
+
+/**
  * The cost of a plain brute force on a board: positions (calls) visited by a
  * depth-first search that tries the four moves in a fixed order, skips moves
  * that do not move the ball, rolls exactly as the engine does (the ink can run
  * dry mid-roll), stops at the first win and gives up on a line when the ink is
- * gone. No pruning and no memo. Every board the level hands out is cleared
- * within this many calls in EVERY one of the 24 move orders, so a correct
- * brute force passes in every language: native CPython runs about 2 million
- * such calls a second, Pyodide and QuickJS several times fewer.
+ * gone. No pruning and no memo. The visible map and every small hidden test
+ * are cleared within this many calls in EVERY one of the 24 move orders, so a
+ * first brute force passes Run in every language (Pyodide and QuickJS run
+ * about 600,000 such calls a second).
  */
 export const PLAIN_SEARCH_BUDGET = 200_000
-/** The same measure summed over a whole submission (worst order per board). */
+/** The same measure summed over the small boards of a submission (worst order per board). */
 export const SUBMISSION_SEARCH_BUDGET = 1_000_000
+/**
+ * The larger hidden boards (7 x 7 to 8 x 8) need the hint: a search that also
+ * gives up on a line when the ink left is less than the blocks still
+ * uncolored (SearchOptions.prune) clears each within this many calls in every
+ * move order...
+ */
+export const PRUNED_SEARCH_BUDGET = 100_000
+/**
+ * ...while the plain search needs more than this many calls on each, in every
+ * move order (measured natively: scripts/inkmaze-code/plain-search.c; the test
+ * checks a smaller cap in JavaScript). That is over 20 s of compiled C per
+ * board and move order (natively about 90 million calls a second).
+ */
+export const UNPRUNED_SEARCH_FLOOR = 2_000_000_000
 
 /** A small seeded generator (mulberry32, as in scripts/inkmaze-generate.mjs). */
 export function mulberry32(seed: number): () => number {
@@ -285,9 +316,18 @@ export const MOVE_ORDERS: readonly (readonly number[])[] = (() => {
 
 /** The most calls a plain search needs on a board, over all 24 move orders (Infinity past the cap). */
 export function plainSearchCost(board: BoardInput, cap = PLAIN_SEARCH_BUDGET): number {
+  return searchCost(board, { cap })
+}
+
+/** The most calls a search with the ink pruning needs on a board, over all 24 move orders (Infinity past the cap). */
+export function prunedSearchCost(board: BoardInput, cap = PRUNED_SEARCH_BUDGET): number {
+  return searchCost(board, { cap, prune: true })
+}
+
+function searchCost(board: BoardInput, options: SearchOptions): number {
   let worst = 0
   for (const order of MOVE_ORDERS) {
-    const { nodes, moves } = plainSearch(board, { order, cap })
+    const { nodes, moves } = plainSearch(board, { ...options, order })
     if (!Number.isFinite(nodes) || moves === null) return Number.POSITIVE_INFINITY
     if (nodes > worst) worst = nodes
   }
@@ -307,12 +347,14 @@ export function oneRollWins(grid: readonly string[]): boolean {
 
 /**
  * What is wrong with a board, as messages; [] for a good one. A good board
- * has 4-6 rows and 4-6 columns, exactly one ball, every floor block lies on
- * some roll, it needs at least two moves, par is the least ink (minInk), ink
- * is par plus 0 to 2 and at most MAX_INK, and a plain search clears it within
- * PLAIN_SEARCH_BUDGET calls in every move order.
+ * has 4-6 rows and 4-6 columns (4-8 for a `large` one), at most MAX_FLOORS
+ * floor blocks, exactly one ball, every floor block lies on some roll, it
+ * needs at least two moves, par is the least ink (minInk), ink is par plus 0
+ * to 2 and at most MAX_INK, and a plain search clears it within
+ * PLAIN_SEARCH_BUDGET calls in every move order (a large one: a search with
+ * the ink pruning, within PRUNED_SEARCH_BUDGET).
  */
-export function boardProblems(board: BoardInput & { par?: number; slack?: number }): string[] {
+export function boardProblems(board: BoardInput & { par?: number; slack?: number; large?: boolean }): string[] {
   const problems: string[] = []
   let parsed: ReturnType<typeof parseGrid>
   try {
@@ -320,9 +362,12 @@ export function boardProblems(board: BoardInput & { par?: number; slack?: number
   } catch (error) {
     return [(error as Error).message]
   }
-  const { width, height } = parsed
-  const { min, max } = BOARD_SIZES
+  const { width, height, cells } = parsed
+  const { min, max } = board.large ? BOARD_SIZES : MAP_SIZES
   if (width < min || width > max || height < min || height > max) problems.push(`size ${height} x ${width} is outside ${min}-${max}`)
+  let floors = 0
+  for (const c of cells) if (c !== WALL) floors++
+  if (floors > MAX_FLOORS) problems.push(`${floors} floor blocks is more than ${MAX_FLOORS}`)
   const { touched, state } = touchedByRolls(board.grid)
   for (let i = 0; i < state.cells.length; i++) {
     if (state.cells[i] === FLOOR && !touched.has(i)) {
@@ -340,7 +385,9 @@ export function boardProblems(board: BoardInput & { par?: number; slack?: number
   if (board.slack !== undefined && board.slack !== board.ink - best.ink) problems.push(`slack is ${board.ink - best.ink}, not ${board.slack}`)
   if (board.ink > MAX_INK) problems.push(`ink ${board.ink} is more than ${MAX_INK}`)
   if (problems.length) return problems
-  if (!Number.isFinite(plainSearchCost(board))) problems.push(`a plain search needs more than ${PLAIN_SEARCH_BUDGET} calls in some move order`)
+  if (board.large) {
+    if (!Number.isFinite(prunedSearchCost(board))) problems.push(`a search with the ink pruning needs more than ${PRUNED_SEARCH_BUDGET} calls in some move order`)
+  } else if (!Number.isFinite(plainSearchCost(board))) problems.push(`a plain search needs more than ${PLAIN_SEARCH_BUDGET} calls in some move order`)
   return problems
 }
 
@@ -357,7 +404,7 @@ export type BoardOptions = {
 }
 
 const checkSize = (name: string, value: number | undefined) => {
-  if (value !== undefined && !(Number.isInteger(value) && value >= BOARD_SIZES.min && value <= BOARD_SIZES.max)) throw new RangeError(`${name} must be ${BOARD_SIZES.min}-${BOARD_SIZES.max}, not ${value}`)
+  if (value !== undefined && !(Number.isInteger(value) && value >= MAP_SIZES.min && value <= MAP_SIZES.max)) throw new RangeError(`${name} must be ${MAP_SIZES.min}-${MAP_SIZES.max}, not ${value}`)
 }
 
 /**
@@ -371,7 +418,7 @@ export function randomBoard(seed: number, options: BoardOptions = {}): Board {
   checkSize('rows', rows)
   checkSize('cols', cols)
   if (slack !== undefined && !(Number.isInteger(slack) && slack >= 0 && slack <= MAX_SLACK)) throw new RangeError(`slack must be 0-${MAX_SLACK}, not ${slack}`)
-  const span = BOARD_SIZES.max - VISIBLE_MIN_SIZE + 1
+  const span = MAP_SIZES.max - VISIBLE_MIN_SIZE + 1
   for (let attempt = 0; attempt < 400; attempt++) {
     const random = mulberry32(mix(seed, attempt, rows ?? 0, cols ?? 0))
     const h = rows ?? VISIBLE_MIN_SIZE + Math.floor(random() * span)
@@ -395,10 +442,14 @@ export function randomBoard(seed: number, options: BoardOptions = {}): Board {
 export type HiddenTest = Board & {
   /** what it catches, in plain words (shown after a failed submission) */
   catches: string
+  /** one of the larger boards (7-8 rows and columns) that need the ink pruning (PRUNED_SEARCH_BUDGET) */
+  large?: boolean
 }
 
-const hidden = (id: string, name: string, catches: string, ink: number, par: number, grid: string[]): HiddenTest =>
-  Object.freeze({ id: `hidden-${id}`, name, catches, grid: Object.freeze(grid) as string[], ink, par, slack: ink - par })
+const hidden = (id: string, name: string, catches: string, ink: number, par: number, grid: string[], large = false): HiddenTest =>
+  Object.freeze({ id: `hidden-${id}`, name, catches, grid: Object.freeze(grid) as string[], ink, par, slack: ink - par, ...(large ? { large: true } : {}) })
+
+const PRUNING = 'a search that does not give up on a line when the ink left is less than the blocks still uncolored never finishes it in time'
 
 /**
  * The hidden tests, in the order a submission runs them (after the visible
@@ -494,6 +545,46 @@ export const HIDDEN_TESTS: readonly HiddenTest[] = Object.freeze([
     '#.###.',
     '#....o',
   ]),
+  // the larger boards: a plain search (no pruning) needs more than UNPRUNED_SEARCH_FLOOR
+  // calls on each in every move order, one with the ink pruning at most PRUNED_SEARCH_BUDGET
+  hidden('big-room', 'Big room', `a 7 x 7 board on exact ink: ${PRUNING}`, 43, 43, [
+    '.......',
+    '.###...',
+    '.#.#..#',
+    '.#..#..',
+    '###.o#.',
+    '...#.#.',
+    '.......',
+  ], true),
+  hidden('wide-hall', 'Wide hall', `a 7 x 8 board on exact ink: ${PRUNING}`, 46, 46, [
+    '.o#.....',
+    '..#.....',
+    '.#..#.##',
+    '.#.##...',
+    '.....##.',
+    '####.##.',
+    '........',
+  ], true),
+  hidden('tall-tower', 'Tall tower', `an 8 x 7 board on exact ink: ${PRUNING}`, 50, 50, [
+    '.......',
+    '.#..##.',
+    '.#..##.',
+    '.#..#.#',
+    '....#..',
+    '##..##.',
+    '.......',
+    '...##o.',
+  ], true),
+  hidden('great-hall', 'Great hall', `an 8 x 8 board on exact ink: ${PRUNING}`, 55, 55, [
+    '..#.o...',
+    '.....##.',
+    '.##.#...',
+    '......#.',
+    '###.###.',
+    '........',
+    '.##.###.',
+    '........',
+  ], true),
 ])
 
 /** What a Submit runs: the visible map first, then the hidden tests. */
@@ -858,6 +949,19 @@ export type Problem = {
 
 const example = (grid: string[], ink: number, output: string): Example => ({ grid, ink, output, explanation: describeMoves({ grid, ink }, output) })
 
+/** "8 seconds (Python and JavaScript: 12 seconds)", from TIME_LIMIT_MS and each language's timeFactor */
+export function limitText(kind: RunKind): string {
+  const base = TIME_LIMIT_MS[kind]
+  const others = new Map<number, string[]>()
+  for (const language of ['java', 'python', 'javascript', 'c', 'cpp'] as const) {
+    const ms = timeLimitFor(language, kind)
+    if (ms !== base) others.set(ms, [...(others.get(ms) ?? []), LANGUAGE_INFO[language].label])
+  }
+  const s = (ms: number) => `${ms / 1000} seconds`
+  const extra = [...others].map(([ms, labels]) => `${labels.join(' and ')}: ${s(ms)}`)
+  return extra.length ? `${s(base)} (${extra.join('; ')})` : s(base)
+}
+
 export const PROBLEM: Problem = {
   id: 'ink-maze-26',
   title: 'Paint the Floor',
@@ -878,11 +982,12 @@ export const PROBLEM: Problem = {
     'Every move must move the ball (rolling straight into a wall or the edge is a mistake), and the string must end as soon as the last block is colored.',
   ],
   constraints: [
-    `\`${BOARD_SIZES.min} <= rows, columns <= ${BOARD_SIZES.max}\` (boards are not always square)`,
-    'The grid has exactly one `o`, and every floor block can be reached.',
+    `\`${BOARD_SIZES.min} <= rows, columns <= ${BOARD_SIZES.max}\` (boards are not always square). The map shown is ${VISIBLE_MIN_SIZE} to ${MAP_SIZES.max} on a side; some hidden boards are ${MAP_SIZES.max + 1} and ${BOARD_SIZES.max}.`,
+    `The grid has exactly one \`o\`, at most ${MAX_FLOORS} floor blocks (the colored ones fit in a 64-bit mask), and every floor block can be reached.`,
     'Every board can be cleared with the ink given; some need every drop.',
     `\`ink <= ${MAX_INK}\`, so an answer never needs more than ${MAX_INK} moves and a search never goes deeper than that.`,
-    `Run tries your code on the map shown, within ${TIME_LIMIT_MS.run / 1000} seconds. Submit runs ${HIDDEN_TESTS.length + 1} boards, and all of them together get ${TIME_LIMIT_MS.submit / 1000} seconds.`,
+    `Time limits, from when your code starts (compiling does not count): Run tries the map shown within ${limitText('run')}. Submit runs ${HIDDEN_TESTS.length + 1} boards, and all of them together get ${limitText('submit')}. Compiling may take up to ${COMPILE_LIMIT_MS.java / 1000} seconds (C++: ${COMPILE_LIMIT_MS.cpp / 1000}).`,
+    `A search that tries every move passes Run, but the larger hidden boards also need it to give up on hopeless lines (see the hints): without that it takes more than two billion steps on each of them, far past the time limit even in C.`,
     `Recursion up to ${LIMITS.recursionDepth} calls deep is safe in every language (a search never needs more than ${MAX_INK + 1}).`,
   ],
   examples: [
@@ -910,7 +1015,7 @@ export const PROBLEM: Problem = {
   ],
   hints: [
     'Try every move with a depth-first search, and undo it when it leads nowhere.',
-    'Give up on a line early when the ink left is less than the number of blocks still uncolored.',
+    'Give up on a line early when the ink left is less than the number of blocks still uncolored: every uncolored block costs at least one more drop. The larger hidden boards need this.',
     'Remember the positions you have already reached (where the ball is and which blocks are colored) with at least as much ink left.',
   ],
 }

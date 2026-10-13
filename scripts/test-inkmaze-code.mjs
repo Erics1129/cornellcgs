@@ -16,10 +16,10 @@ import { existsSync, readFileSync } from 'node:fs'
 import { DIRECTIONS, applyMove, initialState, isWon, parseGrid } from '../src/minigames/inkmaze/engine.ts'
 import { minInk } from '../src/minigames/inkmaze/solver.ts'
 import {
-  ANSWER_MARKER, BOARD_SIZES, ESCAPED_AT, HIDDEN_TESTS, MAX_INK, MAX_SLACK, MOVE_ORDERS, PLAIN_SEARCH_BUDGET, PROBLEM, SIGNATURES,
+  ANSWER_MARKER, BOARD_SIZES, ESCAPED_AT, HIDDEN_TESTS, MAP_SIZES, MAX_FLOORS, MAX_INK, MAX_SLACK, MOVE_ORDERS, PLAIN_SEARCH_BUDGET, PROBLEM, PRUNED_SEARCH_BUDGET, SIGNATURES,
   STARTER_CODE, SUBMISSION_SEARCH_BUDGET, TIME_LIMIT_MS, VERDICT_KINDS, VISIBLE_MIN_SIZE, answerLine, boardProblems,
   describeChar, describeMoves, escapeAnswer, formatStdin, judge, judgeAll, judgeRun, parseStdin, parseStdout,
-  plainSearch, plainSearchCost, randomBoard, submissionTests, timeLimitFor,
+  UNPRUNED_SEARCH_FLOOR, limitText, plainSearch, plainSearchCost, prunedSearchCost, randomBoard, submissionTests, timeLimitFor,
 } from '../src/minigames/inkmaze/code/problem.ts'
 import {
   CDN_PREFIXES, CHILD_HELLO, CODE_BASE_PATH, CODE_PROTOCOL, CONNECT, DEFAULT_LANGUAGE, HELLO, LANGUAGES, LANGUAGE_INFO, LIMITS, OUTCOME_STATUSES, RUNTIME_IDS,
@@ -107,7 +107,7 @@ function countWins(board, cap = 1000) {
     total += ms
     assert.deepEqual(boardProblems(board), [], `seed ${seed} is a good board`)
     const { width, height } = parseGrid(board.grid)
-    assert.ok(width >= VISIBLE_MIN_SIZE && width <= BOARD_SIZES.max && height >= VISIBLE_MIN_SIZE && height <= BOARD_SIZES.max, `seed ${seed} is ${height} x ${width}`)
+    assert.ok(width >= VISIBLE_MIN_SIZE && width <= MAP_SIZES.max && height >= VISIBLE_MIN_SIZE && height <= MAP_SIZES.max, `seed ${seed} is ${height} x ${width}`)
     shapes.add(`${height}x${width}`)
     slacks.add(board.slack)
     const best = minInk({ grid: board.grid })
@@ -174,10 +174,12 @@ function countWins(board, cap = 1000) {
   assert.equal(new Set(tests.map((t) => t.id)).size, tests.length, 'hidden ids are unique')
   assert.equal(new Set(tests.map((t) => t.grid.join('/'))).size, tests.length, 'hidden boards are all different')
   let budget = 0
+  let pruned = 0
   for (const board of tests) {
     assert.deepEqual(boardProblems(board), [], `${board.id} is a good board (par ${board.par} is minInk, ink par + 0-2)`)
     assert.ok(board.catches && board.name, `${board.id} says what it catches`)
-    budget += plainSearchCost(board)
+    if (board.large) pruned += prunedSearchCost(board)
+    else budget += plainSearchCost(board)
   }
   const byId = Object.fromEntries(tests.map((b) => [b.id.replace('hidden-', ''), b]))
   const shape = (b) => { const { width, height } = parseGrid(b.grid); return { width, height } }
@@ -218,13 +220,30 @@ function countWins(board, cap = 1000) {
     assert.ok(width === 6 && height === 6 && b.slack === 0, 'exact-ink: 6 x 6 on exact ink')
     assert.ok(plainSearchCost(b) >= 100_000, 'exact-ink: a plain search must look hard')
   }
+  // the larger boards: the ink pruning is what clears them in time
+  const large = tests.filter((b) => b.large)
+  assert.deepEqual(large.map((b) => b.id), ['hidden-big-room', 'hidden-wide-hall', 'hidden-tall-tower', 'hidden-great-hall'], 'four larger boards, last')
+  assert.deepEqual(tests.slice(-large.length), large, 'the larger boards run after the small ones')
+  assert.deepEqual(large.map((b) => { const { width, height } = shape(b); return `${height}x${width}` }), ['7x7', '7x8', '8x7', '8x8'])
+  for (const b of large) {
+    assert.equal(b.slack, 0, `${b.id}: exact ink`)
+    assert.ok(Number.isFinite(prunedSearchCost(b)), `${b.id}: a search with the ink pruning clears it within ${PRUNED_SEARCH_BUDGET} calls in every order`)
+    assert.ok(!Number.isFinite(plainSearchCost(b, 400_000)), `${b.id}: a plain search does not clear it within 400,000 calls in any order`)
+    for (const order of MOVE_ORDERS) assert.equal(plainSearch(b, { order, cap: 400_000 }).moves, null, `${b.id}: no order gets lucky`)
+    assert.ok(floorsOf(b.grid) <= MAX_FLOORS)
+  }
+  assert.ok(UNPRUNED_SEARCH_FLOOR >= 1_000_000_000, 'the native measure behind the larger boards (scripts/inkmaze-code/plain-search.c) is over a billion calls')
+  for (const b of tests.filter((t) => !t.large)) {
+    const { width, height } = shape(b)
+    assert.ok(Math.max(width, height) <= MAP_SIZES.max, `${b.id} is a small board`)
+  }
   // every size of the range is used
   const sizes = new Set(tests.flatMap((b) => { const { width, height } = shape(b); return [width, height] }))
-  assert.deepEqual([...sizes].sort(), [4, 5, 6], 'the hidden tests use 4, 5 and 6 rows and columns')
+  assert.deepEqual([...sizes].sort(), [4, 5, 6, 7, 8], 'the hidden tests use 4 to 8 rows and columns')
   assert.ok(new Set(tests.map((b) => b.slack)).size === 3, 'the hidden tests use every slack')
-  // the whole submission stays a plain search's job, in every order
+  // the small boards of a submission stay a plain search's job, in every order
   assert.ok(budget + PLAIN_SEARCH_BUDGET <= SUBMISSION_SEARCH_BUDGET, `a submission's plain search cost ${budget} + the map's stays under ${SUBMISSION_SEARCH_BUDGET}`)
-  console.log(`  hidden tests: ${tests.length}, plain search cost ${budget} calls (worst order per board)`)
+  console.log(`  hidden tests: ${tests.length}; small boards: plain search cost ${budget} calls; larger boards: ${pruned} calls with the ink pruning (worst order per board)`)
   // a submission runs the visible map first, then every hidden test
   const visible = randomBoard(2026)
   const subs = submissionTests(visible)
@@ -236,7 +255,10 @@ function countWins(board, cap = 1000) {
 {
   assert.ok(PROBLEM.title && PROBLEM.statement.length >= 4, 'the problem has a title and a statement')
   assert.ok(PROBLEM.constraints.some((c) => c.includes(String(MAX_INK))), 'the constraints give the ink bound')
-  assert.ok(PROBLEM.constraints.some((c) => c.includes(String(TIME_LIMIT_MS.submit / 1000))), 'the constraints give the time limit')
+  assert.ok(PROBLEM.constraints.some((c) => c.includes(limitText('run')) && c.includes(limitText('submit'))), 'the constraints give the time limits')
+  assert.equal(limitText('submit'), '8 seconds (Python and JavaScript: 12 seconds)', 'the submit limit, per language')
+  assert.ok(PROBLEM.constraints.some((c) => c.includes(String(MAX_FLOORS))), 'the constraints give the floor bound')
+  assert.ok(PROBLEM.constraints.some((c) => c.includes(`${BOARD_SIZES.min} <= rows, columns <= ${BOARD_SIZES.max}`)), 'the constraints give the sizes')
   assert.deepEqual(Object.keys(SIGNATURES).sort(), [...LANGUAGES].sort(), 'a signature per language')
   assert.deepEqual(Object.keys(STARTER_CODE).sort(), [...LANGUAGES].sort(), 'starter code per language')
   for (const language of LANGUAGES) {
@@ -579,7 +601,7 @@ function countWins(board, cap = 1000) {
       write(answerLine(moves ?? '')) // H3
     })
   }
-  /** What a player writes: a plain depth-first search, no pruning, no memo. */
+  /** What a player writes: a depth-first search with the ink pruning (the hint the larger hidden boards need), no memo. */
   function playerSolve(grid, ink) {
     const rows = grid.length
     const cols = grid[0].length
@@ -591,7 +613,7 @@ function countWins(board, cap = 1000) {
     const moves = []
     const dfs = (r, c, count, left) => {
       if (count === floors) return true
-      if (left <= 0) return false
+      if (left <= 0 || left < floors - count) return false
       for (const [name, dr, dc] of [['U', -1, 0], ['D', 1, 0], ['L', 0, -1], ['R', 0, 1]]) {
         let nr = r + dr
         let nc = c + dc
@@ -623,8 +645,8 @@ function countWins(board, cap = 1000) {
   const parsed = parseStdout(stdout, tests.length)
   assert.equal(parsed.found, tests.length, 'one answer line per board')
   const verdict = judgeAll(tests, parsed.answers)
-  assert.ok(verdict.accepted, `a plain brute force passes every board (${verdict.verdicts.map((v) => v.kind).join(' ')})`)
-  console.log(`  end to end: a plain JavaScript search clears the ${tests.length} boards of a submission in ${ms.toFixed(0)} ms (V8)`)
+  assert.ok(verdict.accepted, `a brute force with the ink pruning passes every board (${verdict.verdicts.map((v) => v.kind).join(' ')})`)
+  console.log(`  end to end: a JavaScript search with the ink pruning clears the ${tests.length} boards of a submission in ${ms.toFixed(0)} ms (V8)`)
 
   // the starter code: every board 'empty'
   let starterOut = ''

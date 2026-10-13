@@ -182,7 +182,7 @@ chosen tier reach the console; without it the console stays quiet.
 - The build writes `src/minigames/inkmaze/unityBuildVersion.ts` (a hash of the
   build) and `unity.ts` adds it to the file URLs as `?v=`, so a browser never
   mixes a cached old build with a new one.
-- Self-test: `Tools/selftest.sh` plays all 20 levels (844 moves) in batch mode
+- Self-test: `Tools/selftest.sh` plays all 25 levels twice (1276 moves) in batch mode
   and checks that every move settles exactly on the engine's block within
   0.76 s of simulated time.
 

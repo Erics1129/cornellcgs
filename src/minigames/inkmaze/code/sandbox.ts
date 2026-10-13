@@ -40,7 +40,7 @@ import type {
   Diagnostic, ErrorInfo, HostOutcome, HostToPage, PageToHost, RunKind, RunLanguage, RunRequest, RunResult, RunStatus, RuntimeId,
   RuntimeJob, SandboxState, SandboxStoppedBy,
 } from './contract.ts'
-import { formatStdin, parseStdout, timeLimitFor } from './problem.ts'
+import { COMPILE_LIMIT_MS, formatStdin, parseStdout, timeLimitFor } from './problem.ts'
 
 type RuntimeSlot = {
   status: 'loading' | 'ready' | 'failed'
@@ -420,7 +420,7 @@ export class CodeSandbox {
     const language = request.language
     if (!isRunLanguage(language)) return this.immediate(request, 'unavailable', `There is no runtime for ${String(language)}.`, t0, request.timeLimitMs ?? 0)
     const timeLimitMs = request.timeLimitMs ?? timeLimitFor(language, request.kind)
-    const compileLimitMs = request.compileLimitMs ?? LIMITS.compileMs
+    const compileLimitMs = request.compileLimitMs ?? COMPILE_LIMIT_MS[language]
     if (this.disposed) return this.immediate(request, 'cancelled', 'Stopped.', t0, timeLimitMs)
     if (request.source.length > LIMITS.sourceChars) {
       return this.immediate(request, 'compile_error', `Your code is longer than ${LIMITS.sourceChars.toLocaleString('en-US')} characters.`, t0, timeLimitMs)

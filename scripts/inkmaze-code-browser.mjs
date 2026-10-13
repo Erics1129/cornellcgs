@@ -17,9 +17,11 @@
  * window.sb (made by openCodePage). Set CGS_PLAYWRIGHT_MODULE to a Playwright
  * module path when `playwright` is not installed in this repo.
  */
-import { spawn, spawnSync } from 'node:child_process'
-import { existsSync } from 'node:fs'
+import { spawnSync } from 'node:child_process'
+import { existsSync, rmSync } from 'node:fs'
 import { createServer } from 'node:net'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url))
@@ -59,17 +61,29 @@ function freePort() {
  */
 export async function devServer() {
   if (process.env.CGS_TEST_URL) return { base: process.env.CGS_TEST_URL.replace(/\/$/, ''), stop() {} }
+  // In this process, with no hot reload, no file watching and its own dependency
+  // cache: other dev servers on this checkout (and edits made while a suite runs)
+  // must not re-optimize dependencies under its pages ("504 Outdated Optimize Dep").
+  const { createServer: createVite } = await import(new URL('../node_modules/vite/dist/node/index.js', import.meta.url).href)
   const port = await freePort()
-  const vite = fileURLToPath(new URL('../node_modules/vite/bin/vite.js', import.meta.url))
-  const child = spawn(process.execPath, [vite, '--port', String(port), '--strictPort', '--host', '127.0.0.1'], { cwd: ROOT, stdio: ['ignore', 'pipe', 'pipe'] })
-  let log = ''
-  child.stdout.on('data', (d) => { log += d })
-  child.stderr.on('data', (d) => { log += d })
-  const stop = () => { if (child.exitCode === null) child.kill('SIGTERM') }
-  process.on('exit', stop)
+  const cacheDir = join(tmpdir(), `inkmaze-code-vite-${process.pid}-${port}`)
+  const server = await createVite({
+    root: ROOT,
+    logLevel: 'error',
+    cacheDir,
+    server: { host: '127.0.0.1', port, strictPort: true, hmr: false, watch: { ignored: ['**/*'] } },
+  })
+  await server.listen()
+  // the cache goes with the process even when it exits before close() is done
+  process.once('exit', () => rmSync(cacheDir, { recursive: true, force: true }))
   const base = `http://127.0.0.1:${port}`
+  let stopped = false
+  const stop = () => {
+    if (stopped) return
+    stopped = true
+    void server.close().finally(() => rmSync(cacheDir, { recursive: true, force: true }))
+  }
   for (let i = 0; i < 100; i++) {
-    if (child.exitCode !== null) throw new Error(`vite exited: ${log}`)
     try {
       const response = await fetch(`${base}/minigames/ink-maze-code/sandbox.html`)
       if (response.ok) return { base, stop }
@@ -77,7 +91,7 @@ export async function devServer() {
     await pause(200)
   }
   stop()
-  throw new Error(`vite did not start on ${port}: ${log}`)
+  throw new Error(`vite did not start on ${port}`)
 }
 
 /** The blank test page, served by page.route on the site's own origin. */
