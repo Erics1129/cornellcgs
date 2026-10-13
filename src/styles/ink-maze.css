@@ -235,6 +235,33 @@
 .subpage .im-rules h2 { font-size: 1.15rem; letter-spacing: -0.01em; }
 .im-rules ul { display: grid; gap: 0.45rem; margin: 0.8rem 0 0; padding-left: 1.1rem; color: var(--sp-muted); font-size: 0.95rem; line-height: 1.5; }
 
+/* the coding level's tile ends the list (code/CodeLevel.tsx; its own styles load with it) */
+.im-levels__code-row { grid-column: 1 / -1; }
+.im-levels__code {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  min-height: 3rem;
+  padding: 0 1.4rem 0 0.95rem;
+  border: 1px solid var(--sp-ink);
+  border-radius: 10px;
+  background: #fbf9f4;
+  color: var(--sp-ink);
+  font: 600 0.95rem/1.25 var(--font-body);
+  text-align: left;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+.im-levels__code .im-levels__number { font-variant-numeric: tabular-nums; }
+/* a little editor window: the coding level */
+.im-levels__code-glyph { display: inline-grid; place-items: center; min-width: 2.1rem; height: 1.6rem; margin-right: 0.35rem; border-radius: 6px; background: #0f1a2a; color: #9db7ff; font: 600 0.78rem/1 var(--font-mono); vertical-align: middle; }
+.im-levels__code .im-levels__mark[data-state='done'] { background: var(--im-gold); box-shadow: 0 0 0 2px rgb(176 122 30 / 0.25); }
+@media (hover: hover) and (pointer: fine) { .im-levels__code:hover { background: var(--sp-ink); color: var(--sp-paper); } }
+.im-code-loading { min-height: 60svh; }
+
 /* ---- narrower screens: one column, the board right under the title ----------- */
 @media (max-width: 1000px) {
   .subpage--ink-maze { --im-board: min(100%, 40rem); }
