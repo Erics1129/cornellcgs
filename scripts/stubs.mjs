@@ -79,7 +79,7 @@ const PAGES = {
   },
   'forge-or-fold': {
     title: 'Forge or Fold — Cornell CGS',
-    desc: 'A seven-day 3D forging game. Heat, strike, sell and learn when to stop. Keep your best knife.',
+    desc: 'A ten-day 3D forging game. Heat, strike, sell and learn when to stop. Keep your best knife.',
     // the game page is dark; a white first paint flashes before the app mounts
     background: '#0d0c0b',
   },
