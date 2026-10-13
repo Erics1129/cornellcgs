@@ -28,7 +28,7 @@ static class ForgeFeelTests {
  static float Overlap(Box2 a,Box2 b){var i=new Box2{x0=Math.Max(a.x0,b.x0),y0=Math.Max(a.y0,b.y0),x1=Math.Min(a.x1,b.x1),y1=Math.Min(a.y1,b.y1)};return b.Area>0?i.Area/b.Area:0;}
  /// World corners of the hammer head for a pose given in smith-local metres.
  static IEnumerable<FV> HeadCorners(ForgeHammerArc arc,ForgeHammerPose p){foreach(float x in new[]{-.045f,.07f})foreach(float y in new[]{-.016f,.016f})foreach(float z in new[]{-.016f,.016f})yield return Stance+p.grip+p.rot*(arc.HeadLocal+arc.Hang*new FV(x,y,z));}
- static IEnumerable<FV> BladeCorners(float rootX){foreach(float x in new[]{rootX,rootX+.24f})foreach(float z in new[]{-.018f,.026f})foreach(float y in new[]{-.003f,.003f})yield return new FV(x,L.StrikePoint.y+y,L.StrikePoint.z+z);}
+ static IEnumerable<FV> BladeCorners(float rootX,float len=.24f){foreach(float x in new[]{rootX,rootX+len})foreach(float z in new[]{-.018f,.026f})foreach(float y in new[]{-.003f,.003f})yield return new FV(x,L.StrikePoint.y+y,L.StrikePoint.z+z);}
  static ForgeHammerArc Arc(ForgeStrikeTuning t,FV contactWorld){var a=new ForgeHammerArc{tuning=t};a.Solve(contactWorld-Stance);return a;}
 
  static int Main(){
@@ -66,21 +66,24 @@ static class ForgeFeelTests {
   foreach(var o in new[]{"dull","good","chip","perfect","shatter"}){float h=ForgeFeel.ReboundM(k,o,false);var rb=arc.Rebound(h,0,0);float rise=arc.Head(rb).y-arc.Head(c0).y;Check(Math.Abs(rise-h)<.006f,"rebound "+o+" rises "+rise.ToString("0.000")+" (want "+h+")");}
 
   // ---------- 3. Frustum and occlusion on every view ----------
-  var views=new[]{MakeView("desktop",1440,900,70,150,k),MakeView("desktop-nohud",1440,900,0,0,k),MakeView("phone-portrait",390,844,150,230,k),MakeView("phone-landscape",844,390,56,92,k)};
+  var views=new[]{MakeView("desktop",1440,900,70,150,k),MakeView("desktop-nohud",1440,900,0,0,k),MakeView("desktop-page",1440,900,215,200,k),MakeView("phone-portrait",390,844,150,230,k),MakeView("phone-landscape",844,390,56,92,k)};
   foreach(var v in views){
    Console.WriteLine($"  {v.name}: fov {v.fov:0.0} deg, shift ({v.shiftX:0.00},{v.shiftY:0.00})");
    float minX=1,maxX=0,minY=1,maxY=0;
    // Press to contact: from park (first strike) and from ready, through windup, hold and downstroke, at several feed positions.
-   foreach(float u in new[]{k.feedFrom,.5f,k.feedTo}){
-    float L0=.24f,rootX=ForgeFeel.RootX(k,L.StrikePoint.x,u,L0);float cx=ForgeFeel.ContactX(k,L.StrikePoint.x,u,L0);
+   foreach(float L0 in new[]{.24f,.30f})foreach(float u in new[]{k.feedFrom,.5f,k.feedTo}){
+    float rootX=ForgeFeel.RootX(k,L.StrikePoint.x,u,L0);float cx=ForgeFeel.ContactX(k,L.StrikePoint.x,u,L0);
     var a=Arc(k,new FV(cx,Contact.y,Contact.z));
-    var park=a.Park(new FV(cx,Contact.y,Contact.z)-Stance+new FV(k.parkRight,.017f,-k.parkBack));
-    foreach(var from in new[]{a.Ready(),park})for(int i=0;i<=40;i++){float s=i/40f;ForgeHammerPose pose=s<.5f?ForgeHammerPose.Blend(from,a.Arc(1,1),ForgeFeel.WindupEase(s*2,k.windupMs)):a.Arc(1-ForgeFeel.DownElbow((s-.5f)*2,k.elbowPower),1-ForgeFeel.DownWrist((s-.5f)*2,k.wristSnapFrom,k.wristPower));
+    float px=ForgeFeel.ParkX(k,L.StrikePoint.x,rootX+L0,L.AnvilCenter.x+L.AnvilFaceX*.5f);
+    var park=a.Park(new FV(px,Contact.y+.017f,Contact.z-k.parkBack)-Stance);
+    // From ready the head is in view all the way; a parked head may start just outside a narrow (portrait) frame, so its
+    // path is checked once the windup is under way (s >= .1: 20% of the windup, most of the lift).
+    foreach(var from in new[]{a.Ready(),park})for(int i=0;i<=40;i++){float s=i/40f;if(from.grip.x==park.grip.x&&from.grip.z==park.grip.z&&s<.1f)continue;ForgeHammerPose pose=s<.5f?ForgeHammerPose.Blend(from,a.Arc(1,1),ForgeFeel.WindupEase(s*2,k.windupMs)):a.Arc(1-ForgeFeel.DownElbow((s-.5f)*2,k.elbowPower),1-ForgeFeel.DownWrist((s-.5f)*2,k.wristSnapFrom,k.wristPower));
      if(Project(v,Stance+a.Head(pose),out float x,out float y)){minX=Math.Min(minX,x);maxX=Math.Max(maxX,x);minY=Math.Min(minY,y);maxY=Math.Max(maxY,y);}else{minX=-1;}}
-    var blade=ScreenBox(v,BladeCorners(rootX));
+    var blade=ScreenBox(v,BladeCorners(rootX,L0));
     float ovReady=Overlap(ScreenBox(v,HeadCorners(a,a.Ready())),blade),ovPark=Overlap(ScreenBox(v,HeadCorners(a,park)),blade);
-    Check(ovReady<=.10f,$"{v.name} u {u:0.00}: ready head covers {ovReady*100:0}% of the blade box");Check(ovPark<=.10f,$"{v.name} u {u:0.00}: parked head covers {ovPark*100:0}% of the blade box");
-    if(u==.5f)Console.WriteLine($"    ready covers {ovReady*100:0.0}% / park {ovPark*100:0.0}% of the blade box; blade box {blade.x0:0.00}-{blade.x1:0.00} x {blade.y0:0.00}-{blade.y1:0.00}");
+    Check(ovReady<=.10f,$"{v.name} L {L0:0.00} u {u:0.00}: ready head covers {ovReady*100:0}% of the blade box");Check(ovPark<=.10f,$"{v.name} L {L0:0.00} u {u:0.00}: parked head covers {ovPark*100:0}% of the blade box");
+    if(u==.5f&&L0==.24f)Console.WriteLine($"    ready covers {ovReady*100:0.0}% / park {ovPark*100:0.0}% of the blade box; blade box {blade.x0:0.00}-{blade.x1:0.00} x {blade.y0:0.00}-{blade.y1:0.00}");
    }
    Console.WriteLine($"    head viewport x {minX:0.00}-{maxX:0.00}, y {minY:0.00}-{maxY:0.00}");
    Check(minX>=.02f&&maxX<=.98f&&minY>=.02f&&maxY<=.98f,v.name+" head leaves the frustum between press and contact");
@@ -88,7 +91,7 @@ static class ForgeFeelTests {
    Project(v,Contact,out float sx,out float sy);float bandLo=v.bottom/v.cssH,bandHi=1-v.top/v.cssH;Check(sy>bandLo&&sy<bandHi,v.name+" strike point outside the free band");
   }
   // Portrait frames the knife, the tongs and the hammer at ready across a narrow band (critique: frame to fit, 34-70).
-  Check(Math.Abs(views[0].fov-42)<=4&&views[2].fov>=56&&views[2].fov<=70&&Math.Abs(views[3].fov-46)<=6,"fitted FOVs near the plan's 42 / 62 / 46");
+  Check(Math.Abs(views[0].fov-42)<=4&&views[3].fov>=56&&views[3].fov<=70&&Math.Abs(views[4].fov-46)<=6,"fitted FOVs near the plan's 42 / 62 / 46");
 
   // ---------- 4. The strike machine: spacing, buffering, exactly one contact per accepted press ----------
   var rng=new Random(20261012);var ev=new List<ForgeStrikeEvent>();int schedules=10000,bad=0;float minNormal=1e9f,minFlow=1e9f;
@@ -162,6 +165,19 @@ static class ForgeFeelTests {
    Check(ForgeHearth.Bellows(k,k.bellowsPull1S)==0&&ForgeHearth.Bellows(k,pulled)>.99f&&ForgeHearth.Bellows(k,.2f)==0&&(ForgeHearth.SecondPull(k)||ForgeHearth.Bellows(k,pulled+k.bellowsUpS+.01f)==0),"bellows stroke mirrors the rocker (down "+k.bellowsDownS+" s, up "+k.bellowsUpS+" s)");
    Check(rel>pulled&&rel<=ForgeHearth.BackAt(k)-.6f+1e-4f&&rel>k.hearthPlungeAtS+k.hearthPlungeS,"right hand lets go of the bellows at "+rel.ToString("0.00")+" s, before the step back");
    Console.WriteLine($"  bellows pulled {k.bellowsPullCm} cm at {k.bellowsPull1S:0.00}-{pulled:0.00} s, hand lets go at {rel:0.00} s");
+   // The quench (Keep with a hot blade): back at the anvil within 2 s, the dip inside the step, the tong hand in reach.
+   {float qb=ForgeHearth.QuenchBackS(k),qe=ForgeHearth.QuenchEndS(k);Check(qe<=2.0f&&qb>=k.hearthStepS&&ForgeHearth.QuenchDip(k,k.quenchPlungeAtS+k.quenchPlungeS+.01f)==1&&ForgeHearth.QuenchDip(k,qb+.01f)==0&&ForgeHearth.QuenchStep(k,k.hearthStepS+.01f)==1&&ForgeHearth.QuenchStep(k,qe)==0,"quench timeline (lifts out at "+qb.ToString("0.00")+" s, home at "+qe.ToString("0.00")+" s)");
+    FQ TongRot(FV r){r.y=0;r=r.Normalized;return FQ.LookRotation(FV.Cross(r,FV.Up),FV.Up);}
+    var gripRel=TongRot(FQ.AngleAxis(-k.tongGripDeg,FV.Up)*new FV(-1,0,0)).Inverse;
+    var hsq=V(L.HearthStance);var lsq=hsq+(FQ.AngleAxis(L.HearthYawDeg,FV.Up)*V(L.LeftShoulderLocal));var tubq=V(L.SlackTub);
+    var reinq=lsq-tubq;reinq.y=0;reinq=(FQ.AngleAxis(k.tongHearthYawDeg,FV.Up)*reinq).Normalized;var flatq=TongRot(reinq);
+    float eq=k.tongElevDeg*ForgeFeel.Deg;var handLocal=new FV(MathF.Cos(eq),MathF.Sin(eq),0);var axq=flatq*handLocal;
+    var ra=FQ.AngleAxis(k.quenchTiltDeg,axq)*flatq;var rb=FQ.AngleAxis(-k.quenchTiltDeg,axq)*flatq;var overq=((ra*gripRel)*FV.Right).y<((rb*gripRel)*FV.Right).y?ra:rb;var tq=(overq*gripRel)*FV.Right;
+    Console.WriteLine($"  quench: blade points {MathF.Asin(-tq.y)/ForgeFeel.Deg:0} deg down after a {k.quenchTiltDeg} deg roll");Check(tq.y<-.6f,"quench blade points down");
+    foreach(float Lq in new[]{.24f,.32f})foreach(float dip in new[]{0f,1f}){var tip=new FV(tubq.x,tubq.y+.01f*ForgeFeel.Lerp(k.quenchHoverCm,-k.quenchDipCm,dip),tubq.z);var jq=tip-tq*(Lq-L.TangGripLocal.x*L.KnifeScale);
+     var hand=jq+overq*(handLocal*k.quenchHandM);float dh=(hand-lsq).Length,bh=ForgeTongModel.Bend(lsq,hand);
+     if(dip==1&&Lq==.24f)Console.WriteLine($"  quench: tong hand {dh:0.000} m from the left shoulder (bend {bh:0.0} deg), jaws {jq}");
+     Check(dh<=.62f&&bh>=10,$"quench tong hand in reach (L {Lq}, dip {dip}): {dh:0.000} m, bend {bh:0.0}");Check(jq.y>tubq.y+.01f,"quench jaws stay above the water");}}
    Check(ForgeHearth.At(k,.1f,2)==ForgeHearth.Phase.StepOut&&ForgeHearth.At(k,1,2)==ForgeHearth.Phase.Heat&&ForgeHearth.At(k,2.03f,2.1f)==ForgeHearth.Phase.StepBack||ForgeHearth.At(k,2.03f,2.1f)==ForgeHearth.Phase.Hover,"hearth phases");
   }
 

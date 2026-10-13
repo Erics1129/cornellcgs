@@ -123,7 +123,10 @@ public partial class ForgeWorld {
   if(w<1){jawPos=Vector3.Lerp(jawPos,jaws,ForgeFeel.Ease(16,dt)*(1-w)+w);jawRot=Quaternion.Slerp(jawRot,tRot,ForgeFeel.Ease(16,dt)*(1-w)+w);}else{jawPos=jaws;jawRot=tRot;}
   tongs.position=jawPos;tongs.rotation=jawRot;
   heldId=hold;
+  tongHandAlong=Mathf.MoveTowards(tongHandAlong,hearth!=null&&hearth.quench&&hearth.holding?k.quenchHandM:k.tongHandM,dt*.8f);
  }
  /// World point of the left hand on the reins.
- Vector3 TongHandWorld()=>tongs!=null?tongs.TransformPoint(tongHandLocal):Vector3.zero;
+ Vector3 TongHandWorld()=>tongs!=null?tongs.TransformPoint(tongHandLocal*(tongHandAlong/Mathf.Max(.01f,K.tongHandM))):Vector3.zero;
+ /// How far up the reins the left hand holds (m from the jaws): tongHandM, choked up to quenchHandM over the tub.
+ float tongHandAlong=.40f;
 }

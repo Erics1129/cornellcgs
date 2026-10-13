@@ -45,7 +45,9 @@ async function series(h, n) {
     const vp = path.flatMap(f => f.headVp || [])
     rows.push({ ...r, seq, outcome: outcomeOf(r.feedback), settleAfterImpactMs: r.settledMs != null && r.impactMs != null ? +(r.settledMs - r.impactMs).toFixed(1) : null,
       faceDot: contact?.faceDot ?? null, handToHandle: contact?.handToHandle ?? null, headVpMin: vp.length ? Math.min(...vp) : null, headVpMax: vp.length ? Math.max(...vp) : null,
-      coverAtPress: tele.find(f => f.ev === 'press')?.headCoverBlade ?? null, hitStopMs: stop?.ms ?? (contact ? 0 : null), pitch: contact?.pitch ?? null, fov: contact?.fov ?? null, kick: contact?.kick ?? null, risk: contact?.risk ?? null })
+      coverAtPress: tele.find(f => f.ev === 'press')?.headCoverBlade ?? null, hitStopMs: stop?.ms ?? (contact ? 0 : null), pitch: contact?.pitch ?? null, fov: contact?.fov ?? null, kick: contact?.kick ?? null,
+      // Risk at the press (the contact frame already shows the next hit's risk, and 0 once Flow starts).
+      risk: tele.find(f => f.ev === 'press')?.risk ?? contact?.risk ?? null })
     await sleep(250 + Math.random() * 400)
   }
   return rows

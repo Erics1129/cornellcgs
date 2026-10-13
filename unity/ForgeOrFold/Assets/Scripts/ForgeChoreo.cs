@@ -14,10 +14,13 @@ class KnifeMotion {
  public bool wasHeld;
 }
 
-/// The hearth reach: one choreography at a time (the arbiter is `hearth`: a new request cuts the current one).
+/// The hearth reach or the quench: one choreography at a time (the arbiter is `hearth`). A new heat request cuts a
+/// running quench (its blade dissolves to the rack) and carries on from where the smith stands; walking or dragging
+/// aborts either.
 class HearthChoreo {
- public int knifeId;public float t;public bool fade,holding=true,inCoals,pulled,seating,seated,appeared;public float seatT=-1;
- public Vector3 stanceFrom;public float yawFrom;public int strokes;public bool stepOutSfx,stepBackSfx;
+ public int knifeId;public float t;public bool fade,quench,holding=true,inCoals,pulled,seating,seated,appeared,dissolved;public float seatT=-1;
+ /// stanceFrom/yawFrom: where the step out starts; home/homeYaw: the anvil stance the step back returns to.
+ public Vector3 stanceFrom,home;public float yawFrom,homeYaw;public int strokes;public bool stepOutSfx,stepBackSfx;
  public Vector3 jawStart;public Quaternion jawStartRot;public bool jawStartSet;
  public float fadeIn=-1,appearT;
 }
@@ -35,13 +38,16 @@ public partial class ForgeWorld {
  void KnifeMoved(Body b,string was,bool fresh,ForgeEvent effect){
   var k=b.knife;var m=b.motion;string place=k.place;
   if(!syncedOnce){PlaceNow(b);return;}
+  bool quenching=hearth!=null&&hearth.quench;
   if(fresh){DissolveIn(b,K.dissolveS);if(place=="anvil"&&k.heated)m.seatPending=true;return;}
   if(was==place)return;
   if(hearth!=null&&hearth.knifeId==k.id){
    if(place=="anvil"){if(hearth.fade){KnifeInCoals(b,false);hearth.fadeIn=0;DissolveIn(b,K.fadeInS);m.seatPending=true;}return;}
    AbortHearth(false);
   }
-  if(place=="furnace"&&!k.heated&&carriedId!=k.id&&AtAnvil()&&state!=null&&!state.ended){StartHearth(b,reduced);return;}
+  bool nearAnvil=AtAnvil()||quenching;
+  if(place=="furnace"&&!k.heated&&carriedId!=k.id&&nearAnvil&&state!=null&&!state.ended){StartHearth(b,reduced);return;}
+  if(was=="anvil"&&place=="rack"&&CanQuench(b)){StartQuench(b);return;}
   if(was=="furnace")KnifeInCoals(b,false);if(place=="furnace")KnifeInCoals(b,true);
   if(m.wasHeld||carriedId==k.id)TweenTo(b,K.abortTweenS);else Dissolve(b,K.dissolveS);
   if(place=="anvil"&&k.heated)m.seatPending=true;
@@ -99,20 +105,29 @@ public partial class ForgeWorld {
 
  // ------------------------------------------------------------------ the hearth reach
  void StartHearth(Body b,bool fade){
+  // Cutting a quench: the new reach starts where the smith stands and still steps back to the anvil.
+  HomeStance(out var home,out var homeYaw);
   if(hearth!=null)AbortHearth(false);
-  var h=new HearthChoreo{knifeId=b.knife.id,fade=fade,stanceFrom=smith.position,yawFrom=smith.eulerAngles.y};hearth=h;
+  var h=new HearthChoreo{knifeId=b.knife.id,fade=fade,stanceFrom=smith.position,yawFrom=smith.eulerAngles.y,home=home,homeYaw=homeYaw};hearth=h;
   workFocus=true;route=null;destination="";
   if(fade){h.holding=false;Dissolve(b,K.dissolveS);KnifeInCoals(b,true);h.inCoals=true;return;}
   // The blank vanishes from the crate (off screen) and appears in the jaws during the turn.
   b.motion.mode=KnifeMotion.Rest;b.motion.wasHeld=true;
  }
- /// End the reach early (walking, dragging, the knife moved elsewhere): the knife tweens to its logical place.
+ /// The anvil stance and its yaw (where every reach returns), or the running reach's home.
+ void HomeStance(out Vector3 home,out float yaw){
+  if(hearth!=null){home=hearth.home;yaw=hearth.homeYaw;return;}
+  home=smith.position;yaw=smith.eulerAngles.y;
+  if(!AtAnvil()){home=approaches["anvil"];var d=spots["anvil"]-home;d.y=0;yaw=d.sqrMagnitude>1e-4f?Quaternion.LookRotation(d).eulerAngles.y:0;}
+ }
+ /// End the reach early (walking, dragging, the knife moved elsewhere): the knife tweens to its logical place (a
+ /// quenched blade, already on the rack logically, dissolves there instead of flying across the room).
  void AbortHearth(bool fromInput){
   var h=hearth;if(h==null)return;hearth=null;ReleaseHammer(false);handOnHammer=1;rightIk=1;
   if(bodies.TryGetValue(h.knifeId,out var b)){
    bool coals=b.knife.place=="furnace";KnifeInCoals(b,coals);
    if(b.knife.place=="anvil"&&b.knife.heated)b.motion.seatPending=true;
-   TweenTo(b,K.abortTweenS);
+   if(h.quench){if(!h.dissolved)Dissolve(b,K.dissolveS);}else TweenTo(b,K.abortTweenS);
   }
   if(fromInput)labelsDirty=true;
  }
@@ -123,6 +138,7 @@ public partial class ForgeWorld {
   // 2 s heat timer), capped so a long pause does not skip the reach.
   dt=Mathf.Min(ForgeTime.Raw(Time.unscaledDeltaTime),.12f);
   h.t+=dt;
+  if(h.quench){UpdateQuench(h,b,dt);return;}
   if(h.fade){
    // Reduced motion: the blank heats off screen; the anvil Sync starts a 150 ms fade-in (KnifeMoved), then 'seated'.
    if(h.fadeIn>=0){h.fadeIn+=dt;if(h.fadeIn>=k.fadeInS)hearth=null;}
@@ -131,8 +147,7 @@ public partial class ForgeWorld {
   }
   float back=ForgeHearth.BackAt(k);
   // Step out and back: the smith's stance and yaw (the camera rides it in UpdateSmithCamera).
-  float step=ForgeHearth.Step(k,h.t);var hearthYaw=ForgeLayoutData.HearthYawDeg;
-  smith.position=Vector3.Lerp(h.stanceFrom,ForgeLayout.HearthStance,step);smith.rotation=Quaternion.Euler(0,Mathf.LerpAngle(h.yawFrom,hearthYaw,step),0);
+  StanceStep(h,ForgeHearth.Step(k,h.t),h.t>=k.hearthBackS);
   if(!h.stepOutSfx&&h.t>=k.hearthStepS*.85f){h.stepOutSfx=true;Send("sfx",0,ForgeContract.Sfx.Step,.6f);}
   if(!h.stepBackSfx&&h.t>=k.hearthBackS+k.hearthStepS*.85f){h.stepBackSfx=true;Send("sfx",0,ForgeContract.Sfx.Step,.6f);}
   // The hammer is laid on the anvil for the reach; the right hand works the bellows.
@@ -160,6 +175,51 @@ public partial class ForgeWorld {
   if(h.t>6){AbortHearth(false);return;}
  }
  float bellowsPull;
+ /// The smith between the home (anvil) stance and HearthStance: the step out starts from stanceFrom, the step back
+ /// returns home (they differ when a heat request cut a quench at the hearth).
+ void StanceStep(HearthChoreo h,float step,bool back){var from=back?h.home:h.stanceFrom;float yaw=back?h.homeYaw:h.yawFrom;
+  smith.position=Vector3.Lerp(from,ForgeLayout.HearthStance,step);smith.rotation=Quaternion.Euler(0,Mathf.LerpAngle(yaw,ForgeLayoutData.HearthYawDeg,step),0);}
+ /// Keep with a hot blade at the anvil quenches it in the slack tub (not under reduced motion, not mid-choreography).
+ bool CanQuench(Body b)=>!reduced&&hearth==null&&AtAnvil()&&carriedId!=b.knife.id&&state!=null&&!state.ended&&KnifeTemperature(b)>=K.quenchMinC;
+ void StartQuench(Body b){
+  HomeStance(out var home,out var homeYaw);
+  hearth=new HearthChoreo{knifeId=b.knife.id,quench=true,appeared=true,appearT=1,stanceFrom=smith.position,yawFrom=smith.eulerAngles.y,home=home,homeYaw=homeYaw};
+  workFocus=true;route=null;destination="";CancelStrikes();b.motion.mode=KnifeMotion.Rest;b.motion.wasHeld=true;
+ }
+ /// The quench: step to the hearth with the blade in the tongs, tip it into the slack tub, hold, lift it out; it dissolves
+ /// (placed on the rack off screen) as the smith steps back. The hammer is laid on the anvil; the right arm hangs.
+ void UpdateQuench(HearthChoreo h,Body b,float dt){
+  var k=K;float back=Mathf.Max(ForgeHearth.QuenchBackS(k),k.hearthStepS),end=ForgeHearth.QuenchEndS(k);
+  StanceStep(h,ForgeHearth.QuenchStep(k,h.t),h.t>=back);
+  if(!h.stepOutSfx&&h.t>=k.hearthStepS*.85f){h.stepOutSfx=true;Send("sfx",0,ForgeContract.Sfx.Step,.6f);}
+  if(!h.stepBackSfx&&h.t>=back+k.hearthStepS*.85f){h.stepBackSfx=true;Send("sfx",0,ForgeContract.Sfx.Step,.6f);}
+  if(h.t>=.22f&&h.t<end-.12f)ReleaseHammer(true);else if(h.t>=end-.12f&&hammerReleased)ReleaseHammer(false);
+  handOnHammer=1;if(h.t<.22f)rightIk=1;else if(h.t<end-.38f)rightIk=Mathf.MoveTowards(rightIk,0,dt/.2f);else rightIk=Mathf.MoveTowards(rightIk,1,dt/.26f);
+  float dip=ForgeHearth.QuenchDip(k,h.t);
+  if(!h.inCoals&&dip>.6f){h.inCoals=true;KnifeQuench(b);Send("sfx",h.knifeId,ForgeContract.Sfx.Quench,KnifeTemperature(b));}
+  if(!h.dissolved&&h.t>=back){h.dissolved=true;h.holding=false;Dissolve(b,k.dissolveS);}
+  if(h.t>=end){hearth=null;idleTime=0;labelsDirty=true;}
+ }
+ /// Where the camera looks during a reach (the firebed, or the tub for a quench) and how much (0 = the work view).
+ Vector3 ReachLookTarget()=>hearth!=null&&hearth.quench?ForgeLayout.SlackTub+new Vector3(.02f,.06f,.04f):ForgeLayout.Firebed+new Vector3(0,.02f,.02f);
+ float ReachLook()=>hearth==null?0:hearth.quench?ForgeHearth.QuenchLook(K,hearth.t):ForgeHearth.Look(K,hearth.t);
+ /// Roll the tongs about the reins (jaws to hand) so the blade tips down: degrees of roll, the sign that lowers the tip.
+ Quaternion QuenchRoll(Quaternion flat,float deg){var axis=flat*tongHandLocal.normalized;var a=Quaternion.AngleAxis(deg,axis)*flat;var b=Quaternion.AngleAxis(-deg,axis)*flat;return ((a*gripRel)*Vector3.right).y<((b*gripRel)*Vector3.right).y?a:b;}
+ /// The tongs of the quench: carried flat from the anvil to over the tub (a small lift), the tip over the water; then a
+ /// turn of the wrist rolls the tongs about the reins (the hand stays where it holds them) as the blade goes down into
+ /// the water, quenchDipCm deep; lifted back out the same way.
+ void QuenchTongs(out Vector3 jaws,out Quaternion tRot){
+  var h=hearth;var k=K;if(!h.jawStartSet){h.jawStartSet=true;h.jawStart=jawPos;h.jawStartRot=jawRot;}
+  var b=HeldBody();float L=b!=null?BladeLength(b):.24f;var tub=ForgeLayout.SlackTub;
+  var shoulder=ForgeLayout.HearthStance+ForgeLayout.HearthYaw*ForgeLayout.V(ForgeLayoutData.LeftShoulderLocal);
+  var rein=shoulder-tub;rein.y=0;rein=(Quaternion.Euler(0,k.tongHearthYawDeg,0)*rein).normalized;var flat=TongRotation(rein);
+  float reach=L-ForgeLayout.TangGripLocal.x*KnifeRootScale;   // jaws to tip
+  float dip=ForgeHearth.QuenchDip(k,h.t);var rot=QuenchRoll(flat,k.quenchTiltDeg*dip);var dir=(rot*gripRel)*Vector3.right;
+  var tip=new Vector3(tub.x,tub.y+.01f*Mathf.Lerp(k.quenchHoverCm,-k.quenchDipCm,dip),tub.z);
+  var at=tip-dir*reach;
+  if(h.t<k.quenchPlungeAtS){float u=ForgeFeel.Smooth(h.t/k.quenchPlungeAtS);jaws=Vector3.Lerp(h.jawStart,at,u)+Vector3.up*(.06f*Mathf.Sin(u*Mathf.PI));tRot=Quaternion.Slerp(h.jawStartRot,rot,u);}
+  else{jaws=at;tRot=rot;}
+ }
  /// The room's rocker handle (room-light-post's ForgeDressing names it "Bellows chain and handle"), found once after the
  /// room is built: the right hand follows its real drop. Without it, the drop follows ForgeHearth.Bellows.
  Transform roomBellows;float roomBellowsRestY;
@@ -172,7 +232,7 @@ public partial class ForgeWorld {
  bool InView(Vector3 p,float margin){if(cam==null)return true;var v=cam.WorldToViewportPoint(p);return v.z>0&&v.x>-margin&&v.x<1+margin&&v.y>-margin&&v.y<1+margin;}
  /// The tong pose of the reach: from wherever they were, low through the turn, over the coals, buried, out, back over the anvil.
  void HearthTongs(out Vector3 jaws,out Quaternion tRot){
-  var h=hearth;var k=K;
+  var h=hearth;var k=K;if(h.quench){QuenchTongs(out jaws,out tRot);return;}
   if(!h.jawStartSet){h.jawStartSet=true;h.jawStart=jawPos;h.jawStartRot=jawRot;}
   HearthOverCoals(out var overJaws,out var overRot);
   var below=Vector3.down*(.01f*k.hearthBuryCm+.075f*(1-ForgeHearth.Plunge(k,h.t)))+Vector3.up*.075f;   // .075 above the coals .. buried hearthBuryCm

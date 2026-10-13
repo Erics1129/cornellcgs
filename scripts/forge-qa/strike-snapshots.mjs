@@ -1,7 +1,7 @@
 // strike-feel visual loop: the hearth reach on a timeline, the hammer at press +1 frame, apex and contact, close-ups
 // of the hands, and the per-outcome hit-stop frames, rendered by the frozen editor rig (ForgeSnapshots.Capture).
 // usage: node scripts/forge-qa/strike-snapshots.mjs --out <dir> [--project unity/ForgeOrFold] [--view desktop|phone|landscape]
-//          [--sheet] [--fixtures-only] [--only hearth,hearthside,strike,closeup,outcomes,flow,moves,look]
+//          [--sheet] [--fixtures-only] [--only hearth,hearthside,quenchside,strike,closeup,outcomes,flow,moves,look]
 // Steps it adds on top of the rig: Qa('strike-press=<seq>') presses without the rig resolving the hit (pose frames),
 // Qa('strike-cam=ex,ey,ez,tx,ty,tz,fov') / Qa('strike-cam=off') overrides the camera (editor only), Qa('strike-bones')
 // logs the arm bones (FORGE_BONES in unity.log). Telemetry frames land in index.json messages.
@@ -18,7 +18,7 @@ const repo = resolve(dirname(fileURLToPath(import.meta.url)), '../..')
 const project = resolve(arg('project', join(repo, 'unity/ForgeOrFold')))
 const out = resolve(arg('out', join(repo, 'output/strike-snapshots')))
 const view = arg('view', 'desktop'), dt = Number(arg('dt', 1 / 120))
-const only = new Set((arg('only', 'hearth,hearthside,strike,closeup,outcomes,flow,moves,look')).split(','))
+const only = new Set((arg('only', 'hearth,hearthside,quenchside,strike,closeup,outcomes,flow,moves,look')).split(','))
 const editor = process.env.UNITY_EDITOR || '/Applications/Unity/Hub/Editor/6000.3.18f1/Unity.app/Contents/MacOS/Unity'
 
 const payload = (state, event, selected = 1, extra = {}) => JSON.stringify({ ...snapshotPayload(state, selected, { reduced: false, ...extra }), effect: unityEffect(event) })
@@ -72,6 +72,15 @@ if (only.has('hearthside')) {
   steps.push(W8(+(2.0 - t).toFixed(4)), { do: 'sync', json: payload(heat2.state, heat2.event) }, { do: 'sync', json: payload(seat2.state, seat2.event) }, W8(.4), { do: 'qa', mode: 'strike-cam=off' }, W8(.1))
   steps.push({ do: 'sync', json: payload(seated.state) }, W8(.3))
 }
+if (only.has('quenchside')) {
+  // Third-person view of the quench: the blade carried flat over the slack tub, rolled tip down into the water, lifted out.
+  const kept = step(seated.state, { type: 'move', id: 1, to: 'rack' })
+  steps.push({ do: 'sync', json: payload(heated.state, heated.event) }, { do: 'sync', json: payload(seated.state, seated.event) }, W8(.8), cam([-.25, 1.25, -.05], [-.80, .86, -.48], 50), W8(2 * dt))
+  steps.push({ do: 'sync', json: payload(kept.state, kept.event) })
+  let t = 0
+  for (const at of [.25, .5, .7, 1.0, 1.4]) { steps.push(W8(+(at - t).toFixed(4)), C('quenchside-' + at.toFixed(2))); t = at }
+  steps.push(W8(1.0), { do: 'qa', mode: 'strike-cam=off' }, { do: 'sync', json: payload(seated.state) }, W8(.4))
+}
 if (only.has('strike')) {
   // Parked after idle, then a strike from park with apex and contact frames, and a press +1/+2 frame capture.
   steps.push(W8(1.8), C('park'), { do: 'sync', json: payload(good.before) }, W8(.4))
@@ -100,9 +109,11 @@ if (only.has('flow')) {
   steps.push({ do: 'sync', json: payload(flowed) }, W8(.7), { do: 'strike', seq: 10, name: 'flow', apex: true, contact: true, impact: payload(flowAfter, good.event), afterMs: [30, 180], afterNames: ['flow-30', 'flow-180'] }, W8(.4))
 }
 if (only.has('moves')) {
-  // Keep (anvil -> rack) dissolves out and in; New (a crate blank -> furnace) starts the hearth reach again.
+  // Keep (anvil -> rack) with a hot blade: the quench at the slack tub, the blade dissolving to the rack on the step back.
+  // New (a crate blank -> furnace) then starts the hearth reach again.
   const kept = step(seated.state, { type: 'move', id: 1, to: 'rack' })
-  steps.push({ do: 'sync', json: payload(seated.state) }, W8(.5), { do: 'sync', json: payload(kept.state, kept.event) }, W8(.06), C('keep-60'), W8(.14), C('keep-200'))
+  steps.push({ do: 'sync', json: payload(heated.state, heated.event) }, { do: 'sync', json: payload(seated.state, seated.event) }, W8(.8), { do: 'sync', json: payload(kept.state, kept.event) })
+  { let t = 0; for (const at of [.06, .3, .55, .8, 1.1, 1.4, 1.6, 1.9]) { steps.push(W8(+(at - t).toFixed(4)), C('keep-' + Math.round(at * 1000))); t = at } }
   const next = step(kept.state, { type: 'move', id: 2, to: 'furnace' }), nextHeat = step(next.state, { type: 'heat', id: 2 }), nextSeat = step(nextHeat.state, { type: 'move', id: 2, to: 'anvil' })
   steps.push({ do: 'sync', json: payload(next.state, next.event) }, W8(.3), C('new-300'), W8(1.7), { do: 'sync', json: payload(nextHeat.state, nextHeat.event) }, { do: 'sync', json: payload(nextSeat.state, nextSeat.event) }, W8(.3), C('new-seated'))
   // Reduced motion: no step or turn; the blank heats off screen and fades onto the anvil in 150 ms.

@@ -56,7 +56,7 @@ public partial class ForgeWorld {
   if(hearth!=null&&!hearth.fade){
    // Hearth reach: the eye rides the step; the view turns from the work to the firebed and back.
    var yaw=smith.eulerAngles.y;eye=WorkEyeAt(smith.position,yaw);
-   float look=ForgeHearth.Look(k,hearth.t);var target=Vector3.Lerp(WorkLookAt,ForgeLayout.Firebed+new Vector3(0,.02f,.02f),look);
+   float look=ReachLook();var target=Vector3.Lerp(WorkLookAt,ReachLookTarget(),look);
    rot=Quaternion.LookRotation(target-eye);fovTarget=Mathf.Lerp(WorkFov(),WorkFov()+4,look);
    var e=rot.eulerAngles;orbitYaw=e.y;orbitPitch=e.x>180?e.x-360:e.x;
   }else if(atWork){

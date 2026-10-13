@@ -38,7 +38,7 @@ using System.Collections.Generic;
  // Hammer poses relative to the contact point in the smith's yaw frame: ready (part way up the arc) between strikes,
  // parked on the anvil face after restIdleS of idle work, hung at the side while walking.
  public float readyElbow=.45f, readyWrist=.55f, readyRight=.06f, readyBack=.02f;
- public float restRight=.26f, restUp=-.10f, restBack=.30f, parkRight=.13f, parkBack=.125f, parkS=.45f, restIdleS=1.2f;
+ public float restRight=.26f, restUp=-.10f, restBack=.30f, parkRight=.13f, parkBack=.125f, parkTipGap=.07f, parkS=.45f, restIdleS=1.2f;
  // Work framing: FOV fallbacks by view, frame-to-fit band fill and clamps, eases.
  public float fovDesktop=42, fovDesktopWalk=62, fovPortrait=62, fovPortraitWalk=74, fovLandscape=46, fovLandscapeWalk=60;
  public float frameShiftX=-.03f, frameShiftXPortrait=-.06f, frameTargetWPortrait=.52f, frameFill=.60f, frameFillMin=.55f, frameFillMax=.65f, frameTargetW=.45f, frameTargetH=.35f, frameWidthFill=.85f, fovMin=34, fovMax=70, fovEaseS=.3f, lookEase=28, workEase=14;
@@ -51,6 +51,11 @@ using System.Collections.Generic;
  // right once the first stroke is over; 0 = one pull. The right hand holds the handle through the stroke.
  public float hearthStepS=.5f, hearthPlungeAtS=.42f, hearthPlungeS=.22f, bellowsPull1S=.50f, bellowsPull2S=0, bellowsDownS=.35f, bellowsUpS=.8f, bellowsPullCm=12, bellowsRideS=.40f;
  public float hearthBuryCm=2.5f, hearthPullS=1.38f, hearthPullDurS=.14f, hearthBackS=1.50f, hoverMm=6, seatWaitMs=400, seatS=.12f, dissolveS=.12f, abortTweenS=.15f, fadeInS=.15f, glanceDeg=35, glanceS=.3f, glanceHoldS=.25f, glanceBackS=.35f;
+ // Keep with a hot blade (>= quenchMinC): the same step to the hearth, the blade carried over the slack tub, tipped
+ // by rolling the tongs quenchTiltDeg about the reins (the left hand chokes up to quenchHandM from the jaws, so the
+ // arm reaches out over the tub instead of folding against the chest) and dipped quenchDipCm into the water for quenchHoldS (KnifeQuench, sfx 'quench'), lifted out, then it
+ // dissolves (placed on the rack off screen) while the smith steps back.
+ public float quenchMinC=300, quenchPlungeAtS=.45f, quenchPlungeS=.15f, quenchHoldS=.7f, quenchPullS=.12f, quenchTiltDeg=90, quenchDipCm=5, quenchHoverCm=12, quenchHandM=.24f;
  // Tongs: grip angle between the reins and the blade's tang direction, hand distance from the jaws, rein rise.
  public float tongGripDeg=58, tongHandM=.40f, tongElevDeg=25, tongHearthYawDeg=-20;
  // Tong feed along the blade after each strike, the roll every 8 strikes, the spine tilt, the hammer's share of the walk.
@@ -90,7 +95,7 @@ using System.Collections.Generic;
   hitStopJitterMm=ForgeTuning.Fit(hitStopJitterMm,0,10,3.5f);tongTremorMm=ForgeTuning.Fit(tongTremorMm,0,6,2);tongTremorHz=ForgeTuning.Fit(tongTremorHz,1,20,9);
   wristSnapFrom=ForgeTuning.Fit(wristSnapFrom,.3f,.95f,.68f);elbowSwingDeg=ForgeTuning.Fit(elbowSwingDeg,0,60,14);wristSnapDeg=ForgeTuning.Fit(wristSnapDeg,0,50,26);wristPower=ForgeTuning.Fit(wristPower,.5f,3,1);elbowPower=ForgeTuning.Fit(elbowPower,1,4,1.7f);elbowLiftCm=ForgeTuning.Fit(elbowLiftCm,0,15,4);elbowBackCm=ForgeTuning.Fit(elbowBackCm,-10,20,9);
   contactHandleDeg=ForgeTuning.Fit(contactHandleDeg,-10,40,12);headHangDeg=ForgeTuning.Fit(headHangDeg,-10,40,12);
-  readyRight=ForgeTuning.Fit(readyRight,-.2f,.3f,.06f);readyBack=ForgeTuning.Fit(readyBack,-.2f,.3f,.02f);restRight=ForgeTuning.Fit(restRight,-.5f,.6f,.26f);restUp=ForgeTuning.Fit(restUp,-.5f,.5f,-.10f);restBack=ForgeTuning.Fit(restBack,-.5f,.6f,.30f);parkRight=ForgeTuning.Fit(parkRight,0,.35f,.13f);parkBack=ForgeTuning.Fit(parkBack,-.1f,.14f,.125f);
+  readyRight=ForgeTuning.Fit(readyRight,-.2f,.3f,.06f);readyBack=ForgeTuning.Fit(readyBack,-.2f,.3f,.02f);restRight=ForgeTuning.Fit(restRight,-.5f,.6f,.26f);restUp=ForgeTuning.Fit(restUp,-.5f,.5f,-.10f);restBack=ForgeTuning.Fit(restBack,-.5f,.6f,.30f);parkRight=ForgeTuning.Fit(parkRight,0,.35f,.13f);parkBack=ForgeTuning.Fit(parkBack,-.1f,.14f,.125f);parkTipGap=ForgeTuning.Fit(parkTipGap,0,.2f,.07f);
   readyElbow=ForgeTuning.Fit(readyElbow,0,1,.45f);readyWrist=ForgeTuning.Fit(readyWrist,0,1,.55f);parkS=ForgeTuning.Fit(parkS,.05f,3,.45f);restIdleS=ForgeTuning.Fit(restIdleS,.2f,30,1.2f);
   fovMin=ForgeTuning.Fit(fovMin,20,90,34);fovMax=ForgeTuning.Fit(fovMax,fovMin,100,70);frameFillMin=ForgeTuning.Fit(frameFillMin,.2f,.95f,.55f);frameFillMax=ForgeTuning.Fit(frameFillMax,frameFillMin,.95f,.65f);frameFill=ForgeTuning.Fit(frameFill,frameFillMin,frameFillMax,.6f);
   frameShiftX=ForgeTuning.Fit(frameShiftX,-.2f,.2f,-.03f);frameShiftXPortrait=ForgeTuning.Fit(frameShiftXPortrait,-.2f,.2f,-.06f);frameTargetWPortrait=ForgeTuning.Fit(frameTargetWPortrait,.1f,2,.52f);  frameTargetW=ForgeTuning.Fit(frameTargetW,.1f,2,.45f);frameTargetH=ForgeTuning.Fit(frameTargetH,.1f,2,.35f);frameWidthFill=ForgeTuning.Fit(frameWidthFill,.3f,1,.85f);fovEaseS=ForgeTuning.Fit(fovEaseS,.02f,2,.3f);
@@ -101,7 +106,7 @@ using System.Collections.Generic;
   hearthStepS=ForgeTuning.Fit(hearthStepS,.5f,1.2f,.5f);hearthPlungeS=ForgeTuning.Fit(hearthPlungeS,.05f,.6f,.22f);hearthPlungeAtS=ForgeTuning.Fit(hearthPlungeAtS,.1f,hearthStepS+.3f,.42f);
   hearthPullS=ForgeTuning.Fit(hearthPullS,hearthPlungeAtS+hearthPlungeS+.2f,3,1.38f);hearthPullDurS=ForgeTuning.Fit(hearthPullDurS,.05f,.4f,.14f);hearthBackS=ForgeTuning.Fit(hearthBackS,hearthPullS+hearthPullDurS*.5f,3.5f,1.50f);
   bellowsPull1S=ForgeTuning.Fit(bellowsPull1S,.3f,1.2f,.5f);bellowsPull2S=ForgeTuning.Fit(bellowsPull2S,0,3,0);bellowsDownS=ForgeTuning.Fit(bellowsDownS,.05f,1,.35f);bellowsUpS=ForgeTuning.Fit(bellowsUpS,.05f,2,.8f);bellowsPullCm=ForgeTuning.Fit(bellowsPullCm,0,30,12);bellowsRideS=ForgeTuning.Fit(bellowsRideS,0,2,.4f);
-  hearthBuryCm=ForgeTuning.Fit(hearthBuryCm,0,8,2.5f);seatWaitMs=ForgeTuning.Fit(seatWaitMs,0,1000,400);seatS=ForgeTuning.Fit(seatS,.02f,.5f,.12f);dissolveS=ForgeTuning.Fit(dissolveS,.02f,.5f,.12f);abortTweenS=ForgeTuning.Fit(abortTweenS,.02f,.6f,.15f);fadeInS=ForgeTuning.Fit(fadeInS,.02f,.6f,.15f);glanceDeg=ForgeTuning.Fit(glanceDeg,0,60,35);glanceS=ForgeTuning.Fit(glanceS,.1f,1,.3f);glanceHoldS=ForgeTuning.Fit(glanceHoldS,0,1,.25f);glanceBackS=ForgeTuning.Fit(glanceBackS,.1f,1,.35f);hoverMm=ForgeTuning.Fit(hoverMm,0,40,6);
+  hearthBuryCm=ForgeTuning.Fit(hearthBuryCm,0,8,2.5f);seatWaitMs=ForgeTuning.Fit(seatWaitMs,0,1000,400);seatS=ForgeTuning.Fit(seatS,.02f,.5f,.12f);dissolveS=ForgeTuning.Fit(dissolveS,.02f,.5f,.12f);abortTweenS=ForgeTuning.Fit(abortTweenS,.02f,.6f,.15f);fadeInS=ForgeTuning.Fit(fadeInS,.02f,.6f,.15f);glanceDeg=ForgeTuning.Fit(glanceDeg,0,60,35);quenchMinC=ForgeTuning.Fit(quenchMinC,0,2000,300);quenchPlungeAtS=ForgeTuning.Fit(quenchPlungeAtS,.2f,1,.45f);quenchPlungeS=ForgeTuning.Fit(quenchPlungeS,.05f,.5f,.15f);quenchHoldS=ForgeTuning.Fit(quenchHoldS,.1f,2,.7f);quenchPullS=ForgeTuning.Fit(quenchPullS,.05f,.5f,.12f);quenchTiltDeg=ForgeTuning.Fit(quenchTiltDeg,0,120,90);quenchDipCm=ForgeTuning.Fit(quenchDipCm,0,8,5);quenchHoverCm=ForgeTuning.Fit(quenchHoverCm,2,30,12);quenchHandM=ForgeTuning.Fit(quenchHandM,.15f,.5f,.24f);glanceS=ForgeTuning.Fit(glanceS,.1f,1,.3f);glanceHoldS=ForgeTuning.Fit(glanceHoldS,0,1,.25f);glanceBackS=ForgeTuning.Fit(glanceBackS,.1f,1,.35f);hoverMm=ForgeTuning.Fit(hoverMm,0,40,6);
   tongGripDeg=ForgeTuning.Fit(tongGripDeg,0,90,58);tongHandM=ForgeTuning.Fit(tongHandM,.2f,.5f,.40f);tongElevDeg=ForgeTuning.Fit(tongElevDeg,0,60,25);
   feedFrom=ForgeTuning.Fit(feedFrom,0,1,.2f);feedTo=ForgeTuning.Fit(feedTo,feedFrom,1,.76f);feedHammerShare=ForgeTuning.Fit(feedHammerShare,0,1,.35f);feedStartMs=ForgeTuning.Fit(feedStartMs,0,400,100);feedEndMs=ForgeTuning.Fit(feedEndMs,feedStartMs+10,600,260);rollMs=ForgeTuning.Fit(rollMs,50,800,220);
   spineTiltDeg=ForgeTuning.Fit(spineTiltDeg,0,25,6);contactJitterCm=ForgeTuning.Fit(contactJitterCm,0,4,1);elbowHintRiseCm=ForgeTuning.Fit(elbowHintRiseCm,0,25,8);
@@ -221,6 +226,9 @@ public static class ForgeFeel {
  /// blade always extends from the blow toward the tongs, so the hammer handle (descending to the right hand) never
  /// crosses it. Contact x = StrikePoint.x - (u - .48) L share; knife root (heel) x = contact x - (1 - u) L.
  public static float FeedU(ForgeStrikeTuning t,int totalHits){int h=((totalHits%8)+8)%8;return t.feedFrom+(t.feedTo-t.feedFrom)*h/7f;}
+ /// World x of the parked head: parkRight right of the strike point and at least parkTipGap past the blade tip (long
+ /// blades fed toward the heel reach far right), kept on the face (6 cm in from its right edge).
+ public static float ParkX(ForgeStrikeTuning t,float strikeX,float tipX,float faceMaxX)=>Math.Min(Math.Max(strikeX+t.parkRight,tipX+t.parkTipGap),faceMaxX-.06f);
  /// Every 8 strikes (h = 0) the tongs roll the blade over.
  public static bool FeedRolls(int totalHits)=>totalHits>0&&totalHits%8==0;
  /// Contact x jitter (m), deterministic per strike, within contactJitterCm.
@@ -476,11 +484,26 @@ public static class ForgeHearth {
  public static float BackAt(ForgeStrikeTuning k)=>k.hearthBackS+k.hearthStepS;
  /// Step progress (0 at the anvil stance, 1 at the hearth stance) at time t: smoothstep out and back, each way
  /// taking hearthStepS (at least .5 s, so the .51 m step averages at most about 1 m/s).
- public static float Step(ForgeStrikeTuning k,float t){
-  if(t<k.hearthStepS)return ForgeFeel.Smooth(t/k.hearthStepS);
-  if(t<k.hearthBackS)return 1;
-  return 1-ForgeFeel.Smooth((t-k.hearthBackS)/k.hearthStepS);
+ public static float Step(ForgeStrikeTuning k,float t)=>StepWith(k.hearthStepS,k.hearthBackS,t);
+ /// Step progress for a reach that starts back at backS.
+ public static float StepWith(float stepS,float backS,float t){
+  if(t<stepS)return ForgeFeel.Smooth(t/stepS);
+  if(t<backS)return 1;
+  return 1-ForgeFeel.Smooth((t-backS)/stepS);
  }
+ // ---- the quench (Keep with a hot blade) ----
+ /// When the quench lifts out and the step back begins, and when the smith is back at the anvil.
+ public static float QuenchBackS(ForgeStrikeTuning k)=>k.quenchPlungeAtS+k.quenchPlungeS+k.quenchHoldS+k.quenchPullS;
+ public static float QuenchEndS(ForgeStrikeTuning k)=>Math.Max(QuenchBackS(k),k.hearthStepS)+k.hearthStepS;
+ public static float QuenchStep(ForgeStrikeTuning k,float t)=>StepWith(k.hearthStepS,Math.Max(QuenchBackS(k),k.hearthStepS),t);
+ /// Dip depth (0 = hovering over the tub, 1 = dipped) at time t.
+ public static float QuenchDip(ForgeStrikeTuning k,float t){
+  float a=k.quenchPlungeAtS,b=a+k.quenchPlungeS,c=b+k.quenchHoldS;
+  if(t<a)return 0;if(t<b)return ForgeFeel.Smooth((t-a)/k.quenchPlungeS);if(t<c)return 1;return 1-ForgeFeel.Smooth((t-c)/k.quenchPullS);
+ }
+ /// How much the camera looks at the tub (0 = work view, 1 = the tub).
+ public static float QuenchLook(ForgeStrikeTuning k,float t){float back=Math.Max(QuenchBackS(k),k.hearthStepS);
+  if(t<back)return ForgeFeel.Smooth(t/(k.hearthStepS*.8f));return 1-ForgeFeel.Smooth((t-back)/(k.hearthStepS*.9f));}
  /// Plunge depth (0 = in the jaws above the coals, 1 = buried) at time t.
  public static float Plunge(ForgeStrikeTuning k,float t){
   if(t<k.hearthPlungeAtS)return 0;if(t<k.hearthPlungeAtS+k.hearthPlungeS)return ForgeFeel.Smooth((t-k.hearthPlungeAtS)/k.hearthPlungeS);

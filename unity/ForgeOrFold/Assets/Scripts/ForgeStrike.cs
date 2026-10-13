@@ -115,7 +115,10 @@ public partial class ForgeWorld {
  Vector3 NextContactWorldForArc()=>strikes.hasCurrent&&strikes.contacted?lastContactPlanned:NextContactWorld();
  Vector3 lastContactPlanned;
  /// Where the head lies when the hammer is parked: the near-right corner of the face, clear of the blade.
- Vector3 ParkHeadWorld(){var k=K;var c=ForgeLayout.StrikePoint;return new Vector3(c.x+k.parkRight,ForgeLayout.AnvilTopY+.017f,c.z-k.parkBack);}
+ Vector3 ParkHeadWorld(){var k=K;var c=ForgeLayout.StrikePoint;var b=AnvilBody();float tip=float.NegativeInfinity;
+  // Clear of the blade's tip: the knife on the anvil, or the blank being heated (laid down where it will lie).
+  if(b!=null&&anvilPoseId==b.knife.id)tip=anvilPos.x+BladeLength(b);else if(hearth!=null&&bodies.TryGetValue(hearth.knifeId,out var hb)){NominalAnvilPose(hb,out var np,out _);tip=np.x+BladeLength(hb);}
+  return new Vector3(ForgeFeel.ParkX(k,c.x,tip,ForgeLayout.AnvilCenter.x+ForgeLayoutData.AnvilFaceX*.5f),ForgeLayout.AnvilTopY+.017f,c.z-k.parkBack);}
  /// Release the hammer where it lies (parked on the face) or take it back into the hand.
  /// Released: the hammer settles (100 ms) onto the exact parked pose on the face and stays there in world space while the
  /// smith works the hearth. Taken back: the hand pose starts from where it lies (no pop) and stays parked until a strike.
@@ -250,7 +253,8 @@ public partial class ForgeWorld {
   f.pitch=cam.transform.eulerAngles.x;if(f.pitch>180)f.pitch-=360;
   if(hammer!=null){var vp=cam.WorldToViewportPoint(QaHeadPosition);f.headVp[0]=vp.x;f.headVp[1]=vp.y;f.faceDot=Vector3.Dot(hammer.rotation*U(arc.FaceNormalLocal),Vector3.down);f.handToHandle=HandToHandle();}
   var b=AnvilBody();if(b!=null){f.tempC=KnifeTemperature(b);f.headCoverBlade=HeadCoversBlade(b);}
-  var held=HeldBody();if(held!=null)f.jawToTang=Vector3.Distance(JawWorld(),held.root.transform.TransformPoint(ForgeLayout.TangGripLocal));
+  // Jaw to tang in world metres; -1 while the knife is hidden (scale 0 before the blank appears in the jaws).
+  var held=HeldBody();f.jawToTang=held!=null&&held.root.transform.localScale.x>KnifeRootScale*.5f?Vector3.Distance(JawWorld(),held.root.transform.TransformPoint(ForgeLayout.TangGripLocal)):-1;
   Send("telemetry",seq,JsonUtility.ToJson(f));
  }
  /// Measured from the posed bones (after IK and the finger curl), not from the IK goal: where the closed fist's hole is
