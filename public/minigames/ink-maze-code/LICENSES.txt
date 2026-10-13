@@ -17,15 +17,24 @@ the per-runtime engineers fill in their section and drop the texts next to
 their runtime.js.
 
 
-Java  (public/minigames/ink-maze-code/java/, self-hosted, ~4.3 MB)
+Java  (public/minigames/ink-maze-code/java/, self-hosted, ~4.4 MB)
 ------------------------------------------------------------------
 TeaVM-javac: OpenJDK's javac plus the TeaVM ahead-of-time compiler, both
-compiled to WebAssembly.
-  - TeaVM — Apache License 2.0.
-  - OpenJDK javac (the compiler inside compiler.wasm) — GPL v2 with the
-    Classpath Exception. The corresponding source offer and the exact build
-    recipe go in java/PROVENANCE.txt.
-Pinned build and hashes: java/PROVENANCE.txt.
+compiled to WebAssembly GC, rebuilt for this site with the Ink Maze guard
+(the deadline and allocation checks, see java/PROVENANCE.txt).
+  - TeaVM 0.13.1 and teavm-javac (commit 2ddcf02, plus upstream 199bed0) —
+    Apache License 2.0; the site's patch to them is under the same licence
+    (scripts/inkmaze-code/build/java/teavm-javac-inkmaze.patch).
+    Text: java/LICENSE-Apache-2.0.txt.
+  - OpenJDK javac (jdk25u revision 6c48f4ed707bf0b15f9b6098de30db8aae6fa40f,
+    the compiler inside java/compiler.gz.bin) — GPL v2 with the Classpath
+    Exception. Text and the source offer: java/LICENSE-OpenJDK-GPL-2.0-CE.txt.
+  - Relocated inside TeaVM: OW2 ASM 9.8 (BSD-3-Clause), Mozilla Rhino 1.7.15
+    (MPL 2.0), HPPC and Apache Commons IO (Apache 2.0), JZlib 1.1.3
+    (BSD-style), CLDR data (Unicode License v3): java/NOTICE-third-party.txt.
+  - The hidden harness (java/InkMazeHarness.class) and java/runtime.js are the
+    site's own work.
+Pinned build, recipe and hashes: java/PROVENANCE.txt.
 
 
 Python  (Pyodide 314.0.7, from cdn.jsdelivr.net/pyodide/v314.0.7/full/)

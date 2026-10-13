@@ -284,7 +284,7 @@ const PYODIDE_CDN = 'https://cdn.jsdelivr.net/pyodide/v314.0.7/full/'
 const CLANG_CDN = 'https://cdn.jsdelivr.net/npm/@yowasp/clang@22.0.0-git20542-10/'
 
 export const RUNTIME_INFO: Record<RuntimeId, RuntimeInfo> = {
-  java: { id: 'java', script: 'java/runtime.js', downloadBytes: 4_300_000, memoryBytes: 400_000_000, heavy: true, cdn: [] },
+  java: { id: 'java', script: 'java/runtime.js', downloadBytes: 4_400_000, memoryBytes: 420_000_000, heavy: true, cdn: [] },
   python: { id: 'python', script: 'python/runtime.js', downloadBytes: 6_000_000, memoryBytes: 300_000_000, heavy: true, cdn: [PYODIDE_CDN] },
   javascript: { id: 'javascript', script: 'javascript/runtime.js', downloadBytes: 600_000, memoryBytes: 80_000_000, heavy: false, cdn: [] },
   clang: { id: 'clang', script: 'clang/runtime.js', downloadBytes: 23_100_000, memoryBytes: 1_300_000_000, heavy: true, cdn: [CLANG_CDN] },
