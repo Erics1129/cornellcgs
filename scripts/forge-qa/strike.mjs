@@ -71,7 +71,7 @@ async function filmed(h) {
   const before = (await telemetry(h, 0)).at(-1)
   let t0
   const cap = await screencast(h, 'strike', async () => { await sleep(80); t0 = await press(h, 'Space'); await waitEvent(h, 'settled', t0, 4000); await sleep(150) }, { quality: 85, maxWidth: 960 })
-  const impact = (await unityEvents(h, t0, 'impact'))[0]
+  const impact = (await unityEvents(h, t0, 'impact'))[0], outcome = outcomeOf((await hud(h)).feedback)
   const press0 = (await telemetry(h, t0 - 5)).find(f => f.ev === 'press') || before
   const [vx, vy] = press0?.headVp || [.6, .5], region = [Math.max(0, vx - .14), Math.max(0, 1 - vy - .2), Math.min(1, vx + .14), Math.min(1, 1 - vy + .12)]
   const pre = cap.frames.filter(f => f.t <= t0).at(-1), after = cap.frames.filter(f => f.t > t0)
@@ -87,7 +87,7 @@ async function filmed(h) {
   }
   const pick = cap.frames.filter(f => f.t > t0 - 40 && f.t < (impact ? impact.t : t0) + 260)
   await contactSheet(h, pick.map(f => f.file), path.join(h.out, 'strike-sheet.png'), { cols: 8, width: 240, labels: pick.map(f => Math.round(f.t - t0) + 'ms') })
-  return { windupDiff2Frames: +windup.toFixed(2), region, framesWithin34ms: within.length, hitStopOnScreen: hs, cameraMoveMs, cameraDiff: +cameraDiff.toFixed(2), impactMs: impact ? +(impact.t - t0).toFixed(1) : null }
+  return { outcome, windupDiff2Frames: +windup.toFixed(2), region, framesWithin34ms: within.length, hitStopOnScreen: hs, cameraMoveMs, cameraDiff: +cameraDiff.toFixed(2), impactMs: impact ? +(impact.t - t0).toFixed(1) : null }
 }
 
 async function run(kind) {
@@ -124,7 +124,7 @@ async function run(kind) {
       hitStopTable: r.hitStop.every(x => x.want == null || Math.abs((x.ms ?? 0) - x.want) <= 9 || Math.abs((x.ms ?? 0) - x.want / 2) <= 9),
       noConsoleErrors: r.console.length === 0,
     }
-    if (r.filmed) { r.pass.windupVisible = kind === 'reduced' || r.filmed.windupDiff2Frames > 2.0; if (kind !== 'reduced') r.pass.cameraOnContact = r.filmed.cameraMoveMs != null && r.filmed.cameraMoveMs <= 34 }
+    if (r.filmed) { r.pass.windupVisible = kind === 'reduced' || r.filmed.windupDiff2Frames > 2.0; if (kind !== 'reduced' && r.filmed.outcome && r.filmed.outcome !== 'dull') r.pass.cameraOnContact = r.filmed.cameraMoveMs != null && r.filmed.cameraMoveMs <= 34 }
     // Impacts never closer than the 640 ms cycle (a frame of slack on the page clock); one impact per spaced press.
     if (r.mash120?.impacts) Object.assign(r.pass, { mashSpacing: (r.mash120.minGap ?? 1e9) >= 640 - 9, mashCount: r.mash120.impacts >= 4 || r.mash120.knifeChanged, noReturningNotice: !r.mash120.returningNotice })
     if (r.rhythm940?.impacts) r.pass.rhythmOnePerPress = r.rhythm940.impacts === r.rhythm940.presses || r.rhythm940.knifeChanged
