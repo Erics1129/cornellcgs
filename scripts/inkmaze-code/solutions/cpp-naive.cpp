@@ -2,7 +2,8 @@
 //
 // The first brute force a player writes: try U, D, L, R, roll on a copy of
 // the grid ('*' marks colored blocks), undo on the way back, and give up on a
-// line only when the ink left is less than the blocks still uncolored.
+// line only when the ink left is less than the blocks still uncolored. No memo:
+// that pruning is what the larger hidden boards (7 x 7 to 8 x 8) need.
 #include <string>
 #include <vector>
 using namespace std;

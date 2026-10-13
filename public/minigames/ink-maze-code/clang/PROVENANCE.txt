@@ -16,7 +16,9 @@ What ships in this folder
                      wrong solve() signature is an error at the player's line
 - ink-pre.hpp        pre-included in front of solution.cpp; calls the player's
                      class Solution from the player's own translation unit
-- include/bits/stdc++.h   the GCC convenience header, which libc++ lacks
+- stdcxx.h           <bits/stdc++.h>, the GCC convenience header libc++ lacks
+                     (served under a '+'-free name; the compiler sees it as
+                     bits/stdc++.h)
 
 What loads from the network, and when
 -------------------------------------
@@ -47,7 +49,8 @@ How the player's program is built and run
    -fsanitize=null,array-bounds,vla-bound,integer-divide-by-zero,unreachable,
    local-bounds (and =return for C++). C: -std=gnu17. C++: -std=gnu++20
    -fno-exceptions -D_LIBCPP_HARDENING_MODE=_LIBCPP_HARDENING_MODE_DEBUG. Both
-   -O2 -gline-tables-only.
+   -O2, no debug info: a runtime error's line comes from the sanitizer check's
+   own source location, the function from the wasm name section.
 2. If the player's object defines any symbol the harness defines or needs, it
    is refused (a hijacked scanf/malloc/fflush, a redefined main).
 3. wasm-ld links it with the precompiled harness object: --stack-first,
@@ -60,27 +63,43 @@ How the player's program is built and run
    WebAssembly loop, so this self-stopping is what actually enforces the time
    limit. The same pass (loops only) runs on the 75 MB compiler module at load,
    so a compile bomb is bounded too; the compiler's memory is capped at 512 MiB.
-5. The program runs on a minimal WASI preview1 shim (stdin from the harness
+5. The last four programs that compiled are kept (as WebAssembly.Module, by
+   language and source), so Run then Submit of the same code compiles once;
+   every run instantiates the program afresh.
+6. The program runs on a minimal WASI preview1 shim (stdin from the harness
    input, stdout/stderr captured, a clock from io.now, random bytes; no files,
    no environment, no other imports). The only non-WASI imports allowed are the
    harness's own ink.{check,phase,answer,fault}; any other import is refused.
 
 Recursion and memory, as the player sees them
 ----------------------------------------------
-- The C stack is 8 MiB (--stack-first, so an overflow traps cleanly). The
-  browser's own call-stack limit is tighter and differs by engine; the level's
-  problem statement promises only LIMITS.recursionDepth (200) frames, which the
-  reference search stays well inside.
+- The C stack is 8 MiB (--stack-first, so an overflow traps cleanly), but the
+  browser's own stack (every wasm frame lives there too) is the tighter limit,
+  whatever the size of the C locals: about 5,200 nested calls in Chromium 151
+  and about 700 in WebKit 26.5 (600-1,000 across runs; a one-function
+  recursion). The problem promises LIMITS.recursionDepth (200); a search on
+  these boards needs at most 61. Deeper is a runtime_error "Stack overflow:
+  recursion too deep in dive()".
 - All memory (stack, globals, heap) is capped at 256 MiB; the wasm memory
   maximum is set so growth past it fails inside wasm (no worker is killed).
   Static/global arrays above about 60 MB do not compile here.
 
-Measured (M5 Max, macOS 26.5, Chromium 151 and WebKit 26.5; see
-scripts/inkmaze-code/test-runtime-c.mjs and the task report):
-  cold load from the CDN: about 1.3-1.8 s (plus the ~23 MB download)
-  cold load self-hosted:  Chromium ~0.3-0.4 s, WebKit ~0.5-0.6 s
-  warm C   compile+run:   Chromium ~0.2 s, WebKit ~0.25-0.35 s
-  warm C++ compile+run:   1.3-2.5 s (libc++ header parsing dominates)
-  browser memory after compiling C and C++: WebKit's WebContent ~1.2-1.3 GB.
-  On a phone this is heavy; runtime.js shows a note (CLANG_PHONE_WARNING) when
-  it detects a phone, and the level offers lighter languages.
+Measured (M5 Max, macOS 26.5, Playwright's Chromium 151 and WebKit 26.5, with
+scripts/inkmaze-code/test-runtime-c.mjs; other heavy jobs shared the machine,
+so times varied by up to 3x between runs):
+  cold load, empty cache, toolchain from the CDN (download, the fuel pass on
+  the compiler, both harnesses compiled):    Chromium 3.7-4.3 s, WebKit 3.7-4.7 s
+  warm compile + run of a new C program:     Chromium 0.12 s, WebKit 0.10-0.15 s
+  warm compile + run of a new C++ program:   Chromium 1.8-2.0 s, WebKit 1.4-1.9 s
+                                             (libc++ headers dominate)
+  Submit right after a Run of the same code: compiles nothing (1-15 ms)
+  the 17-board submission, run time only:    reference 2-3 ms (C), 7-11 ms (C++);
+                                             naive 3-7 ms (C), 18-21 ms (C++)
+  memory, resident, the process the sandbox's workers run in:
+    WebKit WebContent  115 MB before, about 1.6-1.7 GB after the load,
+                       up to about 1.75-1.85 GB while compiling C++
+    Chromium renderer  210 MB before, about 0.65-0.86 GB after the load,
+                       up to about 1.0 GB while compiling C++
+  On a phone this is heavy: runtime.js puts a note (CLANG_PHONE_NOTE) on every
+  load label when it sees a phone (mobile UA, the mobile client hint, or
+  navigator.deviceMemory <= 4) and returns it as load info `warning`.

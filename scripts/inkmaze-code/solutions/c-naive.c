@@ -4,8 +4,10 @@
  * The brute force a player is likely to write first: try U, D, L, R in
  * order, roll on the grid itself (coloring blocks, undoing them on the way
  * back), and give up on a line only when the ink left is less than the blocks
- * still uncolored. No memo. problem.ts promises every board yields to this
- * within 200,000 calls in any move order.
+ * still uncolored. No memo. problem.ts promises the visible map and the small
+ * hidden boards yield even to a search without that pruning within
+ * PLAIN_SEARCH_BUDGET calls, and the larger hidden boards (7 x 7 to 8 x 8) to
+ * one with it within PRUNED_SEARCH_BUDGET calls, in any move order.
  */
 #include <stdlib.h>
 #include <string.h>

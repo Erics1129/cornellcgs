@@ -287,7 +287,7 @@ export const RUNTIME_INFO: Record<RuntimeId, RuntimeInfo> = {
   java: { id: 'java', script: 'java/runtime.js', downloadBytes: 4_400_000, memoryBytes: 420_000_000, heavy: true, cdn: [] },
   python: { id: 'python', script: 'python/runtime.js', downloadBytes: 6_000_000, memoryBytes: 300_000_000, heavy: true, cdn: [PYODIDE_CDN] },
   javascript: { id: 'javascript', script: 'javascript/runtime.js', downloadBytes: 600_000, memoryBytes: 80_000_000, heavy: false, cdn: [] },
-  clang: { id: 'clang', script: 'clang/runtime.js', downloadBytes: 23_100_000, memoryBytes: 1_300_000_000, heavy: true, cdn: [CLANG_CDN] },
+  clang: { id: 'clang', script: 'clang/runtime.js', downloadBytes: 23_100_000, memoryBytes: 1_700_000_000, heavy: true, cdn: [CLANG_CDN] },
   echo: { id: 'echo', script: 'echo/runtime.js', downloadBytes: 20_000, memoryBytes: 10_000_000, heavy: false, cdn: [] },
 }
 

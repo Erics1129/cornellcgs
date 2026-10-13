@@ -48,9 +48,15 @@
  * COMPILER_OUTPUT_BYTES.
  *
  * Limits the player sees (also in the problem's notes)
- *  - recursion: the program's C stack is STACK_BYTES (8 MiB); the browser's
- *    own stack is the tighter limit: measured in scripts/inkmaze-code/
- *    test-runtime-c.mjs (WebKit allows far fewer frames than Chromium).
+ *  - recursion: the program's C stack is STACK_BYTES (8 MiB), but the browser's
+ *    own stack (every wasm frame also lives there) is the tighter limit, and it
+ *    does not depend on the size of the C locals: measured by scripts/inkmaze-
+ *    code/test-runtime-c.mjs, about 700 nested calls in WebKit 26.5 and about
+ *    5,200 in Chromium 151 (a one-function recursion, M5 Max). The problem
+ *    promises LIMITS.recursionDepth (200); a search here needs at most 61.
+ *    Past the limit: runtime_error "Stack overflow ... in dive()".
+ *  - phones: the compiler needs about 1.5 GB in Safari (CLANG_PHONE_NOTE), so on a
+ *    phone every load label carries that note and load info has `warning`.
  *  - memory: 256 MiB in all (stack, globals and heap); static arrays above
  *    about 60 MB do not compile here (allocate big arrays with malloc/vector).
  *  - no C++ exceptions (the sysroot has no unwinder): `throw` is a compile error.
@@ -958,22 +964,59 @@ type ProgramState = {
 
 const looksLikeStackOverflow = (e: unknown) => e instanceof RangeError && /call stack|stack size|recursion/i.test(String(e.message))
 
-/** the player's frames in an engine stack trace, innermost first */
-function playerFrames(error: unknown, names: Set<string>): string[] {
+/**
+ * The player's frames in an engine stack trace, innermost first. The game's
+ * glue in the player's unit (ink-pre.hpp: __ink_call_solve, __ink_call<>)
+ * only calls Solution::solve, so a frame there is solve() inlined into it.
+ */
+export function playerFrames(error: unknown, names: Set<string>): string[] {
   const stack = String((error as { stack?: unknown })?.stack ?? '')
   const plain = new Map<string, string>()
   for (const n of names) plain.set(demangleSimple(n), demangleSimple(n))
   const frames: string[] = []
   for (const line of stack.split('\n')) {
-    // V8: "    at dfs (wasm://wasm/1a2b3c4d:wasm-function[12]:0x1a2)"; JavaScriptCore: "dfs@[wasm code]" or "<?>.wasm-function[dfs]@[wasm code]"
-    const m = /^\s*at (.+?) \(wasm:/.exec(line) || /wasm-function\[([^\]]+)\]@\[wasm code\]/.exec(line) || /^\s*([^@\s]+)@\[wasm code\]/.exec(line)
+    // V8: "    at dfs (wasm://wasm/1a2b3c4d:wasm-function[12]:0x1a2)" (Chromium 151), or
+    // "    at -.dfs (wasm:..." (Node 24's V8 puts the module's name, "-" when it has none, in
+    // front). JavaScriptCore (WebKit 26.5): "dfs@-:wasm-function[12]", C++ names demangled by
+    // the engine ("Solution::dfs(int, int)@-:wasm-function[14]"); older JavaScriptCore:
+    // "dfs@wasm-function[12]", "dfs@[wasm code]" or "<?>.wasm-function[dfs]@[wasm code]"
+    const m = /^\s*at (.+?) \(wasm:/.exec(line) || /^\s*(.+)@(?:[^\s@]*:)?wasm-function\[\d+\]\s*$/.exec(line) ||
+      /wasm-function\[([^\]]+)\]@\[wasm code\]/.exec(line) || /^\s*([^@\s]+)@\[wasm code\]/.exec(line)
     if (!m) continue
-    const name = m[1].replace(/^<\?>\./, '').replace(/\(.*$/, '').trim()
-    const hit = plain.get(name) ?? (names.has(name) ? demangleSimple(name) : undefined)
+    const name = frameName(m[1])
+    let hit = plain.get(name) ?? (names.has(name) ? demangleSimple(name) : undefined)
+    if (hit?.startsWith('__ink_call')) {
+      // the glue (two frames when not inlined) is Solution::solve, once
+      if (frames[frames.length - 1] === 'Solution::solve') continue
+      hit = 'Solution::solve'
+    }
     if (hit) frames.push(hit)
     if (frames.length >= 12) break
   }
   return frames
+}
+
+/** "-.dfs", "<?>.dfs", "void __ink_call<Solution>(std::vector<...>&, int)" -> "dfs", "__ink_call" */
+function frameName(raw: string): string {
+  let s = raw.trim().replace(/^(?:<\?>|-)\./, '')
+  const paren = s.indexOf('(')
+  if (paren > 0) s = s.slice(0, paren)
+  for (let i = 0; i < 20 && /<[^<>]*>/.test(s); i++) s = s.replace(/<[^<>]*>/g, '')
+  const space = s.lastIndexOf(' ')
+  if (space >= 0) s = s.slice(space + 1)
+  return s.trim()
+}
+
+/** "at dfs (x10)\nat Solution::solve": the frames, a run of the same function (recursion) as one line */
+export function traceText(frames: string[]): string {
+  const lines: string[] = []
+  for (let i = 0; i < frames.length;) {
+    let k = i
+    while (k < frames.length && frames[k] === frames[i]) k++
+    lines.push(`at ${frames[i]}${k - i > 1 ? ` (x${k - i})` : ''}`)
+    i = k
+  }
+  return lines.join('\n')
 }
 
 /** _Z3dfsii -> dfs, _ZN8Solution5solveE... -> Solution::solve (names only, no parameters) */
@@ -1212,7 +1255,7 @@ export function runProgram(module: WebAssembly.Module, job: RuntimeJob, io: RunI
   }
   const where = (file: string, line: number, column: number) => (isPlayer(file, ctx.lang) || isPlayer(file.replace(/^.*\//, ''), ctx.lang) ? { line: line || null, column: column || null } : { line: null, column: null })
   const frames = playerFrames(error, ctx.playerFunctions)
-  const trace = frames.length ? frames.map((f) => `at ${f}`).join('\n') : undefined
+  const trace = frames.length ? traceText(frames) : undefined
   const inFunction = frames.length ? ` in ${frames[0]}()` : ''
   const runtimeError = (type: string, message: string, line: number | null = null, column: number | null = null): RuntimeOutcome => ({
     status: 'runtime_error',
@@ -1233,7 +1276,7 @@ export function runProgram(module: WebAssembly.Module, job: RuntimeJob, io: RunI
     const at = where(error.file, error.line, error.column)
     switch (error.kind) {
       case FAULT.NULL: return runtimeError('Null pointer', `${capitalize(error.detail || 'access through')} a null pointer${inFunction}`, at.line, at.column)
-      case FAULT.INDEX: return runtimeError('Index out of bounds', `index ${error.value}${error.detail ? ` is out of bounds for type '${error.detail}'` : ' is out of bounds'}${inFunction}`, at.line, at.column)
+      case FAULT.INDEX: return runtimeError('Index out of bounds', `index ${error.value}${error.detail ? ` is out of bounds for type '${error.detail.replace(/^'(.*)'$/s, '$1')}'` : ' is out of bounds'}${inFunction}`, at.line, at.column)
       case FAULT.DIVIDE: return runtimeError('Division by zero', error.detail === 'overflow' ? `integer division overflow (INT_MIN / -1)${inFunction}` : `division by zero${inFunction}`, at.line, at.column)
       case FAULT.VLA: return runtimeError('Bad array size', `a variable-length array needs a positive size, not ${error.value}${inFunction}`, at.line, at.column)
       case FAULT.RETURN: return runtimeError('Missing return', `a function that returns a value ended without a return statement${inFunction}`, at.line, at.column)
@@ -1508,15 +1551,18 @@ export function makeClangRuntime(options: ClangRuntimeOptions = {}): Runtime {
     async load(h: RuntimeHost) {
       host = h
       const t0 = performance.now()
-      const progress = (label: string, done = 0, total = 0) => h.progress(label, done, total)
+      // on a phone every load label carries the memory note (the page shows the label while it waits)
+      const phone = looksLikePhone()
+      const progress = (label: string, done = 0, total = 0) => h.progress(phone ? `${label}. ${CLANG_PHONE_NOTE}` : label, done, total)
       installHooks((label) => progress(label))
-      progress('Downloading the C/C++ compiler', 0, 23_100_000)
+      const downloading = 'Downloading the C/C++ compiler'
+      progress(downloading, 0, 23_100_000)
       const url = options.bundleUrl ?? CLANG_BUNDLE_URL
       const clang = await (options.importBundle ?? ((u: string) => import(/* @vite-ignore */ u) as Promise<ClangBundle>))(url)
       if (typeof clang.runLLVM !== 'function' || typeof clang.Exit !== 'function') throw new Error('the compiler bundle has no runLLVM')
       // fetch the toolchain (llvm.core.wasm goes through the fuel pass in the compileStreaming hook)
       await clang.runLLVM(null, {}, {
-        fetchProgress: ({ totalLength, doneLength }: { totalLength: number; doneLength: number }) => progress('Downloading the C/C++ compiler', doneLength, totalLength),
+        fetchProgress: ({ totalLength, doneLength }: { totalLength: number; doneLength: number }) => progress(downloading, doneLength, totalLength),
       })
       timings.downloadMs = Math.round(performance.now() - t0)
       if (!compilerModule) throw new Error('the compiler module was not prepared (the fuel pass did not run)')
@@ -1525,7 +1571,6 @@ export function makeClangRuntime(options: ClangRuntimeOptions = {}): Runtime {
       // nothing more to fetch: the program never reaches JavaScript anyway, but leave no network behind
       h.lockdown()
       timings.loadMs = Math.round(performance.now() - t0)
-      const phone = typeof navigator !== 'undefined' && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent ?? '')
       return {
         version: runtime.version,
         clang: clang.version ?? CLANG_VERSION,
@@ -1558,11 +1603,29 @@ export function makeClangRuntime(options: ClangRuntimeOptions = {}): Runtime {
       }
     },
 
-    dispose() { tools = null; host = null },
+    dispose() { tools = null; host = null; built.clear() },
   }
+
+  /**
+   * The last few programs that compiled, by language and source: Run and then
+   * Submit with the same code (the usual order) compiles once. A Module holds
+   * no state; runProgram instantiates it afresh for every run.
+   */
+  const built = new Map<string, { program: WebAssembly.Module; playerFunctions: Set<string>; warnings: Diagnostic[] }>()
+  const BUILT_KEPT = 4
 
   function compileAndRun(lang: Lang, job: RuntimeJob, io: RunIO, t: Toolchain): RuntimeOutcome {
     io.check()
+    const key = `${lang}\u0000${job.memoryLimitBytes}\u0000${job.source}`
+    const hit = built.get(key)
+    if (hit) {
+      built.delete(key)
+      built.set(key, hit)
+      io.started()
+      const outcome = runProgram(hit.program, job, io, { lang, playerFunctions: hit.playerFunctions, Instance: realInstance })
+      if (hit.warnings.length && (outcome.status === 'ok' || !outcome.diagnostics)) outcome.diagnostics = hit.warnings
+      return outcome
+    }
     // 1. the player's translation unit
     const compiled = step(t.clang, t.compile[lang], compileFiles(lang, job.source, t))
     const warnings = parseCompilerOutput(compiled.text, lang).filter((d) => d.severity !== 'error')
@@ -1608,6 +1671,8 @@ export function makeClangRuntime(options: ClangRuntimeOptions = {}): Runtime {
       const message = /^imports /.test(why) ? `Your program ${why}, which this sandbox does not provide.` : `This sandbox cannot run your program: ${why}.`
       return { status: 'compile_error', message, diagnostics: [{ line: null, column: null, severity: 'error', message }, ...warnings] }
     }
+    built.set(key, { program, playerFunctions, warnings })
+    while (built.size > BUILT_KEPT) built.delete(built.keys().next().value as string)
     // 5. run: the time limit starts now (D1)
     io.started()
     const outcome = runProgram(program, job, io, { lang, playerFunctions, Instance: realInstance })
@@ -1643,9 +1708,28 @@ export function makeClangRuntime(options: ClangRuntimeOptions = {}): Runtime {
   return runtime
 }
 
-/** shown (load info `warning`) on phones: measured in scripts/inkmaze-code/test-runtime-c.mjs */
-export const CLANG_PHONE_WARNING =
-  'C and C++ run a full compiler in this tab: about 25 MB to download and up to about 1 GB of memory. ' +
-  'On a phone the browser may reload the page; Python, JavaScript or Java are much lighter.'
+/**
+ * The memory note for phones (load info `warning`, and part of the download
+ * label there). Measured by scripts/inkmaze-code/test-runtime-c.mjs (resident
+ * memory of the process the sandbox runs in, M5 Max, macOS 26.5): WebKit's
+ * WebContent grows by about 1.5 GB (to about 1.6-1.7 GB while compiling C++),
+ * Chromium's renderer by about 0.5 GB (to about 0.7 GB). A phone's browser
+ * closes or reloads a tab long before a desktop does.
+ */
+export const CLANG_PHONE_NOTE = 'C and C++ run a full compiler in this tab: it needs about 1.5 GB of memory, and on a phone the browser may reload the page. Python, JavaScript and Java need far less.'
+export const CLANG_PHONE_WARNING = `${CLANG_PHONE_NOTE} (About 25 MB to download.)`
+
+/**
+ * A phone or a small tablet, as a worker can tell: the mobile UA hint
+ * (Chromium), a mobile user agent, or at most 4 GB of device memory
+ * (navigator.deviceMemory, Chromium). An iPad that asks for desktop sites
+ * says "Macintosh" and has no other sign inside a worker, so it gets no note.
+ */
+export function looksLikePhone(nav: { userAgent?: string; deviceMemory?: number; userAgentData?: { mobile?: boolean } } | undefined = typeof navigator !== 'undefined' ? (navigator as never) : undefined): boolean {
+  if (!nav) return false
+  if (nav.userAgentData?.mobile === true) return true
+  if (/iPhone|iPad|iPod|Android|Mobile/i.test(nav.userAgent ?? '')) return true
+  return typeof nav.deviceMemory === 'number' && nav.deviceMemory > 0 && nav.deviceMemory <= 4
+}
 
 export default makeClangRuntime()

@@ -20,8 +20,8 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import {
-  C_FLAGS, CXX_FLAGS, demangleSimple, escapeAnswer, instrumentWasm, makeClangRuntime, objectSymbols,
-  parseCompilerOutput, parseDriverCommands, parseLinkerOutput, WasmError,
+  C_FLAGS, CLANG_PHONE_NOTE, CXX_FLAGS, demangleSimple, escapeAnswer, instrumentWasm, looksLikePhone, makeClangRuntime, objectSymbols,
+  parseCompilerOutput, parseDriverCommands, parseLinkerOutput, playerFrames, traceText, WasmError,
 } from '../../src/minigames/inkmaze/code/runtimes/c.ts'
 import { LIMITS } from '../../src/minigames/inkmaze/code/contract.ts'
 import { STARTER_CODE, escapeAnswer as problemEscape, formatStdin, judgeAll, parseStdout, randomBoard, submissionTests } from '../../src/minigames/inkmaze/code/problem.ts'
@@ -154,6 +154,42 @@ const read = (p) => readFileSync(`${CODE}${p}`, 'utf8')
   console.log('ok  demangler')
 }
 
+// ----------------------------------------------------- the player's frames in an engine's stack trace
+{
+  const names = new Set(['solve', 'dive', '_Z3dfsii', '__ink_call_solve', '_Z10__ink_callI8SolutionEvRNSt3__26vectorINS1_12basic_stringIcEEEEiRS4_'])
+  const v8 = { stack: 'RangeError: Maximum call stack size exceeded\n    at -.dive (wasm://wasm/--0001110a:wasm-function[13]:0x2c4)\n    at -.dive (wasm://wasm/--0001110a:wasm-function[13]:0x32b)\n    at -.solve (wasm://wasm/--0001110a:wasm-function[12]:0x200)\n    at -.__original_main (wasm://wasm/--0001110a:wasm-function[9]:0x100)' }
+  assert.deepEqual(playerFrames(v8, names), ['dive', 'dive', 'solve'], 'V8 12+ ("at -.name (wasm:...)"), harness frames left out')
+  const v8old = { stack: 'Error: fault 1\n    at _Z3dfsii (wasm://wasm/1a2b3c4d:wasm-function[12]:0x1a2)\n    at __ink_call_solve (wasm://wasm/1a2b3c4d:wasm-function[10]:0x100)' }
+  assert.deepEqual(playerFrames(v8old, names), ['dfs', 'Solution::solve'], 'older V8, mangled names, the glue reads as Solution::solve')
+  // WebKit 26.5, the sandbox's own traces (a null pointer in C; libc++ hardening in C++)
+  const jsc = { stack: 'fault@blob:null/acdd5f65:1294:22\n__ubsan_handle_type_mismatch_v1@-:wasm-function[13]\n__ubsan_handle_type_mismatch_v1_abort@-:wasm-function[14]\nsolve@-:wasm-function[12]\n__original_main@-:wasm-function[17]\n_start@-:wasm-function[11]\nrunProgram@blob:null/acdd5f65:1314:10' }
+  assert.deepEqual(playerFrames(jsc, names), ['solve'], 'JavaScriptCore (WebKit 26.5): "name@-:wasm-function[N]"')
+  const jscCpp = { stack: 'fault@blob:null/acdd5f65:1294:22\nstd::__2::__libcpp_verbose_abort(char const*, ...)@-:wasm-function[29]\nSolution::dfs(int, int)@-:wasm-function[18]\nvoid __ink_call<Solution>(std::__2::vector<std::__2::basic_string<char, std::__2::char_traits<char>, std::__2::allocator<char>>, std::__2::allocator<std::__2::basic_string<char, std::__2::char_traits<char>, std::__2::allocator<char>>>>&, int, std::__2::basic_string<char, std::__2::char_traits<char>, std::__2::allocator<char>>&)@-:wasm-function[17]\n__ink_call_solve@-:wasm-function[16]\n__original_main@-:wasm-function[30]' }
+  assert.deepEqual(playerFrames(jscCpp, new Set([...names, '_ZN8Solution3dfsEii'])), ['Solution::dfs', 'Solution::solve'], 'engine-demangled C++ names; the glue is Solution::solve, once')
+  const jsc25 = { stack: 'f@blob:null/b883f69a:16:107\ndive@wasm-function[13]\n_Z3dfsii@wasm-function[12]\n__original_main@wasm-function[9]\n@blob:null/b883f69a:17:21' }
+  assert.deepEqual(playerFrames(jsc25, names), ['dive', 'dfs'], 'JavaScriptCore without a module name: "name@wasm-function[N]"')
+  const jscOld = { stack: 'dive@[wasm code]\n<?>.wasm-function[solve]@[wasm code]\nmain@[wasm code]\nwasm-stub@[native code]' }
+  assert.deepEqual(playerFrames(jscOld, names), ['dive', 'solve'], 'older JavaScriptCore formats')
+  const chromium = { stack: 'Error: boom\n    at f (blob:null/2683b849:16:98)\n    at dive (wasm://wasm/dcea7eb2:wasm-function[1]:0x2a)\n    at _Z3dfsii (wasm://wasm/dcea7eb2:wasm-function[2]:0x2f)' }
+  assert.deepEqual(playerFrames(chromium, names), ['dive', 'dfs'], 'Chromium 151')
+  assert.deepEqual(playerFrames({ stack: '' }, names), [])
+  assert.equal(traceText(['dive', 'dive', 'dive', 'solve']), 'at dive (x3)\nat solve', 'a recursion is one line')
+  console.log('ok  stack frames (V8 old and new, JavaScriptCore) and the trace text')
+}
+
+// ----------------------------------------------------- the phone note
+{
+  assert.equal(looksLikePhone({ userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148' }), true)
+  assert.equal(looksLikePhone({ userAgent: 'Mozilla/5.0 (Linux; Android 15; Pixel 9) AppleWebKit/537.36 Chrome/151.0 Mobile Safari/537.36' }), true)
+  assert.equal(looksLikePhone({ userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 Version/26.0 Safari/605.1.15' }), false)
+  assert.equal(looksLikePhone({ userAgent: 'Mozilla/5.0 (X11; Linux x86_64) Chrome/151.0', deviceMemory: 4 }), true, 'a small device by its memory')
+  assert.equal(looksLikePhone({ userAgent: 'Mozilla/5.0 (X11; Linux x86_64) Chrome/151.0', deviceMemory: 8 }), false)
+  assert.equal(looksLikePhone({ userAgent: 'x', userAgentData: { mobile: true } }), true)
+  assert.equal(looksLikePhone(undefined), false)
+  assert.match(CLANG_PHONE_NOTE, /1\.5 GB/)
+  console.log('ok  phone detection and its memory note')
+}
+
 // ----------------------------------------------------- flags sanity
 {
   assert.ok(C_FLAGS.includes('-std=gnu17') && C_FLAGS.includes('-O2'))
@@ -247,6 +283,11 @@ if (!BUNDLE) {
     }
     if (c.expect.test !== undefined && !c.maybeCompileError) assert.equal(r.outcome.error?.test ?? null, c.expect.test, `${c.name}: board index`)
     if (c.expect.type && r.outcome.error) assert.match(r.outcome.error.type, c.expect.type, `${c.name}: error type`)
+    // the page builds some messages itself (too many answers, "Line N: ..."); match what the runtime said
+    if (c.expect.message && !c.maybeCompileError && status === r.outcome.status) {
+      const said = [r.outcome.message, ...(r.outcome.diagnostics ?? []).map((d) => d.message)].filter(Boolean).join('\n')
+      assert.match(said, c.expect.message, `${c.name}: message ${JSON.stringify(said).slice(0, 200)}`)
+    }
     pass++
   }
   console.log(`ok  all ${pass} C/C++ cases (compile errors with lines, runtime errors with the board, runaways, tampering, prints)`)

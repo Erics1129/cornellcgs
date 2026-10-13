@@ -6,7 +6,8 @@
  * when the ink left is less than the blocks still uncolored, and a memo
  * remembers the most ink seen at each (ball, colored) so a position reached
  * again with no more ink is skipped. Floors are numbered, so the colored
- * blocks fit in one 64-bit mask (boards are at most 6 x 6 here).
+ * blocks fit in one 64-bit mask (problem.ts MAX_FLOORS: at most 50 floor blocks,
+ * on boards up to 8 x 8).
  */
 #include <stdint.h>
 #include <stdlib.h>
