@@ -30,7 +30,7 @@ export default function ChanceBar({ chances, roll }: { chances: ReturnType<typeo
 export function SurviveLine({ strikes, chance, history }: { strikes: number; chance: number; history: Outcome[] }) {
   const pct = chance >= .995 ? '100%' : `${Math.round(chance * 100)}%`
   return <div className="ff-survive">
-    <span title="Chance this blade survives the next strikes at the exact odds">Survive {strikes} more: <b>{pct}</b></span>
+    <span title="Chance this blade survives the next strikes at the exact odds"><span className="ff-survive-word">Survive </span>{strikes} more: <b>{pct}</b></span>
     {history.length > 0 && <ol className="ff-history" aria-label={`Last ${history.length} strikes: ${history.map(o => RESULT_LABELS[o]).join(', ')}`}>{history.map((o, i) => <li key={i} className={`ff-prob-${o}`} title={RESULT_LABELS[o]}/>)}</ol>}
   </div>
 }

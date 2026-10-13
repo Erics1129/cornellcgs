@@ -409,7 +409,8 @@ export default function ForgePage(){
     {held?<><div className="ff-blade-value ff-loss"><strong>−{format(held.value)}</strong><span>shattered</span></div>{roll&&<ChanceBar chances={roll.chances} roll={roll}/>}</>:boardKnife&&<>
      <div className="ff-blade-value"><strong>{format(value(boardKnife,s))}</strong><span>value</span><small title="Expected value after one more hit">Next avg. {format(ev)}</small></div>
      {t&&<ChanceBar chances={t} roll={roll&&boardKnife.place==='anvil'?roll:null}/>}
-     <b className="ff-shatter-chip" aria-hidden="true">{t&&t.shatter>0?`${Math.round(t.shatter*1000)/10}%`:'0%'}</b>
+     {/* Phones: the next strike's shatter chance on the collapsed odds line (stronger from the 20% gate on). */}
+     <b className={`ff-shatter-chip ${!t||t.shatter<=0?'is-zero':t.shatter>=TUNING.gate.riskGate?'is-high':''}`} aria-hidden="true" title="Shatter chance of the next strike">{t?`${Math.round(t.shatter*1000)/10}%`:'0%'}</b>
      <SurviveLine strikes={TUNING.hud.surviveStrikes} chance={survive} history={history}/>
      <div className="ff-status-marks">{boardKnife.guard&&<span><ForgeIcon name="guard"/>Guarded</span>}{boardKnife.flow>0&&<span className={flowExpiring?'is-expiring':''}><ForgeIcon name="bolt"/>{boardKnife.flow.toFixed(1)}s · {flowExpiring?'Ends before contact':'No shatter'}</span>}</div>
     </>}
