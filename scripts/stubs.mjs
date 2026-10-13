@@ -3,10 +3,12 @@
 // Google wants them for sitelinks. Each stub is the same app bundle plus
 // window.__cgsPage, which the router opens on boot.
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs'
-import { dirname, join } from 'node:path'
+import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
+// Optional out-dir argument (node scripts/stubs.mjs /path/to/dist) lets a scratch build be verified without touching the repo's dist/.
+const dist = process.argv[2] ? resolve(process.argv[2]) : join(root, 'dist')
 const ORIGIN = 'https://cornellcgs.org'
 
 // camelCase public slugs (must mirror src/content.ts pageSlugs)
@@ -87,7 +89,7 @@ const PAGES = {
 }
 
 const esc = (s) => s.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;')
-const base = readFileSync(join(root, 'dist/index.html'), 'utf8')
+const base = readFileSync(join(dist, 'index.html'), 'utf8')
 
 for (const [id, { title, desc, image }] of Object.entries(PAGES)) {
   const slug = SLUGS[id] ?? id
@@ -99,8 +101,8 @@ for (const [id, { title, desc, image }] of Object.entries(PAGES)) {
     .replace(/(<meta property="og:url" content=")[^"]*(")/, `$1${ORIGIN}/${slug}/$2`)
     .replace(/<link rel="canonical" href="[^"]*"\s*\/>/, `<link rel="canonical" href="${ORIGIN}/${slug}/" />`)
     .replace('</head>', `${image ? `  <meta property="og:image" content="${ORIGIN}${image}" />\n` : ''}  <style>html{background:#fff}</style>\n  <script>window.__cgsPage='${id}'</script>\n  </head>`)
-  mkdirSync(join(root, 'dist', slug), { recursive: true })
-  writeFileSync(join(root, 'dist', slug, 'index.html'), html)
+  mkdirSync(join(dist, slug), { recursive: true })
+  writeFileSync(join(dist, slug, 'index.html'), html)
   console.log(`stub: /${slug}/`)
 
   // The old dash URL is already in Google's index — forward it for good.
@@ -111,8 +113,8 @@ for (const [id, { title, desc, image }] of Object.entries(PAGES)) {
 <meta http-equiv="refresh" content="0; url=/${slug}/" />
 <script>location.replace('/${slug}/')</script>
 </head><body></body></html>\n`
-    mkdirSync(join(root, 'dist', id), { recursive: true })
-    writeFileSync(join(root, 'dist', id, 'index.html'), redirect)
+    mkdirSync(join(dist, id), { recursive: true })
+    writeFileSync(join(dist, id, 'index.html'), redirect)
     console.log(`redirect: /${id}/ -> /${slug}/`)
   }
 }
