@@ -79,8 +79,10 @@ export async function launch(kind = 'desktop', { out, label } = {}) {
   const page = await context.newPage()
   const dir = out || path.join(process.env.FORGE_QA_OUT || path.resolve('output/forge-qa'), label || kind)
   fs.mkdirSync(dir, { recursive: true })
-  const consoleLines = []
-  page.on('console', m => consoleLines.push(`[${m.type()}] ${m.text()}`.slice(0, 500)))
+  const consoleLines = [], signInLines = []
+  // Google Sign-In (the site's account control) refuses origins its OAuth client does not list, i.e. every local
+  // server: a 403 for its button and a GSI_LOGGER line, both from accounts.google.com/gsi. Kept apart, not counted.
+  page.on('console', m => { const line = `[${m.type()}] ${m.text()}`.slice(0, 500), from = m.location?.()?.url || ''; if (/^https:\/\/accounts\.google\.com\/gsi\//.test(from) && /origin is not allowed|status of 403/.test(m.text())) signInLines.push(line); else consoleLines.push(line) })
   page.on('pageerror', e => consoleLines.push(`[pageerror] ${e.message}`))
   let cdp = null
   const net = { bytes: 0, requests: [] }
@@ -97,7 +99,7 @@ export async function launch(kind = 'desktop', { out, label } = {}) {
   } else {
     page.on('requestfinished', async r => { try { const s = await r.sizes(); net.bytes += s.responseBodySize + s.responseHeadersSize; net.requests.push({ url: r.url(), bytes: s.responseBodySize }) } catch { /* aborted */ } })
   }
-  const h = { kind, profile: prof, browser, context, page, cdp, out: dir, net, consoleLines, engine: prof.engine }
+  const h = { kind, profile: prof, browser, context, page, cdp, out: dir, net, consoleLines, signInLines, engine: prof.engine }
   h.shot = async (name, o = {}) => { const p = path.join(dir, name + '.png'); await page.screenshot({ path: p, ...o }); return p }
   h.close = async () => { await browser.close() }
   return h

@@ -81,6 +81,17 @@ export const WEB_TUNING = {
     phoneDpr: [2, 1.5, 1.25, 1], desktopDpr: [1.5, 1.5, 1.25, 1],
     /** Tier used until Unity reports one. Integration may start phones at 2 (critique: real-device check). */
     phoneStartTier: 1, desktopStartTier: 0,
+    /**
+     * Backing-store budget in megapixels: a large or high-DPI window renders at a lower DPR (never under minDpr) so
+     * the GPU keeps the display rate. 2560x1440 CSS at DPR 2 is 3840x2160 (8.3 Mpx) at tier 0's 1.5, GPU-bound at 60 Hz.
+     */
+    maxMpx: 3.2, minDpr: 1,
+    /**
+     * Unity paces the CPU against the GPU with fences (fenceSync / clientWaitSync, twice a frame). WebKit answers each
+     * with a synchronous round trip to its GPU process, 5-8 ms of blocked main thread a frame; Chromium's are free.
+     * 1: stand-in fences on WebKit engines (Safari, every iOS browser), 2: on every engine, 0: off.
+     */
+    asyncFences: 1,
   },
   heat: {
     /** Presentation-only temperature estimate, mirroring ForgeMetalTuning (hot-metal-vfx). */
@@ -493,12 +504,21 @@ export const MOTION_SHAKE: Record<Motion, number> = { full: 1, reduced: .5, off:
 /** Sync options: reduced stays the OS flag OR a Motion setting other than Full. */
 export function motionOptions(osReduced: boolean, motion: Motion) { return { reduced: osReduced || motion !== 'full', motion, shake: MOTION_SHAKE[motion] } }
 
-/** Module.devicePixelRatio for a Unity quality tier (0 best .. 3 lowest), never above the device DPR. */
-export function renderDpr(tier: number, view: ViewClass, deviceDpr: number, r: WebTuning['render'] = WEB_TUNING.render) {
+/**
+ * Module.devicePixelRatio for a Unity quality tier (0 best .. 3 lowest), never above the device DPR. With the canvas
+ * size in CSS pixels, the backing store also stays within r.maxMpx (but never under r.minDpr, nor above the tier's value).
+ */
+export function renderDpr(tier: number, view: ViewClass, deviceDpr: number, r: WebTuning['render'] = WEB_TUNING.render, cssPixels = 0) {
   const table = view === 'desktop' ? r.desktopDpr : r.phoneDpr
   const i = Math.max(0, Math.min(3, Math.round(Number.isFinite(tier) ? tier : 0)))
-  return Math.max(1, Math.min(deviceDpr || 1, table[i]))
+  const dpr = Math.max(1, Math.min(deviceDpr || 1, table[i]))
+  if (!(cssPixels > 0) || !(r.maxMpx > 0)) return dpr
+  const fit = Math.sqrt(r.maxMpx * 1e6 / cssPixels)
+  // Two decimals: a resize by a pixel should not change the backing store.
+  return Math.min(dpr, Math.max(Math.min(dpr, r.minDpr || 1), Math.floor(fit * 100) / 100))
 }
+/** WebKit engines (Safari and every iOS browser): their WebGL fence calls block on the GPU process (asyncFences). */
+export function blockingFences(vendor: string, mode: number) { return mode >= 2 || (mode === 1 && /^Apple/.test(vendor || '')) }
 /** Map a Unity 'quality' spot to a tier: '0'..'3', or the pre-contract 'low'. */
 export function qualityTier(spot: string): number | null {
   if (/^[0-3]$/.test(spot)) return Number(spot)

@@ -7,7 +7,9 @@
  "metal": {
   "floorEdgeC": 520
  },
- "room": {},
+ "room": {
+  "bloomLevelsTier2": 3
+ },
  "web": {
   "render": {
    "phoneStartTier": 2,

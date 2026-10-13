@@ -158,7 +158,7 @@ public partial class ForgeWorld {
   if(msaaSupport<0)msaaSupport=MsaaSupport();
   float mpx=Screen.width*(float)Screen.height/1e6f;int msaa=ForgeQualityGovernor.MsaaFor(tier,msaaSupport,mpx,r.msaaMaxMpx);
   if(msaa!=appliedMsaa){QualitySettings.antiAliasing=msaa>1?msaa:0;appliedMsaa=msaa;}
-  if(finish!=null){finish.fxaa=msaa<=1;int levels=Mathf.RoundToInt(r.bloomLevels);finish.bloomLevels=bloomQa>=0?bloomQa:levels<=0?0:tier<=1?levels:Mathf.Min(levels,tier==2?4:3);
+  if(finish!=null){finish.fxaa=msaa<=1;int levels=Mathf.RoundToInt(r.bloomLevels);finish.bloomLevels=bloomQa>=0?bloomQa:levels<=0?0:tier<=1?levels:Mathf.Min(levels,Mathf.RoundToInt(tier==2?r.bloomLevelsTier2:r.bloomLevelsTier3));
    finish.bloomThreshold=r.bloomThreshold;finish.bloomKnee=r.bloomKnee;finish.bloomIntensity=r.bloomIntensity;finish.haze=tier<3;}
   if(tier>=2)Shader.EnableKeyword("FORGE_LITE");else Shader.DisableKeyword("FORGE_LITE");
  }

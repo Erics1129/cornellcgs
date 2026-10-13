@@ -16,7 +16,9 @@ export default function ChanceBar({ chances, roll }: { chances: ReturnType<typeo
   const percent = (p: number) => `${Math.round(p * 1000) / 10}%`
   return <div className="ff-chances">
     <div className="ff-chance-track" role="img" aria-label={`Next strike: ${entries.map(([key,p])=>`${RESULT_LABELS[key]} ${percent(p)}`).join(', ')}`}>
-      {track.map(([key,p])=><span key={key} className={`ff-prob-${key}`} style={{width:`${p*100}%`}} data-probability={p} aria-hidden="true"/>)}
+      {/* Segments move by transform only (translate to their start, scale to their share): a strike morphs the bar
+          without a layout or repaint of the panel on every frame of the transition. */}
+      {track.map(([key,p],i)=><span key={key} className={`ff-prob-${key}`} style={{'--from':`${track.slice(0,i).reduce((a,[,q])=>a+q,0)*100}%`,'--p':p} as CSSProperties} data-probability={p} aria-hidden="true"/>)}
     </div>
     {roll&&<i key={roll.id} className="ff-roll" aria-hidden="true" data-roll={roll.u} style={{'--u':`${roll.u*100}%`,'--sweep':`${roll.sweepMs}ms`} as CSSProperties}/>}
     <div className="ff-chance-legend" aria-hidden="true">{entries.map(([key,p])=><span key={key} className={`ff-prob-${key} ${p===0?'is-zero':''}`}><i/><small>{RESULT_LABELS[key]}</small><b>{percent(p)}</b></span>)}</div>

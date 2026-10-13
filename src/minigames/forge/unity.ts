@@ -4,7 +4,7 @@ import feelTuning from './feel-tuning.json'
 import { ForgePointerGesture } from './input'
 import { PROTOCOL, QA_MODES, StrikeLedger, forgeView, snapshotPayload, unityEffect, viewClass } from './bridge'
 import type { ForgeView, Motion, ViewClass } from './bridge'
-import { motionOptions, qualityTier, renderDpr, webTuning } from './feel'
+import { blockingFences, motionOptions, qualityTier, renderDpr, webTuning } from './feel'
 
 type Hooks = {
   ready: () => void; settled: (seq: number, latest: boolean, cancelled: boolean) => void; select: (id: number) => void; drop: (id: number, spot: string) => void; hit: () => void; spot: (spot: string) => void; gesture: () => void; labels: (positions: Record<string, { x: number; y: number }>) => void; error: (message: string) => void; context: (hint: string) => void; near: (spot: string) => void; command: (kind: string, id: number, key?: string) => void; notice: (text: string) => void
@@ -44,6 +44,30 @@ function loadUnity() {
   return loader
 }
 const isTouch = () => matchMedia('(pointer: coarse)').matches || navigator.maxTouchPoints > 0
+/**
+ * Stand-in WebGL fences for Unity's context on this canvas. Unity paces the CPU against the GPU with a fence twice a
+ * frame; WebKit answers fenceSync and clientWaitSync with a synchronous round trip to its GPU process (5-8 ms of blocked
+ * main thread every frame, measured). WebGL needs no CPU-side fence for correctness (every upload is an ordered copy)
+ * and the browser's frame loop already paces Unity, so each fence is a plain object that is always signalled.
+ */
+function asyncFences(canvas: HTMLCanvasElement) {
+  const getContext = canvas.getContext.bind(canvas) as (type: string, attrs?: unknown) => RenderingContext | null
+  const patched = new WeakSet<object>()
+  canvas.getContext = ((type: string, attrs?: unknown) => {
+    const gl = getContext(type, attrs)
+    if (!gl || type !== 'webgl2' || patched.has(gl)) return gl
+    patched.add(gl)
+    const c = gl as WebGL2RenderingContext, fake = new WeakSet<object>()
+    const wait = c.clientWaitSync.bind(c), del = c.deleteSync.bind(c), param = c.getSyncParameter.bind(c), is = c.isSync.bind(c), server = c.waitSync.bind(c)
+    c.fenceSync = () => { const s = {} as WebGLSync; fake.add(s); return s }
+    c.clientWaitSync = (s, flags, timeout) => fake.has(s) ? c.ALREADY_SIGNALED : wait(s, flags, timeout)
+    c.waitSync = (s, flags, timeout) => { if (!fake.has(s)) server(s, flags, timeout) }
+    c.deleteSync = s => { if (s && !fake.has(s)) del(s) }
+    c.isSync = s => !!s && (fake.has(s) || is(s))
+    c.getSyncParameter = (s, p) => !fake.has(s) ? param(s, p) : p === c.SYNC_STATUS ? c.SIGNALED : p === c.OBJECT_TYPE ? c.SYNC_FENCE : p === c.SYNC_CONDITION ? c.SYNC_GPU_COMMANDS_COMPLETE : 0
+    return gl
+  }) as typeof canvas.getContext
+}
 /** A lifecycle-managed bridge to the actual Unity Web player, never a second renderer. */
 export class ForgeUnity {
   private root: HTMLElement
@@ -72,7 +96,9 @@ export class ForgeUnity {
     this.clearState()
     const view = viewClass(innerWidth, innerHeight, isTouch())
     this.tier = view === 'desktop' ? tuning.render.desktopStartTier : tuning.render.phoneStartTier
-    this.renderDprValue = renderDpr(this.tier, view, devicePixelRatio, tuning.render)
+    // The game fills the viewport: until the canvas has a size, the window's is the estimate.
+    this.renderDprValue = renderDpr(this.tier, view, devicePixelRatio, tuning.render, innerWidth * innerHeight)
+    if (blockingFences(navigator.vendor, tuning.render.asyncFences)) { asyncFences(this.canvas); this.root.dataset.fences = 'async' }
     this.canvas.id = 'forge-unity-canvas'; this.canvas.className = 'ff-unity-canvas'; this.canvas.tabIndex = -1
     this.canvas.setAttribute('aria-label', 'First-person Unity workshop. Move with WASD or the touch pad, handle objects with E, and hammer with Space. Drag to look around.')
     this.loading.className = 'ff-unity-loading'; this.loading.setAttribute('role', 'status')
@@ -174,7 +200,7 @@ export class ForgeUnity {
   private keyDown = (event: KeyboardEvent) => { if (!this.isControl(event.code) || event.repeat || document.querySelector('dialog[open]') || (event.target instanceof HTMLElement && /^(INPUT|TEXTAREA|SELECT)$/.test(event.target.tagName))) return; event.preventDefault(); this.hooks.gesture(); if (/^(Key[WASD]|Arrow)/.test(event.code)) this.hooks.look?.(); this.instance?.SendMessage('Forge', 'Control', JSON.stringify({key:event.code,down:true})) }
   private keyUp = (event: KeyboardEvent) => { if (this.isControl(event.code)) this.instance?.SendMessage('Forge', 'Control', JSON.stringify({key:event.code,down:false})) }
   private clearKeys = () => { this.gesture.cancel();this.instance?.SendMessage('Forge', 'Control', JSON.stringify({key:'clear',down:false})) }
-  private clearState() { for (const key of ['renderer','player','renderStats','station','drop','quality','tuning','perf','telemetry','protocol','renderDpr','tier']) delete this.root.dataset[key] }
+  private clearState() { for (const key of ['renderer','player','renderStats','station','drop','quality','tuning','perf','telemetry','protocol','renderDpr','tier','fences']) delete this.root.dataset[key] }
   /** Contract handshake, once the instance exists and Unity said 'ready' with protocol >= 2: Tune, Insets, Qa. */
   private greet() {
     if (this.greeted || !this.instance || !this.engineReady || this.protocolVersion < PROTOCOL) return
@@ -184,7 +210,7 @@ export class ForgeUnity {
     const modes = [...(this.telemetryOn ? ['telemetry'] : []), ...(params.get('forge-unity-qa') || '').split(',')]
     for (const mode of modes) if ((QA_MODES as readonly string[]).includes(mode)) this.instance.SendMessage('Forge', 'Qa', mode)
     this.insets()
-    this.bandsObserver = new ResizeObserver(() => this.insets()); this.bandsObserver.observe(this.canvas)
+    this.bandsObserver = new ResizeObserver(() => { this.setTier(this.tier); this.insets() }); this.bandsObserver.observe(this.canvas)
     requestAnimationFrame(() => this.insets())
   }
   /** The protocol Unity reported in 'ready' (0 = pre-contract build). */
@@ -223,7 +249,8 @@ export class ForgeUnity {
   /** Map a Unity quality tier to the render resolution (Module.devicePixelRatio, read every frame). */
   setTier(tier: number) {
     this.tier = tier
-    const dpr = renderDpr(tier, this.view, devicePixelRatio, tuning.render)
+    const c = this.canvas.getBoundingClientRect()
+    const dpr = renderDpr(tier, this.view, devicePixelRatio, tuning.render, c.width * c.height || innerWidth * innerHeight)
     this.root.dataset.tier = String(tier); this.root.dataset.renderDpr = String(dpr)
     if (dpr === this.renderDprValue) return
     this.renderDprValue = dpr

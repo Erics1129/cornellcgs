@@ -51,7 +51,9 @@ public partial class ForgeWorld {
  static void Upload(Mesh mesh,ForgeMeshBuffer o,bool dynamicIndices=true){
   meshV.Clear();meshN.Clear();meshUv0.Clear();meshUv1.Clear();meshC.Clear();
   for(int i=0;i<o.count;i++){meshV.Add(new Vector3(o.pos[i*3],o.pos[i*3+1],o.pos[i*3+2]));meshN.Add(new Vector3(o.nrm[i*3],o.nrm[i*3+1],o.nrm[i*3+2]));meshUv0.Add(new Vector2(o.uv0[i*2],o.uv0[i*2+1]));meshUv1.Add(new Vector4(o.uv1[i*4],o.uv1[i*4+1],o.uv1[i*4+2],o.uv1[i*4+3]));meshC.Add(new Color32(o.col[i*4],o.col[i*4+1],o.col[i*4+2],o.col[i*4+3]));}
-  mesh.Clear();mesh.SetVertices(meshV);mesh.SetNormals(meshN);mesh.SetUVs(0,meshUv0);mesh.SetUVs(1,meshUv1);mesh.SetColors(meshC);mesh.SetTriangles(o.tris,0,true);
+  // Clear frees the GPU buffers, and the next Set* allocates new ones (in WebKit a new buffer in its GPU process on
+  // every strike). A rebuild with the same vertex count, the common case, updates the buffers in place.
+  if(mesh.vertexCount!=o.count)mesh.Clear();mesh.SetVertices(meshV);mesh.SetNormals(meshN);mesh.SetUVs(0,meshUv0);mesh.SetUVs(1,meshUv1);mesh.SetColors(meshC);mesh.SetTriangles(o.tris,0,true);
  }
  static byte[] Rgb(string hex,string fallback){var c=C(string.IsNullOrEmpty(hex)?fallback:hex);return new[]{(byte)(c.r*255),(byte)(c.g*255),(byte)(c.b*255)};}
  static readonly byte[] Walnut={84,54,32},Leather={58,44,36},Ebony={38,31,28};

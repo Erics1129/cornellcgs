@@ -146,9 +146,9 @@ async function fuzz(h, kind, n) {
   for (let i = 0; i < n; i++) {
     if (i % 29 === 13) { await h.page.keyboard.down('KeyW'); await sleep(140); await h.page.keyboard.up('KeyW'); await sleep(200) }
     if (i % 41 === 27) { await press(h, 'KeyT'); await sleep(350); await h.page.keyboard.press('Escape'); await sleep(250) }
-    // Out of blanks: rest for three fresh ones, so the run keeps forging (stop on day 7).
-    const blanks = await h.page.evaluate(() => ({ crate: [...document.querySelectorAll('.ff-knife-card')].filter(b => /, (crate|furnace)$/.test(b.getAttribute('aria-label') || '')).length, anvil: [...document.querySelectorAll('.ff-knife-card')].some(b => /, anvil$/.test(b.getAttribute('aria-label') || '')), day: +(document.querySelector('.ff-stats [title=Day] b')?.firstChild?.textContent || 1) }))
-    if (!blanks.crate && !blanks.anvil) { if (blanks.day >= 7) break; await sleep(1300); await h.page.locator('.ff-rest').click(); await sleep(350); await h.page.locator('dialog[open] .ff-primary').click(); await sleep(600); rests++ }
+    // Out of blanks: rest for three fresh ones, so the run keeps forging (stop on the last day, shown as DAY d/last).
+    const blanks = await h.page.evaluate(() => ({ crate: [...document.querySelectorAll('.ff-knife-card')].filter(b => /, (crate|furnace)$/.test(b.getAttribute('aria-label') || '')).length, anvil: [...document.querySelectorAll('.ff-knife-card')].some(b => /, anvil$/.test(b.getAttribute('aria-label') || '')), day: +(document.querySelector('.ff-stats [title=Day] b')?.firstChild?.textContent || 1), last: +((document.querySelector('.ff-stats [title=Day] em')?.textContent || '/10').replace('/', '')) }))
+    if (!blanks.crate && !blanks.anvil) { if (blanks.day >= blanks.last) break; await sleep(1300); await h.page.locator('.ff-rest').click(); await sleep(350); await h.page.locator('dialog[open] .ff-primary').click(); await sleep(600); rests++ }
     sent.push(await press(h, 'Space', 12))
     await sleep(Math.max(0, 30 + rnd() * 870 - 12))
   }

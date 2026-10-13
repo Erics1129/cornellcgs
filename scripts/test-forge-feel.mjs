@@ -3,7 +3,7 @@
 // the sale count and the tuning merge. Run: node scripts/test-forge-feel.mjs
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
-import { StrikeGate, WEB_TUNING, webTuning, adoptUnityTiming, nextRoll, peekRandom, survival, oddsAtContact, riskKnife, prepareTarget, outcomeLabel, HAPTICS, hapticPattern, hitHaptic, FLOW_PULSE_MAX_MS, motionOptions, renderDpr, qualityTier, labelPlacement, coinStep, coinFallback, coolC, HeatClock, tension } from '../src/minigames/forge/feel.ts'
+import { StrikeGate, WEB_TUNING, webTuning, adoptUnityTiming, nextRoll, peekRandom, survival, oddsAtContact, riskKnife, prepareTarget, outcomeLabel, HAPTICS, hapticPattern, hitHaptic, FLOW_PULSE_MAX_MS, motionOptions, renderDpr, blockingFences, qualityTier, labelPlacement, coinStep, coinFallback, coolC, HeatClock, tension } from '../src/minigames/forge/feel.ts'
 import { StrikeLedger } from '../src/minigames/forge/bridge.ts'
 import { act, createRun, odds, flowNeed } from '../src/minigames/forge/engine.ts'
 import { RULES } from '../src/minigames/forge/config.ts'
@@ -483,6 +483,14 @@ for (const protocol of [2, 0]) for (const rate of [2, 2.5, 3]) {
   eq(renderDpr(0, 'phone-portrait', 3), 2); eq(renderDpr(1, 'phone-portrait', 3), 1.5); eq(renderDpr(2, 'phone-portrait', 3), 1.25); eq(renderDpr(3, 'phone-portrait', 3), 1)
   eq(renderDpr(0, 'desktop', 2), 1.5); eq(renderDpr(0, 'desktop', 1), 1); eq(renderDpr(1, 'phone-landscape', 1), 1, 'never above the device DPR')
   ok(390 * renderDpr(WEB_TUNING.render.phoneStartTier, 'phone-portrait', 3) >= 585 && 844 * renderDpr(1, 'phone-portrait', 3) >= 1266, 'phone backing store at tier 1 is at least 585x1266')
+  // Backing-store budget: a 2560x1440 window at DPR 2 renders at DPR 1 (3.7 Mpx, not 8.3); 1440x900 keeps tier 0's 1.5.
+  eq(renderDpr(0, 'desktop', 2, WEB_TUNING.render, 2560 * 1440), 1); eq(renderDpr(0, 'desktop', 2, WEB_TUNING.render, 1440 * 900), 1.5)
+  eq(renderDpr(0, 'desktop', 2, WEB_TUNING.render, 1920 * 1080), 1.24, 'between: the largest DPR within 3.2 Mpx')
+  ok(1920 * 1080 * 1.24 ** 2 <= 3.2e6, 'the budget holds'); eq(renderDpr(0, 'phone-portrait', 3, WEB_TUNING.render, 390 * 844), 2, 'a phone is far under budget')
+  eq(renderDpr(0, 'desktop', 2, { ...WEB_TUNING.render, maxMpx: 0 }, 2560 * 1440), 1.5, 'maxMpx 0 turns the budget off'); eq(renderDpr(3, 'desktop', 2, WEB_TUNING.render, 5120 * 2880), 1, 'never under minDpr')
+  eq(renderDpr(0, 'desktop', 2, WEB_TUNING.render, 2560 * 1600 + 1), renderDpr(0, 'desktop', 2, WEB_TUNING.render, 2560 * 1600), 'a pixel of resize does not change it')
+  // Stand-in fences: on WebKit (navigator.vendor Apple) by default, everywhere at 2, never at 0.
+  eq(blockingFences('Apple Computer, Inc.', 1), true); eq(blockingFences('Google Inc.', 1), false); eq(blockingFences('', 1), false); eq(blockingFences('Google Inc.', 2), true); eq(blockingFences('Apple Computer, Inc.', 0), false)
   eq(qualityTier('2'), 2); eq(qualityTier('low'), 2); eq(qualityTier('x'), null)
   // Labels: above the blade, inside the HUD-free band, never within 12% of the blade centre.
   for (const [w, h, bands, anvil] of [[1440, 900, { top: 230, bottom: 210, left: 0, right: 0 }, { x: 50, y: 62 }], [390, 844, { top: 106, bottom: 167, left: 0, right: 0 }, { x: 50, y: 52 }], [844, 390, { top: 48, bottom: 0, left: 203, right: 186 }, { x: 50, y: 55 }], [390, 844, { top: 106, bottom: 167, left: 0, right: 0 }, undefined]]) {

@@ -616,3 +616,29 @@ to{opacity:1;transform:none}
 .view-phone-landscape .ff-touch-controls{left:calc(24vw + 8px);right:calc(22vw + 8px);bottom:8px}
 .view-phone-landscape .ff-buyer{right:calc(22vw + 8px);top:52px;bottom:auto}
 .view-phone-landscape .ff-feedback{--ff-toast-top:52px}
+
+/* Paint diet (October 13). WebKit repaints a whole layer when anything in it changes, at the full device pixel
+   ratio, so a strike that changed one number repainted the panel or card around it; the chance bar and the roll
+   needle animated width and left (a layout and a repaint of the blade panel every frame for 280 ms after each
+   impact). Measured in WebKit at 390x844 DPR 3, hiding the HUD removed the dropped frame after every impact. */
+.ff-chance-track{position:relative;display:block;overflow:visible}
+.ff-chance-track>span{position:absolute;top:0;bottom:0;left:0;width:100%;transform-origin:0 50%;transform:translateX(var(--from,0)) scaleX(var(--p,0));transition:transform .28s ease-out;will-change:transform;box-shadow:none}
+.ff-roll{left:0;width:100%;margin-left:0;border-radius:0;background:none;box-shadow:none;transform:translateX(var(--u));will-change:transform,opacity;animation-name:ff-roll-sweep-x}
+.ff-roll::before{content:'';position:absolute;top:0;bottom:0;left:-1px;width:2px;border-radius:1px;background:#fff6e2;box-shadow:0 0 0 1px #000a,0 0 7px #fff9}
+@keyframes ff-roll-sweep-x{from{transform:translateX(0);opacity:.25}to{transform:translateX(var(--u));opacity:1}}
+/* Backdrop blurs under fills that are 83-92% opaque showed almost nothing, yet each is re-blurred over the live
+   canvas every frame. The fills stay. */
+.ff-quick-tools button,.ff-knife-card,.ff-actionbar{backdrop-filter:none;-webkit-backdrop-filter:none}
+/* A level change repaints the card around its portrait (gradient, image grain in multiply, drop shadow). On a phone
+   the 72 px portrait drops the shadow filter, the costly part of that repaint, and keeps the rest. A composited
+   portrait would need a rounded clip layer per card instead. */
+.view-phone-portrait .ff-knife-card .ff-portrait,.view-phone-landscape .ff-knife-card .ff-portrait{filter:none}
+/* The Heating pill clipped its animated bar to rounded corners (a mask layer in WebKit): the bar now sits inside the
+   straight part of the bottom edge instead. */
+.ff-heating{overflow:visible}
+.ff-heat-bar{left:8px;right:8px;width:auto}
+/* Shadowed text costs more to paint: the blade panel is 93% opaque, so only its title keeps the shadow. */
+.ff-blade-info{text-shadow:none}
+.ff-blade-title>b{text-shadow:0 2px 4px #0008}
+/* Each outcome callout is its own layer from its first frame (its life is an opacity animation). */
+.ff-callout{will-change:opacity}
