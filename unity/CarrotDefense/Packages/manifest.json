@@ -10,6 +10,14 @@
     "com.unity.modules.wind": "1.0.0",
     "com.unity.modules.director": "1.0.0",
     "com.unity.render-pipelines.universal": "17.3.0",
-    "com.unity.shadergraph": "17.3.0"
+    "com.unity.shadergraph": "17.3.0",
+    "com.unity.cinemachine": "file:/Applications/Unity/Hub/Editor/6000.3.18f1/Unity.app/Contents/Resources/PackageManager/Editor/com.unity.cinemachine-2.10.7.tgz",
+    "com.unity.timeline": "file:/Applications/Unity/Hub/Editor/6000.3.18f1/Unity.app/Contents/Resources/PackageManager/Editor/com.unity.timeline-1.8.12.tgz",
+    "com.unity.splines": "file:/Applications/Unity/Hub/Editor/6000.3.18f1/Unity.app/Contents/Resources/PackageManager/Editor/com.unity.splines-2.8.4.tgz",
+    "com.unity.mathematics": "file:/Applications/Unity/Hub/Editor/6000.3.18f1/Unity.app/Contents/Resources/PackageManager/Editor/com.unity.mathematics-1.3.3.tgz",
+    "com.unity.settings-manager": "file:/Applications/Unity/Hub/Editor/6000.3.18f1/Unity.app/Contents/Resources/PackageManager/Editor/com.unity.settings-manager-2.1.1.tgz",
+    "com.unity.animation.rigging": "file:/Applications/Unity/Hub/Editor/6000.3.18f1/Unity.app/Contents/Resources/PackageManager/Editor/com.unity.animation.rigging-1.4.1.tgz",
+    "com.unity.burst": "file:/Applications/Unity/Hub/Editor/6000.3.18f1/Unity.app/Contents/Resources/PackageManager/Editor/com.unity.burst-1.8.29.tgz",
+    "com.unity.collections": "file:/Applications/Unity/Hub/Editor/6000.3.18f1/Unity.app/Contents/Resources/PackageManager/Editor/com.unity.collections-2.6.6.tgz"
   }
 }

@@ -7,7 +7,7 @@ Shader "Carrot/Storybook" {
   _OcclusionMap("Ambient occlusion",2D)="white"{} _OcclusionStrength("Occlusion strength",Range(0,1))=.7 _UseOcclusionMap("Use occlusion",Float)=0
   _EmissionColor("Emission",Color)=(0,0,0,0) _WorldTexture("World texture",Float)=0 _TextureScale("Texture scale",Float)=1
   _ReflectionStrength("Reflection strength",Range(0,2))=.8 _Cutoff("Alpha cutoff",Range(0,1))=0 _Cull("Cull mode",Float)=2 _Wind("Wind motion",Range(0,.1))=0
-  _Translucency("Translucency",Range(0,1))=0 _Dissolve("Dissolve",Range(0,1))=0 _DissolveEdge("Dissolve edge",Color)=(1,.6,.2,1) _SnowStrength("Snow strength",Range(0,1))=1
+  _Translucency("Translucency",Range(0,1))=0 _Bend("Grass bend",Float)=0 _Dissolve("Dissolve",Range(0,1))=0 _DissolveEdge("Dissolve edge",Color)=(1,.6,.2,1) _SnowStrength("Snow strength",Range(0,1))=1
  }
  SubShader { Tags {"RenderType"="Opaque" "RenderPipeline"="UniversalPipeline" "Queue"="Geometry"} Cull [_Cull]
   HLSLINCLUDE
@@ -15,10 +15,10 @@ Shader "Carrot/Storybook" {
   TEXTURE2D(_MainTex);SAMPLER(sampler_MainTex);TEXTURE2D(_BumpMap);SAMPLER(sampler_BumpMap);TEXTURE2D(_RoughnessMap);SAMPLER(sampler_RoughnessMap);TEXTURE2D(_OcclusionMap);SAMPLER(sampler_OcclusionMap);
   CBUFFER_START(UnityPerMaterial)
   float4 _MainTex_ST,_Color,_EmissionColor,_DissolveEdge;
-  float _Metallic,_Glossiness,_WorldTexture,_TextureScale,_BumpScale,_UseRoughnessMap,_UseOcclusionMap,_OcclusionStrength,_ReflectionStrength,_Cutoff,_AlbedoSaturation,_AlbedoGain,_Wind,_VertexColorSRGB,_Translucency,_Dissolve,_SnowStrength;
+  float _Metallic,_Glossiness,_WorldTexture,_TextureScale,_BumpScale,_UseRoughnessMap,_UseOcclusionMap,_OcclusionStrength,_ReflectionStrength,_Cutoff,_AlbedoSaturation,_AlbedoGain,_Wind,_VertexColorSRGB,_Translucency,_Dissolve,_SnowStrength,_Bend;
   CBUFFER_END
   struct appdata {float4 vertex:POSITION;float3 normal:NORMAL;float4 tangent:TANGENT;float2 uv:TEXCOORD0;float4 color:COLOR;UNITY_VERTEX_INPUT_INSTANCE_ID};
-  float3 CarrotWorld(float4 vertex,float2 uv){return CarrotWind(TransformObjectToWorld(vertex.xyz),_Wind,uv.y);}
+  float3 CarrotWorld(float4 vertex,float2 uv){float3 w=CarrotWind(TransformObjectToWorld(vertex.xyz),_Wind,uv.y);if(_Bend>0)w=CarrotPush(w,uv.y);return w;}
   void CarrotDissolveClip(float3 world){if(_Dissolve>0)clip(CarrotHash(floor(world*23))-_Dissolve);}
   ENDHLSL
   Pass { Name "Forward" Tags {"LightMode"="UniversalForward"}
@@ -34,11 +34,18 @@ Shader "Carrot/Storybook" {
    #pragma multi_compile _ FOG_LINEAR
    #pragma multi_compile_instancing
    #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
-   struct v2f {float4 pos:SV_POSITION;float3 world:TEXCOORD0;float3 normal:TEXCOORD1;float2 uv:TEXCOORD2;float4 tangent:TEXCOORD3;float4 color:COLOR;float fog:TEXCOORD4;UNITY_VERTEX_INPUT_INSTANCE_ID};
+   struct v2f {float4 pos:SV_POSITION;float3 world:TEXCOORD0;float3 normal:TEXCOORD1;float2 uv:TEXCOORD2;float4 tangent:TEXCOORD3;float4 color:COLOR;float fog:TEXCOORD4;float3 vertexLight:TEXCOORD5;UNITY_VERTEX_INPUT_INSTANCE_ID};
    v2f vert(appdata v){v2f o;UNITY_SETUP_INSTANCE_ID(v);UNITY_TRANSFER_INSTANCE_ID(v,o);o.world=CarrotWorld(v.vertex,v.uv);o.pos=TransformWorldToHClip(o.world);o.normal=TransformObjectToWorldNormal(v.normal);o.tangent=float4(TransformObjectToWorldDir(v.tangent.xyz),v.tangent.w*GetOddNegativeScale());o.uv=TRANSFORM_TEX(v.uv,_MainTex);o.color=v.color;
     // FBX stores display-encoded colors; textures already receive their own sRGB decode.
     if(_VertexColorSRGB>.5)o.color.rgb=SRGBToLinear(o.color.rgb);
-    o.fog=ComputeFogFactor(o.pos.z);return o;}
+    o.fog=ComputeFogFactor(o.pos.z);
+    // Low tier lights lanterns per vertex; High resolves additional lights per pixel below.
+    #if defined(_ADDITIONAL_LIGHTS_VERTEX)
+    o.vertexLight=VertexLighting(o.world,o.normal);
+    #else
+    o.vertexLight=0;
+    #endif
+    return o;}
    float3 normalSample(float2 uv){return SafeUnit(UnpackNormalScale(SAMPLE_TEXTURE2D(_BumpMap,sampler_BumpMap,uv),_BumpScale));}
    float2 worldUV(float2 p){return (frac(p*_TextureScale)*.96+.02)*_MainTex_ST.xy+_MainTex_ST.zw;}
    float4 frag(v2f i):SV_Target{
@@ -87,6 +94,7 @@ Shader "Carrot/Storybook" {
     float3 reflectVector=reflect(-view,n);float fresnelTerm=Pow4(1-ndv);
     float3 indirectSpecular=GlossyEnvironmentReflection(reflectVector,i.world,brdf.perceptualRoughness,1,screenUV)*specAO*_ReflectionStrength*(1-snow*.6);
     color+=EnvironmentBRDF(brdf,gi*occlusion,indirectSpecular,fresnelTerm);
+    color+=i.vertexLight*albedo;
     color+=_EmissionColor.rgb;
     if(_Dissolve>0){float edge=1-saturate((CarrotHash(floor(i.world*23))-_Dissolve)/.06);color+=_DissolveEdge.rgb*edge*edge*2.5;}
     color=MixFog(color,i.fog);

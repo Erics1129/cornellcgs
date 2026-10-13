@@ -51,7 +51,7 @@ export default function CarrotPage(){
  },[entered])
  useEffect(()=>{if(!state)return;const key=state.boss?`${state.level}:${state.boss.id}`:'';if(key&&key!==lastBoss.current){lastBoss.current=key;setWarning({kind:state.boss!.kind,name:state.boss!.name});clearTimeout(warningTimer.current);warningTimer.current=window.setTimeout(()=>setWarning(null),3600)}},[state?.boss?.id,state?.level])
  useEffect(()=>{if(!state?.notice)return;setNotice(state.notice);clearTimeout(noticeTimer.current);noticeTimer.current=window.setTimeout(()=>setNotice(''),2800)},[state?.notice])
- useEffect(()=>{setResult(false);if(state?.phase!=='won'&&state?.phase!=='lost')return;const timer=window.setTimeout(()=>setResult(true),1100);const key=`${state.level}:${state.phase}`;
+ useEffect(()=>{setResult(false);if(state?.phase!=='won'&&state?.phase!=='lost')return;const timer=window.setTimeout(()=>setResult(true),state.phase==='won'?2200:1100);const key=`${state.level}:${state.phase}`;
   if(state.phase==='won'&&award.current!==key&&!preview){award.current=key;setSave(previous=>awardCampaign(previous,state.level,state.health,state.blockersRemaining===0))}return()=>clearTimeout(timer)
  },[state?.phase,state?.level])
  useEffect(()=>{if(state?.selection?.type==='pad'){setPicked('seed');send({type:'preview',kind:'seed'})}},[state?.selection?.type,state?.selection?.id,send])

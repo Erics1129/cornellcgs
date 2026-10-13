@@ -43,6 +43,7 @@ Material:
     m_Floats:
     - _AlbedoGain: 1
     - _AlbedoSaturation: 1
+    - _Bend: 0
     - _BumpScale: 1
     - _Cull: 2
     - _Cutoff: 0

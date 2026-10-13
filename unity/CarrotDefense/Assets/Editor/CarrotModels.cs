@@ -74,7 +74,7 @@ public static class CarrotModels {
         string atlasPath=Root+"/Textures/MaterialAtlas.png";
         var importer=AssetImporter.GetAtPath(atlasPath) as TextureImporter;
         if(importer==null)return;
-        importer.isReadable=true;importer.textureCompression=TextureImporterCompression.Uncompressed;importer.SaveAndReimport();
+        importer.isReadable=true;importer.textureCompression=TextureImporterCompression.Uncompressed;var web=importer.GetPlatformTextureSettings("WebGL");web.overridden=false;importer.SetPlatformTextureSettings(web);importer.crunchedCompression=false;importer.SaveAndReimport();
         var atlas=AssetDatabase.LoadAssetAtPath<Texture2D>(atlasPath);
         string[] names={"Soil","Stone","Bark","Carrot","Leaf","Metal"};
         int w=atlas.width/3,h=atlas.height/2;

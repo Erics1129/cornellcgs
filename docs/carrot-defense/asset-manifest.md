@@ -110,6 +110,21 @@ Canonical source and license record: `unity/CarrotDefense/ASSET-CREDITS.md`; pub
 - `model-relief-before.png` and `model-relief-after.png`: controlled Blender render of the same carrot, blossom, frost boss and marsh boss before/after biological normal/roughness maps. Geometry, camera and lighting are identical; the effect is deliberately subtle. This is not a live runtime comparison.
 - Only captures explicitly identified as Unity/WebGL runtime screenshots establish the rendered game state. Runtime screenshots are being reviewed separately; no reference art is relabeled as gameplay.
 
+## 3D upgrade assets (branch carrot-3d-upgrade, all generated in-repo)
+
+Every asset below is written by `Assets/Editor/CarrotBuild.Prepare` from code; none is third-party, so no new licence applies.
+
+- `Assets/Resources/Carrot/Textures/VfxSheet.png` (1024 px, 8x8 cells of 128 px, crunched DXT5 q90): the only effect texture. Cells 0-7 glows, stars, rings, shockwave band and hex flake; 8-23 a 16-frame smoke flipbook; 24-31 spark streaks; 32-39 ember frames; 40-47 debris silhouettes (bark, pebble, leaf, petal, husk, ice shard, acorn cap, page); 48-55 ground residues (scorch, crater, ice, pollen, crack web, mud, frost web, void); 56-63 glyphs (bolt, clock, star, chevron, warning, root curl, note, coin). Written by `CarrotVfxSheet.cs`; the former `VfxAtlas.png` is deleted at Prepare.
+- `Assets/Resources/Carrot/Settings/CarrotURP-High.asset`, `CarrotURP-Low.asset` and their renderer data (`CarrotPipeline.cs`): the two quality tiers; High carries the SSAO and `Height fog` renderer features; `HeightFog.mat` is the fullscreen material for `Assets/Shaders/HeightFog.shader`.
+- `Assets/Resources/Carrot/Volumes/{garden,marsh,frost}.asset`: per-biome post-processing profiles (ACES, bloom, colour adjustments, vignette, Gaussian depth of field, shadows/midtones/highlights).
+- `Assets/Resources/Carrot/Cinematics/BossEntrance.playable` plus `bossDust.signal`, `bossRoar.signal`, `bossRing.signal` (`CarrotCinematicsAuthoring.cs`): the Timeline boss-entrance beat.
+- Runtime-generated, not on disk: the canopy light cookie (128 px tileable noise), spline trail meshes and pebble placements, spline tubes for root snares and the rewind ribbon, ring/annulus and decal quad meshes.
+- Runtime-generated border dressing (fix round): low-poly trees (cylinder trunk, sphere canopy blobs; three-tier snow pines in frost), the garden fence posts and rails, fallen logs, the flat glow-disc mesh and the per-shell glow quads. All are `CarrotMeshes` primitives with `Carrot/Storybook` or `Carrot/FxAdditive` materials; no new third-party assets. The Kenney `TreeOak`/`TreeAutumn`/`TreePine` prefabs remain available but unused.
+- `VfxSheet.png` cell 60 (warning glyph) is now a filled badge; `CarrotVfxSheet.Prepare` rejects any outline-only glyph cell.
+- Not produced: per-biome baked reflection cubemaps (the existing `Environment.hdr` cubemap is still the reflection source) and Blender LOD1 meshes for the scanned props.
+
+Add-on packages (local tarballs from the editor's PackageManager folder, referenced by path in `Packages/manifest.json`): URP 17.3.0 and Shader Graph 17.3.0 (built in), Cinemachine 2.10.7, Timeline 1.8.12, Animation Rigging 1.4.1 with Burst 1.8.29, Collections 2.6.6, Splines 2.8.4 with Mathematics 1.3.3 and Settings Manager 2.1.1, plus the built-in Wind and Director modules.
+
 ## Reproducibility
 
 Authoring sources: `Tools/build_carrot_models.py`, `sculpt_carrot_details.py`, `build_carrot_characters.py`, `build_carrot_nature.py`. Import/prefab creation: `Assets/Editor/CarrotModels.cs`. Exact model counts and source clip names: `Tools/original-model-manifest.json` and `Tools/character-model-manifest.json`. The authoring files and original licensed source records are preserved. Current axis handling bakes import conversion and keeps an identity outer prefab plus preserved native animation hierarchy. Artist-authored tower/carrot fronts map to Unity -Z; facing in View must account for that.
