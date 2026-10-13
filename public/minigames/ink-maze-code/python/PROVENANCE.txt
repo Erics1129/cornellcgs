@@ -46,18 +46,25 @@ Self-hosted here (the site's own code)
                     bytecode loop (a key/reduce lambda, a callable-iterator) is
                     kicked back out to an instrumented frame; stickiness against a
                     swallow comes from the unshadowable tick (1), not the buffer;
-                 3. the pure-C library loops that take no bytecode per step are
-                    bounded at the source: the O(1)-memory C consumers
-                    (sum/any/all/max/min/sorted/math.prod/math.fsum/
+                 3. the pure-C / JS loops and blocking calls that take no
+                    bytecode per step are bounded at the source: the O(1)-memory
+                    C consumers (sum/any/all/max/min/sorted/math.prod/math.fsum/
                     functools.reduce/operator.countOf/collections.deque) and the
                     infinite sources (2-arg iter, itertools.count/cycle/repeat)
                     are wrapped to drive their input through a ticking generator;
                     math.factorial/comb/perm and pow() with a huge argument are
                     capped, math.isqrt is capped by the argument's bit length,
                     sys.set_int_max_str_digits is clamped so int<->str stays a
-                    ValueError; and the re / regex modules (catastrophic
-                    backtracking has no Python back-edge) are refused. os.close
-                    of fd 0/1/2 is refused so it cannot crash the interpreter.
+                    ValueError; the re / regex modules (catastrophic backtracking
+                    has no Python back-edge) are refused; and time.sleep -- a
+                    Pyodide busy-wait in JS that never re-enters the eval loop --
+                    is replaced by a Python wait loop that ticks every iteration,
+                    so a short sleep returns and time.sleep(10 ** 9) becomes a
+                    cooperative time_limit (stoppedBy 'runtime', no sandbox
+                    rebuild, no grace-window CPU) instead of the host backstop.
+                    os.close of fd 0/1/2 is refused so it cannot crash the
+                    interpreter. (The reachable asyncio event loop / selectors /
+                    signal.pause do not block synchronously in this build.)
                 Before parsing, a plain character scan rejects source that nests
                 brackets or indents beyond a WebKit-safe depth, so a compile bomb
                 is a clean compile_error, not a C-parser stack overflow + forced

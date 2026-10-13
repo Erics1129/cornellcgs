@@ -27,7 +27,9 @@
  *     C-level loops the refutation found -- a generator expression /
  *     comprehension / callable-iterator consumed by a C builtin, a pure-C
  *     sum(range)/any(iter)/reduce(count)/deque(count), a __del__ that spins a
- *     comprehension, re backtracking, math.factorial and int<->str bombs;
+ *     comprehension, re backtracking, math.factorial and int<->str bombs, the
+ *     time.sleep JS busy-wait (plain, from-import and reload(time) forms), and
+ *     big-int operator math caught by the interrupt buffer;
  *   - a positive control (CPU high WHILE a loop runs, idle after it stops)
  *     shows the meter really sees the Pyodide worker.
  */
@@ -197,6 +199,35 @@ async function suite(name) {
     await cRunaway('deque(count, 0) pure C', solution('import collections, itertools\ncollections.deque(itertools.count(), 0)\nreturn ""'))
     // a finaliser that spins a comprehension during end-of-run gc
     await cRunaway('__del__ genexp', solution('class B:\n    def __del__(self):\n        [0 for _ in range(10 ** 18)]\nb = B()\nb2 = b\ndel b\nreturn ""'), { timeLimitMs: 1500 })
+    // time.sleep is a Pyodide JS-level busy-wait that never re-enters CPython's
+    // eval loop (no bytecode back-edge, no PyErr_CheckSignals), so it used to
+    // escape all three cooperative mechanisms and reach the host terminate()
+    // backstop -- stoppedBy 'host', sandboxRestarted true, a core pinned for the
+    // whole grace window in BOTH engines (the refutation's one confirmed defect).
+    // driver.py now replaces time.sleep with a Python wait loop that ticks, so
+    // even time.sleep(10 ** 9) is a cooperative time_limit with NO grace-window
+    // CPU. Pin it, for the plain call, a `from time import sleep` binding, and the
+    // importlib.reload(time) un-wrap attempt.
+    await cRunaway('time.sleep(1e9) blocking', solution('import time\ntime.sleep(10 ** 9)\nreturn ""'))
+    await cRunaway('from time import sleep(1e9)', solution('from time import sleep\nsleep(10 ** 9)\nreturn ""'))
+    await cRunaway('reload(time) then sleep(1e9)', solution('import importlib, time\nimportlib.reload(time)\ntime.sleep(10 ** 9)\nreturn ""'), { timeLimitMs: 1500 })
+    // a huge float-overflowing argument still stops cooperatively (the wrapper
+    // coerces an un-float-able int to an astronomically large finite wait)
+    await cRunaway('time.sleep(10**400) overflow', solution('import time\ntime.sleep(10 ** 400)\nreturn ""'))
+    // big-int operator math takes a single bytecode op but CPython's long ops
+    // check signals periodically, so the interrupt buffer (mechanism 2) stops it:
+    // positive regression anchors that the buffer still fires. 2 ** (10 ** 9) and
+    // a repeated-squaring chain both stop cleanly with no grace-window CPU.
+    await cRunaway('2 ** (10 ** 9) big-int op', solution('x = 2 ** (10 ** 9)\nreturn ""'))
+    await cRunaway('repeated squaring chain', solution('x = 10 ** 100000\nfor _ in range(100000):\n    x = x * x\nreturn ""'))
+
+    // a short time.sleep still works -- a sleep under the deadline returns ok, so
+    // the bounding did not break the primitive, only cap it to the run's budget.
+    const shortSleep = await run(solution('import time\ntime.sleep(0.05)\nreturn ""'))
+    assert.equal(shortSleep.status, 'ok', `a short time.sleep still returns (${shortSleep.status}: ${shortSleep.message})`)
+    const negSleep = await run(solution('import time\ntime.sleep(-1)\nreturn ""'))
+    assert.equal(negSleep.status, 'runtime_error', 'a negative sleep is a clean ValueError')
+    assert.equal(negSleep.error.type, 'ValueError')
 
     // gc.callbacks is cleared between runs, so a poisoned callback cannot spin
     // during the NEXT run's end-of-run gc; the poisoning run is a clean ok/limit.

@@ -28,13 +28,18 @@
 #      driver formats a result / runs cleanup (where a re-fire used to corrupt
 #      the interpreter), and re-armed, guarded, around any player-controlled
 #      formatting (a looping __str__).
-#   3. the C-level library loops that run with NO Python bytecode per step
-#      (sum(range(1e18)), any(iter(int,1)), reduce(op.add, count()),
-#      deque(count(), 0), math.factorial(1e8), re backtracking) cannot be
-#      reached by 1 or 2, so they are BOUNDED at the source: the C consumers and
-#      the infinite itertools / 2-arg iter sources are wrapped to drive their
-#      input through a ticking Python generator (back to mechanism 1/2), the
-#      heavy math builtins are capped, and the re module is refused. See _arm_setup().
+#   3. the C/JS-level loops and blocking calls that run with NO Python bytecode
+#      per step (sum(range(1e18)), any(iter(int,1)), reduce(op.add, count()),
+#      deque(count(), 0), math.factorial(1e8), re backtracking, AND time.sleep,
+#      a Pyodide busy-wait in JS) cannot be reached by 1 or 2, so they are
+#      BOUNDED at the source: the C consumers and the infinite itertools / 2-arg
+#      iter sources are wrapped to drive their input through a ticking Python
+#      generator (back to mechanism 1/2), the heavy math builtins are capped, the
+#      re module is refused, and time.sleep is replaced by a Python wait loop
+#      that ticks (so even time.sleep(10 ** 9) is a cooperative time_limit, never
+#      the backstop). This list is NOT a closed set: any further blocking or
+#      no-back-edge primitive reachable by the player must be bounded here the
+#      same way. See _arm_setup().
 # The host's terminate() is only the backstop (a bug if it is ever needed).
 #
 # Names starting with "__ink" are reserved; player code that uses one is a
@@ -378,6 +383,17 @@ _BASE_GC_CALLBACKS = []
 _ORIG = {}
 _os_close_guard = None
 _ticking_deque = None
+# time.sleep is a Pyodide JS-level busy-wait that NEVER re-enters CPython's eval
+# loop (no bytecode back-edge, no PyErr_CheckSignals), so neither the AST tick
+# nor the interrupt buffer can stop it -- exactly like the re backtracking, it is
+# a C/JS loop that must be bounded at the source. _real_perf_counter is captured
+# so the replacement's own wait loop reads a clock the player cannot poison.
+_real_sleep = None
+_real_perf_counter = None
+_ticking_sleep = None
+# the real float(), captured before any player code can rebind builtins.float,
+# so the sleep replacement coerces its argument with the genuine conversion
+_float = float
 
 
 def _is_wrapped(fn):
@@ -529,6 +545,35 @@ def _make_os_close_guard(real_close):
     return guard
 
 
+def _make_ticking_sleep():
+    """Replace time.sleep with a cooperative wait. The real Pyodide time.sleep
+    busy-waits in JS and never runs CPython bytecode, so mechanisms 1 and 2
+    cannot see it and a long sleep would reach the host terminate() backstop
+    (pinning a core for the whole grace window, and in WebKit terminate() cannot
+    even stop a wasm loop). This version waits the requested time in a Python
+    loop that calls __ink_tick__ every iteration, so the deadline (mechanism 1)
+    raises a sticky _InkStop the instant the run's time limit passes: a short
+    sleep returns normally, time.sleep(10 ** 9) becomes a clean cooperative
+    time_limit (stoppedBy 'runtime', no sandbox rebuild), never the backstop."""
+    def sleep(seconds):
+        __ink_tick__()                   # honour the deadline even for sleep(0)
+        try:
+            secs = _float(seconds)
+        except OverflowError:
+            secs = 1e18                  # astronomically large: the tick ends it
+        except (TypeError, ValueError):
+            raise TypeError('an integer or float is required')
+        if secs != secs:                 # NaN
+            raise ValueError('Invalid value NaN (not a number)')
+        if secs < 0:
+            raise ValueError('sleep length must be non-negative')
+        end = _real_perf_counter() + secs
+        while _real_perf_counter() < end:
+            __ink_tick__()
+    setattr(sleep, _ARMED, True)
+    return sleep
+
+
 def _arm_builtins():
     """Assign the stored wrapper objects to builtins. Stable objects, rebuilt
     from the untouched originals in _ORIG, so a run cannot leave a real one
@@ -560,8 +605,16 @@ def _arm_setup():
     original, and arm everything. Runs once at startup, before _BASE_FP."""
     global _math, _functools, _collections, _operator, _itertools
     global _real_set_int_max, _real_addaudithook, _os_close_guard, _ticking_deque
+    global _real_sleep, _real_perf_counter, _ticking_sleep
     import math as _m, functools as _f, collections as _c, operator as _o, itertools as _i
     _math, _functools, _collections, _operator, _itertools = _m, _f, _c, _o, _i
+
+    # time.sleep: bound at the source (see _make_ticking_sleep). Capture the real
+    # perf_counter the wait loop needs, and the real sleep (unreachable by the
+    # player; kept only so the stable wrapper identity is the sole exposed sleep).
+    _real_perf_counter = time.perf_counter
+    _real_sleep = time.sleep
+    _ticking_sleep = _make_ticking_sleep()
 
     # builtins: wrap from the originals
     bw = {}
@@ -601,6 +654,9 @@ def _arm_setup():
             it_attrs[name] = _wrap_source(getattr(_itertools, name))
     if it_attrs:
         mw.append((_itertools, it_attrs))
+    # time.sleep -> the cooperative ticking wait, re-applied every run by
+    # _arm_modules (a run may have reassigned time.sleep)
+    mw.append((time, {'sleep': _ticking_sleep}))
     _ORIG['module_wrappers'] = mw
     _ticking_deque = _make_deque_wrapper(_collections.deque)
 
