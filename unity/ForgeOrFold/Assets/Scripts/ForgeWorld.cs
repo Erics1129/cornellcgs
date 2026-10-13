@@ -34,7 +34,7 @@ public partial class ForgeWorld:MonoBehaviour {
   WebGLInput.captureAllKeyboardInput=false;
 #endif
   boxMesh=RoundedBox();strikes.tuning=tuning.strike;arc.tuning=tuning.strike;
-  MakeMaterials();MakeRoom();MakeBench();MakeFurnace();MakeAnvil();MakeCrate();MakeRack();MakeScale();MakeStall();MakeLantern();MakeHammer();MakeTongs();MakeLighting();MakeDressing();AtmosBuild();BatchRoom();BakeWorkshopReflection();
+  MakeMaterials();MakeRoom();MakeBench();MakeFurnace();MakeAnvil();MakeCrate();MakeRack();MakeScale();MakeStall();MakeLantern();MakeHammer();MakeTongs();MakeLighting();MakeDressing();AtmosBuild();BatchRoom();FindRoomBellows();BakeWorkshopReflection();
   var cameraObject=new GameObject("Workshop camera");cam=cameraObject.AddComponent<Camera>();cam.nearClipPlane=.035f;cam.farClipPlane=65;cam.clearFlags=CameraClearFlags.SolidColor;cam.backgroundColor=C("111b19");cam.allowHDR=true;cameraObject.AddComponent<ForgeFinish>();cameraObject.AddComponent<ForgeCameraRig>().forge=this;
   AtmosCamera(cam);
   CreateSmith();Resize();if(queuedSnapshot!=null){var pending=queuedSnapshot;queuedSnapshot=null;Sync(pending);}Quick("focus");Send("ready",0,"",ForgeContract.Protocol);
@@ -57,7 +57,7 @@ public partial class ForgeWorld:MonoBehaviour {
   reduced=next.reduced||next.motion=="reduced"||next.motion=="off";motionOff=next.motion=="off";currentRisk=next.risk;
   var ids=new HashSet<int>();foreach(var k in next.knives)ids.Add(k.id);var removed=new List<int>();foreach(var pair in bodies)if(!ids.Contains(pair.Key))removed.Add(pair.Key);
   foreach(var id in removed){var removedBody=bodies[id];if(hearth!=null&&hearth.knifeId==id)AbortHearth(false);if(heldId==id)heldId=-1;if(carriedId==id)carriedId=-1;
-   if(next.effect!=null&&next.effect.id==id&&next.effect.kind=="sell")KeepSale(removedBody);else{if(next.effect!=null&&next.effect.id==id&&next.effect.outcome=="shatter")BreakBlade(removedBody);DisposeBody(removedBody);}bodies.Remove(id);}
+   if(next.effect!=null&&next.effect.id==id&&next.effect.kind=="sell"){KeepSale(removedBody);StartGlance();}else{if(next.effect!=null&&next.effect.id==id&&next.effect.outcome=="shatter")BreakBlade(removedBody);DisposeBody(removedBody);}bodies.Remove(id);}
   int crateIndex=0,rackIndex=0;foreach(var k in next.knives){var sig=KnifeSignature(k);Body b;string was=null;bool fresh=false;
    if(!bodies.TryGetValue(k.id,out b)){b=MakeKnife(k);b.signature=sig;b.knife=k;b.target=PlaceTarget(k,ref crateIndex,ref rackIndex);b.root.transform.position=b.target;bodies[k.id]=b;fresh=true;}
    else{was=b.knife.place;if(b.signature!=sig){KnifeRefresh(b,k);b.signature=sig;}b.knife=k;b.target=PlaceTarget(k,ref crateIndex,ref rackIndex);}

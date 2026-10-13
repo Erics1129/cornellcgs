@@ -5,7 +5,12 @@
 // usage: node scripts/forge-qa/strike.mjs [--url http://127.0.0.1:4173/minigames/forgeOrFold/] [--out output/forge-qa/strike.json]
 //          [--profiles desktop,phone,webkit-phone,landscape,reduced] [--n 20]
 import path from 'node:path'
-import { launch, open, now, sleep, press, hud, strike, ensureForging, forgeButton, unityEvents, waitEvent, telemetry, screencast, frameDiff, hitStopFromFrames, contactSheet, writeJson, stats, URL } from './lib.mjs'
+import { launch, open, now, sleep, press, hud, strike, ensureForging, forgeButton, unityEvents, waitEvent, screencast, frameDiff, hitStopFromFrames, contactSheet, writeJson, stats, URL } from './lib.mjs'
+
+/** Telemetry frames since page time `since`, stamped with the page clock. lib's telemetry() spreads the frame over its
+ *  receive time, so Unity's own t (realtimeSinceStartup ms) replaces the page time there; the raw 'telemetry' events
+ *  keep the page time, so read those. ut = Unity's realtime ms. */
+const telemetry = (h, since = 0) => h.page.evaluate(s => window.__forge.events.filter(e => e.type === 'telemetry' && e.t >= s).map(e => { try { const f = JSON.parse(e.spot); return { ...f, ut: f.t, t: e.t } } catch { return null } }).filter(Boolean), since)
 
 const arg = (name, d) => { const i = process.argv.indexOf('--' + name); return i > 0 ? process.argv[i + 1] : d }
 const url = arg('url', URL), outFile = path.resolve(arg('out', 'output/forge-qa/strike.json')), N = Number(arg('n', 20))
@@ -83,13 +88,13 @@ async function run(kind) {
     r.tuned = await h.page.evaluate(() => !!document.querySelector('[data-testid=forge-scene]')?.dataset.tuning)
     r.hearth = await hearth(h)
     await h.shot('seated')
+    if (kind === 'desktop' || kind === 'reduced') { await sleep(600); r.filmed = await filmed(h) }
     const rows = await series(h, kind === 'desktop' ? N : Math.min(N, 10))
     r.strikes = rows
     const lowRisk = rows.filter(x => (x.risk ?? 0) < .3)
     r.latency = { impactMs: summary(rows.map(x => x.impactMs)), lowRiskImpactMs: summary(lowRisk.map(x => x.impactMs)), settleAfterImpactMs: summary(rows.map(x => x.settleAfterImpactMs)) }
     r.pose = { faceDotMin: Math.min(...rows.map(x => x.faceDot ?? 1)), handToHandleMax: Math.max(...rows.map(x => x.handToHandle ?? 0)), headVp: [Math.min(...rows.map(x => x.headVpMin ?? .5)), Math.max(...rows.map(x => x.headVpMax ?? .5))], coverAtPressMax: Math.max(...rows.map(x => x.coverAtPress ?? 0)), pitch: summary(rows.map(x => x.pitch)), fov: summary(rows.map(x => x.fov)) }
     r.hitStop = rows.filter(x => x.outcome).map(x => ({ outcome: x.outcome, ms: x.hitStopMs, want: kind === 'reduced' ? 0 : HITSTOP[x.outcome] }))
-    if (kind === 'desktop' || kind === 'reduced') r.filmed = await filmed(h)
     if (kind === 'desktop') { if (await ensureForging(h)) r.mash120 = await mash(h, 120, 3000); if (await ensureForging(h)) r.rhythm300 = await mash(h, 640 + 300, 4000) }
     if (kind === 'reduced') { const tele = await telemetry(h, 0); r.reducedCheck = { timeScaleMin: Math.min(...tele.map(f => f.timeScale)), kickMax: Math.max(...tele.map(f => Math.abs(f.kick))), traumaMax: Math.max(...tele.map(f => f.trauma)) } }
     r.console = h.consoleLines.filter(l => /\[error\]|pageerror/i.test(l)).slice(0, 20)

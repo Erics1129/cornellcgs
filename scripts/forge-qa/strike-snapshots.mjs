@@ -1,7 +1,7 @@
 // strike-feel visual loop: the hearth reach on a timeline, the hammer at press +1 frame, apex and contact, close-ups
 // of the hands, and the per-outcome hit-stop frames, rendered by the frozen editor rig (ForgeSnapshots.Capture).
 // usage: node scripts/forge-qa/strike-snapshots.mjs --out <dir> [--project unity/ForgeOrFold] [--view desktop|phone|landscape]
-//          [--sheet] [--fixtures-only] [--only hearth,strike,closeup,outcomes,flow,moves,look]
+//          [--sheet] [--fixtures-only] [--only hearth,hearthside,strike,closeup,outcomes,flow,moves,look]
 // Steps it adds on top of the rig: Qa('strike-press=<seq>') presses without the rig resolving the hit (pose frames),
 // Qa('strike-cam=ex,ey,ez,tx,ty,tz,fov') / Qa('strike-cam=off') overrides the camera (editor only), Qa('strike-bones')
 // logs the arm bones (FORGE_BONES in unity.log). Telemetry frames land in index.json messages.
@@ -18,7 +18,7 @@ const repo = resolve(dirname(fileURLToPath(import.meta.url)), '../..')
 const project = resolve(arg('project', join(repo, 'unity/ForgeOrFold')))
 const out = resolve(arg('out', join(repo, 'output/strike-snapshots')))
 const view = arg('view', 'desktop'), dt = Number(arg('dt', 1 / 120))
-const only = new Set((arg('only', 'hearth,strike,closeup,outcomes,flow,moves,look')).split(','))
+const only = new Set((arg('only', 'hearth,hearthside,strike,closeup,outcomes,flow,moves,look')).split(','))
 const editor = process.env.UNITY_EDITOR || '/Applications/Unity/Hub/Editor/6000.3.18f1/Unity.app/Contents/MacOS/Unity'
 
 const payload = (state, event, selected = 1, extra = {}) => JSON.stringify({ ...snapshotPayload(state, selected, { reduced: false, ...extra }), effect: unityEffect(event) })
@@ -61,6 +61,17 @@ if (only.has('hearth')) {
   steps.push(W8(+(2.0 - t).toFixed(4)), { do: 'sync', json: payload(heated.state, heated.event) }, { do: 'sync', json: payload(seated.state, seated.event) })
   steps.push(W8(.08), C('hearth-2.08'), W8(.12), C('hearth-2.20'), W8(.3), C('seated'), { do: 'qa', mode: 'strike-bones' })
 } else steps.push({ do: 'sync', json: payload(seated.state, seated.event) }, W8(.6))
+if (only.has('hearthside')) {
+  // Third-person views of the hearth reach (the body renders arms only): the right hand on the bellows handle through the pull.
+  const back = step(seated.state, { type: 'move', id: 1, to: 'rack' }), again = step(back.state, { type: 'move', id: 2, to: 'furnace' })
+  const heat2 = step(again.state, { type: 'heat', id: 2 }), seat2 = step(heat2.state, { type: 'move', id: 2, to: 'anvil' })
+  steps.push({ do: 'sync', json: payload(back.state, back.event) }, W8(.6), cam([.35, 1.55, -.35], [-.62, 1.05, -.62], 50), W8(2 * dt))
+  steps.push({ do: 'sync', json: payload(again.state, again.event) })
+  let t = 0
+  for (const at of [.3, .5, .7, .85, 1.1, 1.3]) { steps.push(W8(+(at - t).toFixed(4)), C('hearthside-' + at.toFixed(2))); t = at }
+  steps.push(W8(+(2.0 - t).toFixed(4)), { do: 'sync', json: payload(heat2.state, heat2.event) }, { do: 'sync', json: payload(seat2.state, seat2.event) }, W8(.4), { do: 'qa', mode: 'strike-cam=off' }, W8(.1))
+  steps.push({ do: 'sync', json: payload(seated.state) }, W8(.3))
+}
 if (only.has('strike')) {
   // Parked after idle, then a strike from park with apex and contact frames, and a press +1/+2 frame capture.
   steps.push(W8(1.8), C('park'), { do: 'sync', json: payload(good.before) }, W8(.4))

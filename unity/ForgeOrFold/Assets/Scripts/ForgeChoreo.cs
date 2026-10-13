@@ -139,14 +139,15 @@ public partial class ForgeWorld {
   if(h.t>=.22f&&h.t<back-.12f)ReleaseHammer(true);else if(h.t>=back-.12f&&hammerReleased)ReleaseHammer(false);
   // The right hand: on the hammer while it is laid down, on the bellows chain for the two pulls, then it lets the chain
   // go and drops out of the view (IK weight 0) during the turn back, and reaches the lying hammer as the step lands.
-  float release=k.bellowsPull2S+k.bellowsStrokeS*.5f+.04f,reach=back-.38f;
+  float release=ForgeHearth.BellowsRelease(k),reach=back-.38f;
   if(h.t<.22f){handOnHammer=1;rightIk=1;}
   else if(h.t<release){handOnHammer=Mathf.MoveTowards(handOnHammer,0,dt/.18f);rightIk=1;}
   else if(h.t<reach){rightIk=Mathf.MoveTowards(rightIk,0,dt/.2f);if(rightIk<=0)handOnHammer=1;}
   else{handOnHammer=1;rightIk=Mathf.MoveTowards(rightIk,1,dt/.26f);}
-  float pull=ForgeHearth.Bellows(k,h.t);
-  foreach(var at in new[]{k.bellowsPull1S,k.bellowsPull2S}){int i=at==k.bellowsPull1S?0:1;if((h.strokes&(1<<i))==0&&h.t>=at-k.bellowsStrokeS*.5f){h.strokes|=1<<i;Bellows(1);}}
-  bellowsPull=pull;
+  // The room's rocker moves the handle on Bellows(); the hand follows the handle (BellowsGrip).
+  if((h.strokes&1)==0&&h.t>=k.bellowsPull1S){h.strokes|=1;Bellows(1);}
+  if(ForgeHearth.SecondPull(k)&&(h.strokes&2)==0&&h.t>=k.bellowsPull2S){h.strokes|=2;Bellows(1);}
+  bellowsPull=ForgeHearth.Bellows(k,h.t);
   // Blank appears in the jaws while they are low and out of view; plunge, heat, pull out.
   if(!h.appeared&&h.t>=.06f&&(h.t>=.30f||!InView(jawPos,.04f))){h.appeared=true;h.appearT=0;Send("sfx",h.knifeId,ForgeContract.Sfx.Tongs,.8f);}
   if(h.appeared)h.appearT+=dt;
@@ -159,6 +160,12 @@ public partial class ForgeWorld {
   if(h.t>6){AbortHearth(false);return;}
  }
  float bellowsPull;
+ /// The room's rocker handle (room-light-post's ForgeDressing names it "Bellows chain and handle"), found once after the
+ /// room is built: the right hand follows its real drop. Without it, the drop follows ForgeHearth.Bellows.
+ Transform roomBellows;float roomBellowsRestY;
+ void FindRoomBellows(){var go=GameObject.Find("Bellows chain and handle");if(go!=null){roomBellows=go.transform;roomBellowsRestY=roomBellows.position.y;}}
+ /// Where the right hand closes on the bellows handle (a bar along x at ForgeLayout.BellowsHandle) this frame.
+ Vector3 BellowsGrip(){float drop=roomBellows!=null?Mathf.Clamp(roomBellowsRestY-roomBellows.position.y,0,.3f):.01f*K.bellowsPullCm*bellowsPull;return ForgeLayout.BellowsHandle+Vector3.down*drop;}
  /// Right-hand IK weight (1 = on the hammer or the chain; 0 = the arm hangs at the side, out of the view).
  float rightIk=1;
  /// A world point is inside the camera's view (with a viewport margin).

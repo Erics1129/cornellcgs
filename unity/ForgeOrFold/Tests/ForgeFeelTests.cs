@@ -12,17 +12,17 @@ static class ForgeFeelTests {
  static readonly FV Stance=V(L.SmithAnvilStance), Contact=V(L.StrikePoint);
 
  // ---------- the camera of the work view ----------
- struct View { public string name; public float cssW,cssH,top,bottom,fov,aspect,shiftX,shiftY; }
+ struct View { public string name; public bool portrait; public float cssW,cssH,top,bottom,fov,aspect,shiftX,shiftY; }
  static View MakeView(string name,float w,float h,float top,float bottom,ForgeStrikeTuning t){
-  var v=new View{name=name,cssW=w,cssH=h,top=top,bottom=bottom,aspect=w/h};
+  var v=new View{name=name,portrait=h>w,cssW=w,cssH=h,top=top,bottom=bottom,aspect=w/h};
   ForgeFraming.BandSize(w,h,top,0,bottom,0,out float bh,out float bw);ForgeFraming.BandCentre(w,h,top,0,bottom,0,out v.shiftX,out v.shiftY);
-  float dist=(Look(t)-V(L.WorkEye)).Length;
-  v.fov=ForgeFraming.FitFov(t.frameTargetW,t.frameTargetH,dist,v.aspect,bh,bw,t.frameFill,t.frameWidthFill,t.fovMin,t.fovMax);return v;
+  float dist=(Look(t,v.portrait)-V(L.WorkEye)).Length;
+  v.fov=ForgeFraming.FitFov(ForgeFraming.TargetW(t,v.portrait),t.frameTargetH,dist,v.aspect,bh,bw,t.frameFill,t.frameWidthFill,t.fovMin,t.fovMax);return v;
  }
  static ForgeStrikeTuning tk;
- static FV Look(ForgeStrikeTuning t)=>V(L.WorkLook)+new FV(t.frameShiftX,0,0);
- static FQ WorkRot()=>FQ.LookRotation(Look(tk)-V(L.WorkEye),FV.Up);
- static bool Project(View v,FV world,out float x,out float y){var c=ForgeFraming.ToCamera(world,V(L.WorkEye),WorkRot());return ForgeFraming.Viewport(c,v.fov,v.aspect,v.shiftX,v.shiftY,out x,out y);}
+ static FV Look(ForgeStrikeTuning t,bool portrait)=>V(L.WorkLook)+new FV(ForgeFraming.LookShiftX(t,portrait),0,0);
+ static FQ WorkRot(bool portrait)=>FQ.LookRotation(Look(tk,portrait)-V(L.WorkEye),FV.Up);
+ static bool Project(View v,FV world,out float x,out float y){var c=ForgeFraming.ToCamera(world,V(L.WorkEye),WorkRot(v.portrait));return ForgeFraming.Viewport(c,v.fov,v.aspect,v.shiftX,v.shiftY,out x,out y);}
  struct Box2 { public float x0,y0,x1,y1; public float Area=>Math.Max(0,x1-x0)*Math.Max(0,y1-y0); }
  static Box2 ScreenBox(View v,IEnumerable<FV> pts){var b=new Box2{x0=9,y0=9,x1=-9,y1=-9};foreach(var p in pts){if(!Project(v,p,out float x,out float y))continue;b.x0=Math.Min(b.x0,x);b.y0=Math.Min(b.y0,y);b.x1=Math.Max(b.x1,x);b.y1=Math.Max(b.y1,y);}return b;}
  static float Overlap(Box2 a,Box2 b){var i=new Box2{x0=Math.Max(a.x0,b.x0),y0=Math.Max(a.y0,b.y0),x1=Math.Min(a.x1,b.x1),y1=Math.Min(a.y1,b.y1)};return b.Area>0?i.Area/b.Area:0;}
@@ -87,7 +87,8 @@ static class ForgeFeelTests {
    // The strike point sits in the free band.
    Project(v,Contact,out float sx,out float sy);float bandLo=v.bottom/v.cssH,bandHi=1-v.top/v.cssH;Check(sy>bandLo&&sy<bandHi,v.name+" strike point outside the free band");
   }
-  Check(Math.Abs(views[0].fov-42)<=4&&Math.Abs(views[2].fov-62)<=6&&Math.Abs(views[3].fov-46)<=6,"fitted FOVs near the plan's 42 / 62 / 46");
+  // Portrait frames the knife, the tongs and the hammer at ready across a narrow band (critique: frame to fit, 34-70).
+  Check(Math.Abs(views[0].fov-42)<=4&&views[2].fov>=56&&views[2].fov<=70&&Math.Abs(views[3].fov-46)<=6,"fitted FOVs near the plan's 42 / 62 / 46");
 
   // ---------- 4. The strike machine: spacing, buffering, exactly one contact per accepted press ----------
   var rng=new Random(20261012);var ev=new List<ForgeStrikeEvent>();int schedules=10000,bad=0;float minNormal=1e9f,minFlow=1e9f;
@@ -136,6 +137,7 @@ static class ForgeFeelTests {
    Check(ForgeFeel.HitStopMs(k,"perfect",false,false,true,false)==42.5f&&ForgeFeel.HitStopMs(k,"shatter",false,false,false,true)==0,"Flow halves, reduced removes");
    Check(k.hitStopShatter+k.shatterSlowMs+k.shatterRampMs<ForgeTime.WatchdogSeconds*1000,"shatter stop plus slow-mo under the watchdog");
    ForgeFeel.Kick(k,"chip",false,false,out float kp,out float kd,out float kr);Check(kp==.8f&&kd==3.5f&&kr==.4f,"chip kick");
+   Check(ForgeFeel.Glance(k,0)==0&&ForgeFeel.Glance(k,k.glanceS)>.99f&&ForgeFeel.Glance(k,k.glanceS+k.glanceHoldS+k.glanceBackS+.01f)<0,"sale glance out, hold, back");
    Check(ForgeFeel.Trauma(k,"good",false)==0&&ForgeFeel.Trauma(k,"perfect",false)==0&&ForgeFeel.Trauma(k,"shatter",false)>.5f,"trauma only for evolution and shatter");
   }
 
@@ -156,7 +158,10 @@ static class ForgeFeelTests {
    float lookOn=0;for(float tt=0;tt<2;tt+=.001f)if(ForgeHearth.Look(k,tt)>.85f)lookOn+=.001f;Console.WriteLine($"  camera on the firebed {lookOn:0.00} s of the 2.0 s heat");Check(lookOn>=1.2f,"firebed in view for "+lookOn.ToString("0.00")+" s");
    float heat=2.0f,seatAt=Math.Max(heat,ForgeHearth.BackAt(k));float seated=seatAt+k.seatS;Check(seated-heat<=.25f,"seated "+((seated-heat)*1000).ToString("0")+" ms after the heat event");
    Check(ForgeHearth.Plunge(k,.3f)==0&&ForgeHearth.Plunge(k,1.0f)==1&&ForgeHearth.Plunge(k,k.hearthPullS+k.hearthPullDurS+.01f)==0,"plunge in and out");
-   Check(ForgeHearth.Bellows(k,k.bellowsPull1S)>.95f&&ForgeHearth.Bellows(k,k.bellowsPull2S)>.95f&&ForgeHearth.Bellows(k,.2f)==0,"two bellows strokes");
+   float pulled=k.bellowsPull1S+k.bellowsDownS,rel=ForgeHearth.BellowsRelease(k);
+   Check(ForgeHearth.Bellows(k,k.bellowsPull1S)==0&&ForgeHearth.Bellows(k,pulled)>.99f&&ForgeHearth.Bellows(k,.2f)==0&&(ForgeHearth.SecondPull(k)||ForgeHearth.Bellows(k,pulled+k.bellowsUpS+.01f)==0),"bellows stroke mirrors the rocker (down "+k.bellowsDownS+" s, up "+k.bellowsUpS+" s)");
+   Check(rel>pulled&&rel<=ForgeHearth.BackAt(k)-.6f+1e-4f&&rel>k.hearthPlungeAtS+k.hearthPlungeS,"right hand lets go of the bellows at "+rel.ToString("0.00")+" s, before the step back");
+   Console.WriteLine($"  bellows pulled {k.bellowsPullCm} cm at {k.bellowsPull1S:0.00}-{pulled:0.00} s, hand lets go at {rel:0.00} s");
    Check(ForgeHearth.At(k,.1f,2)==ForgeHearth.Phase.StepOut&&ForgeHearth.At(k,1,2)==ForgeHearth.Phase.Heat&&ForgeHearth.At(k,2.03f,2.1f)==ForgeHearth.Phase.StepBack||ForgeHearth.At(k,2.03f,2.1f)==ForgeHearth.Phase.Hover,"hearth phases");
   }
 

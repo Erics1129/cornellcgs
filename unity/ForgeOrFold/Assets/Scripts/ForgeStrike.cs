@@ -124,16 +124,25 @@ public partial class ForgeWorld {
   else{idlePose=hammerLocal=new ForgeHammerPose(F(ToSmith(hammer.position)),Fq(Quaternion.Inverse(SmithYaw)*hammer.rotation));parkBlend=1;idleTime=K.restIdleS+.01f;}}
  Vector3 releaseFromPos;Quaternion releaseFromRot=Quaternion.identity;float releaseT;
 
- // ------------------------------------------------------------------ smear: ghost copies of the head on the downstroke
+ // ------------------------------------------------------------------ smear: stretched ghosts of the head on the downstroke
+ // Ghost i spans the head's path from (now - i spacing) to (now - (i+1) spacing): centred between the two head positions,
+ // turned like the head there and stretched along the head axis (the head travels face first) to cover the gap, its
+ // alpha fading with age. Only on downstroke frames (not on the contact frame, where the flash would light them up).
+ const float GhostCentreX=.012f,GhostLength=.1172f;
  void UpdateSmear(){
-  if(smear==null)return;var k=K;bool on=k.smearGhosts>0&&strikes.hasCurrent&&!hammerReleased&&(!strikes.contacted?ForgeSwing.Sample(strikes.current,strikeNow,k).phase==ForgeSwingPhase.Down:framesSinceContact<=1);
+  if(smear==null)return;var k=K;bool on=k.smearGhosts>0&&strikes.hasCurrent&&!strikes.contacted&&!hammerReleased&&!reduced&&ForgeSwing.Sample(strikes.current,strikeNow,k).phase==ForgeSwingPhase.Down;
   for(int i=0;i<smear.Length;i++){
    bool show=on&&i<k.smearGhosts;
-   if(show){float tg=(strikes.contacted?strikes.contactAt:strikeNow)-(i+1)*k.smearSpacingMs;var s=ForgeSwing.Sample(strikes.current,tg,k);show=s.phase==ForgeSwingPhase.Down||s.phase==ForgeSwingPhase.Hold;
-    if(show){var p=s.phase==ForgeSwingPhase.Down?arc.Arc(s.elbow,s.wrist):arc.Arc(1,1);var g=smear[i];g.position=smith.position+SmithYaw*U(p.grip);g.rotation=SmithYaw*U(p.rot);smearProps.SetFloat("_Alpha",k.smearAlpha*(1-i/(float)Mathf.Max(1,k.smearGhosts)));g.GetComponent<Renderer>().SetPropertyBlock(smearProps);}}
+   if(show){var a=SmearPose(strikeNow-i*k.smearSpacingMs,out bool okA);var b=SmearPose(strikeNow-(i+1)*k.smearSpacingMs,out bool okB);show=okA&&okB;
+    if(show){var off=arc.HeadLocal+arc.Hang*new FV(GhostCentreX,0,0);var ca=a.grip+a.rot*off;var cb=b.grip+b.rot*off;float gap=FV.Distance(ca,cb);
+     var g=smear[i];g.position=smith.position+SmithYaw*U((ca+cb)*.5f);g.rotation=SmithYaw*U(FQ.Slerp(a.rot,b.rot,.5f)*arc.Hang);
+     g.localScale=new Vector3(Mathf.Clamp(1+gap/GhostLength,1,k.smearMaxStretch),1,1);
+     smearProps.SetFloat("_Alpha",k.smearAlpha*(1-i/(float)Mathf.Max(1,k.smearGhosts)));g.GetComponent<Renderer>().SetPropertyBlock(smearProps);}}
    if(smear[i].gameObject.activeSelf!=show)smear[i].gameObject.SetActive(show);
   }
  }
+ /// The swing's hammer pose at strike time t (false before the apex).
+ ForgeHammerPose SmearPose(float t,out bool ok){var s=ForgeSwing.Sample(strikes.current,t,K);ok=s.phase==ForgeSwingPhase.Down||s.phase==ForgeSwingPhase.Hold;return s.phase==ForgeSwingPhase.Down?arc.Arc(s.elbow,s.wrist):arc.Arc(1,1);}
 
  // ------------------------------------------------------------------ the procedural hammer: a 1.0 kg cross-peen
  // 11.5 cm head (face to peen), octagonal 3.8 cm crowned face with a 2 mm chamfer and a polished ring, 3.2 cm square
@@ -150,20 +159,28 @@ public partial class ForgeWorld {
   foreach(var r in hammer.GetComponentsInChildren<Renderer>()){r.shadowCastingMode=ShadowCastingMode.Off;r.receiveShadows=false;}
   // Smear ghosts share the head mesh with a translucent lit steel (Forge/Smear).
   var smearShader=Shader.Find(ForgeContract.Shaders.Smear);
-  if(smearShader!=null){smearMat=new Material(smearShader){name="Hammer smear"};smearMat.SetColor("_Color",C("6a7174"));smearProps=new MaterialPropertyBlock();smear=new Transform[4];
-   for(int i=0;i<smear.Length;i++){var g=MeshObject("Hammer smear ghost",hammerHeadMesh,smearMat);g.transform.SetParent(dynamicRoot,false);var r=g.GetComponent<Renderer>();r.sharedMaterials=new[]{smearMat,smearMat};r.shadowCastingMode=ShadowCastingMode.Off;r.receiveShadows=false;g.SetActive(false);smear[i]=g.transform;}}
+  if(smearShader!=null){smearMat=new Material(smearShader){name="Hammer smear"};smearMat.SetColor("_Color",C("4c5255"));smearMat.SetFloat("_Metallic",.7f);smearMat.SetFloat("_Glossiness",.36f);smearProps=new MaterialPropertyBlock();smear=new Transform[4];ghostMesh=HammerGhostMesh();
+   for(int i=0;i<smear.Length;i++){var g=MeshObject("Hammer smear ghost",ghostMesh,smearMat);g.transform.SetParent(dynamicRoot,false);var r=g.GetComponent<Renderer>();r.sharedMaterials=new[]{smearMat,smearMat};r.shadowCastingMode=ShadowCastingMode.Off;r.receiveShadows=false;g.SetActive(false);smear[i]=g.transform;}}
  }
  ForgeStrikeTuning toolTuning;
  /// Tune can change the hang and the tong geometry: rebuild the meshes (cheap; once per Tune).
- void RebuildTools(){if(hammerHead!=null){var old=hammerHeadMesh;hammerHeadMesh=HammerHeadMesh(arc);hammerHead.GetComponent<MeshFilter>().sharedMesh=hammerHeadMesh;if(smear!=null)foreach(var g in smear)g.GetComponent<MeshFilter>().sharedMesh=hammerHeadMesh;if(old)Destroy(old);}
+ void RebuildTools(){if(hammerHead!=null){var old=hammerHeadMesh;hammerHeadMesh=HammerHeadMesh(arc);hammerHead.GetComponent<MeshFilter>().sharedMesh=hammerHeadMesh;if(old)Destroy(old);}
   if(tongs!=null){var mf=tongs.GetComponentInChildren<MeshFilter>();if(mf!=null){var old=mf.sharedMesh;mf.sharedMesh=TongMesh(K);if(old)Destroy(old);}float e=K.tongElevDeg*Mathf.Deg2Rad;tongHandLocal=new Vector3(Mathf.Cos(e),Mathf.Sin(e),0)*K.tongHandM;var rein=Quaternion.Euler(0,-K.tongGripDeg,0)*Vector3.left;gripRel=Quaternion.Inverse(TongRotation(rein));}}
  /// Octagonal section (y along the handle, z across) with half sizes a (y), b (z) and corner chamfer c.
  static Vector2[] Octagon(float a,float b,float c){c=Mathf.Min(c,Mathf.Min(a,b)*.95f);return new[]{new Vector2(a,b-c),new Vector2(a-c,b),new Vector2(-(a-c),b),new Vector2(-a,b-c),new Vector2(-a,-(b-c)),new Vector2(-(a-c),-b),new Vector2(a-c,-b),new Vector2(a,-(b-c))};}
+ Mesh ghostMesh;
+ /// The head alone, unhung, centred on the head's middle (x = GhostCentreX): the smear ghosts stretch it along x.
+ static Mesh HammerGhostMesh(){HeadSections(out var v,out var steel,out var face);for(int i=0;i<v.Count;i++)v[i]-=new Vector3(GhostCentreX,0,0);return Faceted(v,steel,face,"Hammer ghost");}
  static Mesh HammerHeadMesh(ForgeHammerArc arc){
+  HeadSections(out var v,out var steel,out var face);
+  return HeadMesh(arc,v,steel,face);
+ }
+ /// Head vertices in head-local metres (x along the head, face at -x) and the steel and polished-face triangles.
+ static void HeadSections(out List<Vector3> v,out List<int> steel,out List<int> face){
   // Sections along the head axis x: (x, half y, half z, chamfer). Face at -x, cross peen at +x.
   float[,] s={{-.0450f,.0170f,.0170f,.0098f},{-.0432f,.0190f,.0190f,.0110f},{-.0350f,.0186f,.0186f,.0107f},{-.0280f,.0165f,.0165f,.0040f},{-.0240f,.0160f,.0160f,.0030f},{.0250f,.0160f,.0160f,.0030f},
    {.0330f,.0146f,.0160f,.0030f},{.0480f,.0102f,.0160f,.0026f},{.0610f,.0058f,.0158f,.0018f},{.0680f,.0030f,.0155f,.0012f},{.0700f,.0012f,.0150f,.0006f}};
-  var v=new List<Vector3>();var steel=new List<int>();var face=new List<int>();int n=s.GetLength(0);var rings=new List<Vector2[]>();
+  v=new List<Vector3>();steel=new List<int>();face=new List<int>();int n=s.GetLength(0);var rings=new List<Vector2[]>();
   for(int i=0;i<n;i++)rings.Add(Octagon(s[i,1],s[i,2],s[i,3]));
   // Side quads (flat-shaded: forged facets).
   for(int i=0;i+1<n;i++)for(int j=0;j<8;j++){int j2=(j+1)%8;var a=rings[i][j];var b=rings[i][j2];var c=rings[i+1][j2];var d=rings[i+1][j];int o=v.Count;
@@ -172,6 +189,8 @@ public partial class ForgeWorld {
   // Crowned face (polished) and the peen tip cap.
   {int o=v.Count;v.Add(new Vector3(-.0466f,0,0));for(int j=0;j<8;j++){var a=rings[0][j];v.Add(new Vector3(s[0,0],a.x,a.y));}for(int j=0;j<8;j++)face.AddRange(new[]{o,o+1+j,o+1+(j+1)%8});}
   {int o=v.Count;v.Add(new Vector3(.0706f,0,0));for(int j=0;j<8;j++){var a=rings[n-1][j];v.Add(new Vector3(s[n-1,0],a.x,a.y));}for(int j=0;j<8;j++)steel.AddRange(new[]{o,o+1+(j+1)%8,o+1+j});}
+ }
+ static Mesh HeadMesh(ForgeHammerArc arc,List<Vector3> v,List<int> steel,List<int> face){
   // Hang the head on the handle and set it on the eye.
   var hang=U(arc.Hang);for(int i=0;i<v.Count;i++)v[i]=new Vector3(0,arc.gripToHead,0)+hang*v[i];
   // Steel wedge in the top of the handle (not hung: it sits in the handle end).
@@ -279,7 +298,7 @@ public partial class ForgeWorld {
   if(hammer!=null)sb.Append("hammer grip ").Append(ToSmith(hammer.position).ToString("F3")).Append(" fist ").Append(rightHand!=null?ToSmith(FistCentre(true)).ToString("F3"):"-").Append(" handToHandle ").Append(HandToHandle().ToString("F3"));
   Debug.Log(sb.ToString());}
  /// Snapshot QA: hold the camera at a yaw and pitch (degrees; positive pitch looks down).
- public void QaLook(float yaw,float pitch){workFocus=false;route=null;orbitYaw=yaw;orbitPitch=Mathf.Clamp(pitch,-65,78);}
+ public void QaLook(float yaw,float pitch){workFocus=false;route=null;orbitYaw=yaw;orbitPitch=Mathf.Clamp(pitch,K.pitchMinDeg,K.pitchMaxDeg);}
  /// Snapshot QA: look at a station spot from the current eye.
  public void QaLookAt(string spot){if(cam==null||!spots.ContainsKey(spot))return;var d=spots[spot]-cam.transform.position;QaLook(Mathf.Atan2(d.x,d.z)*Mathf.Rad2Deg,-Mathf.Atan2(d.y,new Vector2(d.x,d.z).magnitude)*Mathf.Rad2Deg);}
 #endif

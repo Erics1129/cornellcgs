@@ -17,16 +17,21 @@ public partial class ForgeWorld {
  bool labelsDirty=true,camInit;float shiftX,shiftY,appliedFov;
  /// 0..1: how far the body leans into the work (PoseSmith pitches the body by spineLeanDeg times this).
  float workLean;
+ /// The sale glance clock (s; -1 = none): a look toward the scale while a knife sold from the anvil flies to it.
+ float glanceT=-1;
+ void StartGlance(){glanceT=reduced||!(workFocus&&AtAnvil())||!spots.ContainsKey("sell")?-1:0;}
  /// The camera pose before kick, shake and dip (for the label positions and QA).
  Vector3 camBasePos;
  ForgeStrikeTuning K=>tuning.strike;
  /// The work view looks at the strike point, shifted frameShiftX along the anvil (toward the tongs) so the whole knife,
  /// from the jaws to the tip, and the hammer sit inside a narrow (portrait) frame.
- Vector3 WorkLookAt=>ForgeLayout.WorkLook+Vector3.right*K.frameShiftX;
+ Vector3 WorkLookAt=>ForgeLayout.WorkLook+Vector3.right*ForgeFraming.LookShiftX(K,PortraitFrame);
+ /// The frame is taller than wide (phone portrait, or any narrow window).
+ bool PortraitFrame=>view.cssW>0&&view.cssH>0?view.cssH>view.cssW:Screen.height>Screen.width;
 
  /// Vertical FOV of the work view: frame the work (blade, hammer apex, jaws) into the HUD-free band.
  float WorkFov(){var k=K;float dist=Vector3.Distance(ForgeLayout.WorkEye,WorkLookAt);float aspect=Mathf.Max(.2f,(float)Screen.width/Mathf.Max(1,Screen.height));
-  if(view.cssW>0&&view.cssH>0){aspect=view.cssW/view.cssH;ForgeFraming.BandSize(view.cssW,view.cssH,view.top,view.right,view.bottom,view.left,out float bh,out float bw);return ForgeFraming.FitFov(k.frameTargetW,k.frameTargetH,dist,aspect,bh,bw,k.frameFill,k.frameWidthFill,k.fovMin,k.fovMax);}
+  if(view.cssW>0&&view.cssH>0){aspect=view.cssW/view.cssH;ForgeFraming.BandSize(view.cssW,view.cssH,view.top,view.right,view.bottom,view.left,out float bh,out float bw);return ForgeFraming.FitFov(ForgeFraming.TargetW(k,PortraitFrame),k.frameTargetH,dist,aspect,bh,bw,k.frameFill,k.frameWidthFill,k.fovMin,k.fovMax);}
   return view.Portrait?k.fovPortrait:view.Landscape?k.fovLandscape:Narrow?(aspect<1?k.fovPortrait:k.fovLandscape):k.fovDesktop;}
  float WalkFov(){var k=K;return view.Portrait?k.fovPortraitWalk:view.Landscape?k.fovLandscapeWalk:Narrow?k.fovPortraitWalk:k.fovDesktopWalk;}
  /// The work view eye for the smith standing at `stance` with yaw `yaw`.
@@ -76,7 +81,8 @@ public partial class ForgeWorld {
   float shakeAmount=reduced?0:trauma*trauma*(state!=null?state.shake:1);
   float sp=shakeAmount*k.shakeMaxDeg*ForgeFeel.Noise(shakeTime*k.shakeHz,11),sy=shakeAmount*k.shakeMaxDeg*ForgeFeel.Noise(shakeTime*k.shakeHz,23),sr=shakeAmount*k.shakeRollDeg*ForgeFeel.Noise(shakeTime*k.shakeHz,37);
   var shakePos=new Vector3(ForgeFeel.Noise(shakeTime*k.shakeHz,41),ForgeFeel.Noise(shakeTime*k.shakeHz,43),0)*(.001f*k.shakeMm*shakeAmount);
-  var finalRot=camBaseRot*Quaternion.Euler(kickPitch+headDip+sp,sy,kickRoll+sr+bobRoll);
+  float glanceYaw=0;if(glanceT>=0){glanceT+=dt;float g=ForgeFeel.Glance(k,glanceT);if(g<0||reduced)glanceT=-1;else{var to=spots["sell"]-camBasePos;float d=Mathf.DeltaAngle(camBaseRot.eulerAngles.y,Mathf.Atan2(to.x,to.z)*Mathf.Rad2Deg);glanceYaw=Mathf.Clamp(d,-k.glanceDeg,k.glanceDeg)*g;}}
+  var finalRot=Quaternion.Euler(0,glanceYaw,0)*camBaseRot*Quaternion.Euler(kickPitch+headDip+sp,sy,kickRoll+sr+bobRoll);
   cam.transform.position=camBasePos+finalRot*(new Vector3(bobSide,bobUp,0)+shakePos)+Vector3.down*kickDrop;cam.transform.rotation=finalRot;
   cameraHome=camBasePos;
   // ---- FOV: eased 0.3 s, plus the punch, minus the risk push-in ----

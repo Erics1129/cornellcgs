@@ -41,12 +41,16 @@ using System.Collections.Generic;
  public float restRight=.26f, restUp=-.10f, restBack=.30f, parkRight=.13f, parkBack=.125f, parkS=.45f, restIdleS=1.2f;
  // Work framing: FOV fallbacks by view, frame-to-fit band fill and clamps, eases.
  public float fovDesktop=42, fovDesktopWalk=62, fovPortrait=62, fovPortraitWalk=74, fovLandscape=46, fovLandscapeWalk=60;
- public float frameShiftX=-.03f, frameFill=.60f, frameFillMin=.55f, frameFillMax=.65f, frameTargetW=.45f, frameTargetH=.35f, frameWidthFill=.85f, fovMin=34, fovMax=70, fovEaseS=.3f, lookEase=28, workEase=14;
- // Walk bob locked to steps.
- public float strideM=.72f, bobMm=7, bobLateralMm=4, bobRollDeg=.25f;
- // Hearth reach (s from the trigger): step out, plunge, heat with two bellows pulls, pull out, step back, lay down.
- public float hearthStepS=.5f, hearthPlungeAtS=.42f, hearthPlungeS=.22f, bellowsPull1S=.60f, bellowsPull2S=1.15f, bellowsStrokeS=.42f, bellowsPullCm=9;
- public float hearthBuryCm=2.5f, hearthPullS=1.38f, hearthPullDurS=.14f, hearthBackS=1.50f, hoverMm=6, seatWaitMs=400, seatS=.12f, dissolveS=.12f, abortTweenS=.15f, fadeInS=.15f, glanceDeg=35, glanceS=.3f;
+ public float frameShiftX=-.03f, frameShiftXPortrait=-.06f, frameTargetWPortrait=.52f, frameFill=.60f, frameFillMin=.55f, frameFillMax=.65f, frameTargetW=.45f, frameTargetH=.35f, frameWidthFill=.85f, fovMin=34, fovMax=70, fovEaseS=.3f, lookEase=28, workEase=14;
+ // Walk bob locked to steps. Free-look pitch limits (deg, + looks down): the body renders arms only, so looking
+ // straight down would show the cut shoulders.
+ public float strideM=.72f, bobMm=7, bobLateralMm=4, bobRollDeg=.25f, pitchMinDeg=-65, pitchMaxDeg=60;
+ // Hearth reach (s from the trigger): step out, plunge, heat with the bellows, pull out, step back, lay down. The bellows
+ // is the room's rocker (ForgeDressing): Bellows() pulls its handle down bellowsPullCm over bellowsDownS and lets it rise
+ // over bellowsUpS, restarting from the top on every call, so a second pull (bellowsPull2S > bellowsPull1S) only looks
+ // right once the first stroke is over; 0 = one pull. The right hand holds the handle through the stroke.
+ public float hearthStepS=.5f, hearthPlungeAtS=.42f, hearthPlungeS=.22f, bellowsPull1S=.50f, bellowsPull2S=0, bellowsDownS=.35f, bellowsUpS=.8f, bellowsPullCm=12, bellowsRideS=.40f;
+ public float hearthBuryCm=2.5f, hearthPullS=1.38f, hearthPullDurS=.14f, hearthBackS=1.50f, hoverMm=6, seatWaitMs=400, seatS=.12f, dissolveS=.12f, abortTweenS=.15f, fadeInS=.15f, glanceDeg=35, glanceS=.3f, glanceHoldS=.25f, glanceBackS=.35f;
  // Tongs: grip angle between the reins and the blade's tang direction, hand distance from the jaws, rein rise.
  public float tongGripDeg=58, tongHandM=.40f, tongElevDeg=25, tongHearthYawDeg=-20;
  // Tong feed along the blade after each strike, the roll every 8 strikes, the spine tilt, the hammer's share of the walk.
@@ -60,7 +64,8 @@ using System.Collections.Generic;
  // Risk cues from snapshot.risk p (tau = smoothstep(riskLow, riskHigh, p)).
  public float riskLow=.15f, riskHigh=.6f, riskPushInDeg=3, riskApexHoldFrom=.3f, riskApexHoldMs=40, riskApexHoldPerRisk=100, riskApexHoldMaxMs=80;
  // Smear: stretched ghost copies of the head on the downstroke frames (spacing ms, first alpha).
- public int smearGhosts=3; public float smearSpacingMs=7, smearAlpha=.32f;
+ // Each ghost spans one spacing of the path, stretched along the head axis (the direction of travel) up to smearMaxStretch.
+ public int smearGhosts=3; public float smearSpacingMs=6, smearAlpha=.30f, smearMaxStretch=2.5f;
  // Evolution ring alpha (Flow no longer triggers the world ring) and the label re-send rate.
  public float ringAlpha=.25f, labelHz=4;
 
@@ -88,22 +93,22 @@ using System.Collections.Generic;
   readyRight=ForgeTuning.Fit(readyRight,-.2f,.3f,.06f);readyBack=ForgeTuning.Fit(readyBack,-.2f,.3f,.02f);restRight=ForgeTuning.Fit(restRight,-.5f,.6f,.26f);restUp=ForgeTuning.Fit(restUp,-.5f,.5f,-.10f);restBack=ForgeTuning.Fit(restBack,-.5f,.6f,.30f);parkRight=ForgeTuning.Fit(parkRight,0,.35f,.13f);parkBack=ForgeTuning.Fit(parkBack,-.1f,.14f,.125f);
   readyElbow=ForgeTuning.Fit(readyElbow,0,1,.45f);readyWrist=ForgeTuning.Fit(readyWrist,0,1,.55f);parkS=ForgeTuning.Fit(parkS,.05f,3,.45f);restIdleS=ForgeTuning.Fit(restIdleS,.2f,30,1.2f);
   fovMin=ForgeTuning.Fit(fovMin,20,90,34);fovMax=ForgeTuning.Fit(fovMax,fovMin,100,70);frameFillMin=ForgeTuning.Fit(frameFillMin,.2f,.95f,.55f);frameFillMax=ForgeTuning.Fit(frameFillMax,frameFillMin,.95f,.65f);frameFill=ForgeTuning.Fit(frameFill,frameFillMin,frameFillMax,.6f);
-  frameShiftX=ForgeTuning.Fit(frameShiftX,-.2f,.2f,-.03f);  frameTargetW=ForgeTuning.Fit(frameTargetW,.1f,2,.45f);frameTargetH=ForgeTuning.Fit(frameTargetH,.1f,2,.35f);frameWidthFill=ForgeTuning.Fit(frameWidthFill,.3f,1,.85f);fovEaseS=ForgeTuning.Fit(fovEaseS,.02f,2,.3f);
+  frameShiftX=ForgeTuning.Fit(frameShiftX,-.2f,.2f,-.03f);frameShiftXPortrait=ForgeTuning.Fit(frameShiftXPortrait,-.2f,.2f,-.06f);frameTargetWPortrait=ForgeTuning.Fit(frameTargetWPortrait,.1f,2,.52f);  frameTargetW=ForgeTuning.Fit(frameTargetW,.1f,2,.45f);frameTargetH=ForgeTuning.Fit(frameTargetH,.1f,2,.35f);frameWidthFill=ForgeTuning.Fit(frameWidthFill,.3f,1,.85f);fovEaseS=ForgeTuning.Fit(fovEaseS,.02f,2,.3f);
   fovDesktop=ForgeTuning.Fit(fovDesktop,fovMin,fovMax,42);fovPortrait=ForgeTuning.Fit(fovPortrait,fovMin,fovMax,62);fovLandscape=ForgeTuning.Fit(fovLandscape,fovMin,fovMax,46);
   fovDesktopWalk=ForgeTuning.Fit(fovDesktopWalk,20,100,62);fovPortraitWalk=ForgeTuning.Fit(fovPortraitWalk,20,100,74);fovLandscapeWalk=ForgeTuning.Fit(fovLandscapeWalk,20,100,60);
-  lookEase=ForgeTuning.Fit(lookEase,1,120,28);workEase=ForgeTuning.Fit(workEase,1,120,14);strideM=ForgeTuning.Fit(strideM,.3f,2,.72f);bobMm=ForgeTuning.Fit(bobMm,0,20,7);bobLateralMm=ForgeTuning.Fit(bobLateralMm,0,20,4);bobRollDeg=ForgeTuning.Fit(bobRollDeg,0,2,.25f);
+  lookEase=ForgeTuning.Fit(lookEase,1,120,28);workEase=ForgeTuning.Fit(workEase,1,120,14);strideM=ForgeTuning.Fit(strideM,.3f,2,.72f);bobMm=ForgeTuning.Fit(bobMm,0,20,7);bobLateralMm=ForgeTuning.Fit(bobLateralMm,0,20,4);bobRollDeg=ForgeTuning.Fit(bobRollDeg,0,2,.25f);pitchMinDeg=ForgeTuning.Fit(pitchMinDeg,-85,0,-65);pitchMaxDeg=ForgeTuning.Fit(pitchMaxDeg,50,85,60);
   // Hearth: the step takes at least .5 s each way (critique: comfortable), the phases stay in order.
   hearthStepS=ForgeTuning.Fit(hearthStepS,.5f,1.2f,.5f);hearthPlungeS=ForgeTuning.Fit(hearthPlungeS,.05f,.6f,.22f);hearthPlungeAtS=ForgeTuning.Fit(hearthPlungeAtS,.1f,hearthStepS+.3f,.42f);
   hearthPullS=ForgeTuning.Fit(hearthPullS,hearthPlungeAtS+hearthPlungeS+.2f,3,1.38f);hearthPullDurS=ForgeTuning.Fit(hearthPullDurS,.05f,.4f,.14f);hearthBackS=ForgeTuning.Fit(hearthBackS,hearthPullS+hearthPullDurS*.5f,3.5f,1.50f);
-  bellowsPull1S=ForgeTuning.Fit(bellowsPull1S,0,3,.6f);bellowsPull2S=ForgeTuning.Fit(bellowsPull2S,0,3,1.15f);bellowsStrokeS=ForgeTuning.Fit(bellowsStrokeS,.1f,1,.42f);bellowsPullCm=ForgeTuning.Fit(bellowsPullCm,0,30,9);
-  hearthBuryCm=ForgeTuning.Fit(hearthBuryCm,0,8,2.5f);seatWaitMs=ForgeTuning.Fit(seatWaitMs,0,1000,400);seatS=ForgeTuning.Fit(seatS,.02f,.5f,.12f);dissolveS=ForgeTuning.Fit(dissolveS,.02f,.5f,.12f);abortTweenS=ForgeTuning.Fit(abortTweenS,.02f,.6f,.15f);fadeInS=ForgeTuning.Fit(fadeInS,.02f,.6f,.15f);hoverMm=ForgeTuning.Fit(hoverMm,0,40,6);
+  bellowsPull1S=ForgeTuning.Fit(bellowsPull1S,.3f,1.2f,.5f);bellowsPull2S=ForgeTuning.Fit(bellowsPull2S,0,3,0);bellowsDownS=ForgeTuning.Fit(bellowsDownS,.05f,1,.35f);bellowsUpS=ForgeTuning.Fit(bellowsUpS,.05f,2,.8f);bellowsPullCm=ForgeTuning.Fit(bellowsPullCm,0,30,12);bellowsRideS=ForgeTuning.Fit(bellowsRideS,0,2,.4f);
+  hearthBuryCm=ForgeTuning.Fit(hearthBuryCm,0,8,2.5f);seatWaitMs=ForgeTuning.Fit(seatWaitMs,0,1000,400);seatS=ForgeTuning.Fit(seatS,.02f,.5f,.12f);dissolveS=ForgeTuning.Fit(dissolveS,.02f,.5f,.12f);abortTweenS=ForgeTuning.Fit(abortTweenS,.02f,.6f,.15f);fadeInS=ForgeTuning.Fit(fadeInS,.02f,.6f,.15f);glanceDeg=ForgeTuning.Fit(glanceDeg,0,60,35);glanceS=ForgeTuning.Fit(glanceS,.1f,1,.3f);glanceHoldS=ForgeTuning.Fit(glanceHoldS,0,1,.25f);glanceBackS=ForgeTuning.Fit(glanceBackS,.1f,1,.35f);hoverMm=ForgeTuning.Fit(hoverMm,0,40,6);
   tongGripDeg=ForgeTuning.Fit(tongGripDeg,0,90,58);tongHandM=ForgeTuning.Fit(tongHandM,.2f,.5f,.40f);tongElevDeg=ForgeTuning.Fit(tongElevDeg,0,60,25);
   feedFrom=ForgeTuning.Fit(feedFrom,0,1,.2f);feedTo=ForgeTuning.Fit(feedTo,feedFrom,1,.76f);feedHammerShare=ForgeTuning.Fit(feedHammerShare,0,1,.35f);feedStartMs=ForgeTuning.Fit(feedStartMs,0,400,100);feedEndMs=ForgeTuning.Fit(feedEndMs,feedStartMs+10,600,260);rollMs=ForgeTuning.Fit(rollMs,50,800,220);
   spineTiltDeg=ForgeTuning.Fit(spineTiltDeg,0,25,6);contactJitterCm=ForgeTuning.Fit(contactJitterCm,0,4,1);elbowHintRiseCm=ForgeTuning.Fit(elbowHintRiseCm,0,25,8);
   gripObliqueDeg=ForgeTuning.Fit(gripObliqueDeg,0,60,35);gripPalmCm=ForgeTuning.Fit(gripPalmCm,0,8,3.2f);gripAlongCm=ForgeTuning.Fit(gripAlongCm,2,14,8.5f);tongObliqueDeg=ForgeTuning.Fit(tongObliqueDeg,0,60,25);tongPalmCm=ForgeTuning.Fit(tongPalmCm,0,8,2.6f);tongPalmDownDeg=ForgeTuning.Fit(tongPalmDownDeg,-30,90,40);
   fingerCurlProxDeg=ForgeTuning.Fit(fingerCurlProxDeg,0,100,62);fingerCurlMidDeg=ForgeTuning.Fit(fingerCurlMidDeg,0,110,80);fingerCurlTipDeg=ForgeTuning.Fit(fingerCurlTipDeg,0,90,48);thumbCurlDeg=ForgeTuning.Fit(thumbCurlDeg,0,80,34);spineLeanDeg=ForgeTuning.Fit(spineLeanDeg,0,20,8);
   riskLow=ForgeTuning.Fit(riskLow,0,1,.15f);riskHigh=ForgeTuning.Fit(riskHigh,riskLow+.01f,1.01f,.6f);riskPushInDeg=ForgeTuning.Fit(riskPushInDeg,0,8,3);riskApexHoldMaxMs=ForgeTuning.Fit(riskApexHoldMaxMs,0,150,80);riskApexHoldMs=ForgeTuning.Fit(riskApexHoldMs,0,riskApexHoldMaxMs,40);
-  smearGhosts=Math.Max(0,Math.Min(4,smearGhosts));smearSpacingMs=ForgeTuning.Fit(smearSpacingMs,1,30,7);smearAlpha=ForgeTuning.Fit(smearAlpha,0,1,.32f);
+  smearGhosts=Math.Max(0,Math.Min(4,smearGhosts));smearSpacingMs=ForgeTuning.Fit(smearSpacingMs,1,30,6);smearAlpha=ForgeTuning.Fit(smearAlpha,0,1,.3f);smearMaxStretch=ForgeTuning.Fit(smearMaxStretch,1,6,2.5f);
   ringAlpha=ForgeTuning.Fit(ringAlpha,0,1,.25f);labelHz=ForgeTuning.Fit(labelHz,.5f,4,4);
  }
  static float Pos(float v,float fallback)=>float.IsNaN(v)||float.IsInfinity(v)||v<0?fallback:v;
@@ -200,6 +205,8 @@ public static class ForgeFeel {
  public static float Spring(float x0,float v0,float omega,float t)=>(x0+(v0+omega*x0)*t)*MathF.Exp(-omega*t);
  /// Exact critically damped step toward `target` (frame-rate independent).
  public static void SpringStep(ref float x,ref float v,float target,float omega,float dt){float d=x-target;float e=MathF.Exp(-omega*dt);float nx=(d+(v+omega*d)*dt)*e;float nv=(v-omega*(v+omega*d)*dt)*e;x=target+nx;v=nv;}
+ /// The sale glance (0..1 of glanceDeg toward the scale) at t s: turn over glanceS, hold, turn back; -1 when over.
+ public static float Glance(ForgeStrikeTuning t,float s){if(s<0)return -1;if(s<t.glanceS)return Smooth(s/t.glanceS);s-=t.glanceS;if(s<t.glanceHoldS)return 1;s-=t.glanceHoldS;return s<t.glanceBackS?1-Smooth(s/t.glanceBackS):-1;}
  /// Linear trauma decay.
  public static float Decay(float trauma,float perSecond,float dt)=>Math.Max(0,trauma-perSecond*dt);
  /// Exponential ease factor for a rate (1/s) over dt (s).
@@ -479,9 +486,14 @@ public static class ForgeHearth {
   if(t<k.hearthPlungeAtS)return 0;if(t<k.hearthPlungeAtS+k.hearthPlungeS)return ForgeFeel.Smooth((t-k.hearthPlungeAtS)/k.hearthPlungeS);
   if(t<k.hearthPullS)return 1;return 1-ForgeFeel.Smooth((t-k.hearthPullS)/k.hearthPullDurS);
  }
- /// Bellows handle pull (0..1) at time t: two strokes centred on bellowsPull1S and bellowsPull2S.
- public static float Bellows(ForgeStrikeTuning k,float t){float h=k.bellowsStrokeS*.5f;return Math.Max(Stroke((t-k.bellowsPull1S+h)/k.bellowsStrokeS),Stroke((t-k.bellowsPull2S+h)/k.bellowsStrokeS));}
- static float Stroke(float u){if(u<0||u>1)return 0;return MathF.Sin(u*MathF.PI);}
+ /// Bellows handle pull (0..1) at time t, mirroring the room's rocker: each stroke starts at its pull time, goes down over
+ /// bellowsDownS and rises over bellowsUpS. A second stroke counts only after bellowsPull1S (0 = none).
+ public static float Bellows(ForgeStrikeTuning k,float t){float a=Stroke(k,t-k.bellowsPull1S);return SecondPull(k)?Math.Max(a,Stroke(k,t-k.bellowsPull2S)):a;}
+ public static bool SecondPull(ForgeStrikeTuning k)=>k.bellowsPull2S>k.bellowsPull1S;
+ static float Stroke(ForgeStrikeTuning k,float u){if(u<0)return 0;if(u<k.bellowsDownS)return ForgeFeel.Smooth(u/k.bellowsDownS);u-=k.bellowsDownS;if(u<k.bellowsUpS)return 1-ForgeFeel.Smooth(u/k.bellowsUpS);return 0;}
+ /// When the right hand lets go of the bellows handle: bellowsRideS into the last stroke's rise (the handle keeps rising
+ /// on its own), and early enough to be back on the hammer as the step back lands.
+ public static float BellowsRelease(ForgeStrikeTuning k)=>Math.Min((SecondPull(k)?k.bellowsPull2S:k.bellowsPull1S)+k.bellowsDownS+k.bellowsRideS,BackAt(k)-.6f);
  /// How much the camera looks at the firebed (0 = the work view, 1 = the firebed) at time t.
  public static float Look(ForgeStrikeTuning k,float t){
   if(t<k.hearthBackS)return ForgeFeel.Smooth(t/(k.hearthStepS*.8f));
@@ -498,6 +510,10 @@ public static class ForgeFraming {
   float tv=targetH*.5f/dist/(fill*bandH);float tw=targetW*.5f/dist/(widthFill*bandW*aspect);
   float fov=2*MathF.Atan(Math.Max(tv,tw))/ForgeFeel.Deg;return ForgeFeel.Clamp(fov,min,max);
  }
+ /// Sideways shift (m, +x) of the work look-at: toward the tongs, more in portrait where the frame is narrow.
+ public static float LookShiftX(ForgeStrikeTuning t,bool portrait)=>portrait?t.frameShiftXPortrait:t.frameShiftX;
+ /// Width (m) of the work to frame: in portrait the knife, the tongs and the hammer at ready must all fit across.
+ public static float TargetW(ForgeStrikeTuning t,bool portrait)=>portrait?t.frameTargetWPortrait:t.frameTargetW;
  /// NDC centre of the HUD-free band (x right, y up), from CSS-pixel bands of a cssW x cssH canvas.
  public static void BandCentre(float cssW,float cssH,float top,float right,float bottom,float left,out float x,out float y){
   if(cssW<=0||cssH<=0){x=0;y=0;return;}
