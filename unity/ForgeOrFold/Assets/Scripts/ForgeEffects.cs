@@ -5,7 +5,7 @@ using UnityEngine.Rendering;
 // Owner: hot-metal-vfx. Smoke and steam (one batched mesh), the sale (knife to the scale, coins into the
 // dish) and the shatter (10-16 rigid pieces at the break temperature, one batched mesh, plane collisions).
 public partial class ForgeWorld {
- struct SmokeBit { public Vector3 p,v; public float age,life,size,grow,opacity,spin,seed,lit,drag,wisp; public Color32 color; }
+ struct SmokeBit { public Vector3 p,v; public float age,life,size,grow,opacity,spin,seed,lit,drag,wisp; public Color32 color; public bool dust; }
  class SaleGhost {public Body body;public Vector3 start;public Quaternion rotation;public float age;public bool paid;public int amount;}
  class Coin {public GameObject go;public Vector3 start,end,p,v,axis;public float age,delay,flight,spin;public int phase,index,total,bounces;public bool sent;public Quaternion rot;}
  class Shard {public int index,v0,count;public Vector3 p,v,w;public Quaternion r;public float scale,sfxClock,seed;public bool rest,landed;public float[] hull;}
@@ -25,10 +25,12 @@ public partial class ForgeWorld {
   int cap=Narrow?20:36;
   for(int i=0;i<count&&smokeCount<Mathf.Min(cap,MaxSmoke);i++)smoke[smokeCount++]=new SmokeBit{p=at+Random.insideUnitSphere*.035f,v=new Vector3(Random.Range(-.09f,.09f),Random.Range(.12f,.3f),Random.Range(-.05f,.06f)),age=-i*.035f,life=Random.Range(.7f,1.4f),size=Random.Range(.09f,.19f),grow=2.8f,opacity=hot?.2f:.5f,color=hot?new Color32(145,110,76,255):new Color32(150,142,132,255),spin=Random.Range(0,360f),seed=Random.value,lit=hot?0:1,drag=.6f};
  }
- /// A small, short puff of scale dust (Shatter): darker and much smaller than the dull-hit dust.
+ /// A whisper of dark scale dust (a Dull blow): dustDull bits of 3-5 cm, at most 16% opaque for under half a second, and
+ /// never more than dustCap of them alive near the anvil, so repeated Dulls cannot stack into a cloud over the blade.
  void ScaleDust(Vector3 at,int count){
-  if(reduced)return;
-  for(int i=0;i<count&&smokeCount<MaxSmoke;i++)smoke[smokeCount++]=new SmokeBit{p=at+Random.insideUnitSphere*.02f,v=new Vector3(Random.Range(-.12f,.12f),Random.Range(.06f,.18f),Random.Range(-.08f,.08f)),age=-i*.02f,life=Random.Range(.45f,.8f),size=Random.Range(.03f,.06f),grow=2.2f,opacity=.4f,color=new Color32(96,90,84,255),spin=Random.Range(0,360f),seed=Random.value,lit=1,drag=2.5f};
+  if(reduced)return;var t=tuning.metal;int alive=0;var c=ForgeLayout.AnvilCenter;
+  for(int i=0;i<smokeCount;i++){var b=smoke[i];if(b.dust&&(b.p-c).sqrMagnitude<.36f)alive++;}
+  for(int i=0;i<count&&alive<t.dustCap&&smokeCount<MaxSmoke;i++,alive++)smoke[smokeCount++]=new SmokeBit{p=at+Random.insideUnitSphere*.015f,v=new Vector3(Random.Range(-.10f,.10f),Random.Range(.05f,.14f),Random.Range(-.06f,.06f)),age=-i*.02f,life=t.dustLifeS*Random.Range(.6f,1f),size=.01f*Random.Range(t.dustMinCm,t.dustMaxCm),grow=t.dustGrow,opacity=t.dustOpacity,color=new Color32(96,90,84,255),spin=Random.Range(0,360f),seed=Random.value,lit=1,drag=2.5f,dust=true};
  }
  /// Quench steam: translucent, lamp-lit vapour that leaves the water fast, spreads and thins over about `seconds`
  /// (a third of the puffs under reduced motion).

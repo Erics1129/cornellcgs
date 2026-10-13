@@ -11,7 +11,7 @@
 //  bounce the fire's light thrown back by the hearth front, floor and walls: a soft warm fill in the
 //         ambient term (_ForgeFireBounce), so the whole room breathes with the flicker
 //  sconce dim candle by the door, candle = bench lantern (diffuse only; off in FORGE_LITE)
-//  impact contact flash at the real contact point (_ForgeImpactPos/_ForgeImpactColor x _ForgeImpact)
+//  impact contact flash at the real contact point (_ForgeImpactPos/_ForgeImpactColor x _ForgeImpact), diffuse only
 //  glow   hottest blade (_ForgeGlowPos/_ForgeGlowColor, attenuation 1 / (1 + d^2 / .16), range in .w)
 // Soft shadows and sphere AO from the four _ForgeOccluders apply only near the anvil (_ForgeShadowZone);
 // static contact shading arrives as a baked per-vertex AO term (ForgeLitAO). FORGE_LITE (quality tiers 2-3)
@@ -142,7 +142,10 @@ float3 ForgeLitAO(float3 base,float metal,float smooth,float3 p,float3 n,float3 
 #ifndef FORGE_LITE
  color+=(ForgeCandle(_ForgeSconcePosition,_ForgeSconceColor,p,n,base,metal)+ForgeCandle(_ForgeCandlePosition,_ForgeCandleColor,p,n,base,metal))*direct;
 #endif
- if(_ForgeImpact>0)color+=ForgeLamp(_ForgeImpactPos.xyz,_ForgeImpactColor.rgb*_ForgeImpact,p,n,view,base,metal,rough);
+ // Contact flash: light from the struck hot steel, diffuse only (a metal still takes 40% of it). Its specular mirror
+ // image on the polished anvil face landed 3-4 cm toward the camera from the contact as a pale cream flashlight spot.
+ if(_ForgeImpact>0){float3 delta=_ForgeImpactPos.xyz-p;float d2=max(.0009,dot(delta,delta));
+  color+=base*(1-metal*.6)/UNITY_PI*_ForgeImpactColor.rgb*(_ForgeImpact*saturate(dot(n,delta*rsqrt(d2)))/(1+d2*.4));}
 #ifndef FORGE_NO_GLOW_LAMP
  // Hot blade: attenuation 1 / (1 + d^2 / .16), fading to 0 at the range.
  if(_ForgeGlowPos.w>0){float3 delta=_ForgeGlowPos.xyz-p;float d2=max(.0004,dot(delta,delta));float fade=saturate(1-d2/(_ForgeGlowPos.w*_ForgeGlowPos.w));

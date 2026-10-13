@@ -114,11 +114,13 @@ public partial class ForgeWorld {
  /// The arc is anchored on the next contact while idle and on the planned one through a swing.
  Vector3 NextContactWorldForArc()=>strikes.hasCurrent&&strikes.contacted?lastContactPlanned:NextContactWorld();
  Vector3 lastContactPlanned;
- /// Where the head lies when the hammer is parked: the near-right corner of the face, clear of the blade.
+ /// Where the head lies when the hammer is parked: the near-right corner of the face, clear of the blade (on the step or
+ /// the horn for a long blade).
  Vector3 ParkHeadWorld(){var k=K;var c=ForgeLayout.StrikePoint;var b=AnvilBody();float tip=float.NegativeInfinity;
   // Clear of the blade's tip: the knife on the anvil, or the blank being heated (laid down where it will lie).
   if(b!=null&&anvilPoseId==b.knife.id)tip=anvilPos.x+BladeLength(b);else if(hearth!=null&&bodies.TryGetValue(hearth.knifeId,out var hb)){NominalAnvilPose(hb,out var np,out _);tip=np.x+BladeLength(hb);}
-  return new Vector3(ForgeFeel.ParkX(k,c.x,tip,ForgeLayout.AnvilCenter.x+ForgeLayoutData.AnvilFaceX*.5f),ForgeLayout.AnvilTopY+.017f,c.z-k.parkBack);}
+  ForgeFeel.ParkHead(k,c.x,c.z,tip,ForgeLayout.AnvilCenter.x+ForgeLayoutData.AnvilFaceX*.5f,ForgeLayoutData.AnvilStepX,ForgeLayoutData.AnvilHornX,ForgeLayoutData.AnvilFace.z0,ForgeLayout.AnvilCenter.z,out float x,out float dy,out float z);
+  return new Vector3(x,ForgeLayout.AnvilTopY+dy,z);}
  /// Release the hammer where it lies (parked on the face) or take it back into the hand.
  /// Released: the hammer settles (100 ms) onto the exact parked pose on the face and stays there in world space while the
  /// smith works the hearth. Taken back: the hand pose starts from where it lies (no pop) and stays parked until a strike.
@@ -153,8 +155,10 @@ public partial class ForgeWorld {
  // neck, a 3.0 x 2.2 knob and a steel wedge. Hammer-local: origin at the grip, +y up the handle, face toward -x.
  void MakeHammer(){
   hammer=Group("Held smithing hammer",Vector3.zero);hammer.SetParent(dynamicRoot,true);
-  hammerSteel=Mat("Forged hammer head","646a6c",.86f,.44f);hammerSteel.mainTexture=Resources.Load<Texture2D>("Forge/IronV3");hammerSteel.SetFloat("_Scale",7);hammerSteel.SetFloat("_ObjectSpace",1);hammerSteel.SetFloat("_BumpStrength",.0012f);
-  hammerFace=Mat("Polished hammer face","c8cac6",.97f,.80f);hammerFace.mainTexture=Resources.Load<Texture2D>("Forge/SteelV2");hammerFace.SetFloat("_Scale",9);hammerFace.SetFloat("_ObjectSpace",1);hammerFace.SetFloat("_BumpStrength",.0004f);
+  // Half metallic, lighter: at .86 metallic in the dark room the head took almost no diffuse light (fire, glow lamp) and
+  // read as a black hole at 1-16 / 255 (critique).
+  hammerSteel=Mat("Forged hammer head","6e7275",.58f,.44f);hammerSteel.SetFloat("_Sheen",.9f);hammerSteel.mainTexture=Resources.Load<Texture2D>("Forge/IronV3");hammerSteel.SetFloat("_Scale",7);hammerSteel.SetFloat("_ObjectSpace",1);hammerSteel.SetFloat("_BumpStrength",.0012f);
+  hammerFace=Mat("Polished hammer face","b4b7b4",.88f,.78f);hammerFace.SetFloat("_Sheen",.4f);hammerFace.mainTexture=Resources.Load<Texture2D>("Forge/SteelV2");hammerFace.SetFloat("_Scale",9);hammerFace.SetFloat("_ObjectSpace",1);hammerFace.SetFloat("_BumpStrength",.0004f);
   hammerWood=Mat("Hickory handle","b48e62",0,.42f);hammerWood.mainTexture=Resources.Load<Texture2D>("Forge/WoodV3");hammerWood.SetFloat("_Scale",9);hammerWood.SetFloat("_ObjectSpace",1);hammerWood.SetFloat("_BumpStrength",.0015f);
   hammerHeadMesh=HammerHeadMesh(arc);var head=MeshObject("Cross peen hammer head",hammerHeadMesh,hammerSteel);head.transform.SetParent(hammer,false);
   hammerHead=head.GetComponent<Renderer>();hammerHead.sharedMaterials=new[]{hammerSteel,hammerFace};
@@ -241,7 +245,7 @@ public partial class ForgeWorld {
  void LateUpdate(){
   if(cam==null)return;
   // Close the hands on the hammer and the reins (after the Animator and IK).
-  if(smithAnimator!=null){CurlFingers(1,rightGoalRot,ForgeFeel.Smooth(rightIk));if(tongs!=null)CurlFingers(0,leftGoalRot,1);CalibrateFist();}
+  if(smithAnimator!=null){CurlFingers(1,rightGoalRot,ForgeFeel.Smooth(rightIk));if(tongs!=null)CurlFingers(0,leftGoalRot,K.tongFingerCurl);CalibrateFist();}
   UpdateOccluders();
   if(!QaOn(ForgeContract.QaModes.Telemetry)){telemetryQueue.Clear();return;}
   if(hearth!=null){hearthTelemetryClock+=ForgeTime.Raw(Time.unscaledDeltaTime);if(hearthTelemetryClock>=.1f){hearthTelemetryClock=0;telemetryQueue.Add(("hearth",hearth.knifeId,hearth.t*1000));}}

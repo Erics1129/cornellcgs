@@ -8,10 +8,12 @@ Shader "Forge/Surface" {
  //  _Soot: soot darkening above 2.2 m and around the flue (_ForgeSoot globals).
  //  _Wear 1: anvil face wear in object space (polished centre, oxidised edges, scale dust, chips, hardy and pritchel holes).
  //  _Pulse 1: coal glow through _ForgeCoalPulse (x = time, y = fire level, z = pulse depth).
+ //  _Sheen > 0: a fresnel edge sheen of the lit room (hand tools: the dark hammer head and tongs keep a readable outline
+ //  where the reflection capture behind the smith is black).
  //  _BumpStrength > 0: height-derived relief from the texture (3 extra taps). FORGE_LITE (tiers 2-3) skips
  //  the relief, the brick bevel and chips, and the occluder shadows: the only two variants are full and lite.
  Properties { _MainTex("Generated surface scan",2D)="white"{} _Color("Tint",Color)=(1,1,1,1) _Metallic("Metalness",Range(0,1))=0 _Glossiness("Smoothness",Range(0,1))=.3 _Scale("World tiling",Float)=.5 _BumpStrength("Surface relief (m)",Range(0,.05))=0 _EmissionColor("Emission",Color)=(0,0,0,0)
-  _ObjectSpace("Object-space mapping",Float)=0 _GrainUp("Vertical grain",Float)=0 _VertexAO("Baked vertex AO",Float)=0 _Brick("Procedural brick",Float)=0 _BrickSize("Brick module, joint, bevel (m)",Vector)=(.225,.075,.010,.002) _BrickStagger("Row offset (fraction of a module)",Float)=.5 _BrickTilt("Per-unit tilt (flagstones)",Float)=0 _MortarColor("Mortar",Color)=(.165,.149,.129,1) _Soot("Soot",Range(0,1))=0 _Wear("Anvil wear",Float)=0 _FaceTex("Anvil face detail",2D)="grey"{} _Pulse("Coal pulse",Float)=0 }
+  _ObjectSpace("Object-space mapping",Float)=0 _GrainUp("Vertical grain",Float)=0 _VertexAO("Baked vertex AO",Float)=0 _Brick("Procedural brick",Float)=0 _BrickSize("Brick module, joint, bevel (m)",Vector)=(.225,.075,.010,.002) _BrickStagger("Row offset (fraction of a module)",Float)=.5 _BrickTilt("Per-unit tilt (flagstones)",Float)=0 _MortarColor("Mortar",Color)=(.165,.149,.129,1) _Soot("Soot",Range(0,1))=0 _Wear("Anvil wear",Float)=0 _FaceHalf("Anvil face half length, half width (m)",Vector)=(.24,.065,0,0) _FaceTex("Anvil face detail",2D)="grey"{} _Pulse("Coal pulse",Float)=0 _Sheen("Edge sheen",Range(0,2))=0 }
  SubShader { Tags {"RenderType"="Opaque"} LOD 300
   // Explicit full-precision, single-pass lighting avoids close-up WebGL surface-pass artifacts.
   Pass { Tags {"LightMode"="ForwardBase"}
@@ -22,7 +24,7 @@ Shader "Forge/Surface" {
    #pragma multi_compile_fog
    #pragma multi_compile _ FORGE_LITE
    #include "ForgeLighting.cginc"
-   sampler2D _MainTex,_FaceTex;float4 _Color,_EmissionColor,_BrickSize,_MortarColor;float _Metallic,_Glossiness,_Scale,_BumpStrength,_ObjectSpace,_GrainUp,_VertexAO,_Brick,_BrickStagger,_BrickTilt,_Soot,_Wear,_Pulse;
+   sampler2D _MainTex,_FaceTex;float4 _Color,_EmissionColor,_BrickSize,_MortarColor,_FaceHalf;float _Metallic,_Glossiness,_Scale,_BumpStrength,_ObjectSpace,_GrainUp,_VertexAO,_Brick,_BrickStagger,_BrickTilt,_Soot,_Wear,_Pulse,_Sheen;
    // Soot: x = start height, y = full height, zw = flue centre (x, z); _ForgeSootFlue: x = radius, y = start height.
    float4 _ForgeSoot,_ForgeSootFlue,_ForgeCoalPulse;float _ForgeAoDirect;
    struct appdata {float4 vertex:POSITION;float3 normal:NORMAL;float4 color:COLOR;};
@@ -107,23 +109,23 @@ Shader "Forge/Surface" {
     // scale dust where flakes settle, chipped long edges, worn bright edge radii, and the hardy (square) and pritchel
     // (round) holes at the heel. The horn's crown and the step are burnished where stock is bent over them.
     if(_Wear>.5){
-     float3 op=i.mapPos;float top=smoothstep(.8,.95,mn.y)*step(-.009,op.y);
-     // Worn edge radius: the bevel and the top 6 mm of the face plate's sides.
-     float rim=(1-top)*step(-.006,op.y)*step(abs(op.x),.392)*step(abs(op.z),.152);
+     float3 op=i.mapPos;float top=smoothstep(.8,.95,mn.y)*step(-.009,op.y);float2 fh=_FaceHalf.xy;
+     // Worn edge radius: the 4 mm chamfer and the top 6 mm of the face plate's sides, bright from the hammer and the stock.
+     float rim=(1-top)*step(-.006,op.y)*step(abs(op.x),fh.x+.002)*step(abs(op.z),fh.y+.002);
      float mottle=Noise(op.xy*14+op.z*9)*.6+Noise(op.yz*41+op.x*17)*.4;
      float rust=smoothstep(.72,.95,Fbm(op.xz*7+op.y*11+5.1))*.4;
      float3 scale=float3(.024,.024,.026)*(.7+.6*height)*(.8+.4*mottle);
      base=lerp(scale,float3(.055,.032,.02)*(.75+.5*height),rust);metal=lerp(.72,.2,rust);smooth=lerp(.46,.18,rust)*(.8+.4*height);
      float3 steel=float3(.40,.40,.41)*(.85+.3*height);
-     float crown=smoothstep(.80,.97,mn.y)*step(.395,op.x)*(1-top)*(.6+.4*Noise(op.xz*19+4.2));
+     float crown=smoothstep(.80,.97,mn.y)*step(fh.x+.005,op.x)*(1-top)*(.6+.4*Noise(op.xz*19+4.2));
      base=lerp(base,steel*.55,crown);metal=lerp(metal,.9,crown);smooth=lerp(smooth,.5,crown);
-     base=lerp(base,steel*.85,rim);metal=lerp(metal,.92,rim);smooth=lerp(smooth,.55,rim);
+     base=lerp(base,steel*1.15,rim);metal=lerp(metal,.9,rim);smooth=lerp(smooth,.62,rim);
      // Ground and scratched tool steel from the scan, one tile over the whole face (no seam; uniform control flow).
      float detail=dot(tex2D(_FaceTex,op.xz*1.2+.5).rgb,Lum)/.055;
      if(top>0){
       // Working zone: a rounded rectangle over most of the face, its edge broken up by noise.
       float2 warp=float2(Fbm(op.xz*3.1+7.7),Fbm(op.xz*3.1+1.3))-.5;
-      float2 qd=abs(op.xz-float2(.03,0))-float2(.29,.085);float sd=length(max(qd,0))+min(max(qd.x,qd.y),0)-.03;
+      float2 qd=abs(op.xz-float2(.02,0))-fh*float2(.72,.55);float sd=length(max(qd,0))+min(max(qd.x,qd.y),0)-.018;
       float polish=(1-smoothstep(-.02,.035,sd+warp.x*.05+(Fbm(op.xz*9+3.1)-.5)*.03))*(.8+.2*Fbm(op.xz*14+9.1));
       float brush=Noise(float2(op.x*9,op.z*420))*.5+Noise(float2(op.x*3+7,op.z*170))*.5;
       float3 oxide=float3(.045,.043,.041)*(.7+.6*height)*(.85+.3*Fbm(op.xz*6+2));
@@ -147,7 +149,7 @@ Shader "Forge/Surface" {
       float3 tilt=float3(hx-h0,0,hz-h0)*.12*top;n=ForgeSafeNormal(n-mul((float3x3)unity_ObjectToWorld,tilt));   // not UnityObjectToWorldDir: it normalizes
 #endif
       // Chipped long edges and heel: shallow notches, rough and dark, tilted outward.
-      float edgeZ=.15-abs(op.z),edgeX=.39+op.x;float edgeN=min(edgeZ,edgeX);
+      float edgeZ=fh.y-abs(op.z),edgeX=fh.x+op.x;float edgeN=min(edgeZ,edgeX);
       float along=edgeZ<edgeX?op.x*31+(op.z>0?17:0):op.z*31+53;
       float chipDepth=.0095*smoothstep(.62,.9,Noise(float2(along,1.7)))*(.6+.4*Noise(float2(along*3.1,5.3)));
       float chipped=top*(1-smoothstep(chipDepth*.55,chipDepth,edgeN))*step(.0012,chipDepth);
@@ -155,7 +157,7 @@ Shader "Forge/Surface" {
       float3 outward=edgeZ<edgeX?float3(0,0,op.z>0?1:-1):float3(-1,0,0);
       n=ForgeSafeNormal(lerp(n,ForgeSafeNormal(n+UnityObjectToWorldDir(outward)*.9),chipped));
       // Hardy (25 mm square) and pritchel (16 mm round) holes: dark shafts with a worn bright lip.
-      float hardy=max(abs(op.x+.30),abs(op.z))-.0125,pritchel=length(op.xz-float2(-.215,0))-.008;
+      float hardy=max(abs(op.x+fh.x-.05),abs(op.z))-.0125,pritchel=length(op.xz-float2(-fh.x+.105,0))-.008;
       float hole=min(hardy,pritchel);
       float inside=top*(1-smoothstep(-.0006,.0006,hole));float lip=top*(1-smoothstep(0,.003,abs(hole)))*(1-inside);
       base=lerp(base,float3(.004,.004,.004),inside);smooth=lerp(smooth,.2,inside);metal=lerp(metal,.3,inside);ao*=1-inside*.9;
@@ -171,6 +173,7 @@ Shader "Forge/Surface" {
      emission*=heat*level*(.25+.75*crack);base*=1-heat*.55;
     }
     float4 color=float4(ForgeLitAO(base,metal,smooth,i.worldPos,n,view,ao,_ForgeAoDirect)+emission,1);
+    if(_Sheen>0){float rim=1-saturate(dot(n,view));color.rgb+=_Sheen*rim*rim*rim*(_ForgeAmbient.rgb*3+ForgeFireBounce(i.worldPos,n)*.6)*lerp(float3(1,1,1),base*3,.35);}
     UNITY_APPLY_FOG(i.fogCoord,color);return color;
    }
    ENDCG

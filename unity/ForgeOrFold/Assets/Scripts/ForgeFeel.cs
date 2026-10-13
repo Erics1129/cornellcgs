@@ -38,7 +38,7 @@ using System.Collections.Generic;
  // Hammer poses relative to the contact point in the smith's yaw frame: ready (part way up the arc) between strikes,
  // parked on the anvil face after restIdleS of idle work, hung at the side while walking.
  public float readyElbow=.45f, readyWrist=.55f, readyRight=.06f, readyBack=.02f;
- public float restRight=.26f, restUp=-.10f, restBack=.30f, parkRight=.13f, parkBack=.125f, parkTipGap=.10f, parkS=.45f, restIdleS=1.2f;
+ public float restRight=.26f, restUp=-.10f, restBack=.30f, parkRight=.13f, parkBack=.03f, parkTipGap=.10f, parkS=.45f, restIdleS=1.2f;
  // Work framing: FOV fallbacks by view, frame-to-fit band fill and clamps, eases.
  public float fovDesktop=42, fovDesktopWalk=62, fovPortrait=62, fovPortraitWalk=74, fovLandscape=46, fovLandscapeWalk=60;
  public float frameShiftX=-.03f, frameShiftXPortrait=-.06f, frameTargetWPortrait=.52f, frameFill=.60f, frameFillMin=.55f, frameFillMax=.65f, frameTargetW=.45f, frameTargetH=.35f, frameWidthFill=.85f, fovMin=34, fovMax=70, fovEaseS=.3f, lookEase=28, workEase=14;
@@ -65,7 +65,7 @@ using System.Collections.Generic;
  public float elbowHintRiseCm=8;
  // Hands: a power grip (the handle lies obliquely across the palm), wrist-to-axis offsets, finger curl; the tong hand from
  // above and inside; the forward lean of the body in work focus (the eye leans with it).
- public float gripObliqueDeg=35, gripPalmCm=3.2f, gripAlongCm=8.5f, tongObliqueDeg=25, tongPalmCm=2.6f, tongPalmDownDeg=40;
+ public float gripObliqueDeg=35, gripPalmCm=3.2f, gripAlongCm=8.5f, tongObliqueDeg=25, tongPalmCm=1.9f, tongPalmDownDeg=40, tongFingerCurl=1.2f;
  public float fingerCurlProxDeg=62, fingerCurlMidDeg=80, fingerCurlTipDeg=48, thumbCurlDeg=34, spineLeanDeg=8;
  // Risk cues from snapshot.risk p (tau = smoothstep(riskLow, riskHigh, p)).
  public float riskLow=.15f, riskHigh=.6f, riskPushInDeg=3, riskApexHoldFrom=.3f, riskApexHoldMs=40, riskApexHoldPerRisk=100, riskApexHoldMaxMs=80;
@@ -96,7 +96,7 @@ using System.Collections.Generic;
   hitStopJitterMm=ForgeTuning.Fit(hitStopJitterMm,0,10,3.5f);tongTremorMm=ForgeTuning.Fit(tongTremorMm,0,6,2);tongTremorHz=ForgeTuning.Fit(tongTremorHz,1,20,9);
   wristSnapFrom=ForgeTuning.Fit(wristSnapFrom,.3f,.95f,.68f);elbowSwingDeg=ForgeTuning.Fit(elbowSwingDeg,0,60,14);wristSnapDeg=ForgeTuning.Fit(wristSnapDeg,0,50,26);wristPower=ForgeTuning.Fit(wristPower,.5f,3,1);elbowPower=ForgeTuning.Fit(elbowPower,1,4,1.7f);elbowLiftCm=ForgeTuning.Fit(elbowLiftCm,0,15,4);elbowBackCm=ForgeTuning.Fit(elbowBackCm,-10,20,9);
   contactHandleDeg=ForgeTuning.Fit(contactHandleDeg,-10,40,12);headHangDeg=ForgeTuning.Fit(headHangDeg,-10,40,12);
-  readyRight=ForgeTuning.Fit(readyRight,-.2f,.3f,.06f);readyBack=ForgeTuning.Fit(readyBack,-.2f,.3f,.02f);restRight=ForgeTuning.Fit(restRight,-.5f,.6f,.26f);restUp=ForgeTuning.Fit(restUp,-.5f,.5f,-.10f);restBack=ForgeTuning.Fit(restBack,-.5f,.6f,.30f);parkRight=ForgeTuning.Fit(parkRight,0,.35f,.13f);parkBack=ForgeTuning.Fit(parkBack,-.1f,.14f,.125f);parkTipGap=ForgeTuning.Fit(parkTipGap,0,.2f,.10f);
+  readyRight=ForgeTuning.Fit(readyRight,-.2f,.3f,.06f);readyBack=ForgeTuning.Fit(readyBack,-.2f,.3f,.02f);restRight=ForgeTuning.Fit(restRight,-.5f,.6f,.26f);restUp=ForgeTuning.Fit(restUp,-.5f,.5f,-.10f);restBack=ForgeTuning.Fit(restBack,-.5f,.6f,.30f);parkRight=ForgeTuning.Fit(parkRight,0,.35f,.13f);parkBack=ForgeTuning.Fit(parkBack,-.1f,.14f,.03f);parkTipGap=ForgeTuning.Fit(parkTipGap,0,.2f,.10f);
   readyElbow=ForgeTuning.Fit(readyElbow,0,1,.45f);readyWrist=ForgeTuning.Fit(readyWrist,0,1,.55f);parkS=ForgeTuning.Fit(parkS,.05f,3,.45f);restIdleS=ForgeTuning.Fit(restIdleS,.2f,30,1.2f);
   fovMin=ForgeTuning.Fit(fovMin,20,90,34);fovMax=ForgeTuning.Fit(fovMax,fovMin,100,70);frameFillMin=ForgeTuning.Fit(frameFillMin,.2f,.95f,.55f);frameFillMax=ForgeTuning.Fit(frameFillMax,frameFillMin,.95f,.65f);frameFill=ForgeTuning.Fit(frameFill,frameFillMin,frameFillMax,.6f);
   frameShiftX=ForgeTuning.Fit(frameShiftX,-.2f,.2f,-.03f);frameShiftXPortrait=ForgeTuning.Fit(frameShiftXPortrait,-.2f,.2f,-.06f);frameTargetWPortrait=ForgeTuning.Fit(frameTargetWPortrait,.1f,2,.52f);  frameTargetW=ForgeTuning.Fit(frameTargetW,.1f,2,.45f);frameTargetH=ForgeTuning.Fit(frameTargetH,.1f,2,.35f);frameWidthFill=ForgeTuning.Fit(frameWidthFill,.3f,1,.85f);fovEaseS=ForgeTuning.Fit(fovEaseS,.02f,2,.3f);
@@ -111,7 +111,7 @@ using System.Collections.Generic;
   tongGripDeg=ForgeTuning.Fit(tongGripDeg,0,90,58);tongHandM=ForgeTuning.Fit(tongHandM,.2f,.5f,.40f);tongElevDeg=ForgeTuning.Fit(tongElevDeg,0,60,25);
   feedFrom=ForgeTuning.Fit(feedFrom,0,1,.2f);feedTo=ForgeTuning.Fit(feedTo,feedFrom,1,.76f);feedHammerShare=ForgeTuning.Fit(feedHammerShare,0,1,.35f);feedStartMs=ForgeTuning.Fit(feedStartMs,0,400,100);feedEndMs=ForgeTuning.Fit(feedEndMs,feedStartMs+10,600,260);rollMs=ForgeTuning.Fit(rollMs,50,800,220);
   spineTiltDeg=ForgeTuning.Fit(spineTiltDeg,0,25,6);contactJitterCm=ForgeTuning.Fit(contactJitterCm,0,4,1);elbowHintRiseCm=ForgeTuning.Fit(elbowHintRiseCm,0,25,8);
-  gripObliqueDeg=ForgeTuning.Fit(gripObliqueDeg,0,60,35);gripPalmCm=ForgeTuning.Fit(gripPalmCm,0,8,3.2f);gripAlongCm=ForgeTuning.Fit(gripAlongCm,2,14,8.5f);tongObliqueDeg=ForgeTuning.Fit(tongObliqueDeg,0,60,25);tongPalmCm=ForgeTuning.Fit(tongPalmCm,0,8,2.6f);tongPalmDownDeg=ForgeTuning.Fit(tongPalmDownDeg,-30,90,40);
+  gripObliqueDeg=ForgeTuning.Fit(gripObliqueDeg,0,60,35);gripPalmCm=ForgeTuning.Fit(gripPalmCm,0,8,3.2f);gripAlongCm=ForgeTuning.Fit(gripAlongCm,2,14,8.5f);tongObliqueDeg=ForgeTuning.Fit(tongObliqueDeg,0,60,25);tongPalmCm=ForgeTuning.Fit(tongPalmCm,0,8,1.9f);tongFingerCurl=ForgeTuning.Fit(tongFingerCurl,.5f,1.5f,1.2f);tongPalmDownDeg=ForgeTuning.Fit(tongPalmDownDeg,-30,90,40);
   fingerCurlProxDeg=ForgeTuning.Fit(fingerCurlProxDeg,0,100,62);fingerCurlMidDeg=ForgeTuning.Fit(fingerCurlMidDeg,0,110,80);fingerCurlTipDeg=ForgeTuning.Fit(fingerCurlTipDeg,0,90,48);thumbCurlDeg=ForgeTuning.Fit(thumbCurlDeg,0,80,34);spineLeanDeg=ForgeTuning.Fit(spineLeanDeg,0,20,8);
   riskLow=ForgeTuning.Fit(riskLow,0,1,.15f);riskHigh=ForgeTuning.Fit(riskHigh,riskLow+.01f,1.01f,.6f);riskPushInDeg=ForgeTuning.Fit(riskPushInDeg,0,8,3);riskApexHoldMaxMs=ForgeTuning.Fit(riskApexHoldMaxMs,0,150,80);riskApexHoldMs=ForgeTuning.Fit(riskApexHoldMs,0,riskApexHoldMaxMs,40);
   smearGhosts=Math.Max(0,Math.Min(4,smearGhosts));smearSpacingMs=ForgeTuning.Fit(smearSpacingMs,1,30,6);smearAlpha=ForgeTuning.Fit(smearAlpha,0,1,.3f);smearMaxStretch=ForgeTuning.Fit(smearMaxStretch,1,6,2.5f);
@@ -232,6 +232,15 @@ public static class ForgeFeel {
  /// World x of the parked head: parkRight right of the strike point and at least parkTipGap past the blade tip (long
  /// blades fed toward the heel reach far right), kept on the face (the head's middle 3.5 cm in from its right edge).
  public static float ParkX(ForgeStrikeTuning t,float strikeX,float tipX,float faceMaxX)=>Math.Min(Math.Max(strikeX+t.parkRight,tipX+t.parkTipGap),faceMaxX-.035f);
+ /// The parked head on the 48 x 13 cm face: x from ParkX, out to the horn root for long blades (past the face end the
+ /// head rests across the step, 2.5 cm lower, or on the horn's crown, which droops: dy is the head centre above the face
+ /// top), near the face's near edge while it is on the face (z), on the horn's axis beyond it. faceEndX: the face's
+ /// right edge; stepX, hornX: step and horn lengths; faceNearZ: the face's near edge; axisZ: the anvil's centre line.
+ public static void ParkHead(ForgeStrikeTuning t,float strikeX,float strikeZ,float tipX,float faceEndX,float stepX,float hornX,float faceNearZ,float axisZ,out float x,out float dy,out float z){
+  x=ParkX(t,strikeX,tipX,faceEndX+stepX+hornX*.45f);
+  if(x<=faceEndX-.02f){dy=.017f;z=Math.Max(strikeZ-t.parkBack,faceNearZ+.022f);return;}
+  float u=Math.Max(0,(x-faceEndX-stepX)/Math.Max(.01f,hornX));dy=.017f-.025f-.010f*u*u;z=axisZ;
+ }
  /// Every 8 strikes (h = 0) the tongs roll the blade over.
  public static bool FeedRolls(int totalHits)=>totalHits>0&&totalHits%8==0;
  /// Contact x jitter (m), deterministic per strike, within contactJitterCm.

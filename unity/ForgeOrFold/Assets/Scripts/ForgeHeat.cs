@@ -12,6 +12,10 @@ public partial class ForgeWorld {
   /// dirty: a strike edited the outline (spread, notch); rebuild: the level or place class changed (KnifeRefresh).
   /// Both are applied once, in KnifeVisual, so a strike that also levels up rebuilds the mesh only once.
   public bool finished,dirty,rebuild,logicalFurnace,firstHeat=true; public int level; public BoxCollider collider;
+  /// Keep: from the anvil-to-rack Sync until the blade has dissolved out (after the quench), the knife keeps its forging
+  /// mesh (bare tang, no handle) and its heat (no rack cooling, the anvil floor held) so the steam rises off hot steel;
+  /// quenched: KnifeQuench has run (the quench ease owns the temperature from then on).
+  public bool quenchHold,quenched;
   public float furnaceFor,baseY,liftU,crackSeed;
   // Footprints (u, v, age s, flash gain), dimples (u, v, radius cm, depth mm), whole-blade flash, glint, cracks.
   public readonly Vector4[] hits=new Vector4[4]; public int hitNext;
@@ -32,9 +36,10 @@ public partial class ForgeWorld {
   bool inFurnace=h.logicalFurnace&&k.place=="furnace";if(inFurnace)h.furnaceFor+=w;else h.furnaceFor=0;
   bool physical=false;if(inFurnace){var p=b.root.transform.position;var fb=ForgeLayout.Firebed;physical=Vector3.Distance(p,b.target)<.16f||(Mathf.Abs(p.x-fb.x)<t.coalsHalfX&&Mathf.Abs(p.z-fb.z)<t.coalsHalfZ&&p.y<fb.y+t.coalsAbove&&p.y>fb.y-.2f);}
   bool inCoals=inFurnace&&(physical||h.furnaceFor>=t.coalsFallbackS);
-  // Rack, crate (and anything finished) cool fast but continuously to room temperature.
-  if(!inFurnace&&(k.place=="rack"||k.place=="crate"))h.model.CoolTo(t.rackToC,t.rackCoolS,t.rackLeadS,t);
-  h.model.Step(w,inCoals,k.place=="anvil",t.Pull(k.metal),h.firstHeat,t);
+  // Rack, crate (and anything finished) cool fast but continuously to room temperature; a kept blade still in the tongs
+  // waits for the quench (or for its dissolve to the rack) and keeps the anvil floor until then.
+  if(!inFurnace&&(k.place=="rack"||k.place=="crate")&&!h.quenchHold)h.model.CoolTo(t.rackToC,t.rackCoolS,t.rackLeadS,t);
+  h.model.Step(w,inCoals,k.place=="anvil"||(h.quenchHold&&!h.quenched),t.Pull(k.metal),h.firstHeat,t);
   if(inCoals&&!h.model.Easing&&h.model.BodyC(t)>=t.Pull(k.metal)-1)h.firstHeat=false;
   b.heat=Mathf.Clamp01(h.model.BodyC(t)/1150);
   // Evolution: lift the blade child 2 cm and back (never b.root), with a capped emission lift and a glint sweep.
@@ -74,7 +79,7 @@ public partial class ForgeWorld {
  /// The knife was plunged into the slack tub (keep choreography): 60 C over .8 s, thin parts first, with a steam
  /// plume and a disturbed water surface. The caller sends the quench sfx.
  void KnifeQuench(Body b){
-  var h=b.heatState;if(h==null)return;var t=tuning.metal;float c=h.model.MaxC(t);
+  var h=b.heatState;if(h==null)return;var t=tuning.metal;float c=h.model.MaxC(t);h.quenched=true;
   h.model.CoolTo(t.quenchToC,t.quenchS,t.quenchLeadS,t);
   QuenchFx(b.blade.transform.TransformPoint(h.mesh.bounds.center),c);
  }

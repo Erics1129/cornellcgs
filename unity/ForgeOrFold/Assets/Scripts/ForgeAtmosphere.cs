@@ -134,8 +134,9 @@ public partial class ForgeWorld {
   float k=e.outcome=="dull"?0:e.outcome=="perfect"?r.flashPerfect:e.outcome=="chip"?r.flashChip:e.outcome=="shatter"?r.flashShatter:r.flashGood;if(e.evolution)k=Mathf.Max(k,r.flashEvolution);
   flashLevel=Mathf.Max(flashLevel,k);
   var hot=Color.Lerp(new Color(1,.80f,.62f)*.55f,new Color(1,.58f,.25f),Mathf.SmoothStep(0,1,Mathf.InverseLerp(450,950,tempC)));
-  Shader.SetGlobalVector(ForgeContract.Globals.ImpactPos,contact+Vector3.up*.05f);Shader.SetGlobalColor(ForgeContract.Globals.ImpactColor,hot*.32f);
-  if(flash!=null)flash.transform.position=contact+Vector3.up*.05f;
+  // The lamp sits 3 cm over the contact, on the struck steel's top and the hammer face's edge, tinted by the steel's heat.
+  Shader.SetGlobalVector(ForgeContract.Globals.ImpactPos,contact+Vector3.up*.03f);Shader.SetGlobalColor(ForgeContract.Globals.ImpactColor,hot*.32f);
+  if(flash!=null)flash.transform.position=contact+Vector3.up*.03f;
  }
  // ---- Quality tiers ----
  void UpdateQuality(float raw){

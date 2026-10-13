@@ -33,7 +33,7 @@ public partial class ForgeWorld {
   flagstone=Mat("Worn flagstone","857e74",0,.10f);flagstone.mainTexture=Resources.Load<Texture2D>("Forge/IronV3");flagstone.SetFloat("_Scale",3.1f);flagstone.SetFloat("_BumpStrength",.0025f);
   flagstone.SetFloat("_Brick",1);flagstone.SetVector("_BrickSize",new Vector4(.70f,.56f,.015f,.008f));flagstone.SetFloat("_BrickStagger",.17f);flagstone.SetFloat("_BrickTilt",.022f);flagstone.SetColor("_MortarColor",C("26221e"));
   hearthTop=Mat("Fire-scarred hearth slab","4a4440",0,.12f);hearthTop.mainTexture=Resources.Load<Texture2D>("Forge/IronV3");hearthTop.SetFloat("_Scale",2.2f);hearthTop.SetFloat("_BumpStrength",.002f);
-  anvilSteel=Mat("Forged anvil steel","555a5c",.82f,.40f);anvilSteel.mainTexture=Resources.Load<Texture2D>("Forge/IronV3");anvilSteel.SetTexture("_FaceTex",Resources.Load<Texture2D>("Forge/SteelV2"));anvilSteel.SetFloat("_Scale",3.2f);anvilSteel.SetFloat("_ObjectSpace",1);anvilSteel.SetFloat("_Wear",1);anvilSteel.SetFloat("_BumpStrength",.0011f);
+  anvilSteel=Mat("Forged anvil steel","555a5c",.82f,.40f);anvilSteel.mainTexture=Resources.Load<Texture2D>("Forge/IronV3");anvilSteel.SetTexture("_FaceTex",Resources.Load<Texture2D>("Forge/SteelV2"));anvilSteel.SetFloat("_Scale",3.2f);anvilSteel.SetFloat("_ObjectSpace",1);anvilSteel.SetFloat("_Wear",1);anvilSteel.SetVector("_FaceHalf",new Vector4(L.AnvilFaceX*.5f,L.AnvilFaceZ*.5f,0,0));anvilSteel.SetFloat("_BumpStrength",.0011f);
   sootIron=Mat("Sooty sheet iron","4a4744",.5f,.30f);sootIron.mainTexture=Resources.Load<Texture2D>("Forge/IronV3");sootIron.SetFloat("_Scale",1.6f);sootIron.SetFloat("_Soot",.8f);
   // The hood: riveted sheet iron under a matte crust of soot (dark, but its form still reads in the bounce light).
   hoodIron=Mat("Soot-crusted sheet iron hood","a49c92",.25f,.20f);hoodIron.mainTexture=Resources.Load<Texture2D>("Forge/IronV3");hoodIron.SetFloat("_Scale",1.4f);hoodIron.SetFloat("_BumpStrength",.0015f);
@@ -169,16 +169,17 @@ public partial class ForgeWorld {
    for(int k=0;k<6;k++){float a=k*Mathf.PI/3+.3f;RoomBox("Hoop rivet",new Vector3(c.x+Mathf.Cos(a)*(r+.008f),y+.022f,c.z+Mathf.Sin(a)*(r+.008f)),new Vector3(.012f,.012f,.012f),sootIron,.005f,.5f);}}
   // The lofted anvil (object space at the face-top centre; Surface _Wear draws the face, chips and holes).
   anvilObject=MeshObject("Lofted forged anvil with horn, step, hardy and pritchel",RoomAnvilMesh(),anvilSteel);anvilObject.transform.position=c;roomSeparate.Add(anvilObject);
-  RoomSolid("Anvil face",c+new Vector3(0,-.04f,0),new Vector3(.78f,.08f,.30f));
-  RoomSolid("Anvil body",c+new Vector3(-.01f,-.20f,0),new Vector3(.40f,.22f,.15f));
-  RoomSolid("Anvil base",c+new Vector3(-.01f,-.295f,0),new Vector3(.50f,.03f,.28f));
-  RoomSolid("Anvil horn",c+new Vector3(.56f,-.07f,0),new Vector3(.24f,.08f,.08f),default,true,false);
-  // A chain wrapped round the waist (smiths do this to damp the ring) and hanging to a staple in the stump.
-  var link=RoomChainLink(.042f,.024f,.0042f);var path=RoomRoundRect(-.007f,0,.215f,.10f,.06f,6,8,4);var chain=new RoomMesh();int count=0;float acc=0;
-  for(int i=0;i<path.Length;i++){var a=path[i];var b=path[(i+1)%path.Length];float seg=(b-a).magnitude;for(float s=acc;s<seg;s+=.031f){var p=Vector2.Lerp(a,b,s/seg);var dir=(b-a).normalized;var m=Matrix4x4.TRS(new Vector3(p.x,-.205f,p.y),Quaternion.LookRotation(new Vector3(dir.x,0,dir.y))*Quaternion.Euler(0,90,0)*Quaternion.Euler(count%2==0?0:90,0,0),Vector3.one);chain.Append(link,m);count++;acc=s+.031f-seg;}if(acc<0)acc=0;}
-  for(int k=0;k<5;k++){var m=Matrix4x4.TRS(new Vector3(-.22f-.006f*k,-.24f-k*.031f,-.105f-.004f*k),Quaternion.Euler(0,k%2==0?0:90,90),Vector3.one);chain.Append(link,m);}
+  float fx=L.AnvilFaceX,fz=L.AnvilFaceZ;
+  RoomSolid("Anvil face",c+new Vector3(0,-.04f,0),new Vector3(fx,.08f,fz));
+  RoomSolid("Anvil body",c+new Vector3(-.004f,-.20f,0),new Vector3(.24f,.22f,.10f));
+  RoomSolid("Anvil base",c+new Vector3(-.005f,-.295f,0),new Vector3(.37f,.03f,.24f));
+  RoomSolid("Anvil horn",c+new Vector3(fx*.5f+L.AnvilStepX+L.AnvilHornX*.5f,-.065f,0),new Vector3(L.AnvilHornX,.08f,.08f),default,true,false);
+  // A chain wrapped round the waist (smiths do this to damp the ring), its end lying on the stump by a staple.
+  var link=RoomChainLink(.034f,.020f,.0036f);var path=RoomRoundRect(-.004f,0,.122f,.058f,.035f,6,8,4);var chain=new RoomMesh();int count=0;float acc=0;
+  for(int i=0;i<path.Length;i++){var a=path[i];var b=path[(i+1)%path.Length];float seg=(b-a).magnitude;for(float s=acc;s<seg;s+=.025f){var p=Vector2.Lerp(a,b,s/seg);var dir=(b-a).normalized;var m=Matrix4x4.TRS(new Vector3(p.x,-.200f,p.y),Quaternion.LookRotation(new Vector3(dir.x,0,dir.y))*Quaternion.Euler(0,90,0)*Quaternion.Euler(count%2==0?0:90,0,0),Vector3.one);chain.Append(link,m);count++;acc=s+.025f-seg;}if(acc<0)acc=0;}
+  for(int k=0;k<4;k++){var m=Matrix4x4.TRS(new Vector3(-.128f-.010f*k,-.222f-k*.024f,-.064f-.014f*k),Quaternion.Euler(0,k%2==0?0:90,90),Vector3.one);chain.Append(link,m);}
   roomLumpAo.Add(RoomBuild("Anvil chain",chain,sootIron,c,Quaternion.identity));
-  RoomBox("Chain staple",new Vector3(c.x-.24f,.38f,c.z-.27f),new Vector3(.03f,.04f,.02f),sootIron,.006f,.3f);
+  {var d=new Vector3(-.80f,0,-.60f);RoomBox("Chain staple",new Vector3(c.x,stumpTop-.03f,c.z)+d*(r+.004f),new Vector3(.024f,.03f,.016f),sootIron,.005f,.3f,Quaternion.LookRotation(d).eulerAngles);}
  }
 
  // ---------- Hearth ----------
@@ -217,14 +218,17 @@ public partial class ForgeWorld {
   // Unburnt coal banked on the hearth top behind and beside the firepot.
   for(int i=0;i<70;i++){float a=(float)rng.NextDouble()*Mathf.PI*2;float rr=.20f+(float)rng.NextDouble()*.20f;float x=bed.x+Mathf.Cos(a)*rr*1.25f,z=bed.z+.08f+Mathf.Sin(a)*rr;if(x<x0+.04f||x>tx0-.03f||z<z0+.04f||z>z1-.05f)continue;if(x>bx0-.035f&&x<bx1+.035f&&z>bz0-.035f&&z<bz1+.035f)continue;float size=.03f*(.7f+.6f*(float)rng.NextDouble());var m=Matrix4x4.TRS(new Vector3(x,top+size*.25f,z),Quaternion.Euler((float)rng.NextDouble()*360,(float)rng.NextDouble()*360,(float)rng.NextDouble()*360),new Vector3(size,size*.7f,size*1.1f));lumpsDark.Append(RoomCoalLump(100+i),m);}
   RoomBuild("Glowing coals",lumpsHot,hotCoal,Vector3.zero,Quaternion.identity);roomLumpAo.Add(RoomBuild("Banked coal",lumpsDark,coal,Vector3.zero,Quaternion.identity));
-  // Flames: two quads crossed at +/- 35 degrees and a camera-facing core, one mesh, one draw call.
+  // Flames: two quads crossed at +/- 35 degrees and a camera-facing core, one mesh, one draw call. A fixed quad's
+  // TEXCOORD1 carries its horizontal normal (x, z): Forge/Fire fades it as it turns edge-on to the camera.
   var flames=new Mesh{name="Hearth flames"};var fv=new List<Vector3>();var fuv=new List<Vector2>();var fc=new List<Vector2>();var fcol=new List<Color>();var ft=new List<int>();
   void FlameQuad(Vector3 centre,float yaw,float w,float h,float phase,float bright,bool billboard){int s=fv.Count;var right=Quaternion.Euler(0,yaw,0)*Vector3.right;
-   for(int k=0;k<4;k++){float u=k%2,v=k/2;var offset=new Vector2((u-.5f)*w,v*h);fv.Add(billboard?centre:centre+right*offset.x+Vector3.up*offset.y);fuv.Add(new Vector2(u,v));fc.Add(billboard?offset:Vector2.zero);fcol.Add(new Color(phase,bright,billboard?1:0,1));}
+   var normal=Vector3.Cross(right,Vector3.up);
+   for(int k=0;k<4;k++){float u=k%2,v=k/2;var offset=new Vector2((u-.5f)*w,v*h);fv.Add(billboard?centre:centre+right*offset.x+Vector3.up*offset.y);fuv.Add(new Vector2(u,v));fc.Add(billboard?offset:new Vector2(normal.x,normal.z));fcol.Add(new Color(phase,bright,billboard?1:0,1));}
    ft.AddRange(new[]{s,s+2,s+1,s+1,s+2,s+3});}
   var fireBase=new Vector3(bed.x,top+.03f,bed.z);
   FlameQuad(fireBase+new Vector3(.02f,0,-.02f),35,.40f,.36f,0,.85f,false);FlameQuad(fireBase+new Vector3(-.03f,0,.03f),-35,.38f,.32f,.37f,.85f,false);FlameQuad(fireBase+new Vector3(0,0,-.01f),0,.30f,.30f,.71f,.9f,true);
-  FlameQuad(fireBase+new Vector3(.12f,0,-.06f),80,.18f,.17f,.19f,.6f,false);FlameQuad(fireBase+new Vector3(-.12f,0,.05f),-60,.16f,.15f,.53f,.55f,false);
+  // The small side flames are camera-facing too: seen from the hearth stance a fixed one is foreshortened to a jagged sliver.
+  FlameQuad(fireBase+new Vector3(.12f,0,-.06f),80,.18f,.17f,.19f,.6f,true);FlameQuad(fireBase+new Vector3(-.12f,0,.05f),-60,.16f,.15f,.53f,.55f,true);
   flames.SetVertices(fv);flames.SetUVs(0,fuv);flames.SetUVs(1,fc);flames.SetColors(fcol);flames.SetTriangles(ft,0);flames.bounds=new Bounds(fireBase+Vector3.up*.2f,Vector3.one*.8f);
   fireMat=new Material(Shader.Find("Forge/Fire")){name="Hearth fire"};fireMat.mainTexture=Resources.Load<Texture2D>("Forge/Fire");
   var flame=MeshObject("Animated hearth flames",flames,fireMat);fire=flame.transform;var fr=flame.GetComponent<MeshRenderer>();fr.shadowCastingMode=ShadowCastingMode.Off;fr.receiveShadows=false;

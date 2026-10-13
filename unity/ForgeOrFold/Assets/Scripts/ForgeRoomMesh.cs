@@ -79,33 +79,35 @@ public partial class ForgeWorld {
  }
  /// The anvil: a lofted waisted body on a flared base, a chamfered face plate, a lower step and a conical horn,
  /// in object space with the origin at the centre of the face top (ForgeLayout.AnvilCenter). The face wear,
- /// chipped edges and the hardy and pritchel holes are drawn by Surface _Wear in this same space.
+ /// chipped edges and the hardy and pritchel holes are drawn by Surface _Wear in this same space (_FaceHalf).
+ /// Proportions of a 125 kg London pattern: face 48 x 13 cm, feet 37 x 24 cm, waist 22 x 10 cm, 31 cm tall, a 6 cm
+ /// step 2.5 cm below the face and a 25 cm horn.
  static Mesh RoomAnvilMesh(){
-  var mb=new RoomMesh();
-  // Body sections from the base (y -.31, on the stump) to the underside of the face plate: y, x0, x1, half width z, corner radius.
+  var mb=new RoomMesh();float hx=ForgeLayoutData.AnvilFaceX*.5f,hz=ForgeLayoutData.AnvilFaceZ*.5f,step=ForgeLayoutData.AnvilStepX;
+  // Body sections from the base (y -.31, on the stump) to the underside of the face plate.
   // Columns: y, x0, x1, half width z, corner radius, then a taper toward the horn: from x = xt the half width
   // narrows to k x (so the throat under the step and horn reads as a waist, not a box).
-  float[,] s={{-.310f,-.270f,.255f,.150f,.035f,9,1},{-.288f,-.270f,.255f,.150f,.035f,9,1},{-.262f,-.245f,.232f,.128f,.035f,9,1},{-.225f,-.205f,.190f,.094f,.03f,9,1},{-.185f,-.182f,.168f,.074f,.028f,9,1},
-   {-.150f,-.186f,.185f,.074f,.028f,.12f,.85f},{-.118f,-.225f,.300f,.090f,.03f,.15f,.62f},{-.096f,-.300f,.400f,.118f,.03f,.18f,.50f},{-.080f,-.372f,.440f,.142f,.022f,.22f,.45f},{-.074f,-.385f,.445f,.146f,.012f,.24f,.45f}};
+  float[,] s={{-.310f,-.190f,.180f,.120f,.030f,9,1},{-.290f,-.190f,.180f,.120f,.030f,9,1},{-.266f,-.168f,.160f,.100f,.028f,9,1},{-.228f,-.134f,.126f,.068f,.024f,9,1},{-.190f,-.114f,.106f,.050f,.020f,9,1},
+   {-.154f,-.118f,.122f,.050f,.020f,.07f,.85f},{-.122f,-.150f,.190f,.055f,.020f,.10f,.72f},{-.100f,-.196f,hx+.012f,.060f,.018f,.13f,.62f},{-.084f,-hx+.006f,hx+.040f,hz,.014f,.16f,.58f},{-.077f,-hx,hx+.045f,hz,.008f,.18f,.58f}};
   int rows=s.GetLength(0),M=0;var ringStart=new List<int>();
-  for(int r=0;r<rows;r++){float y=s[r,0],x0=s[r,1],x1=s[r,2],hz=s[r,3],cr=s[r,4],xt=s[r,5],k=s[r,6];var ring=RoomRoundRect((x0+x1)/2,0,(x1-x0)/2,hz,cr,4,6,3);M=ring.Length;ringStart.Add(mb.v.Count);
+  for(int r=0;r<rows;r++){float y=s[r,0],x0=s[r,1],x1=s[r,2],rz=s[r,3],cr=s[r,4],xt=s[r,5],k=s[r,6];var ring=RoomRoundRect((x0+x1)/2,0,(x1-x0)/2,rz,cr,4,6,3);M=ring.Length;ringStart.Add(mb.v.Count);
    foreach(var p in ring){float z=p.y*(xt<x1?Mathf.Lerp(1,k,Mathf.SmoothStep(0,1,Mathf.InverseLerp(xt,x1,p.x))):1);mb.Add(new Vector3(p.x,y,z),Vector3.up);}}
   int side=mb.t.Count;
   for(int r=0;r<rows-1;r++)for(int i=0;i<M;i++){int a=ringStart[r]+i,b=ringStart[r]+(i+1)%M,c=ringStart[r+1]+(i+1)%M,d=ringStart[r+1]+i;mb.Tri(a,c,b);mb.Tri(a,d,c);}
-  mb.Orient(side,p=>new Vector3(p.x-.01f,0,p.z));
+  mb.Orient(side,p=>new Vector3(p.x-.004f,0,p.z));
   // Base plate underside (sits on the stump; mostly hidden) closes the shell.
-  {int start=mb.v.Count;int centre=mb.Add(new Vector3(-.008f,-.310f,0),Vector3.down);for(int i=0;i<M;i++)mb.Add(mb.v[ringStart[0]+i],Vector3.down);int tri=mb.t.Count;for(int i=0;i<M;i++)mb.Tri(centre,start+1+i,start+1+(i+1)%M);mb.Orient(tri,_=>Vector3.down);}
+  {int start=mb.v.Count;int centre=mb.Add(new Vector3(-.005f,-.310f,0),Vector3.down);for(int i=0;i<M;i++)mb.Add(mb.v[ringStart[0]+i],Vector3.down);int tri=mb.t.Count;for(int i=0;i<M;i++)mb.Tri(centre,start+1+i,start+1+(i+1)%M);mb.Orient(tri,_=>Vector3.down);}
   var body=mb.Build("Anvil body",true);var bodyBuild=new RoomMesh();bodyBuild.v.AddRange(body.vertices);bodyBuild.n.AddRange(body.normals);foreach(var _ in body.vertices)bodyBuild.c.Add(Color.white);bodyBuild.t.AddRange(body.triangles);UnityEngine.Object.Destroy(body);
   var all=new RoomMesh();all.Append(bodyBuild,Matrix4x4.identity);
-  // Face plate: x -.39..+.39, 7.5 cm deep, chamfered 6 mm on top. Its bottom is buried in the body.
-  all.Append(RoomBoxBuild(new Vector3(.78f,.078f,.30f),.006f,.07f,RoomFaceNoBottom),Matrix4x4.Translate(new Vector3(0,-.039f,0)));
+  // Face plate: 7.8 cm deep, a 4 mm chamfer on top (Surface _Wear draws it as a bright worn radius). Its bottom is buried in the body.
+  all.Append(RoomBoxBuild(new Vector3(2*hx,.078f,2*hz),.004f,.05f,RoomFaceNoBottom),Matrix4x4.Translate(new Vector3(0,-.039f,0)));
   // Step: 2.5 cm below the face, narrower, between the face and the horn.
-  all.Append(RoomBoxBuild(new Vector3(.085f,.085f,.20f),.005f,.1f,RoomFaceNoBottom),Matrix4x4.Translate(new Vector3(.432f,-.0675f,0)));
+  all.Append(RoomBoxBuild(new Vector3(step+.01f,.085f,2*hz*.78f),.004f,.08f,RoomFaceNoBottom),Matrix4x4.Translate(new Vector3(hx+step*.5f-.005f,-.0675f,0)));
   // Horn: a round cone from inside the step to a blunt point, its top flush with the step and drooping toward the tip.
-  {int K=14;var c=new Vector3[K];var r=new float[K];for(int k=0;k<K;k++){float t=k/(float)(K-1);float x=Mathf.Lerp(.44f,.70f,t);float rad=Mathf.Lerp(.058f,.0045f,Mathf.Pow(t,.85f));if(k==K-1)rad=.0035f;c[k]=new Vector3(x,-.025f-rad-.012f*t*t,0);r[k]=rad;}
+  {int K=14;var c=new Vector3[K];var r=new float[K];float x0=hx+step-.01f,x1=hx+step+ForgeLayoutData.AnvilHornX-.02f;for(int k=0;k<K;k++){float t=k/(float)(K-1);float x=Mathf.Lerp(x0,x1,t);float rad=Mathf.Lerp(.040f,.004f,Mathf.Pow(t,.85f));if(k==K-1)rad=.003f;c[k]=new Vector3(x,-.025f-rad-.010f*t*t,0);r[k]=rad;}
    var horn=RoomTube(c,r,18,Vector3.up);all.Append(horn,Matrix4x4.identity);
    // Close the tip.
-   int start=all.v.Count;var tip=c[K-1]+Vector3.right*.004f;int ti=all.Add(tip,Vector3.right);int last=start-18;int tri=all.t.Count;for(int s2=0;s2<18;s2++)all.Tri(ti,last+s2,last+(s2+1)%18);all.Orient(tri,_=>Vector3.right);}
+   int start=all.v.Count;var tip=c[K-1]+Vector3.right*.003f;int ti=all.Add(tip,Vector3.right);int last=start-18;int tri=all.t.Count;for(int s2=0;s2<18;s2++)all.Tri(ti,last+s2,last+(s2+1)%18);all.Orient(tri,_=>Vector3.right);}
   return all.Build("Lofted forged anvil");
  }
  /// A lump of coal: a low-poly displaced sphere, unit size.

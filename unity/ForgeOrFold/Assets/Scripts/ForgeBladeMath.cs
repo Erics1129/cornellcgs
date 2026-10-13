@@ -82,12 +82,29 @@ public sealed class ForgeBladeShape {
   lx.Add(0);lz.Add(z0);lx.Add(lb-c);lz.Add(z0);lx.Add(lb);lz.Add(z0+c);lx.Add(lb);lz.Add(heelMid);
   ux.Add(0);uz.Add(z1);ux.Add(lb-c);uz.Add(z1);ux.Add(lb);uz.Add(z1-c);ux.Add(lb);uz.Add(heelMid);
   Resample(lx,lz,bx0,bz0);Resample(ux,uz,bx1,bz1);
-  m=DrawOut(level,t);
-  for(int i=0;i<S;i++){bex[i]=Lerp(bx0[i],px0[i],m);bez[i]=Lerp(bz0[i],pz0[i],m);sx[i]=Lerp(bx1[i],px1[i],m);sz[i]=Lerp(bz1[i],pz1[i],m);}
+  // The point is forged first: from level 1 the bar's end tapers to a point at the stage tip's height (a straight edge and
+  // a straight spine running into it), so the drawn-out blade keeps a defined tip instead of a rounded carrot end.
+  float mt=Smooth(0,1,level/Math.Max(.1f,t.tipLevels));
+  if(mt>0){float tz=Math.Max(z0+.2f*wb,Math.Min(z1-.2f*wb,pz0[S-1])),ta=Math.Min(lb*.45f,(tz-z0)*t.tipTaper),tb=Math.Min(lb*.45f,(z1-tz)*t.tipTaper);
+   lx.Clear();lz.Clear();ux.Clear();uz.Clear();
+   lx.Add(0);lz.Add(z0);lx.Add(lb-ta);lz.Add(z0);lx.Add(lb);lz.Add(tz);
+   ux.Add(0);uz.Add(z1);ux.Add(lb-tb);uz.Add(z1);ux.Add(lb);uz.Add(tz);
+   Resample(lx,lz,tx0,tz0);Resample(ux,uz,tx1,tz1);
+   for(int i=0;i<S;i++){bx0[i]=Lerp(bx0[i],tx0[i],mt);bz0[i]=Lerp(bz0[i],tz0[i],mt);bx1[i]=Lerp(bx1[i],tx1[i],mt);bz1[i]=Lerp(bz1[i],tz1[i],mt);}}
+  m=DrawOut(level,t);mBevel=Math.Max(m,Smooth(0,1,(level+.5f)/Math.Max(.5f,t.bevelLevels)));
+  // No mid-blade bulges on the way: the bar draws out toward the stage profile with its edge and spine pulled in to the
+  // straight line from the ricasso to the point wherever they bow out beyond it (weight (1 - m) x monotoneDraw, so the
+  // stage profile itself is untouched): a straight-sided wedge that takes the belly, hump and hook as it nears the stage.
+  System.Array.Copy(pz0,qz0,S);System.Array.Copy(pz1,qz1,S);
+  float wm=(1-m)*t.monotoneDraw;if(wm>1e-4f){int r0=S/6;Chord(px0,qz0,r0,wm,true);Chord(px1,qz1,r0,wm,false);}
+  for(int i=0;i<S;i++){bex[i]=Lerp(bx0[i],px0[i],m);bez[i]=Lerp(bz0[i],qz0[i],m);sx[i]=Lerp(bx1[i],px1[i],m);sz[i]=Lerp(bz1[i],qz1[i],m);}
   ApplyEdits(t);
  }
  // The drawn-out edge before edits, and after the spread (before the notch).
  readonly float[] bex=new float[S],bez=new float[S],sex=new float[S],sez=new float[S];
+ static readonly float[] tx0=new float[S],tz0=new float[S],tx1=new float[S],tz1=new float[S],qz0=new float[S],qz1=new float[S];
+ /// Draw-out of the bevel (>= m): the edge thins ahead of the outline, so a hot blade shows a cooler, darker rim early.
+ public float mBevel;
  /// Spread and notch on top of the drawn-out outline (call after changing spread or notchU).
  public void ApplyEdits(ForgeMetalTuning t){
   for(int i=0;i<S;i++){ex[i]=bex[i];ez[i]=bez[i];}
@@ -100,6 +117,11 @@ public sealed class ForgeBladeShape {
     float depth=Math.Min(t.notchDepthMm/unitMm*(1-d/half),.6f*l);ex[i]+=dx/l*depth;ez[i]+=dz/l*depth;}
   }
   lengthU=0;float wsum=0;for(int i=0;i<S;i++){lengthU=Math.Max(lengthU,Math.Max(ex[i],sx[i]));wsum+=Width(i);}widthU=wsum/S;
+ }
+ /// Pull a chain toward the chord from station r0 to the tip where it bows outward (edge: below it; spine: above it).
+ static void Chord(float[] x,float[] z,int r0,float w,bool edge){
+  float x0=x[r0],z0=z[r0],x1=x[S-1],z1=z[S-1];if(x1-x0<1e-3f)return;
+  for(int i=r0+1;i<S-1;i++){float c=z0+(z1-z0)*ForgeHeatMath.Sat((x[i]-x0)/(x1-x0));float lim=edge?Math.Max(z[i],c):Math.Min(z[i],c);z[i]=Lerp(z[i],lim,w);}
  }
  public int Station(float u)=>Math.Max(0,Math.Min(S-1,(int)Math.Round(u*(S-1))));
  public float Width(int i)=>Dist(ex[i],ez[i],sx[i],sz[i]);
@@ -121,7 +143,7 @@ public sealed class ForgeBladeShape {
   float blade=Lerp(te,ts,shape);
   float round=.7f+.3f*Smooth(0,.2f,Math.Min(v,1-v));round*=.7f+.3f*Smooth(0,.05f,1-u);
   float bar=t.barThickMm*round;
-  return Lerp(bar,blade,m);
+  return Lerp(bar,blade,Lerp(mBevel,m,shape));
  }
  /// Point (x, z) at fractional station s and across position v.
  public void Point(float s,float v,out float x,out float z){

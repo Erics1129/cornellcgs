@@ -47,9 +47,17 @@ using System;
  // keeps a visible length change at every level 0-6 now that the global 1%-per-level morph is gone. The bar is
  // barLength x the profile length, max(barWidth x profile width, barAspect x bar length) wide and barThickMm thick.
  public float drawLevels=5.5f, barLength=.68f, barWidth=.55f, barAspect=.27f, barThickMm=8, spineMm=5, edgeMm=.8f, tipMm=1, tangMm=6, tangLengthCm=6.6f, bevelV=.5f;
+ // Intermediate shapes (critique: carrots, gourds, spindles): the point forms over the first tipLevels levels, tapering
+ // over tipTaper x its height; the outline is kept monotone past the ricasso (monotoneDraw, fading out as m reaches 1);
+ // the bevel thins over bevelLevels (ahead of the outline's drawLevels).
+ public float tipLevels=1.2f, tipTaper=1.8f, monotoneDraw=1, bevelLevels=3.5f;
  // Flakes, sparks and chips per outcome (desktop counts; phone and tier 2+ multiply by phoneScale).
  public float flakesGood=14, flakesGoodJitter=3, flakesChip=10, flakesPerfect=32, sheetsPerfect=6, flakesEvolution=36, flakesShatter=20, flakesReduced=5;
  public float sparksGood=0, sparksPerfect=3, sparksEvolution=12, sparksShatter=15, chipsChip=4;
+ // Dull: a blow on hot steel throws no dust cloud (the old 40-50 cm cream puff hid the blade). A few dark flakes leave
+ // slowly (at most dullFlakeC, dullMaxSpeed m/s) with a whisper of scale dust: dustDull bits of dustMinCm-dustMaxCm,
+ // growing at most dustGrow x, at most dustOpacity, living at most dustLifeS, never more than dustCap alive near the anvil.
+ public float flakesDull=4, dullFlakeC=560, dullMaxSpeed=2.2f, dustDull=2, dustMinCm=3, dustMaxCm=5, dustGrow=1.2f, dustOpacity=.16f, dustLifeS=.45f, dustCap=4;
  // flakeMinPx / sparkMinPx are CSS pixels (scaled by the canvas's device pixels per CSS pixel, at most 2.5).
  public float phoneScale=.6f, capDesktop=220, capTier2=120, flakeMinPx=2.5f, sparkMinPx=1.6f, flakeStretchMs=80, flakeLandSfxPerS=10;
  // Flake launch: speed (m/s) skewed toward minSpeed (u^speedSkew), elevation (deg), drag (1/s), bounce, friction;
@@ -88,12 +96,15 @@ using System;
   floorBodyC=ForgeTuning.Fit(floorBodyC,20,1100,650);floorEdgeC=ForgeTuning.Fit(floorEdgeC,20,floorBodyC,600);
   quenchS=ForgeTuning.Fit(quenchS,.05f,5,.8f);rackCoolS=ForgeTuning.Fit(rackCoolS,.05f,5,1);shardTauScale=ForgeTuning.Fit(shardTauScale,1,1000,95);
   oxideGrowS=ForgeTuning.Fit(oxideGrowS,.1f,120,6);oxideDim=ForgeTuning.Fit(oxideDim,0,1,.4f);oxideCellCm=ForgeTuning.Fit(oxideCellCm,.1f,10,1.4f);oxideGapGlow=ForgeTuning.Fit(oxideGapGlow,0,1,.85f);hotReflect=ForgeTuning.Fit(hotReflect,0,1,.45f);hotReflectFromC=ForgeTuning.Fit(hotReflectFromC,0,1400,300);hotReflectToC=ForgeTuning.Fit(hotReflectToC,hotReflectFromC+1,1500,700);
-  drawLevels=ForgeTuning.Fit(drawLevels,.5f,20,5.5f);barLength=ForgeTuning.Fit(barLength,.2f,1,.68f);barWidth=ForgeTuning.Fit(barWidth,.1f,2,.55f);barAspect=ForgeTuning.Fit(barAspect,0,1,.27f);
+  drawLevels=ForgeTuning.Fit(drawLevels,.5f,20,5.5f);tipLevels=ForgeTuning.Fit(tipLevels,.1f,6,1.2f);tipTaper=ForgeTuning.Fit(tipTaper,.5f,4,1.8f);monotoneDraw=ForgeTuning.Fit(monotoneDraw,0,1,1);bevelLevels=ForgeTuning.Fit(bevelLevels,.5f,drawLevels,3.5f);barLength=ForgeTuning.Fit(barLength,.2f,1,.68f);barWidth=ForgeTuning.Fit(barWidth,.1f,2,.55f);barAspect=ForgeTuning.Fit(barAspect,0,1,.27f);
   barThickMm=ForgeTuning.Fit(barThickMm,1,20,8);spineMm=ForgeTuning.Fit(spineMm,.5f,12,5);edgeMm=ForgeTuning.Fit(edgeMm,.1f,spineMm,.8f);tipMm=ForgeTuning.Fit(tipMm,.1f,spineMm,1);tangMm=ForgeTuning.Fit(tangMm,.5f,12,6);bevelV=ForgeTuning.Fit(bevelV,.1f,1,.5f);
   phoneScale=ForgeTuning.Fit(phoneScale,0,1,.6f);capDesktop=ForgeTuning.Fit(capDesktop,0,220,220);capTier2=ForgeTuning.Fit(capTier2,0,capDesktop,120);
   flakeMinPx=ForgeTuning.Fit(flakeMinPx,0,8,2.5f);sparkMinPx=ForgeTuning.Fit(sparkMinPx,0,8,1.6f);sparkMaxStreakCm=ForgeTuning.Fit(sparkMaxStreakCm,0,8,3);
   flakeMaxSpeed=ForgeTuning.Fit(flakeMaxSpeed,flakeMinSpeed,12,4);perfectMaxSpeed=ForgeTuning.Fit(perfectMaxSpeed,flakeMinSpeed,12,5);elevMaxDeg=ForgeTuning.Fit(elevMaxDeg,0,80,35);
   flakesGood=ForgeTuning.Fit(flakesGood,0,60,14);flakesPerfect=ForgeTuning.Fit(flakesPerfect,0,80,32);flakesEvolution=ForgeTuning.Fit(flakesEvolution,0,80,36);flakesShatter=ForgeTuning.Fit(flakesShatter,0,80,20);
+  flakesDull=ForgeTuning.Fit(flakesDull,0,12,4);dullFlakeC=ForgeTuning.Fit(dullFlakeC,20,1300,560);dullMaxSpeed=ForgeTuning.Fit(dullMaxSpeed,flakeMinSpeed,8,2.2f);
+  dustDull=ForgeTuning.Fit(dustDull,0,4,2);dustMinCm=ForgeTuning.Fit(dustMinCm,.5f,6,3);dustMaxCm=ForgeTuning.Fit(dustMaxCm,dustMinCm,6,5);dustGrow=ForgeTuning.Fit(dustGrow,0,2.2f,1.2f);
+  dustOpacity=ForgeTuning.Fit(dustOpacity,0,.2f,.16f);dustLifeS=ForgeTuning.Fit(dustLifeS,.1f,.5f,.45f);dustCap=ForgeTuning.Fit(dustCap,0,8,4);
   sparksPerfect=ForgeTuning.Fit(sparksPerfect,0,4,3);sparksGood=ForgeTuning.Fit(sparksGood,0,1,0);sparksEvolution=ForgeTuning.Fit(sparksEvolution,0,30,12);sparksShatter=ForgeTuning.Fit(sparksShatter,0,30,15);
   shardsMin=ForgeTuning.Fit(shardsMin,0,16,10);shardsMax=ForgeTuning.Fit(shardsMax,shardsMin,16,16);shardGoneS=ForgeTuning.Fit(shardGoneS,.5f,4,4);shardRestS=ForgeTuning.Fit(shardRestS,.1f,shardGoneS,3.4f);
   coinsMin=ForgeTuning.Fit(coinsMin,0,14,4);coinsMax=ForgeTuning.Fit(coinsMax,coinsMin,14,14);

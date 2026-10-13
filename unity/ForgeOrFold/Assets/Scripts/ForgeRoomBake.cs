@@ -119,32 +119,49 @@ public partial class ForgeWorld {
    if(!groups.TryGetValue(m,out var list)){list=new List<MeshRenderer>();groups[m]=list;order.Add(m);}list.Add(renderer);
   }
   var merged=new GameObject("Workshop (merged static geometry)").transform;
+#if UNITY_EDITOR
+  foreach(var m in order){int tri=0;var top=new List<(int,string)>();foreach(var r in groups[m]){var mesh=r.GetComponent<MeshFilter>().sharedMesh;int n=(int)(mesh.GetIndexCount(0)/3);tri+=n;top.Add((n,r.name+" "+r.bounds.center.ToString("0.00")+" "+r.bounds.size.ToString("0.00")));}top.Sort((a,b)=>b.Item1.CompareTo(a.Item1));
+   Debug.Log("FORGE_TRIS "+m.name+" "+tri+" tris in "+groups[m].Count+" renderers; top: "+string.Join(" | ",top.GetRange(0,Mathf.Min(8,top.Count)).ConvertAll(x=>x.Item1+" "+x.Item2)));}
+#endif
   foreach(var m in order){
    var baked=new Material(m){name=m.name+" (baked AO)"};baked.SetFloat("_VertexAO",1);roomBakedOf[m]=baked;bool pulse=m.GetFloat("_Pulse")>.5f;
-   var mb=new RoomMesh();int part=0;
-   void Flush(){if(mb.v.Count==0)return;var go=MeshObject(m.name+" · merged "+(part++),mb.Build(m.name+" merged"),baked);go.transform.SetParent(merged,false);var r=go.GetComponent<MeshRenderer>();r.shadowCastingMode=UnityEngine.Rendering.ShadowCastingMode.Off;r.receiveShadows=false;roomMergedMeshes++;mb=new RoomMesh();}
+   // One mesh per material and spatial cell (RoomCell: 2.3 x 2.0 m columns, split at 1.9 m height), cut per triangle
+   // at its centroid, so frustum culling drops what the work view cannot see (the ceiling, the walls behind the
+   // smith, the upper chains) instead of drawing the whole room every frame.
+   var cells=new Dictionary<int,RoomMesh>();var parts=new Dictionary<int,int>();var maps=new Dictionary<int,int[]>();
+   void FlushCell(int key){if(!cells.TryGetValue(key,out var cm)||cm.v.Count==0)return;parts.TryGetValue(key,out int part);parts[key]=part+1;
+    var go=MeshObject(m.name+" · cell "+key+(part>0?"."+part:""),cm.Build(m.name+" merged"),baked);go.transform.SetParent(merged,false);var r=go.GetComponent<MeshRenderer>();r.shadowCastingMode=UnityEngine.Rendering.ShadowCastingMode.Off;r.receiveShadows=false;roomMergedMeshes++;cells[key]=new RoomMesh();if(maps.TryGetValue(key,out var map))System.Array.Fill(map,-1);}
    foreach(var renderer in groups[m]){
     var filter=renderer.GetComponent<MeshFilter>();var mesh=filter.sharedMesh;var verts=mesh.vertices;var normals=mesh.normals;var colors=mesh.colors;var tris=mesh.triangles;
     var go=renderer.gameObject;bool noAo=roomNoAo.Contains(go)||m.GetColor("_EmissionColor").maxColorComponent>.05f;var size=renderer.bounds.size;bool lumpy=roomLumpAo.Contains(go);
     var dirs=roomCheapAo.Contains(go)||Mathf.Max(size.x,Mathf.Max(size.y,size.z))<.3f?roomAoDirsCheap:roomAoDirs;
-    if(mb.v.Count+verts.Length>60000)Flush();
-    var l2w=renderer.transform.localToWorldMatrix;var nm=l2w.inverse.transpose;int baseIndex=mb.v.Count;
+    var l2w=renderer.transform.localToWorldMatrix;var nm=l2w.inverse.transpose;
     int tintAt=roomTintObject.IndexOf(renderer.gameObject);var tint=tintAt>=0?roomTintColor[tintAt]:Color.white;
+    var pw=new Vector3[verts.Length];var nw=new Vector3[verts.Length];var cw=new Color[verts.Length];
     for(int i=0;i<verts.Length;i++){
      var p=l2w.MultiplyPoint3x4(verts[i]);var n=normals.Length==verts.Length?nm.MultiplyVector(normals[i]).normalized:Vector3.up;
      float ao=noAo?1:Mathf.Lerp(1,lumpy?RoomLumpAo(p,reach):RoomAo(p,n,reach,dirs),room.aoStrength);
-     var col=pulse&&colors.Length==verts.Length?colors[i]:tint;col.a=ao;
-     mb.v.Add(p);mb.n.Add(n);mb.c.Add(col);
+     var col=pulse&&colors.Length==verts.Length?colors[i]:tint;col.a=ao;pw[i]=p;nw[i]=n;cw[i]=col;
     }
-    bool flip=l2w.determinant<0;for(int i=0;i<tris.Length;i+=3){mb.t.Add(baseIndex+tris[i]);mb.t.Add(baseIndex+tris[flip?i+2:i+1]);mb.t.Add(baseIndex+tris[flip?i+1:i+2]);}
+    maps.Clear();
+    bool flip=l2w.determinant<0;
+    for(int i=0;i<tris.Length;i+=3){
+     int a=tris[i],b=tris[flip?i+2:i+1],d=tris[flip?i+1:i+2];int key=RoomCell((pw[a]+pw[b]+pw[d])/3);
+     if(!cells.TryGetValue(key,out var cm)){cm=new RoomMesh();cells[key]=cm;}
+     if(cm.v.Count+3>60000){FlushCell(key);cm=cells[key];}
+     if(!maps.TryGetValue(key,out var map)){map=new int[verts.Length];System.Array.Fill(map,-1);maps[key]=map;}
+     for(int c=0;c<3;c++){int k=c==0?a:c==1?b:d;if(map[k]<0){map[k]=cm.v.Count;cm.v.Add(pw[k]);cm.n.Add(nw[k]);cm.c.Add(cw[k]);}cm.t.Add(map[k]);}
+    }
     roomBakedVertices+=verts.Length;roomMergedRenderers++;
     Destroy(renderer);Destroy(filter);
    }
-   Flush();
+   var keys=new List<int>(cells.Keys);keys.Sort();foreach(var key in keys)FlushCell(key);
   }
   roomBakeMs=(Time.realtimeSinceStartup-started)*1000;
   Debug.Log($"FORGE_ROOM merged {roomMergedRenderers} renderers into {roomMergedMeshes} meshes ({order.Count} materials), baked AO on {roomBakedVertices} vertices against {roomOccluderCount} occluders in {roomBakeMs:0} ms");
  }
+ /// Merge cell of a world point: three columns across (x), three deep (z), below and above 1.9 m.
+ static int RoomCell(Vector3 p){int x=Mathf.Clamp(Mathf.FloorToInt((p.x+3.5f)/2.3f),0,2),z=Mathf.Clamp(Mathf.FloorToInt((p.z+3.9f)/2.0f),0,2),y=p.y<1.9f?0:1;return x+3*z+9*y;}
  /// Shared AO for tiny pieces: one upward 5-ray sample per 3 cm cell (a coal lump or chain link reads as one tone).
  float RoomLumpAo(Vector3 p,float reach){
   int x=Mathf.FloorToInt(p.x/.03f),y=Mathf.FloorToInt(p.y/.03f),z=Mathf.FloorToInt(p.z/.03f);int key=((x+512)&1023)|(((y+512)&1023)<<10)|(((z+512)&1023)<<20)|(1<<30);

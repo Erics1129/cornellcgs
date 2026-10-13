@@ -29,16 +29,28 @@ public partial class ForgeWorld {
   var bones=fingerBones[side];if(bones==null)return;var k=K;var across=goal*Vector3.right;var along=goal*Vector3.forward;
   for(int f=0;f<5;f++)for(int j=0;j<3;j++){var t=bones[f*3+j];if(t==null)continue;t.localRotation=fingerRest[side][f*3+j];
    float deg=f==0?k.thumbCurlDeg*(j==0?.6f:1)*(side==0?-1:1):(j==0?k.fingerCurlProxDeg:j==1?k.fingerCurlMidDeg:k.fingerCurlTipDeg)*(1+.06f*(f-1));
-   if(amount<1)deg*=amount;t.rotation=Quaternion.AngleAxis(deg,f==0?along:across)*t.rotation;}
+   deg*=amount;t.rotation=Quaternion.AngleAxis(deg,f==0?along:across)*t.rotation;}
  }
 
  void CreateSmith(){
   var model=Resources.Load<GameObject>("Smith/Model");var go=Instantiate(model,ForgeLayout.SmithAnvilStance,Quaternion.identity);go.name="The blacksmith";smith=go.transform;smith.localScale=Vector3.one;lastSmith=smith.position;
   smithAnimator=go.GetComponent<Animator>();if(smithAnimator==null)smithAnimator=go.AddComponent<Animator>();smithAnimator.runtimeAnimatorController=Resources.Load<RuntimeAnimatorController>("Smith/Smith");smithAnimator.applyRootMotion=false;smithAnimator.cullingMode=AnimatorCullingMode.AlwaysAnimate;go.AddComponent<SmithPose>().forge=this;
-  var cloth=new Material(Shader.Find("Forge/Glove")){name="Leather forging gauntlets",color=C("927d68")};cloth.mainTexture=Resources.Load<Texture2D>("Forge/LeatherV3");foreach(var r in go.GetComponentsInChildren<SkinnedMeshRenderer>(true)){var materials=new Material[r.sharedMaterials.Length];for(int i=0;i<materials.Length;i++)materials[i]=cloth;r.sharedMaterials=materials;r.updateWhenOffscreen=true;r.receiveShadows=false;r.shadowCastingMode=UnityEngine.Rendering.ShadowCastingMode.Off;var mesh=Instantiate(r.sharedMesh);var colors=new Color[mesh.vertexCount];var weights=mesh.boneWeights;for(int v=0;v<colors.Length;v++){var w=weights[v];int index=w.boneIndex0;string bone=index<r.bones.Length?r.bones[index].name:"";bool skin=bone.Contains("Head")||bone.Contains("Neck")||bone.Contains("Jaw");bool boot=bone.Contains("Foot")||bone.Contains("Toes");bool glove=bone.Contains("Hand")||bone.Contains("Finger")||bone.Contains("Thumb")||bone.Contains("Index")||bone.Contains("Middle")||bone.Contains("Ring")||bone.Contains("Pinky");var color=skin?C("b78360"):boot?C("30291f"):glove?C("735136"):bone.Contains("Leg")?C("39403b"):C("535c53");color.a=skin?1:0;colors[v]=color.linear;}mesh.colors=colors;
-   // Render the animated arms only: the first-person camera cannot see inside a head or torso.
-   bool IsArm(int v){var bw=weights[v];return ArmBone(r.bones[bw.boneIndex0].name)||bw.weight1>.2f&&ArmBone(r.bones[bw.boneIndex1].name);}
+  var cloth=smithCloth=new Material(Shader.Find("Forge/Glove")){name="Leather forging gauntlets",color=C("927d68")};cloth.SetFloat(NearCullId,0);cloth.mainTexture=Resources.Load<Texture2D>("Forge/LeatherV3");foreach(var r in go.GetComponentsInChildren<SkinnedMeshRenderer>(true)){var materials=new Material[r.sharedMaterials.Length];for(int i=0;i<materials.Length;i++)materials[i]=cloth;r.sharedMaterials=materials;r.updateWhenOffscreen=true;r.receiveShadows=false;r.shadowCastingMode=UnityEngine.Rendering.ShadowCastingMode.Off;var mesh=Instantiate(r.sharedMesh);var colors=new Color[mesh.vertexCount];var weights=mesh.boneWeights;for(int v=0;v<colors.Length;v++){var w=weights[v];int index=w.boneIndex0;string bone=index<r.bones.Length?r.bones[index].name:"";bool skin=bone.Contains("Head")||bone.Contains("Neck")||bone.Contains("Jaw");bool boot=bone.Contains("Foot")||bone.Contains("Toes");bool glove=bone.Contains("Hand")||bone.Contains("Finger")||bone.Contains("Thumb")||bone.Contains("Index")||bone.Contains("Middle")||bone.Contains("Ring")||bone.Contains("Pinky");var color=skin?C("b78360"):boot?C("30291f"):glove?C("735136"):bone.Contains("Leg")?C("39403b"):C("535c53");color.a=skin?1:0;colors[v]=color.linear;}mesh.colors=colors;
+   // Render the animated arms only (the first-person camera cannot see inside a head or torso): the triangles whose three
+   // vertices an arm bone dominates. The shoulder cap (clavicle- or chest-dominant skin with some upper-arm weight) is
+   // left out and the kept skin follows the arm bones only (its other weights dropped): pulled toward the torso while the
+   // arm reached out to the hearth, they stretched the upper arm into a spiked sheet across the lower left (critique).
+   bool IsArm(int v){var bw=weights[v];return ArmBone(r.bones[bw.boneIndex0].name);}
    for(int sub=0;sub<mesh.subMeshCount;sub++){var old=mesh.GetTriangles(sub);var kept=new List<int>();for(int j=0;j<old.Length;j+=3)if(IsArm(old[j])&&IsArm(old[j+1])&&IsArm(old[j+2]))kept.AddRange(new[]{old[j],old[j+1],old[j+2]});mesh.SetTriangles(kept,sub);}
+   // Vertex alpha = the upper-arm share of the skin: during the hearth reach Forge/Glove culls those fragments within
+   // _NearCull of the camera (first-person practice: only the forearm and glove are drawn, not the sleeve beside the eye;
+   // at the anvil the sleeves run out of the frame's corners and stay whole, PoseSmith).
+   var armOnly=new BoneWeight[weights.Length];
+   bool Upper(int bone)=>r.bones[bone].name.Contains("UpperArm");
+   for(int v=0;v<weights.Length;v++){var w=weights[v];float a0=ArmBone(r.bones[w.boneIndex0].name)?w.weight0:0,a1=ArmBone(r.bones[w.boneIndex1].name)?w.weight1:0,a2=ArmBone(r.bones[w.boneIndex2].name)?w.weight2:0,a3=ArmBone(r.bones[w.boneIndex3].name)?w.weight3:0,sum=a0+a1+a2+a3;
+    if(sum<1e-4f){armOnly[v]=w;continue;}w.weight0=a0/sum;w.weight1=a1/sum;w.weight2=a2/sum;w.weight3=a3/sum;armOnly[v]=w;
+    colors[v].a=(Upper(w.boneIndex0)?w.weight0:0)+(Upper(w.boneIndex1)?w.weight1:0)+(Upper(w.boneIndex2)?w.weight2:0)+(Upper(w.boneIndex3)?w.weight3:0);}
+   mesh.boneWeights=armOnly;mesh.colors=colors;
    r.sharedMesh=mesh;
   }
   leftHand=smithAnimator.GetBoneTransform(HumanBodyBones.LeftHand);rightHand=smithAnimator.GetBoneTransform(HumanBodyBones.RightHand);spine=smithAnimator.GetBoneTransform(HumanBodyBones.Chest);
@@ -66,6 +78,7 @@ public partial class ForgeWorld {
  void FaceStation(string spot){if(!spots.ContainsKey(spot))return;var direction=spots[spot]-smith.position;direction.y=0;if(direction.sqrMagnitude>.01f)smith.rotation=Quaternion.LookRotation(direction);}
  /// The smith stands at the anvil stance (work position).
  bool AtAnvil()=>smith!=null&&Vector3.Distance(smith.position,approaches["anvil"])<.35f;
+ Material smithCloth;static readonly int NearCullId=Shader.PropertyToID("_NearCull");
  float hammerElbow=.45f,elbowRise;Quaternion rightGoalRot=Quaternion.identity,leftGoalRot=Quaternion.identity;Vector3 rightGoalPos,leftGoalPos;
  public void PoseSmith(Animator a){if(smith==null||hammer==null)return;
   var y=SmithYaw;var k=K;
@@ -76,7 +89,11 @@ public partial class ForgeWorld {
    float pd=k.tongPalmDownDeg*Mathf.Deg2Rad;var palm=inward*Mathf.Cos(pd)-upPerp*Mathf.Sin(pd);
    PowerGrip(TongHandWorld(),-rein,palm,false,k.tongObliqueDeg,.01f*k.tongPalmCm,.01f*k.gripAlongCm,out var lh,out var lhRot);
    a.SetIKPositionWeight(AvatarIKGoal.LeftHand,1);a.SetIKRotationWeight(AvatarIKGoal.LeftHand,1);a.SetIKPosition(AvatarIKGoal.LeftHand,lh);a.SetIKRotation(AvatarIKGoal.LeftHand,lhRot);leftGoalRot=lhRot;leftGoalPos=lh;
-   a.SetIKHintPositionWeight(AvatarIKHint.LeftElbow,1);a.SetIKHintPosition(AvatarIKHint.LeftElbow,smith.position+y*new Vector3(-.46f,.98f,.05f));}
+   // Left elbow: out at the side at the anvil; at the hearth (reaching forward and down to the coals or the tub) below and
+   // outside the reach line, so the shoulder next to the camera does not over-twist.
+   float reachW=hearth!=null&&!hearth.fade?(hearth.quench?ForgeHearth.QuenchStep(k,hearth.t):ForgeHearth.Step(k,hearth.t)):0;
+   if(smithCloth!=null)smithCloth.SetFloat(NearCullId,reachW>.02f?.42f:0);
+   a.SetIKHintPositionWeight(AvatarIKHint.LeftElbow,1);a.SetIKHintPosition(AvatarIKHint.LeftElbow,smith.position+y*Vector3.Lerp(new Vector3(-.46f,.98f,.05f),new Vector3(-.38f,.80f,.30f),ForgeFeel.Smooth(reachW)));}
   // Right hand closed on the hammer grip (palm toward the body's midline, knuckles toward the face), or on the
   // bellows chain ring during the hearth reach.
   PowerGrip(hammer.position,hammer.up,-hammer.forward,true,k.gripObliqueDeg,.01f*k.gripPalmCm,.01f*k.gripAlongCm,out var grip,out var gripRot);

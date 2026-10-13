@@ -58,9 +58,9 @@ public partial class ForgeWorld:MonoBehaviour {
   var ids=new HashSet<int>();foreach(var k in next.knives)ids.Add(k.id);var removed=new List<int>();foreach(var pair in bodies)if(!ids.Contains(pair.Key))removed.Add(pair.Key);
   foreach(var id in removed){var removedBody=bodies[id];if(hearth!=null&&hearth.knifeId==id)AbortHearth(false);if(heldId==id)heldId=-1;if(carriedId==id)carriedId=-1;
    if(next.effect!=null&&next.effect.id==id&&next.effect.kind=="sell"){KeepSale(removedBody);StartGlance();}else{if(next.effect!=null&&next.effect.id==id&&next.effect.outcome=="shatter")BreakBlade(removedBody);DisposeBody(removedBody);}bodies.Remove(id);}
-  int crateIndex=0,rackIndex=0;foreach(var k in next.knives){var sig=KnifeSignature(k);Body b;string was=null;bool fresh=false;
-   if(!bodies.TryGetValue(k.id,out b)){b=MakeKnife(k);b.signature=sig;b.knife=k;b.target=PlaceTarget(k,ref crateIndex,ref rackIndex);b.root.transform.position=b.target;bodies[k.id]=b;fresh=true;}
-   else{was=b.knife.place;if(b.signature!=sig){KnifeRefresh(b,k);b.signature=sig;}b.knife=k;b.target=PlaceTarget(k,ref crateIndex,ref rackIndex);}
+  int crateIndex=0,rackIndex=0;foreach(var k in next.knives){Body b;string was=null;bool fresh=false;
+   if(!bodies.TryGetValue(k.id,out b)){b=MakeKnife(k);b.signature=KnifeSignature(k);b.knife=k;b.target=PlaceTarget(k,ref crateIndex,ref rackIndex);b.root.transform.position=b.target;bodies[k.id]=b;fresh=true;}
+   else{was=b.knife.place;if(syncedOnce&&b.heatState!=null&&BeginsKeep(b,k))b.heatState.quenchHold=true;var sig=KnifeSignature(k,b);if(b.signature!=sig){KnifeRefresh(b,k);b.signature=sig;}b.knife=k;b.target=PlaceTarget(k,ref crateIndex,ref rackIndex);}
    if(b.root.transform.parent!=dynamicRoot)b.root.transform.SetParent(dynamicRoot,true);
    if(next.effect!=null&&next.effect.kind=="heat"&&next.effect.id==k.id)KnifeHeated(b);
    KnifeMoved(b,was,fresh,next.effect);
@@ -103,7 +103,7 @@ public partial class ForgeWorld:MonoBehaviour {
 
  void Update(){
   if(cam==null)return;if(Screen.width!=oldWidth||Screen.height!=oldHeight)Resize();
-  float raw=ForgeTime.Raw(Time.unscaledDeltaTime);UpdateQuality(raw);
+  float raw=ForgeTime.Raw(Time.unscaledDeltaTime);UpdateQuality(raw);RewarmIfNeeded();
   // Time policy: the strike timeline, camera and input run on real time; hit-stop freezes the world (Time.timeScale 0),
   // which only this method writes (from ForgeTime, with its 600 ms watchdog).
   clock.Step(raw);float scale=clock.Watch(raw,clock.Scale);if(Time.timeScale!=scale)Time.timeScale=scale;

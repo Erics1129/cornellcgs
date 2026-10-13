@@ -121,14 +121,16 @@ public partial class ForgeWorld {
    case "good":flakes=Mathf.RoundToInt(t.flakesGood+Random.Range(-t.flakesGoodJitter,t.flakesGoodJitter));sparks=Random.value<t.sparksGood?1:0;break;
    case "perfect":flakes=(int)t.flakesPerfect;sheets=(int)t.sheetsPerfect;sparks=(int)t.sparksPerfect;speed=t.perfectMaxSpeed;break;
    case "chip":flakes=(int)t.flakesChip;chips=(int)t.chipsChip;break;
+   case "dull":flakes=Mathf.RoundToInt(t.flakesDull);speed=t.dullMaxSpeed;break;
    case "shatter":flakes=(int)t.flakesShatter;sparks=(int)t.sparksShatter;break;
   }
   if(e.evolution){flakes=0;sheets=0;sparks=0;}   // EvolutionFx (called right after) throws the evolution burst
   flakes=Mathf.RoundToInt(flakes*s);sheets=Mathf.RoundToInt(sheets*s);sparks=Mathf.RoundToInt(sparks*s);
   if(reduced){flakes=o=="dull"?0:(int)t.flakesReduced;sheets=0;sparks=0;chips=Mathf.Min(chips,2);}
-  Debris(origin,o,flakes,sparks,sheets,chips,speed,tempC);
+  // A Dull blow knocks off a few dark, cooler flakes of thick scale (and a whisper of dust), not a cloud.
+  Debris(origin,o,flakes,sparks,sheets,chips,speed,o=="dull"?Mathf.Min(tempC,t.dullFlakeC):tempC);
   lastBurstOutcome=o;lastBurstFlakes=flakes;lastBurstSheets=sheets;lastBurstChips=chips;lastBurstSparks=sparks;lastBurstId++;landN=nearN=0;
-  if(o=="dull")Puff(origin,6,false);
+  if(o=="dull")ScaleDust(origin+Vector3.up*.01f,Mathf.RoundToInt(t.dustDull));
   if(!onBlade)return;
   // Marks on the blade, in normalized blade coordinates under the hammer.
   var h=b.heatState;u=Mathf.Clamp(u,.06f,.94f);

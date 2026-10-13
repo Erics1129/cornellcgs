@@ -11,6 +11,12 @@ using UnityEngine;
 public partial class ForgeWorld {
  /// Mesh rebuild key: the level and the place class (blank, forging, finished) change the mesh.
  string KnifeSignature(ForgeKnife k)=>k.metal+":"+k.family+":"+k.level+":"+KnifePlaceClass(k);
+ /// The signature of a live body: a kept blade still in the tongs (HeatState.quenchHold) stays 'forging' until it has
+ /// dissolved out after the quench, so the handle never appears in the jaws.
+ string KnifeSignature(ForgeKnife k,Body b)=>b!=null&&b.heatState!=null&&b.heatState.quenchHold?k.metal+":"+k.family+":"+k.level+":forging":KnifeSignature(k);
+ /// A Keep (anvil to rack) starts the hold; EndQuenchHold ends it once the blade is out of sight.
+ static bool BeginsKeep(Body b,ForgeKnife next)=>b.knife!=null&&b.knife.place=="anvil"&&next.place=="rack";
+ void EndQuenchHold(Body b){var h=b.heatState;if(h==null||!h.quenchHold)return;h.quenchHold=false;h.quenched=false;var sig=KnifeSignature(b.knife);if(b.signature!=sig){KnifeRefresh(b,b.knife);b.signature=sig;}}
  static string KnifePlaceClass(ForgeKnife k)=>k.place=="rack"?"finished":k.place=="crate"?(k.level==0?"blank":"finished"):"forging";
  /// Uniform scale of a knife root (b.root): profile units to metres. strike-feel's motion code reads it.
  float KnifeRootScale=>ForgeLayout.KnifeScale;
@@ -54,7 +60,7 @@ public partial class ForgeWorld {
   var h=b.heatState;var t=tuning.metal;var p=k.profile;int n=p!=null?p.Length:0;
   if(h.px.Length<n){h.px=new float[n];h.pz=new float[n];}for(int i=0;i<n;i++){h.px[i]=p[i].x;h.pz[i]=p[i].y;}
   h.shape.Build(n>=3?h.px:null,n>=3?h.pz:null,n,k.level,k.family,t,KnifeUnitMm);
-  h.finished=KnifePlaceClass(k)=="finished";int stage=Stage(k.level);
+  h.finished=!h.quenchHold&&KnifePlaceClass(k)=="finished";int stage=Stage(k.level);
   var handle=k.metal=="iron"||k.metal=="bronze"?Walnut:k.metal=="steel"||k.metal=="silver"?Leather:Ebony;
   h.shape.Mesh(knifeBuffer,t,h.finished,stage,handle,Rgb(k.glow,"ffa263"));
   Upload(h.mesh,knifeBuffer);h.mesh.RecalculateBounds();h.dirty=false;h.rebuild=false;h.level=k.level;

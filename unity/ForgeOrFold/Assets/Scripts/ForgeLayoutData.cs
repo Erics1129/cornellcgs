@@ -14,10 +14,13 @@ public static class ForgeLayoutData {
 
  // ---- Anvil (most-seen object). Face top is the working surface. ----
  public const float AnvilTopY=.84f;                       // was 1.035
- public static readonly F3 AnvilCenter=new F3(0,AnvilTopY,-.40f);   // centre of the face top
- public const float AnvilFaceX=.78f, AnvilFaceZ=.30f;      // face size
- public const float AnvilBodyHeight=.31f, StumpTopY=AnvilTopY-AnvilBodyHeight, StumpRadius=.29f;
- public static readonly Rect AnvilFootprint=new Rect(-.45f,-.56f,.70f,-.24f);   // body, heel and horn
+ public static readonly F3 AnvilCenter=new F3(0,AnvilTopY,-.39f);   // centre of the face top (the strike point sits 1 cm into its near half)
+ /// Face size: a 125 kg London-pattern anvil (critique: the old .78 x .30 m slab read as a steel table). 48 cm from the heel
+ /// to the step, 13 cm wide; the step and a 25 cm horn carry on to x = +.52, so the anvil is about 76 cm long.
+ public const float AnvilFaceX=.48f, AnvilFaceZ=.13f;
+ public const float AnvilStepX=.06f, AnvilHornX=.25f;      // step length beyond the face, horn length beyond the step root
+ public const float AnvilBodyHeight=.31f, StumpTopY=AnvilTopY-AnvilBodyHeight, StumpRadius=.21f;
+ public static readonly Rect AnvilFootprint=new Rect(-.25f,-.52f,.53f,-.26f);   // feet, heel and horn
  public static readonly Rect AnvilFace=Around(AnvilCenter,AnvilFaceX,AnvilFaceZ);
  /// Where the hammer face lands: the top of a knife lying on the face.
  public static readonly F3 StrikePoint=new F3(.05f,.846f,-.40f);

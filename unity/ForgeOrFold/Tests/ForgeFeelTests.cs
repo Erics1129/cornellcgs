@@ -74,8 +74,8 @@ static class ForgeFeelTests {
    foreach(float L0 in new[]{.24f,.30f,.34f})foreach(float u in new[]{k.feedFrom,.5f,k.feedTo}){
     float rootX=ForgeFeel.RootX(k,L.StrikePoint.x,u,L0);float cx=ForgeFeel.ContactX(k,L.StrikePoint.x,u,L0);
     var a=Arc(k,new FV(cx,Contact.y,Contact.z));
-    float px=ForgeFeel.ParkX(k,L.StrikePoint.x,rootX+L0,L.AnvilCenter.x+L.AnvilFaceX*.5f);
-    var park=a.Park(new FV(px,Contact.y+.017f,Contact.z-k.parkBack)-Stance);
+    ForgeFeel.ParkHead(k,L.StrikePoint.x,L.StrikePoint.z,rootX+L0,L.AnvilCenter.x+L.AnvilFaceX*.5f,L.AnvilStepX,L.AnvilHornX,L.AnvilFace.z0,L.AnvilCenter.z,out float px,out float pdy,out float pz);
+    var park=a.Park(new FV(px,L.AnvilTopY+pdy,pz)-Stance);
     // From ready the head is in view all the way. A parked head lies clear of the blade tip and may start outside a narrow
     // frame (the critique's rest pose is off-screen right on a phone), so its path is checked once the windup is under way:
     // from s = .1 (20% of the windup, most of the lift), from s = .25 in portrait.

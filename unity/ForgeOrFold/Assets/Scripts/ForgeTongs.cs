@@ -23,33 +23,36 @@ public partial class ForgeWorld {
 
  void MakeTongs(){
   var k=K;tongs=Group("Flat jaw tongs",Vector3.zero);tongs.SetParent(dynamicRoot,true);
-  tongIron=Mat("Forged tongs","3d4144",.78f,.36f);tongIron.mainTexture=Resources.Load<Texture2D>("Forge/IronV3");tongIron.SetFloat("_Scale",8);tongIron.SetFloat("_ObjectSpace",1);
+  // Lighter forged iron, half metallic: near-black .78-metallic 8 mm reins vanished against the brick (critique).
+  tongIron=Mat("Forged tongs","5c5f62",.5f,.45f);tongIron.SetFloat("_Sheen",.7f);tongIron.mainTexture=Resources.Load<Texture2D>("Forge/IronV3");tongIron.SetFloat("_Scale",8);tongIron.SetFloat("_ObjectSpace",1);
   var g=MeshObject("Tongs",TongMesh(k),tongIron);g.transform.SetParent(tongs,false);var r=g.GetComponent<Renderer>();r.shadowCastingMode=ShadowCastingMode.Off;r.receiveShadows=false;
   float e=k.tongElevDeg*Mathf.Deg2Rad;tongHandLocal=new Vector3(Mathf.Cos(e),Mathf.Sin(e),0)*k.tongHandM;
   // The grip: the reins leave the tang at tongGripDeg toward the smith (toward -z for a blade along +x).
   var tang=Vector3.left;var rein=Quaternion.Euler(0,-k.tongGripDeg,0)*tang;gripRel=Quaternion.Inverse(TongRotation(rein))*Quaternion.identity;
  }
  static Quaternion TongRotation(Vector3 rein){rein.y=0;if(rein.sqrMagnitude<1e-8f)rein=Vector3.left;rein.Normalize();return Quaternion.LookRotation(Vector3.Cross(rein,Vector3.up),Vector3.up);}
- /// Two 8 mm reins (42 cm, slightly bowed) from a riveted boss 7 cm behind the jaw tips, 5 cm flat jaws.
+ /// Two 12 x 9 mm reins (42 cm, slightly bowed, a little flattened) from a riveted boss 7 cm behind the jaw tips, 5 cm flat jaws.
  static Mesh TongMesh(ForgeStrikeTuning k){
   var v=new List<Vector3>();var t=new List<int>();
   float e=k.tongElevDeg*Mathf.Deg2Rad;var hand=new Vector3(Mathf.Cos(e),Mathf.Sin(e),0)*k.tongHandM;var boss=new Vector3(.045f,0,0);var dir=(hand-boss).normalized;
   for(int side=-1;side<=1;side+=2){
-   // Rein: a tube of 8 mm round bar following a gentle bow, ending 2 cm past the hand.
-   var path=new List<Vector3>();for(int i=0;i<=10;i++){float s=i/10f;var p=boss+dir*(.42f*s);float bow=Mathf.Sin(s*Mathf.PI)*.012f+.004f+s*.004f;path.Add(p+new Vector3(0,0,side*bow));}
-   Tube(v,t,path,.004f,6);
+   // Rein: 12 x 9 mm bar (wider across the bow than it is tall) following a gentle bow, ending 2 cm past the hand.
+   var path=new List<Vector3>();for(int i=0;i<=10;i++){float s=i/10f;var p=boss+dir*(.42f*s);float bow=Mathf.Sin(s*Mathf.PI)*.013f+.0065f+s*.004f;path.Add(p+new Vector3(0,0,side*bow));}
+   Tube(v,t,path,.006f,8,.0045f);
    // Jaw: a flat bar 5 cm x 1.4 cm x 3 mm above or below the tang, joined to the boss.
    float y=side*.0048f;BoxInto(v,t,new Vector3(-.0255f,y-.0015f,-.007f),new Vector3(.0255f,y+.0015f,.007f));
    BoxInto(v,t,new Vector3(.0255f,Mathf.Min(y,0)-.0025f,-.006f),new Vector3(.047f,Mathf.Max(y,0)+.0025f,.006f));
   }
-  // Rivet head.
-  {var c=new Vector3(.045f,0,0);var path=new List<Vector3>{c+new Vector3(0,0,-.011f),c+new Vector3(0,0,.011f)};Tube(v,t,path,.0055f,8);}
+  // The boss round the pivot and its peened rivet heads.
+  {var c=new Vector3(.045f,0,0);Tube(v,t,new List<Vector3>{c+new Vector3(0,0,-.012f),c+new Vector3(0,0,.012f)},.010f,10);
+   foreach(float sz in new[]{-1f,1f})Tube(v,t,new List<Vector3>{c+new Vector3(0,0,sz*.0115f),c+new Vector3(0,0,sz*.0150f)},.0055f,8);}
   var m=new Mesh{name="Tongs"};m.SetVertices(v);m.SetTriangles(t,0);m.RecalculateNormals();m.RecalculateBounds();return m;
  }
- static void Tube(List<Vector3> v,List<int> t,List<Vector3> path,float r,int seg){
-  int start=v.Count;
+ /// A tube along path, r across (horizontal) and rb (default r) up.
+ static void Tube(List<Vector3> v,List<int> t,List<Vector3> path,float r,int seg,float rb=-1){
+  int start=v.Count;if(rb<=0)rb=r;
   for(int i=0;i<path.Count;i++){var fwd=(path[Mathf.Min(i+1,path.Count-1)]-path[Mathf.Max(i-1,0)]).normalized;var up=Mathf.Abs(Vector3.Dot(fwd,Vector3.up))>.9f?Vector3.right:Vector3.up;var a=Vector3.Cross(fwd,up).normalized;var b=Vector3.Cross(a,fwd);
-   for(int j=0;j<seg;j++){float ang=j*Mathf.PI*2/seg;v.Add(path[i]+(a*Mathf.Cos(ang)+b*Mathf.Sin(ang))*r);}}
+   for(int j=0;j<seg;j++){float ang=j*Mathf.PI*2/seg;v.Add(path[i]+a*(Mathf.Cos(ang)*r)+b*(Mathf.Sin(ang)*rb));}}
   for(int i=0;i+1<path.Count;i++)for(int j=0;j<seg;j++){int a=start+i*seg+j,b=start+i*seg+(j+1)%seg,c=start+(i+1)*seg+(j+1)%seg,d=start+(i+1)*seg+j;t.AddRange(new[]{a,c,b,a,d,c});}
   int e0=v.Count;v.Add(path[0]);for(int j=0;j<seg;j++)t.AddRange(new[]{e0,start+j,start+(j+1)%seg});
   int e1=v.Count;v.Add(path[path.Count-1]);int last=start+(path.Count-1)*seg;for(int j=0;j<seg;j++)t.AddRange(new[]{e1,last+(j+1)%seg,last+j});

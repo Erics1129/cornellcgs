@@ -264,7 +264,8 @@ async function analyse(dirs) {
       if (ran('chip')) { const p = burst('chip'); check(p && p.bChips === 4 && Math.abs(p.bFlakes - R(10)) <= 2, `chip: ${R(10)} flakes and 4 chips`, p && [p.bFlakes, p.bChips]) }
       if (ran('shatter')) { const p = burst('shatter'); check(p && p.shards >= 10 && p.shards <= 16 && p.bSparks >= R(12), `shatter: 10-16 pieces and ${R(15)} burning sparks`, p && [p.shards, p.bSparks, p.bFlakes]) }
       if (ran('evolve')) { const at = counts('evolve-150'); check(at && at.sparks + at.forks >= 1 && at.flakes >= R(20), `evolution: ${R(36)} flakes and forking burning sparks`, at && [at.flakes, at.sparks, at.forks]) }
-      if (ran('dull')) { const p = burst('dull'); check(p && p.bFlakes === 0 && p.bSparks === 0, 'dull: no flakes or sparks (the dust puff only)', p && [p.bFlakes, p.bSparks]) }
+      // Dull (critique): no dust cloud over the blade, a few dark flakes of thick scale and a whisper of dust instead.
+      if (ran('dull')) { const p = burst('dull'); check(p && Math.abs(p.bFlakes - R(4)) <= 1 && p.bSparks === 0, `dull: ${R(4)} dark flakes, no sparks (no dust cloud)`, p && [p.bFlakes, p.bSparks]) }
     }
     { const p = counts('chip-1500') || counts('chip-400'); if (p) check(p.notchMm >= 3, 'chip: notch at least 3 mm deep', p.notchMm) }
     { const p = counts('good-2300'); if (p) { check(p.glowing === 0, 'all flakes dark by 2.3 s', p.glowing); check(p.landN > 0 && p.nearN / p.landN >= .8, 'at least 80% of the flakes that landed did so within 1 m of the contact', p.landN ? [p.nearN, p.landN] : 0) } }

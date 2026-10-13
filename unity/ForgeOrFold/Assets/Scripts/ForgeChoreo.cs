@@ -93,6 +93,10 @@ public partial class ForgeWorld {
    // A knife that just left the jaws without a place change (carry ended) goes back in .15 s.
    if(m.wasHeld&&!inJaws&&m.mode==KnifeMotion.Rest&&!(b.knife.place=="anvil"&&AtAnvil())&&(hearth==null||hearth.knifeId!=b.knife.id)){m.wasHeld=false;TweenTo(b,K.abortTweenS);continue;}
    m.wasHeld=inJaws;
+   // A kept blade takes its handle (the finished mesh) only once it is out of sight: dissolved out after the quench, or
+   // after a plain dissolve to the rack (a cold blade, reduced motion), or when nothing carries it any more.
+   if(b.heatState!=null&&b.heatState.quenchHold){bool carried=hearth!=null&&hearth.quench&&hearth.knifeId==b.knife.id&&!hearth.dissolved;
+    bool hidden=m.mode==KnifeMotion.Dissolve&&(m.inOnly||m.t>=m.dur);if(b.knife.place!="rack"||(!carried&&(hidden||m.mode!=KnifeMotion.Dissolve)))EndQuenchHold(b);}
    if(b.knife.place=="furnace"&&inJaws){m.restRot=rot;m.hasRestRot=true;}
    b.root.transform.SetPositionAndRotation(pos,rot);b.root.transform.localScale=Vector3.one*(KnifeRootScale*scale);
    if(m.seatPending&&m.mode==KnifeMotion.Rest&&b.knife.place=="anvil"&&b.knife.heated&&(hearth==null||hearth.knifeId!=b.knife.id)){m.seatPending=false;seatedNow.Add(b);}
