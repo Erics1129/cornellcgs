@@ -19,7 +19,7 @@
 //
 // usage: node scripts/forge-qa/room.mjs --out <dir> [--project unity/ForgeOrFold] [--only looks,void,brick,lamp,contact,flicker]
 //          [--baseline <dir>] [--tune <json overrides>] [--view desktop|phone] [--analyze] [--keep-frames]
-//        node scripts/forge-qa/room.mjs --out <dir> --url http://127.0.0.1:4173/minigames/forgeOrFold/ [--profiles desktop,phone]
+//        node scripts/forge-qa/room.mjs --out <dir> --url http://127.0.0.1:4173/minigames/forgeOrFold/ [--profiles desktop,phone] [--qa bloom0,tier2]
 // Writes <out>/room-report.json and prints a summary. Exit code 1 when a measured check fails.
 import { spawn, execSync } from 'node:child_process'
 import { existsSync, mkdirSync, readFileSync, writeFileSync, readdirSync, rmSync } from 'node:fs'
@@ -171,7 +171,8 @@ if (arg('url')) {
         window.__roomMsaa = []; const P = window.WebGL2RenderingContext && WebGL2RenderingContext.prototype
         if (P) { const f = P.renderbufferStorageMultisample; P.renderbufferStorageMultisample = function (target, samples, format, w, hh) { window.__roomMsaa.push({ t: performance.now(), samples, format, w, h: hh }); return f.call(this, target, samples, format, w, hh) } }
       })
-      const o = await lib.open(h, arg('url'), { telemetry: true })
+      const u = new URL(arg('url')); if (arg('qa')) u.searchParams.set('forge-room-qa', arg('qa'))   // this stream's modes (tierN, bloomN), read by Unity itself
+      const o = await lib.open(h, u.toString(), { telemetry: true })
       await lib.sleep(4000)   // past the governor's ignore window and budget learning
       const idle = await lib.sampleDrawCalls(h, 1500)
       await lib.ensureForging(h)

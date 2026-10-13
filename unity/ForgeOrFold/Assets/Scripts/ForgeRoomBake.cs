@@ -12,18 +12,21 @@ using UnityEngine;
 //    the room costs one draw call per material instead of one per object.
 public partial class ForgeWorld {
  struct RoomOccluder { public Vector3 center; public Quaternion inv; public Vector3 half; public bool cylinder, aligned; public float radius, bound; }
- readonly List<RoomOccluder> roomOccluders=new List<RoomOccluder>();
+ // Plain arrays and parallel lists rather than generic collections of structs: each value-type generic instantiation
+ // costs IL2CPP code in the Web build (the wasm budget is tight).
+ RoomOccluder[] roomOccluders=new RoomOccluder[96];int roomOccluderCount;
+ void RoomAddOccluder(RoomOccluder o){if(roomOccluderCount==roomOccluders.Length){var grown=new RoomOccluder[roomOccluders.Length*2];System.Array.Copy(roomOccluders,grown,roomOccluderCount);roomOccluders=grown;}roomOccluders[roomOccluderCount++]=o;}
  Transform roomColliders;
  /// Static renderers that move (bellows, lamp parts): never merged or baked.
  readonly HashSet<GameObject> roomDynamic=new HashSet<GameObject>();
  /// Static renderers that stay separate (object-space materials such as the anvil) but still get baked AO.
  readonly HashSet<GameObject> roomSeparate=new HashSet<GameObject>();
  /// Per-object vertex tint used by the merge (rgb, multiplies the material colour).
- readonly Dictionary<GameObject,Color> roomTint=new Dictionary<GameObject,Color>();
+ readonly List<GameObject> roomTintObject=new List<GameObject>();readonly List<Color> roomTintColor=new List<Color>();
  /// AO detail per renderer: none (emissive or glowing parts) or cheap (small details: 5 rays). Everything else gets 12.
  /// Lumpy renderers (coal heaps, chains: many tiny pieces) share one 5-ray sample per 3 cm cell, facing up.
  readonly HashSet<GameObject> roomNoAo=new HashSet<GameObject>(),roomCheapAo=new HashSet<GameObject>(),roomLumpAo=new HashSet<GameObject>();
- readonly Dictionary<Vector3Int,float> roomLumpCache=new Dictionary<Vector3Int,float>();
+ int[] roomLumpKeys;float[] roomLumpValues;   // open-addressing cache, key 0 = empty
  /// Source material -> its merged "_VertexAO" clone (animated emissives are driven through the clone).
  readonly Dictionary<Material,Material> roomBakedOf=new Dictionary<Material,Material>();
  int roomMergedRenderers,roomMergedMeshes,roomBakedVertices;float roomBakeMs;
@@ -33,15 +36,15 @@ public partial class ForgeWorld {
  void RoomSolid(string name,Vector3 center,Vector3 size,Vector3 rot=default,bool collider=true,bool occluder=true){
   var q=Quaternion.Euler(rot);
   if(collider){var go=new GameObject(name);go.layer=ForgeLayoutData.StaticLayer;go.transform.SetParent(RoomColliderRoot(),false);go.transform.position=center;go.transform.rotation=q;go.AddComponent<BoxCollider>().size=size;}
-  if(occluder)roomOccluders.Add(new RoomOccluder{center=center,inv=Quaternion.Inverse(q),half=size*.5f,bound=(size*.5f).magnitude,aligned=rot==Vector3.zero});
+  if(occluder)RoomAddOccluder(new RoomOccluder{center=center,inv=Quaternion.Inverse(q),half=size*.5f,bound=(size*.5f).magnitude,aligned=rot==Vector3.zero});
  }
  /// A vertical cylinder (base centre, radius, height): a box collider inscribed in it, and an exact AO occluder.
  void RoomSolidCylinder(string name,Vector3 baseCenter,float radius,float height,bool collider=true){
   var c=baseCenter+Vector3.up*height*.5f;
   if(collider){var go=new GameObject(name);go.layer=ForgeLayoutData.StaticLayer;go.transform.SetParent(RoomColliderRoot(),false);go.transform.position=c;go.AddComponent<BoxCollider>().size=new Vector3(radius*1.6f,height,radius*1.6f);}
-  roomOccluders.Add(new RoomOccluder{center=c,inv=Quaternion.identity,half=new Vector3(radius,height*.5f,radius),cylinder=true,aligned=true,radius=radius,bound=new Vector2(radius,height*.5f).magnitude});
+  RoomAddOccluder(new RoomOccluder{center=c,inv=Quaternion.identity,half=new Vector3(radius,height*.5f,radius),cylinder=true,aligned=true,radius=radius,bound=new Vector2(radius,height*.5f).magnitude});
  }
- void RoomTinted(GameObject go,Color c){roomTint[go]=c;}
+ void RoomTinted(GameObject go,Color c){roomTintObject.Add(go);roomTintColor.Add(c);}
 
  // ---- AO ----
  /// Ray sets (cosine-weighted hemisphere, z = up in tangent space): 12 for surfaces, 5 for small details.
@@ -75,7 +78,7 @@ public partial class ForgeWorld {
  List<int>[] roomAoGrid;
  void RoomAoBuildGrid(float reach){
   roomAoGrid=new List<int>[RoomAoNx*RoomAoNy*RoomAoNz];
-  for(int i=0;i<roomOccluders.Count;i++){var o=roomOccluders[i];
+  for(int i=0;i<roomOccluderCount;i++){var o=roomOccluders[i];
    // World AABB of the occluder grown by the reach (and half a cell diagonal, so a cell test is conservative).
    Vector3 ext=o.half;if(!o.aligned){var q=Quaternion.Inverse(o.inv);ext=Vector3.zero;foreach(var ax in new[]{Vector3.right*o.half.x,Vector3.up*o.half.y,Vector3.forward*o.half.z}){var w=q*ax;ext+=new Vector3(Mathf.Abs(w.x),Mathf.Abs(w.y),Mathf.Abs(w.z));}}
    var lo=o.center-ext-Vector3.one*reach;var hi=o.center+ext+Vector3.one*reach;
@@ -126,7 +129,7 @@ public partial class ForgeWorld {
     var dirs=roomCheapAo.Contains(go)||Mathf.Max(size.x,Mathf.Max(size.y,size.z))<.3f?roomAoDirsCheap:roomAoDirs;
     if(mb.v.Count+verts.Length>60000)Flush();
     var l2w=renderer.transform.localToWorldMatrix;var nm=l2w.inverse.transpose;int baseIndex=mb.v.Count;
-    roomTint.TryGetValue(renderer.gameObject,out var tint);if(!roomTint.ContainsKey(renderer.gameObject))tint=Color.white;
+    int tintAt=roomTintObject.IndexOf(renderer.gameObject);var tint=tintAt>=0?roomTintColor[tintAt]:Color.white;
     for(int i=0;i<verts.Length;i++){
      var p=l2w.MultiplyPoint3x4(verts[i]);var n=normals.Length==verts.Length?nm.MultiplyVector(normals[i]).normalized:Vector3.up;
      float ao=noAo?1:Mathf.Lerp(1,lumpy?RoomLumpAo(p,reach):RoomAo(p,n,reach,dirs),room.aoStrength);
@@ -140,10 +143,19 @@ public partial class ForgeWorld {
    Flush();
   }
   roomBakeMs=(Time.realtimeSinceStartup-started)*1000;
-  Debug.Log($"FORGE_ROOM merged {roomMergedRenderers} renderers into {roomMergedMeshes} meshes ({order.Count} materials), baked AO on {roomBakedVertices} vertices against {roomOccluders.Count} occluders in {roomBakeMs:0} ms");
+  Debug.Log($"FORGE_ROOM merged {roomMergedRenderers} renderers into {roomMergedMeshes} meshes ({order.Count} materials), baked AO on {roomBakedVertices} vertices against {roomOccluderCount} occluders in {roomBakeMs:0} ms");
  }
  /// Shared AO for tiny pieces: one upward 5-ray sample per 3 cm cell (a coal lump or chain link reads as one tone).
- float RoomLumpAo(Vector3 p,float reach){var k=new Vector3Int(Mathf.FloorToInt(p.x/.03f),Mathf.FloorToInt(p.y/.03f),Mathf.FloorToInt(p.z/.03f));if(!roomLumpCache.TryGetValue(k,out var ao)){ao=RoomAo(new Vector3((k.x+.5f)*.03f,(k.y+.5f)*.03f,(k.z+.5f)*.03f),Vector3.up,reach,roomAoDirsCheap);roomLumpCache[k]=ao;}return ao;}
+ float RoomLumpAo(Vector3 p,float reach){
+  int x=Mathf.FloorToInt(p.x/.03f),y=Mathf.FloorToInt(p.y/.03f),z=Mathf.FloorToInt(p.z/.03f);int key=((x+512)&1023)|(((y+512)&1023)<<10)|(((z+512)&1023)<<20)|(1<<30);
+  if(roomLumpKeys==null){roomLumpKeys=new int[1<<15];roomLumpValues=new float[1<<15];}
+  int mask=roomLumpKeys.Length-1,slot=(key*-1640531535)&mask;
+  for(int probe=0;probe<=mask;probe++,slot=(slot+1)&mask){
+   if(roomLumpKeys[slot]==key)return roomLumpValues[slot];
+   if(roomLumpKeys[slot]==0){float ao=RoomAo(new Vector3((x+.5f)*.03f,(y+.5f)*.03f,(z+.5f)*.03f),Vector3.up,reach,roomAoDirsCheap);roomLumpKeys[slot]=key;roomLumpValues[slot]=ao;return ao;}
+  }
+  return RoomAo(p,Vector3.up,reach,roomAoDirsCheap);
+ }
  /// AO for a renderer that keeps its own transform and material (object-space mapping): bake into a mesh copy.
  void RoomBakeSeparate(MeshRenderer renderer,MeshFilter filter,float reach){
   var mesh=Instantiate(filter.sharedMesh);mesh.name=filter.sharedMesh.name+" (baked AO)";var verts=mesh.vertices;var normals=mesh.normals;var colors=new Color[verts.Length];var l2w=renderer.transform.localToWorldMatrix;var nm=l2w.inverse.transpose;

@@ -6,7 +6,7 @@ using L = ForgeLayoutData;
 // ForgeTuning.room (ForgeFlicker.cs), so feel-tuning.json can retune it without a Unity build.
 public partial class ForgeWorld {
  float qualityTime;int frameCount;float frameTotal;float smokeClock;
- ForgeQualityGovernor governor;int appliedMsaa=-1,msaaSupport=-1,sentTier=-1;float perfClock;ForgeFinish finish;bool tierPinned;
+ ForgeQualityGovernor governor;int appliedMsaa=-1,msaaSupport=-1,sentTier=-1;float perfClock;ForgeFinish finish;bool tierPinned;int bloomQa=-1;
  /// Quality tier 0 (best) to 3. The web maps it to the canvas DPR.
  int QualityTier=>governor!=null?governor.Tier:0;
  /// Particle multiplier for the current tier (1, 1, .6, .4).
@@ -42,6 +42,11 @@ public partial class ForgeWorld {
   camera.backgroundColor=QaOn(ForgeContract.QaModes.Void)?Color.magenta:C(tuning.room.fogColor);camera.allowMSAA=true;camera.allowHDR=true;
   finish=camera.GetComponent<ForgeFinish>();QualitySettings.shadows=ShadowQuality.Disable;
   governor=new ForgeQualityGovernor(tuning.room,StartTier());ApplyTier();
+  // ?forge-room-qa=tier2,bloom0 on the page URL: this stream's device QA modes, read here because the page forwards only
+  // the frozen QA modes to Qa().
+  try{var url=Application.absoluteURL??"";int at=url.IndexOf("forge-room-qa=",System.StringComparison.Ordinal);
+   if(at>=0){var v=url.Substring(at+14);int end=v.IndexOfAny(new[]{'&','#'});if(end>=0)v=v.Substring(0,end);foreach(var m in System.Uri.UnescapeDataString(v).Split(','))AtmosQa(m.Trim());}}
+  catch(System.Exception e){Debug.LogWarning("FORGE_ROOM forge-room-qa: "+e.Message);}
   if(roomBakedOf.TryGetValue(daylight,out var d))daylightLive=d;else daylightLive=daylight;if(roomBakedOf.TryGetValue(candleWax,out var c))candleLive=c;else candleLive=candleWax;
   ringRenderer=ring!=null?ring.GetComponent<Renderer>():null;
  }
@@ -76,6 +81,8 @@ public partial class ForgeWorld {
  void AtmosQa(string mode){if(mode==ForgeContract.QaModes.Void&&cam!=null)cam.backgroundColor=Color.magenta;
   // 'tier0'..'tier3' (any build, e.g. ?forge-unity-qa=tier2 on a device): pin the quality tier; the governor stops adapting.
   if(mode.Length==5&&mode.StartsWith("tier")&&mode[4]>='0'&&mode[4]<='3'&&governor!=null){tierPinned=true;governor.Restart(mode[4]-'0');governor.Pinned=true;ApplyTier();}
+  // 'bloom0'..'bloom5' (any build): force the bloom level count (0 = the pre-upgrade halo), for A/B cost checks on a device.
+  if(mode.Length==6&&mode.StartsWith("bloom")&&mode[5]>='0'&&mode[5]<='5'){bloomQa=mode[5]-'0';if(governor!=null)ApplyTier();}
 #if UNITY_EDITOR
   // Editor QA (scripts/forge-qa/room.mjs snapshot views): 'room-cam:x,y,z,yaw,pitch[,fov]' pins the camera, 'room-cam:off' frees it;
   // 'room-occluder:x,y,z,r' sets _ForgeOccluders[0] every frame (after any stream writes them), 'room-occluder:off' clears it.
@@ -150,7 +157,7 @@ public partial class ForgeWorld {
   if(msaaSupport<0)msaaSupport=MsaaSupport();
   float mpx=Screen.width*(float)Screen.height/1e6f;int msaa=ForgeQualityGovernor.MsaaFor(tier,msaaSupport,mpx,r.msaaMaxMpx);
   if(msaa!=appliedMsaa){QualitySettings.antiAliasing=msaa>1?msaa:0;appliedMsaa=msaa;}
-  if(finish!=null){finish.fxaa=msaa<=1;int levels=Mathf.RoundToInt(r.bloomLevels);finish.bloomLevels=levels<=0?0:tier<=1?levels:Mathf.Min(levels,tier==2?4:3);
+  if(finish!=null){finish.fxaa=msaa<=1;int levels=Mathf.RoundToInt(r.bloomLevels);finish.bloomLevels=bloomQa>=0?bloomQa:levels<=0?0:tier<=1?levels:Mathf.Min(levels,tier==2?4:3);
    finish.bloomThreshold=r.bloomThreshold;finish.bloomKnee=r.bloomKnee;finish.bloomIntensity=r.bloomIntensity;finish.haze=tier<3;}
   if(tier>=2)Shader.EnableKeyword("FORGE_LITE");else Shader.DisableKeyword("FORGE_LITE");
  }

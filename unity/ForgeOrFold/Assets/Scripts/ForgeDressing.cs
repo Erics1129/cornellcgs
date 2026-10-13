@@ -10,7 +10,8 @@ public partial class ForgeWorld {
  class Ember {public Vector3 p,v;public float age,life,size,twinkle;}
  readonly List<Ember> embers=new List<Ember>();
  struct GlowSprite {public Vector3 p,right,up;public Color c;public bool billboard;public int flame;}   // flame: 0 halo, 1 sconce flame, 2 lantern flame
- readonly List<GlowSprite> glowSprites=new List<GlowSprite>();
+ GlowSprite[] glowSprites=new GlowSprite[8];int glowSpriteCount;   // an array, not a List<struct> (wasm size)
+ int AddGlow(GlowSprite g){if(glowSpriteCount==glowSprites.Length){var grown=new GlowSprite[glowSprites.Length*2];System.Array.Copy(glowSprites,grown,glowSpriteCount);glowSprites=grown;}glowSprites[glowSpriteCount]=g;return glowSpriteCount++;}
  Mesh glowMesh;Material glowMat;Vector3[] glowV;Color[] glowC;Vector2[] glowUv;System.Random emberRng=new System.Random(5);
  Vector3[] moteHome;float[] motePhase;
  const int GlowMaxQuads=64,MoteCount=18;
@@ -97,13 +98,13 @@ public partial class ForgeWorld {
   glowMesh.vertices=glowV;glowMesh.uv=glowUv;glowMesh.colors=glowC;glowMesh.triangles=tris;glowMesh.bounds=new Bounds(new Vector3(0,1.8f,-.9f),new Vector3(8,4,7));
   var go=MeshObject("Room glow sprites",glowMesh,glowMat);go.transform.SetParent(dynamicRoot,false);var r=go.GetComponent<MeshRenderer>();r.shadowCastingMode=UnityEngine.Rendering.ShadowCastingMode.Off;r.receiveShadows=false;
   // Static sprites: halos round the small flames and the warm pool of daylight under the door.
-  lampHalo=glowSprites.Count;glowSprites.Add(new GlowSprite{p=LV(L.HangingLamp)+Vector3.up*.02f,right=Vector3.right*.07f,up=Vector3.up*.07f,c=new Color(1,.74f,.42f)*.16f,billboard=true});
-  glowSprites.Add(new GlowSprite{p=new Vector3(1.25f,1.83f,RoomFrontZ+.12f),right=Vector3.right*.035f,up=Vector3.up*.05f,c=new Color(1,.72f,.38f)*.20f,billboard=true});
-  lanternHalo=glowSprites.Count;glowSprites.Add(new GlowSprite{p=LV(L.Lantern)+Vector3.up*.18f,right=Vector3.right*.06f,up=Vector3.up*.07f,c=new Color(1,.72f,.38f)*.12f,billboard=true});
+  lampHalo=AddGlow(new GlowSprite{p=LV(L.HangingLamp)+Vector3.up*.02f,right=Vector3.right*.07f,up=Vector3.up*.07f,c=new Color(1,.74f,.42f)*.16f,billboard=true});
+  AddGlow(new GlowSprite{p=new Vector3(1.25f,1.83f,RoomFrontZ+.12f),right=Vector3.right*.035f,up=Vector3.up*.05f,c=new Color(1,.72f,.38f)*.20f,billboard=true});
+  lanternHalo=AddGlow(new GlowSprite{p=LV(L.Lantern)+Vector3.up*.18f,right=Vector3.right*.06f,up=Vector3.up*.07f,c=new Color(1,.72f,.38f)*.12f,billboard=true});
   // Candle flames: small upright teardrops (the soft disc stretched), bright core, flickering.
-  glowSprites.Add(new GlowSprite{p=LV(L.Lantern)+Vector3.up*.178f,right=Vector3.right*.0065f,up=Vector3.up*.016f,c=new Color(1,.78f,.45f)*1.6f,billboard=true,flame=2});
-  glowSprites.Add(new GlowSprite{p=new Vector3(1.25f,1.70f+.103f,RoomFrontZ+.12f),right=Vector3.right*.006f,up=Vector3.up*.015f,c=new Color(1,.78f,.45f)*1.5f,billboard=true,flame=1});
-  glowSprites.Add(new GlowSprite{p=new Vector3((L.DoorX0+L.DoorX1)/2,.004f,RoomFrontZ-.02f),right=Vector3.right*.62f,up=Vector3.forward*.42f,c=new Color(1,.80f,.55f)*.045f,billboard=false});
+  AddGlow(new GlowSprite{p=LV(L.Lantern)+Vector3.up*.178f,right=Vector3.right*.0065f,up=Vector3.up*.016f,c=new Color(1,.78f,.45f)*1.6f,billboard=true,flame=2});
+  AddGlow(new GlowSprite{p=new Vector3(1.25f,1.70f+.103f,RoomFrontZ+.12f),right=Vector3.right*.006f,up=Vector3.up*.015f,c=new Color(1,.78f,.45f)*1.5f,billboard=true,flame=1});
+  AddGlow(new GlowSprite{p=new Vector3((L.DoorX0+L.DoorX1)/2,.004f,RoomFrontZ-.02f),right=Vector3.right*.62f,up=Vector3.forward*.42f,c=new Color(1,.80f,.55f)*.045f,billboard=false});
   moteHome=new Vector3[MoteCount];motePhase=new float[MoteCount];var rng=new System.Random(31);
   for(int i=0;i<MoteCount;i++){moteHome[i]=new Vector3(-.4f+(float)rng.NextDouble()*1.6f,1.2f+(float)rng.NextDouble()*1.2f,-1.1f+(float)rng.NextDouble()*1.2f);motePhase[i]=(float)rng.NextDouble()*10;}
  }
@@ -121,7 +122,7 @@ public partial class ForgeWorld {
   // Assemble the quads.
   var right=cam.transform.right;var up=cam.transform.up;int q=0;
   void Quad(Vector3 p,Vector3 r,Vector3 u,Color c){if(q>=GlowMaxQuads)return;int v=q*4;glowV[v]=p-r-u;glowV[v+1]=p+r-u;glowV[v+2]=p-r+u;glowV[v+3]=p+r+u;glowC[v]=glowC[v+1]=glowC[v+2]=glowC[v+3]=c;q++;}
-  for(int i=0;i<glowSprites.Count;i++){var s=glowSprites[i];var c=s.c;if(i==lanternHalo||s.flame==2)c*=lanternLevel;if(i==lampHalo)c*=lampLevel;
+  for(int i=0;i<glowSpriteCount;i++){var s=glowSprites[i];var c=s.c;if(i==lanternHalo||s.flame==2)c*=lanternLevel;if(i==lampHalo)c*=lampLevel;
    if(s.flame>0){float f=still?1:.86f+.09f*Mathf.Sin(elapsed*11.3f+i*1.7f)+.05f*Mathf.Sin(elapsed*23.1f+i*.6f);c*=f;var tall=up*s.up.magnitude*(still?1:.9f+.1f*f);Quad(s.p+tall*.35f,right*s.right.magnitude,tall,c);continue;}
    if(s.billboard)Quad(s.p,right*s.right.magnitude,up*s.up.magnitude,c);else Quad(s.p,s.right,s.up,c*doorLevel);}
   foreach(var e in embers){float t=e.age/e.life;var c=t<.3f?Color.Lerp(new Color(1,.6f,.2f),new Color(1,.25f,.05f)*.33f,t/.3f):Color.Lerp(new Color(1,.25f,.05f)*.33f,Color.black,(t-.3f)/.7f);if(!still)c*=.75f+.25f*Mathf.Sin(elapsed*23+e.twinkle);Quad(e.p,right*e.size,up*e.size,c);}

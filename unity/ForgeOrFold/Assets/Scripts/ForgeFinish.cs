@@ -15,10 +15,12 @@ public class ForgeFinish:MonoBehaviour {
  static readonly int BloomId=Shader.PropertyToID("_Bloom"),LumaAlphaId=Shader.PropertyToID("_LumaAlpha"),BloomScaleId=Shader.PropertyToID("_BloomScale"),
   ThresholdId=Shader.PropertyToID("_Threshold"),LowId=Shader.PropertyToID("_Low"),HazeOnId=Shader.PropertyToID("_HazeOn");
  const int PassThreshold=0,PassBlur=1,PassFinish=2,PassFxaa=3,PassPrefilter=4,PassDown=5,PassUp=6;
- readonly RenderTexture[] down=new RenderTexture[6];
+ readonly RenderTexture[] down=new RenderTexture[6];readonly System.Collections.Generic.List<RenderTexture> release=new System.Collections.Generic.List<RenderTexture>();
+ /// Above this many backing-store pixels the chain starts at 1/4 resolution (same level count, one octave lower).
+ public float halfResMaxMpx=2.5f;
  void OnRenderImage(RenderTexture source,RenderTexture destination){
   if(material==null){var shader=Shader.Find("Forge/Finish");if(shader==null||!shader.isSupported){Graphics.Blit(source,destination);return;}material=new Material(shader);}
-  RenderTexture bloom;var release=new System.Collections.Generic.List<RenderTexture>();
+  RenderTexture bloom;release.Clear();
   if(bloomLevels<=0||material.passCount<=PassUp){
    // Legacy: quarter-resolution threshold and two 4-tap blurs, added x.3.
    int w=Mathf.Max(1,source.width/4),h=Mathf.Max(1,source.height/4);
@@ -28,7 +30,7 @@ public class ForgeFinish:MonoBehaviour {
   }else{
    // Dual filter: prefilter + 1/2, then 1/4 .. 1/32; back up, each level adding the blurred level below it.
    float knee=Mathf.Max(1e-4f,bloomKnee);material.SetVector(ThresholdId,new Vector4(bloomThreshold,bloomThreshold-knee,2*knee,.25f/knee));
-   int w=Mathf.Max(1,source.width/2),h=Mathf.Max(1,source.height/2),n=0;
+   int div=source.width*(float)source.height>halfResMaxMpx*1e6f?4:2;int w=Mathf.Max(1,source.width/div),h=Mathf.Max(1,source.height/div),n=0;
    down[0]=RenderTexture.GetTemporary(w,h,0,RenderTextureFormat.DefaultHDR);down[0].filterMode=FilterMode.Bilinear;Graphics.Blit(source,down[0],material,PassPrefilter);n=1;
    while(n<Mathf.Min(bloomLevels,down.Length)&&w>4&&h>4){w/=2;h/=2;down[n]=RenderTexture.GetTemporary(w,h,0,RenderTextureFormat.DefaultHDR);down[n].filterMode=FilterMode.Bilinear;Graphics.Blit(down[n-1],down[n],material,PassDown);n++;}
    var low=down[n-1];

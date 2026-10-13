@@ -177,5 +177,8 @@ public sealed class ForgeQualityGovernor {
  /// Particle multiplier for a tier (hot-metal-vfx and the embers read it).
  public static float ParticleScale(int tier)=>tier<=1?1:tier==2?.6f:.4f;
  static float Median(System.Collections.Generic.List<float> v)=>Percentile(v,.5f);
- static float Percentile(System.Collections.Generic.List<float> v,float p){var a=v.ToArray();Array.Sort(a);if(a.Length==0)return 0;int i=(int)Math.Min(a.Length-1,Math.Max(0,Math.Ceiling(p*a.Length)-1));return a[i];}
+ /// Shell sort (Ciura gaps): a few hundred frame times once a second, and no Array.Sort<float> instantiation in the wasm.
+ static readonly int[] Gaps={701,301,132,57,23,10,4,1};
+ static void Sort(float[] a){foreach(var g in Gaps)for(int i=g;i<a.Length;i++){float t=a[i];int j=i;for(;j>=g&&a[j-g]>t;j-=g)a[j]=a[j-g];a[j]=t;}}
+ static float Percentile(System.Collections.Generic.List<float> v,float p){var a=v.ToArray();Sort(a);if(a.Length==0)return 0;int i=(int)Math.Min(a.Length-1,Math.Max(0,Math.Ceiling(p*a.Length)-1));return a[i];}
 }
