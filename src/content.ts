@@ -340,12 +340,16 @@ export const minigames = {
     lead: 'Roll the ball to color every floor block before you run out of ink.',
     /**
      * The card on /minigames/. The numbers come from levels.ts (MinigamesPage
-     * works them out), so they stay right when levels change: `first` and
-     * `last` are board sizes like '4 × 4', `exact` counts the levels whose ink
-     * is exactly their par.
+     * works them out), so they stay right when levels change: `first`,
+     * `largest` and `last` are board sizes like '4 × 4' (the last level can be
+     * smaller than the largest), `exact` counts the levels whose ink is
+     * exactly their par.
      */
-    summary: ({ levels, first, last, exact }: { levels: number; first: string; last: string; exact: number }) =>
-      `Roll a ball to color every floor block before the ink runs out. Boards go from ${first} on level 1 to ${last} on level ${levels}. ` +
+    summary: ({ levels, first, largest, last, exact }: { levels: number; first: string; largest: string; last: string; exact: number }) =>
+      `Roll a ball to color every floor block before the ink runs out. ` +
+      (last === largest
+        ? `Boards go from ${first} on level 1 to ${last} on level ${levels}. `
+        : `Boards grow from ${first} on level 1 to ${largest}, and the last board, level ${levels}, is a small ${last} that takes the most planning. `) +
       (exact ? `Each level gives you a set amount of ink, and on ${exact === levels ? 'all of them' : `${exact} of them`} there is none to spare.` : 'Each level gives you a set amount of ink.'),
     cta: 'Play Ink Maze',
     /** must stay true to engine.ts */
