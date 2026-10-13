@@ -13,11 +13,11 @@
 Shader "Forge/Blade" {
  Properties {
   _MainTex("Generated steel",2D)="white"{} _Color("Metal",Color)=(.7,.75,.8,1) _Metallic("Metalness",Range(0,1))=.95 _Glossiness("Smoothness",Range(0,1))=.65
-  _Heat("Heat (legacy, unused)",Range(0,1))=0 _EmissionColor("Evolution",Color)=(0,0,0,0) _GlowColor("Aura",Color)=(.5,.8,1,1) _Kind("Metal kind",Float)=0 _Stage("Evolution stage",Float)=0
+  _Heat("Heat (legacy, unused)",Range(0,1))=0 _EmissionColor("Flow tint",Color)=(0,0,0,0) _GlowColor("Aura",Color)=(.5,.8,1,1) _Kind("Metal kind",Float)=0 _Stage("Evolution stage",Float)=0
   _Worked("Being forged",Float)=1 _Swatch("QA swatch",Float)=0 _Shard("Shatter piece",Float)=0 _Dissolve("Dissolve",Range(0,1))=0 _CrackFlash("Crack flash",Float)=0 _Glint("Glint sweep",Float)=-1
   _HeatA("Cooling T0 K, tau, k3, floor",Vector)=(293.15,0,.0561,0) _HeatB("Ease target K, t, dur, lead",Vector)=(293.15,-1000,1,0) _HeatC("Floors K, curve",Vector)=(923.15,873.15,0,0)
   _Emit("Emission scale, K, cap, white",Vector)=(3,9592,6,.6) _Chroma("Chroma start, slope, 1/scale cell cm, gap glow",Vector)=(580,.000227,.714,.85) _Surface("Hot surface",Vector)=(450,900,.35,.25) _Surface2("Hot reflectance from C, to C, left",Vector)=(300,700,.45,0)
-  _Oxide("Oxide amount, dim, regrow s, footprint cm",Vector)=(0,.4,6,1.8) _Crack("Crack amount, glow, per m, dark above C",Vector)=(0,.6,40,900) _Flash("Flash, footprint s, gain",Vector)=(0,.12,1.2,0)
+  _Oxide("Oxide amount, dim, regrow s, footprint cm",Vector)=(0,.4,6,1.8) _Crack("Crack amount, glow, per m, dark above C",Vector)=(0,.6,40,900) _Flash("Flash, footprint s, gain, evolution gain",Vector)=(0,.12,1.2,0)
   _BladeDims("Length cm, width cm, seed, unit mm",Vector)=(20,4,0,120) _Notch("Notch u, half width u, depth v, on",Vector)=(0,.02,.1,0)
  }
  SubShader { Tags {"RenderType"="Opaque"} LOD 250
@@ -169,7 +169,7 @@ Shader "Forge/Blade" {
     lit+=float3(.006,.010,.022)*pow(1-saturate(dot(n,view)),3)*worked*(1-hot);
     // ---- emission: scale plates dim it (their gaps much less), clean footprints and a Perfect flash brighten it
     float3 E=Blackbody(TC);
-    float emis=(1-_Oxide.y*scale)*(1+_Flash.x+flash*_Flash.z*.5);
+    float emis=(1-_Oxide.y*scale)*(1+_Flash.x+flash*_Flash.z*.5)*(1+_Flash.w);
     float3 glow=E*emis;
     // Hot cracks: on bright (yellow-orange) steel the cooler lips read as dark jagged lines; on dull red steel above
     // about 600 C the crack's mouth glows hotter than the skin around it (a cavity radiates more), so it shows as a

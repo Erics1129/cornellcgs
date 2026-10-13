@@ -56,10 +56,12 @@ public partial class ForgeWorld {
   m.SetVector(CrackId,new Vector4(h.crack,t.crackGlow,t.crackPerM,t.crackDarkAboveC));
   var sh=h.shape;m.SetVector(NotchId,sh.notchU>=0?new Vector4(sh.U(sh.Station(sh.notchU)),t.notchWidthCm*.5f/Mathf.Max(1,sh.BladeLengthCm),t.notchDepthMm*.1f/Mathf.Max(.5f,sh.BladeWidthCm),1):Vector4.zero);
   float flash=h.flashAge<h.flashDur?(1-h.flashAge/h.flashDur)*h.flashGain:0;
-  m.SetVector(FlashId,new Vector4(flash,t.footprintFlashMs/1000,t.footprintFlashGain,0));
-  m.SetFloat(GlintId,h.glint);
+  // Evolution: the blade's own glow swells (a gain on the blackbody emission, capped at evolutionEmissionCap) instead of a
+  // white wash, so the steel keeps its heat colour while it lifts; the glint sweep adds the highlight.
   float lift=b.evolution>0?Mathf.Sin(b.evolution/1.5f*Mathf.PI):0;
-  m.SetColor(EmissionId,Color.white*Mathf.Min(lift,t.evolutionEmissionCap)*.5f+(k.flow>0?new Color(.03f,.10f,.12f):Color.black));
+  m.SetVector(FlashId,new Vector4(flash,t.footprintFlashMs/1000,t.footprintFlashGain,Mathf.Min(lift,t.evolutionEmissionCap)));
+  m.SetFloat(GlintId,h.glint);
+  m.SetColor(EmissionId,k.flow>0?new Color(.03f,.10f,.12f):Color.black);
   MetalConstants(m);
  }
  /// Tuning-derived constants of the hot-steel surface and emission (a Tune can arrive after the knives exist).
