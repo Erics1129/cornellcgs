@@ -1,15 +1,46 @@
 Shader "Forge/Finish" {
- // Owner: room-light-post. Passes: 0 bloom threshold, 1 4-tap blur, 2 finish (bloom, exposure 1.13, Narkowicz
- // ACES, vignette; INVARIANT: the blackbody heat ramp is calibrated through it), 3 FXAA 3.11 (low preset) for
- // quality tiers without MSAA. With _LumaAlpha 1 the finish pass writes perceptual luma to alpha for FXAA.
- Properties {_MainTex("Source",2D)="white"{} _Bloom("Bloom",2D)="black"{} _LumaAlpha("Luma in alpha",Float)=0}
+ // Owner: room-light-post. Passes: 0 legacy bloom threshold, 1 legacy 4-tap blur, 2 finish (heat haze, bloom, exposure
+ // 1.13, Narkowicz ACES, vignette; INVARIANT: the blackbody heat ramp is calibrated through it), 3 FXAA 3.11 (low
+ // preset) for quality tiers without MSAA, 4 bloom prefilter (soft-knee threshold) + downsample, 5 dual-filter
+ // downsample, 6 dual-filter upsample (adds the blurred level below). With _LumaAlpha 1 the finish pass writes
+ // perceptual luma to alpha for FXAA.
+ Properties {_MainTex("Source",2D)="white"{} _Bloom("Bloom",2D)="black"{} _Low("Lower bloom level",2D)="black"{} _LumaAlpha("Luma in alpha",Float)=0 _BloomScale("Bloom",Float)=.3 _HazeOn("Haze",Float)=1}
  SubShader {Cull Off ZWrite Off ZTest Always
  CGINCLUDE
  #include "UnityCG.cginc"
- sampler2D _MainTex,_Bloom;float4 _MainTex_TexelSize;float _LumaAlpha;
+ sampler2D _MainTex,_Bloom,_Low;float4 _MainTex_TexelSize,_Low_TexelSize,_Threshold;float _LumaAlpha,_BloomScale,_HazeOn;
+ // Heat haze (FROZEN globals): xy viewport position (y up), z radius in viewport-width units, w UV strength (0 = off).
+ // _ForgeHazeA = the hottest blade (hot-metal-vfx), _ForgeHazeB = the hearth mouth (room-light-post).
+ float4 _ForgeHazeA,_ForgeHazeB;float _ForgeHazeClock;
  half4 threshold(v2f_img i):SV_Target{half3 c=tex2D(_MainTex,i.uv).rgb;half l=max(c.r,max(c.g,c.b));return half4(c*saturate((l-.75)/max(l,.001)),1);}
  half4 blur(v2f_img i):SV_Target{float2 d=_MainTex_TexelSize.xy*1.6;return (tex2D(_MainTex,i.uv+d)+tex2D(_MainTex,i.uv-d)+tex2D(_MainTex,i.uv+float2(d.x,-d.y))+tex2D(_MainTex,i.uv+float2(-d.x,d.y)))*.25;}
- half4 finish(v2f_img i):SV_Target{half3 c=tex2D(_MainTex,i.uv).rgb+tex2D(_Bloom,i.uv).rgb*.3;c*=1.13;c=(c*(2.51*c+.03))/(c*(2.43*c+.59)+.14);float2 edge=i.uv*(1-i.uv);c*=.79+.21*pow(saturate(edge.x*edge.y*16),.3);
+ // Dual filtering (M. Bjorge, 2015): 5-tap down, 8-tap tent up.
+ half3 Down5(float2 uv){float2 h=_MainTex_TexelSize.xy*.5;return (tex2D(_MainTex,uv).rgb*4+tex2D(_MainTex,uv-h).rgb+tex2D(_MainTex,uv+h).rgb+tex2D(_MainTex,uv+float2(h.x,-h.y)).rgb+tex2D(_MainTex,uv-float2(h.x,-h.y)).rgb)*.125;}
+ half4 prefilter(v2f_img i):SV_Target{half3 c=min(Down5(i.uv),64);half br=max(c.r,max(c.g,c.b));half rq=clamp(br-_Threshold.y,0,_Threshold.z);rq=_Threshold.w*rq*rq;return half4(c*max(rq,br-_Threshold.x)/max(br,.0001),1);}
+ half4 down(v2f_img i):SV_Target{return half4(Down5(i.uv),1);}
+ half4 up(v2f_img i):SV_Target{float2 h=_Low_TexelSize.xy*.5;float2 uv=i.uv;
+  half3 s=tex2D(_Low,uv+float2(-h.x*2,0)).rgb+tex2D(_Low,uv+float2(-h.x,h.y)).rgb*2+tex2D(_Low,uv+float2(0,h.y*2)).rgb+tex2D(_Low,uv+float2(h.x,h.y)).rgb*2
+   +tex2D(_Low,uv+float2(h.x*2,0)).rgb+tex2D(_Low,uv+float2(h.x,-h.y)).rgb*2+tex2D(_Low,uv+float2(0,-h.y*2)).rgb+tex2D(_Low,uv+float2(-h.x,-h.y)).rgb*2;
+  return half4(tex2D(_MainTex,uv).rgb+s/12,1);}
+ float HazeHash(float2 p){float3 p3=frac(p.xyx*.1031);p3+=dot(p3,p3.yzx+33.33);return frac((p3.x+p3.y)*p3.z);}
+ float HazeNoise(float2 p){float2 i=floor(p),f=frac(p);f=f*f*(3-2*f);return lerp(lerp(HazeHash(i),HazeHash(i+float2(1,0)),f.x),lerp(HazeHash(i+float2(0,1)),HazeHash(i+1),f.x),f.y);}
+ /// UV offset from one haze source at viewport point vp: an ellipse that sits above the source (heat rises), noise
+ /// at scale 18 scrolling up at .35 viewport-heights per second.
+ float2 HazeOne(float4 h,float2 vp,float hw){
+  if(h.w<=0||h.z<=0)return 0;
+  float2 d=float2(vp.x-h.x,(vp.y-h.y)*hw)/h.z;d.y-=.35;d.y*=1.6;float m=saturate(1-dot(d,d));m*=m;
+  float2 q=float2(vp.x,vp.y*hw)*18-float2(0,_ForgeHazeClock*.35*18);
+  return (float2(HazeNoise(q),HazeNoise(q+17.3))-.5)*2*h.w*m;
+ }
+ half4 finish(v2f_img i):SV_Target{
+  float2 uv=i.uv;
+  if(_HazeOn>.5){float2 vp=i.uv;
+#if UNITY_UV_STARTS_AT_TOP
+   if(_MainTex_TexelSize.y<0)vp.y=1-vp.y;
+#endif
+   float hw=_MainTex_TexelSize.z/max(1,_MainTex_TexelSize.w);hw=1/max(.0001,hw);   // height / width
+   uv+=HazeOne(_ForgeHazeA,vp,hw)+HazeOne(_ForgeHazeB,vp,hw);}
+  half3 c=tex2D(_MainTex,uv).rgb+tex2D(_Bloom,i.uv).rgb*_BloomScale;c*=1.13;c=(c*(2.51*c+.03))/(c*(2.43*c+.59)+.14);float2 edge=i.uv*(1-i.uv);c*=.79+.21*pow(saturate(edge.x*edge.y*16),.3);
   return half4(c,_LumaAlpha>.5?sqrt(saturate(dot(c,half3(.299,.587,.114)))):1);}
  ENDCG
  Pass {CGPROGRAM
@@ -73,5 +104,17 @@ Shader "Forge/Finish" {
   if(!horzSpan)pos.x+=pixelOffsetSubpix*lengthSign;else pos.y+=pixelOffsetSubpix*lengthSign;
   return half4(tex2Dlod(_MainTex,float4(pos,0,0)).rgb,1);
  }
+ ENDCG}
+ Pass {CGPROGRAM
+ #pragma vertex vert_img
+ #pragma fragment prefilter
+ ENDCG}
+ Pass {CGPROGRAM
+ #pragma vertex vert_img
+ #pragma fragment down
+ ENDCG}
+ Pass {CGPROGRAM
+ #pragma vertex vert_img
+ #pragma fragment up
  ENDCG}
  } }

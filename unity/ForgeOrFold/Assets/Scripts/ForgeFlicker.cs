@@ -38,7 +38,9 @@ using System;
  public float embersPerS=6, embersPerSTier2=3, embersMax=30;
  // Hearth smoke wisps rising into the hood (seconds between puffs).
  public float smokeEveryS=.55f;
- // Bloom and haze (exposure 1.13 and the ACES fit are invariant and not tunable).
+ // Bloom and haze (exposure 1.13 and the ACES fit are invariant and not tunable). Dual-filter bloom: soft-knee threshold
+ // in linear HDR radiance, 5 levels (4 at tier 2, 3 at tier 3); bloomLevels 0 restores the pre-upgrade quarter-res halo.
+ // hazeHearth: UV strength of the shimmer over the hearth mouth (_ForgeHazeB; off at tier 3 and under reduced motion).
  public float bloomThreshold=1.1f, bloomKnee=.6f, bloomIntensity=.18f, bloomLevels=5, hazeHearth=.0015f;
  // Fog.
  public float fogDensity=.07f; public string fogColor="15110e";
@@ -58,7 +60,7 @@ using System;
   lampConeInner=ForgeTuning.Fit(lampConeInner,1,89,38);lampConeOuter=ForgeTuning.Fit(lampConeOuter,lampConeInner+1,90,72);lampUpSpill=ForgeTuning.Fit(lampUpSpill,0,1,.12f);
   flashDecay=ForgeTuning.Fit(flashDecay,1,60,12);aoStrength=ForgeTuning.Fit(aoStrength,0,1,.85f);aoDirect=ForgeTuning.Fit(aoDirect,0,1,.55f);
   embersMax=ForgeTuning.Fit(embersMax,0,30,30);embersPerS=ForgeTuning.Fit(embersPerS,0,30,6);embersPerSTier2=ForgeTuning.Fit(embersPerSTier2,0,embersPerS,3);smokeEveryS=ForgeTuning.Fit(smokeEveryS,.1f,10,.55f);
-  bloomLevels=ForgeTuning.Fit(bloomLevels,1,5,5);fogDensity=ForgeTuning.Fit(fogDensity,0,.2f,.07f);
+  bloomLevels=(float)Math.Round(ForgeTuning.Fit(bloomLevels,0,5,5));bloomThreshold=ForgeTuning.Fit(bloomThreshold,0,20,1.1f);bloomKnee=ForgeTuning.Fit(bloomKnee,.01f,10,.6f);bloomIntensity=ForgeTuning.Fit(bloomIntensity,0,2,.18f);hazeHearth=ForgeTuning.Fit(hazeHearth,0,.02f,.0015f);fogDensity=ForgeTuning.Fit(fogDensity,0,.2f,.07f);
   tierIgnoreS=ForgeTuning.Fit(tierIgnoreS,0,30,3);tierDropRatio=ForgeTuning.Fit(tierDropRatio,1.05f,4,1.25f);tierRecoverRatio=ForgeTuning.Fit(tierRecoverRatio,.5f,1.2f,1.1f);
   tierRecoverS=ForgeTuning.Fit(tierRecoverS,10,600,30);tierMaxRecoveries=ForgeTuning.Fit(tierMaxRecoveries,0,3,1);msaaMaxMpx=ForgeTuning.Fit(msaaMaxMpx,0,40,2.5f);
   desktopStartTier=(float)Math.Round(ForgeTuning.Fit(desktopStartTier,0,3,0));phoneStartTier=(float)Math.Round(ForgeTuning.Fit(phoneStartTier,0,3,2));tierWindowS=ForgeTuning.Fit(tierWindowS,1,10,3);hitchMs=ForgeTuning.Fit(hitchMs,50,2000,250);

@@ -20,7 +20,7 @@ public partial class ForgeWorld {
  static readonly int FireShadowRectId=Shader.PropertyToID("_ForgeFireShadowRect"),FireShadowYId=Shader.PropertyToID("_ForgeFireShadowY"),FireHoodRectId=Shader.PropertyToID("_ForgeFireHoodRect"),
   KeyDirId=Shader.PropertyToID("_ForgeKeyDir"),KeyConeId=Shader.PropertyToID("_ForgeKeyCone"),SconcePosId=Shader.PropertyToID("_ForgeSconcePosition"),SconceColId=Shader.PropertyToID("_ForgeSconceColor"),
   CandlePosId=Shader.PropertyToID("_ForgeCandlePosition"),CandleColId=Shader.PropertyToID("_ForgeCandleColor"),AmbientId=Shader.PropertyToID("_ForgeAmbient"),SootId=Shader.PropertyToID("_ForgeSoot"),SootFlueId=Shader.PropertyToID("_ForgeSootFlue"),
-  AoDirectId=Shader.PropertyToID("_ForgeAoDirect"),FireBounceId=Shader.PropertyToID("_ForgeFireBounce"),EnvFlickerId=Shader.PropertyToID("_ForgeEnvFlicker"),BounceColorId=Shader.PropertyToID("_ForgeBounceColor"),ShadowZoneId=Shader.PropertyToID("_ForgeShadowZone"),FrameId=Shader.PropertyToID("_Frame"),GlowId=Shader.PropertyToID("_Glow"),EmissionId=Shader.PropertyToID("_EmissionColor");
+  AoDirectId=Shader.PropertyToID("_ForgeAoDirect"),FireBounceId=Shader.PropertyToID("_ForgeFireBounce"),EnvFlickerId=Shader.PropertyToID("_ForgeEnvFlicker"),HazeClockId=Shader.PropertyToID("_ForgeHazeClock"),BounceColorId=Shader.PropertyToID("_ForgeBounceColor"),ShadowZoneId=Shader.PropertyToID("_ForgeShadowZone"),FrameId=Shader.PropertyToID("_Frame"),GlowId=Shader.PropertyToID("_Glow"),EmissionId=Shader.PropertyToID("_EmissionColor");
 
  /// Called once in Start after MakeDressing and before BatchRoom (static room geometry goes in before batching).
  void AtmosBuild(){
@@ -66,6 +66,7 @@ public partial class ForgeWorld {
   RenderSettings.fogColor=C(r.fogColor);RenderSettings.fogDensity=r.fogDensity;
   Shader.SetGlobalFloat(AoDirectId,r.aoDirect);
   if(cam!=null&&!QaOn(ForgeContract.QaModes.Void))cam.backgroundColor=C(r.fogColor);
+  if(governor!=null)ApplyTier();
  }
  /// One bellows stroke of strength 0..1: fire swell, board animation, Send('sfx','bellows').
  void Bellows(float strength){bellowsSince=0;bellowsStrength=Mathf.Clamp01(strength);bellowsUnseen=false;Send("sfx",0,ForgeContract.Sfx.Bellows,bellowsStrength);}
@@ -103,6 +104,11 @@ public partial class ForgeWorld {
   float level=flick*(1+swell)*fireDay;
   Shader.SetGlobalColor(ForgeContract.Globals.FireColor,fireBase*level);Shader.SetGlobalColor(BounceColorId,bounceBase*level);Shader.SetGlobalFloat(EnvFlickerId,r.envFireShare*(level-1));
   if(fireMat!=null){if(!steady)fireFrame+=dt*14*(1+swell*1.5f);fireMat.SetFloat(FrameId,fireFrame);fireMat.SetFloat(GlowId,level);}
+  // Heat shimmer over the hearth mouth (_ForgeHazeB): its projected size, stronger with the fire; off under reduced motion and at tier 3.
+  Shader.SetGlobalFloat(HazeClockId,steady?0:elapsed);
+  {var hz=Vector4.zero;if(!reduced&&QualityTier<3&&r.hazeHearth>0&&cam!=null){var bed=LV(L.Firebed)+Vector3.up*.14f;var a=cam.WorldToViewportPoint(bed);
+    if(a.z>.05f&&a.x>-.3f&&a.x<1.3f&&a.y>-.3f&&a.y<1.3f){var b=cam.WorldToViewportPoint(bed+cam.transform.right*.26f);hz=new Vector4(a.x,a.y,Mathf.Abs(b.x-a.x),r.hazeHearth*Mathf.Clamp(level,0,1.5f));}}
+   Shader.SetGlobalVector(ForgeContract.Globals.HazeB,hz);}
   Shader.SetGlobalVector(ForgeContract.Globals.CoalPulse,new Vector4(steady?0:elapsed,(.82f+.18f*flick)*(1+swell*1.4f)*fireDay,reduced?.08f:.3f,0));
   // Window, rim light and the lantern follow the day.
   float windowLevel=windowNow.grayscale/Mathf.Max(.0001f,WindowDay.grayscale);
@@ -144,7 +150,8 @@ public partial class ForgeWorld {
   if(msaaSupport<0)msaaSupport=MsaaSupport();
   float mpx=Screen.width*(float)Screen.height/1e6f;int msaa=ForgeQualityGovernor.MsaaFor(tier,msaaSupport,mpx,r.msaaMaxMpx);
   if(msaa!=appliedMsaa){QualitySettings.antiAliasing=msaa>1?msaa:0;appliedMsaa=msaa;}
-  if(finish!=null)finish.fxaa=msaa<=1;
+  if(finish!=null){finish.fxaa=msaa<=1;int levels=Mathf.RoundToInt(r.bloomLevels);finish.bloomLevels=levels<=0?0:tier<=1?levels:Mathf.Min(levels,tier==2?4:3);
+   finish.bloomThreshold=r.bloomThreshold;finish.bloomKnee=r.bloomKnee;finish.bloomIntensity=r.bloomIntensity;finish.haze=tier<3;}
   if(tier>=2)Shader.EnableKeyword("FORGE_LITE");else Shader.DisableKeyword("FORGE_LITE");
  }
  /// Highest MSAA sample count (1, 2 or 4) the HDR camera target supports here (WebKit and some Android have none).
