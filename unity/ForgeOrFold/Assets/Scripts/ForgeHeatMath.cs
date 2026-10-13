@@ -20,8 +20,9 @@ using System;
  public float pullIron=1180, pullBronze=820, pullSteel=1150, pullSilver=720, pullDamascus=1150, pullObsidian=950, pullMeteor=1200, pullAuricite=1250;
  // Heating in the coals (smoothstep ease): the body reaches the pull temperature heatFirstS (first heat) or heatReheatS
  // after it is physically in the coals; thin parts lead the spine by heatLeadS. The coals test is a box around the
- // furnace target (half sizes, metres); after coalsFallbackS logically in the furnace the knife heats regardless.
- public float heatFirstS=1.0f, heatReheatS=.6f, heatLeadS=.25f, coalsHalfX=.30f, coalsHalfZ=.26f, coalsAbove=.14f, coalsFallbackS=.6f, heatedCatchUpS=.15f;
+ // furnace target (half sizes, metres); after coalsFallbackS logically in the furnace the knife heats regardless (.9 s:
+ // the hearth choreography has about 2 s in the furnace before the engine's heat event, and a 1.0 s heat still finishes).
+ public float heatFirstS=1.0f, heatReheatS=.6f, heatLeadS=.25f, coalsHalfX=.30f, coalsHalfZ=.26f, coalsAbove=.14f, coalsFallbackS=.9f, heatedCatchUpS=.15f;
  // Cooling: T = (T0^-3 + 3 k tau / L)^(-1/3) (kelvin, L = local thickness). coolK is the radiative k (eps .75) raised
  // 12% for still-air convection, so a 3 mm body takes 23 s of tau from 1150 to 815 C (11.5 s on the anvil at 2x).
  public float coolK=1.87e-14f, anvilTauScale=2, floorBodyC=650, floorEdgeC=600, floorEaseS=1, restoredC=950;
@@ -49,6 +50,7 @@ using System;
  // Flakes, sparks and chips per outcome (desktop counts; phone and tier 2+ multiply by phoneScale).
  public float flakesGood=14, flakesGoodJitter=3, flakesChip=10, flakesPerfect=32, sheetsPerfect=6, flakesEvolution=36, flakesShatter=20, flakesReduced=5;
  public float sparksGood=0, sparksPerfect=3, sparksEvolution=12, sparksShatter=15, chipsChip=4;
+ // flakeMinPx / sparkMinPx are CSS pixels (scaled by the canvas's device pixels per CSS pixel, at most 2.5).
  public float phoneScale=.6f, capDesktop=220, capTier2=120, flakeMinPx=2.5f, sparkMinPx=1.6f, flakeStretchMs=80, flakeLandSfxPerS=10;
  // Flake launch: speed (m/s) skewed toward minSpeed (u^speedSkew), elevation (deg), drag (1/s), bounce, friction;
  // drag 2.2/s: a 2 mm x .1 mm wustite flake falls face-on at about 2.8 m/s (g / v_t = 3.5/s) and tumbles, so it slows fast;
@@ -81,7 +83,7 @@ using System;
  public void Clamp(){
   emissionScale=ForgeTuning.Fit(emissionScale,0,20,2.2f);emissionK=ForgeTuning.Fit(emissionK,1000,30000,9592);emissionCap=ForgeTuning.Fit(emissionCap,0,20,6);
   chromaSlope=ForgeTuning.Fit(chromaSlope,0,.01f,.000227f);whiteMix=ForgeTuning.Fit(whiteMix,0,1,.6f);
-  heatFirstS=ForgeTuning.Fit(heatFirstS,.05f,1.9f,1);heatReheatS=ForgeTuning.Fit(heatReheatS,.05f,1.9f,.6f);heatLeadS=ForgeTuning.Fit(heatLeadS,0,.6f,.25f);coalsFallbackS=ForgeTuning.Fit(coalsFallbackS,0,1.9f,.6f);
+  heatFirstS=ForgeTuning.Fit(heatFirstS,.05f,1.9f,1);heatReheatS=ForgeTuning.Fit(heatReheatS,.05f,1.9f,.6f);heatLeadS=ForgeTuning.Fit(heatLeadS,0,.6f,.25f);coalsFallbackS=ForgeTuning.Fit(coalsFallbackS,0,1.9f,.9f);
   coolK=ForgeTuning.Fit(coolK,1e-16f,1e-12f,1.87e-14f);anvilTauScale=ForgeTuning.Fit(anvilTauScale,0,20,2);floorEaseS=ForgeTuning.Fit(floorEaseS,.05f,10,1);
   floorBodyC=ForgeTuning.Fit(floorBodyC,20,1100,650);floorEdgeC=ForgeTuning.Fit(floorEdgeC,20,floorBodyC,600);
   quenchS=ForgeTuning.Fit(quenchS,.05f,5,.8f);rackCoolS=ForgeTuning.Fit(rackCoolS,.05f,5,1);shardTauScale=ForgeTuning.Fit(shardTauScale,1,1000,95);

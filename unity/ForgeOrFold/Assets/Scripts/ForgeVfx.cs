@@ -43,6 +43,8 @@ public partial class ForgeWorld {
   go.AddComponent<MeshFilter>().sharedMesh=mesh;b.renderer=go.AddComponent<MeshRenderer>();b.renderer.sharedMaterial=m;b.renderer.shadowCastingMode=ShadowCastingMode.Off;b.renderer.receiveShadows=false;b.renderer.lightProbeUsage=LightProbeUsage.Off;b.renderer.reflectionProbeUsage=ReflectionProbeUsage.Off;
   m.renderQueue=queue;b.renderer.enabled=false;return b;
  }
+ /// The minimum particle sizes are CSS pixels: ForgeBillboard scales them by the render target's pixels per CSS pixel.
+ static readonly int CssWidthId=Shader.PropertyToID("_ForgeMetalCssW");
  int ParticleCap=>(int)(QualityTier>=2?tuning.metal.capTier2:tuning.metal.capDesktop);
  float ParticleScale=>view.Phone||QualityTier>=2?tuning.metal.phoneScale:1;
  static readonly Color32 Oxide=new Color32(43,44,46,255),ColdChip=new Color32(92,94,96,255),Water=new Color32(196,206,210,255);
@@ -225,7 +227,7 @@ public partial class ForgeWorld {
  /// Fill the lit and additive batches from the live particles.
  void DrawBits(){
   if(litBatch==null){litBatch=MakeBatch("Hammer scale batch",litMaterial,MaxBits,3010);addBatch=MakeBatch("Spark batch",addMaterial,MaxBits,3020);}
-  var t=tuning.metal;int nl=0,na=0;float time=Time.time;
+  var t=tuning.metal;int nl=0,na=0;float time=Time.time;Shader.SetGlobalFloat(CssWidthId,view.cssW);
   for(int i=0;i<bitCount;i++){
    ref var p=ref bits[i];
    switch(p.kind){

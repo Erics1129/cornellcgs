@@ -2,10 +2,11 @@
 #define FORGE_BILLBOARD_INCLUDED
 // Owner: hot-metal-vfx. Billboard expansion for the CPU particle batches (ForgeVfx.cs, ForgeEffects.cs):
 // every vertex carries its particle's centre; the quad is built here in view space. The particle is kept at
-// least minPx pixels across (so 1-4 mm scale stays visible at phone resolution) and stretched along its
+// least minPx CSS pixels across (so 1-4 mm scale stays visible at phone resolution) and stretched along its
 // screen-space velocity by stretch seconds (head at the particle, tail behind). flat > .5 lays the quad in
 // world xz instead (ripples on water). angle rotates a still quad (smoke).
 #include "UnityCG.cginc"
+float _ForgeMetalCssW;
 struct ForgeBB { float4 pos; float3 world; float2 local; float tail; float grow; };
 ForgeBB ForgeBillboard(float3 centre,float2 corner,float size,float3 vel,float stretch,float flat,float minPx,float angle){
  ForgeBB o=(ForgeBB)0;
@@ -13,6 +14,8 @@ ForgeBB ForgeBillboard(float3 centre,float2 corner,float size,float3 vel,float s
  float3 vc=mul(UNITY_MATRIX_V,float4(wc,1)).xyz;
  float depth=max(-vc.z,.01);
  float pxPerM=abs(UNITY_MATRIX_P[1][1])*.5*_ScreenParams.y/depth;
+ // minPx is in CSS pixels: the render target's pixels per CSS pixel of the canvas (_ForgeMetalCssW, 0 = unknown), 1 .. 2.5.
+ minPx*=_ForgeMetalCssW>0?clamp(_ScreenParams.x/_ForgeMetalCssW,1,2.5):1;
  float s=max(size,minPx/max(pxPerM,1e-4));
  o.grow=s/max(size,1e-5);
  if(flat>.5){
