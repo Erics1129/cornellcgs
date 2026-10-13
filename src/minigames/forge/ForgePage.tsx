@@ -2,10 +2,11 @@ import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type 
 import MinigameShell from '../MinigameShell'
 import { CHARMS, FAMILIES, ITEMS, METALS, RULES, WORLD } from './config'
 import type { Charm, Item, Metal, Outcome } from './config'
-import { act, bestKnife, bonus, expectedValue, flowDuration, flowNeed, knifeName, price, saleValue, value } from './engine'
+import { act, bestKnife, bonus, expectedValue, flowDuration, flowNeed, knifeName, price, runDays, saleValue, value } from './engine'
 import type { Action, Knife, Place } from './engine'
-import { API, api, cleanName, fresh, identity, loadSession, localScores, recordLocal, saveName, saveSession } from './storage'
+import { API, api, cleanName, fresh, identity, loadSession, localScores, readSave, recordLocal, saveName, saveSession, saveSignature } from './storage'
 import type { Score, Session, Ticket } from './storage'
+import { progress } from '../../lib/account/index.ts'
 import { ForgeUnity } from './unity'
 import { ForgeAudio } from './audio'
 import { audioTuning } from './audio-spec'
@@ -30,7 +31,7 @@ const tutorial=[
  ['Read the risk','When the shatter odds reach 20%, wait for each result before the next strike. Presses that come too early are refused with a dry tick, never queued.'],
  ['Keep or sell','Sell cashes in the current blade in one tap. Trade shows every knife, daily prices, metal, tools, and charms.'],
  ['Explore','WASD or the touch pad moves your smith. Drag to look. E picks up and places objects. On a phone, the pad hides while you forge; touch the lower-left corner to bring it back.'],
- ['Seven days','Rest keeps your four best knives. Your best surviving knife after day seven is your score. Gold is only for supplies.'],
+ [`${RULES.days} days`,`Rest keeps your four best knives. Your best surviving knife after day ${RULES.days} is your score. Gold is only for supplies.`],
 ]
 const itemIcons:Record<Item,string>={guard:'guard',rewind:'rewind',whetstone:'hammer',stamina:'bolt'}
 const quickItems:Item[]=['guard','rewind','whetstone']
@@ -68,6 +69,7 @@ type SaleCount={from:number;amount:number;start:number;coins:boolean}
 
 export default function ForgePage(){
  const [session,setSession]=useState(loadSession),sessionRef=useRef(session)
+ const loadedSignature=useRef<string|null>(null);if(loadedSignature.current===null)loadedSignature.current=saveSignature(readSave())
  const [selected,setSelected]=useState<number|null>(()=>session.state.knives.find(n=>n.place==='anvil')?.id||session.state.knives[0]?.id||null),selectedRef=useRef(selected)
  const [ready,setReady]=useState(false)
  const [preparing,setPreparing]=useState<number|null>(null),prepareId=useRef<number|null>(null)
@@ -104,8 +106,10 @@ export default function ForgePage(){
  const s=session.state,k=s.knives.find(k=>k.id===selected),anvil=s.knives.find(k=>k.place==='anvil'),best=bestKnife(s),heating=s.knives.find(k=>k.place==='furnace'&&!k.heated)
  const choose=(id:number)=>{selectedRef.current=id;setSelected(id)}
  const sendRef=useRef<(a:Action)=>boolean>(()=>false)
+ const saveTimer=useRef<ReturnType<typeof setTimeout>|undefined>(undefined)
+ const saveSoon=()=>{if(saveTimer.current===undefined)saveTimer.current=setTimeout(()=>{saveTimer.current=undefined;setSaveError(!saveSession(sessionRef.current))},0)}
  const hitRef=useRef<()=>void>(()=>{})
- const clockMark=useRef(performance.now()),advanceRef=useRef<()=>void>(()=>{})
+ const clockMark=useRef(performance.now()),advanceRef=useRef<()=>void>(()=>{}),resetFeelRef=useRef<()=>void>(()=>{})
  const protocol=()=>scene.current?.protocol??0
  const legacy=()=>protocol()<2
  const vibrate=(pattern:number[])=>{if(hapticsRef.current&&canVibrate)try{navigator.vibrate(pattern)}catch{/* blocked */}}
@@ -177,7 +181,9 @@ export default function ForgePage(){
   if(!clockAction){
    const a=result.event,now=performance.now()
    if(action.type!=='buy'&&a.kind!=='sell')setNotice(action.type==='move'&&action.to==='rack'?'Kept':action.type==='use'?itemNames[action.item]:action.type==='flow'?'Flow active':'')
-   setSaveError(!saveSession(next))
+   // A strike resolves inside Unity's frame (its 'impact' event): its save, a log that grows to thousands of
+   // actions, runs right after that frame instead. pagehide and unmount still save synchronously.
+   if(a.kind==='hit')saveSoon();else setSaveError(!saveSession(next))
    if(a.kind==='hit'&&a.outcome&&a.before){
     const flowing=a.flowStarted||a.before.flow>0
     flowStep.current=a.flowStarted?1:flowing?flowStep.current+1:0
@@ -323,7 +329,7 @@ export default function ForgePage(){
  }},[heating?.id,audio,gate])
  useEffect(()=>{if(!trading)return;const t=setTimeout(()=>{tradeLock.current=false;setTrading(false)},550);return()=>clearTimeout(t)},[trading])
  useEffect(()=>{if(!receipt)return;const t=setTimeout(()=>setReceipt(null),2600);return()=>clearTimeout(t)},[receipt])
- useEffect(()=>{if(!notice)return;const t=setTimeout(()=>setNotice(''),2400);return()=>clearTimeout(t)},[notice])
+ useEffect(()=>{if(!notice)return;const t=setTimeout(()=>setNotice(''),Math.max(2400,notice.length*70));return()=>clearTimeout(t)},[notice])
  useEffect(()=>{if(!callout)return;const t=setTimeout(()=>setCallout(null),callout.label.holdMs);return()=>clearTimeout(t)},[callout])
  useEffect(()=>{if(!mark)return;const t=setTimeout(()=>setMark(null),TUNING.hud.refuseMarkMs);return()=>clearTimeout(t)},[mark])
  useEffect(()=>{if(!roll)return;const t=setTimeout(()=>setRoll(null),roll.holdMs);return()=>clearTimeout(t)},[roll])
@@ -331,7 +337,28 @@ export default function ForgePage(){
  useEffect(()=>{if(goldCount===null)return;let frame=0;const tick=()=>{const c=saleCount.current;if(!c){setGoldCount(null);return}const ms=performance.now()-c.start;if(c.coins){if(ms>TUNING.hud.coinFallbackEndMs*2.5){saleCount.current=null;setGoldCount(null);return}}else{setGoldCount(coinFallback(c.from,c.amount,ms,TUNING.hud));if(ms>=TUNING.hud.coinFallbackEndMs){saleCount.current=null;setGoldCount(null);return}}frame=requestAnimationFrame(tick)};frame=requestAnimationFrame(tick);return()=>cancelAnimationFrame(frame)},[goldCount===null])
  useEffect(()=>{if(!panel)return;if(gate.cancelBuffer())refuse('busy');scene.current?.control('clear',false);refreshBusy()
  },[panel])
- useEffect(()=>{const tick=setInterval(()=>advanceRef.current(),100);const save=()=>{clockMark.current=performance.now();gate.cancelBuffer();saveSession(sessionRef.current);if(document.hidden)audio.suspend();else if(audio.started)audio.start()};window.addEventListener('pagehide',save);document.addEventListener('visibilitychange',save);return()=>{clearInterval(tick);clearTimeout(dueTimer.current);holdTimers.current.forEach(clearTimeout);saveSession(sessionRef.current);window.removeEventListener('pagehide',save);document.removeEventListener('visibilitychange',save);audio.dispose()}},[audio,gate])
+ // Save when the page goes away, not when it comes back: a save stamps the run as this device's latest, and on
+ // return the account module may be pulling a run played on another device in the meantime (adopted below).
+ useEffect(()=>{const tick=setInterval(()=>advanceRef.current(),100);const exit=()=>{clockMark.current=performance.now();gate.cancelBuffer();clearTimeout(saveTimer.current);saveTimer.current=undefined;saveSession(sessionRef.current)};const visibility=()=>{if(document.hidden){exit();audio.suspend()}else{clockMark.current=performance.now();if(audio.started)audio.start()}};window.addEventListener('pagehide',exit);document.addEventListener('visibilitychange',visibility);return()=>{clearInterval(tick);clearTimeout(dueTimer.current);clearTimeout(saveTimer.current);saveTimer.current=undefined;holdTimers.current.forEach(clearTimeout);saveSession(sessionRef.current);window.removeEventListener('pagehide',exit);document.removeEventListener('visibilitychange',visibility);audio.dispose()}},[audio,gate])
+ // Signed in, a run played on another device can arrive in storage (docs/accounts/HOOKS.md). Adopt it as newRun
+ // does, or the next saveSession overwrites it and pushes this device's older run with a newer stamp. Not during a
+ // swing, heating or a sale: the next save then re-pushes this device's run, which is the one being played.
+ useEffect(()=>{const adopt=()=>{
+  if(gate.locked(performance.now())||prepareId.current||tradeLock.current)return
+  const stored=readSave()!==null,next=loadSession(),now=performance.now()
+  for(const n of sessionRef.current.state.knives)heatClock.left(n.id)
+  sessionRef.current=next;clockMark.current=now;resetFeelRef.current();setSession(next);setSaveError(false)
+  const anvilKnife=next.state.knives.find(n=>n.place==='anvil');if(anvilKnife?.heated)heatClock.arrived(anvilKnife.id,now,TUNING.heat)
+  choose(anvilKnife?.id||next.state.knives[0]?.id||0)
+  if(panelRef.current==='end'||(panelRef.current==='result'&&!next.state.ended))setPanel(null)
+  setNotice(next.notice||(stored?`Run from your account · day ${next.state.day}`:'New run'))
+  scene.current?.sync(next.state,selectedRef.current)
+ }
+ // A pull that landed between the first render (loadSession) and this subscription is adopted now.
+ const off=progress.subscribe('forge:run',adopt);if(saveSignature(readSave())!==loadedSignature.current)adopt();return off
+ },[gate,heatClock])
+ // After an update changed the rules, one line about what happened to the saved run, once the scene is up.
+ useEffect(()=>{if(!ready||!sessionRef.current.notice)return;setNotice(sessionRef.current.notice);sessionRef.current={...sessionRef.current,notice:undefined}},[ready])
  // Unity frames the anvil inside the HUD-free band: re-send the bands whenever the HUD layout changes.
  useLayoutEffect(()=>{const f=requestAnimationFrame(()=>scene.current?.insets());return()=>cancelAnimationFrame(f)},[panel,view,ready,oddsOpen,workFocus,s.knives.length,s.ended,!!s.offer,!!held])
  useEffect(()=>{const key=(e:KeyboardEvent)=>{
@@ -347,6 +374,7 @@ export default function ForgePage(){
  const refreshBoard=async()=>{if(!API){setScores(localScores());return}try{const data=await api<{scores:Score[];player:Score|null}>(`/scores?playerId=${encodeURIComponent(player.playerId)}`);setScores(data.scores);setMyScore(data.player);setBoardStatus('World board · Verified runs')}catch{setScores(localScores());setBoardStatus('World board offline · Local scores on this device')}}
  useEffect(()=>{if(panel!=='board')return;void refreshBoard();const t=setInterval(()=>void refreshBoard(),RULES.leaderboardRefreshMs);return()=>clearInterval(t)},[panel])
  const resetFeel=()=>{gate.reset();holdTimers.current.forEach(clearTimeout);holdTimers.current=[];setHeld(null);setCallout(null);setMark(null);setHistory([]);setRoll(null);flowStep.current=0;refreshBusy()}
+ resetFeelRef.current=resetFeel
  const newRun=async()=>{setPosting(true);let next:Session;try{if(API){const ticket=await api<Ticket>('/runs',{playerId:player.playerId,proof:player.proof});next=fresh(ticket.seed,ticket)}else next=fresh()}catch(e){setNotice(`Starting locally. ${(e as Error).message}`);next=fresh()}sessionRef.current=next;clockMark.current=performance.now();resetFeel();setSession(next);choose(next.state.knives[0].id);saveSession(next);scene.current?.sync(next.state,next.state.knives[0].id);setPosting(false);setPanel(null)}
  const autoTicket=useRef<Promise<Ticket>|null>(null)
  useEffect(()=>{if(!API||sessionRef.current.ticket||sessionRef.current.actions.some(a=>a.type!=='wait'&&a.type!=='tick'))return;let active=true;if(!autoTicket.current)autoTicket.current=api<Ticket>('/runs',{playerId:player.playerId,proof:player.proof});void autoTicket.current.then(ticket=>{if(!active||sessionRef.current.ticket||sessionRef.current.actions.some(a=>a.type!=='wait'&&a.type!=='tick'))return;const next=fresh(ticket.seed,ticket);sessionRef.current=next;setSession(next);choose(next.state.knives[0].id);saveSession(next);scene.current?.sync(next.state,next.state.knives[0].id)}).catch(()=>{if(active)setBoardStatus('World board offline · Local scores on this device')});return()=>{active=false}},[player])
@@ -355,7 +383,7 @@ export default function ForgePage(){
  const end=()=>{
   if(gate.locked(performance.now())||prepareId.current)return
   unlock();const current=sessionRef.current.state
-  if(current.day<7){
+  if(current.day<runDays(current)){
    const keep=[...current.knives].sort((a,b)=>value(b,current)-value(a,current)).slice(0,RULES.rackSlots)
    for(const n of current.knives.filter(n=>n.place==='rack'&&!keep.some(k=>k.id===n.id)))send({type:'move',id:n.id,to:'crate'})
    for(const n of keep)if(n.place!=='rack')send({type:'move',id:n.id,to:'rack'})
@@ -385,6 +413,7 @@ export default function ForgePage(){
  const flowExpiring=!!shown?.expiring
  const survive=boardKnife?survival(boardKnife,s,TUNING.hud.surviveStrikes,{firstContactMs:contactMs,flowCycleMs:TUNING.gate.flowCycleMs}):1
  const phone=view!=='desktop'
+ const lastDay=runDays(s),finalDay=s.day>=lastDay
  // The accessible name matches the visible text (WCAG 2.5.3).
  const strikeLabel=preparing?'Heating':!anvil?'Start forging':'Forge'
  return <MinigameShell pageId="forge-or-fold" title="Forge or Fold" back={{href:'/minigames/',label:'All games'}} skip={{href:'#forge-main',label:'Skip to forge'}} className={`ff-page view-${view} ${immersive?'is-immersive':''} ${calm?'is-calm':''}`}>
@@ -396,7 +425,7 @@ export default function ForgePage(){
   <header className="ff-topbar">
    <a href="/minigames/" className="ff-icon-button" aria-label="Back to games"><ForgeIcon name="back"/></a>
    <h1>FORGE <span>/</span> FOLD</h1>
-   <div className="ff-stats" aria-label="Run status"><span title="Day"><small>DAY</small><b>{s.day}<em>/7</em></b></span><span title="Unlimited energy" aria-label="Unlimited energy"><ForgeIcon name="bolt"/><b>∞</b></span><span title="Gold"><GoldCounter value={s.gold} receipt={receipt} count={goldCount} coins={(scene.current?.protocol??0)<2}/></span></div>
+   <div className="ff-stats" aria-label="Run status"><span title="Day"><small>DAY</small><b>{s.day}<em>/{lastDay}</em></b></span><span title="Unlimited energy" aria-label="Unlimited energy"><ForgeIcon name="bolt"/><b>∞</b></span><span title="Gold"><GoldCounter value={s.gold} receipt={receipt} count={goldCount} coins={(scene.current?.protocol??0)<2}/></span></div>
    <nav className="ff-tools" aria-label="Game tools">
     <button className="ff-icon-button" aria-label="Scores" onClick={()=>setPanel('board')}><ForgeIcon name="trophy"/></button>
     <button className="ff-icon-button" aria-label="Help and settings" onClick={()=>setPanel('help')}><ForgeIcon name="help"/></button>
@@ -452,7 +481,7 @@ export default function ForgePage(){
   })}</div>{category==='charms'&&s.charms.length>0&&<div className="ff-owned-charms">{s.charms.map(c=><span title={CHARMS[c].description} key={c}>◇ {CHARMS[c].name}</span>)}</div>}</>:<><p className="ff-trade-note">One tap to sell. Kept blades count toward your score.</p><div className="ff-sell-list">{[...s.knives].sort((a,b)=>saleValue(s,b)-saleValue(s,a)||a.id-b.id).map(n=><div key={n.id} className={n.place==='rack'?'is-kept':''}><KnifePortrait knife={n}/><span><strong>{FAMILIES[n.family]} <b>+{n.level}</b></strong><small>{METALS[n.metal].name} · {Math.round(s.market[n.metal]*100)}% market</small>{n.place==='rack'&&<em><ForgeIcon name="keep"/>Kept</em>}</span><button disabled={unavailable} aria-disabled={blocked||undefined} aria-label={`Sell ${METALS[n.metal].name} ${FAMILIES[n.family]} level ${n.level} for ${saleValue(s,n)} gold`} onClick={guard(()=>sell(n.id))}><small>Sell</small><b>{format(saleValue(s,n))}</b><ForgeIcon name="coin"/></button></div>)}{!s.knives.length&&<div className="ff-empty-trade"><ForgeIcon name="shop"/><span>No blades left.</span><button onClick={()=>setTradeTab('buy')}>Buy metal</button></div>}</div></>}
   <div className="ff-trade-message" role="status">{notice||'Restocks each morning.'}</div><button className="ff-primary ff-return" onClick={()=>setPanel(null)}>Back to forge</button>
  </Modal>}
- {panel==='end'&&!s.ended&&<Modal tray title={s.day===7?'Finish your run?':'Rest?'} close={()=>setPanel(null)}><p className="ff-dialog-lead">{s.day===7?'Your best knife becomes your score.':`Keep your ${Math.min(RULES.rackSlots,s.knives.length)} best knives. Fresh metal and a new market.`}</p><div className="ff-rest-preview">{[...s.knives].sort((a,b)=>value(b,s)-value(a,s)).slice(0,s.day===7?1:RULES.rackSlots).map(n=><div key={n.id}><KnifePortrait knife={n}/><b>+{n.level}</b></div>)}</div>{s.day<7&&s.knives.length>4&&<p className="ff-small">{s.knives.length-4} lower-value knives will be cleared.</p>}<div className="ff-modal-actions"><button onClick={()=>setPanel(null)}>Stay</button><button className="ff-primary" disabled={unavailable} aria-disabled={blocked||undefined} onClick={guard(end)}>{s.day===7?'Finish':'Keep & rest'}</button></div></Modal>}
+ {panel==='end'&&!s.ended&&<Modal tray title={finalDay?'Finish your run?':'Rest?'} close={()=>setPanel(null)}><p className="ff-dialog-lead">{finalDay?'Your best knife becomes your score.':`Keep your ${Math.min(RULES.rackSlots,s.knives.length)} best knives. Fresh metal and a new market.`}</p><div className="ff-rest-preview">{[...s.knives].sort((a,b)=>value(b,s)-value(a,s)).slice(0,finalDay?1:RULES.rackSlots).map(n=><div key={n.id}><KnifePortrait knife={n}/><b>+{n.level}</b></div>)}</div>{!finalDay&&s.knives.length>RULES.rackSlots&&<p className="ff-small">{s.knives.length-RULES.rackSlots} lower-value knives will be cleared.</p>}<div className="ff-modal-actions"><button onClick={()=>setPanel(null)}>Stay</button><button className="ff-primary" disabled={unavailable} aria-disabled={blocked||undefined} onClick={guard(end)}>{finalDay?'Finish':'Keep & rest'}</button></div></Modal>}
  {panel==='result'&&s.ended&&<Modal title="Your masterwork" close={()=>setPanel(null)}><div className="ff-pedestal">{best&&<KnifePortrait knife={best}/>}<h3>{best?knifeName(best):'A fresh start awaits.'}</h3><strong>{best?format(value(best,s)):'0'}</strong></div><label className="ff-name">Name<input maxLength={WORLD.maxName} value={name} onChange={e=>setName(e.target.value)} placeholder="Anonymous smith" autoComplete="nickname" onKeyDown={e=>{if(e.key==='Enter'){e.preventDefault();void submit()}}}/></label><p className="ff-small">{API&&session.ticket?'Verified world score':'Saved on this device'}</p><div className="ff-modal-actions"><button disabled={posting} onClick={()=>void newRun()}>New run</button><button className="ff-primary" disabled={posting} onClick={()=>void submit()}>{posting?'Saving…':'Save score'}</button></div></Modal>}
  {panel==='board'&&<Modal title="Best blades" close={()=>setPanel(null)}><p className="ff-board-status">{boardStatus}</p><ol className="ff-scores">{scores.length?scores.map((score,i)=><li key={score.playerId} className={score.playerId===player.playerId?'is-you':''}><span>{score.rank||i+1}</span>{score.knife&&<KnifePortrait knife={score.knife}/>}<div><strong>{score.name}{score.playerId===player.playerId?' · You':''}</strong><small>Level {score.level}</small></div><b>{format(score.value)}</b></li>):<li>Finish a run to set the first score.</li>}</ol>{myScore&&!scores.some(n=>n.playerId===player.playerId)&&<p>#{myScore.rank} · {format(myScore.value)}</p>}<div className="ff-modal-actions"><button onClick={()=>void refreshBoard()}>Refresh</button>{s.ended&&<button className="ff-primary" disabled={posting} onClick={()=>void newRun()}>New run</button>}</div></Modal>}
  {panel==='help'&&<Modal title="Make. Risk. Keep." close={()=>setPanel(null)}><div className="ff-rules">{tutorial.map(([title,text])=><div key={title}><h3>{title}</h3><p>{text}</p></div>)}

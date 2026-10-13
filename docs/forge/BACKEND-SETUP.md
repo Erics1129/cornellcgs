@@ -29,7 +29,7 @@ You create the Cloudflare account. Nothing here requires moving `cornellcgs.org`
 
     Replace only the URL with your actual Worker URL. This URL is public; do not paste an API token or secret here.
 11. Rebuild and publish the website (`npm run build`, `node scripts/stubs.mjs`, then the existing hosting deployment). Vite embeds the public URL during the build; setting it after building has no effect.
-12. Open the game and start a **new run**. Fresh untouched runs request a ticket automatically. An already-started local run stays local. The leaderboard also offers **Start a verified run** when a backend is configured but the current run has no ticket. Finish day seven and save your score. Check the board from a second device.
+12. Open the game and start a **new run**. Fresh untouched runs request a ticket automatically. An already-started local run stays local. The leaderboard also offers **Start a verified run** when a backend is configured but the current run has no ticket. Finish day ten and save your score. Check the board from a second device.
 
 The setup menu labels can vary slightly as Cloudflare updates its dashboard; the required resources and names are always one D1 database, one Worker, binding `DB`, and variable `ALLOWED_ORIGIN`.
 
@@ -47,7 +47,7 @@ Do not commit Cloudflare tokens. The `.dev.vars`, `.env.local` and Wrangler loca
 ## Checks and limits
 
 - Server-computed value, legal ownership, day progression, inventory/resources, rule version, run expiry, and minimum elapsed hit time are validated.
-- Start and submit requests are limited to one per minute per device identity. A run ticket is single-use, expires after seven days, and retains only that player's highest score. Requests are capped at 600 KB and 12,000 actions.
+- Start and submit requests are limited to one per minute per device identity. A run ticket is single-use, expires after ten days (as many as the run has), and retains only that player's highest score. Requests are capped at 600 KB and 12,000 actions.
 - Clearing browser storage loses the old identity; there is no cross-device account recovery. Names are public and cleaned to letters/numbers/basic punctuation, capped at 20 characters.
 - If a submission fails, the score is saved locally. Start a fresh verified run if the original ticket has expired. A local score cannot be retroactively verified.
 - Worker integration is tested locally against SQLite. Production account creation, binding and live end-to-end validation require your account setup.
