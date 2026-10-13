@@ -3,7 +3,7 @@
 // the sale count and the tuning merge. Run: node scripts/test-forge-feel.mjs
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
-import { StrikeGate, WEB_TUNING, webTuning, nextRoll, peekRandom, survival, oddsAtContact, riskKnife, prepareTarget, outcomeLabel, HAPTICS, hapticPattern, hitHaptic, FLOW_PULSE_MAX_MS, motionOptions, renderDpr, qualityTier, labelPlacement, coinStep, coinFallback, coolC, HeatClock, tension } from '../src/minigames/forge/feel.ts'
+import { StrikeGate, WEB_TUNING, webTuning, adoptUnityTiming, nextRoll, peekRandom, survival, oddsAtContact, riskKnife, prepareTarget, outcomeLabel, HAPTICS, hapticPattern, hitHaptic, FLOW_PULSE_MAX_MS, motionOptions, renderDpr, qualityTier, labelPlacement, coinStep, coinFallback, coolC, HeatClock, tension } from '../src/minigames/forge/feel.ts'
 import { StrikeLedger } from '../src/minigames/forge/bridge.ts'
 import { act, createRun, odds, flowNeed } from '../src/minigames/forge/engine.ts'
 import { RULES } from '../src/minigames/forge/config.ts'
@@ -507,6 +507,17 @@ for (const protocol of [2, 0]) for (const rate of [2, 2.5, 3]) {
   eq(t.gate.riskGate, .3); eq(t.gate.cycleMs, 640); eq(t.gate.flowCycleMs, 605); eq(t.gate.scheduleAfterContactMs, 150); eq(t.hud.labelLift, WEB_TUNING.hud.labelLift); assert.deepEqual(t.render.phoneDpr, [3, 2, 1.5, 1]); checks++
   eq(t.gate.bogus, undefined, 'unknown keys are ignored')
   eq(webTuning(null).gate.riskGate, .2)
+  // Unity's 'tuned' echo drives the gate's timing. The strike-feel defaults (as echoed by its build) change nothing;
+  // a strike override (cycle 700, slower windup) reaches the gate's predictions; nonsense is ignored; the floor holds.
+  const echo = { version: 1, strike: { windupMs: 105, firstWindupMs: 130, apexHoldMs: 10, downstrokeMs: 75, flowWindupMs: 65, flowDownstrokeMs: 60, cycleMs: 640, flowCycleMs: 595, scheduleAfterContactMs: 150, restIdleS: 1.2000000476837158 }, metal: {}, room: {} }
+  const gt = structuredClone(WEB_TUNING.gate)
+  assert.deepEqual(adoptUnityTiming(gt, echo), [], 'the strike-feel defaults match the page defaults'); checks++
+  const tuned2 = adoptUnityTiming(gt, { strike: { ...echo.strike, cycleMs: 700, windupMs: 140, scheduleAfterContactMs: 120, flowCycleMs: 'x', apexHoldMs: NaN } })
+  ok(tuned2.includes('cycleMs') && gt.cycleMs === 700, 'cycleMs adopted'); eq(gt.contactMs, 190, 'a NaN hold leaves the swing prediction alone'); eq(gt.flowCycleMs, 595, 'a non-number is ignored')
+  eq(gt.scheduleAfterContactMs, 150, 'the page never sends before contact + 150 ms, whatever Unity says')
+  const gg = new StrikeGate(gt); gg.press(0, { risk: 0, flow: false, protocol: 2, armed: true }); gg.sent(1, 0, { flow: false, protocol: 2 }); gg.impact(1, 190)
+  near(gg.predictContact(400, { flow: false, protocol: 2 }), 890, 1e-9, 'the adopted cycle spaces the predicted contacts')
+  eq(adoptUnityTiming(gt, null).length, 0); eq(adoptUnityTiming(gt, { strike: 3 }).length, 0)
   // The shipped overrides file merges cleanly (web section read by the page, audio by audio-spec).
   const shipped = JSON.parse(fs.readFileSync(new URL('../src/minigames/forge/feel-tuning.json', import.meta.url), 'utf8'))
   ok(shipped.web && typeof shipped.web === 'object' && webTuning(shipped.web).gate.cycleMs >= 640, 'feel-tuning.json web section applies')

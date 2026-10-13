@@ -20,6 +20,8 @@ type Hooks = {
   look?: () => void
   /** A touch at (x, y) in canvas fractions; return true to consume it (the phone d-pad reveal zone). */
   touchZone?: (x: number, y: number) => boolean
+  /** Unity 'tuned': the effective ForgeTuning (parsed), after Unity's clamps. */
+  tuned?: (effective: unknown) => void
 }
 type UnityInstance = { SendMessage: (object: string, method: string, value: string) => void; Quit: () => Promise<void>; SetFullscreen: (value: number) => void; Module?: { devicePixelRatio?: number } }
 type UnityFactory = (canvas: HTMLCanvasElement, config: Record<string, unknown>, progress: (value: number) => void) => Promise<UnityInstance>
@@ -139,7 +141,7 @@ export class ForgeUnity {
     if (m.type === 'impact') { this.hooks.impact?.(m.id); this.strikes.impact(m.id) }
     if (m.type === 'seated') this.hooks.seated?.(m.id)
     if (m.type === 'sfx') this.hooks.sfx?.(m.spot, m.x, m.y, m.id)
-    if (m.type === 'tuned') this.root.dataset.tuning = m.spot
+    if (m.type === 'tuned') { this.root.dataset.tuning = m.spot; try { this.hooks.tuned?.(JSON.parse(m.spot)) } catch { /* malformed echo */ } }
     if (m.type === 'hover') this.root.dataset.drop = m.spot
     if (m.type === 'stats') this.root.dataset.renderStats = JSON.stringify({fps: Math.round(m.x), knives: m.y, particles: m.id, renderer: 'Unity'})
     if (m.type === 'perf') this.root.dataset.perf = JSON.stringify({ tier: m.id, p90: +m.x.toFixed(2), median: +m.y.toFixed(2) })

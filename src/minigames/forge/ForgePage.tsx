@@ -11,7 +11,7 @@ import { ForgeAudio } from './audio'
 import { audioTuning } from './audio-spec'
 import { anvilRisk, viewClass } from './bridge'
 import type { Motion, ViewClass } from './bridge'
-import { HeatClock, StrikeGate, bladePoint, coinFallback, coinStep, hapticPattern, hitHaptic, labelPlacement, nextRoll, oddsAtContact, outcomeLabel, prepareTarget, survival, tension, webTuning } from './feel'
+import { HeatClock, StrikeGate, adoptUnityTiming, bladePoint, coinFallback, coinStep, hapticPattern, hitHaptic, labelPlacement, nextRoll, oddsAtContact, outcomeLabel, prepareTarget, survival, tension, webTuning } from './feel'
 import type { GateInput, OutcomeLabel, RefuseReason } from './feel'
 import feelTuning from './feel-tuning.json'
 import KnifePortrait from './KnifePortrait'
@@ -294,6 +294,8 @@ export default function ForgePage(){
     hit:()=>hitRef.current(),
     spot:spot=>{if(spot==='shop')setPanel('shop');if(spot==='lantern')setPanel('end')},
     gesture:()=>audio.start(),
+    // Unity's effective strike timing (after feel-tuning.json and its clamps) drives the gate's predictions.
+    tuned:effective=>{const changed=adoptUnityTiming(gate.t,effective);if(changed.length)qaLog({kind:'tuned',reason:changed.join(',')})},
     labels:positions=>{const a=positions.anvil;if(a&&Number.isFinite(a.x)&&Number.isFinite(a.y))anvilLabel.current=a},
     error:setSceneError,context:()=>{},near:()=>{},notice:setNotice,
     command:(kind,id,key)=>{if(kind==='buy'&&key)sendRef.current({type:'buy',key});else if(kind==='end')setPanel('end');else if(kind==='flow')sendRef.current({type:'flow',id});else if(['guard','rewind','whetstone','stamina'].includes(kind))sendRef.current({type:'use',item:kind as Item,id:id||undefined})},

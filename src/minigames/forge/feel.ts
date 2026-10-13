@@ -116,6 +116,29 @@ export function webTuning(overrides: unknown): WebTuning {
   return out as unknown as WebTuning
 }
 
+/**
+ * Unity's 'tuned' echo (the effective ForgeTuning after its clamps) is the one source of the strike timing:
+ * the gate adopts its swing, cycle and scheduling numbers, so overriding "strike" in feel-tuning.json keeps the
+ * page's contact predictions and its send time in step with Unity without a second edit in "web". The page's
+ * floor stays: it never sends earlier than contact + 150 ms. Returns the gate keys that changed.
+ */
+export function adoptUnityTiming(g: WebTuning['gate'], tuned: unknown): string[] {
+  const s = (tuned && typeof tuned === 'object' ? (tuned as { strike?: unknown }).strike : null) as Record<string, unknown> | null
+  if (!s || typeof s !== 'object') return []
+  const n = (k: string) => { const v = s[k]; return typeof v === 'number' && Number.isFinite(v) && v >= 0 && v < 10000 ? v : undefined }
+  const next: Partial<Record<keyof WebTuning['gate'], number>> = {}
+  const w = n('windupMs'), fw = n('firstWindupMs'), hold = n('apexHoldMs'), down = n('downstrokeMs'), flw = n('flowWindupMs'), fld = n('flowDownstrokeMs')
+  if (w !== undefined && hold !== undefined && down !== undefined) { next.contactMs = w + hold + down; next.apexBeforeContactMs = hold + down }
+  if (fw !== undefined && hold !== undefined && down !== undefined) next.firstContactMs = fw + hold + down
+  if (flw !== undefined && fld !== undefined) { next.flowContactMs = flw + fld; next.flowApexBeforeContactMs = fld }
+  for (const k of ['cycleMs', 'flowCycleMs', 'scheduleAfterContactMs'] as const) { const v = n(k); if (v !== undefined) next[k] = v }
+  const idle = n('restIdleS'); if (idle !== undefined) next.restIdleMs = idle * 1000
+  const out = g as unknown as Record<string, number>, changed: string[] = []
+  for (const [k, v] of Object.entries(next)) { const r = Math.round(v * 1000) / 1000; if (out[k] !== r) { out[k] = r; changed.push(k) } }
+  g.scheduleAfterContactMs = Math.max(150, g.scheduleAfterContactMs); g.riskAfterContactMs = Math.max(g.scheduleAfterContactMs, g.riskAfterContactMs)
+  return changed
+}
+
 // ---------------------------------------------------------------------------------------------
 // Strike gate
 // ---------------------------------------------------------------------------------------------
