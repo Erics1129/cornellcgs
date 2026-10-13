@@ -1,7 +1,7 @@
 // Pure tests for the workshop audio layer specs (src/minigames/forge/audio-spec.ts).
 // Offline renders in real browsers live in scripts/forge-qa/audio.mjs. Run: node scripts/test-forge-audio.mjs
 import assert from 'node:assert/strict'
-import { AUDIO, audioTuning, softClipCurve, ringGain, bladeHz, bladeDamp, strikeSpec, neutralVoices, foley, uiVoices, heartbeat, crackle, VoiceBudget, voiceEnd, seeded, fireLapping, fireHiss, stoneRoomIR, quenchTexture, pinkNoise, shatterTinkles, chipTick } from '../src/minigames/forge/audio-spec.ts'
+import { AUDIO, audioTuning, softClipCurve, ringGain, bladeHz, bladeDamp, strikeSpec, neutralVoices, foley, uiVoices, heartbeat, crackle, VoiceBudget, voiceEnd, seeded, fireLapping, fireHiss, stoneRoomIR, quenchTexture, pinkNoise, shatterTinkles, chipTick, fireLappingJob, fireHissJob, pinkNoiseJob, quenchTextureJob, stoneRoomIRJob } from '../src/minigames/forge/audio-spec.ts'
 import { METALS } from '../src/minigames/forge/config.ts'
 
 let checks = 0
@@ -108,6 +108,21 @@ for (const outcome of OUTCOMES) for (const metal of metals) for (let level = 0; 
   const q = quenchTexture(8000, seeded(4)); ok(q.length === 8000 * 2.4, 'quench texture lasts 2.4 s')
   const pk = pinkNoise(8000, seeded(1)); ok(pk.every(v => Math.abs(v) <= .8 + 1e-6), 'pink noise normalised')
   ok(fireHiss(8000, 1, seeded(1)).length === 8000)
+  // Textures are built in slices (the page spreads them over tasks so no frame drops); a job yields many times
+  // and gives exactly the samples of the one-shot function.
+  const same = (x, y) => x.length === y.length && x.every((v, i) => v === y[i])
+  for (const [name, job, one] of [
+    ['lapping', () => fireLappingJob(8000, 3, seeded(9)), () => fireLapping(8000, 3, seeded(9))],
+    ['hiss', () => fireHissJob(8000, 3, seeded(9)), () => fireHiss(8000, 3, seeded(9))],
+    ['pink', () => pinkNoiseJob(24000, seeded(9)), () => pinkNoise(24000, seeded(9))],
+    ['quench', () => quenchTextureJob(8000, seeded(9)), () => quenchTexture(8000, seeded(9))],
+    ['room', () => stoneRoomIRJob(16000, seeded(9)), () => stoneRoomIR(16000, seeded(9))],
+  ]) {
+    const j = job(); let r = j.next(), slices = 0; while (!r.done) { slices++; r = j.next() }
+    const a = r.value, b = one()
+    ok(slices >= 3, `${name}: built in ${slices} slices`)
+    ok(Array.isArray(a) ? a.every((ch, i) => same(ch, b[i])) : same(a, b), `${name}: the sliced job gives the same samples`)
+  }
 }
 // Foley table for every frozen sfx name, and UI chimes.
 {

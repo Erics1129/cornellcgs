@@ -141,14 +141,24 @@ async function engineChecks(engine) {
 async function live(url) {
   const h = await launch('desktop', { out: path.join(outDir, 'live') })
   try {
-    await open(h, url); await sleep(800); await ensureForging(h, 12000); await sleep(400)
+    // AudioBufferSourceNode has its own start(), which lib's AudioScheduledSourceNode hook does not see.
+    await h.context.addInitScript(() => { const P = window.AudioBufferSourceNode?.prototype; if (!P) return; const start = P.start; P.start = function (when, ...rest) { (window.__bufferStarts ||= []).push({ t: performance.now(), loop: this.loop, len: this.buffer ? this.buffer.length : 0 }); return start.call(this, when, ...rest) } })
+    await open(h, url); await sleep(800)
+    // The first gesture builds the audio; the room tone, fire hiss and lapping beds are generated in slices and
+    // start within about a second, and the crackle pump runs.
+    const g0 = await press(h, 'Space'); await sleep(1500)
+    const bufs = await h.page.evaluate(t => (window.__bufferStarts || []).filter(s => s.t >= t), g0), loops = bufs.filter(s => s.loop)
+    check('live', 'the three looped beds start within 1.5 s of the first gesture, crackles play', loops.length >= 3 && bufs.length > loops.length, { loopsAtMs: loops.map(s => Math.round(s.t - g0)), oneShots: bufs.length - loops.length })
+    await ensureForging(h, 12000); await sleep(400)
     const lags = [], sched = []
     for (let i = 0; i < 6; i++) {
       const t = await press(h, 'Space'), imp = await waitEvent(h, 'impact', t, 4000); await sleep(120)
       if (!imp) continue
       // The strike's oscillators (thump, ring and blade partials); the bed pump's crackles are buffer sources.
+      // The earliest layer must start now; the shimmer (+4 ms) and an evolution arpeggio (+60..240 ms) are
+      // deliberately later, so the check takes the earliest scheduled start of the strike's first batch.
       const starts = (await audioStarts(h, imp.t)).filter(s => s.t < imp.t + 60 && s.freq != null)
-      if (starts.length) { lags.push(starts[0].t - imp.t); sched.push(Math.max(...starts.filter(s => s.t - starts[0].t < 2).map(s => s.when - s.now))) }
+      if (starts.length) { lags.push(starts[0].t - imp.t); sched.push(Math.min(...starts.filter(s => s.t - starts[0].t < 2).map(s => s.when - s.now))) }
       await waitEvent(h, 'settled', imp.t, 3000); await sleep(250)
     }
     check('live', 'impact layers start at most 5 ms after the impact event', lags.length >= 4 && lags.every(l => l >= 0 && l <= 5), { lagsMs: lags.map(l => +l.toFixed(2)) })

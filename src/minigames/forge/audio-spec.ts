@@ -304,46 +304,63 @@ export function biquad(type: 'lowpass' | 'highpass' | 'bandpass', f: number, q: 
   let x1 = 0, x2 = 0, y1 = 0, y2 = 0
   return (x: number) => { const y = B0 * x + B1 * x1 + B2 * x2 - A1 * y1 - A2 * y2; x2 = x1; x1 = x; y2 = y1; y1 = y; return y }
 }
-const normalize = (d: Float32Array, peak = .9) => { let m = 0; for (const v of d) m = Math.max(m, Math.abs(v)); if (m > 0) for (let i = 0; i < d.length; i++) d[i] *= peak / m; return d }
+/**
+ * Long textures are built as jobs that yield every SLICE samples (well under a millisecond each), so the page
+ * can spread them over several tasks and never drop a frame (the whole lapping bed is about 25 ms of work).
+ * finish() runs a job to the end; the plain functions below are exactly that and give the same samples.
+ */
+export type Job<T> = Generator<void, T, void>
+const SLICE = 4096
+export function finish<T>(job: Job<T>): T { let r = job.next(); while (!r.done) r = job.next(); return r.value }
+function* normalizeJob(d: Float32Array, peak = .9): Job<Float32Array> {
+  let m = 0
+  for (let i = 0; i < d.length; i++) { m = Math.max(m, Math.abs(d[i])); if (i % SLICE === SLICE - 1) yield }
+  if (m > 0) for (let i = 0; i < d.length; i++) { d[i] *= peak / m; if (i % SLICE === SLICE - 1) yield }
+  return d
+}
 export function whiteNoise(len: number, rand: Rand) { const d = new Float32Array(len); for (let i = 0; i < len; i++) d[i] = rand() * 2 - 1; return d }
 /** Pink noise (Paul Kellet's refined filter). */
-export function pinkNoise(len: number, rand: Rand) {
+export function* pinkNoiseJob(len: number, rand: Rand): Job<Float32Array> {
   const d = new Float32Array(len); let b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0
-  for (let i = 0; i < len; i++) { const w = rand() * 2 - 1; b0 = .99886 * b0 + w * .0555179; b1 = .99332 * b1 + w * .0750759; b2 = .969 * b2 + w * .153852; b3 = .8665 * b3 + w * .3104856; b4 = .55 * b4 + w * .5329522; b5 = -.7616 * b5 - w * .016898; d[i] = b0 + b1 + b2 + b3 + b4 + b5 + b6 + w * .5362; b6 = w * .115926 }
-  return normalize(d, .8)
+  for (let i = 0; i < len; i++) { const w = rand() * 2 - 1; b0 = .99886 * b0 + w * .0555179; b1 = .99332 * b1 + w * .0750759; b2 = .969 * b2 + w * .153852; b3 = .8665 * b3 + w * .3104856; b4 = .55 * b4 + w * .5329522; b5 = -.7616 * b5 - w * .016898; d[i] = b0 + b1 + b2 + b3 + b4 + b5 + b6 + w * .5362; b6 = w * .115926; if (i % SLICE === SLICE - 1) yield }
+  return yield* normalizeJob(d, .8)
 }
+export const pinkNoise = (len: number, rand: Rand) => finish(pinkNoiseJob(len, rand))
 /** Stone-room impulse response: early reflections, then filtered noise decaying with RT60, low-passed. */
-export function stoneRoomIR(sr: number, rand: Rand, a: AudioTuning = AUDIO): Float32Array[] {
+export function* stoneRoomIRJob(sr: number, rand: Rand, a: AudioTuning = AUDIO): Job<Float32Array[]> {
   const r = a.reverb, len = Math.floor(sr * r.seconds), out: Float32Array[] = []
   for (let ch = 0; ch < 2; ch++) {
     const d = new Float32Array(len), lp = biquad('lowpass', r.lowpass, .707, sr)
     // The diffuse tail builds up over the first ~40 ms, so the discrete wall reflections stand out first.
-    for (let i = 0; i < len; i++) { const t = i / sr, build = Math.min(1, Math.max(0, (t - .004) / .036)); const env = Math.exp(-6.908 * t / r.rt60) * build * build; d[i] = lp((rand() * 2 - 1) * env) }
+    for (let i = 0; i < len; i++) { const t = i / sr, build = Math.min(1, Math.max(0, (t - .004) / .036)); const env = Math.exp(-6.908 * t / r.rt60) * build * build; d[i] = lp((rand() * 2 - 1) * env); if (i % SLICE === SLICE - 1) yield }
     r.early.forEach((s, i) => { const at = Math.floor((s + (ch ? .0013 * (i + 1) : 0)) * sr); if (at < len) d[at] += (i % 2 ? -1 : 1) * (.9 - i * .1) })
     let e = 0; for (const v of d) e += v * v; const k = 1 / Math.sqrt(e || 1); for (let i = 0; i < len; i++) d[i] *= k * 1.6
     out.push(d)
   }
   return out
 }
+export const stoneRoomIR = (sr: number, rand: Rand, a: AudioTuning = AUDIO) => finish(stoneRoomIRJob(sr, rand, a))
 /** Fire hiss: high-passed noise modulated by squared slow noise (Farnell). */
-export function fireHiss(sr: number, seconds: number, rand: Rand) {
+export function* fireHissJob(sr: number, seconds: number, rand: Rand): Job<Float32Array> {
   const len = Math.floor(sr * seconds), d = new Float32Array(len), hp = biquad('highpass', 1000, .707, sr), lfo = biquad('lowpass', 1, .707, sr)
-  for (let i = 0; i < len; i++) { const m = lfo(rand() * 2 - 1) * 40; d[i] = hp(rand() * 2 - 1) * Math.min(1.5, m * m) }
-  return normalize(d, .9)
+  for (let i = 0; i < len; i++) { const m = lfo(rand() * 2 - 1) * 40; d[i] = hp(rand() * 2 - 1) * Math.min(1.5, m * m); if (i % SLICE === SLICE - 1) yield }
+  return yield* normalizeJob(d, .9)
 }
+export const fireHiss = (sr: number, seconds: number, rand: Rand) => finish(fireHissJob(sr, seconds, rand))
 /**
  * Fire lapping: band-passed 30 Hz noise, clipped, high-passed at 25 Hz (Farnell), plus a 300-700 Hz roar
  * following the lapping envelope so the bed is audible on phone speakers (critique: energy above 300 Hz).
  */
-export function fireLapping(sr: number, seconds: number, rand: Rand) {
+export function* fireLappingJob(sr: number, seconds: number, rand: Rand): Job<Float32Array> {
   const len = Math.floor(sr * seconds), d = new Float32Array(len), bp = biquad('bandpass', 30, 5, sr), hp = biquad('highpass', 25, .707, sr), roar = biquad('bandpass', 480, .9, sr), env = biquad('lowpass', 8, .707, sr)
-  for (let i = 0; i < len; i++) { const lap = Math.max(-.9, Math.min(.9, bp(rand() * 2 - 1) * 60)); const l = hp(lap); const e = Math.abs(env(Math.abs(l)) * 3); d[i] = l * .7 + roar(rand() * 2 - 1) * Math.min(1.2, e) * 1.6 }
+  for (let i = 0; i < len; i++) { const lap = Math.max(-.9, Math.min(.9, bp(rand() * 2 - 1) * 60)); const l = hp(lap); const e = Math.abs(env(Math.abs(l)) * 3); d[i] = l * .7 + roar(rand() * 2 - 1) * Math.min(1.2, e) * 1.6; if (i % SLICE === SLICE - 1) yield }
   // Loop seam: crossfade the last 50 ms into the start.
   const x = Math.floor(sr * .05); for (let i = 0; i < x; i++) { const k = i / x; d[i] = d[i] * k + d[len - x + i] * (1 - k) }
-  return normalize(d.subarray(0, len - x).slice(), .9)
+  return yield* normalizeJob(d.subarray(0, len - x).slice(), .9)
 }
+export const fireLapping = (sr: number, seconds: number, rand: Rand) => finish(fireLappingJob(sr, seconds, rand))
 /** Quench: film-boiling hiss with crackles (0-.3 s), nucleate boiling with pops (.3-1.5 s), steam tail (to 2.4 s). */
-export function quenchTexture(sr: number, rand: Rand) {
+export function* quenchTextureJob(sr: number, rand: Rand): Job<Float32Array> {
   const len = Math.floor(sr * 2.4), d = new Float32Array(len), hp3 = biquad('highpass', 3000, .707, sr), boil = biquad('bandpass', 700, .6, sr), hp5 = biquad('highpass', 5000, .707, sr)
   let next = 0, popF = 0, popLeft = 0, popAmp = 0, phase = 0
   for (let i = 0; i < len; i++) {
@@ -358,6 +375,8 @@ export function quenchTexture(sr: number, rand: Rand) {
     }
     if (popLeft > 0) { phase += 2 * Math.PI * popF / sr; v += Math.sin(phase) * popAmp * (popLeft / (sr * .012)); popLeft-- }
     d[i] = v
+    if (i % SLICE === SLICE - 1) yield
   }
-  return normalize(d, .9)
+  return yield* normalizeJob(d, .9)
 }
+export const quenchTexture = (sr: number, rand: Rand) => finish(quenchTextureJob(sr, rand))

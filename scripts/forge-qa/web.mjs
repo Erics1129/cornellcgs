@@ -3,6 +3,7 @@
 // served build, including today's pre-contract Unity build.
 // usage: node scripts/forge-qa/web.mjs --url http://127.0.0.1:5481/minigames/forgeOrFold/
 //          [--out output/forge-qa/web] [--profiles desktop,phone,landscape,webkit-phone,reduced] [--fuzz 200]
+//          [--fuzz-profiles desktop,webkit-phone]
 import fs from 'node:fs'
 import path from 'node:path'
 import { launch, open, sleep, now, press, tap, center, hud, ensureForging, unityEvents, waitEvent, lumaPatch, writeJson, stats, URL } from './lib.mjs'
@@ -10,7 +11,7 @@ import { createRun, act } from '../../src/minigames/forge/engine.ts'
 
 const arg = (name, d) => { const i = process.argv.indexOf('--' + name); return i > 0 ? process.argv[i + 1] : d }
 const url = arg('url', URL), outDir = path.resolve(arg('out', 'output/forge-qa/web')), fuzzN = +arg('fuzz', 200)
-const only = arg('profiles', 'desktop,phone,landscape,webkit-phone,reduced').split(',')
+const only = arg('profiles', 'desktop,phone,landscape,webkit-phone,reduced').split(','), fuzzKinds = arg('fuzz-profiles', 'desktop').split(',')
 const report = { url, at: new Date().toISOString(), checks: [], profiles: {} }
 const check = (profile, name, pass, detail) => { report.checks.push({ profile, name, pass: !!pass, detail }); console.log(`${pass ? 'PASS' : 'FAIL'} [${profile}] ${name}${detail !== undefined ? ' ' + JSON.stringify(detail) : ''}`) }
 
@@ -133,7 +134,7 @@ async function desktop(kind = 'desktop') {
     r.console = h.consoleLines.filter(l => /\[(error|pageerror)\]/.test(l) && !/loading-v3\.webp/.test(l))
     check(kind, 'no console errors (loading-v3.webp is created at integration)', r.console.length === 0, r.console.slice(0, 5))
     if (kind === 'desktop') await heatingBuffer(h, kind)
-    if (kind === 'desktop' && fuzzN > 0) await fuzz(h, kind, fuzzN)
+    if (fuzzKinds.includes(kind) && fuzzN > 0) await fuzz(h, kind, fuzzN)
   } finally { await h.close() }
 }
 
@@ -295,6 +296,7 @@ async function phone(kind) {
     await h.page.locator('dialog[open] .ff-modal-head button').click(); await sleep(300)
     r.console = h.consoleLines.filter(l => /\[(error|pageerror)\]/.test(l) && !/loading-v3\.webp/.test(l))
     check(kind, 'no console errors', r.console.length === 0, r.console.slice(0, 5))
+    if (fuzzKinds.includes(kind) && fuzzN > 0) await fuzz(h, kind, fuzzN)
   } finally { await h.close() }
 }
 

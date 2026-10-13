@@ -6,13 +6,18 @@
  * same task as Unity's impact event; when the output latency is above 30 ms the outcome-neutral
  * contact layers are pre-scheduled from 'swing' on the AudioContext clock.
  */
-import { AUDIO, VoiceBudget, softClipCurve, crackle, crackleInterval, creak, creakRate, fireHiss, fireLapping, foley, heartInterval, heartbeat, neutralVoices, pinkNoise, quenchTexture, seeded, shatterTinkles, chipTick, stoneRoomIR, strikeSpec, uiVoices, voiceEnd, whiteNoise } from './audio-spec.ts'
-import type { AudioTuning, Bus, Rand, StrikeContext, Voice } from './audio-spec.ts'
+import { AUDIO, VoiceBudget, softClipCurve, crackle, crackleInterval, creak, creakRate, fireHissJob, fireLappingJob, foley, heartInterval, heartbeat, neutralVoices, pinkNoiseJob, quenchTextureJob, seeded, shatterTinkles, chipTick, stoneRoomIRJob, strikeSpec, uiVoices, voiceEnd, whiteNoise } from './audio-spec.ts'
+import type { AudioTuning, Bus, Job, Rand, StrikeContext, Voice } from './audio-spec.ts'
 
 export type StrikeEvent = Omit<StrikeContext, 'rand' | 'skipNeutral'> & { seq?: number }
 type Live = { src: AudioScheduledSourceNode; gain: GainNode; at: number }
 type Options = { context?: BaseAudioContext; rand?: Rand; tuning?: AudioTuning; ambience?: boolean; persist?: boolean; legacy?: boolean }
 const db = (d: number) => Math.pow(10, d / 20)
+/** One slice of a texture job; true once the job has finished and its result was handed on. */
+type Task = () => boolean
+const task = <T,>(job: Job<T>, done: (value: T) => void): Task => () => { const r = job.next(); if (r.done) { done(r.value); return true } return false }
+/** Main-thread time a texture slice run may take per task (a 120 Hz frame is 8.3 ms, shared with Unity). */
+const SLICE_BUDGET_MS = 2
 
 export class ForgeAudio {
  private ctx: BaseAudioContext | null = null
@@ -85,25 +90,38 @@ export class ForgeAudio {
   comp.connect(makeup).connect(this.volumeNode).connect(half).connect(clip).connect(c.destination)
   for (const bus of ['strike', 'foley', 'amb'] as Bus[]) { this.buses[bus] = c.createGain(); this.buses[bus].connect(comp) }
   this.duck = c.createGain(); this.duck.connect(this.buses.amb)
-  // What the first strike needs is made in the gesture's task (about 7 ms): white noise and the room.
+  // What the first strike needs is made in the gesture's task (about 1.5 ms): the white noise. The room is wired
+  // now and gets its impulse response when that job finishes (a send into an empty convolver is silent).
   this.buffers.white = this.mono(whiteNoise(sr * 2, r))
-  const ir = stoneRoomIR(sr, r, this.a), irb = c.createBuffer(2, ir[0].length, sr); irb.getChannelData(0).set(ir[0]); irb.getChannelData(1).set(ir[1])
-  this.reverb = c.createConvolver(); this.reverb.normalize = false; this.reverb.buffer = irb; this.reverb.connect(comp)
-  // The long textures (beds, quench) follow in later tasks so the first press is never held up;
-  // an offline (injected) context builds them at once.
-  const later: (() => void)[] = [() => { this.buffers.quench = this.mono(quenchTexture(sr, r)) }]
-  if (this.ambience) later.unshift(...this.beds(r))
-  if (this.injected) later.forEach(f => f())
-  else { const step = () => { if (this.ctx !== c) return; later.shift()?.(); if (later.length) setTimeout(step, 16) }; setTimeout(step, 30) }
+  this.reverb = c.createConvolver(); this.reverb.normalize = false; this.reverb.connect(comp)
+  const tasks: Task[] = [task(stoneRoomIRJob(sr, r, this.a), ir => { const b = c.createBuffer(2, ir[0].length, sr); b.getChannelData(0).set(ir[0]); b.getChannelData(1).set(ir[1]); this.reverb!.buffer = b })]
+  if (this.ambience) tasks.push(...this.beds(r))
+  tasks.push(task(quenchTextureJob(sr, r), d => { this.buffers.quench = this.mono(d) }))
+  this.runTasks(tasks, c)
   this.apply()
+ }
+ /**
+  * Build the textures (room, beds, quench; about 50 ms of work in all) a slice at a time, at most
+  * SLICE_BUDGET_MS per task, so the first press is never held up and no frame is dropped. An offline
+  * (injected) context builds them at once.
+  */
+ private runTasks(tasks: Task[], c: BaseAudioContext) {
+  if (this.injected) { for (const t of tasks) { let done = false; while (!done) done = t() } return }
+  const step = () => {
+   if (this.ctx !== c) return
+   const t0 = performance.now()
+   while (tasks.length && performance.now() - t0 < SLICE_BUDGET_MS) if (tasks[0]()) tasks.shift()
+   if (tasks.length) setTimeout(step, 0)
+  }
+  setTimeout(step, 30)
  }
  private mono(d: Float32Array) { const c = this.ctx!, b = c.createBuffer(1, d.length, c.sampleRate); b.getChannelData(0).set(d); return b }
  private panner(pan: number): AudioNode | null { const c = this.ctx!; if (typeof c.createStereoPanner !== 'function' || !pan) return null; const p = c.createStereoPanner(); p.pan.value = Math.max(-1, Math.min(1, pan)); return p }
  /**
   * Fire (hiss, lapping, crackles), room tone and the tension drone. The bus, drone and crackle pump start
-  * now; each looped texture starts once its buffer is generated (the returned steps).
+  * now; each looped texture starts once its buffer is generated (the returned tasks).
   */
- private beds(r: Rand): (() => void)[] {
+ private beds(r: Rand): Task[] {
   const c = this.ctx!, sr = c.sampleRate, f = this.a.fire
   this.fire = c.createGain(); this.fire.gain.value = db(this.heatingOn ? f.heatBoostDb : 0)
   this.firePan = this.panner(f.pan)
@@ -114,9 +132,9 @@ export class ForgeAudio {
   this.nextCrackle = c.currentTime + .1; this.nextBeat = c.currentTime + .5; this.nextCreak = c.currentTime + 1
   if (!this.injected) this.pump = setInterval(() => this.pumpUntil((this.ctx?.currentTime || 0) + .3), 80)
   return [
-   () => { this.buffers.pink = this.mono(pinkNoise(sr * 4, r)); const lp = c.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = this.a.room.lowpass; loop('pink', this.a.room.gain, this.duck!, lp) },
-   () => { this.buffers.hiss = this.mono(fireHiss(sr, 4, r)); loop('hiss', f.hissGain, this.fire!) },
-   () => { this.buffers.lapping = this.mono(fireLapping(sr, 5, r)); loop('lapping', f.lapGain, this.fire!) },
+   task(pinkNoiseJob(sr * 4, r), d => { this.buffers.pink = this.mono(d); const lp = c.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = this.a.room.lowpass; loop('pink', this.a.room.gain, this.duck!, lp) }),
+   task(fireHissJob(sr, 4, r), d => { this.buffers.hiss = this.mono(d); loop('hiss', f.hissGain, this.fire!) }),
+   task(fireLappingJob(sr, 5, r), d => { this.buffers.lapping = this.mono(d); loop('lapping', f.lapGain, this.fire!) }),
   ]
  }
  /** Schedule the stochastic beds (crackles, heartbeat, creaks) up to `until` seconds on the context clock. */
