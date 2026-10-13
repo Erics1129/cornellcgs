@@ -46,7 +46,7 @@ using System.Collections.Generic;
  public float strideM=.72f, bobMm=7, bobLateralMm=4, bobRollDeg=.25f;
  // Hearth reach (s from the trigger): step out, plunge, heat with two bellows pulls, pull out, step back, lay down.
  public float hearthStepS=.5f, hearthPlungeAtS=.42f, hearthPlungeS=.22f, bellowsPull1S=.60f, bellowsPull2S=1.15f, bellowsStrokeS=.42f, bellowsPullCm=9;
- public float hearthBuryCm=2.5f, hearthPullS=1.45f, hearthPullDurS=.14f, hearthBackS=1.58f, hoverMm=6, seatWaitMs=400, seatS=.12f, dissolveS=.12f, abortTweenS=.15f, fadeInS=.15f, glanceDeg=35, glanceS=.3f;
+ public float hearthBuryCm=2.5f, hearthPullS=1.38f, hearthPullDurS=.14f, hearthBackS=1.50f, hoverMm=6, seatWaitMs=400, seatS=.12f, dissolveS=.12f, abortTweenS=.15f, fadeInS=.15f, glanceDeg=35, glanceS=.3f;
  // Tongs: grip angle between the reins and the blade's tang direction, hand distance from the jaws, rein rise.
  public float tongGripDeg=58, tongHandM=.40f, tongElevDeg=25, tongHearthYawDeg=-20;
  // Tong feed along the blade after each strike, the roll every 8 strikes, the spine tilt, the hammer's share of the walk.
@@ -94,7 +94,7 @@ using System.Collections.Generic;
   lookEase=ForgeTuning.Fit(lookEase,1,120,28);workEase=ForgeTuning.Fit(workEase,1,120,14);strideM=ForgeTuning.Fit(strideM,.3f,2,.72f);bobMm=ForgeTuning.Fit(bobMm,0,20,7);bobLateralMm=ForgeTuning.Fit(bobLateralMm,0,20,4);bobRollDeg=ForgeTuning.Fit(bobRollDeg,0,2,.25f);
   // Hearth: the step takes at least .5 s each way (critique: comfortable), the phases stay in order.
   hearthStepS=ForgeTuning.Fit(hearthStepS,.5f,1.2f,.5f);hearthPlungeS=ForgeTuning.Fit(hearthPlungeS,.05f,.6f,.22f);hearthPlungeAtS=ForgeTuning.Fit(hearthPlungeAtS,.1f,hearthStepS+.3f,.42f);
-  hearthPullS=ForgeTuning.Fit(hearthPullS,hearthPlungeAtS+hearthPlungeS+.2f,3,1.45f);hearthPullDurS=ForgeTuning.Fit(hearthPullDurS,.05f,.4f,.14f);hearthBackS=ForgeTuning.Fit(hearthBackS,hearthPullS+hearthPullDurS*.5f,3.5f,1.58f);
+  hearthPullS=ForgeTuning.Fit(hearthPullS,hearthPlungeAtS+hearthPlungeS+.2f,3,1.38f);hearthPullDurS=ForgeTuning.Fit(hearthPullDurS,.05f,.4f,.14f);hearthBackS=ForgeTuning.Fit(hearthBackS,hearthPullS+hearthPullDurS*.5f,3.5f,1.50f);
   bellowsPull1S=ForgeTuning.Fit(bellowsPull1S,0,3,.6f);bellowsPull2S=ForgeTuning.Fit(bellowsPull2S,0,3,1.15f);bellowsStrokeS=ForgeTuning.Fit(bellowsStrokeS,.1f,1,.42f);bellowsPullCm=ForgeTuning.Fit(bellowsPullCm,0,30,9);
   hearthBuryCm=ForgeTuning.Fit(hearthBuryCm,0,8,2.5f);seatWaitMs=ForgeTuning.Fit(seatWaitMs,0,1000,400);seatS=ForgeTuning.Fit(seatS,.02f,.5f,.12f);dissolveS=ForgeTuning.Fit(dissolveS,.02f,.5f,.12f);abortTweenS=ForgeTuning.Fit(abortTweenS,.02f,.6f,.15f);fadeInS=ForgeTuning.Fit(fadeInS,.02f,.6f,.15f);hoverMm=ForgeTuning.Fit(hoverMm,0,40,6);
   tongGripDeg=ForgeTuning.Fit(tongGripDeg,0,90,58);tongHandM=ForgeTuning.Fit(tongHandM,.2f,.5f,.40f);tongElevDeg=ForgeTuning.Fit(tongElevDeg,0,60,25);

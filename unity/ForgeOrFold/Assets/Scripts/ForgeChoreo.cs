@@ -89,9 +89,12 @@ public partial class ForgeWorld {
    m.wasHeld=inJaws;
    if(b.knife.place=="furnace"&&inJaws){m.restRot=rot;m.hasRestRot=true;}
    b.root.transform.SetPositionAndRotation(pos,rot);b.root.transform.localScale=Vector3.one*(KnifeRootScale*scale);
-   if(m.seatPending&&m.mode==KnifeMotion.Rest&&b.knife.place=="anvil"&&b.knife.heated&&(hearth==null||hearth.knifeId!=b.knife.id)){m.seatPending=false;Seated(b);}
+   if(m.seatPending&&m.mode==KnifeMotion.Rest&&b.knife.place=="anvil"&&b.knife.heated&&(hearth==null||hearth.knifeId!=b.knife.id)){m.seatPending=false;seatedNow.Add(b);}
   }
+  // Sent after the loop: the page may answer 'seated' with a strike or a Sync.
+  if(seatedNow.Count>0){var list=seatedNow.ToArray();seatedNow.Clear();foreach(var b in list)Seated(b);}
  }
+ readonly System.Collections.Generic.List<Body> seatedNow=new System.Collections.Generic.List<Body>();
  void Seated(Body b){Send("seated",b.knife.id);Send("sfx",b.knife.id,ForgeContract.Sfx.Place,0);StrikeTelemetry("seated",b.knife.id,0);labelsDirty=true;}
 
  // ------------------------------------------------------------------ the hearth reach
@@ -116,6 +119,9 @@ public partial class ForgeWorld {
  void UpdateChoreo(float dt){
   var h=hearth;if(h==null)return;var k=K;
   if(!bodies.TryGetValue(h.knifeId,out var b)){AbortHearth(false);return;}
+  // Real time (a hitch, e.g. a first-sight shader compile at the hearth, must not push the reach behind the engine's
+  // 2 s heat timer), capped so a long pause does not skip the reach.
+  dt=Mathf.Min(ForgeTime.Raw(Time.unscaledDeltaTime),.12f);
   h.t+=dt;
   if(h.fade){
    // Reduced motion: the blank heats off screen; the anvil Sync starts a 150 ms fade-in (KnifeMoved), then 'seated'.

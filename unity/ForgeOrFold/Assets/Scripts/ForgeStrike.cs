@@ -51,15 +51,18 @@ public partial class ForgeWorld {
  }
  /// The machine's events this frame become messages; Send('impact') resolves the hit on the page (re-entrant Sync).
  void StepStrikes(){
-  strikeEvents.Clear();strikes.Step(strikeNow,strikeEvents);
-  foreach(var e in strikeEvents){
+  strikeEvents.Clear();strikes.Step(strikeNow,strikeEvents);if(strikeEvents.Count==0)return;
+  // Send('impact') re-enters Sync, which can cancel strikes (a Shatter empties the anvil): iterate a copy.
+  var events=strikeEvents.ToArray();strikeEvents.Clear();
+  foreach(var e in events){
    if(e.kind==ForgeStrikeEventKind.Contact){framesSinceContact=0;reboundLift=ForgeFeel.ReboundM(K,"good",false);reboundSkew=reboundTilt=0;lastContact=lastContactPlanned=NextContactWorld();Send("impact",e.seq);}
    else if(e.kind==ForgeStrikeEventKind.Settled){idleTime=0;Send("settled",e.seq,"",0);}
    else Send("settled",e.seq,"",-1);
   }
  }
  /// Cancel scheduled strikes that have not reached their contact (walking away, clear, knife gone).
- void CancelStrikes(){strikeEvents.Clear();strikes.Cancel(strikeNow,strikeEvents);foreach(var e in strikeEvents)Send("settled",e.seq,"",-1);if(pendingBegin!=0){if(pendingBegin>0)Send("settled",pendingBegin,"",-1);pendingBegin=0;}}
+ readonly List<ForgeStrikeEvent> cancelEvents=new List<ForgeStrikeEvent>();
+ void CancelStrikes(){cancelEvents.Clear();strikes.Cancel(strikeNow,cancelEvents);var events=cancelEvents.ToArray();cancelEvents.Clear();foreach(var e in events)Send("settled",e.seq,"",-1);if(pendingBegin!=0){if(pendingBegin>0)Send("settled",pendingBegin,"",-1);pendingBegin=0;}}
 
  // ------------------------------------------------------------------ contact point
  Body AnvilBody(){foreach(var b in bodies.Values)if(b.knife!=null&&b.knife.place=="anvil"&&b.root!=null)return b;return null;}
