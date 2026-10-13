@@ -5,7 +5,7 @@ using UnityEngine.Rendering;
 // Owner: hot-metal-vfx. Smoke and steam (one batched mesh), the sale (knife to the scale, coins into the
 // dish) and the shatter (10-16 rigid pieces at the break temperature, one batched mesh, plane collisions).
 public partial class ForgeWorld {
- struct SmokeBit { public Vector3 p,v; public float age,life,size,grow,opacity,spin,seed,lit,drag; public Color32 color; }
+ struct SmokeBit { public Vector3 p,v; public float age,life,size,grow,opacity,spin,seed,lit,drag,wisp; public Color32 color; }
  class SaleGhost {public Body body;public Vector3 start;public Quaternion rotation;public float age;public bool paid;public int amount;}
  class Coin {public GameObject go;public Vector3 start,end,p,v,axis;public float age,delay,flight,spin;public int phase,index,total,bounces;public bool sent;public Quaternion rot;}
  class Shard {public int index,v0,count;public Vector3 p,v,w;public Quaternion r;public float scale,sfxClock,seed;public bool rest,landed;public float[] hull;}
@@ -34,7 +34,8 @@ public partial class ForgeWorld {
  /// (a third of the puffs under reduced motion).
  void SteamPuff(Vector3 at,int count,float seconds){
   if(reduced)count=Mathf.Max(1,count/3);   // a quench still shows under reduced motion, as a thinner plume
-  for(int i=0;i<count&&smokeCount<MaxSmoke;i++){float k=i/(float)Mathf.Max(1,count);smoke[smokeCount++]=new SmokeBit{p=at+new Vector3(Random.Range(-.05f,.05f),0,Random.Range(-.04f,.04f)),v=new Vector3(Random.Range(-.07f,.07f),Random.Range(.45f,.85f)*(1-.4f*k),Random.Range(-.05f,.05f)),age=-k*seconds*.6f,life=Random.Range(.8f,1.5f),size=Random.Range(.035f,.06f),grow=5f,opacity=.24f*(1-.35f*k),color=new Color32(236,236,234,255),spin=Random.Range(0,360f),seed=Random.value,lit=1,drag=1.1f};}
+  for(int i=0;i<count&&smokeCount<MaxSmoke;i++){float k=i/(float)Mathf.Max(1,count);// Wisps: small, fast-rising, thin and short-lived (a quench flashes off steam in well under a second per puff).
+   smoke[smokeCount++]=new SmokeBit{p=at+new Vector3(Random.Range(-.05f,.05f),0,Random.Range(-.04f,.04f)),v=new Vector3(Random.Range(-.06f,.06f),Random.Range(.7f,1.25f)*(1-.45f*k),Random.Range(-.04f,.04f)),age=-k*seconds*.7f,life=Random.Range(.55f,1.0f),size=Random.Range(.025f,.045f),grow=3.2f,opacity=.2f*(1-.4f*k),color=new Color32(236,236,234,255),spin=Random.Range(0,360f),seed=Random.value,lit=1,drag=1.6f,wisp=1};}
  }
  void KeepSale(Body b){
   int amount=state!=null&&state.effect!=null?state.effect.amount:0;
@@ -53,7 +54,7 @@ public partial class ForgeWorld {
   if(smokeBatch==null){if(smokeMaterial==null){smokeMaterial=new Material(Shader.Find(ForgeContract.Shaders.Smoke));smokeMaterial.SetFloat("_Billboard",1);}smokeBatch=MakeBatch("Smoke batch",smokeMaterial,MaxSmoke,3005);}
   int n=0;
   for(int i=0;i<smokeCount;i++){var p=smoke[i];if(p.age<=0)continue;float t=p.age/p.life;var c=p.color;c.a=(byte)(255*Mathf.Clamp01(Mathf.Sin(Mathf.Clamp01(t)*Mathf.PI)*p.opacity));
-   Quad(smokeBatch,n++,p.p,p.size*(1+Mathf.Max(0,t)*p.grow),(p.spin+p.age*12)*Mathf.Deg2Rad,Vector3.zero,0,0,0,0,0,0,p.lit,p.seed,0,c);}
+   Quad(smokeBatch,n++,p.p,p.size*(1+Mathf.Max(0,t)*p.grow),(p.spin+p.age*12)*Mathf.Deg2Rad,Vector3.zero,0,0,0,0,0,p.wisp,p.lit,p.seed,0,c);}
   Flush(smokeBatch,n);
  }
 

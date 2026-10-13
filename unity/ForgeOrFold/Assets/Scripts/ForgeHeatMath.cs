@@ -35,7 +35,7 @@ using System;
  public float hotReflectFromC=300, hotReflectToC=700, hotReflect=.45f;
  // Scale islands: the oxide skin breaks into plates about oxideCellCm across; the gaps between them glow brighter
  // (oxideGapGlow of the dimming removed in the gaps), so mature scale reads as dark plates on bright metal.
- public float oxideCellCm=1, oxideGapGlow=.85f;
+ public float oxideCellCm=1.4f, oxideGapGlow=.85f;
  // Contact footprint: scale cleared locally (regrows with oxideGrowS) plus a short flash; Perfect clears it all and
  // flashes the whole blade.
  public float footprintRadiusCm=1.8f, footprintFlashMs=120, footprintFlashGain=1.2f, perfectFlashMs=320, perfectFlashGain=.9f;
@@ -85,7 +85,7 @@ using System;
   coolK=ForgeTuning.Fit(coolK,1e-16f,1e-12f,1.87e-14f);anvilTauScale=ForgeTuning.Fit(anvilTauScale,0,20,2);floorEaseS=ForgeTuning.Fit(floorEaseS,.05f,10,1);
   floorBodyC=ForgeTuning.Fit(floorBodyC,20,1100,650);floorEdgeC=ForgeTuning.Fit(floorEdgeC,20,floorBodyC,600);
   quenchS=ForgeTuning.Fit(quenchS,.05f,5,.8f);rackCoolS=ForgeTuning.Fit(rackCoolS,.05f,5,1);shardTauScale=ForgeTuning.Fit(shardTauScale,1,1000,95);
-  oxideGrowS=ForgeTuning.Fit(oxideGrowS,.1f,120,6);oxideDim=ForgeTuning.Fit(oxideDim,0,1,.4f);oxideCellCm=ForgeTuning.Fit(oxideCellCm,.1f,10,1);oxideGapGlow=ForgeTuning.Fit(oxideGapGlow,0,1,.85f);hotReflect=ForgeTuning.Fit(hotReflect,0,1,.45f);hotReflectFromC=ForgeTuning.Fit(hotReflectFromC,0,1400,300);hotReflectToC=ForgeTuning.Fit(hotReflectToC,hotReflectFromC+1,1500,700);
+  oxideGrowS=ForgeTuning.Fit(oxideGrowS,.1f,120,6);oxideDim=ForgeTuning.Fit(oxideDim,0,1,.4f);oxideCellCm=ForgeTuning.Fit(oxideCellCm,.1f,10,1.4f);oxideGapGlow=ForgeTuning.Fit(oxideGapGlow,0,1,.85f);hotReflect=ForgeTuning.Fit(hotReflect,0,1,.45f);hotReflectFromC=ForgeTuning.Fit(hotReflectFromC,0,1400,300);hotReflectToC=ForgeTuning.Fit(hotReflectToC,hotReflectFromC+1,1500,700);
   drawLevels=ForgeTuning.Fit(drawLevels,.5f,20,5.5f);barLength=ForgeTuning.Fit(barLength,.2f,1,.68f);barWidth=ForgeTuning.Fit(barWidth,.1f,2,.55f);barAspect=ForgeTuning.Fit(barAspect,0,1,.27f);
   barThickMm=ForgeTuning.Fit(barThickMm,1,20,8);spineMm=ForgeTuning.Fit(spineMm,.5f,12,5);edgeMm=ForgeTuning.Fit(edgeMm,.1f,spineMm,.8f);tipMm=ForgeTuning.Fit(tipMm,.1f,spineMm,1);tangMm=ForgeTuning.Fit(tangMm,.5f,12,6);bevelV=ForgeTuning.Fit(bevelV,.1f,1,.5f);
   phoneScale=ForgeTuning.Fit(phoneScale,0,1,.6f);capDesktop=ForgeTuning.Fit(capDesktop,0,220,220);capTier2=ForgeTuning.Fit(capTier2,0,capDesktop,120);

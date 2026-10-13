@@ -28,6 +28,21 @@ const editor = process.env.UNITY_EDITOR || '/Applications/Unity/Hub/Editor/6000.
 const REDUCED = process.argv.includes('--reduced')
 const payload = (state, event, selected = 1) => JSON.stringify({ ...snapshotPayload(state, selected, { reduced: REDUCED, motion: REDUCED ? 'reduced' : 'full' }), effect: unityEffect(event) })
 const step = (s, a) => { const r = act(s, a); if (!r.ok) throw new Error(`fixture action failed: ${JSON.stringify(a)}: ${r.event.text}`); return r }
+/** The first engine hit that crosses an evolution stage (a level gain from 2 to 3+, or 5 to 6+). */
+function findEvolution() {
+  for (let seed = 1; seed < 8000; seed++) {
+    let s = createRun(seed)
+    for (const a of [{ type: 'move', id: 1, to: 'furnace' }, { type: 'heat', id: 1 }, { type: 'move', id: 1, to: 'anvil' }]) s = step(s, a).state
+    for (let i = 0; i < 18; i++) {
+      s = step(s, { type: 'tick', ms: 1000 }).state
+      const k = s.knives.find(n => n.id === 1); if (!k) break
+      const r = act(s, { type: 'hit', id: 1 }); if (!r.ok) break
+      if (r.event.evolution && !r.event.flowStarted && !k.flow) return { before: s, after: r.state, event: r.event, seed }
+      s = r.state; if (s.knives.find(n => n.id === 1)?.flow) break
+    }
+  }
+  throw new Error('no evolution fixture')
+}
 function findHit(outcome, minLevel = 0) {
   for (let seed = 1; seed < 8000; seed++) {
     let s = createRun(seed)
@@ -57,7 +72,7 @@ const seated = step(heated.state, { type: 'move', id: 1, to: 'anvil' })
 const racked = step(seated.state, { type: 'move', id: 1, to: 'rack' })
 const day2 = step(racked.state, { type: 'end' })
 const sold = step(seated.state, { type: 'sell', id: 1 })
-const good = findHit('good'), perfect = findHit('perfect', 2), chip = findHit('chip', 3), shatter = findHit('shatter', 5), risky = findHit('good', 10), dull = findHit('dull', 2)
+const evolve = findEvolution(), good = findHit('good'), perfect = findHit('perfect', 2), chip = findHit('chip', 3), shatter = findHit('shatter', 5), risky = findHit('good', 10), dull = findHit('dull', 2)
 // --tune '{"emissionScale":3.2}' merges metal overrides into feel-tuning.json for this run (calibration sweeps).
 const tuneJson = JSON.parse(readFileSync(join(repo, 'src/minigames/forge/feel-tuning.json'), 'utf8')); if (arg('tune')) tuneJson.metal = { ...tuneJson.metal, ...JSON.parse(arg('tune')) }
 const tuning = JSON.stringify(tuneJson)
@@ -83,6 +98,7 @@ const SECTIONS = {
   perfect: [{ do: 'sync', json: payload(perfect.before) }, { do: 'qa', mode: 'metal-hot' }, { do: 'wait', s: .5 }, strikeShots(2, 'perfect', payload(perfect.after, perfect.event), [33, 100, 250, 400, 1000]), { do: 'wait', s: .3 }],
   chip: [{ do: 'sync', json: payload(chip.before) }, { do: 'qa', mode: 'metal-hot' }, { do: 'wait', s: .5 }, strikeShots(3, 'chip', payload(chip.after, chip.event), [33, 100, 400, 1500]), { do: 'wait', s: .3 }],
   shatter: [{ do: 'sync', json: payload(shatter.before) }, { do: 'qa', mode: 'metal-hot' }, { do: 'wait', s: .5 }, strikeShots(4, 'shatter', payload(shatter.after, shatter.event), [33, 100, 250, 500, 1000, 2000, 3000, 3900]), { do: 'wait', s: .3 }],
+  evolve: [{ do: 'sync', json: payload(evolve.before) }, { do: 'qa', mode: 'metal-hot' }, { do: 'wait', s: .5 }, strikeShots(8, 'evolve', payload(evolve.after, evolve.event), [33, 150, 300, 500, 800, 1500]), { do: 'wait', s: .3 }],
   dull: [{ do: 'sync', json: payload(dull.before) }, { do: 'qa', mode: 'metal-hot' }, { do: 'wait', s: .5 }, strikeShots(6, 'dull', payload(dull.after, dull.event), [100, 400]), { do: 'wait', s: .3 }],
   // Shader debug views of the shatter pieces and a hot blade: albedo, reflected light, emission (Qa('metal-debug-N')).
   debug: [{ do: 'sync', json: payload(shatter.before) }, { do: 'qa', mode: 'metal-hot' }, { do: 'wait', s: .5 }, strikeShots(7, 'dbg', payload(shatter.after, shatter.event), [450]),
@@ -246,6 +262,7 @@ async function analyse(dirs) {
       if (ran('perfect')) { const p = burst('perfect'); const n = p && p.bFlakes + p.bSheets; check(p && n >= R(30) && n <= R(40) + 1 && p.bSheets >= R(3) && p.bSparks >= R(2) && p.bSparks <= 4, `perfect: ${R(30)}-${R(40)} flakes incl. 5-10 mm sheets, ${R(2)}-4 sparks`, p && [p.bFlakes, p.bSheets, p.bSparks]) }
       if (ran('chip')) { const p = burst('chip'); check(p && p.bChips === 4 && Math.abs(p.bFlakes - R(10)) <= 2, `chip: ${R(10)} flakes and 4 chips`, p && [p.bFlakes, p.bChips]) }
       if (ran('shatter')) { const p = burst('shatter'); check(p && p.shards >= 10 && p.shards <= 16 && p.bSparks >= R(12), `shatter: 10-16 pieces and ${R(15)} burning sparks`, p && [p.shards, p.bSparks, p.bFlakes]) }
+      if (ran('evolve')) { const at = counts('evolve-150'); check(at && at.sparks + at.forks >= 1 && at.flakes >= R(20), `evolution: ${R(36)} flakes and forking burning sparks`, at && [at.flakes, at.sparks, at.forks]) }
       if (ran('dull')) { const p = burst('dull'); check(p && p.bFlakes === 0 && p.bSparks === 0, 'dull: no flakes or sparks (the dust puff only)', p && [p.bFlakes, p.bSparks]) }
     }
     { const p = counts('chip-1500') || counts('chip-400'); if (p) check(p.notchMm >= 3, 'chip: notch at least 3 mm deep', p.notchMm) }

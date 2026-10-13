@@ -16,7 +16,7 @@ Shader "Forge/Blade" {
   _Heat("Heat (legacy, unused)",Range(0,1))=0 _EmissionColor("Evolution",Color)=(0,0,0,0) _GlowColor("Aura",Color)=(.5,.8,1,1) _Kind("Metal kind",Float)=0 _Stage("Evolution stage",Float)=0
   _Worked("Being forged",Float)=1 _Swatch("QA swatch",Float)=0 _Shard("Shatter piece",Float)=0 _Dissolve("Dissolve",Range(0,1))=0 _CrackFlash("Crack flash",Float)=0 _Glint("Glint sweep",Float)=-1
   _HeatA("Cooling T0 K, tau, k3, floor",Vector)=(293.15,0,.0561,0) _HeatB("Ease target K, t, dur, lead",Vector)=(293.15,-1000,1,0) _HeatC("Floors K, curve",Vector)=(923.15,873.15,0,0)
-  _Emit("Emission scale, K, cap, white",Vector)=(3,9592,6,.6) _Chroma("Chroma start, slope, 1/scale cell cm, gap glow",Vector)=(580,.000227,1.33,.85) _Surface("Hot surface",Vector)=(450,900,.35,.25) _Surface2("Hot reflectance from C, to C, left",Vector)=(300,700,.45,0)
+  _Emit("Emission scale, K, cap, white",Vector)=(3,9592,6,.6) _Chroma("Chroma start, slope, 1/scale cell cm, gap glow",Vector)=(580,.000227,.714,.85) _Surface("Hot surface",Vector)=(450,900,.35,.25) _Surface2("Hot reflectance from C, to C, left",Vector)=(300,700,.45,0)
   _Oxide("Oxide amount, dim, regrow s, footprint cm",Vector)=(0,.4,6,1.8) _Crack("Crack amount, glow, per m, dark above C",Vector)=(0,.6,40,900) _Flash("Flash, footprint s, gain",Vector)=(0,.12,1.2,0)
   _BladeDims("Length cm, width cm, seed, unit mm",Vector)=(20,4,0,120) _Notch("Notch u, half width u, depth v, on",Vector)=(0,.02,.1,0)
  }
@@ -127,7 +127,9 @@ Shader "Forge/Blade" {
     float gapW=max(.07,cellPerPx*1.5);float plate=lerp(.8,smoothstep(gapW*.5,gapW*1.6,cell.x),detail);
     float mature=_Chroma.w*smoothstep(.3,.8,_Oxide.x);
     // Young scale is a continuous patchy film; mature scale covers fully on the plates and barely in the gaps.
-    float cover=lerp(patches,lerp(.12,1,plate)*(.7+.3*patches)*(.85+.15*lerp(.5,cell.y,detail)),mature);
+    // Plates differ: some are thick (dark), some thin (they let more glow through), so the skin reads as irregular islands.
+    float thickness=lerp(.75,lerp(.45,1,cell.y*cell.y),detail);
+    float cover=lerp(patches,lerp(.1,thickness,plate)*(.7+.3*patches),mature);
     float scale=_Oxide.x*cover*(1-swatch)*(1-fresh);float flash=0;
     for(int h=0;h<4;h++){float4 hit=_Hits[h];float2 d=float2((u-hit.x)*_BladeDims.x,(v-hit.y)*_BladeDims.y);float r=_Oxide.w;float inside=1-smoothstep(r*.55,r,length(d));
      float regrow=1-exp(-hit.z/max(.1,_Oxide.z));scale*=lerp(1,regrow,inside);flash+=inside*hit.w*saturate(1-hit.z/max(.01,_Flash.y));}
