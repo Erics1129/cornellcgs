@@ -1,9 +1,11 @@
-# Ink Maze level 26 (Python) NAIVE solution. Not shipped. A plain depth-first
-# search with only the ink pruning problem.ts PLAIN_SEARCH_BUDGET assumes: try
+# Ink Maze level 26 (Python) NAIVE solution. Not shipped. A depth-first search
+# with ONLY the ink pruning (problem.ts prunedSearch / PRUNED_SEARCH_BUDGET): try
 # U, D, L, R in order, roll exactly as the engine does (the ink can run dry
 # mid-roll), give up on a line when the ink left is less than the blocks still
-# uncolored, no memo. It is the slowest solution the level must still accept; it
-# clears a full submission in a fraction of a second natively.
+# uncolored, no memo. It is the slowest solution the level must still accept --
+# the ink pruning is exactly what the larger hidden boards (7x7, 8x8) need, so
+# this still clears a full submission (17 boards) in a fraction of a second
+# natively; drop that one prune and the large boards run for minutes.
 class Solution:
     def solve(self, grid: list[str], ink: int) -> str:
         H, W = len(grid), len(grid[0])

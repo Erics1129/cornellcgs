@@ -193,6 +193,10 @@ const RUNTIME = {
       io.hit(res.limit, message)
       return { status: res.limit, message, error: res.error || null, healthy: res.limit !== 'memory_limit' && healthy }
     }
+    if (res.harness) {
+      // the judge's own input could not be read (H5: a harness problem, not the player's)
+      return { status: 'crashed', message: (res.error && res.error.message) || 'The judge could not read the boards.', healthy: true }
+    }
     if (res.phase === 'compile') {
       return { status: 'compile_error', diagnostics: [diagnostic(res.error)], healthy: true }
     }

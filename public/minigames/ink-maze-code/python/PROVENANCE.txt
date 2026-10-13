@@ -77,9 +77,15 @@ Self-hosted here (the site's own code)
                 wrappers, the addaudithook wrapper), fingerprints the modules it
                 relies on, runs end-of-run gc under the same deadline, and reports
                 the outcome.
-  harness.py    the hidden harness (problem.ts H1-H6): one Solution() per board,
-                one "@@ANSWER@@ <moves>" line per board, escapeAnswer matched to
-                problem.ts exactly.
+  harness.py    the hidden harness (problem.ts H1-H6): the driver reads every
+                board (via the harness's _ink_parse) BEFORE any player code runs
+                (H1), then one Solution() per board and one "@@ANSWER@@ <moves>"
+                line per board, escapeAnswer matched to problem.ts exactly. The
+                harness captures the built-ins it uses (ord/chr/str/int/...) at
+                startup, and the driver binds the real stdout.write before player
+                code, so a run that replaces builtins or sys.stdout cannot forge,
+                corrupt or hide an answer line; str subclasses are read as their
+                plain value, so a hostile __str__/__iter__ cannot run here.
 
 Licences
 --------

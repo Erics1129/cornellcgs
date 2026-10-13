@@ -24,6 +24,11 @@ Shipped files
   runtime.js    the Runtime (src/minigames/inkmaze/code/contract.ts), with
                 quickjs-emscripten-core, the release-sync loader and the hidden
                 harness bundled in by esbuild. One ES module, absolute/no imports.
+                The harness (js-harness.js) parses every board and captures the
+                built-ins it uses (String.prototype.split/slice/charCodeAt,
+                String.fromCharCode, Number, ...) BEFORE the player's code is
+                evaluated (H1), so a program that replaces those prototypes or
+                globals cannot forge, corrupt or hide an answer line.
   quickjs.wasm  the QuickJS WebAssembly module, copied verbatim from
                 @jitl/quickjs-wasmfile-release-sync/dist/emscripten-module.wasm.
                 It is loaded through the page (host.asset), not fetched by the

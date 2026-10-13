@@ -1,9 +1,10 @@
-// Ink Maze level 26 (JavaScript) NAIVE solution. Not shipped. A plain
-// depth-first search with only the ink pruning problem.ts PLAIN_SEARCH_BUDGET
-// assumes: try U, D, L, R in order, roll exactly as the engine does (the ink
-// can run dry mid-roll), give up on a line when the ink left is less than the
-// blocks still uncolored, no memo. The slowest solution the level must still
-// accept.
+// Ink Maze level 26 (JavaScript) NAIVE solution. Not shipped. A depth-first
+// search with ONLY the ink pruning (problem.ts prunedSearch /
+// PRUNED_SEARCH_BUDGET): try U, D, L, R in order, roll exactly as the engine
+// does (the ink can run dry mid-roll), give up on a line when the ink left is
+// less than the blocks still uncolored, no memo. The slowest solution the level
+// must still accept -- the ink pruning is what the larger hidden boards (7x7,
+// 8x8) need, so this still clears a full submission; drop it and they hang.
 function solve(grid, ink) {
   const H = grid.length, W = grid[0].length
   const wall = grid.map((row) => Array.from({ length: W }, (_, c) => row[c] === '#'))

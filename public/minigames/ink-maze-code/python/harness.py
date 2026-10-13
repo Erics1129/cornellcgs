@@ -3,8 +3,10 @@
 # It follows problem.ts H1-H6. stdin is problem.formatStdin(tests):
 #   line 1: T          the number of boards
 #   per board: "H W INK" then H rows of the grid
-# For each board, in order, it builds a fresh private copy of the grid, makes a
-# new Solution() and calls its solve(grid, ink), then prints exactly one line
+# _ink_parse(stdin) reads every board BEFORE the player's code runs (H1). Then,
+# for each board, in order, _ink_harness builds a fresh private copy of the
+# grid, makes a new Solution() and calls its solve(grid, ink), then prints
+# exactly one line
 #   @@ANSWER@@ <moves>
 # where <moves> is escape_answer(returned). The page (problem.parseStdout) reads
 # the answer after the last marker on the line; escape_answer keeps '@', line
@@ -15,14 +17,18 @@
 # code alone as solution.py (so error lines are the player's), restores the
 # interpreter between runs and enforces the cooperative deadline. The harness
 # only drives the player's function and formats answers.
+#
+# This file is compiled once, at startup, before any player code exists, and
+# binds the builtins it uses to private names here, so a player who replaces
+# builtins.int / ord / chr / isinstance ... changes nothing the harness reads or
+# writes (the driver also restores builtins before every run).
 
 ANSWER_MARKER = '@@ANSWER@@'
 _ANSWER_CHARS_DEFAULT = 10000
 
-
-def _utf16_len(ch):
-    # problem.ts counts answer length in UTF-16 code units (JS string length).
-    return 2 if ord(ch) > 0xFFFF else 1
+_int, _ord, _chr, _isinstance, _type, _str, _range, _enumerate, _list, _tuple = int, ord, chr, isinstance, type, str, range, enumerate, list, tuple
+_TypeError = TypeError
+_join = ''.join
 
 
 def escape_answer(moves, max_units=_ANSWER_CHARS_DEFAULT):
@@ -34,9 +40,9 @@ def escape_answer(moves, max_units=_ANSWER_CHARS_DEFAULT):
     for ch in moves:
         if units >= max_units:
             break
-        code = ord(ch)
+        code = _ord(ch)
         if code < 0x20:
-            piece = chr(0x2400 + code)
+            piece = _chr(0x2400 + code)
         elif code == 0x7F:
             piece = '␡'
         elif code == 0x40:
@@ -45,33 +51,39 @@ def escape_answer(moves, max_units=_ANSWER_CHARS_DEFAULT):
             piece = '�'
         else:
             piece = ch
-        w = _utf16_len(piece)
+        w = 2 if _ord(piece) > 0xFFFF else 1   # problem.ts counts UTF-16 code units
         if units + w > max_units:
             break
         out.append(piece)
         units += w
-    return ''.join(out)
+    return _join(out)
 
 
-def _ink_harness(solution_class, stdin_text, write, progress, answer_chars=_ANSWER_CHARS_DEFAULT):
-    # H1: read every board before any player code runs on it.
+def _ink_parse(stdin_text):
+    """H1: every board, read before any player code runs, as (rows, ink) with
+    rows an immutable tuple the player never sees."""
     data = stdin_text.split('\n')
-    tests = int(data[0])
+    tests = _int(data[0])
     boards = []
     at = 1
-    for _ in range(tests):
-        h, w, ink = (int(x) for x in data[at].split())
-        # a fresh, private copy of the grid (H2); trim each row to width
-        grid = [data[at + 1 + y][:w] for y in range(h)]
-        boards.append((grid, ink))
+    for _ in _range(tests):
+        h, w, ink = (_int(x) for x in data[at].split())
+        boards.append((_tuple(data[at + 1 + y][:w] for y in _range(h)), ink))
         at += 1 + h
+    return boards
 
-    for i, (grid, ink) in enumerate(boards):
+
+def _ink_harness(solution_class, boards, write, progress, answer_chars=_ANSWER_CHARS_DEFAULT):
+    for i, (rows, ink) in _enumerate(boards):
         progress[0] = i                       # the board index, for error reporting (H4)
+        grid = _list(rows)                    # a fresh, private copy of the grid (H2)
         solution = solution_class()           # a new Solution per board (H2)
         moves = solution.solve(grid, ink)      # the player's code
         if moves is None:                      # H3: None prints an empty answer
             moves = ''
-        elif not isinstance(moves, str):       # H3: any other non-string is a TypeError
-            raise TypeError('solve() must return a string, not ' + type(moves).__name__)
+        elif _type(moves) is not _str:         # H3: any other non-string (or str subclass) is a TypeError
+            if _isinstance(moves, _str):
+                moves = _str.__str__(moves)    # a str subclass: its plain string value, no player __iter__/__str__
+            else:
+                raise _TypeError('solve() must return a string, not ' + _type(moves).__name__)
         write(ANSWER_MARKER + ' ' + escape_answer(moves, answer_chars) + '\n')

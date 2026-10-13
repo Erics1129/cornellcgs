@@ -89,14 +89,14 @@ async function suite(name) {
     // ---- correctness + timings
     let r = await run(REF, SUBMIT, { kind: 'submit' })
     assert.equal(r.status, 'ok', r.message)
-    assert.ok(judgeAll(SUBMIT, r.answers).accepted, 'reference accepted on all 13 boards')
-    log(`reference submit (13 boards): ${r.timings.runMs} ms run, ${r.timings.totalMs} ms total`)
+    assert.ok(judgeAll(SUBMIT, r.answers).accepted, 'reference accepted on all boards')
+    log(`reference submit (${SUBMIT.length} boards): ${r.timings.runMs} ms run, ${r.timings.totalMs} ms total`)
     const warm = await run(REF, ONE)
     log(`warm run (1 board): ${warm.timings.runMs} ms`)
     r = await run(NAIVE, SUBMIT, { kind: 'submit' })
     assert.equal(r.status, 'ok', `naive: ${r.message}`)
-    assert.ok(judgeAll(SUBMIT, r.answers).accepted, 'naive accepted on all 13 boards')
-    log(`naive submit (13 boards): ${r.timings.runMs} ms run (limit ${r.limits.timeLimitMs} ms)`)
+    assert.ok(judgeAll(SUBMIT, r.answers).accepted, 'naive accepted on all boards')
+    log(`naive submit (${SUBMIT.length} boards): ${r.timings.runMs} ms run (limit ${r.limits.timeLimitMs} ms)`)
     assert.ok(r.timings.runMs < r.limits.timeLimitMs, 'naive fits the submit limit')
     const legitRec = await run(solve('function f(n){ return n <= 0 ? "" : f(n - 1) }\nf(190)\nreturn ""'))
     assert.equal(legitRec.status, 'ok', `recursion to ${LIMITS.recursionDepth} is safe (${legitRec.message})`)
@@ -154,6 +154,20 @@ async function suite(name) {
     assert.equal(noClose.status, 'runtime_error', 'close() is not defined inside QuickJS')
     const redeclare = await run('let inkHarness = 1;\nfunction solve(g, i) { return "" }')
     assert.equal(redeclare.status, 'ok', 'the harness name does not leak into the player scope')
+
+    // ---- harness integrity: the harness captured the built-ins it needs before
+    // the player existed, so replacing String.prototype.charCodeAt /
+    // String.fromCharCode / Array.prototype.push at top level cannot corrupt the
+    // answer it writes (the answer "UDLR" comes through unchanged, H3).
+    const poison = await run(
+      'String.prototype.charCodeAt = () => 999999\n' +
+      'String.fromCharCode = () => "Z"\n' +
+      'Array.prototype.push = function () { throw new Error("no push") }\n' +
+      'function solve(grid, ink) { return "UDLR" }')
+    assert.equal(poison.status, 'ok', `poisoning the answer-formatting built-ins is contained (${poison.status}: ${poison.message})`)
+    assert.equal(poison.answered, 1)
+    assert.equal(poison.answers[0], 'UDLR', 'the harness formatted the answer with its own captured built-ins')
+    assert.equal((await run(REF, ONE)).status, 'ok', 'a normal run works after the prototype poison')
 
     // ---- positive control: the meter DOES see the QuickJS worker's CPU
     const control = page.evaluate((tests) => window.sb.run({ language: 'javascript', source: 'function solve(g, i) { while (true) {} }', tests, kind: 'run', timeLimitMs: 3000 }), ONE)

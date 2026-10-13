@@ -96,14 +96,14 @@ async function suite(name) {
     let r = await run(REF, SUBMIT, { kind: 'submit' })
     assert.equal(r.status, 'ok', r.message)
     assert.equal(r.answered, SUBMIT.length)
-    assert.ok(judgeAll(SUBMIT, r.answers).accepted, 'reference accepted on all 13 boards')
-    log(`reference submit (13 boards): ${r.timings.runMs} ms run, ${r.timings.totalMs} ms total`)
+    assert.ok(judgeAll(SUBMIT, r.answers).accepted, 'reference accepted on all boards')
+    log(`reference submit (${SUBMIT.length} boards): ${r.timings.runMs} ms run, ${r.timings.totalMs} ms total`)
     const warm = await run(REF, ONE)
     log(`warm run (1 board): ${warm.timings.runMs} ms`)
     r = await run(NAIVE, SUBMIT, { kind: 'submit' })
     assert.equal(r.status, 'ok', `naive: ${r.message}`)
-    assert.ok(judgeAll(SUBMIT, r.answers).accepted, 'naive accepted on all 13 boards')
-    log(`naive submit (13 boards): ${r.timings.runMs} ms run (limit ${r.limits.timeLimitMs} ms)`)
+    assert.ok(judgeAll(SUBMIT, r.answers).accepted, 'naive accepted on all boards')
+    log(`naive submit (${SUBMIT.length} boards): ${r.timings.runMs} ms run (limit ${r.limits.timeLimitMs} ms)`)
     assert.ok(r.timings.runMs < r.limits.timeLimitMs, 'naive fits the submit limit')
     const mem = await page.evaluate(() => window.sb.runtimeInfo('python').memoryBytes)
     log(`heap after runs: ${(mem / 1e6).toFixed(0)} MB`)
@@ -232,6 +232,22 @@ async function suite(name) {
     await tamper(solution('import sys\nsys.addaudithook(lambda e, a: None)\nreturn ""'), 'add audit hook')
     await tamper(solution('import os\nos.close(1)\nreturn ""'), 'close stdout fd')
     await tamper(solution('import builtins\nbuiltins.len = None\nreturn ""'), 'tamper builtins')
+
+    // harness integrity: the harness captured ord/chr/str before the player
+    // existed and the driver bound the real stdout.write before player code, so
+    // replacing builtins.ord/chr and sys.stdout cannot corrupt or hide the
+    // answer line (the answer "UDLR" comes through unchanged, H3).
+    const harnessPoison = await run(
+      'import builtins, sys\n' +
+      'builtins.ord = lambda c: 999999\n' +
+      'builtins.chr = lambda c: "Z"\n' +
+      'class _Sink:\n    def write(self, s):\n        return len(s)\n    def flush(self):\n        pass\n' +
+      'sys.stdout = _Sink()\n' +
+      'class Solution:\n    def solve(self, grid, ink):\n        return "UDLR"\n')
+    assert.equal(harnessPoison.status, 'ok', `poisoning ord/chr/sys.stdout is contained (${harnessPoison.status}: ${harnessPoison.message})`)
+    assert.equal(harnessPoison.answered, 1)
+    assert.equal(harnessPoison.answers[0], 'UDLR', 'the harness formatted and wrote the answer with its own captured built-ins and stdout')
+    assert.equal((await run(REF, ONE)).status, 'ok', 'a normal run works after the ord/chr/stdout poison')
     const reserved = await run(solution('__ink_tick__ = None\nreturn ""'))
     assert.equal(reserved.status, 'compile_error', 'player cannot touch the reserved deadline name')
     assert.match(reserved.message.toLowerCase(), /reserved/)
@@ -283,6 +299,32 @@ async function suite(name) {
     //    recursion + comprehension still runs
     const legit = await run('COUNT = 0\ndef bump():\n    global COUNT\n    COUNT += 1\n    return COUNT\nclass Solution:\n    def solve(self, grid, ink):\n        bump()\n        total = sum(1 for _ in range(COUNT))\n        return ""')
     assert.equal(legit.status, 'ok', `a global + helper + comprehension solution runs (${legit.status}: ${legit.message})`)
+
+    // ---- the refutation's js-bridge bypass: reaching the `js` module (to run a
+    // JS loop the cooperative deadline cannot interrupt, spawn a Worker, or forge
+    // a result) needs frame introspection to flip the import guard off. The
+    // driver rejects f_globals / f_back / __globals__ as compile errors, so every
+    // one of these is stopped before it can import js.
+    for (const [src, note] of [
+      ["import sys\nf = sys._getframe()\nwhile f is not None and '_blocker' not in f.f_globals:\n    f = f.f_back\nf.f_globals['_blocker'].active = False\nimport js\njs.eval('for(;;){}')\nreturn ''", 'frame-walk to js.eval loop'],
+      ["import sys\nf = sys._getframe()\nwhile f is not None and '_blocker' not in f.f_globals:\n    f = f.f_back\nf.f_globals['_blocker'].active = False\nimport js\njs.Worker.new(js.URL.createObjectURL(js.Blob.new(['for(;;){}'])))\nreturn 'R'", 'frame-walk to spawn a Worker'],
+      ["c = (lambda: 0).__globals__\nreturn ''", 'reach module globals via __globals__'],
+    ]) {
+      const r = await run(solution(src), ONE, { timeLimitMs: 1000 })
+      assert.equal(r.status, 'compile_error', `${note} is a compile error (${r.status}: ${r.message})`)
+    }
+    // a Python thread that spins is player code, so its loop is instrumented and
+    // stops itself at the deadline; the run is reported and the CPU drops
+    const thread = await run(solution('import threading\ndef spin():\n    while True:\n        pass\nthreading.Thread(target=spin, daemon=True).start()\nreturn "R"'), ONE, { timeLimitMs: 1000 })
+    assert.ok(thread.status === 'time_limit' || thread.status === 'runtime_error' || thread.status === 'ok',
+      `a spinning Python thread is contained (${thread.status}: ${thread.message})`)
+    assert.ok(thread.stoppedBy !== 'host', 'the spinning thread was not left to the host-terminate backstop')
+    await pause(300)
+    assert.ok((await cpuAfter('after spinning thread', idle)) < idle + CPU_SLACK, 'a spinning thread leaves the CPU idle')
+    assert.equal((await run(REF, ONE)).status, 'ok', 'a normal run works after the spinning thread')
+    // reading stdin inside solve gets nothing (H1: the player cannot touch the input)
+    const readStdin = await run(solution('import sys\nreturn sys.stdin.read() or ""'))
+    assert.equal(readStdin.status, 'ok', `reading stdin yields an empty answer, not the boards (${readStdin.status})`)
 
     // ---- positive control: the meter DOES see the Pyodide worker's CPU
     const control = page.evaluate((tests) => window.sb.run({ language: 'python', source: 'class Solution:\n    def solve(self, grid, ink):\n        while True:\n            pass\n', tests, kind: 'run', timeLimitMs: 3000 }), ONE)

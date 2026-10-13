@@ -107,20 +107,23 @@ const RUNTIME = {
       // ---- run
       io.started()
       ctx.unwrapResult(ctx.evalCode(PREAMBLE, '<preamble>', { type: 'global' })).dispose()
-      const harness = ctx.evalCode(HARNESS, '<harness>', { type: 'global' })
+      // H1: the harness parses every board BEFORE the player's code exists, with
+      // built-ins it captured itself, and hands back run(solve, write, progress)
+      const harness = ctx.unwrapResult(ctx.evalCode(HARNESS, '<harness>', { type: 'global' }))
+      const stdinHandle = ctx.newString(job.stdin)
+      const runner = ctx.unwrapResult(ctx.callFunction(harness, ctx.undefined, stdinHandle))
+      stdinHandle.dispose(); harness.dispose()
       const player = ctx.evalCode(job.source + '\n;(typeof solve === "function" ? solve : undefined)', FILE, { type: 'global' })
 
       let errorDump = null
       if (player.error) { errorDump = ctx.dump(player.error); player.error.dispose() }
       else if (ctx.typeof(player.value) !== 'function') { player.value.dispose(); errorDump = { name: 'TypeError', message: 'solution.js must define a function solve(grid, ink)', stack: '' } }
       else {
-        const stdinHandle = ctx.newString(job.stdin)
-        const call = ctx.callFunction(harness.value, ctx.undefined, player.value, stdinHandle, write, progress)
-        stdinHandle.dispose(); player.value.dispose()
+        const call = ctx.callFunction(runner, ctx.undefined, player.value, write, progress)
+        player.value.dispose()
         if (call.error) { errorDump = ctx.dump(call.error); call.error.dispose() } else call.value.dispose()
       }
-      harness.value && harness.value.dispose()
-      harness.error && harness.error.dispose()
+      runner.dispose()
       write.dispose(); progress.dispose()
 
       if (outputHit) {

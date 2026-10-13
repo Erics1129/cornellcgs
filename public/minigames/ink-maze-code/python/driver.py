@@ -627,6 +627,7 @@ def _arm_setup():
 _harness_ns = {'__name__': '_ink_harness'}
 exec(compile(HARNESS_SOURCE, '<harness>', 'exec'), _harness_ns)
 _harness = _harness_ns['_ink_harness']
+_parse = _harness_ns['_ink_parse']
 
 
 class _Blocker:
@@ -913,8 +914,15 @@ def _ink_run(source, stdin_text):
                            'pyMs': (time.perf_counter() - started) * 1000})
     # ---- run
     _JS_STARTED()            # the time limit starts now
+    try:
+        boards = _parse(stdin_text)      # H1: every board is read before any player code runs
+    except Exception as e:
+        return json.dumps({'phase': 'run', 'ok': False, 'limit': None, 'harness': True,
+                           'error': {'type': type(e).__name__, 'message': 'the judge could not read the boards: %s' % e, 'line': None},
+                           'pyMs': (time.perf_counter() - started) * 1000, 'healthy': True})
     namespace = {'__name__': 'solution', '__file__': FILENAME, '__builtins__': builtins}
     streams = (sys.stdout, sys.stderr)
+    write = streams[0].write             # bound before player code, so replacing sys.stdout(.write) cannot reach the answers
     hidden = _hide_bridge()
     progress = [0]
     limit, error = None, None
@@ -929,7 +937,7 @@ def _ink_run(source, stdin_text):
             solution_class = namespace.get('Solution')
             if not isinstance(solution_class, type) or not callable(getattr(solution_class, 'solve', None)):
                 raise NameError('solution.py must define a class Solution with a method solve(self, grid, ink)')
-            _harness(solution_class, stdin_text, sys.stdout.write, progress, ANSWER_CHARS)
+            _harness(solution_class, boards, write, progress, ANSWER_CHARS)
         finally:
             # leaving player/harness code: disarm the interrupt buffer FIRST, so
             # it cannot re-fire during the formatting / gc that follows (that
