@@ -1,12 +1,13 @@
 /** Balance data shared by the browser, simulations and leaderboard verifier. */
 export const RULES = {
-  version: 2, days: 7, dailyBlanks: 3, stamina: 20, rackSlots: 4, charmSlots: 5,
+  // Version 3 lengthens the run to ten days; runs that started under versions 1 and 2 kept seven (`runDays`).
+  version: 3, days: 10, legacyDays: 7, dailyBlanks: 3, stamina: 20, rackSlots: 4, charmSlots: 5,
   initialGold: 180, levelFactor: 1.5, shatterPerLevel: .04, shatterCap: .6,
   chip: .1, dull: .15, perfect: .12, perfectDecay: .01, perfectFloor: .02,
   flowPips: 10, flowHits: 3, flowSeconds: 4, flowSpeed: 1.5, sharpenBonus: .15, heatSeconds: 2,
   marketMin: .7, marketMax: 1.4, marketDrift: .24,
   buyerAt: [6, 14], buyerSeconds: 24, buyerMin: .7, buyerMax: 1.7,
-  maxActions: 12000, maxWait: 60, maxRunSeconds: 604800,
+  maxActions: 12000, maxWait: 60, maxRunSeconds: 864000,
   replayMinHitMs: 350, apiTimeoutMs: 8000, leaderboardRefreshMs: 30000,
 } as const
 export const METALS = {

@@ -26,9 +26,15 @@ export class CarrotUnity {
   window.addEventListener('carrot-state',this.receive)
   measureDisplayPeriod()
   const previous=lifetime;lifetime=new Promise(resolve=>{this.release=resolve})
+  const files_:Record<string,[number,number]>={}
   void(async()=>{try{await previous;if(this.dead){this.release();return}const create=await factory();if(this.dead){this.release();return}
    lightenFences(this.canvas)
-   const instance=await create(this.canvas,{webglContextAttributes:{alpha:false,antialias:false,powerPreference:'high-performance',preserveDrawingBuffer:false},dataUrl:`/unity/carrot/Build/carrot.data.unityweb?v=${build.version}`,frameworkUrl:`/unity/carrot/Build/carrot.framework.js.unityweb?v=${build.version}`,codeUrl:`/unity/carrot/Build/carrot.wasm.unityweb?v=${build.version}`,streamingAssetsUrl:'/unity/carrot/StreamingAssets',companyName:'Cornell Computational Game Society',productName:'Carrot Defense 3D',productVersion:'1.0',devicePixelRatio:Math.min(devicePixelRatio,innerWidth<700?1.25:1.75),showBanner:(message:string,type:string)=>{if(type==='error')hooks.error(message)}},hooks.progress)
+   // Download progress is reported here (0 to 0.8); the loader's own 0-1 then only ever moves the bar forward.
+   let best=0;const progress=(value:number)=>{if(value>best){best=value;hooks.progress(value)}}
+   const files=await Promise.all([['data','application/octet-stream'],['framework.js','text/javascript'],['wasm','application/wasm']].map(([ext,type])=>prepare(`/unity/carrot/Build/carrot.${ext}.unityweb?v=${build.version}`,type,(done,total)=>{files_[ext]=[done,total];let d=0,t=0;for(const [a,b] of Object.values(files_)){d+=a;t+=b}if(t>0)progress(.8*d/t)})))
+   if(this.dead){files.forEach(revoke);this.release();return}
+   const instance=await create(this.canvas,{webglContextAttributes:{alpha:false,antialias:false,powerPreference:'high-performance',preserveDrawingBuffer:false},dataUrl:files[0],frameworkUrl:files[1],codeUrl:files[2],streamingAssetsUrl:'/unity/carrot/StreamingAssets',companyName:'Cornell Computational Game Society',productName:'Carrot Defense 3D',productVersion:'1.0',devicePixelRatio:Math.min(devicePixelRatio,innerWidth<700?1.25:1.75),showBanner:(message:string,type:string)=>{if(type==='error')hooks.error(message)}},value=>progress(.8+.2*value))
+   files.forEach(revoke)
    if(this.dead){await instance.Quit();this.release();return}this.instance=instance;this.loaded=true;this.send({type:'load',level});this.send({type:'mute',value:muted?1:0});hooks.ready()
   }catch(error){if(!this.dead)hooks.error(error instanceof Error?error.message:'The garden could not open.');this.release()}})()
  }
@@ -41,16 +47,40 @@ export class CarrotUnity {
 }
 
 /**
+ * Fetches one build file and, when it is still gzip (the host serves the .unityweb files as they are, with no Content-Encoding),
+ * inflates it with the browser's own DecompressionStream, off the main thread, instead of the loader's JavaScript inflater
+ * (22 MB of wasm and 36 MB of data inflated on the main thread before the first frame). Returns a blob: URL for the loader, or
+ * the original URL when there is nothing to gain. `report(done,total)` follows the download in bytes.
+ */
+async function prepare(url:string,type:string,report:(done:number,total:number)=>void):Promise<string>{
+ if(typeof DecompressionStream!=='function'||typeof Blob.prototype.stream!=='function')return url
+ const response=await fetch(url)
+ if(!response.ok)throw new Error('The garden could not download. Check your connection and retry.')
+ const total=Number(response.headers.get('Content-Length'))||0;let done=0
+ const chunks:Uint8Array[]=[];const reader=response.body?.getReader()
+ if(reader){for(;;){const {value,done:end}=await reader.read();if(end)break;if(value){chunks.push(value);done+=value.length;report(done,Math.max(total,done))}}}
+ else{const bytes=new Uint8Array(await response.arrayBuffer());chunks.push(bytes);done=bytes.length;report(done,done)}
+ if(done===0)return url
+ const gzip=chunks[0].length>2&&chunks[0][0]===0x1f&&chunks[0][1]===0x8b
+ const raw=new Blob(chunks as BlobPart[])
+ const body=gzip?await new Response(raw.stream().pipeThrough(new DecompressionStream('gzip'))).blob():raw
+ return URL.createObjectURL(new Blob([body],{type}))
+}
+function revoke(url:string){if(url.startsWith('blob:'))URL.revokeObjectURL(url)}
+
+/**
  * The display's own frame period (8.3 ms on a 120 Hz panel, 16.7 on 60 Hz), sampled from requestAnimationFrame while the loader
  * downloads and nothing heavy runs; the game's frame-time watcher reads it (window.__carrotDisplayPeriod) so a GPU-bound start is
- * not mistaken for a slow panel. Median of 40 intervals, long gaps (tab switches) dropped.
+ * not mistaken for a slow panel. Median of 40 intervals, long gaps (tab switches) dropped, snapped to the nearest standard
+ * period (120, 90, 60, 30 Hz) within 20%: a headless browser can sample 6.0 ms while loading and then hold a steady 8.3.
  */
 function measureDisplayPeriod(){
  const w=window as Window&{__carrotDisplayPeriod?:number}
  if(w.__carrotDisplayPeriod)return
  const gaps:number[]=[];let last=0
  const tick=(now:number)=>{if(last&&now-last<60)gaps.push(now-last);last=now;if(gaps.length<40){requestAnimationFrame(tick);return}
-  const sorted=[...gaps].sort((a,b)=>a-b);w.__carrotDisplayPeriod=Math.round(sorted[sorted.length>>1]*100)/100}
+  const sorted=[...gaps].sort((a,b)=>a-b);const median=sorted[sorted.length>>1];const standard=[1000/120,1000/90,1000/60,1000/30].find(p=>Math.abs(median-p)<p*.2)
+  w.__carrotDisplayPeriod=Math.round((standard??median)*100)/100}
  requestAnimationFrame(tick)
 }
 

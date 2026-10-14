@@ -22,6 +22,8 @@ const SLUGS = {
   advisors: 'advisors',
   join: 'join',
   contact: 'contact',
+  privacy: 'privacy',
+  terms: 'terms',
   minigames: 'minigames',
   'ink-maze': 'minigames/inkMaze',
   'forge-or-fold': 'minigames/forgeOrFold',
@@ -54,6 +56,14 @@ const PAGES = {
     title: 'Advisors \u2014 Cornell Computational Game Society',
     desc: 'Advisors and team of the Cornell Computational Game Society (Cornell CGS).',
   },
+  privacy: {
+    title: 'Privacy \u2014 Cornell Computational Game Society',
+    desc: 'What cornellcgs.org stores when you sign in to a mini game, and how to delete it.',
+  },
+  terms: {
+    title: 'Terms \u2014 Cornell Computational Game Society',
+    desc: 'Terms of use for cornellcgs.org and its mini games.',
+  },
   people: {
     title: 'Our Team — Cornell Computational Game Society',
     desc: 'The board and members of the Cornell Computational Game Society (Cornell CGS).',
@@ -69,7 +79,9 @@ const PAGES = {
   },
   'forge-or-fold': {
     title: 'Forge or Fold — Cornell CGS',
-    desc: 'A seven-day 3D forging game. Heat, strike, sell and learn when to stop. Keep your best knife.',
+    desc: 'A ten-day 3D forging game. Heat, strike, sell and learn when to stop. Keep your best knife.',
+    // the game page is dark; a white first paint flashes before the app mounts
+    background: '#0d0c0b',
   },
   'carrot-defense': {
     title: 'Carrot Defense 3D — Cornell CGS',
@@ -79,7 +91,7 @@ const PAGES = {
   // the numbers must match src/minigames/inkmaze/levels.ts
   'ink-maze': {
     title: 'Ink Maze · Cornell Computational Game Society',
-    desc: 'Roll a ball to color every floor block before the ink runs out. There are 20 levels, on boards from 4 × 4 to 9 × 9.',
+    desc: 'Roll a ball to color every floor block before the ink runs out. There are 25 levels, on boards from 4 × 4 to 9 × 9, and the last is a small one that takes the most planning.',
     image: '/assets/minigames/ink-maze/cover.png',
   },
   contact: {
@@ -91,7 +103,7 @@ const PAGES = {
 const esc = (s) => s.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;')
 const base = readFileSync(join(dist, 'index.html'), 'utf8')
 
-for (const [id, { title, desc, image }] of Object.entries(PAGES)) {
+for (const [id, { title, desc, image, background = '#fff' }] of Object.entries(PAGES)) {
   const slug = SLUGS[id] ?? id
   const html = base
     .replace(/<title>[^<]*<\/title>/, `<title>${esc(title)}</title>`)
@@ -100,7 +112,7 @@ for (const [id, { title, desc, image }] of Object.entries(PAGES)) {
     .replace(/(<meta property="og:description" content=")[^"]*(")/, `$1${esc(desc)}$2`)
     .replace(/(<meta property="og:url" content=")[^"]*(")/, `$1${ORIGIN}/${slug}/$2`)
     .replace(/<link rel="canonical" href="[^"]*"\s*\/>/, `<link rel="canonical" href="${ORIGIN}/${slug}/" />`)
-    .replace('</head>', `${image ? `  <meta property="og:image" content="${ORIGIN}${image}" />\n` : ''}  <style>html{background:#fff}</style>\n  <script>window.__cgsPage='${id}'</script>\n  </head>`)
+    .replace('</head>', `${image ? `  <meta property="og:image" content="${ORIGIN}${image}" />\n` : ''}  <style>html{background:${background}}</style>\n  <script>window.__cgsPage='${id}'</script>\n  </head>`)
   mkdirSync(join(dist, slug), { recursive: true })
   writeFileSync(join(dist, slug, 'index.html'), html)
   console.log(`stub: /${slug}/`)

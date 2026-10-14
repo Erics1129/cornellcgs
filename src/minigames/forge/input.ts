@@ -18,6 +18,8 @@ export class ForgePointerGesture {
     this.active = null
     return phase
   }
+  /** The current gesture has moved far enough to be a look drag. */
+  get dragged() { return !!this.active?.dragged }
   cancel(id?: number) {
     if (!this.active || (id !== undefined && this.active.id !== id)) return false
     this.active = null

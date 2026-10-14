@@ -175,6 +175,8 @@
 .subpage--contact { --sp-paper: #171f27; --sp-panel: #202c35; --sp-ink: #f5d8a6; --sp-muted: #c1bab0; --sp-accent: #e3b566; --sp-rule: #4c4e4c; color-scheme: dark; }
 .sp-contact-cover { display: grid; grid-template-columns: 1.4fr 1fr; gap: 10%; align-items: center; }
 .subpage--contact h1 { font-size: clamp(4rem,7.5vw,7.5rem); font-weight: 450; max-width: 7ch; }
+.subpage--privacy,.subpage--terms { --sp-paper: #f3efdf; --sp-panel: #dfddc6; --sp-ink: #254c3c; --sp-muted: #5e6c5d; --sp-accent: #417359; --sp-rule: #c4cbb6; }
+.subpage--privacy h1,.subpage--terms h1 { font-size: clamp(4rem,7.5vw,7.5rem); font-weight: 450; }
 .sp-contact-cover .page-scene__window { aspect-ratio: 1 / 1.12; border-radius: 50% 50% 0 0; }
 .sp-directory { margin-top: 4rem; }
 .sp-directory .sp-section { display: grid; grid-template-columns: 3rem 1fr; gap: 2rem; border-top: 1px solid var(--sp-rule); padding: 2rem 0; }

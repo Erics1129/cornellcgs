@@ -23,6 +23,8 @@ function addKnife(s: Run, metal: Metal) { const k: Knife = { id: s.nextId++, met
 export function stage(k: Knife) { return EVOLUTIONS.filter(l => k.level >= l).length - 1 }
 export function knifeName(k: Knife) { return `${TITLES[stage(k)]} ${METALS[k.metal].name} ${FAMILIES[k.family]}` }
 export function value(k: Knife, s?: Run): number { return Math.round(METALS[k.metal].base * RULES.levelFactor ** k.level * (k.sharpened ? 1 + RULES.sharpenBonus : 1) * (s ? 1 + bonus(s, 'value') : 1)) }
+/** The run's length: ten days from rules version 3, seven for a run still replaying under versions 1 and 2. */
+export function runDays(s: Pick<Run, 'version'>) { return s.version >= 3 ? RULES.days : RULES.legacyDays }
 export function flowDuration(s: Run) { return RULES.flowSeconds + bonus(s, 'flow') }
 export function flowNeed(s: Run) { return RULES.flowPips + bonus(s, 'pips') }
 export function odds(k: Knife, s: Run): Record<Outcome, number> {
@@ -131,12 +133,17 @@ export function act(state: Run, action: Action): Transition {
     }
     s.items[action.item]--; s.lastHit = null
   } else if(action.type==='upgrade') {
-    if(s.version!==1)return fail('This run already uses current rules.')
-    s.version=2;s.clockMs=Math.round(s.seconds*1000);s.nextHitAt=0;s.lastHit=null
-    for(const knife of s.knives)if(knife.flow)knife.flow=flowDuration(s)
-    s.gold+=s.items.stamina*ITEMS.stamina.price;s.items.stamina=0
-    if(s.charms.includes('lungs')){s.charms=s.charms.filter(c=>c!=='lungs');s.gold+=CHARMS.lungs.price}
-    delete s.stock.stamina;delete s.stock['charm:lungs']
+    // One rules version per action, so an old log that already holds a v1 -> v2 upgrade replays byte for byte.
+    if(s.version===1){
+      s.version=2;s.clockMs=Math.round(s.seconds*1000);s.nextHitAt=0;s.lastHit=null
+      for(const knife of s.knives)if(knife.flow)knife.flow=flowDuration(s)
+      s.gold+=s.items.stamina*ITEMS.stamina.price;s.items.stamina=0
+      if(s.charms.includes('lungs')){s.charms=s.charms.filter(c=>c!=='lungs');s.gold+=CHARMS.lungs.price}
+      delete s.stock.stamina;delete s.stock['charm:lungs']
+    } else if(s.version===2){
+      // Version 3 changes only the run length: the knives, market, clock and the last hit (for Undo) carry over.
+      s.version=3;event.text=`This run now lasts ${RULES.days} days.`
+    } else return fail('This run already uses current rules.')
   } else if(action.type==='tick') {
     if(s.version<2 || !Number.isSafeInteger(action.ms) || action.ms<1 || action.ms>RULES.maxWait*1000)return fail('Invalid clock step.')
     s.clockMs=(s.clockMs??Math.round(s.seconds*1000))+action.ms;s.seconds=s.clockMs/1000
@@ -148,14 +155,14 @@ export function act(state: Run, action: Action): Transition {
     s.seconds += action.seconds
     if (s.offer) { s.offer.remaining -= action.seconds; if (s.offer.remaining <= 0) s.offer = null }
   } else if (action.type === 'end') {
-    if (s.day === RULES.days) { s.ended = true; s.offer = null; event.text = 'Seven days. One knife. Yours.' }
+    if (s.day >= runDays(s)) { s.ended = true; s.offer = null; event.text = `${s.day === RULES.legacyDays ? 'Seven' : 'Ten'} days. One knife. Yours.` }
     else { s.knives = s.knives.filter(k => k.place === 'rack'); s.day++; morning(s); event.text = `Day ${s.day}. Fresh iron, fresh odds.` }
   } else return fail('Unknown action.')
   return { state: s, event, ok: true }
 }
 export function replay(seed: number, actions: Action[], version: number = RULES.version): Run {
   if (!Number.isInteger(seed) || seed < 0 || seed > 0xffffffff || !Array.isArray(actions) || actions.length > RULES.maxActions) throw new Error('Invalid replay')
-  if(version!==1&&version!==RULES.version)throw new Error('Unsupported rules version')
+  if(version!==1&&version!==2&&version!==RULES.version)throw new Error('Unsupported rules version')
   let s = createRun(seed,version)
   for (const a of actions) { const t = act(s, a); if (!t.ok) throw new Error(t.event.text); s = t.state }
   return s

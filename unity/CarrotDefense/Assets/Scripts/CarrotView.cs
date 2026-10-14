@@ -49,7 +49,7 @@ namespace CarrotTD {
   MeshRenderer blindQuad;Material blindMaterial;float blindLevel,blindDim,blindWindup;readonly List<Yank> yanks=new List<Yank>();readonly List<Mark> marks=new List<Mark>();
   int pressTower,mergeSource,mergeTarget;float pressClock,holdLift;bool mergeDrag,holdArmed,pressTouch;GameObject mergeGhost;Renderer[] mergeGhostRenderers;readonly LineRenderer[] partnerRings=new LineRenderer[6];LineRenderer superRing;float snapBack=-1;Vector3 snapFrom;string snapKind;
   GameObject flightGhost;Renderer[] flightRenderers;float flightClock=-1;Vector3 flightFrom,flightTo;bool wasPaused;string flightKind;
-  void Awake(){CarrotQuality.Choose();StartCoroutine(WatchFrameWork());{float period=Carrot_DisplayPeriodMs();if(period>=6&&period<=40)tierRefresh=period;}
+  void Awake(){CarrotQuality.Choose();StartCoroutine(WatchFrameWork());{float period=Carrot_DisplayPeriodMs();if(period>=6&&period<=40)tierRefresh=SnapPeriod(period);}
    // Physics is only ever asked for raycasts (SelectAt): nothing steps PhysX, so no catch-up FixedUpdates after a long frame and no per-frame transform sync for the moving colliders; SelectAt syncs transforms itself before the cast.
    Physics.simulationMode=SimulationMode.Script;Time.fixedDeltaTime=1f/30;Time.maximumDeltaTime=.1f;
    Shader.SetGlobalFloat("_CarrotGust",1);game=GetComponent<CarrotGame>();effects=gameObject.AddComponent<CarrotEffects>();sound=gameObject.AddComponent<CarrotAudio>();effects.CameraImpulse=Impulse;effects.HitStop=(stop,scale,slow)=>{hitStop=Mathf.Max(hitStop,CarrotQuality.Rich?stop:Mathf.Min(stop,.045f));if(slow>0){slowMo=Mathf.Max(slowMo,slow);slowScale=scale;}if(stop>0)sound.Duck(.6f);};effects.Ground=p=>game!=null&&game.level!=null?SurfaceHeight(p):0;properties=new MaterialPropertyBlock();atlas=Resources.Load<Texture2D>("Carrot/Textures/MaterialAtlas");var naturalPrefabs=new List<GameObject>();foreach(var name in new[]{"Rock","RockTall","Pebble","FlowerWhite","FlowerPurple","Bridge","Stump"}){var prefab=Resources.Load<GameObject>("Carrot/Nature/"+name);if(prefab!=null)naturalPrefabs.Add(prefab);}nature=naturalPrefabs.ToArray();treeAutumn=Resources.Load<GameObject>("Carrot/Nature/TreeAutumn");foreach(var name in new[]{"Fern","Stump","MossRockA","MossRockB","Shrub","FernSmall","StumpSmall","MossRockASmall","MossRockBSmall","ShrubSmall"}){var prefab=Resources.Load<GameObject>("Carrot/RealNature/"+name);if(prefab!=null)realNature[name]=prefab;}CreateCamera();CreateBlindOverlay();CreateCinematics();CreateLighting();selectionRing=CreateRing("Selection",new Color(1,.88f,.44f),.035f);rangeRing=CreateRing("Range",new Color(.75f,.95f,1,.7f),.035f);for(int i=0;i<partnerRings.Length;i++)partnerRings[i]=CreateRing("Partner "+i,new Color(.5f,1,.7f,.9f),.03f);superRing=CreateRing("Super range",new Color(1,.85f,.35f,.8f),.04f);if(game!=null)game.Effect+=OnEffect;}
@@ -91,7 +91,9 @@ namespace CarrotTD {
   /// bolts, decals, contact shadows, the Storybook surface with cutout, wind, dissolve and world textures, water) plus a tiny point light, so the
   /// first frame also links the additional-light variants of the tier. The rig is destroyed after three frames. Measured without it: first-use
   /// links of 40-150 ms mid-game on a desktop (the first shot, the first decal), several times longer on phones. Rendering a separate hidden
-  /// frame in Awake was tried first and cost 0.8 s of start-up on top of the links, so the warm-up rides the real first frame.
+  /// frame in Awake was tried first and cost 0.8 s of start-up on top of the links, and riding the real first frame held the HUD back by the
+  /// same links (250 ms on a desktop, four times that on a phone), so the rig now starts four frames after the first level build, once the
+  /// first state has reached the page and the HUD is on screen, and spreads its quads over three frames.
   /// </summary>
   void WarmShaders(){
    if(GameCamera==null)return;var mats=new List<Material>();warmMaterials=mats;
@@ -107,13 +109,15 @@ namespace CarrotTD {
      M("Carrot/Storybook"),M("Carrot/Storybook",m=>{m.SetFloat("_Cutoff",.38f);m.SetFloat("_Cull",0);m.SetFloat("_Wind",.012f);m.SetFloat("_Translucency",.5f);}),
      M("Carrot/Storybook",m=>{m.SetFloat("_Dissolve",.4f);m.SetColor("_EmissionColor",new Color(1,.7f,.25f));}),M("Carrot/Storybook",m=>{m.SetFloat("_WorldTexture",1);m.SetFloat("_Bend",1);m.SetFloat("_Cull",0);m.SetTexture("_MainTex",atlas);}),
      M("Carrot/Water",m=>{m.SetColor("_Color",new Color(.018f,.071f,.068f));m.SetColor("_Shallow",new Color(.11f,.24f,.23f));})};
-    int n=0;foreach(var m in list){if(m==null)continue;var go=CarrotMeshes.Create(PrimitiveType.Quad,"Warm-up "+m.shader.name);go.transform.SetParent(root.transform,false);go.transform.localPosition=new Vector3((n%4-1.5f)*.003f,(n/4-1)*.003f,0);go.transform.localScale=Vector3.one*.002f;var r=go.GetComponent<MeshRenderer>();r.sharedMaterial=m;r.shadowCastingMode=m.shader.name=="Carrot/Storybook"?ShadowCastingMode.On:ShadowCastingMode.Off;r.receiveShadows=true;n++;}
-    if(list[1]!=null){var line=new GameObject("Warm-up bolt");line.transform.SetParent(root.transform,false);var lr=line.AddComponent<LineRenderer>();lr.sharedMaterial=list[1];lr.useWorldSpace=false;lr.positionCount=3;lr.SetPositions(new[]{new Vector3(-.003f,-.005f,0),new Vector3(0,-.004f,0),new Vector3(.003f,-.005f,0)});lr.widthMultiplier=.0005f;lr.shadowCastingMode=ShadowCastingMode.Off;}
+    int n=0;warmQuads.Clear();foreach(var m in list){if(m==null)continue;var go=CarrotMeshes.Create(PrimitiveType.Quad,"Warm-up "+m.shader.name);go.transform.SetParent(root.transform,false);go.transform.localPosition=new Vector3((n%4-1.5f)*.003f,(n/4-1)*.003f,0);go.transform.localScale=Vector3.one*.002f;var r=go.GetComponent<MeshRenderer>();r.sharedMaterial=m;r.shadowCastingMode=m.shader.name=="Carrot/Storybook"?ShadowCastingMode.On:ShadowCastingMode.Off;r.receiveShadows=true;go.SetActive(false);warmQuads.Add(go);n++;}
+    if(list[1]!=null){var line=new GameObject("Warm-up bolt");line.transform.SetParent(root.transform,false);var lr=line.AddComponent<LineRenderer>();lr.sharedMaterial=list[1];lr.useWorldSpace=false;lr.positionCount=3;lr.SetPositions(new[]{new Vector3(-.003f,-.005f,0),new Vector3(0,-.004f,0),new Vector3(.003f,-.005f,0)});lr.widthMultiplier=.0005f;lr.shadowCastingMode=ShadowCastingMode.Off;line.SetActive(false);warmQuads.Add(line);}
     Debug.Log("CARROT_WARMUP materials="+n+" tier="+CarrotQuality.Name(CarrotQuality.Tier));
    }catch(Exception error){Debug.LogWarning("Carrot shader warm-up skipped: "+error.Message);EndWarmup();}
   }
-  GameObject warmRoot;int warmFrames=-1;List<Material> warmMaterials;
-  void EndWarmup(){if(warmRoot!=null)Destroy(warmRoot);warmRoot=null;if(warmMaterials!=null)foreach(var m in warmMaterials)if(m!=null)Destroy(m);warmMaterials=null;warmFrames=-1;}
+  GameObject warmRoot;int warmFrames=-1,warmCountdown;List<Material> warmMaterials;readonly List<GameObject> warmQuads=new List<GameObject>();
+  // Four quads (a few program links each) come on per frame, so the links spread over three frames instead of one 250 ms stall; the rig lives three frames past the last batch.
+  void StepWarmup(){if(warmFrames<0||warmRoot==null)return;int batch=warmFrames*4;for(int i=batch;i<batch+4&&i<warmQuads.Count;i++)if(warmQuads[i]!=null)warmQuads[i].SetActive(true);warmFrames++;if(batch>=warmQuads.Count+8)EndWarmup();}
+  void EndWarmup(){if(warmRoot!=null)Destroy(warmRoot);warmRoot=null;if(warmMaterials!=null)foreach(var m in warmMaterials)if(m!=null)Destroy(m);warmMaterials=null;warmQuads.Clear();warmFrames=-1;}
   void OnDestroy(){EndWarmup();if(game!=null)game.Effect-=OnEffect;foreach(var m in materials.Values)Destroy(m);foreach(var m in createdMeshes)Destroy(m);CinemachineCore.UniformDeltaTimeOverride=-1;CinemachineCore.CurrentTimeOverride=-1;}
   public void SetMuted(bool muted){if(sound!=null)sound.SetMuted(muted);}
   public void UiSound(string kind){if(sound!=null)sound.UiSound(kind);}
@@ -123,7 +127,7 @@ namespace CarrotTD {
    if(tier.StartsWith("scale:")){float scale;if(float.TryParse(tier.Substring(6),System.Globalization.NumberStyles.Float,System.Globalization.CultureInfo.InvariantCulture,out scale))CarrotQuality.SetRenderScale(scale,"debug");return;}
    if(tier.StartsWith("interval:")){int interval;if(int.TryParse(tier.Substring(9),out interval)){OnDemandRendering.renderFrameInterval=Mathf.Clamp(interval,1,4);Debug.Log("CarrotQuality interval="+OnDemandRendering.renderFrameInterval+" reason=debug");}return;}
    CarrotQuality.Force(tier=="high"?CarrotQuality.HighTier:tier=="medium"?CarrotQuality.MediumTier:CarrotQuality.LowTier);OnDemandRendering.renderFrameInterval=1;var data=GameCamera.GetUniversalAdditionalCameraData();data.antialiasing=CarrotQuality.Rich?AntialiasingMode.FastApproximateAntialiasing:AntialiasingMode.None;ApplyBiomeLighting();}
-  void Update(){if(game==null||game.level==null)return;if(levelId!=game.level.id){bool first=levelId<0;BuildLevel();if(first)WarmShaders();}if(warmFrames>=0&&++warmFrames>3)EndWarmup();float raw=Mathf.Min(Time.deltaTime,.05f);bool frozen=game.paused;float dt=frozen?0:raw*(game.phase=="playing"?Mathf.Clamp(game.speed,1,2):1);
+  void Update(){if(game==null||game.level==null)return;if(levelId!=game.level.id){bool first=levelId<0;BuildLevel();if(first)warmCountdown=4;}if(warmCountdown>0&&--warmCountdown==0)WarmShaders();StepWarmup();float raw=Mathf.Min(Time.deltaTime,.05f);bool frozen=game.paused;float dt=frozen?0:raw*(game.phase=="playing"?Mathf.Clamp(game.speed,1,2):1);
    // Hit-stop and slow motion scale only the presentation clock; the simulation keeps its own dt.
    if(dt>0){if(hitStop>0)hitStop-=raw;if(slowMo>0)slowMo-=raw;}viewScale=hitStop>0?.05f:slowMo>0?slowScale:1;float viewDt=dt*viewScale;
    clock+=viewDt;Shader.SetGlobalFloat("_CarrotTime",clock);Shader.SetGlobalFloat("_CarrotGust",1+.7f*Mathf.Max(0,Mathf.Sin(clock*.23f))*(.5f+.5f*Mathf.PerlinNoise(clock*.4f,3.7f)));Shader.SetGlobalFloat("_CarrotSuperPulse",-.05f+.3f*Mathf.Sin(clock*2.4f));WatchFrameTime();if(sunData!=null&&sun.cookie!=null)sunData.lightCookieOffset+=new Vector2(.04f,.02f)*viewDt;
@@ -182,6 +186,8 @@ namespace CarrotTD {
   // and stored locally (CarrotQuality.Remember), so the next session starts there.
   readonly float[] tierSamples=new float[120];float tierRefresh=float.MaxValue,frameStart,workAccum,sessionClock,lastStepAt=-100,lastRaiseAt=-100,pacerTrialAt=-100,pacerLockUntil=-1;int workFrames,cleanWindows,slowWindows,cpuWindows,steadyWindows;bool voidWindow,promoted;
   static readonly float[] StandardPeriods={1000f/120,1000f/90,1000f/60,1000f/30};
+  // rAF timing jitters a few ms either way (a headless browser reads 7 ms p10 on a 120 Hz pace), so an estimate snaps to the nearest standard period within 20%.
+  static float SnapPeriod(float period){foreach(var sp in StandardPeriods)if(Mathf.Abs(period-sp)<sp*.2f)return sp;return period;}
   System.Collections.IEnumerator WatchFrameWork(){var wait=new WaitForEndOfFrame();while(true){yield return wait;if(frameStart>0){workAccum+=Time.realtimeSinceStartup-frameStart;workFrames++;}}}
   void WatchFrameTime(){
    frameStart=Time.realtimeSinceStartup;float frame=Time.unscaledDeltaTime;sessionClock+=frame;tierClock+=frame;
@@ -192,13 +198,19 @@ namespace CarrotTD {
    bool voided=voidWindow;voidWindow=false;tierAccum=0;tierFrames=0;workAccum=0;workFrames=0;
    if(voided)return;
    tierRefresh=Mathf.Min(tierRefresh,p10);
-   // A display can slow down mid-session (a ProMotion panel on battery drops to 60 Hz): three steady windows (p95 within 15% of p10) sitting on a
-   // standard period slower than the estimate move the estimate there, so steady vsync at the new rate is never read as a GPU stall.
-   if(p95<=p10*1.15f){float nearest=StandardPeriods[0];foreach(var s in StandardPeriods)if(Mathf.Abs(p10-s)<Mathf.Abs(p10-nearest))nearest=s;if(Mathf.Abs(p10-nearest)<nearest*.08f&&nearest>tierRefresh*1.5f)steadyWindows++;else steadyWindows=0;if(steadyWindows>=3){Debug.Log("CarrotQuality panel="+nearest.ToString("F1")+" ms reason=steady cadence (was "+tierRefresh.ToString("F1")+")");tierRefresh=nearest;steadyWindows=0;}}else steadyWindows=0;
-   // rAF timing jitters a few ms either way (a headless browser reads 7 ms p10 on a 120 Hz pace), so the estimate snaps to the nearest standard period within 20%.
-   float panel=tierRefresh;foreach(var sp in StandardPeriods)if(Mathf.Abs(panel-sp)<sp*.2f){panel=sp;break;}bool hz120=panel<10.5f;int interval=OnDemandRendering.renderFrameInterval;float paced=panel*interval;
-   string why=" (cadence "+mean.ToString("F1")+" ms, p10 "+p10.ToString("F1")+", p95 "+p95.ToString("F1")+", panel "+panel.ToString("F1")+", work "+work.ToString("F1")+" ms, interval "+interval+")";
-   bool slow=mean>paced*1.25f;bool gpuBound=slow&&work<mean*.6f;bool cpuBound=work>14f||(slow&&work>mean*.8f);
+   float panel=SnapPeriod(tierRefresh);int interval=OnDemandRendering.renderFrameInterval;float paced=panel*interval;
+   // A steady window (p95 within 15% of p10) sitting on a standard period slower than the paced estimate is vsync at that rate, not a GPU
+   // stall: the page's sample can run fast while the loader downloads (6.0 ms on a headless 120 Hz desktop that then holds 8.3 ms) and a
+   // display can slow down mid-session (a ProMotion panel on battery drops to 60 Hz). Such a window never demotes, and three in a row move
+   // the estimate there (divided by the pacer interval, which doubles the cadence by design).
+   bool steadyVsync=false;
+   if(p95<=p10*1.15f){float nearest=StandardPeriods[0];foreach(var s in StandardPeriods)if(Mathf.Abs(p10-s)<Mathf.Abs(p10-nearest))nearest=s;
+    if(Mathf.Abs(p10-nearest)<nearest*.08f&&nearest>paced*1.1f){steadyVsync=true;steadyWindows++;if(steadyWindows>=3){float adopted=nearest/interval;Debug.Log("CarrotQuality panel="+adopted.ToString("F1")+" ms reason=steady cadence (was "+panel.ToString("F1")+", p10 "+p10.ToString("F1")+")");tierRefresh=adopted;panel=SnapPeriod(adopted);paced=panel*interval;steadyWindows=0;}}
+    else steadyWindows=0;}
+   else steadyWindows=0;
+   bool hz120=panel<10.5f;
+   string why=" (cadence "+mean.ToString("F1")+" ms, p10 "+p10.ToString("F1")+", p95 "+p95.ToString("F1")+", panel "+panel.ToString("F1")+", work "+work.ToString("F1")+" ms, interval "+interval+(steadyVsync?", steady vsync":"")+")";
+   bool slow=mean>paced*1.25f&&!steadyVsync;bool gpuBound=slow&&work<mean*.6f;bool cpuBound=work>14f||(slow&&work>mean*.8f);
    float floor=CarrotQuality.Phone?.6f:.7f;
    if(cpuBound){cpuWindows++;cleanWindows=0;
     if(hz120&&interval==1&&work<=14f){SetInterval(2,"work"+why);cpuWindows=0;return;}

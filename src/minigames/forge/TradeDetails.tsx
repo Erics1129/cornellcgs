@@ -6,13 +6,20 @@ import ForgeIcon from './ForgeIcon'
 type Receipt = { id: number; amount: number }
 const format = (value: number) => Math.round(value).toLocaleString('en-US')
 
-export function GoldCounter({ value, receipt }: { value: number; receipt: Receipt | null }) {
+/**
+ * The gold readout. `count` (when set) is the page's coin-synced sale count: it steps once per coin
+ * that lands and ends on the exact total; otherwise changes ease over 700 ms (instant with reduced motion).
+ * `coins`: draw the HUD coin flight (builds whose 3D coins do not fly to the counter).
+ */
+export function GoldCounter({ value, receipt, count, coins = false }: { value: number; receipt: Receipt | null; count?: number | null; coins?: boolean }) {
   const [shown, setShown] = useState(value)
   const current = useRef(value)
+  const counting = count != null
   useEffect(() => {
+    if (counting) { current.current = value; return }
     const from = current.current, start = performance.now()
     let frame = 0
-    const duration = matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 700
+    const duration = matchMedia('(prefers-reduced-motion: reduce)').matches || document.querySelector('.ff-page.is-calm') ? 0 : 700
     const tick = (now: number) => {
       const progress = duration ? Math.min(1, (now - start) / duration) : 1
       current.current = from + (value - from) * (1 - (1 - progress) ** 3)
@@ -21,12 +28,12 @@ export function GoldCounter({ value, receipt }: { value: number; receipt: Receip
     }
     frame = requestAnimationFrame(tick)
     return () => cancelAnimationFrame(frame)
-  }, [value])
+  }, [value, counting])
   return <span className="ff-wallet" aria-label={`${format(value)} gold`}>
-    <ForgeIcon name="coin"/><b aria-hidden="true">{format(shown)}</b>
+    <ForgeIcon name="coin"/><b aria-hidden="true">{format(counting ? count : shown)}</b>
     {receipt && <span key={receipt.id} className={`ff-wallet-effect ${receipt.amount > 0 ? 'is-sale' : 'is-purchase'}`} aria-hidden="true">
       <em>{receipt.amount > 0 ? '+' : '−'}{format(Math.abs(receipt.amount))}</em>
-      {receipt.amount > 0 && Array.from({ length: 9 }, (_, i) => <i key={i} style={{ '--coin-x': `${-90 + i * 23}px`, '--coin-y': `${95 + (i % 3) * 36}px`, '--coin-delay': `${i * 36}ms` } as CSSProperties}/>)}
+      {coins && receipt.amount > 0 && Array.from({ length: 9 }, (_, i) => <i key={i} style={{ '--coin-x': `${-90 + i * 23}px`, '--coin-y': `${95 + (i % 3) * 36}px`, '--coin-delay': `${i * 36}ms` } as CSSProperties}/>)}
     </span>}
   </span>
 }
