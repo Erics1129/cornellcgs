@@ -53,6 +53,7 @@ Material:
     - _OcclusionStrength: 0.63
     - _ReflectionStrength: 0.8
     - _SnowStrength: 0.35
+    - _SuperPulse: 0
     - _TextureScale: 1
     - _Translucency: 0.55
     - _UseOcclusionMap: 0

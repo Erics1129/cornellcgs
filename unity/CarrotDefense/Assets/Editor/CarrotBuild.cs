@@ -36,7 +36,7 @@ public static class CarrotBuild {
   var graphics=new SerializedObject(settings[0]);var shaders=graphics.FindProperty("m_AlwaysIncludedShaders");
   var standard=Shader.Find("Standard");
   for(int i=shaders.arraySize-1;i>=0;i--)if(shaders.GetArrayElementAtIndex(i).objectReferenceValue==standard)shaders.DeleteArrayElementAtIndex(i);
-  foreach(var name in new[]{"Carrot/Storybook","Carrot/FxAdditive","Carrot/FxAlpha","Carrot/Water","Carrot/Contact","Carrot/FxDecalQuad","Carrot/Sky","Carrot/HeightFog"}) {
+  foreach(var name in new[]{"Carrot/Storybook","Carrot/FxAdditive","Carrot/FxAlpha","Carrot/Water","Carrot/Contact","Carrot/FxDecalQuad","Carrot/Sky","Carrot/HeightFog","Carrot/BlindOverlay"}) {
    var shader=Shader.Find(name);if(!shader)throw new InvalidOperationException("Missing shader "+name);
    bool found=false;for(int i=0;i<shaders.arraySize;i++)if(shaders.GetArrayElementAtIndex(i).objectReferenceValue==shader)found=true;
    if(!found){shaders.InsertArrayElementAtIndex(shaders.arraySize);shaders.GetArrayElementAtIndex(shaders.arraySize-1).objectReferenceValue=shader;}
@@ -83,6 +83,27 @@ public static class CarrotBuild {
    File.WriteAllText(Path.GetFullPath("../../src/minigames/carrot/unity-build.json"),"{\"version\":\""+hash+"\"}\n");
   }
   Debug.Log("CARROT_BUILD_OK "+report.summary.totalSize);
+ }
+ /// <summary>Release-settings build for QA measurements (the shipped player's options, plus the CARROT_QA define so the `debugCoins` command exists) into
+ /// output/carrot-qa; unity-build.json and public/ are never touched, and the define is removed again after the build.</summary>
+ public static void WebQa() {
+  Prepare();
+  var output=Path.GetFullPath("../../output/carrot-qa");Directory.CreateDirectory(output);
+  var target=NamedBuildTarget.WebGL;var defines=PlayerSettings.GetScriptingDefineSymbols(target);
+  PlayerSettings.SetScriptingDefineSymbols(target,string.IsNullOrEmpty(defines)?"CARROT_QA":defines+";CARROT_QA");
+  try {
+   var report=BuildPipeline.BuildPlayer(new BuildPlayerOptions{scenes=new[]{ScenePath},locationPathName=output,target=BuildTarget.WebGL,options=BuildOptions.None});
+   if(report.summary.result!=BuildResult.Succeeded)throw new Exception("Carrot Web QA build failed: "+report.summary.result);
+   Debug.Log("CARROT_QA_BUILD_OK "+report.summary.totalSize);
+  } finally { PlayerSettings.SetScriptingDefineSymbols(target,defines); }
+ }
+ /// <summary>Development build for QA (DEVELOPMENT_BUILD defines the `debugCoins` command) into output/carrot-dev; unity-build.json and public/ are never touched.</summary>
+ public static void WebDev() {
+  Prepare();
+  var output=Path.GetFullPath("../../output/carrot-dev");Directory.CreateDirectory(output);
+  var report=BuildPipeline.BuildPlayer(new BuildPlayerOptions{scenes=new[]{ScenePath},locationPathName=output,target=BuildTarget.WebGL,options=BuildOptions.Development});
+  if(report.summary.result!=BuildResult.Succeeded)throw new Exception("Carrot Web dev build failed: "+report.summary.result);
+  Debug.Log("CARROT_DEV_BUILD_OK "+report.summary.totalSize);
  }
 }
 }

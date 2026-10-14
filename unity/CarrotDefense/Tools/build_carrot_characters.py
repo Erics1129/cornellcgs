@@ -3,7 +3,7 @@ sys.path.insert(0,os.path.dirname(__file__))
 from build_carrot_models import *
 from mathutils import Vector,Matrix
 
-ROSTER=[('nibble','mushnub',.70),('dash','bunny',.91),('shell','spider',.67),('swarm','green-blob',.51),('moth','armabee',.77),('shaman','mushroom-king',.95),('burrow','yeti',.67),('crystal','spiky-blob',.73),('garden','mushroom-king',2.05),('marsh','squidle',1.90),('frost','mushroom-king',2.05),('orchard','mushroom-king',2.15)]
+ROSTER=[('nibble','mushnub',.70),('dash','bunny',.91),('shell','spider',.67),('swarm','green-blob',.51),('moth','armabee',.77),('shaman','mushroom-king',.95),('burrow','yeti',.67),('crystal','spiky-blob',.73),('garden','mushroom-king',2.05),('marsh','squidle',1.90),('frost','mushroom-king',2.05),('orchard','mushroom-king',2.15),('zombie','mushroom-king',2.3)]
 
 def bounds(meshes):
  dg=bpy.context.evaluated_depsgraph_get();pts=[]
@@ -44,7 +44,7 @@ def append_skin(o,arm,root,source_center,factor,bone=None):
  return o
 
 def recolor_source(meshes,kind):
- palette={'nibble':(.66,.31,.11,1),'dash':(.67,.53,.34,1),'shell':(.30,.18,.05,1),'swarm':(.24,.65,.36,1),'moth':(.36,.31,.47,1),'shaman':(.43,.18,.26,1),'burrow':(.36,.24,.17,1),'crystal':(.31,.63,.75,1),'garden':(.32,.39,.22,1),'marsh':(.13,.53,.51,1),'frost':(.87,.92,.92,1),'orchard':(.55,.42,.25,1)}
+ palette={'nibble':(.66,.31,.11,1),'dash':(.67,.53,.34,1),'shell':(.30,.18,.05,1),'swarm':(.24,.65,.36,1),'moth':(.36,.31,.47,1),'shaman':(.43,.18,.26,1),'burrow':(.36,.24,.17,1),'crystal':(.31,.63,.75,1),'garden':(.32,.39,.22,1),'marsh':(.13,.53,.51,1),'frost':(.87,.92,.92,1),'orchard':(.55,.42,.25,1),'zombie':(.46,.55,.38,1)}
  for o in meshes:
   old=list(o.data.materials);a=o.data.color_attributes.get('Color') or o.data.color_attributes.new(name='Color',type='FLOAT_COLOR',domain='CORNER')
   for p in o.data.polygons:
@@ -108,9 +108,13 @@ def make(kind,source,height):
   for i in range(7):a=i*2.4;crystal('CrystalCarapace',(.19*cos(a),.14*sin(a),.39),.060,.25+.06*(i%2),ICE,details)
   for s in [-1,1]:
    for j in range(2):tube('CrystalLeg',[(s*.16,.14-j*.22,.32),(s*.31,.15-j*.24,.22),(s*.34,.17-j*.27,.07)],[.043,.03,.012],(.26,.50,.66,1),details,7)
- elif kind in ['garden','marsh','frost','orchard']:
-  from sculpt_carrot_details import build_boss
-  build_boss(kind,details)
+ elif kind in ['garden','marsh','frost','orchard','zombie']:
+  if kind=='zombie':
+   from sculpt_challenge_bosses import zombie
+   zombie(details)
+  else:
+   from sculpt_carrot_details import build_boss
+   build_boss(kind,details)
   for source_mesh in meshes:bpy.data.objects.remove(source_mesh,do_unlink=True)
   meshes=[]
  # Bind details to closest practical bone in the idle pose; source rig animations retained.

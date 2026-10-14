@@ -29,7 +29,7 @@ public static class CarrotPipeline {
   if(core!=null){core.stripRuntimeDebugShaders=true;core.exportShaderVariants=false;}
   var global=GraphicsSettings.GetSettingsForRenderPipeline<UniversalRenderPipeline>();
   if(global!=null)EditorUtility.SetDirty(global);
-  foreach(var biome in new[]{"garden","marsh","frost","orchard"})Profile(biome);
+  foreach(var biome in new[]{"garden","marsh","frost","orchard","arena"})Profile(biome);
   AssetDatabase.SaveAssets();AssetDatabase.Refresh();
   Debug.Log("CARROT_PIPELINE_READY high="+AssetDatabase.GetAssetPath(high)+" medium="+AssetDatabase.GetAssetPath(medium)+" low="+AssetDatabase.GetAssetPath(low));
  }
@@ -98,14 +98,16 @@ public static class CarrotPipeline {
   T Add<T>() where T:VolumeComponent{var c=profile.Add<T>(true);c.name=typeof(T).Name;AssetDatabase.AddObjectToAsset(c,profile);return c;}
   var tone=Add<Tonemapping>();tone.mode.value=TonemappingMode.ACES;
   var bloom=Add<Bloom>();bloom.threshold.value=.9f;bloom.intensity.value=.35f;bloom.scatter.value=.6f;bloom.clamp.value=8;bloom.highQualityFiltering.value=true;
-  var adjust=Add<ColorAdjustments>();adjust.postExposure.value=biome=="garden"?.35f:biome=="marsh"?.15f:biome=="orchard"?.25f:-.05f;adjust.contrast.value=biome=="garden"?8:biome=="marsh"?10:biome=="orchard"?9:6;adjust.saturation.value=biome=="garden"?3:biome=="marsh"?2:biome=="orchard"?6:0;
+  // Arena (the challenge boss fights): the orchard grade cloned as a dusk amphitheatre, a touch darker and more contrasted so the boss and the lantern pads carry the frame.
+  bool arena=biome=="arena";
+  var adjust=Add<ColorAdjustments>();adjust.postExposure.value=biome=="garden"?.35f:biome=="marsh"?.15f:biome=="orchard"?.25f:arena?.15f:-.05f;adjust.contrast.value=biome=="garden"?8:biome=="marsh"?10:biome=="orchard"?9:arena?12:6;adjust.saturation.value=biome=="garden"?3:biome=="marsh"?2:biome=="orchard"?6:arena?5:0;
   // The garden read with a yellow-green cast: pull its green channel toward neutral in the midtones and highlights.
-  adjust.colorFilter.value=biome=="garden"?new Color(1,.975f,1):biome=="orchard"?new Color(1,.97f,.92f):Color.white;
-  var vignette=Add<Vignette>();vignette.intensity.value=biome=="orchard"?.18f:.15f;vignette.smoothness.value=.5f;vignette.color.value=biome=="marsh"?new Color(.02f,.04f,.08f):biome=="orchard"?new Color(.08f,.04f,.03f):new Color(.05f,.05f,.08f);
+  adjust.colorFilter.value=biome=="garden"?new Color(1,.975f,1):biome=="orchard"||arena?new Color(1,.97f,.92f):Color.white;
+  var vignette=Add<Vignette>();vignette.intensity.value=biome=="orchard"?.18f:arena?.24f:.15f;vignette.smoothness.value=.5f;vignette.color.value=biome=="marsh"?new Color(.02f,.04f,.08f):biome=="orchard"?new Color(.08f,.04f,.03f):arena?new Color(.05f,.02f,.07f):new Color(.05f,.05f,.08f);
   var dof=Add<DepthOfField>();dof.mode.value=DepthOfFieldMode.Gaussian;dof.gaussianStart.value=24;dof.gaussianEnd.value=44;dof.gaussianMaxRadius.value=1;dof.highQualitySampling.value=false;
   var smh=Add<ShadowsMidtonesHighlights>();
-  smh.shadows.value=biome=="garden"?new Vector4(.98f,.99f,1.05f,0):biome=="marsh"?new Vector4(.92f,.98f,1.12f,0):biome=="orchard"?new Vector4(1.02f,.98f,.95f,0):new Vector4(.94f,.97f,1.08f,0);
-  smh.highlights.value=biome=="garden"?new Vector4(1.04f,.99f,.96f,0):biome=="marsh"?new Vector4(.9f,1,1.1f,0):biome=="orchard"?new Vector4(1.06f,.98f,.92f,0):new Vector4(1,1,1.02f,0);
+  smh.shadows.value=biome=="garden"?new Vector4(.98f,.99f,1.05f,0):biome=="marsh"?new Vector4(.92f,.98f,1.12f,0):biome=="orchard"?new Vector4(1.02f,.98f,.95f,0):arena?new Vector4(.96f,.94f,1.08f,0):new Vector4(.94f,.97f,1.08f,0);
+  smh.highlights.value=biome=="garden"?new Vector4(1.04f,.99f,.96f,0):biome=="marsh"?new Vector4(.9f,1,1.1f,0):biome=="orchard"?new Vector4(1.06f,.98f,.92f,0):arena?new Vector4(1.08f,.97f,.94f,0):new Vector4(1,1,1.02f,0);
   var chroma=Add<ChromaticAberration>();chroma.intensity.value=0;
   EditorUtility.SetDirty(profile);
  }

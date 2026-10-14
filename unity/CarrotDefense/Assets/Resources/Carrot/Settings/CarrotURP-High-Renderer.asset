@@ -1,6 +1,6 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
---- !u!114 &-8729069813881890138
+--- !u!114 &-1544987841841226167
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -26,7 +26,7 @@ MonoBehaviour:
     BlurQuality: 1
     Falloff: 60
     SampleCount: -1
---- !u!114 &-3316868416119387530
+--- !u!114 &-1417120152452493070
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -71,8 +71,8 @@ MonoBehaviour:
     probeSamplingDebugTexture: {fileID: 0}
     probeVolumeBlendStatesCS: {fileID: 0}
   m_RendererFeatures:
-  - {fileID: -3316868416119387530}
-  m_RendererFeatureMap: 76ca7dc2bf1df8d1
+  - {fileID: -1417120152452493070}
+  m_RendererFeatureMap: f29005c5ba6055ec
   m_UseNativeRenderPass: 0
   postProcessData: {fileID: 11400000, guid: 41439944d30ece34e96484bdb6645b55, type: 2}
   m_AssetVersion: 3

@@ -47,6 +47,35 @@ Ordinary creatures adapt Quaternius geometry with original costumes/details. All
 
 Carrot: **23,056 triangles / 16 mesh objects**, with modeled eyes, pupils/catchlights, brows, limbs, thick leaf blades, skin creases, root hairs, three mouth states and a separate bite patch. Eye/limb/leaf movement and facial-state changes are driven by the view code. No skeletal facial rig or simulated flesh/fur is present.
 
+### Ten Super forms (tier 5) and three challenge bosses (branch carrot-boss)
+
+Super forms are real fifth meshes exported by `Tools/build_carrot_models.py -- super` (manifest merged into `original-model-manifest.json`, now 51 entries). Every kind-5 carries the shared Super kit (gold `SuperPlinth`, `SuperHalo` ring on a new `Ring03` pivot, three `SuperGem` crystals, seven `CrownSpike` leaves, the whole model scaled x1.12) plus a per-kind flourish, and stays within 1.35x its kind-4 triangle count. `SuperGlow` is a new vertex-colour emissive surface (`Models/Materials/SuperGlow.mat`, emission white x2.8, `_SuperPulse` 1) whose detail map `SuperGlowDetail.png` is a 256 px tileable value-noise image written by `Tools/generate_super_glow_detail.py`, not a generated picture.
+
+| Super form | Tier 4 tris | Tier 5 tris (budget) | Unity height tier 4 -> 5 | Flourish |
+|---|---:|---:|---|---|
+| `seed-5` Harvest Cannon | 12,976 | 16,220 (17,517) | 1.33 -> 1.96 | Four barrels on a wide saddle. |
+| `frost-5` Glacier Bloom | 8,036 | 10,724 (10,848) | 1.30 -> 2.16 | Fourteen ice petals and a third tilted ice orbit with pearls. |
+| `mortar-5` Pumpkin Howitzer | 4,570 | 5,758 (6,169) | 1.20 -> 2.00 | Six pumpkin fins around the lobed gold vessel. |
+| `prism-5` Sunfocus Crystal | 6,158 | 7,968 (8,313) | 1.55 -> 2.39 | A second prism stacked above the first and a rune halo on `Ring02`. |
+| `storm-5` Tempest Bell | 4,700 | 5,692 (6,345) | 1.55 -> 2.13 | Five bells (`Bell01..05`) between conductive antlers. |
+| `blossom-5` Solar Blossom | 14,478 | 18,592 (19,545) | 1.17 -> 1.94 | Four petal rings. |
+| `starfruit-5` Constellation | 8,512 | 10,056 (11,491) | 1.44 -> 2.00 | Seven orbit stars and the second orbit ring. |
+| `gravity-5` Event Horizon | 6,856 | 8,952 (9,255) | 1.54 -> 2.18 | Six accretion rings and eleven orbiting debris stones. |
+| `book-5` Grimoire | 4,004 | 5,328 (5,405) | 1.39 -> 2.02 | Three floating pages, a third candle and a rune circle on `Ring02`. |
+| `thunder-5` Stormcrown | 10,568 | 12,404 (14,266) | 1.52 -> 2.09 | Five lightning rods and six storm fins. |
+
+Heights are the `MODEL_BOUNDS` sizes logged by `CarrotBuild.Prepare` (metres, Unity Y). Prefabs: `Carrot/Models/Towers/{kind}-5`; when a `-5` FBX is missing, Prepare logs a warning and the view falls back to tier 4.
+
+| Challenge boss | Build | Triangles (budget) | Named parts for the view | Clips |
+|---|---|---:|---|---|
+| `tornado` Giant Tornado (level 25) | Non-animated prop, `build_carrot_models.py -- challenge` | 9,064 (14,000) | `FunnelTier0..4` lathed hollow-mouthed frusta with a slate-to-pale vertex gradient, `DebrisRing0..2` with planks, pebbles, torn leaves and a gold pumpkin, two amber `StormEye` glows, a dark maw, 12 `LightningVein` tubes | none (spun and bobbed by the view) |
+| `zombie` Gravewalker Zombie (level 26) | Mushroom King rig (CC0) with original sculpt `sculpt_challenge_bosses.py`, `build_carrot_characters.py -- zombie` | 18,292 (30,000) | `LivingTrunk`, two `TwistedArm`s with `GraspingRoot` fingers, one `HangingArm`, `LegMuscle`s, a fused and decimated pumpkin `SkullHead` with glowing green sockets, `RibPlate`s, `BurlapPanel` rags with straw tufts, a shoulder crow | 14 source clips incl. Walk, Punch, Death, HitReact |
+| `eyeball` The Unknown Eyeball (level 27) | Non-animated prop, `build_carrot_models.py -- challenge` | 7,016 (16,000) | `Sclera`, `Iris` (crimson Glow dish) and `Pupil` on their own pivots, 8 `IrisFold`s, 14 `Vein`s, `UpperLid`/`LowerLid` shells, `Tentacle0..5` thorned vines, 3 trailing `NerveStalk`s | none (hovered, blinked and swung by the view) |
+
+Prop counts are recorded in `Tools/challenge-prop-manifest.json`; the zombie row is the 13th entry of `character-model-manifest.json`. Prefabs: `Carrot/Models/Bosses/{tornado,zombie,eyeball}`. Honesty note: the ChatGPT plates `26-super-forms.jpg`, `27-super-emblems.png` (imported as `Textures/SuperEmblems.png`, the decal sprite under Super towers) and the boss sheets `35`-`37` are 2D paintings and sprite sheets used as look references and as flat surface/decal detail; they are not 3D models and the meshes above do not reproduce them.
+
+Review plates: `docs/carrot-defense/screenshots/model-review-super.png` (each kind-4 beside its kind-5) and `model-review-challenge-bosses.png` (the three bosses at the game camera's 34 degree pitch), both rendered by `Tools/render_model_review.py -- super|challenge` from the exported FBX files with preview materials; they are Blender renders, not Unity frames.
+
 ### Geometry and rig limits relevant to fidelity
 
 - The models remain stylized real-time forms. The generated reference sheets show richer anatomy, material transitions and detail than the implemented assets; matching visual quality has not been demonstrated.
@@ -129,6 +158,6 @@ Add-on packages (local tarballs from the editor's PackageManager folder, referen
 
 ## Reproducibility
 
-Authoring sources: `Tools/build_carrot_models.py`, `sculpt_carrot_details.py`, `build_carrot_characters.py`, `build_carrot_nature.py`. Import/prefab creation: `Assets/Editor/CarrotModels.cs`. Exact model counts and source clip names: `Tools/original-model-manifest.json` and `Tools/character-model-manifest.json`. The authoring files and original licensed source records are preserved. Current axis handling bakes import conversion and keeps an identity outer prefab plus preserved native animation hierarchy. Artist-authored tower/carrot fronts map to Unity -Z; facing in View must account for that.
+Authoring sources: `Tools/build_carrot_models.py`, `sculpt_carrot_details.py`, `sculpt_challenge_bosses.py`, `build_carrot_characters.py`, `build_carrot_nature.py`, `generate_super_glow_detail.py`. Import/prefab creation: `Assets/Editor/CarrotModels.cs`. Exact model counts and source clip names: `Tools/original-model-manifest.json` and `Tools/character-model-manifest.json`. The authoring files and original licensed source records are preserved. Current axis handling bakes import conversion and keeps an identity outer prefab plus preserved native animation hierarchy. Artist-authored tower/carrot fronts map to Unity -Z; facing in View must account for that.
 
 Generated material settings and Blender preview lighting are not interchangeable with the live Unity shader/camera. Final visual approval requires runtime review of combat, a boss encounter, carrot contact, upgraded towers, touch controls and sound.

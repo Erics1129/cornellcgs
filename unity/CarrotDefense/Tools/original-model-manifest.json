@@ -285,5 +285,75 @@
     "animated": false,
     "meshes": 6,
     "clips": []
+  },
+  {
+    "name": "seed-5",
+    "triangles": 16220,
+    "animated": false,
+    "meshes": 11,
+    "clips": []
+  },
+  {
+    "name": "frost-5",
+    "triangles": 10724,
+    "animated": false,
+    "meshes": 11,
+    "clips": []
+  },
+  {
+    "name": "mortar-5",
+    "triangles": 5758,
+    "animated": false,
+    "meshes": 8,
+    "clips": []
+  },
+  {
+    "name": "prism-5",
+    "triangles": 7968,
+    "animated": false,
+    "meshes": 11,
+    "clips": []
+  },
+  {
+    "name": "blossom-5",
+    "triangles": 18592,
+    "animated": false,
+    "meshes": 12,
+    "clips": []
+  },
+  {
+    "name": "starfruit-5",
+    "triangles": 10056,
+    "animated": false,
+    "meshes": 12,
+    "clips": []
+  },
+  {
+    "name": "gravity-5",
+    "triangles": 8952,
+    "animated": false,
+    "meshes": 15,
+    "clips": []
+  },
+  {
+    "name": "thunder-5",
+    "triangles": 12404,
+    "animated": false,
+    "meshes": 8,
+    "clips": []
+  },
+  {
+    "name": "storm-5",
+    "triangles": 5692,
+    "animated": false,
+    "meshes": 18,
+    "clips": []
+  },
+  {
+    "name": "book-5",
+    "triangles": 5328,
+    "animated": false,
+    "meshes": 14,
+    "clips": []
   }
 ]

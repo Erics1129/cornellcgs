@@ -11,7 +11,9 @@ public static class CarrotModels {
     const string Root = "Assets/Resources/Carrot";
     static readonly string[] Kinds = { "seed", "frost", "mortar", "prism", "storm", "blossom", "starfruit", "gravity", "book", "thunder" };
     static readonly string[] Enemies = { "nibble", "dash", "shell", "swarm", "moth", "shaman", "burrow", "crystal" };
-    static readonly string[] Bosses = { "garden", "marsh", "frost", "orchard" };
+    static readonly string[] Bosses = { "garden", "marsh", "frost", "orchard", "zombie" };
+    /// <summary>Non-animated multi-part challenge bosses: the view spins and bobs their named pivots.</summary>
+    static readonly string[] Props = { "tornado", "eyeball" };
     public static void Prepare() {
         Directory.CreateDirectory(Root + "/Models/Materials");
         Directory.CreateDirectory(Root + "/Models/Towers");
@@ -23,14 +25,20 @@ public static class CarrotModels {
         foreach (var path in Directory.GetFiles(Root + "/Models/Source", "*.fbx")) Configure(path.Replace('\\','/'));
         if (Directory.Exists(Root + "/Nature/Source")) foreach (var path in Directory.GetFiles(Root + "/Nature/Source", "*.fbx")) Configure(path.Replace('\\','/'));
         Make("Carrot", "Models/Carrot", false);
-        foreach (string kind in Kinds) for (int tier=1; tier<=4; tier++) Make(kind + "-" + tier, "Models/Towers/" + kind + "-" + tier, false);
+        foreach (string kind in Kinds) for (int tier=1; tier<=5; tier++) {
+            // The Super form (tier 5) is optional until its Blender export lands; the view falls back to tier 4.
+            if (tier==5 && !File.Exists(Root + "/Models/Source/" + kind + "-5.fbx")) { Debug.LogWarning("Super model missing (view falls back to tier 4): " + kind + "-5"); continue; }
+            Make(kind + "-" + tier, "Models/Towers/" + kind + "-" + tier, false);
+        }
         foreach (string kind in Enemies) Make(kind, "Models/Enemies/" + kind, true);
         foreach (string kind in Bosses) Make(kind, "Models/Bosses/" + kind, true);
+        foreach (string kind in Props) Make(kind, "Models/Bosses/" + kind, false);
+        PrepareSuperEmblems();
         if (Directory.Exists(Root + "/Nature/Source")) foreach (var path in Directory.GetFiles(Root + "/Nature/Source", "*.fbx")) Make(Path.GetFileNameWithoutExtension(path), "Nature/"+Path.GetFileNameWithoutExtension(path), false, true);
         ConfigureAudio();
         AssetDatabase.SaveAssets();
         AssetDatabase.Refresh();
-        Debug.Log("Carrot models prepared: 40 physical tower tiers, articulated carrot, 12 animated creatures, curated nature and licensed audio.");
+        Debug.Log("Carrot models prepared: 50 physical tower tiers, 15 animated creatures and props, articulated carrot, curated nature and licensed audio.");
     }
     static void Configure(string path) {
         var importer = AssetImporter.GetAtPath(path) as ModelImporter;
@@ -69,6 +77,16 @@ public static class CarrotModels {
             importer.clipAnimations=clips;
             importer.SaveAndReimport();
         }
+    }
+    static void PrepareSuperEmblems() {
+        // Ten round golden sigils (5x2 cells) decaled under Super towers; imported like VfxSheet.
+        string path=Root+"/Textures/SuperEmblems.png";
+        var importer=AssetImporter.GetAtPath(path) as TextureImporter;
+        if(importer==null){Debug.LogWarning("SuperEmblems.png missing; the view uses the FxSheet Star6 fallback.");return;}
+        importer.textureType=TextureImporterType.Default;importer.sRGBTexture=true;importer.alphaSource=TextureImporterAlphaSource.FromInput;importer.alphaIsTransparency=true;importer.mipmapEnabled=true;importer.wrapMode=TextureWrapMode.Clamp;importer.filterMode=FilterMode.Trilinear;importer.anisoLevel=2;importer.isReadable=false;importer.maxTextureSize=1024;CarrotBuild.WebTexture(importer,1024,90);importer.SaveAndReimport();
+        string glow=Root+"/Models/Materials/SuperGlowDetail.png";
+        var gi=AssetImporter.GetAtPath(glow) as TextureImporter;
+        if(gi!=null){gi.sRGBTexture=true;gi.wrapMode=TextureWrapMode.Repeat;gi.filterMode=FilterMode.Trilinear;gi.mipmapEnabled=true;gi.maxTextureSize=256;gi.isReadable=false;CarrotBuild.WebTexture(gi,256,70);gi.SaveAndReimport();}
     }
     static void PrepareSurfaceTextures() {
         string atlasPath=Root+"/Textures/MaterialAtlas.png";
@@ -109,7 +127,7 @@ public static class CarrotModels {
         }
     }
     static Material Surface(string category) {
-        string[] categories={"Metal","Glow","Carrot","Leaf","Bark","Stone","Fur","Scale","Petal"};
+        string[] categories={"SuperGlow","Metal","Glow","Carrot","Leaf","Bark","Stone","Fur","Scale","Petal"};
         category=categories.FirstOrDefault(c=>category.StartsWith(c,StringComparison.Ordinal)) ?? "Organic";
         string path=Root+"/Models/Materials/"+category+".mat";
         var material=AssetDatabase.LoadAssetAtPath<Material>(path);
@@ -123,11 +141,17 @@ public static class CarrotModels {
         var detail=AssetDatabase.LoadAssetAtPath<Texture2D>(Root+"/Models/Materials/"+category+"Detail.png");
         material.SetTexture("_MainTex",detail);
         material.SetTextureScale("_MainTex",new Vector2(category=="Carrot"?3f:2f,2f));
-        material.SetFloat("_Metallic",category=="Metal"?.85f:0f);
-        material.SetFloat("_Glossiness",category=="Metal"?.68f:category=="Glow"?.88f:category=="Scale"?.62f:category=="Carrot"?.40f:category=="Fur"?.14f:category=="Leaf"?.45f:category=="Petal"?.42f:category=="Bark"?.30f:category=="Stone"?.22f:.38f);
+        material.SetFloat("_Metallic",category=="Metal"?.85f:category=="SuperGlow"?.6f:0f);
+        material.SetFloat("_Glossiness",category=="Metal"?.68f:category=="SuperGlow"?.9f:category=="Glow"?.88f:category=="Scale"?.62f:category=="Carrot"?.40f:category=="Fur"?.14f:category=="Leaf"?.45f:category=="Petal"?.42f:category=="Bark"?.30f:category=="Stone"?.22f:.38f);
         material.SetFloat("_Translucency",category=="Leaf"?.55f:category=="Petal"?.45f:category=="Fur"?.25f:category=="Carrot"?.15f:0f);
         material.SetFloat("_SnowStrength",.35f);
-        material.SetColor("_EmissionColor",category=="Glow"?new Color(.11f,.13f,.14f,1)*2.2f:Color.black);
+        material.SetColor("_EmissionColor",category=="SuperGlow"?Color.white*2.8f:category=="Glow"?new Color(.11f,.13f,.14f,1)*2.2f:Color.black);
+        // Storybook pulses emission only where _SuperPulse is set, driven by the global _CarrotSuperPulse.
+        material.SetFloat("_SuperPulse",category=="SuperGlow"?1f:0f);
+        if(category=="SuperGlow") {
+            var superDetail=AssetDatabase.LoadAssetAtPath<Texture2D>(Root+"/Models/Materials/SuperGlowDetail.png")??AssetDatabase.LoadAssetAtPath<Texture2D>(Root+"/Models/Materials/MetalDetail.png");
+            material.SetTexture("_MainTex",superDetail);
+        }
         string pbr=Root+"/Textures/PBR/"+category;
         if(category=="Carrot"||category=="Leaf"||category=="Fur"||category=="Scale") {
             var biological=AssetDatabase.LoadAssetAtPath<Texture2D>(pbr+"Albedo.png")??AssetDatabase.LoadAssetAtPath<Texture2D>(pbr+"Albedo.jpg");
@@ -178,7 +202,7 @@ public static class CarrotModels {
         // FBX may contain an explicit artist root rotation even after axis import.
         // Preserve the artwork exactly, but expose predictable Unity-space pivots
         // to the runtime animation layer. Creature bones are deliberately excluded.
-        string[] names={"Turret","Core","Barrel","Petals","Pages","Leaves","EyeL","EyeR","ArmL","ArmR","BrowL","BrowR","Muzzle","Ring01","Ring02","Bell01","Bell02","Bell03"};
+        string[] names={"Turret","Core","Barrel","Petals","Pages","Leaves","EyeL","EyeR","ArmL","ArmR","BrowL","BrowR","Muzzle","Ring01","Ring02","Ring03","Bell01","Bell02","Bell03","Bell04","Bell05","FunnelTier0","FunnelTier1","FunnelTier2","FunnelTier3","FunnelTier4","DebrisRing0","DebrisRing1","DebrisRing2","UpperLid","LowerLid","Pupil","Iris","Tentacle0","Tentacle1","Tentacle2","Tentacle3","Tentacle4","Tentacle5"};
         var parts=imported.GetComponentsInChildren<Transform>(true).Where(t=>names.Contains(t.name)).ToArray();
         foreach(var part in parts) {
             string name=part.name;var parent=part.parent;int index=part.GetSiblingIndex();

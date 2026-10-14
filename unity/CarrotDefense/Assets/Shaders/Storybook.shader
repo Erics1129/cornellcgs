@@ -8,6 +8,7 @@ Shader "Carrot/Storybook" {
   _EmissionColor("Emission",Color)=(0,0,0,0) _WorldTexture("World texture",Float)=0 _TextureScale("Texture scale",Float)=1
   _ReflectionStrength("Reflection strength",Range(0,2))=.8 _Cutoff("Alpha cutoff",Range(0,1))=0 _Cull("Cull mode",Float)=2 _Wind("Wind motion",Range(0,.1))=0
   _Translucency("Translucency",Range(0,1))=0 _Bend("Grass bend",Float)=0 _Dissolve("Dissolve",Range(0,1))=0 _DissolveEdge("Dissolve edge",Color)=(1,.6,.2,1) _SnowStrength("Snow strength",Range(0,1))=1
+  _SuperPulse("Super pulse",Float)=0
  }
  SubShader { Tags {"RenderType"="Opaque" "RenderPipeline"="UniversalPipeline" "Queue"="Geometry"} Cull [_Cull]
   HLSLINCLUDE
@@ -15,8 +16,10 @@ Shader "Carrot/Storybook" {
   TEXTURE2D(_MainTex);SAMPLER(sampler_MainTex);TEXTURE2D(_BumpMap);SAMPLER(sampler_BumpMap);TEXTURE2D(_RoughnessMap);SAMPLER(sampler_RoughnessMap);TEXTURE2D(_OcclusionMap);SAMPLER(sampler_OcclusionMap);
   CBUFFER_START(UnityPerMaterial)
   float4 _MainTex_ST,_Color,_EmissionColor,_DissolveEdge;
-  float _Metallic,_Glossiness,_WorldTexture,_TextureScale,_BumpScale,_UseRoughnessMap,_UseOcclusionMap,_OcclusionStrength,_ReflectionStrength,_Cutoff,_AlbedoSaturation,_AlbedoGain,_Wind,_VertexColorSRGB,_Translucency,_Dissolve,_SnowStrength,_Bend;
+  float _Metallic,_Glossiness,_WorldTexture,_TextureScale,_BumpScale,_UseRoughnessMap,_UseOcclusionMap,_OcclusionStrength,_ReflectionStrength,_Cutoff,_AlbedoSaturation,_AlbedoGain,_Wind,_VertexColorSRGB,_Translucency,_Dissolve,_SnowStrength,_Bend,_SuperPulse;
   CBUFFER_END
+  // Written once per frame by CarrotView: the Super towers' emission pulse (only materials with _SuperPulse read it, so wood and pots never glow).
+  float _CarrotSuperPulse;
   struct appdata {float4 vertex:POSITION;float3 normal:NORMAL;float4 tangent:TANGENT;float2 uv:TEXCOORD0;float4 color:COLOR;UNITY_VERTEX_INPUT_INSTANCE_ID};
   float3 CarrotWorld(float4 vertex,float2 uv){float3 w=CarrotWind(TransformObjectToWorld(vertex.xyz),_Wind,uv.y);if(_Bend>0)w=CarrotPush(w,uv.y);return w;}
   void CarrotDissolveClip(float3 world){if(_Dissolve>0)clip(CarrotHash(floor(world*23))-_Dissolve);}
@@ -95,7 +98,7 @@ Shader "Carrot/Storybook" {
     float3 indirectSpecular=GlossyEnvironmentReflection(reflectVector,i.world,brdf.perceptualRoughness,1,screenUV)*specAO*_ReflectionStrength*(1-snow*.6);
     color+=EnvironmentBRDF(brdf,gi*occlusion,indirectSpecular,fresnelTerm);
     color+=i.vertexLight*albedo;
-    color+=_EmissionColor.rgb;
+    color+=_EmissionColor.rgb*(1+_SuperPulse*_CarrotSuperPulse);
     if(_Dissolve>0){float edge=1-saturate((CarrotHash(floor(i.world*23))-_Dissolve)/.06);color+=_DissolveEdge.rgb*edge*edge*2.5;}
     color=MixFog(color,i.fog);
     return float4(color,1);

@@ -28,9 +28,11 @@ def mat(name='Organic'):
  if m:return m
  m=bpy.data.materials.new(name);m.use_nodes=True;n=m.node_tree.nodes;bs=n.get('Principled BSDF');v=n.new('ShaderNodeVertexColor');v.layer_name='Color';m.node_tree.links.new(v.outputs['Color'],bs.inputs['Base Color']);bs.inputs['Roughness'].default_value=.42 if name=='Metal' else .7;bs.inputs['Metallic'].default_value=.68 if name=='Metal' else 0
  if name=='Glow':m.node_tree.links.new(v.outputs['Color'],bs.inputs['Emission Color']);bs.inputs['Emission Strength'].default_value=.25
+ if name=='SuperGlow':m.node_tree.links.new(v.outputs['Color'],bs.inputs['Emission Color']);bs.inputs['Emission Strength'].default_value=2.0;bs.inputs['Metallic'].default_value=.6;bs.inputs['Roughness'].default_value=.18
  return m
 
 def mesh(name,verts,faces,col,parent,material='Organic',smooth=True):
+ if name.startswith('Super') and material!='Metal':material='SuperGlow'
  if material=='Organic':
   if name=='CarrotSkin':material='Carrot'
   elif name=='SculptedFur':material='Fur'
@@ -90,10 +92,10 @@ def ellipsoid(name,loc,scale,col,parent,segments=16,rings=10,material='Organic')
   for i in range(segments):k=j*segments+i;n=j*segments+(i+1)%segments;fs.append((k,n,n+segments,k+segments))
  return mesh(name,vs,fs,col,parent,material)
 
-def leaf(name,start,end,width,col,parent,curve=.08,material='Organic'):
+def leaf(name,start,end,width,col,parent,curve=.08,material='Organic',N=9):
  a=Vector(start);b=Vector(end);d=b-a;side=d.cross(Vector((0,0,1)))
  if side.length<.01:side=Vector((1,0,0))
- side.normalize();vs=[];N=9
+ side.normalize();vs=[]
  for j in range(N):
   t=j/(N-1);mid=a+d*t+Vector((0,0,curve*sin(pi*t)));w=width*sin(pi*t)**.75
   for u in [-1,0,1]:vs.append(tuple(mid+side*w*u+Vector((0,0,.022*(1-abs(u))*sin(pi*t)))))
@@ -159,7 +161,7 @@ def tower(kind,t):
  CURRENT_KIND=kind
  clear();root=empty(kind+'-'+str(t));base(root,t);turret=empty('Turret',root);core=empty('Core',turret);petals=empty('Petals',turret);muzzle=empty('Muzzle',turret,(0,-.40,1.0));top=1.10+.10*(t-1)
  if kind=='seed':
-  stalk(turret,.58);box('Saddle',(0,0,.60),(.40,.26,.12),GOLD,turret,.035,'Metal');bar=empty('Barrel',turret)
+  stalk(turret,.58);box('Saddle',(0,0,.60),(.40 if t<5 else .78,.26,.12),GOLD,turret,.035,'Metal');bar=empty('Barrel',turret)
   count=1 if t<3 else t-1
   for i in range(count):barrel(bar,((i-(count-1)/2)*.23,.12,.80+(.04 if t==4 and i==1 else 0)),.115 if t<3 else .10,.52+.035*t)
   lathe('SeedHopper',[(.10,0),(.17,.19),(.21,.22)],BARK,turret,(0,.17,.74),20)
@@ -168,7 +170,7 @@ def tower(kind,t):
   for side in [-1,1]:
    leaf('LeafShield',(side*.15,.11,.55),(side*(.28+.025*t),-.05,1.05),.12,LEAF,petals,.04)
    if t>=2:box('RecoilGear',(side*.23,.02,.72),(.035,.19,.19),BRASS,turret,.025,'Metal')
-  if t==4:
+  if t>=4:
    for i in range(5):a=pi*i/4;leaf('CrownLeaf',(.20*cos(a),.12,.90),(.31*cos(a),.14,1.21+.12*sin(a)),.065,BRASS,petals,.03,'Metal')
  elif kind=='frost':
   stalk(turret,.76);ring('BudCollar',.15,.74,BRASS,turret,.035)
@@ -180,9 +182,13 @@ def tower(kind,t):
    for i in range(t+1):a=i*2*pi/(t+1);crystal('IceSatellite',(.25*cos(a),.25*sin(a),.65),.045,.27,ICE,turret)
   if t>=3:
    r=empty('Ring01',turret);ring('GoldHalo',.33,1.03,BRASS,r,.015)
-  if t==4:
+  if t>=4:
    r=empty('Ring02',turret);ring('IceOrbit',.43,1.2,ICE,r,.018,material='Glow')
    for a in [0,2.1,4.2]:ellipsoid('SnowPearl',(.43*cos(a),.43*sin(a),1.2),(.055,)*3,ICE,r,12,8,'Glow')
+   if t==5:
+    # Third ice orbit: a wider tilted ring with its own pearls on the second pivot.
+    o=ring('IceOrbitOuter',.56,1.32,ICE,r,.016,32,material='Glow');o.rotation_euler=(.35,0,0)
+    for a in [1.05,3.15,5.25]:ellipsoid('SnowPearl',(.56*cos(a),.56*sin(a)*cos(.35),1.32+.56*sin(a)*sin(.35)),(.05,)*3,ICE,r,10,6,'Glow')
  elif kind=='mortar':
   for a in [0,2*pi/3,4*pi/3]:tube('MortarLeg',[(.12*cos(a),.12*sin(a),.52),(.31*cos(a),.31*sin(a),.32),(.34*cos(a),.34*sin(a),.19)],[.075,.10,.055],BARK,turret,10)
   col=(.58,.23,.09,1) if t<4 else GOLD
@@ -192,8 +198,8 @@ def tower(kind,t):
   if t>=2:
    for a in [0,pi]:ring('PotHandle',.095,.74,GOLD,turret,.025,20,(.35*cos(a),0))
   if t>=3:ellipsoid('SeedShell',(0,0,.86),(.18,.18,.21),GREEN,core,20,12);tube('Fuse',[(0,0,1.04),(.03,0,1.13),(.08,0,1.16)],[.019,.018,.007],BRASS,core)
-  if t==4:
-   for a in [pi/4,3*pi/4,5*pi/4,7*pi/4]:leaf('PumpkinFin',(.18*cos(a),.18*sin(a),.70),(.42*cos(a),.42*sin(a),1.02),.08,BRASS,petals,.07,'Metal')
+  if t>=4:
+   for a in ([pi/4,3*pi/4,5*pi/4,7*pi/4] if t==4 else [pi/6+i*pi/3 for i in range(6)]):leaf('PumpkinFin',(.18*cos(a),.18*sin(a),.70),(.42*cos(a),.42*sin(a),1.02),.08,BRASS,petals,.07,'Metal')
   muzzle.location=(0,0,1.12)
  elif kind=='prism':
   stalk(turret,.88)
@@ -203,22 +209,27 @@ def tower(kind,t):
    for a in [0,2*pi/3,4*pi/3]:crystal('MinorPrism',(.23*cos(a),.23*sin(a),.70+.03*t),.045+.005*t,.23,VIOLET,turret)
   if t>=3:
    r=empty('Ring01',turret);ring('RuneHalo',.31,1.11,GOLD,r,.014)
-  if t==4:
+  if t==5:
+   # A second prism stacked above the first and a rune halo on a second pivot.
+   crystal('StackedPrism',(0,0,1.40),.11,.34,(.98,.86,.52,1),core)
+   r=empty('Ring02',turret);ring('RuneHalo',.40,1.36,GOLD,r,.013,32)
+   for a in [0,1.26,2.51,3.77,5.03]:star_mesh('RuneStar',(.40*cos(a),.40*sin(a),1.36),.045,BRASS,r,.012,a)
+  if t>=4:
    for i in range(8):a=pi*i/4;leaf('CrownPetal',(.12*cos(a),.12*sin(a),1.02),(.31*cos(a),.31*sin(a),1.34),.043,BRASS,petals,.08,'Metal')
  elif kind=='storm':
   # Bells hang inside grown wooden antlers; each is an independent swing pivot.
   for s in [-1,1]:tube('Antler',[(s*.23,0,.20),(s*.23,0,.78),(s*.31,0,1.10),(s*.10,0,1.28)],[.09,.065,.045,.01],BARK,turret,10)
   tube('BellBeam',[(-.28,0,1.10),(0,0,1.17),(.28,0,1.10)],[.05,.06,.05],GOLD,turret,8,'Metal')
-  for i in range(1 if t==1 else 3):
-   x=0 if t==1 else (i-1)*.22;bell=empty('Bell0'+str(i+1),turret,(x,0,1.10));lathe('CastBell',[(.025,-.02),(.065,-.10),(.07,-.25),(.13,-.34),(.13,-.38),(.105,-.38),(.045,-.10)],BRASS,bell,segments=24,material='Metal');ellipsoid('Clapper',(0,0,-.36),(.025,)*3,DARK,bell,10,6)
+  for i in range(1 if t==1 else (3 if t<5 else 5)):
+   x=0 if t==1 else ((i-1)*.22 if t<5 else (i-2)*.17);bell=empty('Bell0'+str(i+1),turret,(x,0,1.10-(.05*(i%2) if t==5 else 0)));lathe('CastBell',[(.025,-.02),(.065,-.10),(.07,-.25),(.13,-.34),(.13,-.38),(.105,-.38),(.045,-.10)],BRASS,bell,segments=24 if t<5 else 16,material='Metal');ellipsoid('Clapper',(0,0,-.36),(.025,)*3,DARK,bell,10 if t<5 else 8,6 if t<5 else 5)
   if t>=2:
    tube('CopperCoil',[(.13*cos(i*.45),.13*sin(i*.45),.32+i*.009) for i in range(60)],.012,BRASS,turret,6,'Metal')
   if t>=3:crystal('SkyCrystal',(0,0,1.23),.09,.30,ICE,core)
-  if t==4:
+  if t>=4:
    for s in [-1,1]:tube('ConductiveAntler',[(s*.24,0,1),(s*.42,0,1.31),(s*.32,0,1.50)],[.035,.025,.004],BRASS,turret,7,'Metal');crystal('Pendant',(s*.34,0,.79),.046,.20,ICE,turret)
  elif kind=='blossom':
   stalk(turret,.96);head=empty('FlowerHead',turret,(0,0,.90));head.rotation_euler.x=.32
-  rings=1 if t==1 else (2 if t<4 else 3)
+  rings=1 if t==1 else (2 if t<4 else (3 if t==4 else 4))
   for j in range(rings):
    for i in range(7+t*2):
     a=2*pi*(i+.45*j)/(7+t*2);r=.23+.075*j+.02*t
@@ -228,16 +239,16 @@ def tower(kind,t):
   for i in range(28+t*8):
    a=i*2.399;r=(.10+.01*t)*sqrt(i/(28+t*8));ellipsoid('SpiralSeed',(r*cos(a),r*sin(a),.14),(.013,.013,.014),BRASS,core,6,4)
   for s in [-1,1]:leaf('StemLeaf',(0,0,.46),(s*.38,.02,.78),.12,GREEN,petals,.14)
-  if t==4:
+  if t>=4:
    for s in [-1,1]:tube('FlowerBranch',[(0,0,.4),(s*.3,.12,.55),(s*.32,.12,.90)],[.036,.025,.009],GREEN,turret);flower((s*.32,.12,.92),turret,.15)
  elif kind=='starfruit':
   stalk(turret,.75);lathe('StarPedestal',[(.18,.62),(.22,.72),(.17,.79)],GOLD,turret,segments=24,material='Metal');star_mesh('Starfruit',(0,0,1.03),.25+.025*t,(.98,.71,.12,1),core,.12);ellipsoid('StarSeed',(0,-.08,1.04),(.058,.025,.058),(.98,.34,.07,1),core,12,8,'Glow')
-  for j in range(t):
-   a=2*pi*j/max(t,1)+.4;star_mesh('OrbitStar',(.34*cos(a),.10*sin(a),1.02+.24*sin(a)),.09,BRASS,petals,.045,a)
+  for j in range(t if t<5 else 7):
+   a=2*pi*j/max(t if t<5 else 7,1)+.4;star_mesh('OrbitStar',(.34*cos(a),.10*sin(a),1.02+.24*sin(a)),.09,BRASS,petals,.045,a)
   if t>=2:r=empty('Ring01',turret);ring('StarOrbit',.32,.89,BRASS,r,.017)
   if t>=3:
    for a in [0,2.1,4.2]:leaf('StarLeaf',(.10*cos(a),.10*sin(a),.65),(.35*cos(a),.35*sin(a),.91),.06,BRASS,turret,.05,'Metal')
-  if t==4:r=empty('Ring02',turret);ring('SecondOrbit',.43,1.15,BRASS,r,.012)
+  if t>=4:r=empty('Ring02',turret);ring('SecondOrbit',.43,1.15,BRASS,r,.012)
  elif kind=='gravity':
   stalk(turret,.65)
   for a in [0,2.1,4.2]:tube('GravityClaw',[(.10*cos(a),.10*sin(a),.56),(.27*cos(a),.27*sin(a),.83),(.25*cos(a),.25*sin(a),1.01)],[.05,.035,.015],GOLD,turret,8,'Metal')
@@ -246,8 +257,8 @@ def tower(kind,t):
    r=empty('Ring0'+str(j+1),turret,(0,0,1.01));ring('Accretion',.19+j*.042,0,(.49+.08*j,.21,.82,1),r,.014+(.003*j),48,material='Glow');r.rotation_euler=(.18*j,.24*j,.1)
   if t>=3:
    for a in [0,1.57,3.14,4.71]:crystal('VoidAnchor',(.32*cos(a),.32*sin(a),.51),.065,.32,VIOLET,turret)
-  if t==4:
-   for i in range(7):a=i*.9;ellipsoid('OrbitDebris',(.42*cos(a),.42*sin(a),1.08+.10*sin(a*3)),(.035,.04,.055),STONE,petals,8,5)
+  if t>=4:
+   for i in range(7 if t==4 else 11):a=i*.9;ellipsoid('OrbitDebris',(.42*cos(a),.42*sin(a),1.08+.10*sin(a*3)),(.035,.04,.055),STONE,petals,8,5)
  elif kind=='book':
   stalk(turret,.74);lathe('ReadingPlinth',[(.22,.69),(.27,.76),(.21,.83)],GOLD,turret,segments=32,material='Metal');pages=empty('Pages',turret,(0,0,1.02));pages.rotation_euler.x=.32
   for side in [-1,1]:
@@ -267,7 +278,10 @@ def tower(kind,t):
   if t>=2:
    for s in [-1,1]:tube('CandleStand',[(s*.30,.12,.65),(s*.32,.12,1.00)],[.026,.02],GOLD,turret);lathe('Candle',[(.035,0),(.03,.16)],CREAM,turret,(s*.32,.12,1.0),12);ellipsoid('CandleFlame',(s*.32,.12,1.20),(.025,.025,.055),(.98,.51,.08,1),turret,12,8,'Glow')
   if t>=3:r=empty('Ring01',turret);ring('RuneCircle',.33,1.34,BRASS,r,.012)
-  if t==4:
+  if t==5:
+   tube('CandleStand',[(0,.34,.70),(0,.36,1.06)],[.026,.02],GOLD,turret);lathe('Candle',[(.035,0),(.03,.16)],CREAM,turret,(0,.36,1.06),10);ellipsoid('CandleFlame',(0,.36,1.26),(.025,.025,.055),(.98,.51,.08,1),turret,8,4,'Glow')
+   r=empty('Ring02',turret);ring('RuneCircle',.42,1.46,BRASS,r,.011,18)
+  if t>=4:
    for a in [0,2.1,4.2]:box('FloatingRunePage',(.36*cos(a),.36*sin(a),1.32),(.12,.02,.17),CREAM,petals,.007)
  elif kind=='thunder':
   lathe('StormPylon',[(.18,.22),(.14,.31),(.10,.76),(.17,.85)],GOLD,turret,segments=24,material='Metal');tube('Coil',[(.15*cos(i*.5),.15*sin(i*.5),.30+i*.009) for i in range(55+t*6)],.014,BRASS,turret,6,'Metal')
@@ -277,11 +291,137 @@ def tower(kind,t):
   if t>=2:
    for s in [-1,1]:crystal('Capacitor',(s*.28,0,.49),.067,.34,ICE,turret)
   if t>=3:r=empty('Ring01',turret);ring('ConductiveHalo',.32,.85,BRASS,r,.025)
-  if t==4:
-   for a in [0,2.1,4.2]:tube('StormFin',[(.14*cos(a),.14*sin(a),.32),(.35*cos(a),.35*sin(a),.57),(.38*cos(a),.38*sin(a),.94)],[.05,.035,.007],GOLD,turret,8,'Metal')
+  if t>=4:
+   for a in ([0,2.1,4.2] if t==4 else [i*pi/3 for i in range(6)]):tube('StormFin',[(.14*cos(a),.14*sin(a),.32),(.35*cos(a),.35*sin(a),.57),(.38*cos(a),.38*sin(a),.94)],[.05,.035,.007],GOLD,turret,8,'Metal')
  from sculpt_carrot_details import add_tower_detail
  add_tower_detail(kind,t,root)
+ if t==5:super_crown(kind,root,turret)
  export(root,kind+'-'+str(t))
+
+# Tiers whose kind-4 count leaves little room under the 1.35x budget get a leaner kit.
+LEAN_KINDS={'mortar','book','storm','prism','gravity'}
+
+def super_crown(kind,root,turret):
+ """Shared Super kit: gold plinth, halo on Ring03, three gems, seven crown spikes, whole model x1.12."""
+ lean=kind in LEAN_KINDS;bpy.context.view_layer.update()
+ top=max([(o.matrix_world@Vector(c)).z for o in bpy.context.scene.objects if o.type=='MESH' for c in o.bound_box]+[1.4])
+ # Plinth: a lobed gold step under the turret that raises it by 0.12 m.
+ lathe('SuperPlinth',[(.30,.00),(.46,.035),(.47,.085),(.42,.115),(.33,.12)],GOLD,root,(0,0,.17),16 if lean else 24,'Metal',lobes=8)
+ turret.location.z+=.12
+ r3=empty('Ring03',turret,(0,0,top+.10))
+ ring('SuperHalo',.46,0,(1,.86,.42,1),r3,.024,20 if lean else 36,material='Glow')
+ for i in range(3):
+  a=2*pi*i/3+.5;crystal('SuperGem',(.46*cos(a),.46*sin(a),-.06),.05,.19,(1,.92,.55,1),r3)
+ for i in range(7):
+  a=2*pi*i/7;leaf('CrownSpike',(.12*cos(a),.12*sin(a),top-.16),(.30*cos(a),.30*sin(a),top+.20),.05,BRASS,turret,.05,'Metal',N=4 if lean else 7)
+ root.scale=(1.12,)*3
+
+def gradient(ob,z0,z1,c0,c1):
+ a=ob.data.color_attributes.get('Color')
+ for poly in ob.data.polygons:
+  for li in poly.loop_indices:
+   z=ob.data.vertices[ob.data.loops[li].vertex_index].co.z;t=max(0,min(1,(z-z0)/max(1e-6,z1-z0)));a.data[li].color=tuple(c0[k]+(c1[k]-c0[k])*t for k in range(3))+(1,)
+
+def tornado():
+ """Giant Tornado: five spinning funnel tiers, three debris rings, a glowing storm eye and lightning veins (non-animated prop)."""
+ clear();root=empty('tornado');SLATE=(.30,.33,.40);PALE=(.78,.82,.88)
+ radii=[.22,.40,.62,.90,1.25,1.42];zs=[.05,.60,1.15,1.72,2.25,2.70]
+ def funnel_r(z):
+  for i in range(5):
+   if z<=zs[i+1]:u=(z-zs[i])/(zs[i+1]-zs[i]);return (radii[i]+(radii[i+1]-radii[i])*u)*1.07
+  return radii[5]*1.12
+ for i in range(5):
+  tier=empty('FunnelTier%d'%i,root);z0,z1=zs[i],zs[i+1];r0,r1=radii[i],radii[i+1]
+  rows=[];n=6
+  for j in range(n+1):
+   u=j/n;r=r0+(r1-r0)*u;rr=r*(1+.06*sin(u*pi*3+i))
+   if j==n:rr*=1.07
+   rows.append((rr,z0+(z1-z0)*u+(.03*sin(i*2+u*9))))
+  # Ragged rim: a flared lip that folds back inward, so the cap is a small disc deep inside the mouth.
+  top=rows[-1][0];rows+=[(top*1.12,z1+.06),(top*1.02,z1-.06),(top*.80,z1-.30),(top*.50,z1-.52)]
+  m=lathe('FunnelCloud',rows,SLATE+(1,),tier,segments=28,lobes=5);gradient(m,.05,2.76,SLATE,PALE)
+  for v in m.data.vertices:v.co.x+=.012*sin(v.co.z*7+i);v.co.y+=.012*cos(v.co.z*5-i)
+ for i,(z,r) in enumerate([(.95,.75),(1.75,1.15),(2.45,1.55)]):
+  dr=empty('DebrisRing%d'%i,root,(0,0,z))
+  for k in range(3):
+   a=2*pi*k/3+i*.7;b=box('Plank',(r*cos(a),r*sin(a),.05*sin(k+i)),(.42,.09,.05),BARK,dr,.012,'Bark');b.rotation_euler=(.3*sin(a),.4,a)
+   pk=ellipsoid('Pebble',((r-.2)*cos(a+1.1),(r-.2)*sin(a+1.1),-.1+.08*k),(.07,.06,.05),STONE,dr,8,5,'Stone')
+   for q in range(3):
+    aa=a+.35+q*.4;leaf('TornLeaf',((r+.1)*cos(aa),(r+.1)*sin(aa),.1*sin(q)),((r+.30)*cos(aa+.3),(r+.30)*sin(aa+.3),.22+.1*sin(q)),.05,[(.95,.45,.08,1),(.88,.22,.08,1),(.96,.70,.12,1)][q],dr,.03,'Petal',N=5)
+  ellipsoid('Pumpkin',((r-.05)*cos(i*2.1+.2),(r-.05)*sin(i*2.1+.2),.02),(.16,.16,.12),GOLD,dr,14,8,'Metal')
+ # The glowing eye sits in the upper funnel on the front (-Y).
+ # The face rides the top tier: lower tiers are hidden under the wider tier above them at the game camera's pitch.
+ for s in [-1,1]:
+  ye=-(funnel_r(2.50)*1.18);ellipsoid('StormSocket',(s*.52,ye+.08,2.50),(.40,.16,.22),(.10,.08,.09,1),root,14,8)
+  e=ellipsoid('StormEye',(s*.50,ye,2.50),(.32,.16,.16),(1,.55,.06,1),root,18,10,'Glow')
+  # Angry slant: rotate the eye's vertices about its own centre (object rotation would swing it around the origin).
+  c=Vector((s*.50,ye,2.50));m=Matrix.Rotation(s*.28,4,'Y')
+  for v in e.data.vertices:v.co=m@(v.co-c)+c
+  ellipsoid('StormEye',(s*.45,ye-.13,2.46),(.08,.05,.07),(.18,.07,.02,1),root,8,5,'Glow')
+ ellipsoid('StormMaw',(0,-(funnel_r(2.26)*1.14),2.26),(.36,.12,.11),(.14,.10,.09,1),root,14,8)
+ for i in range(12):
+  a0=2*pi*i/12;pts=[];
+  for j in range(7):
+   u=j/6;z=.3+u*2.3;r=funnel_r(z)*1.02+.02;a=a0+u*2.2+.15*sin(j*1.7+i);pts.append((r*cos(a),r*sin(a),z))
+  tube('LightningVein',pts,[.02+.01*sin(j*1.3) for j in range(7)],(1,.80,.35,1),root,5,'Glow')
+ export(root,'tornado')
+
+def lid(name,R,pmax,upper,parent):
+ # A half-cap shell around the -Y axis (the eye's front); rotates on its pivot to blink.
+ vs=[];rows=6;cols=14
+ for layer,rad in [(0,R*1.025),(1,R*1.075)]:
+  for j in range(rows+1):
+   v=.04+(pmax-.04)*j/rows
+   for i in range(cols+1):
+    a=pi*i/cols;a=a if upper else a+pi;vs.append((rad*sin(v)*cos(a),-rad*cos(v),rad*sin(v)*sin(a)))
+ n=(rows+1)*(cols+1);fs=[]
+ for j in range(rows):
+  for i in range(cols):k=j*(cols+1)+i;fs.append((k,k+cols+1,k+cols+2,k+1));fs.append((n+k,n+k+1,n+k+cols+2,n+k+cols+1))
+ for i in range(cols):k=rows*(cols+1)+i;fs.append((k+1,k,n+k,n+k+1))
+ for j in range(rows):
+  k=j*(cols+1);fs.append((k,k+cols+1,n+k+cols+1,n+k));k=j*(cols+1)+cols;fs.append((k+cols+1,k,n+k,n+k+cols+1))
+ o=mesh(name,vs,fs,(.86,.72,.62,1),parent);bpy.ops.object.select_all(action='DESELECT');o.select_set(True);bpy.context.view_layer.objects.active=o
+ bpy.ops.object.mode_set(mode='EDIT');bpy.ops.mesh.select_all(action='SELECT');bpy.ops.mesh.normals_make_consistent(inside=False);bpy.ops.object.mode_set(mode='OBJECT')
+ return o
+
+def eyeball():
+ """The Unknown Eyeball: sclera, crimson iris and pupil on their own pivots, iris folds, veins, two lids, six thorned tentacles, three nerve stalks."""
+ clear();root=empty('eyeball');R=.92;C=(0,0,1.55)
+ eye=empty('Eye',root,C)
+ ellipsoid('Sclera',(0,0,0),(R,R*.96,R),(.93,.90,.86,1),eye,36,22)
+ iris=empty('Iris',eye,(0,-R*.90,0))
+ o=lathe('IrisRing',[(.46,0),(.42,.04),(.32,.085),(.18,.10),(.14,.095)],(.85,.15,.35,1),iris,segments=36,material='Glow');o.rotation_euler.x=pi/2
+ pupil=empty('Pupil',eye,(0,-R*.90-.13,0))
+ o=ellipsoid('PupilSlit',(0,0,0),(.08,.06,.26),DARK,pupil,12,8)
+ for i in range(8):
+  a=2*pi*i/8;leaf('IrisFold',(.30*cos(a),-R*.96,.30*sin(a)),(.56*cos(a),-R*.82,.56*sin(a)),.08,(.55,.10,.22,1),eye,.03,'Organic',N=6)
+ for i in range(14):
+  a0=2*pi*i/14+.2;pts=[]
+  for j in range(6):
+   u=j/5;th=.55+u*1.35;a=a0+.3*sin(j*1.1+i);pts.append((R*1.01*sin(th)*cos(a),-R*1.01*cos(th),R*1.01*sin(th)*sin(a)))
+  tube('Vein',pts,[.016*(1-u/6)+.004 for u in range(6)],(.78,.18,.18,1),eye,5)
+ up=empty('UpperLid',eye);lid('UpperLidShell',R,1.05,True,up);up.rotation_euler.x=-.95
+ low=empty('LowerLid',eye);lid('LowerLidShell',R,.85,False,low);low.rotation_euler.x=.80
+ for i in range(6):
+  t=empty('Tentacle%d'%i,root,(0,0,0));a=2*pi*i/6+.3;x0,y0=.55*cos(a),.55*sin(a)
+  pts=[(x0,y0,C[2]-R*.75),(x0*1.4,y0*1.4,C[2]-R*.75-.35),(x0*1.7+.2*sin(i),y0*1.7,C[2]-R*.75-.75),(x0*1.5,y0*1.5-.2*cos(i),.25+.1*(i%3)),(x0*1.9,y0*1.9,.12)]
+  from sculpt_carrot_details import curve
+  cp=curve(pts,4);tube('TentacleVine',cp,[.085*(1-k/len(cp))**.8+.012 for k in range(len(cp))],(1,1,1,1),t,8,'Scale')
+  for k in range(2,len(cp)-1,3):
+   p=Vector(cp[k]);d=Vector((cos(a+k),sin(a+k),.6)).normalized()*.22;leaf('TentacleThorn',tuple(p),tuple(p+d),.05,(.45,.33,.18,1),t,.0,'Organic',N=4)
+ for i in range(3):
+  x=(i-1)*.9;pts=[(x*.2,R*.6,C[2]+R*.55),(x*.6,R*1.25,C[2]+R*.35),(x,R*1.7,C[2]-.3),(x*1.3,R*2.0,C[2]-1.0)]
+  tube('NerveStalk',pts,[.07,.05,.035,.02],(.55,.40,.30,1),root,7)
+ export(root,'eyeball')
+
+def challenge_props():
+ tornado();eyeball()
+
+def merge_manifest(path,built):
+ names={m['name'] for m in built}
+ previous=json.loads(path.read_text()) if path.exists() else []
+ path.write_text(json.dumps([m for m in previous if m['name'] not in names]+built,indent=2))
+
 
 def carrot():
  clear();root=empty('Carrot');body=empty('Body',root)
@@ -356,9 +496,17 @@ def export(root,name,animated=False):
 
 if __name__=='__main__':
  import sys
- mode=sys.argv[sys.argv.index('--')+1] if '--' in sys.argv else 'original'
+ args=sys.argv[sys.argv.index('--')+1:] if '--' in sys.argv else ['original']
+ mode=args[0];KINDS=['seed','frost','mortar','prism','storm','blossom','starfruit','gravity','book','thunder']
  if mode in ['original','priority']:
   carrot()
-  for k in (['seed','frost'] if mode=='priority' else ['seed','frost','mortar','prism','storm','blossom','starfruit','gravity','book','thunder']):
+  for k in (['seed','frost'] if mode=='priority' else KINDS):
    for t in range(1,5):tower(k,t)
   (ROOT/'Tools/original-model-manifest.json').write_text(json.dumps(manifest,indent=2))
+ elif mode=='super':
+  # Only the ten Super forms; the manifest keeps the 41 existing entries and replaces *-5 rows.
+  for k in (args[1].split(',') if len(args)>1 else KINDS):tower(k,5)
+  merge_manifest(ROOT/'Tools/original-model-manifest.json',manifest)
+ elif mode=='challenge':
+  challenge_props()
+  merge_manifest(ROOT/'Tools/challenge-prop-manifest.json',manifest)

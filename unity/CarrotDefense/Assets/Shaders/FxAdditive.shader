@@ -1,6 +1,7 @@
 Shader "Carrot/FxAdditive" {
- Properties {_Color("Color",Color)=(1,1,1,1) _Soft("Soft disc",Float)=0 _MainTex("Sheet",2D)="white"{} _UseAtlas("Use sheet",Float)=0 _SoftFade("Depth fade",Float)=.12}
- SubShader { Tags {"Queue"="Transparent" "RenderType"="Transparent" "IgnoreProjector"="True" "RenderPipeline"="UniversalPipeline"} Blend SrcAlpha One ZWrite Off Cull Off
+ // _ZTest 4 = LEqual (default); 8 = Always for the challenge arena's telegraph rings, which must read through the tornado funnel.
+ Properties {_Color("Color",Color)=(1,1,1,1) _Soft("Soft disc",Float)=0 _MainTex("Sheet",2D)="white"{} _UseAtlas("Use sheet",Float)=0 _SoftFade("Depth fade",Float)=.12 _ZTest("ZTest",Float)=4}
+ SubShader { Tags {"Queue"="Transparent" "RenderType"="Transparent" "IgnoreProjector"="True" "RenderPipeline"="UniversalPipeline"} Blend SrcAlpha One ZWrite Off ZTest [_ZTest] Cull Off
   Pass { Name "Forward" Tags {"LightMode"="UniversalForward"}
    HLSLPROGRAM
    #pragma vertex vert
