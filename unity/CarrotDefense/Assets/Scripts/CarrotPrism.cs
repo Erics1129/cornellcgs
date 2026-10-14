@@ -17,6 +17,8 @@ namespace CarrotTD {
   readonly Dictionary<int,float> prismRecovery=new Dictionary<int,float>();
   static readonly string[] PrismSkills={"prismLances","prismaticAegis","spectrumRain","mirrorRush","prismOverdrive"};
   const float PrismDashSeconds=.45f;
+  /// <summary>Authored HP-threshold breaks (fractions of max HP); none are armed until the break pass.</summary>
+  static readonly float[] PrismBreaks={};
   void ResetPrism(){prism=null;prismImpacts.Clear();prismRecovery.Clear();}
   void InitPrism(EnemyState e){if(e.boss=="asuna")prism=new PrismState{id=e.id,started=elapsed,nextDash=elapsed+9,nextSkill=elapsed+3,nextCohort=elapsed+16};}
   float PrismDashLength(EnemyState e){return e.phase==3?1.6f:1.4f;}
@@ -38,7 +40,7 @@ namespace CarrotTD {
    if(kind=="prismDash"){prism.warnedDashTo=Mathf.Min(e.routeLength,e.distance+PrismDashLength(e));return;}
    if(kind!="prismLances"&&kind!="spectrumRain")return;
    candidates.Clear();foreach(var t in towers)if(FlatDistance(t.position,e.position)<=7.5f)candidates.Add(t);
-   candidates.Sort((t,u)=>FlatDistance(t.position,e.position).CompareTo(FlatDistance(u.position,e.position)));
+   candidates.Sort((t,u)=>Nearer(e.position,t,u));
    int count=kind=="spectrumRain"?(e.phase==3?4:3):(e.phase==3?3:2);
    foreach(var t in candidates)if(a.targets.Count<count){a.targets.Add(t.id);prism.locked[t.id]=t.position;}
   }

@@ -65,6 +65,7 @@ namespace CarrotTD {
     var front=boss;if(boss==null){foreach(var e in g.enemies)if(e.alive&&(front==null||e.distance>front.distance))front=e;}
     if(front!=null){foreach(var tower in g.towers.ToArray())if(tower.position.x+CarrotData.Tower(tower.kind).range[tower.tier-1]<front.position.x-.5f){g.Select("tower",tower.id);g.Command("{\"type\":\"sell\"}");relocations++;}}
     for(int i=0;i<4&&BuyPrism(g,mix);i++){}if(boss!=null&&!g.enemies.Exists(e=>e.alive&&e.id!=boss.id&&!e.clone&&e.distance>boss.distance+7))g.Select("enemy",boss.id);else g.Select("",-1);g.StepSimulation(.25f);lowest=Mathf.Min(lowest,g.health);Check(g.coins>=0,"Asuna policy never spends unearned coins");
+    if(Mathf.Repeat(g.elapsed,10)<.25f)ValidateSnapshot(g.LastSnapshot,"asuna campaign");
    }
    string roster="";foreach(var t in g.towers)roster+=t.kind+"/"+t.tier+"@"+t.pad+",";
    Debug.Log("PRISM_RELOCATIONS policy="+strategy+" count="+relocations+" coins="+g.coins);

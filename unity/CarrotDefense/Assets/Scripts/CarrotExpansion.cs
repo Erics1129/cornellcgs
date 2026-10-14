@@ -140,7 +140,7 @@ namespace CarrotTD {
   void PrepareExpansionCast(EnemyState e,Actor a,string kind){
    if(kind=="stormLock"||kind=="thornBind"||kind=="glacierLance"||kind=="portalStorm"){
     candidates.Clear();foreach(var t in towers)if(FlatDistance(t.position,e.position)<=5.5f)candidates.Add(t);
-    candidates.Sort((t,u)=>FlatDistance(t.position,e.position).CompareTo(FlatDistance(u.position,e.position)));
+    candidates.Sort((t,u)=>Nearer(e.position,t,u));
     int cap=kind=="portalStorm"?3:2;foreach(var t in candidates)if(a.targets.Count<cap)a.targets.Add(t.id);
    }
   }

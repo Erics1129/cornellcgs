@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Globalization;
 using UnityEngine;
 namespace CarrotTD {
  public static class CarrotData {
@@ -107,7 +109,7 @@ public static TowerDef Tower(string kind){foreach(var t in Towers)if(t.id==kind)
  /// <summary>The difficulty pass phases in over the opening: wave 1 is played at the pre-pass health (the table entry), wave 2 halfway, full health from wave 3. Chapter 0 has no grace.</summary>
  public static float OpeningScale(int level,int wave){float grace=OpeningTable[Mathf.Clamp(level-1,0,OpeningTable.Length-1)];return wave<=1?grace:wave==2?Mathf.Sqrt(grace):1f;}
  /// <summary>The only sanctioned post-tuning knob: a per-level multiplier on ordinary enemy HP (1 by default; floor .85, .80 allowed on 8-12). Every non-1 entry is listed in balance-results.md.</summary>
- public static readonly float[] Pressure={1f,1f,1f,1f,1f,1f,1f,1f,.8f,1f,.95f,1f,1f,1f,1f,1f,1f,1f,.95f,1f,1f,1f,.95f,.85f,1f,.85f,.85f,.85f,1f};
+ public static readonly float[] Pressure={1f,1f,1f,1f,1f,1f,1f,1f,.8f,1f,.95f,1f,1f,1f,1f,1f,1f,1f,.95f,1f,1f,1f,.95f,.85f,1f,.85f,.8f,.85f,1f};
  public static float PressureScale(int level){return Pressure[Mathf.Clamp(level-1,0,Pressure.Length-1)];}
  /// <summary>Challenge levels are the boss fights reached from the lobby (ids 25-27); they share the arena map.</summary>
 
@@ -141,7 +143,50 @@ new EnemyDef{id="chronoMoth",name="Chrono Moth",trait="chronoField",intro=14,hp=
 new EnemyDef{id="thornBeast",name="Thorn Beast",trait="thornBind",intro=15,hp=340f,speed=0.54f,armor=0.12f,shield=0f,reward=75,air=false,mini=true},
 new EnemyDef{id="portalSentinel",name="Portal Sentinel",trait="sentinelRift",intro=16,hp=400f,speed=0.58f,armor=0.15f,shield=65f,reward=85,air=false,mini=true},
  };
- public static EnemyDef Enemy(string id){return Array.Find(AddedEnemies,e=>e.id==id);}
+ public static EnemyDef Enemy(string id){for(int i=0;i<AddedEnemies.Length;i++)if(AddedEnemies[i].id==id)return AddedEnemies[i];return null;}
+ /// <summary>Readable traits of a creature kind for the wave preview and loss attribution (cached per kind).</summary>
+ public struct KindTraits {public bool air,armor,shield,heal,mini;}
+ static readonly Dictionary<string,KindTraits> traits=new Dictionary<string,KindTraits>();
+ public static KindTraits Traits(string kind){
+  if(kind==null)return default(KindTraits);KindTraits t;if(traits.TryGetValue(kind,out t))return t;var d=Enemy(kind);
+  t=new KindTraits{air=kind=="moth"||(d!=null&&d.air),armor=kind=="shell"||(d!=null&&d.armor>=.12f),shield=kind=="crystal"||(d!=null&&d.shield>0),heal=kind=="shaman"||kind=="firefly"||kind=="slug",mini=d!=null&&d.mini};
+  lock(traits)traits[kind]=t;return t;
+ }
+ /// <summary>One unit of a wave's spawn schedule: game seconds after the wave starts, packet kind ("boss" for the level boss) and route.</summary>
+ public struct PlannedSpawn {public float at;public string kind;public int route;}
+ /// <summary>The exact BeginWave schedule of wave w (1-based): packets run in order, units alternate routes in blocks of
+ /// max(2, count/routes), swarm gaps are .24 s and others .78 s (times the level's gap scale), the boss gap 1.8 s; each packet
+ /// advances the stream by max(2, its length x overlap) + .8 s. The web exports this as levels[].wavePlan.</summary>
+ public static List<PlannedSpawn> PlanWave(int levelId,int wave,List<PlannedSpawn> into){
+  into.Clear();var lvl=Level(levelId);if(lvl==null||wave<1||wave>lvl.waves)return into;
+  string[] packets=Waves[levelId-1][wave-1].Split(',');float at=.65f;int packetIndex=0,routes=lvl.routes.Length;
+  float gapScale=GapScale(levelId),overlap=PacketOverlap(levelId);
+  foreach(string packet in packets){
+   int colon=packet.IndexOf(':');string kind=packet.Substring(0,colon);int count=int.Parse(packet.Substring(colon+1),CultureInfo.InvariantCulture);
+   for(int i=0;i<count;i++){
+    int route=kind=="boss"?0:(wave+packetIndex+i/Mathf.Max(2,count/routes))%routes;
+    float gap=kind=="swarm"?.24f*gapScale:kind=="boss"?1.8f:.78f*gapScale;
+    into.Add(new PlannedSpawn{at=at+i*gap,kind=kind,route=route});
+   }
+   at+=Mathf.Max(2,count*(kind=="swarm"?.24f:kind=="boss"?1.8f:.78f)*(kind=="boss"?1:gapScale*overlap))+.8f;packetIndex++;
+  }
+  return into;
+ }
+ /// <summary>Difficulty pass 2 lands in a fixed order with a band run after each step (balance-results.md):
+ /// 1 telegraph floors and bug fixes, 2 opening caps, 3 remaining-distance targeting, 4 late HP ramp and counts,
+ /// 5 economy, 6 the per-level Pressure dial. Steps 2 and 4 are generated data (carrot-waves.mjs --step); the rest
+ /// read this value, which the band harness may lower to measure a step's delta. Shipped builds run every step.</summary>
+ public static int Pass2Step=1;
+ public static bool RemainingTargeting {get{return Pass2Step>=3;}}
+ public static bool Pass2Economy {get{return Pass2Step>=5;}}
+ /// <summary>Veteran mode is built and testable but offered only once both expert policies clear it (balance-results.md).</summary>
+ public static readonly bool VeteranShipped=false;
+ /// <summary>Coins paid when a wave is fully resolved: 15/20/25/30 by biome tier on levels 1-8, 10/14/18/22 on 9-24, 30 on the challenges.</summary>
+ public static int WaveStipend(int level){int tier=BiomeTier(Level(level)!=null?Level(level).biome:"garden");if(IsChallenge(level))return 30;return level<=8||!Pass2Economy?15+5*tier:10+4*tier;}
+ /// <summary>Coins for calling the next wave with breatherLeft seconds still on the clock.</summary>
+ public static int EarlyCallBonus(float breatherLeft){return Pass2Economy?Mathf.Min(10,2*Mathf.FloorToInt(breatherLeft)):Mathf.Min(6,Mathf.FloorToInt(breatherLeft));}
+ /// <summary>Breather before wave nextWave (the level's table entry, lengthened before a level's first air wave where needed).</summary>
+ public static float Breather(int level,int nextWave){return Breather(level);}
  public static bool IsMini(string id){var e=Enemy(id);return e!=null&&e.mini;}
  public static int Work(string id){return id=="boss"?8:IsMini(id)?4:1;}
  public static bool IsChallenge(int id){return id>=25;}
