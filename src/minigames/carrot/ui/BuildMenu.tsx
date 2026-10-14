@@ -56,13 +56,14 @@ type Props={store:SnapshotStore;definitions:GameDefinitions|null;send:(c:Command
 export function BuildMenu({store,definitions,send,reduced,onSafeArea,onBuilt,tutorialFocus}:Props){
  const sel=useSlice(store,st=>{const s=st?.selection;return st&&s&&['pad','tower','blocker','enemy'].includes(s.type)&&st.phase!=='won'&&st.phase!=='lost'?s:null},(a,b)=>a===b||(!!a&&!!b&&a.type===b.type&&a.id===b.id&&a.tier===b.tier&&a.refund===b.refund&&a.partners===b.partners&&Math.round(a.hp)===Math.round(b.hp)&&a.kind===b.kind))
  // Auto-close 0.8 s after Build or Upgrade, but only if the selection is still the tower that was just built or grown (a tap on
- // another pad in the meantime keeps its panel), and never while the pointer rests on the panel.
+ // another pad in the meantime keeps its panel); pressing anything on the panel during those 0.8 s keeps it open.
  const arm=useRef<{id:number|null;timer:number}|null>(null),hover=useRef(false)
  useEffect(()=>store.subscribe(()=>{const a=arm.current;if(!a)return;const s=store.get()?.selection
   if(s?.type==='tower'&&a.id===null){a.id=s.id;return}
   if(!s||s.type!=='tower'||(a.id!==null&&s.id!==a.id)){if(s?.type!=='pad'){clearTimeout(a.timer);arm.current=null}}}),[store])
  useEffect(()=>()=>{if(arm.current)clearTimeout(arm.current.timer)},[])
  const closeSoon=(id:number|null)=>{if(arm.current)clearTimeout(arm.current.timer)
+  hover.current=false
   const a={id,timer:0};a.timer=window.setTimeout(()=>{const s=store.get()?.selection;if(arm.current===a){arm.current=null;if(!hover.current&&s?.type==='tower'&&s.id===a.id)send({type:'clear'})}},800);arm.current=a}
  if(!sel||!definitions)return null
  return <Panel key={`${sel.type}-${sel.id}`} sel={sel} store={store} definitions={definitions} send={send} reduced={reduced} onSafeArea={onSafeArea} onBuilt={onBuilt} tutorialFocus={tutorialFocus} closeSoon={closeSoon} hover={hover}/>
@@ -107,7 +108,7 @@ function Panel({sel,store,definitions,send,reduced,onSafeArea,onBuilt,tutorialFo
  const build=()=>{if(!pickedTower)return;writePrefs({lastTower:pickedTower.id});send({type:'buy',kind:pickedTower.id});onBuilt?.(pickedTower.id);closeSoon(null)}
  const mode=place?.mode||firstMode
  const cls=`ct-build ct-panel ct-build--${mode} ${place?.flip?'is-flipped':''} ${place?'is-placed':''} ${reduced?'':'is-animated'}`
- const shared={ref:el as React.RefObject<HTMLElement>,className:cls,style:place?.style,onPointerEnter:()=>{hover.current=true},onPointerLeave:()=>{hover.current=false}}
+ const shared={ref:el as React.RefObject<HTMLElement>,className:cls,style:place?.style,onPointerDown:()=>{hover.current=true},onPointerLeave:()=>{hover.current=false}}
  const close=<button className="ct-icon-btn ct-build__close" aria-label="Close" onClick={()=>send({type:'clear'})}><Icon name="close"/></button>
  if(sel.type==='pad'){
   const t=pickedTower,locked=!!t&&t.unlock>env.level,short=t?Math.max(0,t.cost[0]-env.coins):0,reach=t?towerReach(t):null

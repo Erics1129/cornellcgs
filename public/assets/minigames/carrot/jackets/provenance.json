@@ -1,0 +1,237 @@
+{
+ "about": "Stage-select jacket art: captures of the game's own boards (self-made, no third-party input). Regenerate with scripts/carrot-ui-qa/jackets.mjs after a release build.",
+ "files": [
+  {
+   "file": "01.webp",
+   "level": 1,
+   "source": "Unity web player build a9ccb2b1be8febe7, ready phase, 1280x720 capture with the HUD hidden",
+   "encoder": "Chromium canvas WebP q0.8, 640x360",
+   "sha256": "64ade20d85e8945169b814b766f5bc4c253f73393d3e60706d7e31a6fffa539c",
+   "bytes": 35430
+  },
+  {
+   "file": "02.webp",
+   "level": 2,
+   "source": "Unity web player build a9ccb2b1be8febe7, ready phase, 1280x720 capture with the HUD hidden",
+   "encoder": "Chromium canvas WebP q0.8, 640x360",
+   "sha256": "ee9903c28e1edfd8c5f5c3792a4fd8ba4d3755199942b07ab4c819e095724b9f",
+   "bytes": 35958
+  },
+  {
+   "file": "03.webp",
+   "level": 3,
+   "source": "Unity web player build a9ccb2b1be8febe7, ready phase, 1280x720 capture with the HUD hidden",
+   "encoder": "Chromium canvas WebP q0.8, 640x360",
+   "sha256": "44e290005a6eae121512902c2815084be1e19a350a6d9ba3a1c588acec09111d",
+   "bytes": 35228
+  },
+  {
+   "file": "04.webp",
+   "level": 4,
+   "source": "Unity web player build a9ccb2b1be8febe7, ready phase, 1280x720 capture with the HUD hidden",
+   "encoder": "Chromium canvas WebP q0.8, 640x360",
+   "sha256": "d50ed0e67cd9784f698a09ce8a360bd105fb2b21cf43285cc2436ead063708b5",
+   "bytes": 34164
+  },
+  {
+   "file": "05.webp",
+   "level": 5,
+   "source": "Unity web player build a9ccb2b1be8febe7, ready phase, 1280x720 capture with the HUD hidden",
+   "encoder": "Chromium canvas WebP q0.8, 640x360",
+   "sha256": "2b32dbcb52790e606bda4fd4bd65d72914bae2f02d4d2d4845d51164e016b7eb",
+   "bytes": 18106
+  },
+  {
+   "file": "06.webp",
+   "level": 6,
+   "source": "Unity web player build a9ccb2b1be8febe7, ready phase, 1280x720 capture with the HUD hidden",
+   "encoder": "Chromium canvas WebP q0.8, 640x360",
+   "sha256": "397bdc7c8308ba97677d2080d041b6722cbc7785f6763394596125250416b19f",
+   "bytes": 17940
+  },
+  {
+   "file": "07.webp",
+   "level": 7,
+   "source": "Unity web player build a9ccb2b1be8febe7, ready phase, 1280x720 capture with the HUD hidden",
+   "encoder": "Chromium canvas WebP q0.8, 640x360",
+   "sha256": "cae2fa44287dd3e75eeffa302238a18cd37f55cf4379b0a112cad4d4101496ee",
+   "bytes": 18580
+  },
+  {
+   "file": "08.webp",
+   "level": 8,
+   "source": "Unity web player build a9ccb2b1be8febe7, ready phase, 1280x720 capture with the HUD hidden",
+   "encoder": "Chromium canvas WebP q0.8, 640x360",
+   "sha256": "a850c59999f90d2ebc3eb44cea952e968b6c3f04d52eca4da4ddd8edfc6ee36f",
+   "bytes": 17228
+  },
+  {
+   "file": "09.webp",
+   "level": 9,
+   "source": "Unity web player build a9ccb2b1be8febe7, ready phase, 1280x720 capture with the HUD hidden",
+   "encoder": "Chromium canvas WebP q0.8, 640x360",
+   "sha256": "64a9d0d077ff81ea590e1a929a55ac537a715b0d8102400fad67bc9cba2afc7c",
+   "bytes": 23532
+  },
+  {
+   "file": "10.webp",
+   "level": 10,
+   "source": "Unity web player build a9ccb2b1be8febe7, ready phase, 1280x720 capture with the HUD hidden",
+   "encoder": "Chromium canvas WebP q0.8, 640x360",
+   "sha256": "e19709c983786ec01c228e9c2282b532b8f1418cf87e3f3b0bb201d3a6737416",
+   "bytes": 22882
+  },
+  {
+   "file": "11.webp",
+   "level": 11,
+   "source": "Unity web player build a9ccb2b1be8febe7, ready phase, 1280x720 capture with the HUD hidden",
+   "encoder": "Chromium canvas WebP q0.8, 640x360",
+   "sha256": "fa0dfa449d56b6b5a89e63d843f8189766e87196573dcdf8524561839a2dcfd2",
+   "bytes": 25670
+  },
+  {
+   "file": "12.webp",
+   "level": 12,
+   "source": "Unity web player build a9ccb2b1be8febe7, ready phase, 1280x720 capture with the HUD hidden",
+   "encoder": "Chromium canvas WebP q0.8, 640x360",
+   "sha256": "8010ebfd18a46c9018413a584d9a51e048563d4babb548db632220b4e168f0b9",
+   "bytes": 23604
+  },
+  {
+   "file": "13.webp",
+   "level": 13,
+   "source": "Unity web player build a9ccb2b1be8febe7, ready phase, 1280x720 capture with the HUD hidden",
+   "encoder": "Chromium canvas WebP q0.8, 640x360",
+   "sha256": "70ceac8c94410fa6dbf024fb389ef17323a70c496e21fa1a5b77d687a17be092",
+   "bytes": 36698
+  },
+  {
+   "file": "14.webp",
+   "level": 14,
+   "source": "Unity web player build a9ccb2b1be8febe7, ready phase, 1280x720 capture with the HUD hidden",
+   "encoder": "Chromium canvas WebP q0.8, 640x360",
+   "sha256": "2d2330b6e897b0dd387d20ac2690add0fc5e715e6f850bd5d6dfbe16b82946ed",
+   "bytes": 17178
+  },
+  {
+   "file": "15.webp",
+   "level": 15,
+   "source": "Unity web player build a9ccb2b1be8febe7, ready phase, 1280x720 capture with the HUD hidden",
+   "encoder": "Chromium canvas WebP q0.8, 640x360",
+   "sha256": "521e2579ffa34f856133a0eeda3cdf105adc1c18631ef0eb7ffc3b0cd0861008",
+   "bytes": 22388
+  },
+  {
+   "file": "16.webp",
+   "level": 16,
+   "source": "Unity web player build a9ccb2b1be8febe7, ready phase, 1280x720 capture with the HUD hidden",
+   "encoder": "Chromium canvas WebP q0.8, 640x360",
+   "sha256": "22000908c371edc6d9d7b6b4744d5aa0a72cfb99af7a6a0542254e40b99e1073",
+   "bytes": 33300
+  },
+  {
+   "file": "17.webp",
+   "level": 17,
+   "source": "Unity web player build a9ccb2b1be8febe7, ready phase, 1280x720 capture with the HUD hidden",
+   "encoder": "Chromium canvas WebP q0.8, 640x360",
+   "sha256": "802ba5fd01ecb1d747393b662117a63da49e017031769b41eadb868c042708c4",
+   "bytes": 36108
+  },
+  {
+   "file": "18.webp",
+   "level": 18,
+   "source": "Unity web player build a9ccb2b1be8febe7, ready phase, 1280x720 capture with the HUD hidden",
+   "encoder": "Chromium canvas WebP q0.8, 640x360",
+   "sha256": "4506c10a88b2abbf0ab5b678070fcdb967c472b095950ddf807e628720a5b190",
+   "bytes": 19716
+  },
+  {
+   "file": "19.webp",
+   "level": 19,
+   "source": "Unity web player build a9ccb2b1be8febe7, ready phase, 1280x720 capture with the HUD hidden",
+   "encoder": "Chromium canvas WebP q0.8, 640x360",
+   "sha256": "231870931edcebe81eb617163bda2a679b8eb76317e6709529b880877bcbb167",
+   "bytes": 34420
+  },
+  {
+   "file": "20.webp",
+   "level": 20,
+   "source": "Unity web player build a9ccb2b1be8febe7, ready phase, 1280x720 capture with the HUD hidden",
+   "encoder": "Chromium canvas WebP q0.8, 640x360",
+   "sha256": "4f40e75a9671ffeb80b148ecfbd38f3c5a20ca3776e7f4a8db485e7c2979286a",
+   "bytes": 35058
+  },
+  {
+   "file": "21.webp",
+   "level": 21,
+   "source": "Unity web player build a9ccb2b1be8febe7, ready phase, 1280x720 capture with the HUD hidden",
+   "encoder": "Chromium canvas WebP q0.8, 640x360",
+   "sha256": "48c662448076c08c5e1937422c09baa1bad9c440c40c7e51d1a05e4b02f25442",
+   "bytes": 24014
+  },
+  {
+   "file": "22.webp",
+   "level": 22,
+   "source": "Unity web player build a9ccb2b1be8febe7, ready phase, 1280x720 capture with the HUD hidden",
+   "encoder": "Chromium canvas WebP q0.8, 640x360",
+   "sha256": "123fc28dc420e4f0b933b8c2d42fdcb6d40e0f51c1290a2aad9bbd8c7b8d9638",
+   "bytes": 35024
+  },
+  {
+   "file": "23.webp",
+   "level": 23,
+   "source": "Unity web player build a9ccb2b1be8febe7, ready phase, 1280x720 capture with the HUD hidden",
+   "encoder": "Chromium canvas WebP q0.8, 640x360",
+   "sha256": "e2a856e5957af26a6ceabce3a29ba0dd0335f3367e260a1bfa44e2d0b18c2b5d",
+   "bytes": 35184
+  },
+  {
+   "file": "24.webp",
+   "level": 24,
+   "source": "Unity web player build a9ccb2b1be8febe7, ready phase, 1280x720 capture with the HUD hidden",
+   "encoder": "Chromium canvas WebP q0.8, 640x360",
+   "sha256": "48f70ff66c76c67d3586fc0d3ac9d672b4da173941c23ef56c4b41d80f10a0de",
+   "bytes": 35080
+  },
+  {
+   "file": "25.webp",
+   "level": 25,
+   "source": "Unity web player build a9ccb2b1be8febe7, ready phase, 1280x720 capture with the HUD hidden",
+   "encoder": "Chromium canvas WebP q0.8, 640x360",
+   "sha256": "dd3ccfea34d5ed594b2c01d1e24fa0194cfc4c97d52dcc3b481870e780fd85fe",
+   "bytes": 36106
+  },
+  {
+   "file": "26.webp",
+   "level": 26,
+   "source": "Unity web player build a9ccb2b1be8febe7, ready phase, 1280x720 capture with the HUD hidden",
+   "encoder": "Chromium canvas WebP q0.8, 640x360",
+   "sha256": "822181cedf7447374180ee091d1b97f09d059f8d98b75f0f76c363a4eda0b4a3",
+   "bytes": 16488
+  },
+  {
+   "file": "27.webp",
+   "level": 27,
+   "source": "Unity web player build a9ccb2b1be8febe7, ready phase, 1280x720 capture with the HUD hidden",
+   "encoder": "Chromium canvas WebP q0.8, 640x360",
+   "sha256": "b862d1c292021785451fc58a7141d7f8c8a47d156b2cc661875e28a5609b4558",
+   "bytes": 27528
+  },
+  {
+   "file": "28.webp",
+   "level": 28,
+   "source": "Unity web player build a9ccb2b1be8febe7, ready phase, 1280x720 capture with the HUD hidden",
+   "encoder": "Chromium canvas WebP q0.8, 640x360",
+   "sha256": "edee101964809015cdf2ea02c0a06dd34a20533566471ff62369da796b82378a",
+   "bytes": 17050
+  },
+  {
+   "file": "29.webp",
+   "level": 29,
+   "source": "Unity web player build a9ccb2b1be8febe7, ready phase, 1280x720 capture with the HUD hidden",
+   "encoder": "Chromium canvas WebP q0.8, 640x360",
+   "sha256": "fd34c7dba750d52b2638ef828ad3b49388212571cc02c47324252afabe8994a6",
+   "bytes": 13930
+  }
+ ]
+}

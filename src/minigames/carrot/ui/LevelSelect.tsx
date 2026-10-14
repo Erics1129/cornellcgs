@@ -52,7 +52,7 @@ export function LevelSelect({definitions,save,challenges,records,current,preview
  const jacketOk=useImageAvailable(jacketArt(level?.id||1))
  const cover=level?(jacketOk?jacketArt(level.id):boss?challengeArt(boss):chapterArt(level.biome)):chapterArt('garden')
  return <dialog ref={ref} className={`ct-select ${reduced?'':'is-animated'}`} aria-label="Stage select" onCancel={e=>{e.preventDefault();onClose()}} onKeyDown={keys} data-biome={level?.biome||'garden'}>
-  <div className="ct-select__backdrop" aria-hidden="true" style={{backgroundImage:`url(${chapterArt(ch.biome)})`}}/>
+  <div className="ct-select__backdrop" aria-hidden="true"><img key={cover} src={cover} alt="" decoding="async"/></div>
   <header className="ct-select__top">
    <button className="ct-icon-btn" onClick={onClose} aria-label="Back"><Icon name="back"/></button>
    <h2>Stage select</h2>
@@ -83,7 +83,8 @@ export function LevelSelect({definitions,save,challenges,records,current,preview
      return <li key={l.id}><button data-id={l.id} className={`ct-trackrow ${l.id===focus?'is-focus':''} ${o?'':'is-locked'}`} aria-current={l.id===focus} onClick={()=>{if(l.id===focus&&o)onPlay(l.id);else setFocus(l.id)}} onFocus={()=>setFocus(l.id)} onDoubleClick={()=>o&&onPlay(l.id)}
       aria-label={`${l.id}. ${b?challengeTitles[b]:l.name}. ${bd}${o?'':'. Locked'}${r?.grade?`. Grade ${['','D','C','B','A','S'][r.grade]}`:''}`}>
       <span className="ct-trackrow__no">{String(l.id).padStart(2,'0')}</span>
-      <span className="ct-trackrow__name"><b>{b?challengeTitles[b]?.replace('BossFight - ',''):l.name}</b><small>{b?l.bossName||'':biomeNames[l.biome]!==ch.name&&!ch.challenges?biomeNames[l.biome]:l.boss?'Guardian':`${l.waves} waves`}</small></span>
+      <span className="ct-trackrow__thumb" aria-hidden="true"><img src={jacketArt(l.id)} alt="" loading="lazy" decoding="async" onError={e=>{(e.target as HTMLImageElement).style.visibility='hidden'}}/></span>
+      <span className="ct-trackrow__name"><b>{b?challengeTitles[b]?.replace('BossFight - ',''):l.name}</b><small>{b?(challenges.best[b]?`Best ${challenges.best[b]!.health} HP · ${formatSeconds(challenges.best[b]!.seconds)}`:o?`Par ${formatSeconds(challengePar[b])}`:'Locked'):biomeNames[l.biome]!==ch.name&&!ch.challenges?biomeNames[l.biome]:l.boss?'Guardian':`${l.waves} waves`}</small></span>
       <span className={`ct-band is-${bandTone(bd)}`}>{bd}</span>
       <Medals value={m} icons={b?['check','heart','star']:undefined}/>
       {o?<Grade value={r?.grade||0} size="sm"/>:<span className="ct-trackrow__lock"><Icon name="lock"/></span>}

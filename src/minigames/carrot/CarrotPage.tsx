@@ -59,7 +59,8 @@ export default function CarrotPage(){
  const v2=!!page&&page.v>=2
  const currentLevel=definitions?.levels.find(l=>l.id===(page?.level||level))
  const challengeBoss=page?bossOfLevel(page.level):null
- const tutorialActive=!preview&&!records.tutorial&&save.unlocked<=1&&!Object.keys(save.medals).length&&(page?.level||level)===1
+ // the guided first level: a fresh player on level 1 (the dev preview opts in with ?carrot-tutorial)
+ const tutorialActive=(!preview||new URLSearchParams(location.search).has('carrot-tutorial'))&&!records.tutorial&&save.unlocked<=1&&!Object.keys(save.medals).length&&(page?.level||level)===1
  const step=useTutorialStep(store,tutorialActive&&ready&&!panel)
  const veteranAvailable=!!page?.veteranCap||!!definitions?.levels.some(l=>l.modes?.includes('veteran'))
 
