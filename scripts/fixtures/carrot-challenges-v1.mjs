@@ -27,7 +27,7 @@ function combine(a                ,b                )                 {
 }
 /** Pure merge for account sync: per boss, cleared OR, best health, the faster time (with its tower count); a higher version wins outright. */
 export function mergeCarrotChallenges(a                             ,b                             )                    {
- const newer=newerVersion(a,b);if(newer)return newer                 
+ const newer=newerVersion(a,b);if(newer)return newer
  const x=cleanChallenges(a),y=cleanChallenges(b)
  if(!x)return y;if(!y)return x
  const best                      ={}
