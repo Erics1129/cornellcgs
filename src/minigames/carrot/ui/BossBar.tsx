@@ -8,8 +8,8 @@ import { formatSeconds } from '../challenges'
 import Icon from '../Icon'
 import { miniBosses } from '../expansion'
 
-/** Real phase thresholds per guardian (CarrotGame p2/p3), drawn as ticks on the bar. */
-export const bossPhaseMarks:Record<string,number[]>={garden:[.25,.6],marsh:[.25,.55],frost:[.3,.65],orchard:[.3,.6],tornado:[.25,.6],zombie:[.3,.6],eyeball:[.3,.65],portal:[.3,.65],asuna:[.33,.66]}
+/** Real phase thresholds per guardian (CarrotGame.Thresholds p2/p3; frost, portal and asuna use the default .65/.3), drawn as ticks on the bar. */
+export const bossPhaseMarks:Record<string,number[]>={garden:[.25,.6],marsh:[.25,.55],frost:[.3,.65],orchard:[.3,.6],tornado:[.25,.6],zombie:[.3,.6],eyeball:[.3,.65],portal:[.3,.65],asuna:[.3,.65]}
 const pct=(n:number)=>`${Math.max(0,Math.min(1,Number.isFinite(n)?n:0))*100}%`
 const ratio=(a:number,b:number)=>b>0?Math.max(0,Math.min(1,a/b)):0
 

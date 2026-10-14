@@ -161,6 +161,7 @@ loader and `.unityweb` requests are routed to stubs, so nothing mock ships in `s
 | `panel` | Nine pad positions per viewport: the panel never meets the pad or the carrot; the portrait sheet is at most 200 px; in landscape the Build button is on screen; on desktop the panel is at most 280×190. |
 | `scan` | Text at least 11 px, targets at least 44×44 px, no backdrop-filter, contrast at least 4.5:1 for text and 3:1 for icons. |
 | `motion` | With reduced motion, only opacity animations of 250 ms or less, and no beat glow. |
+| `flash` | Eight bites in one second, then a second burst: the edge vignette lights at most three times in any second. It measures the composited page, sampled every frame. |
 | `commands` | v1 and v2: the card pauses, resumes and shows once, and is persisted. SELL NOW sends select then sell; the miniboss bar sends selectionType enemy; Restart sends load. |
 | `track` | Notes cross the line within ±100 ms of their spawn times; badges and counts render; one judgement word at a time. |
 | `lobby` | The first lobby view loads at most 4 MB of images and requests no `ui-*.ogg`. |
@@ -173,7 +174,7 @@ Other tools: `unit.mjs` (plain-node checks of `waves.ts` against BeginWave's for
 
 `BASE=http://localhost:5292 node scripts/carrot-ui-qa/qa.mjs all` against `vite preview` of a production build, on an M5 Max:
 
-- **Acceptance suites:** 329 of 329 checks pass in Chromium and WebKit (report: `output/carrot-ui-qa/qa-report.json`).
+- **Acceptance suites:** 329 of 329 checks pass in Chromium and WebKit, plus the `flash` suite (2/2) added afterwards (report: `output/carrot-ui-qa/qa-report.json`).
 - **Snapshot cost per publish** (dispatch through the React commit, 60 s with 50 moving monsters, a boss and a ticking cast):
   - Chromium: p95 0.9 ms (limit 2 ms); with a 4× CPU throttle, p95 3.8 ms (limit 6 ms).
   - WebKit: p95 1 ms (WebKit's timer resolution is 1 ms).

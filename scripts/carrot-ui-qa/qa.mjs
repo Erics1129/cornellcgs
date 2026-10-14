@@ -1,13 +1,13 @@
 // Carrot Defense UI acceptance suite (mock player, no Unity). Needs the site served (npm run dev, or vite preview of a build):
 //   BASE=http://localhost:5291 node scripts/carrot-ui-qa/qa.mjs [chromium|webkit|all] [suite,...]
-// Suites: layout, panel, scan, motion, commands, track, perf, lobby, parity. Screenshots and a JSON report go to output/carrot-ui-qa/.
+// Suites: layout, panel, scan, motion, flash, commands, track, perf, lobby, parity. Screenshots and a JSON report go to output/carrot-ui-qa/.
 import { writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { launch, open, enter, fixture, seed, commands, clearCommands, rectsHit, report, outDir, viewports, topLimits } from './lib.mjs'
 const [which = 'all', only = ''] = process.argv.slice(2)
 const base = process.env.BASE || 'http://localhost:5291'
 const engines = which === 'all' ? ['chromium', 'webkit'] : [which]
-const suites = only ? only.split(',') : ['layout', 'panel', 'scan', 'motion', 'commands', 'track', 'lobby', 'parity', 'perf']
+const suites = only ? only.split(',') : ['layout', 'panel', 'scan', 'motion', 'flash', 'commands', 'track', 'lobby', 'parity', 'perf']
 const results = [], data = {}
 const check = (name, ok, detail) => { results.push({ name, ok: !!ok, detail }); return ok }
 /** the top HUD stack: visible [data-top] parts in the upper half of the screen (on phones some live at the bottom) */
@@ -100,6 +100,27 @@ for (const engine of engines) {
     check(E('reduced motion: only opacity animations of 250 ms or less'), !bad.length, bad.slice(0, 6))
     const beat = await page.evaluate(() => getComputedStyle(document.querySelector('.ct-hud__track')).getPropertyValue('--beat').trim())
     check(E(`reduced motion: no beat glow (--beat ${beat || '0'})`), !beat || Number(beat) === 0)
+    await context.close()
+  }
+  // ---------------------------------------------------------------- flash: a burst of bites never strobes the edge vignette (WCAG 2.3.1)
+  if (suites.includes('flash')) {
+    const { context, page } = await open(browser, { viewport: 'desktop', storage: seed(8), base })
+    await enter(page); await fixture(page, 'waveAir')
+    const r = await page.evaluate(async () => {
+      const el = document.querySelector('.ct-vignette'), samples = [], qa = window.__qa
+      let stop = false; const tick = () => { samples.push([performance.now(), Number(getComputedStyle(el).opacity)]); if (!stop) requestAnimationFrame(tick) }; requestAnimationFrame(tick)
+      // eight bites in one second, then a second burst after a pause: the governor extends the lit vignette instead of retriggering
+      for (let i = 0; i < 8; i++) { qa.patch({ health: 9 - i }); await new Promise(r => setTimeout(r, 120)) }
+      await new Promise(r => setTimeout(r, 900))
+      for (let i = 0; i < 4; i++) { qa.patch({ health: 1 + (i % 2) }); await new Promise(r => setTimeout(r, 90)) }
+      await new Promise(r => setTimeout(r, 900)); stop = true
+      // a flash is a rise from dim to lit; count rises per rolling second
+      const rises = []; let lit = false
+      for (const [t, o] of samples) { if (!lit && o > .5) { lit = true; rises.push(t) } else if (lit && o < .15) lit = false }
+      let worst = 0; for (const t of rises) worst = Math.max(worst, rises.filter(x => x >= t && x < t + 1000).length)
+      return { rises: rises.length, worst, frames: samples.length }
+    })
+    check(E(`flash: bites light the vignette at most 3 times per second (worst ${r.worst}, ${r.rises} rises)`), r.rises >= 1 && r.worst <= 3, r)
     await context.close()
   }
   // ---------------------------------------------------------------- commands from the HUD
