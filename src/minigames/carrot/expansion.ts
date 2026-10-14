@@ -1,6 +1,7 @@
 // Portrait order is a shared contract with the generated plates and Blender exports.
 export const expansionTowers=['bamboo','chili','lotus','magnet','orchid','mushroom','cactus','clockflower','dragonfruit','moonflower']
 export const towerTraits:Record<string,string>={
+ seed:'Rapid seeds at one target. Hits flyers.',frost:'Slows its target; later tiers splash the chill.',mortar:'Shells burst on the ground in a blast.',prism:'Precise beam that cuts through shields.',storm:'Lightning chains through three to five foes.',blossom:'Pulses every creature in its ring.',starfruit:'Stars strike several foes, then return.',gravity:'Pulls creatures back along the path.',book:'Runes rewind a creature for one second.',thunder:'Charges, then strikes up to three foes.',
  bamboo:'Pierces enemies in a line.',chili:'Leaves a burning trail. Exposes enemies.',lotus:'Cleanses nearby stuns, slows and weakness.',magnet:'Chains pulses. Strips armor and shields.',orchid:'Stacks venom on tough targets.',mushroom:'Sleeps ground mobs. Slows bosses.',cactus:'Ricocheting thorns cause bleeding.',clockflower:'Quickens allies. Slows enemies.',dragonfruit:'Calls down explosive meteors.',moonflower:'Breaks shields. Punishes clones.',
 }
 export const miniBosses=[

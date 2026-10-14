@@ -1,193 +1,206 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
-import type { ReactNode } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import type { CSSProperties } from 'react'
 import { CarrotUnity } from './unity'
 import build from './unity-build.json'
 import { CarrotReview } from './CarrotReview'
 import { menuSound, stopMenuSound } from './uiAudio'
-import { LevelCount, RECORD, awardCampaign, readCampaign, readSuper, recordSuper, saveCampaign, teachSuper } from './progress'
+import { LevelCount, RECORD, RECORDS, awardCampaign, awardRecord, finishTutorial, gradeRun, markSeen, readCampaign, readRecords, readSuper, recordSuper, saveCampaign, teachSuper } from './progress'
 import { progress } from '../../lib/account/index.ts'
-import { awardChallenge, bossOfLevel, challengeDifficulty, challengeTitles, challengeUnlocked, formatSeconds, lockCaption, par, readChallenges, stars } from './challenges'
-import { AbilityGlyph, BossPortrait, CarrotPortrait, CreaturePortrait, RouteDrawing, SuperEmblem, TowerPortrait, challengeArt, chapterArt, meterStyle } from './art'
+import { awardChallenge, bossOfLevel, challengeUnlocked, par as challengePar, readChallenges } from './challenges'
+import type { Command, GameDefinitions, GameState } from './types'
+import { createSnapshotStore, useSlice } from './hooks/useSnapshot'
+import { createRunTracker } from './hooks/runTracker'
+import { readPrefs, subscribePrefs, writePrefs } from './prefs'
+import type { Prefs } from './prefs'
+import { readVolumes, subscribeVolumes, writeVolumes } from './volume'
+import type { Volumes } from './volume'
+import { levelKinds } from './waves'
+import { Lobby } from './ui/Lobby'
+import { LevelSelect } from './ui/LevelSelect'
+import { Loading } from './ui/Loading'
+import { WaveTrack } from './ui/WaveTrack'
+import { BottomBar, Controls, Judgement, PausedCard, StatusPanel, Vignette, useBeatGlow } from './ui/Hud'
+import { BossBar, MiniBars, MonsterBars, Reinforcements } from './ui/BossBar'
+import { BuildMenu } from './ui/BuildMenu'
+import { hudEdges } from './ui/BuildMenu'
+import type { PanelMode } from './ui/BuildMenu'
+import { Results } from './ui/Results'
+import { ConfirmModal, FieldGuide, HelpModal, SettingsModal } from './ui/Modals'
+import { AirToast, BossWarning, Coach, EncounterCard, ForgeToast, NoticeToast, useEncounters, useTutorialStep } from './ui/Onboarding'
 import Icon from './Icon'
-import { expansionAbilities, expansionHints, miniBosses, regularMobs, towerTraits } from './expansion'
-import type { CampaignSave, ChallengeBoss, ChallengeSave, Command, GameDefinitions, GameState, LevelDefinition } from './types'
 import './carrot.css'
 
-// Four chapters by level id: the three lands of the first twelve levels, then the harvest road (13-24), the fourth chapter, which alternates reprises of those lands with Ember Orchard; grouping by biome would file the reprises under chapters whose boss is already beaten, so the cards there carry their land as a subtitle.
-// The fifth section lists the arena challenges (ids above LevelCount), which are not part of the campaign save.
-type Chapter={index:number;name:string;number:string;from:number;to:number;road?:string;challenges?:boolean}
-const chapters:Chapter[]=[{index:1,name:'Sunlit Garden',number:'01',from:1,to:4},{index:2,name:'Moonlit Marsh',number:'02',from:5,to:8},{index:3,name:'Frostglass Highlands',number:'03',from:9,to:12},{index:4,name:'Ember Orchard',number:'04',from:13,to:24,road:'Harvest Road'},{index:5,name:'Challenges',number:'05',from:LevelCount+1,to:Infinity,challenges:true}]
-const biomeNames:Record<string,string>={garden:'Sunlit Garden',marsh:'Moonlit Marsh',frost:'Frostglass Highlands',orchard:'Ember Orchard',arena:'The Arena',portal:'The Shattered Observatory',prism:'Prismatic Causeway'}
-// Five cells: four bought tiers and the Super, which is forged by merging two Tier IV twins (never bought).
-const roman=['I','II','III','IV','S']
-const SuperTier=roman.length,TopTier=SuperTier-1
-const bossPhaseMarks:Record<string,number[]>={garden:[.25,.6],marsh:[.25,.55],frost:[.3,.65],orchard:[.3,.6],tornado:[.25,.6],zombie:[.3,.6],eyeball:[.3,.65],portal:[.3,.65],asuna:[.3,.65]}
-const abilityNames:Record<string,string>={blind:'Blindness',uproot:'Uproot',whiteout:'Whiteout',dusk:'Dusk',tithe:'Tithe',gust:'Gust',liftoff:'Lift-off',raise:'Raise Dead',gaze:'Gaze',...expansionAbilities}
-// Telegraphed abilities get a toast under the boss bar with the counterplay; the simulation names them in boss.ability while castRemaining counts down.
-const telegraphHints:Record<string,string>={blind:'Towers outside lantern light lose reach. Prism and Sun Blossom keep the dark lit.',uproot:'A tower is being pulled up. Sell it before the roots close to keep most of its coins.',tithe:'The guardian claims a share of your coins.',whiteout:'A frost gust freezes every shot in the air for a moment.',dusk:'Full dark, and crows. Clear the crows to win.',gust:'Seed shots near the tornado hit for half.',liftoff:'The tornado lifts off: mortars cannot reach it.',raise:'Fallen creatures rise again beside the Zombie.',gaze:'Your strongest tower is stunned for five seconds.',...expansionHints}
-const friendly=(s:string)=>abilityNames[s]||s?.replace(/([a-z])([A-Z])/g,'$1 $2').replace(/[_-]/g,' ')||''
-const pct=(n:number)=>`${Math.round(Math.max(0,Math.min(1,n))*100)}%`
+const SuperTier=5,TopTier=4
 const clampLevel=(value:unknown,count:number)=>Math.max(1,Math.min(count,Number(value)||1))
-
-function Modal({title,children,onClose,className=''}:{title:string;children:ReactNode;onClose:()=>void;className?:string}){
- const ref=useRef<HTMLDialogElement>(null)
- useEffect(()=>{const el=ref.current;el?.showModal();return()=>el?.close()},[])
- return <dialog ref={ref} className={`ct-dialog ${className}`} onCancel={e=>{e.preventDefault();onClose()}} onClick={e=>{if(e.target===e.currentTarget)onClose()}} aria-label={title}>
-  <div className="ct-dialog__inner"><header><h2>{title}</h2><button className="ct-icon" onClick={onClose} aria-label={`Close ${title}`}><Icon name="close"/></button></header>{children}</div>
- </dialog>
-}
-function Medals({value=0,labels=['Completed.','Carrot unharmed.','Scenery cleared.']}:{value?:number;labels?:string[]}){return <span className="ct-medals" aria-label={[1,2,4].map((v,i)=>value&v?labels[i]:'').filter(Boolean).join(' ')}>{[1,2,4].map((v,i)=><i className={value&v?'is-earned':''} key={v}><Icon name={['check','heart','leaf'][i]}/></i>)}</span>}
-function LevelCard({level,save,choose,preview=false,subtitle}:{level:LevelDefinition;save:CampaignSave;choose:(level:number)=>void;preview?:boolean;subtitle?:string}){
- const locked=level.id>save.unlocked&&!preview
- return <button className={`ct-level ${locked?'is-locked':''}`} disabled={locked} onClick={()=>choose(level.id)} aria-label={`${level.id}. ${level.name}${subtitle?`, ${subtitle}`:''}${locked?', locked':''}`}>
-  <span className="ct-level__scene" style={{backgroundImage:`url(${chapterArt(level.biome)})`}}><RouteDrawing routes={level.routes}/><b>{String(level.id).padStart(2,'0')}</b>{locked?<span className="ct-level__lock"><Icon name="lock"/></span>:level.boss?<span className="ct-level__boss"><BossPortrait kind={level.boss}/></span>:null}</span>
-  <span className="ct-level__caption"><strong>{level.name}{subtitle&&<small> · {subtitle}</small>}</strong><Medals value={save.medals[level.id]}/></span>
- </button>
-}
-const starLabels=(boss:ChallengeBoss)=>['Cleared.','Carrot unharmed.',`Under ${formatSeconds(par[boss])}.`]
-function ChallengeCard({level,save,challenges,choose,preview=false}:{level:LevelDefinition;save:CampaignSave;challenges:ChallengeSave;choose:(level:number)=>void;preview?:boolean}){
- const boss=bossOfLevel(level.id)||(level.boss as ChallengeBoss)
- const difficulty=level.challenge||challengeDifficulty[boss]||'easy',unlocked=preview||challengeUnlocked(level.id,save,challenges),record=challenges.best[boss]
- const difficultyClass=difficulty==='????'?'unknown':difficulty
- const title=challengeTitles[boss]||`BossFight - ${level.bossName||level.name}`
- const best=record?`Best ${record.health} HP · ${formatSeconds(record.seconds)}`:unlocked?'Not yet cleared':lockCaption[boss]||'Locked'
- return <button className={`ct-challenge ct-challenge--${difficultyClass} ct-challenge--${boss} ${unlocked?'':'is-locked'}`} disabled={!unlocked} onClick={()=>choose(level.id)} style={{backgroundImage:`url(${challengeArt(boss)}), url(${chapterArt('arena')})`}} aria-label={`${title}, ${difficulty}. ${best}${unlocked?'':', locked'}`}>
-  <span className="ct-challenge__top"><span className={`ct-badge ct-badge--${difficultyClass}`}>{difficulty}</span>{!unlocked&&<span className="ct-challenge__lock"><Icon name="lock"/></span>}</span>
-  <span className="ct-challenge__portrait"><BossPortrait kind={boss}/></span>
-  <span className="ct-challenge__body"><strong>{title}</strong><span className="ct-challenge__meta">{level.bossName||level.name} · {boss==='asuna'?'Endurance':`${level.waves} waves`}</span><Medals value={stars(record,boss)} labels={starLabels(boss)}/><small>{best}</small></span>
- </button>
-}
+type Panel='select'|'challenges'|'guide'|'help'|'settings'|'restart'|null
+const lossCounts=new Map<number,number>()
 
 export default function CarrotPage(){
- const root=useRef<HTMLDivElement>(null),mount=useRef<HTMLDivElement>(null),engine=useRef<CarrotUnity|null>(null)
- const [definitions,setDefinitions]=useState<GameDefinitions|null>(null),[save,setSave]=useState(readCampaign),[superSave,setSuperSave]=useState(readSuper),[challenges,setChallenges]=useState(readChallenges)
- const [entered,setEntered]=useState(false),[ready,setReady]=useState(false),[loading,setLoading]=useState(0),[error,setError]=useState('')
- const [state,setState]=useState<GameState|null>(null),[level,setLevel]=useState(1),[picked,setPicked]=useState('seed')
- const [panel,setPanel]=useState<'campaign'|'help'|'collection'|'challenges'|null>(null),[expanded,setExpanded]=useState(false),[warning,setWarning]=useState<{kind:string;name:string}|null>(null),[result,setResult]=useState(false)
- const current=useRef(state),saved=useRef(save),challengesRef=useRef(challenges),superRef=useRef(superSave),wasPlaying=useRef(false),lastBoss=useRef(''),award=useRef(''),noticeTimer=useRef<number>(),warningTimer=useRef<number>(),teachTimer=useRef<number>()
- const teachPending=useRef(0),lastUndo=useRef(0),forged=useRef({kind:'',name:''}),knownSupers=useRef(new Set<number>())
- const [notice,setNotice]=useState(''),[teach,setTeach]=useState(false),[collectionMode,setCollectionMode]=useState<'towers'|'creatures'>('towers')
+ const root=useRef<HTMLDivElement>(null),mount=useRef<HTMLDivElement>(null),engine=useRef<CarrotUnity|null>(null),hud=useRef<HTMLDivElement>(null),trackBox=useRef<HTMLDivElement>(null)
+ const store=useMemo(()=>createSnapshotStore(),[]),tracker=useMemo(()=>createRunTracker(store),[store])
+ useEffect(()=>tracker.attach(),[tracker])
+ const [definitions,setDefinitions]=useState<GameDefinitions|null>(null)
+ const [save,setSave]=useState(readCampaign),[superSave,setSuperSave]=useState(readSuper),[challenges,setChallenges]=useState(readChallenges),[records,setRecords]=useState(readRecords)
+ const [prefs,setPrefs]=useState<Prefs>(readPrefs),[volumes,setVolumes]=useState<Volumes>(readVolumes)
+ const [entered,setEntered]=useState(false),[ready,setReady]=useState(false),[loading,setLoading]=useState(0),[bytes,setBytes]=useState<{done:number;total:number}|null>(null),[error,setError]=useState('')
+ const [level,setLevel]=useState(1),[veteran,setVeteran]=useState(false)
+ const [panel,setPanel]=useState<Panel>(null),[expanded,setExpanded]=useState(false),[result,setResult]=useState(false),[teach,setTeach]=useState(false)
+ const [osReduced,setOsReduced]=useState(()=>matchMedia('(prefers-reduced-motion: reduce)').matches)
+ const [forged,setForged]=useState({kind:'',name:''}),[resultInfo,setResultInfo]=useState({grade:0,previous:0,losses:0})
+ const saved=useRef(save),challengesRef=useRef(challenges),superRef=useRef(superSave),recordsRef=useRef(records),definitionsRef=useRef(definitions),wasPlaying=useRef(false),award=useRef(''),teachPending=useRef(0),teachTimer=useRef(0),lastUndo=useRef(0),knownSupers=useRef(new Set<number>()),superTargets=useRef(new Set<number>())
+ saved.current=save;challengesRef.current=challenges;superRef.current=superSave;recordsRef.current=records;definitionsRef.current=definitions
+ const reduced=osReduced||prefs.reducedEffects
  const preview=import.meta.env.DEV&&['carrot-preview','carrot-qa'].some(key=>new URLSearchParams(location.search).has(key))
  const levelCount=definitions?.levels.length||LevelCount
  const qaLevel=preview?clampLevel(new URLSearchParams(location.search).get('carrot-preview'),levelCount):1
- current.current=state;saved.current=save;challengesRef.current=challenges;superRef.current=superSave
  const send=useCallback((command:Command)=>engine.current?.send(command),[])
- // Development preview only (tree-shaken from production): a QA harness can drive the level, read the live state, or inject a snapshot to review the HUD without the engine.
- useEffect(()=>{if(!preview)return;const w=window as unknown as {__carrot?:{send:(c:Command)=>void;state:()=>GameState|null;inject:(s:GameState|null)=>void;ready:()=>void}};w.__carrot={send:c=>engine.current?.send(c),state:()=>current.current,inject:s=>setState(s),ready:()=>{setError('');setReady(true)}};return()=>{delete w.__carrot}},[preview])
+ const page=useSlice(store,st=>st?{level:st.level,biome:st.biome,phase:st.phase,v:st.v||1,blind:(st.blind||0)>0,blackout:(st.blind||0)>0&&(st.blindAlpha||0)>=.995&&(st.blindTint||0)<.5,white:(st.blind||0)>0&&(st.blindTint||0)>=.5,boss:!!st.boss&&st.boss.hp>0,caps:(st.caps||[]).join(','),veteranCap:(st.caps||[]).includes('veteran'),towers:st.towerCount||0}:null)
+ const run=useSlice(store,()=>store.run())
+ const v2=!!page&&page.v>=2
+ const currentLevel=definitions?.levels.find(l=>l.id===(page?.level||level))
+ const challengeBoss=page?bossOfLevel(page.level):null
+ const tutorialActive=!preview&&!records.tutorial&&save.unlocked<=1&&!Object.keys(save.medals).length&&(page?.level||level)===1
+ const step=useTutorialStep(store,tutorialActive&&ready&&!panel)
+ const veteranAvailable=!!page?.veteranCap||!!definitions?.levels.some(l=>l.modes?.includes('veteran'))
+
+ // Development preview only (tree-shaken from production): a QA harness can drive the level, read the live state, or inject a snapshot.
+ useEffect(()=>{if(!preview)return;const w=window as unknown as {__carrot?:{send:(c:Command)=>void;state:()=>GameState|null;inject:(s:GameState|null)=>void;ready:()=>void}};w.__carrot={send:c=>engine.current?.send(c),state:()=>store.get(),inject:s=>store.set(s),ready:()=>{setError('');setReady(true)}};return()=>{delete w.__carrot}},[preview,store])
  useEffect(()=>{let active=true;fetch(`/assets/minigames/carrot/game-data.json?v=${build.version}`).then(r=>{if(!r.ok)throw new Error('The garden guide could not download. Please retry.');return r.json()}).then((d:GameDefinitions)=>{if(active&&Array.isArray(d.towers)&&Array.isArray(d.levels))setDefinitions(d)}).catch(e=>{if(active)setError(e.message)});return()=>{active=false}},[])
  useEffect(()=>{const oldTitle=document.title;document.title='Carrot Defense 3D · Cornell CGS';document.documentElement.classList.add('ct-document');return()=>{document.title=oldTitle;document.documentElement.classList.remove('ct-document')}},[])
+ useEffect(()=>{const m=matchMedia('(prefers-reduced-motion: reduce)');const f=()=>setOsReduced(m.matches);m.addEventListener('change',f);return()=>m.removeEventListener('change',f)},[])
+ useEffect(()=>subscribePrefs(setPrefs),[])
+ useEffect(()=>subscribeVolumes(setVolumes),[])
+ useEffect(()=>{engine.current?.setReducedEffects(prefs.reducedEffects)},[prefs.reducedEffects])
  useEffect(()=>{
   if(!entered||!mount.current)return
-  setReady(false);setError('');const game=new CarrotUnity(mount.current,{state:setState,progress:setLoading,ready:()=>setReady(true),error:setError},level,!saved.current.sound);engine.current=game
+  setReady(false);setError('');setBytes(null)
+  const game=new CarrotUnity(mount.current,{state:s=>store.set(s),progress:setLoading,ready:()=>setReady(true),error:setError,bytes:(done,total)=>setBytes({done,total})},level,!saved.current.sound,{reducedEffects:readPrefs().reducedEffects,mode:veteran?'veteran':undefined});engine.current=game
   return()=>{game.dispose();if(engine.current===game)engine.current=null}
  },[entered])
- useEffect(()=>{if(!state)return;const key=state.boss?`${state.level}:${state.boss.id}`:'';if(key&&key!==lastBoss.current){lastBoss.current=key;setWarning({kind:state.boss!.kind,name:state.boss!.name});clearTimeout(warningTimer.current);warningTimer.current=window.setTimeout(()=>setWarning(null),3600)}},[state?.boss?.id,state?.level])
- useEffect(()=>{if(!state?.notice)return;setNotice(state.notice);clearTimeout(noticeTimer.current);noticeTimer.current=window.setTimeout(()=>setNotice(''),2800)},[state?.notice])
- useEffect(()=>{setResult(false);if(state?.phase!=='won'&&state?.phase!=='lost')return;const timer=window.setTimeout(()=>setResult(true),state.phase==='won'?2200:1100);const key=`${state.level}:${state.phase}`;
-  if(state.phase==='won'&&award.current!==key){award.current=key;const boss=bossOfLevel(state.level)
-   // Challenge records keep the fight's own clock (state.elapsed); a snapshot without it records nothing rather than a free par star. Campaign awards are skipped in the QA preview.
-   if(boss&&!preview)setChallenges(previous=>awardChallenge(previous,boss,state.health,typeof state.elapsed==='number'?state.elapsed:NaN,state.towerCount??0))
-   else if(!preview)setSave(previous=>awardCampaign(previous,state.level,state.health,state.blockersRemaining===0))}
-  return()=>clearTimeout(timer)
- },[state?.phase,state?.level])
- useEffect(()=>{if(state?.selection?.type==='pad'){setPicked('seed');send({type:'preview',kind:'seed'})}},[state?.selection?.type,state?.selection?.id,send])
- // A merge shows up as mergeUndo jumping to its 4 s window, or as a Super the page has not seen yet becoming the selection (a second merge
- // while the first window has not advanced, e.g. in the ready phase): remember the forged name for the undo notice and count the Super.
- useEffect(()=>{if(preview)return;const undo=state?.mergeUndo||0,selection=state?.selection,superSelected=selection?.type==='tower'&&selection.tier>=SuperTier?selection:null
-  const newSuper=!!superSelected&&!knownSupers.current.has(superSelected.id);if(superSelected)knownSupers.current.add(superSelected.id)
-  if(undo>0&&(lastUndo.current<=0||undo>lastUndo.current+.3||newSuper)){const kind=selection?.type==='tower'?selection.kind:'';const tower=definitions?.towers.find(t=>t.id===kind);forged.current={kind,name:selection?.superName||tower?.superName||'Super tower'};if(kind)setSuperSave(previous=>recordSuper(previous,kind))}lastUndo.current=undo},[state?.mergeUndo,state?.selection?.id,state?.selection?.tier])
- useEffect(()=>{if(preview)return;const selection=state?.selection;if(selection?.type==='tower'&&selection.tier>=SuperTier&&!superRef.current.kinds[selection.kind])setSuperSave(previous=>previous.kinds[selection.kind]?previous:recordSuper(previous,selection.kind))},[state?.selection?.id,state?.selection?.tier])
- // The merge lesson fires once per device, on the first fully grown tower, and waits for the ready phase or a breather (8 s at most) so it never lands mid-wave.
- useEffect(()=>{if(preview||!state||teach||superRef.current.taught)return
-  const selection=state.selection,reached=(selection?.type==='tower'&&selection.tier>=TopTier)||(state.superPairs||0)>0
-  if(!teachPending.current&&reached)teachPending.current=performance.now()+8000
-  if(teachPending.current&&(state.phase==='ready'||state.nextWave>0||state.enemyCount===0||performance.now()>teachPending.current)){teachPending.current=0;setTeach(true);setSuperSave(previous=>teachSuper(previous));clearTimeout(teachTimer.current);teachTimer.current=window.setTimeout(()=>setTeach(false),9000)}
- },[state,teach])
- useEffect(()=>{const visibility=()=>{if(document.hidden&&current.current&&!current.current.paused&&current.current.phase==='playing')send({type:'pause'})};document.addEventListener('visibilitychange',visibility);return()=>document.removeEventListener('visibilitychange',visibility)},[send])
- useEffect(()=>{const key=(e:KeyboardEvent)=>{if(e.repeat||e.metaKey||e.ctrlKey||e.altKey||panel||!entered||!ready||e.target instanceof HTMLInputElement||e.target instanceof HTMLTextAreaElement)return;
-  const selection=current.current?.selection
-  if(e.key==='Escape'){send({type:'clear'});return}if(e.code==='Space'&&!(e.target instanceof HTMLButtonElement)){e.preventDefault();send({type:current.current?.phase==='ready'?'start':'pause'})}
+ // bridge v2 builds take volumes as soon as they report v>=2 (an older player has no receiver for the message)
+ useEffect(()=>{if(v2&&!saved.current.sound)return;if(v2)engine.current?.setVolumes(volumes)},[v2,volumes])
+ useBeatGlow(trackBox,reduced,ready&&!!page&&page.phase==='playing')
+
+ // ---- per-run reactions to the snapshot stream (no React state per publish) ----
+ useEffect(()=>store.subscribe(()=>{
+  const st=store.get();if(!st)return
+  const d=definitionsRef.current
+  // outcome: awards once per run, the results card after the victory beat (1.5 s; 0.3 s with reduced motion)
+  if(st.phase==='won'||st.phase==='lost'){const key=`${store.run()}:${st.level}:${st.phase}`
+   if(award.current!==key){award.current=key
+    const boss=bossOfLevel(st.level),summary=tracker.summary(),seconds=typeof st.elapsed==='number'?st.elapsed:NaN
+    const def=d?.levels.find(l=>l.id===st.level),won=st.phase==='won'
+    const grade=gradeRun({won,health:st.health,progress:st.progress,seconds,par:boss?challengePar[boss]:def?.par,scenery:st.blockersRemaining===0,challenge:!!boss})
+    const previous=(st.mode==='veteran'?recordsRef.current.levels[String(st.level)]?.vgrade:recordsRef.current.levels[String(st.level)]?.grade)||0
+    if(!won)lossCounts.set(st.level,(lossCounts.get(st.level)||0)+1)
+    setResultInfo({grade,previous,losses:lossCounts.get(st.level)||0})
+    if(!preview){
+     if(won&&boss)setChallenges(p=>awardChallenge(p,boss,st.health,seconds,st.towerCount??0))
+     else if(won)setSave(p=>awardCampaign(p,st.level,st.health,st.blockersRemaining===0))
+     setRecords(p=>awardRecord(p,st.level,{grade,streak:summary.bestChain,seconds,won,veteran:st.mode==='veteran'}))
+    }
+    window.setTimeout(()=>{if(award.current===key)setResult(true)},reduced?300:1500)
+   }
+  }else if(award.current&&!award.current.startsWith(`${store.run()}:`)){award.current='';setResult(false)}
+  // Supers: the merge-undo window opening, or a Super the page has not seen becoming the selection
+  const undo=st.mergeUndo||0,sel=st.selection,superSel=sel?.type==='tower'&&sel.tier>=SuperTier?sel:null
+  const newSuper=!!superSel&&!knownSupers.current.has(superSel.id);if(superSel)knownSupers.current.add(superSel.id)
+  if(!preview&&undo>0&&(lastUndo.current<=0||undo>lastUndo.current+.3||newSuper)){const kind=sel?.type==='tower'?sel.kind:'';const t=d?.towers.find(x=>x.id===kind);setForged({kind,name:sel?.superName||t?.superName||'Super tower'});if(kind)setSuperSave(p=>recordSuper(p,kind))}
+  lastUndo.current=undo
+  if(!preview&&superSel&&!superRef.current.kinds[superSel.kind])setSuperSave(p=>p.kinds[superSel.kind]?p:recordSuper(p,superSel.kind))
+  // the merge lesson: once per device, on the first fully grown tower, in the ready phase or a breather (8 s at most)
+  if(!preview&&!superRef.current.taught){const reached=(sel?.type==='tower'&&sel.tier>=TopTier)||(st.superPairs||0)>0
+   if(!teachPending.current&&reached)teachPending.current=performance.now()+8000
+   if(teachPending.current&&(st.phase==='ready'||st.nextWave>0||st.enemyCount===0||performance.now()>teachPending.current)){teachPending.current=0;setTeach(true);setSuperSave(p=>teachSuper(p));clearTimeout(teachTimer.current);teachTimer.current=window.setTimeout(()=>setTeach(false),9000)}}
+ }),[store,tracker,preview,reduced])
+ useEffect(()=>{setResult(false);superTargets.current.clear();knownSupers.current.clear();lastUndo.current=0},[run])
+ // creatures met: the wave track's NEW tags stop once a level that sends them was played
+ useEffect(()=>{if(preview||!page||page.phase!=='playing'||!currentLevel)return;const kinds=levelKinds(currentLevel).filter(k=>/^[A-Za-z][A-Za-z0-9]{1,31}$/.test(k));const t=window.setTimeout(()=>setRecords(r=>markSeen(r,{creatures:kinds})),20000);return()=>clearTimeout(t)},[page?.phase,currentLevel,preview])
+ const encounters=useEncounters(store,records.seen.abilities,send,useCallback((id:string)=>{if(!preview)setRecords(r=>markSeen(r,{abilities:[id]}));else setRecords(r=>({...r,seen:{...r.seen,abilities:[...r.seen.abilities,id]}}))},[preview]),ready&&!panel)
+
+ useEffect(()=>{const visibility=()=>{const st=store.get();if(document.hidden&&st&&!st.paused&&st.phase==='playing')send({type:'pause'})};document.addEventListener('visibilitychange',visibility);return()=>document.removeEventListener('visibilitychange',visibility)},[send,store])
+ useEffect(()=>{const key=(e:KeyboardEvent)=>{if(e.repeat||e.metaKey||e.ctrlKey||e.altKey||panel||encounters.card||!entered||!ready||e.target instanceof HTMLInputElement||e.target instanceof HTMLTextAreaElement)return
+  const st=store.get(),selection=st?.selection
+  if(e.key==='Escape'){send({type:'clear'});return}
+  if(e.code==='Space'&&!(e.target instanceof HTMLButtonElement)){e.preventDefault();send({type:st?.phase==='ready'?'start':'pause'})}
+  if(e.key.toLowerCase()==='f'&&st?.phase==='playing')send({type:'speed',value:st.speed>1?1:2})
   if(e.key.toLowerCase()==='u'&&selection?.type==='tower'&&selection.tier<TopTier)send({type:'upgrade'})
-  if(e.key.toLowerCase()==='m'&&selection?.type==='tower'&&selection.tier===TopTier&&(selection.partners||0)>0)send({type:'mergeArm',id:selection.id})};window.addEventListener('keydown',key);return()=>window.removeEventListener('keydown',key)},[entered,ready,panel,send])
+  if(e.key.toLowerCase()==='m'&&selection?.type==='tower'&&selection.tier===TopTier&&(selection.partners||0)>0)send({type:'mergeArm',id:selection.id})}
+  window.addEventListener('keydown',key);return()=>window.removeEventListener('keydown',key)},[entered,ready,panel,send,store,encounters.card])
  useEffect(()=>{const f=()=>setExpanded(!!document.fullscreenElement);document.addEventListener('fullscreenchange',f);return()=>document.removeEventListener('fullscreenchange',f)},[])
- useEffect(()=>()=>{clearTimeout(noticeTimer.current);clearTimeout(warningTimer.current);clearTimeout(teachTimer.current);stopMenuSound()},[])
- // Signing in (or another device playing) can change the stored campaign: adopt it, or the next award overwrites it.
+ useEffect(()=>()=>{clearTimeout(teachTimer.current);stopMenuSound()},[])
+ // Signing in (or another device playing) can change the stored records: adopt them, or the next award overwrites them.
  useEffect(()=>progress.subscribe(RECORD,()=>setSave(readCampaign())),[])
  useEffect(()=>progress.subscribe('carrot:challenges',()=>setChallenges(readChallenges())),[])
  useEffect(()=>progress.subscribe('carrot:super',()=>setSuperSave(readSuper())),[])
+ useEffect(()=>progress.subscribe(RECORDS,()=>setRecords(readRecords())),[])
+
+ // The camera keeps the selected pad and the carrot clear of the HUD and the open panel (bridge v2: SetSafeArea, sent once per change).
+ const sentArea=useRef('')
+ const onSafeArea=useCallback((p:{rect:DOMRect|null;mode:PanelMode})=>{
+  if(!v2||!engine.current)return
+  const vw=innerWidth,vh=innerHeight,edges=hudEdges()
+  const area={top:edges.top/vh,bottom:(vh-edges.bottom)/vh,left:0,right:0}
+  if(p.rect){const r=p.rect;if(p.mode==='sheet'){if(r.top>vh/2)area.bottom=Math.max(area.bottom,(vh-r.top)/vh);else area.top=Math.max(area.top,r.bottom/vh)}else if(r.left+r.width/2<vw/2)area.left=r.right/vw;else area.right=(vw-r.left)/vw}
+  const round=(n:number)=>Math.round(Math.max(0,Math.min(.9,n))*1000)/1000,next={top:round(area.top),bottom:round(area.bottom),left:round(area.left),right:round(area.right)},key=JSON.stringify(next)
+  if(key!==sentArea.current){sentArea.current=key;engine.current.setSafeArea(next)}
+ },[v2])
+ useEffect(()=>{if(!v2||!ready)return;const f=()=>onSafeArea({rect:null,mode:'anchored'});const t=window.setTimeout(f,400);addEventListener('resize',f);return()=>{clearTimeout(t);removeEventListener('resize',f)}},[v2,ready,onSafeArea,page?.boss])
+
  const isOpen=(id:number)=>preview||(id>LevelCount?challengeUnlocked(id,saved.current,challengesRef.current):id<=saved.current.unlocked)
- const choose=(id:number)=>{if(!isOpen(id))return;setPanel(null);setLevel(id);setResult(false);setWarning(null);lastBoss.current='';award.current='';lastUndo.current=0;knownSupers.current.clear();if(entered){send({type:'load',level:id})}else setEntered(true)}
- const openPanel=(value:typeof panel)=>{wasPlaying.current=!!current.current&&!current.current.paused&&current.current.phase==='playing';if(wasPlaying.current)send({type:'pause'});setPanel(value)}
- const closePanel=()=>{setPanel(null);if(wasPlaying.current&&current.current?.paused)send({type:'pause'});wasPlaying.current=false}
+ const choose=(id:number)=>{if(!isOpen(id))return;setPanel(null);setLevel(id);setResult(false);award.current='';if(entered){send(veteran&&id<=LevelCount?{type:'load',level:id,mode:'veteran'}:{type:'load',level:id})}else setEntered(true)}
+ const openPanel=(value:Panel)=>{const st=store.get();wasPlaying.current=!!st&&!st.paused&&st.phase==='playing';if(wasPlaying.current)send({type:'pause'});setPanel(value)}
+ const closePanel=()=>{setPanel(null);if(wasPlaying.current&&store.get()?.paused)send({type:'pause'});wasPlaying.current=false}
  const toggleSound=()=>{const next=saveCampaign({...save,sound:!save.sound});setSave(next);send({type:'mute',value:next.sound?0:1})}
  const fullscreen=async()=>{try{if(document.fullscreenElement)await document.exitFullscreen();else if(root.current?.requestFullscreen)await root.current.requestFullscreen();else setExpanded(v=>!v)}catch{setExpanded(v=>!v)}}
- const selection=state?.selection,selectedTower=selection?.type==='tower'?definitions?.towers.find(t=>t.id===selection.kind):undefined
- const buyTower=definitions?.towers.find(t=>t.id===picked),tier=Math.max(1,Math.min(SuperTier,selection?.tier||1)),isSuper=tier>=SuperTier,partners=selection?.partners||0
- const canGrow=!!selectedTower&&tier<SuperTier&&selectedTower.damage.length>tier&&selectedTower.range.length>tier
- const choiceOpen=!!state&&!!selection&&['pad','tower','blocker','enemy'].includes(selection.type)&&!result&&!panel
- const getHealth=(hp:number,max:number)=>max>0?hp/max:0
- const currentLevel=definitions?.levels.find(l=>l.id===level),challengeLevels=definitions?.levels.filter(l=>l.challenge)||[],challengeBoss=state?bossOfLevel(state.level):null
- const blind=(state?.blind||0)>0,blackout=blind&&(state?.blindAlpha||0)>=.995&&(state?.blindTint||0)<.5,undoOpen=(state?.mergeUndo||0)>0
- const telegraph=state?.boss&&state.boss.hp>0&&state.boss.castRemaining>0&&telegraphHints[state.boss.ability]?state.boss:null
- const uprootTarget=telegraph?.ability==='uproot'&&typeof telegraph.abilityTarget==='number'&&telegraph.abilityTarget>=0?telegraph.abilityTarget:null
- const selectedCreature=selection?.type==='enemy'?miniBosses.find(m=>m.id===selection.kind):undefined
- const won=state?.phase==='won'
- return <div className={`ct-page ${state?.biome==='prism'?'is-prism':''} ${expanded?'is-expanded':''} ${blind?'is-blind':''} ${blackout?'is-blackout':''} ${blind&&(state?.blindTint||0)>=.5?'is-blind-white':''}`} ref={root} onClickCapture={e=>{
+ const restart=()=>{setPanel(null);wasPlaying.current=false;const id=store.get()?.level||level;setResult(false);award.current='';send(veteran&&id<=LevelCount?{type:'load',level:id,mode:'veteran'}:{type:'load',level:id})}
+ const onSaved=useCallback(()=>{const st=store.get();if(!st?.judgement)tracker.emit('saved',st?.wave||0)},[store,tracker])
+
+ const st=store.get()
+ const pageClass=['ct-page',page?.biome==='prism'?'is-prism':'',expanded?'is-expanded':'',page?.blind?'is-blind':'',page?.blackout?'is-blackout':'',page?.white?'is-blind-white':'',result?'has-result':''].filter(Boolean).join(' ')
+ return <div className={pageClass} ref={root} data-biome={page?.biome||currentLevel?.biome||'garden'} data-boss={challengeBoss||undefined} data-motion={reduced?'reduce':'full'} style={{'--hud-scale':prefs.hudScale/100} as CSSProperties} onClickCapture={e=>{
   const button=(e.target as Element).closest('button:not(:disabled),a');if(!saved.current.sound||!button)return
   const label=button.getAttribute('aria-label')||button.textContent||''
-  const kind=/^Close/.test(label)?'close':/Choose|Meet|How to|Boss challenges/.test(label)?'open':'click'
-  if(ready)engine.current?.uiSound(kind);else menuSound(kind)
+  const kind=/^Close|^Back/.test(label)?'close':/Stage select|Choose|How to|challenges|Settings|Field guide/.test(label)?'open':'click'
+  if(ready&&entered)engine.current?.uiSound(kind);else menuSound(kind)
  }}>
-  {!entered?<main className="ct-lobby" style={{backgroundImage:`url(${chapterArt('garden')})`}}>
-   <nav className="ct-lobby-nav"><a href="/minigames/"><Icon name="back"/>All games</a><span>CORNELL CGS</span><button onClick={()=>openPanel('help')} className="ct-icon" aria-label="How to play"><Icon name="help"/></button></nav>
-   <div className="ct-lobby-copy"><p className="ct-kicker">A little garden. A grand defense.</p><h1>Carrot<br/>Defense <em>3D</em></h1><p className="ct-chinese">保卫萝卜 · 3D</p><div className="ct-lobby-actions"><button className="ct-primary" disabled={!definitions} onClick={()=>choose(preview?qaLevel:save.unlocked)}>{save.unlocked>1?'Continue':'Enter the garden'}<Icon name="arrow"/></button><button className="ct-secondary" disabled={!definitions} onClick={()=>openPanel('campaign')}>Choose a level</button><button className="ct-secondary ct-secondary--challenge" disabled={!definitions} onClick={()=>openPanel('challenges')}><Icon name="swords"/>Boss challenges</button></div>{error&&<p role="alert" className="ct-error">{error} <button onClick={()=>location.reload()}>Retry</button></p>}<p className="ct-lobby-meta">{LevelCount} landscapes <i/> {definitions?.towers.length||20} towers <i/> 15 minibosses <i/> {challengeLevels.length||5} challenges</p></div>
-   <footer className="ct-lobby-foot"><span>Original maps & artwork · Fan project</span><button onClick={()=>openPanel('collection')}>Meet your defenses<Icon name="arrow"/></button></footer>
-  </main>:<main className="ct-game" aria-label="Carrot Defense battlefield">
+  {!entered?<Lobby definitions={definitions} save={save} records={records} error={error} preview={preview} qaLevel={qaLevel} reduced={reduced} onPlay={choose} onSelect={()=>openPanel('select')} onChallenges={()=>openPanel('challenges')} onGuide={()=>openPanel('guide')} onHelp={()=>openPanel('help')} onSettings={()=>openPanel('settings')}/>
+  :<main className="ct-game" aria-label="Carrot Defense battlefield">
    <div className="ct-scene" ref={mount}/>
-   {(!ready||error)&&<div className="ct-loading" style={{backgroundImage:`url(${chapterArt(currentLevel?.biome||'garden')})`}}><div><span className="ct-kicker">{error?'A moment, please':currentLevel?.challenge?'The arena is waking':'Your garden is waking'}</span><h2>{error?'Couldn’t open the garden':currentLevel?.name||'Carrot Defense'}</h2>{error?<><p role="alert">{error}</p><button className="ct-primary" onClick={()=>location.reload()}>Try again</button></>:<><progress value={loading} max={1} aria-label="Loading the garden"/><span>{Math.round(loading*100)}%</span></>}</div></div>}
-   {ready&&state&&<>
-    {import.meta.env.DEV&&preview&&<CarrotReview state={state} send={send} quality={value=>engine.current?.quality(value)} onEncounter={id=>{setLevel(id);setResult(false);lastBoss.current=''}}/>}
-    {blackout&&<div className="ct-blackout" aria-hidden="true"/>}
-    <header className="ct-hud">
-     <div className="ct-hud__left"><button className="ct-icon ct-glass" aria-label="Choose a level" onClick={()=>openPanel('campaign')}><Icon name="levels"/></button><div className="ct-wallet ct-glass" aria-label={`${state.coins} coins`}><Icon name="coin"/><b>{state.coins}</b></div><div className={`ct-life ct-glass ${state.health<4?'is-low':''}`} aria-label={`Carrot health ${state.health} of 10`}><CarrotPortrait pose={state.health<4?4:0}/><b>{state.health}<small>/10</small></b></div></div>
-     <div className="ct-level-progress ct-glass"><div><strong>{state.name}</strong><span>{state.level===29?'Encounter':state.wave} <small>{state.level===29?formatSeconds(state.elapsed||0):`/ ${state.waves}`}</small></span></div><div className="ct-meter" role="progressbar" aria-label="Level progress" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(state.progress*100)} style={meterStyle(state.progress)}><i/></div></div>
-     <div className="ct-hud__right"><button className="ct-icon ct-glass" onClick={toggleSound} aria-label={save.sound?'Mute sound':'Enable sound'}><Icon name={save.sound?'sound':'mute'}/></button><button className="ct-icon ct-glass ct-fullscreen" aria-label={expanded?'Exit full screen':'Full screen'} onClick={()=>void fullscreen()}><Icon name="full"/></button><button className="ct-icon ct-glass" aria-label={state.paused?'Resume':'Pause'} onClick={()=>send({type:'pause'})}><Icon name={state.paused?'play':'pause'}/></button></div>
-    </header>
-    {state.boss&&state.boss.hp>0&&<div className={`ct-boss ct-glass ct-boss--${state.boss.kind}`} aria-label={`${state.boss.name}, ${Math.ceil(state.boss.hp)} health remaining`}><BossPortrait kind={state.boss.kind}/><div className="ct-boss__body"><div><strong>{state.boss.name}</strong><span>{Math.ceil(state.boss.hp).toLocaleString()} <small>/ {Math.ceil(state.boss.maxHp).toLocaleString()}</small></span></div><div className="ct-meter ct-meter--boss" role="progressbar" aria-label="Boss health" aria-valuemin={0} aria-valuemax={state.boss.maxHp} aria-valuenow={Math.ceil(state.boss.hp)} style={meterStyle(getHealth(state.boss.hp,state.boss.maxHp))}><i/>{(bossPhaseMarks[state.boss.kind]||[]).map(mark=><b key={mark} style={{left:pct(mark)}}/>)}</div>{state.boss.shield>0&&<div className="ct-meter ct-meter--shield" aria-label={`Shield ${Math.ceil(state.boss.shield)}`} style={meterStyle(getHealth(state.boss.shield,state.boss.maxShield))}><i/></div>}<small className="ct-boss__ability">{state.boss.ability?friendly(state.boss.ability):`${(state.boss.stage||1)>1?`Life ${state.boss.stage} · `:''}Phase ${state.boss.phase||1}`}{state.boss.castRemaining>0&&` · ${state.boss.castRemaining.toFixed(1)}s`}</small></div></div>}
-    {telegraph&&!result&&<div className={`ct-telegraph ct-glass ct-telegraph--${telegraph.ability}`} role="status"><AbilityGlyph ability={telegraph.ability}/><div><strong>{friendly(telegraph.ability)} <small>{telegraph.castRemaining.toFixed(1)}s</small></strong><span>{telegraphHints[telegraph.ability]}</span></div>{uprootTarget!==null&&<button className="ct-primary ct-telegraph__sell" onClick={()=>{send({type:'select',id:uprootTarget});send({type:'sell'})}} aria-label="Sell the targeted tower">Sell<Icon name="sell"/></button>}</div>}
-    {state.level===29&&state.phase==='playing'&&state.boss&&state.boss.hp>0&&<div className="ct-reinforcements ct-glass" aria-label={`Reinforcements tier ${state.reinforcementTier||1}. Next group in ${Math.ceil(state.reinforcementIn||0)} seconds`}><span>Reinforcements <b>{['I','II','III','IV','V'][Math.max(0,Math.min(4,(state.reinforcementTier||1)-1))]}</b></span><strong>{Math.ceil(state.reinforcementIn||0)}<small>s</small></strong><div className="ct-escalation" aria-hidden="true">{[1,2,3,4,5].map(t=><i key={t} className={t<=(state.reinforcementTier||1)?'is-lit':''}/>)}</div></div>}
-    <div className="ct-miniboss-bars">{(state.minibosses||[]).filter(m=>m.visible&&m.hp>0&&m.x>.02&&m.x<.98&&m.y>.02&&m.y<.98).map(m=><button key={m.id} className={`ct-mini-bar ${m.castRemaining>0?'is-casting':''}`} style={{left:pct(m.x),top:pct(m.y)}} onClick={()=>send({type:'select',id:m.id})} aria-label={`${m.name}, ${Math.ceil(m.hp)} health. ${m.castRemaining>0?`${friendly(m.ability)} in ${m.castRemaining.toFixed(1)} seconds`:miniBosses.find(b=>b.id===m.kind)?.detail||''}`}><span>{m.castRemaining>0?friendly(m.ability):m.name}</span><div className="ct-meter" style={meterStyle(getHealth(m.hp,m.maxHp))}><i/></div>{m.shield>0&&<div className="ct-meter ct-meter--shield" style={meterStyle(getHealth(m.shield,m.maxShield))}><i/></div>}{m.castRemaining>0&&<small>{m.castRemaining.toFixed(1)}s</small>}</button>)}</div>
-    <div className="ct-monster-bars" aria-hidden="true">{(state.monsters||[]).filter(m=>m.visible&&m.hp>0&&m.x>0&&m.x<1&&m.y>0&&m.y<1).map(m=><div key={m.id} className="ct-monster-bar" style={{left:pct(m.x),top:pct(m.y)}}><div className="ct-meter" style={meterStyle(getHealth(m.hp,m.maxHp))}><i/></div>{m.shield>0&&<div className="ct-meter ct-meter--shield" style={meterStyle(getHealth(m.shield,m.maxShield))}><i/></div>}</div>)}</div>
-    {warning&&!result&&<div className={`ct-warning ct-warning--${warning.kind}`} role="status"><BossPortrait kind={warning.kind}/><div><span><Icon name="warning"/>Guardian approaching</span><strong>{warning.name}</strong></div></div>}
-    {undoOpen&&!result?<div className="ct-forge ct-glass" role="status"><SuperEmblem kind={forged.current.kind||selection?.kind||'seed'}/><span>{forged.current.name||'Super tower'} forged</span><button onClick={()=>send({type:'mergeUndo'})}><Icon name="undo"/>Undo <small>{Math.ceil(state.mergeUndo||0)}s</small></button></div>
-    :notice&&!warning&&<div className="ct-notice" role="status">{notice}</div>}
-    {teach&&!result&&<div className="ct-teach ct-glass" role="status"><Icon name="merge"/><p>Two fully grown towers of the same kind can merge into one Super tower. Drag one onto the other.</p><button className="ct-icon" aria-label="Dismiss merge tip" onClick={()=>setTeach(false)}><Icon name="close"/></button></div>}
-    {state.paused&&!panel&&!result&&<button className="ct-paused ct-glass" onClick={()=>send({type:'pause'})}><Icon name="play"/><span>Paused</span><small>Resume</small></button>}
-    {choiceOpen&&selection&&<aside className={`ct-selection ct-glass ${selection.x>.52?'is-left':'is-right'}`} aria-label={selection.type==='pad'?'Choose a tower':'Selected defense'} key={`${selection.type}-${selection.id}`}>
-     <header><span className="ct-kicker">{selection.type==='pad'?'Plant a defense':selection.type==='tower'?isSuper?'Super defense':'Your defense':selection.type==='blocker'?'Clear the way':'Focus target'}</span><button className="ct-icon" aria-label="Close selection" onClick={()=>send({type:'clear'})}><Icon name="close"/></button></header>
-     {selection.type==='pad'&&buyTower&&<><div className="ct-tower-grid">{definitions?.towers.map(t=><button key={t.id} className={`ct-tower-option ${picked===t.id?'is-picked':''} ${t.unlock>state.level?'is-locked':''}`} onClick={()=>{setPicked(t.id);send({type:'preview',kind:t.id})}} aria-label={`${t.name}, ${t.cost[0]} coins${t.unlock>state.level?`, unlocks at level ${t.unlock}`:''}`} aria-pressed={picked===t.id}><TowerPortrait kind={t.id}/><span>{t.unlock>state.level?<><Icon name="lock"/>{t.unlock}</>:<><Icon name="coin"/>{t.cost[0]}</>}</span></button>)}</div><div className="ct-purchase-info"><div><h3>{buyTower.name}</h3><p>{towerTraits[buyTower.id]||buyTower.role}</p></div><span className="ct-range"><Icon name="target"/>{buyTower.range[0].toFixed(1)}</span></div><button className="ct-primary ct-build" disabled={buyTower.unlock>state.level||buyTower.cost[0]>state.coins} onClick={()=>send({type:'buy',kind:picked})}>{buyTower.unlock>state.level?`Opens at level ${buyTower.unlock}`:buyTower.cost[0]>state.coins?`Need ${buyTower.cost[0]-state.coins} more`:'Build'}<span><Icon name="coin"/>{buyTower.cost[0]}</span></button></>}
-     {selection.type==='tower'&&selectedTower&&<><div className="ct-tower-detail"><TowerPortrait kind={selectedTower.id} tier={tier}/><div><h3>{isSuper?selection.superName||selectedTower.superName||selectedTower.name:selectedTower.name}</h3><p>{isSuper?selectedTower.superTrait||selectedTower.role:towerTraits[selectedTower.id]||selectedTower.role}</p><span className="ct-tier-label">{isSuper?`Super · ${selectedTower.name}`:`Tier ${roman[tier-1]}`}</span></div></div>
-      <div className="ct-tier-strip">{roman.map((r,i)=>{const t=i+1,superCell=t===SuperTier,locked=superCell&&!isSuper&&partners===0;return <div key={r} className={`${t===tier?'is-current':t<tier?'is-complete':''} ${superCell?'is-super':''} ${locked?'is-locked':''}`}>{superCell?<span className="ct-tier-strip__super"><SuperEmblem kind={selectedTower.id}/>{locked&&<i><Icon name="lock"/></i>}</span>:<TowerPortrait kind={selectedTower.id} tier={t}/>}<span>{r}</span></div>})}</div>
-      <div className="ct-upgrade-stats"><span>Power <b>{selectedTower.damage[tier-1]}{canGrow&&<em> → {selectedTower.damage[tier]}</em>}</b></span><span>Reach <b>{selectedTower.range[tier-1].toFixed(1)}{canGrow&&<em> → {selectedTower.range[tier].toFixed(1)}</em>}</b></span></div>
-      {tier===TopTier-1&&<p className="ct-helper">Next: fully grown. Twins can merge.</p>}
-      {tier===TopTier&&partners>0&&<p className="ct-helper">Drag onto another Tier {roman[TopTier-1]} {selectedTower.name}, or tap Merge then a partner.</p>}
-      <div className="ct-upgrade-actions"><button className="ct-sell" onClick={()=>send({type:'sell'})} aria-label={`Sell for ${selection.refund} coins`}><Icon name="sell"/><span>{selection.refund}</span></button>
-       {isSuper?<span className="ct-super-note"><SuperEmblem kind={selectedTower.id}/>{selection.superName||selectedTower.superName||'Super'}</span>
-       :tier===TopTier?partners>0?<button className="ct-primary ct-merge" onClick={()=>send({type:'mergeArm',id:selection.id})}>Merge<Icon name="merge"/></button>:<button className="ct-primary" disabled>Grow a twin to merge</button>
-       :<button className="ct-primary" disabled={selectedTower.cost[tier]>state.coins} onClick={()=>send({type:'upgrade'})}>{selectedTower.cost[tier]>state.coins?`Need ${selectedTower.cost[tier]-state.coins} more`:'Upgrade'}<span><Icon name="coin"/>{selectedTower.cost[tier]}</span></button>}</div></>}
-     {(selection.type==='blocker'||selection.type==='enemy')&&<div className="ct-focus-detail"><Icon name={selection.type==='blocker'?'leaf':'target'}/>{selectedCreature&&<CreaturePortrait kind={selectedCreature.id}/>}<div><h3>{friendly(selection.kind)}</h3><div className="ct-meter" style={meterStyle(getHealth(selection.hp,selection.maxHp))}><i/></div><p>{Math.ceil(selection.hp)} / {Math.ceil(selection.maxHp)}</p>{selectedCreature&&<p>{selectedCreature.detail}</p>}</div><span>{selection.type==='blocker'?'Towers clearing':'Towers focused'}</span></div>}
-    </aside>}
-    <footer className="ct-bottom"><button className="ct-icon ct-glass" aria-label="How to play" onClick={()=>openPanel('help')}><Icon name="help"/></button>{state.phase==='ready'?<div className="ct-ready"><span className="ct-glass">Tap a clearing to build</span><button className="ct-primary" onClick={()=>send({type:'start'})}>{state.level===29?'Begin encounter':'Start wave'}<Icon name="play"/></button></div>:state.phase==='playing'?<div className="ct-wave-actions ct-glass"><span>{state.nextWave>0?`Next wave ${Math.ceil(state.nextWave)}s`:`${state.enemyCount} on the paths`}</span>{state.nextWave>0&&<button onClick={()=>send({type:'next'})} aria-label="Send next wave early">Send<Icon name="arrow"/></button>}<button onClick={()=>send({type:'speed',value:state.speed===2?1:2})} aria-label={`Game speed ${state.speed} times. Change speed.`}>{state.speed}×</button></div>:null}<button className="ct-icon ct-glass ct-retry" aria-label={challengeBoss?'Boss challenges':'Restart level'} onClick={()=>openPanel(challengeBoss?'challenges':'campaign')}><Icon name={challengeBoss?'swords':'levels'}/></button></footer>
-    {result&&<div className={`ct-outcome ct-outcome--${state.phase}`}><div className="ct-outcome__card ct-glass">{challengeBoss?<span className={`ct-outcome__boss ${won?'is-beaten':''}`}><BossPortrait kind={challengeBoss}/></span>:<CarrotPortrait pose={won?11:6}/>}<span className="ct-kicker">{state.name}</span><h2>{challengeBoss?won?'Guardian defeated':'The guardian wins':won?'Safe & sound.':'One more try?'}</h2>
-     {won?challengeBoss?<><Medals value={stars({cleared:true,health:state.health,seconds:typeof state.elapsed==='number'?state.elapsed:Infinity,towers:0},challengeBoss)} labels={starLabels(challengeBoss)}/><p>{state.health}/10 carrot health{typeof state.elapsed==='number'&&` · ${formatSeconds(state.elapsed)}`}</p></>:<><Medals value={1|(state.health===10?2:0)|(state.blockersRemaining===0?4:0)}/><p>{state.level===LevelCount?'Every garden protected, to the last light.':`${state.health}/10 carrot health`}</p></>:<p>{challengeBoss?'Defeat the guardian before it reaches the carrot. Cover every route.':'Try another tower combination.'}</p>}
-     {challengeBoss?<><button className="ct-primary" onClick={()=>openPanel('challenges')}>Back to challenges<Icon name="arrow"/></button><button className="ct-text-button" onClick={()=>choose(state.level)}>Play again</button></>
-     :<><button className="ct-primary" onClick={()=>choose(won?Math.min(LevelCount,state.level+1):state.level)}>{won&&state.level<LevelCount?'Next landscape':'Play again'}<Icon name="arrow"/></button><button className="ct-text-button" onClick={()=>openPanel('campaign')}>Choose a level</button></>}</div></div>}
+   {(!ready||error)&&<Loading level={currentLevel} definitions={definitions} progress={loading} bytes={bytes} error={error} onRetry={()=>location.reload()}/>}
+   {ready&&st&&<>
+    {import.meta.env.DEV&&preview&&<CarrotReview state={st} send={send} quality={value=>engine.current?.quality(value)} onEncounter={id=>{setLevel(id);setResult(false)}}/>}
+    {page?.blackout&&<div className="ct-blackout" aria-hidden="true"/>}
+    <MonsterBars store={store}/>
+    <MiniBars store={store} send={send}/>
+    <Vignette store={store} reduced={reduced}/>
+    <div className="ct-hud" ref={hud}>
+     <div className="ct-hud__status" data-top><StatusPanel store={store} reduced={reduced} tracker={tracker}/></div>
+     <div className="ct-hud__track" data-top ref={trackBox}><WaveTrack store={store} level={currentLevel} enemies={definitions?.enemies} seen={records.seen.creatures} reduced={reduced} compact={false}/></div>
+     <Controls store={store} send={send} sound={save.sound} expanded={expanded} onSound={toggleSound} onFullscreen={()=>void fullscreen()} onSettings={()=>openPanel('settings')} onStages={()=>openPanel(challengeBoss?'challenges':'select')}/>
+     <div className="ct-hud__boss" data-top><BossBar store={store} send={send} seenAbilities={records.seen.abilities} superTargets={superTargets.current} onSaved={onSaved}/><Reinforcements store={store}/></div>
+     <BottomBar store={store} send={send} onHelp={()=>openPanel('help')} startSpotlight={step==='start'}/>
+    </div>
+    <Judgement tracker={tracker} reduced={reduced}/>
+    <div className="ct-toasts">
+     {!result&&<BossWarning store={store} run={run}/>}
+     {!result&&<ForgeToast store={store} name={forged.name} kind={forged.kind} send={send}/>}
+     {!result&&<AirToast store={store} level={currentLevel} enemies={definitions?.enemies} definitions={definitions}/>}
+     {!result&&<NoticeToast store={store}/>}
+     {teach&&!result&&<div className="ct-teach ct-panel" role="status"><Icon name="merge"/><p>Two fully grown towers of the same kind can merge into one Super tower. Drag one onto the other.</p><button className="ct-icon-btn" aria-label="Dismiss merge tip" onClick={()=>setTeach(false)}><Icon name="close"/></button></div>}
+    </div>
+    {!result&&!panel&&<BuildMenu store={store} definitions={definitions} send={send} reduced={reduced} onSafeArea={onSafeArea} tutorialFocus={step==='build'?'seed':undefined}/>}
+    {!result&&!panel&&!encounters.card&&<PausedCard store={store} send={send}/>}
+    {step&&!result&&<Coach step={step} towers={page?.towers||0} onSkip={()=>setRecords(r=>finishTutorial(r))} onDone={()=>setRecords(r=>finishTutorial(r))}/>}
+    {encounters.card&&!result&&<EncounterCard card={encounters.card} onDismiss={encounters.dismiss}/>}
+    {result&&st&&(st.phase==='won'||st.phase==='lost')&&<Results state={st} level={currentLevel} definitions={definitions} summary={tracker.summary()} grade={resultInfo.grade} previousGrade={resultInfo.previous} challengeBoss={challengeBoss} losses={resultInfo.losses}
+     onNext={()=>choose(Math.min(LevelCount,st.level+1))} onRetry={()=>choose(st.level)} onSelect={()=>openPanel('select')} onChallenges={()=>openPanel('challenges')}/>}
    </>}
   </main>}
-  {panel==='campaign'&&<Modal title="Your journey" onClose={closePanel} className="ct-campaign"><div className="ct-campaign-chapters">{chapters.map(ch=>{if(ch.challenges)return challengeLevels.length?<section key={ch.index} className="ct-campaign-challenges"><header><span>{ch.number}</span><h3>{ch.name}</h3><small>The Arena</small></header><div>{challengeLevels.map(l=><ChallengeCard key={l.id} level={l} save={save} challenges={challenges} choose={choose} preview={preview}/>)}</div></section>:null
-   const levels=definitions?.levels.filter(l=>l.id>=ch.from&&l.id<=ch.to)||[];if(!levels.length)return null;const mixed=levels.some(l=>biomeNames[l.biome]!==ch.name);return <section key={ch.index}><header><span>{ch.number}</span><h3>{ch.name}</h3>{mixed&&<small>{ch.road?`${ch.road} · `:''}Levels {levels[0].id}–{levels[levels.length-1].id}</small>}</header><div>{levels.map(l=><LevelCard key={l.id} level={l} save={save} choose={choose} preview={preview} subtitle={mixed&&biomeNames[l.biome]!==ch.name?biomeNames[l.biome]:undefined}/>)}</div></section>})}</div><a className="ct-back-link" href="/minigames/"><Icon name="back"/>All games</a></Modal>}
-  {panel==='challenges'&&<Modal title="Boss challenges" onClose={closePanel} className="ct-challenges"><p className="ct-challenges__lead">Every defense unlocked. Asuna is open from the start. Portal opens after the Eyeball.</p>{challengeLevels.length?<div className="ct-challenge-grid">{challengeLevels.map(l=><ChallengeCard key={l.id} level={l} save={save} challenges={challenges} choose={choose} preview={preview}/>)}</div>:<p className="ct-challenges__empty">The arena is still being built. Check back after the next update.</p>}<a className="ct-back-link" href="/minigames/"><Icon name="back"/>All games</a></Modal>}
-  {panel==='collection'&&<Modal title="The garden field guide" onClose={closePanel} className="ct-collection"><nav className="ct-guide-tabs" aria-label="Field guide"><button onClick={()=>setCollectionMode('towers')} aria-pressed={collectionMode==='towers'}>Defenses</button><button onClick={()=>setCollectionMode('creatures')} aria-pressed={collectionMode==='creatures'}>Creatures</button></nav>{collectionMode==='towers'?<div>{definitions?.towers.map(t=>{const forgedKind=!!superSave.kinds[t.id];return <article key={t.id} className={forgedKind?'is-super':''}><TowerPortrait kind={t.id} tier={forgedKind?SuperTier:TopTier}/><h3>{forgedKind&&t.superName?<>{t.superName}<small>{t.name}</small></>:t.name}</h3><p>{forgedKind&&t.superTrait?t.superTrait:towerTraits[t.id]||t.role}</p><small>Four forms{forgedKind?' · Super':''} · {t.air?'Ground + air':'Ground'}</small></article>})}</div>:<div className="ct-bestiary">{miniBosses.map(m=><article key={m.id}><CreaturePortrait kind={m.id}/><span className="ct-kicker">Miniboss</span><h3>{m.name}</h3><p>{m.detail}</p><small>{m.power}</small></article>)}{regularMobs.map(m=><article key={m.id}><CreaturePortrait kind={m.id}/><span className="ct-kicker">Creature</span><h3>{m.name}</h3><p>{m.power}</p></article>)}</div>}</Modal>}
-  {panel==='help'&&<Modal title="Protect the carrot" onClose={closePanel} className="ct-help"><div className="ct-help-steps"><article><Icon name="leaf"/><h3>Plant</h3><p>Tap a clearing. Choose your tower, then build.</p></article><article><Icon name="upgrade"/><h3>Grow</h3><p>Upgrade three times. Clear scenery for coins and space.</p></article><article><Icon name="target"/><h3>Defend</h3><p>Cover every path. Tap a monster to focus your towers.</p></article><article><Icon name="merge"/><h3>Merge</h3><p>Drag a Tier IV onto its twin: two fully grown towers of one kind forge a Super tower on the pad you keep.</p></article></div><p className="ct-help-gestures">Pinch or scroll to zoom. Drag to explore. Hold a fully grown tower, then drag it onto its twin to merge.</p><p className="ct-help-shortcuts"><kbd>Space</kbd> Pause <kbd>U</kbd> Upgrade <kbd>M</kbd> Merge <kbd>Esc</kbd> Close</p><details><summary>Credits</summary><p>A fan-made carrot-defense game for Cornell CGS. Original maps and tower designs. Original modeled characters use animation foundations by Quaternius. Scanned materials and vegetation by Poly Haven; additional nature and sound effects by Kenney. Full music and asset credits are included with the game.</p><a href="/assets/minigames/carrot/credits.txt" target="_blank" rel="noreferrer">Asset credits ↗</a></details></Modal>}
+  {(panel==='select'||panel==='challenges')&&definitions&&<LevelSelect definitions={definitions} save={save} challenges={challenges} records={records} current={page?.level||save.unlocked} preview={preview} veteranAvailable={veteranAvailable} veteran={veteran} onVeteran={setVeteran} onPlay={choose} onClose={closePanel} startChallenges={panel==='challenges'} reduced={reduced}/>}
+  {panel==='guide'&&<FieldGuide definitions={definitions} superSave={superSave} onClose={closePanel}/>}
+  {panel==='help'&&<HelpModal onClose={closePanel}/>}
+  {panel==='settings'&&<SettingsModal prefs={prefs} volumes={volumes} sound={save.sound} inGame={entered&&ready} canFocusBoss={v2&&!!page?.boss} onPrefs={p=>writePrefs(p)} onVolumes={v=>writeVolumes(v)} onSound={toggleSound} onFocusBoss={()=>{closePanel();engine.current?.focusBoss()}} onRestart={entered&&ready?()=>setPanel('restart'):undefined} onClose={closePanel}/>}
+  {panel==='restart'&&<ConfirmModal title="Restart this stage?" body="The current run ends and the stage starts again from wave 1." confirm="Restart" onConfirm={restart} onClose={closePanel}/>}
  </div>
 }
