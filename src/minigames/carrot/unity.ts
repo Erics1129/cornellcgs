@@ -25,10 +25,13 @@ export class CarrotUnity {
  private release!:()=>void
  private loaded=false
  private motion=matchMedia('(prefers-reduced-motion: reduce)')
- private syncMotion=()=>this.instance?.SendMessage('CarrotGame','SetReducedMotion',this.motion.matches?'1':'0')
+ /** The page's "Reduced effects" toggle: on, the game runs reduced motion even when the OS setting is off. */
+ private reducedEffects=false
+ private syncMotion=()=>this.instance?.SendMessage('CarrotGame','SetReducedMotion',this.motion.matches||this.reducedEffects?'1':'0')
  readonly canvas=document.createElement('canvas')
  private onState:(state:GameState)=>void
- constructor(root:HTMLElement,hooks:{state:(state:GameState)=>void;progress:(value:number)=>void;ready:()=>void;error:(message:string)=>void},level:number,muted:boolean){
+ constructor(root:HTMLElement,hooks:{state:(state:GameState)=>void;progress:(value:number)=>void;ready:()=>void;error:(message:string)=>void;bytes?:(done:number,total:number)=>void},level:number,muted:boolean,options:{reducedEffects?:boolean;mode?:string}={}){
+  this.reducedEffects=!!options.reducedEffects
   this.onState=hooks.state;this.canvas.id='carrot-unity-canvas';this.canvas.className='ct-canvas';this.canvas.tabIndex=0;this.canvas.setAttribute('aria-label','Carrot Defense 3D battlefield. Tap a clearing to build.');root.replaceChildren(this.canvas)
   window.addEventListener('carrot-state',this.receive)
   this.motion.addEventListener('change',this.syncMotion)
@@ -39,11 +42,11 @@ export class CarrotUnity {
    lightenFences(this.canvas)
    // Download progress is reported here (0 to 0.8); the loader's own 0-1 then only ever moves the bar forward.
    let best=0;const progress=(value:number)=>{if(value>best){best=value;hooks.progress(value)}}
-   const files=await Promise.all([['data','application/octet-stream'],['framework.js','text/javascript'],['wasm','application/wasm']].map(([ext,type])=>prepare(`${playerRoot}/Build/${playerName}.${ext}.unityweb?v=${playerVersion}`,type,(done,total)=>{files_[ext]=[done,total];let d=0,t=0;for(const [a,b] of Object.values(files_)){d+=a;t+=b}if(t>0)progress(.8*d/t)})))
+   const files=await Promise.all([['data','application/octet-stream'],['framework.js','text/javascript'],['wasm','application/wasm']].map(([ext,type])=>prepare(`${playerRoot}/Build/${playerName}.${ext}.unityweb?v=${playerVersion}`,type,(done,total)=>{files_[ext]=[done,total];let d=0,t=0;for(const [a,b] of Object.values(files_)){d+=a;t+=b}if(t>0){progress(.8*d/t);hooks.bytes?.(d,t)}})))
    if(this.dead){files.forEach(revoke);this.release();return}
    const instance=await create(this.canvas,{webglContextAttributes:{alpha:false,antialias:false,powerPreference:'high-performance',preserveDrawingBuffer:false},dataUrl:files[0],frameworkUrl:files[1],codeUrl:files[2],streamingAssetsUrl:`${playerRoot}/StreamingAssets`,companyName:'Cornell Computational Game Society',productName:'Carrot Defense 3D',productVersion:'1.0',devicePixelRatio:Math.min(devicePixelRatio,innerWidth<700?1.25:1.75),showBanner:(message:string,type:string)=>{if(type==='error')hooks.error(message)}},value=>progress(.8+.2*value))
    files.forEach(revoke)
-   if(this.dead){await instance.Quit();this.release();return}this.instance=instance;this.loaded=true;this.syncMotion();this.send({type:'load',level});this.send({type:'mute',value:muted?1:0});hooks.ready()
+   if(this.dead){await instance.Quit();this.release();return}this.instance=instance;this.loaded=true;this.syncMotion();this.send(options.mode&&options.mode!=='normal'?{type:'load',level,mode:options.mode}:{type:'load',level});this.send({type:'mute',value:muted?1:0});hooks.ready()
   }catch(error){if(!this.dead)hooks.error(error instanceof Error?error.message:'The garden could not open.');this.release()}})()
  }
  private receive=(event:Event)=>{if(this.dead||!this.loaded)return;const s=(event as CustomEvent<GameState>).detail;if(s&&typeof s.level==='number')this.onState(s)}
@@ -51,6 +54,15 @@ export class CarrotUnity {
  /** Additive debug entry (never called by the page): forces a tier ("high", "medium", "low") or toggles one feature for A/B captures. */
  quality(setting:string){this.instance?.SendMessage('CarrotGame','Quality',setting)}
  uiSound(kind='click'){this.instance?.SendMessage('CarrotGame','UiSound',kind)}
+ // ---- view messages, bridge contract v2. The page sends these only to a build whose snapshot reports v>=2 (an older player has no receivers). ----
+ /** Music, SFX and UI volumes, 0..1 each (CarrotAudio.SetVolumes). */
+ setVolumes(volumes:{music:number;sfx:number;ui:number}){this.instance?.SendMessage('CarrotGame','SetVolumes',JSON.stringify(volumes))}
+ /** The screen fractions the HUD and an open panel cover ({top,bottom,left,right}, 0..1), so the camera keeps the selected pad and the carrot clear of them. */
+ setSafeArea(area:{top:number;bottom:number;left:number;right:number}){this.instance?.SendMessage('CarrotGame','SetSafeArea',JSON.stringify(area))}
+ /** Centres the camera on the current boss (the only automatic framing the player asks for). */
+ focusBoss(){this.instance?.SendMessage('CarrotGame','FocusBoss','')}
+ /** Forces reduced motion in the game (no shake, hit-stop, FOV punch or camera moves) on top of the OS setting. */
+ setReducedEffects(on:boolean){this.reducedEffects=on;this.syncMotion()}
  dispose(){this.dead=true;this.motion.removeEventListener('change',this.syncMotion);window.removeEventListener('carrot-state',this.receive);if(this.instance){const instance=this.instance;this.instance=undefined;void instance.Quit().finally(this.release)}this.canvas.remove()}
 }
 
