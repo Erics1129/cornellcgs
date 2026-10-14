@@ -1,0 +1,323 @@
+{
+ "generated": "2026-10-14T23:52:54.928Z",
+ "seeds": 200,
+ "rule": "muting one cast flips <= 10% of R1 losses (same seeds)",
+ "pass": false,
+ "worst": {
+  "level": 26,
+  "cast": "raise",
+  "losses": 16,
+  "flips": 14,
+  "share": 0.875
+ },
+ "rows": [
+  {
+   "level": 4,
+   "cast": "bark",
+   "losses": 0,
+   "flips": 0,
+   "share": 0
+  },
+  {
+   "level": 4,
+   "cast": "root",
+   "losses": 0,
+   "flips": 0,
+   "share": 0
+  },
+  {
+   "level": 4,
+   "cast": "uproot",
+   "losses": 0,
+   "flips": 0,
+   "share": 0
+  },
+  {
+   "level": 4,
+   "cast": "brambleSurge",
+   "losses": 0,
+   "flips": 0,
+   "share": 0
+  },
+  {
+   "level": 8,
+   "cast": "mist",
+   "losses": 0,
+   "flips": 0,
+   "share": 0
+  },
+  {
+   "level": 8,
+   "cast": "summon",
+   "losses": 0,
+   "flips": 0,
+   "share": 0
+  },
+  {
+   "level": 8,
+   "cast": "blind",
+   "losses": 0,
+   "flips": 0,
+   "share": 0
+  },
+  {
+   "level": 8,
+   "cast": "tithe",
+   "losses": 0,
+   "flips": 0,
+   "share": 0
+  },
+  {
+   "level": 8,
+   "cast": "lanternFlood",
+   "losses": 0,
+   "flips": 0,
+   "share": 0
+  },
+  {
+   "level": 12,
+   "cast": "mantle",
+   "losses": 60,
+   "flips": 0,
+   "share": 0
+  },
+  {
+   "level": 12,
+   "cast": "breath",
+   "losses": 60,
+   "flips": 0,
+   "share": 0
+  },
+  {
+   "level": 12,
+   "cast": "shatter",
+   "losses": 60,
+   "flips": 0,
+   "share": 0
+  },
+  {
+   "level": 12,
+   "cast": "whiteout",
+   "losses": 60,
+   "flips": 0,
+   "share": 0
+  },
+  {
+   "level": 12,
+   "cast": "glacierLance",
+   "losses": 60,
+   "flips": 0,
+   "share": 0
+  },
+  {
+   "level": 16,
+   "cast": "bark",
+   "losses": 76,
+   "flips": 0,
+   "share": 0
+  },
+  {
+   "level": 16,
+   "cast": "root",
+   "losses": 76,
+   "flips": 0,
+   "share": 0
+  },
+  {
+   "level": 16,
+   "cast": "uproot",
+   "losses": 76,
+   "flips": 0,
+   "share": 0
+  },
+  {
+   "level": 16,
+   "cast": "brambleSurge",
+   "losses": 76,
+   "flips": 0,
+   "share": 0
+  },
+  {
+   "level": 20,
+   "cast": "rush",
+   "losses": 75,
+   "flips": 7,
+   "share": 0.093
+  },
+  {
+   "level": 20,
+   "cast": "flock",
+   "losses": 75,
+   "flips": 4,
+   "share": 0.053
+  },
+  {
+   "level": 20,
+   "cast": "heap",
+   "losses": 75,
+   "flips": 4,
+   "share": 0.053
+  },
+  {
+   "level": 20,
+   "cast": "uproot",
+   "losses": 75,
+   "flips": 1,
+   "share": 0.013
+  },
+  {
+   "level": 20,
+   "cast": "dusk",
+   "losses": 75,
+   "flips": 6,
+   "share": 0.08
+  },
+  {
+   "level": 20,
+   "cast": "harvestMoon",
+   "losses": 75,
+   "flips": 4,
+   "share": 0.053
+  },
+  {
+   "level": 24,
+   "cast": "rush",
+   "losses": 70,
+   "flips": 2,
+   "share": 0.029
+  },
+  {
+   "level": 24,
+   "cast": "flock",
+   "losses": 70,
+   "flips": 0,
+   "share": 0
+  },
+  {
+   "level": 24,
+   "cast": "heap",
+   "losses": 70,
+   "flips": 0,
+   "share": 0
+  },
+  {
+   "level": 24,
+   "cast": "uproot",
+   "losses": 70,
+   "flips": 0,
+   "share": 0
+  },
+  {
+   "level": 24,
+   "cast": "dusk",
+   "losses": 70,
+   "flips": 1,
+   "share": 0.014
+  },
+  {
+   "level": 24,
+   "cast": "harvestMoon",
+   "losses": 70,
+   "flips": 0,
+   "share": 0
+  },
+  {
+   "level": 25,
+   "cast": "gust",
+   "losses": 31,
+   "flips": 27,
+   "share": 0.871
+  },
+  {
+   "level": 25,
+   "cast": "liftoff",
+   "losses": 31,
+   "flips": 11,
+   "share": 0.355
+  },
+  {
+   "level": 25,
+   "cast": "cycloneCall",
+   "losses": 31,
+   "flips": 22,
+   "share": 0.71
+  },
+  {
+   "level": 26,
+   "cast": "raise",
+   "losses": 16,
+   "flips": 14,
+   "share": 0.875
+  },
+  {
+   "level": 26,
+   "cast": "uproot",
+   "losses": 16,
+   "flips": 8,
+   "share": 0.5
+  },
+  {
+   "level": 26,
+   "cast": "graveMarch",
+   "losses": 16,
+   "flips": 11,
+   "share": 0.688
+  },
+  {
+   "level": 27,
+   "cast": "blind",
+   "losses": 136,
+   "flips": 14,
+   "share": 0.103
+  },
+  {
+   "level": 27,
+   "cast": "gaze",
+   "losses": 136,
+   "flips": 38,
+   "share": 0.279
+  },
+  {
+   "level": 27,
+   "cast": "eyeClones",
+   "losses": 136,
+   "flips": 66,
+   "share": 0.485
+  },
+  {
+   "level": 27,
+   "cast": "blackout",
+   "losses": 136,
+   "flips": 0,
+   "share": 0
+  },
+  {
+   "level": 28,
+   "cast": "portalSummon",
+   "losses": 80,
+   "flips": 30,
+   "share": 0.375
+  },
+  {
+   "level": 28,
+   "cast": "portalStorm",
+   "losses": 80,
+   "flips": 14,
+   "share": 0.175
+  },
+  {
+   "level": 28,
+   "cast": "portalBlink",
+   "losses": 80,
+   "flips": 58,
+   "share": 0.725
+  },
+  {
+   "level": 28,
+   "cast": "portalShift",
+   "losses": 80,
+   "flips": 15,
+   "share": 0.188
+  }
+ ]
+}

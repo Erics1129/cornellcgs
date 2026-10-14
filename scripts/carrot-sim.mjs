@@ -6,6 +6,7 @@
 //   node scripts/carrot-sim.mjs --digest             level-20 policy-0 determinism digest (compare with Unity's log)
 //   node scripts/carrot-sim.mjs --bands [--r1 200 --r2 100 --levels 1-29 --jobs N --out file]
 //   node scripts/carrot-sim.mjs --tune-dials [--levels 1-28 --iters 7 --out file]   Pressure-dial fit (prints, never edits)
+//   node scripts/carrot-sim.mjs --mute [--r1 200]       invariant (d): each boss cast muted in turn, R1 losses that flip
 //                                                    reference-bot bands, one process per seed slice, merged
 // The build is cached under output/carrot-sim/ by a hash of every source; the shim is compiled with
 // UNITY_EDITOR;CARROT_STANDALONE_TEST so the editor-only test hooks exist and the audio regression is skipped.
@@ -61,6 +62,12 @@ const range = (spec, max) => { const out = []; for (const part of String(spec).s
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const exe = build()
   if (flag('build')) { console.log('CARROT_SIM_BUILT ' + exe); process.exit(0) }
+  if (flag('mute')) {
+    const { runMute } = await import('./carrot-sim/bands.mjs')
+    const out = await runMute({ exe, run, value, repo, jobs: Number(value('jobs', Math.max(2, cpus().length - 2))) })
+    writeFileSync(value('out', join(repo, 'docs/carrot-defense/giant-update/difficulty-single-cast.json')), JSON.stringify(out, null, 1) + '\n')
+    process.exit(0)
+  }
   if (flag('tune-dials')) {
     const { tuneDials } = await import('./carrot-sim/tune.mjs')
     const best = await tuneDials({ exe, run, value, range, repo, jobs: Number(value('jobs', Math.max(2, cpus().length - 2))) })

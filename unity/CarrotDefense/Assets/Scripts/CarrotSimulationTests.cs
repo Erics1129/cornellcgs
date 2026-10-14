@@ -8,7 +8,9 @@ namespace CarrotTD {
   static int assertions;
   static readonly List<string> failures=new List<string>();
   static void Check(bool condition,string reason){assertions++;if(!condition)throw new Exception("CARROT TEST: "+reason);}
-  static CarrotGame New(int level){var obj=new GameObject("CarrotSimulationTest");var game=obj.AddComponent<CarrotGame>();game.AutoTick=false;game.EnableBridge=false;game.LoadLevel(level);return game;}
+  // The mode every New() level loads in ("veteran" only for the Veteran gate, via BandJobs mode=veteran).
+  static string newMode="normal";
+  static CarrotGame New(int level){var obj=new GameObject("CarrotSimulationTest");var game=obj.AddComponent<CarrotGame>();game.AutoTick=false;game.EnableBridge=false;game.LoadLevel(level,newMode);return game;}
   static void Done(CarrotGame game){UnityEngine.Object.DestroyImmediate(game.gameObject);}
   static void Units(){Geometry();Shopping();ContactsAndOutcomes();Bosses();PresentationEvents();Powers();Super();SuperPowers();SuperBudget();Blindness();Whiteout();Dusk();Uproot();Tithe();Challenges();Expansion();SummonRewardRegression();PrismEncounter();PrismBoundaryRegression();PrismBalance();Contract();
 #if !CARROT_STANDALONE_TEST

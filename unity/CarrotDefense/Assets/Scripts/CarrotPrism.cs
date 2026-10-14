@@ -60,20 +60,20 @@ namespace CarrotTD {
    if(e.boss!="asuna"||prism==null)return false;
    switch(kind){
     case "prismDash":{
-     prism.dashFrom=e.distance;prism.dashTo=Mathf.Max(e.distance,prism.warnedDashTo);prism.dashStart=elapsed;prism.dashEnd=elapsed+PrismDashSeconds;
+     prism.dashFrom=e.distance;prism.dashTo=muting?e.distance:Mathf.Max(e.distance,prism.warnedDashTo);prism.dashStart=elapsed;prism.dashEnd=elapsed+PrismDashSeconds;
      prism.nextDash=elapsed+(e.phase==3?11:13);duration=PrismDashSeconds;value=prism.dashTo-prism.dashFrom;
      Vector3 direction;target=CarrotData.RoutePoint(level.routes[e.route],prism.dashTo,out direction);
      Emit("abilityTarget",kind,e.position,target,e.id,e.id,value:value,duration:duration);return true;
     }
     case "prismBreak":{
      // The dash and the rain of a break land together; the regular dash clock restarts from it.
-     prism.dashFrom=e.distance;prism.dashTo=Mathf.Max(e.distance,prism.warnedDashTo);prism.dashStart=elapsed;prism.dashEnd=elapsed+PrismDashSeconds;prism.nextDash=elapsed+(e.phase==3?11:13);
+     prism.dashFrom=e.distance;prism.dashTo=muting?e.distance:Mathf.Max(e.distance,prism.warnedDashTo);prism.dashStart=elapsed;prism.dashEnd=elapsed+PrismDashSeconds;prism.nextDash=elapsed+(e.phase==3?11:13);
      Vector3 direction;var arrive=CarrotData.RoutePoint(level.routes[e.route],prism.dashTo,out direction);Emit("abilityTarget","prismBreak",e.position,arrive,e.id,e.id,value:prism.dashTo-prism.dashFrom,duration:PrismDashSeconds);
-     int index=0;foreach(int id in a.targets){if(!prism.locked.TryGetValue(id,out Vector3 at))continue;prismImpacts.Add(new PrismImpact{source=e.id,target=id,kind="spectrumRain",from=e.position,to=at,at=elapsed+.2f+index*.22f});if(index++==0){target=at;targetId=id;}}
+     int index=0;foreach(int id in a.targets){if(muting||!prism.locked.TryGetValue(id,out Vector3 at))continue;prismImpacts.Add(new PrismImpact{source=e.id,target=id,kind="spectrumRain",from=e.position,to=at,at=elapsed+.2f+index*.22f});if(index++==0){target=at;targetId=id;}}
      value=index;duration=1.1f;return true;
     }
     case "prismLances":case "spectrumRain":{
-     int index=0;foreach(int id in a.targets){if(!prism.locked.TryGetValue(id,out Vector3 at))continue;
+     int index=0;foreach(int id in a.targets){if(muting||!prism.locked.TryGetValue(id,out Vector3 at))continue;
       // Spears land at commit; rain has a short stagger after its complete, visible warning.
       prismImpacts.Add(new PrismImpact{source=e.id,target=id,kind=kind,from=e.position,to=at,at=elapsed+(kind=="spectrumRain"?.2f+index*.22f:0)});
       if(index++==0){target=at;targetId=id;}
@@ -85,7 +85,7 @@ namespace CarrotTD {
      int alive=0;foreach(var add in enemies)if(add.alive&&add.clone&&Extra(add).owner==e.id)alive++;foreach(var add in extraSpawns)if(add.clone&&add.owner==e.id)alive++;
      int count=Mathf.Max(0,2-alive);QueueExtra("asuna",e,count,.8f,true,14);value=count;duration=.8f;break;
     }
-    case "prismOverdrive":duration=1;value=12;prism.overdriveUntil=elapsed+12;prism.nextCohort=Mathf.Min(prism.nextCohort,elapsed+2);Rally(e,8,1.18f,3);break;
+    case "prismOverdrive":duration=1;value=12;if(!muting){prism.overdriveUntil=elapsed+12;prism.nextCohort=Mathf.Min(prism.nextCohort,elapsed+2);}Rally(e,8,1.18f,3);break;
     default:return false;
    }
    prism.skill++;prism.nextSkill=elapsed+(e.phase==3?5.5f:7);return true;

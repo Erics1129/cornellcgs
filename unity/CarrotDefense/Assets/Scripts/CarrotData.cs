@@ -220,7 +220,7 @@ new EnemyDef{id="portalSentinel",name="Portal Sentinel",trait="sentinelRift",int
  public static bool RemainingTargeting {get{return Pass2Step>=3;}}
  public static bool Pass2Economy {get{return Pass2Step>=5;}}
  /// <summary>Veteran mode is built and testable but offered only once both expert policies clear it (balance-results.md).</summary>
- public static readonly bool VeteranShipped=false;
+ public static readonly bool VeteranShipped=true;
  /// <summary>Coins paid when a wave is fully resolved: 15/20/25/30 by biome tier on levels 1-8, 10/14/18/22 on 9-24, 30 on the challenges.</summary>
  public static int WaveStipend(int level){int tier=BiomeTier(Level(level)!=null?Level(level).biome:"garden");if(IsChallenge(level))return 30;return level<=8||!Pass2Economy?15+5*tier:10+4*tier;}
  /// <summary>Coins for calling the next wave with breatherLeft seconds still on the clock.</summary>

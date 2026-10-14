@@ -462,41 +462,51 @@ namespace CarrotTD {
   }
   void CancelCast(EnemyState e,Actor a){if(a.reserved>0){pendingSummons=Mathf.Max(0,pendingSummons-a.reserved);a.reserved=0;}a.cast="";e.castRemaining=0;}
   void ReleaseReserved(Actor a){pendingSummons=Mathf.Max(0,pendingSummons-a.reserved);a.reserved=0;}
-  void StartBlind(float seconds,float tint,float alpha,float range){blindKind=tint>0?"whiteout":"blind";blindUntil=elapsed+seconds;blindTint=tint;blindAlpha=alpha;blindRange=range;}
+  bool muting;
+#if UNITY_EDITOR
+  /// <summary>Editor tests only (invariant d): the one boss cast kind whose consequences are switched off.</summary>
+  public static string MutedCast="";
+  static bool Muted(string kind){return MutedCast!=""&&kind==MutedCast;}
+#else
+  static bool Muted(string kind){return false;}
+#endif
+  void StartBlind(float seconds,float tint,float alpha,float range){if(muting)return;blindKind=tint>0?"whiteout":"blind";blindUntil=elapsed+seconds;blindTint=tint;blindAlpha=alpha;blindRange=range;}
   void CommitAbility(EnemyState e,Actor a){
    // A second Herald may have begun its warning before the first one committed.
    // Recheck the global recovery at commit, then make the deferred Herald warn again.
    if(a.cast=="fieldFreeze"&&elapsed<freezeReady){CancelCast(e,a);e.ability="";Extra(e).next=freezeReady;return;}
    string kind=a.cast;a.cast="";e.castRemaining=0;float duration=0,value=0;Vector3 target=e.position;int targetId=0,tier=1;
+   // Invariant (d) harness: a muted cast keeps its telegraph and cooldowns but changes nothing (editor tests only).
+   muting=Muted(kind);if(muting)a.targets.Clear();
    bool extra=CommitPrism(e,a,kind,out duration,out value,out target,out targetId);
    if(!extra)extra=CommitExpansion(e,a,kind,out duration,out value,out target,out targetId);
    if(!extra)switch(kind){
-    case "bark":duration=5;a.armorUntil=elapsed+duration;a.abilityA=elapsed+duration+14;break;
+    case "bark":duration=5;if(!muting)a.armorUntil=elapsed+duration;a.abilityA=elapsed+duration+14;break;
     case "root":
      duration=3.5f;foreach(int id in a.targets){var t=towers.Find(x=>x.id==id);if(t!=null){if(!Ward(t))t.slowFor=Mathf.Max(t.slowFor,duration);if(targetId==0){target=t.position;targetId=t.id;}}}
      if(a.targets.Count>0)blockers.Add(new BlockerState{id=nextId++,pad=-1,kind="root",position=e.position,hp=70,maxHp=70,ownerEnemy=e.id});
      a.abilityB=elapsed+duration+(a.phase==3?10:13);break;
-    case "mist":duration=a.phase==3?3:5;a.veilUntil=elapsed+duration;a.abilityA=elapsed+duration+(a.phase>=2?14:16);break;
+    case "mist":duration=a.phase==3?3:5;if(!muting)a.veilUntil=elapsed+duration;a.abilityA=elapsed+duration+(a.phase>=2?14:16);break;
     case "summon":
-     a.bogCalls++;for(int i=0;i<3;i++)Spawn("nibble",e.route,a.wave,true,Mathf.Min(e.distance,Mathf.Max(0,e.routeLength-4)));
+     a.bogCalls++;for(int i=0;i<3&&!muting;i++)Spawn("nibble",e.route,a.wave,true,Mathf.Min(e.distance,Mathf.Max(0,e.routeLength-4)));
      ReleaseReserved(a);a.abilityB=elapsed+17;break;
-    case "mantle":duration=7;a.mantles++;var ward=Extra(e);e.shield=360+ward.grantedShield;e.maxShield=e.shield;if(ward.grantUntil>0)ward.shieldMaxBefore=360;a.shieldUntil=elapsed+duration;a.abilityA=elapsed+duration+18;break;
+    case "mantle":duration=7;a.mantles++;var ward=Extra(e);if(!muting){e.shield=360+ward.grantedShield;e.maxShield=e.shield;if(ward.grantUntil>0)ward.shieldMaxBefore=360;a.shieldUntil=elapsed+duration;}a.abilityA=elapsed+duration+18;break;
     case "breath":
      duration=4;foreach(int id in a.targets){var t=towers.Find(x=>x.id==id);if(t!=null){if(!Ward(t))t.disabledFor=Mathf.Max(t.disabledFor,duration);if(targetId==0){target=t.position;targetId=t.id;}}}
      a.abilityB=elapsed+duration+15;break;
     case "shatter":
-     a.shatters++;for(int i=0;i<3;i++)Spawn("fragment",e.route,a.wave,true,Mathf.Min(e.distance+.4f+i*.35f,Mathf.Max(0,e.routeLength-3)));
+     a.shatters++;for(int i=0;i<3&&!muting;i++)Spawn("fragment",e.route,a.wave,true,Mathf.Min(e.distance+.4f+i*.35f,Mathf.Max(0,e.routeLength-3)));
      ReleaseReserved(a);a.abilityC=elapsed+12;break;
     case "rush":
      // The boss charges at 2.2x for 2.5 s and rallies every ordinary ally within three units to 1.5x; slows and stuns still apply on top.
-     duration=2.5f;e.rushUntil=elapsed+duration;a.rushMult=2.2f;Vector3 dir;target=CarrotData.RoutePoint(level.routes[e.route],Mathf.Min(e.routeLength,e.distance+3),out dir);
-     foreach(var ally in enemies)if(ally.id!=e.id&&ally.alive&&string.IsNullOrEmpty(ally.boss)&&FlatDistance(e.position,ally.position)<=3){ally.rushUntil=elapsed+duration;actors[ally.id].rushMult=1.5f;}
+     duration=2.5f;if(!muting){e.rushUntil=elapsed+duration;a.rushMult=2.2f;}Vector3 dir;target=CarrotData.RoutePoint(level.routes[e.route],Mathf.Min(e.routeLength,e.distance+3),out dir);
+     foreach(var ally in enemies)if(!muting&&ally.id!=e.id&&ally.alive&&string.IsNullOrEmpty(ally.boss)&&FlatDistance(e.position,ally.position)<=3){ally.rushUntil=elapsed+duration;actors[ally.id].rushMult=1.5f;}
      a.abilityA=elapsed+duration+(a.phase==3?9:14);break;
     case "flock":
-     a.flocks++;for(int i=0;i<3;i++)Spawn("moth",e.route,a.wave,true,Mathf.Min(e.distance+.3f*i,Mathf.Max(0,e.routeLength-4)));
+     a.flocks++;for(int i=0;i<3&&!muting;i++)Spawn("moth",e.route,a.wave,true,Mathf.Min(e.distance+.3f*i,Mathf.Max(0,e.routeLength-4)));
      ReleaseReserved(a);a.abilityB=elapsed+16;break;
     case "heap":
-     duration=2;a.heaps++;e.hidden=true;a.abilityC=elapsed+duration+15;break;
+     duration=2;a.heaps++;if(!muting)e.hidden=true;a.abilityC=elapsed+duration+15;break;
     // Blindness (boss-agnostic): full dark on the Lantern Regent and Old Hollowhead's Dusk; the Unknown Eyeball's three forms shorten when it is hurt during the windup.
     case "blind":{
      a.blinds++;float seconds,alpha,range;
@@ -505,10 +515,10 @@ namespace CarrotTD {
      StartBlind(seconds,0,alpha,range);duration=.6f;value=seconds;break;}
     case "whiteout":
      // Crown of Winter: a white frost vignette; every projectile in flight hangs for 0.6 s.
-     a.whiteouts++;StartBlind(2.5f,1,.85f,.6f);foreach(var p in projectiles)p.remaining+=.6f;a.abilityD=elapsed+20;duration=2.5f;value=2.5f;SetNotice("Whiteout",2);break;
+     a.whiteouts++;StartBlind(2.5f,1,.85f,.6f);foreach(var p in projectiles)if(!muting)p.remaining+=.6f;a.abilityD=elapsed+20;duration=2.5f;value=2.5f;SetNotice("Whiteout",2);break;
     case "dusk":
      // Old Hollowhead's phase-3 Dusk: three seconds of dark and three summoned crows that block victory.
-     a.dusks++;StartBlind(3,0,.985f,.6f);for(int i=0;i<3;i++)Spawn("moth",e.route,a.wave,true,Mathf.Min(e.distance+.3f*i,Mathf.Max(0,e.routeLength-4)));
+     a.dusks++;StartBlind(3,0,.985f,.6f);for(int i=0;i<3&&!muting;i++)Spawn("moth",e.route,a.wave,true,Mathf.Min(e.distance+.3f*i,Mathf.Max(0,e.routeLength-4)));
      ReleaseReserved(a);duration=.6f;value=3;SetNotice("Dusk falls",2);break;
     case "uproot":{
      // One shared commit path (Brambleback, Old Hollowhead, the Zombie): a Super is demoted to tier 4, anything else is torn out with a refund; selling before the commit already removed the target.
@@ -523,26 +533,26 @@ namespace CarrotTD {
      value=refunded;duration=.45f;a.abilityD=elapsed+(e.boss=="garden"?22:18);break;}
     case "tithe":{
      // The Regent takes max(30, 20 % of the purse), or everything under 30; spending before the commit shrinks it.
-     a.tithes++;int amount=coins<30?coins:Mathf.Max(30,Mathf.FloorToInt(coins*.2f));coins-=amount;value=amount;a.abilityE=elapsed+18;SetNotice("The Regent takes its tithe",2);duration=.6f;break;}
+     a.tithes++;int amount=muting?0:coins<30?coins:Mathf.Max(30,Mathf.FloorToInt(coins*.2f));coins-=amount;value=amount;a.abilityE=elapsed+18;SetNotice("The Regent takes its tithe",2);duration=.6f;break;}
     case "gust":
      // Giant Tornado: for 2.5 s every projectile except mortar, burn and thunder that hits within 3 u of the funnel deals half; four debris swarms lift off ahead of it.
-     a.gusts++;duration=2.5f;gustBoss=e.id;gustUntil=elapsed+duration;for(int i=0;i<4;i++)Spawn("swarm",e.route,a.wave,true,Mathf.Min(e.distance+.5f*i,Mathf.Max(0,e.routeLength-3)));
+     a.gusts++;duration=2.5f;if(!muting){gustBoss=e.id;gustUntil=elapsed+duration;}for(int i=0;i<4&&!muting;i++)Spawn("swarm",e.route,a.wave,true,Mathf.Min(e.distance+.5f*i,Mathf.Max(0,e.routeLength-3)));
      ReleaseReserved(a);a.abilityA=elapsed+duration+(a.phase==3?8:12);Vector3 gustDir;target=CarrotData.RoutePoint(level.routes[e.route],Mathf.Min(e.routeLength,e.distance+3),out gustDir);value=3;break;
     case "liftoff":
-     a.lifts++;duration=4;e.air=true;a.liftUntil=elapsed+duration;e.rushUntil=elapsed+duration;a.rushMult=1.3f;a.abilityD=elapsed+duration+20;value=.6f;break;
+     a.lifts++;duration=4;if(!muting){e.air=true;a.liftUntil=elapsed+duration;e.rushUntil=elapsed+duration;a.rushMult=1.3f;}a.abilityD=elapsed+duration+20;value=.6f;break;
     case "raise":{
      // Raise Dead: the newest recorded kills return at the zombie's position with full health as a slow horde around it.
      a.raises++;int want=a.phase==3?4:3;var pick=new List<Grave>();
      for(int pass=0;pass<2&&pick.Count<want;pass++)for(int i=graves.Count-1;i>=0&&pick.Count<want;i--){var g=graves[i];bool elite=g.kind=="shell"||g.kind=="crystal"||g.kind=="shaman";if((pass==0)==elite&&!pick.Contains(g))pick.Add(g);}
      foreach(var g in pick)graves.Remove(g);
-     for(int i=0;i<want;i++){var raised=Spawn(i<pick.Count?pick[i].kind:"nibble",e.route,a.wave,true,e.distance);if(i<pick.Count)raised.reward=0;actors[raised.id].baseSpeed=.34f*CarrotData.MovementScale;raised.speed=actors[raised.id].baseSpeed;Emit("abilityTarget",kind,e.position,raised.position,e.id,raised.id,duration:.6f);}
+     for(int i=0;i<want&&!muting;i++){var raised=Spawn(i<pick.Count?pick[i].kind:"nibble",e.route,a.wave,true,e.distance);if(i<pick.Count)raised.reward=0;actors[raised.id].baseSpeed=.34f*CarrotData.MovementScale;raised.speed=actors[raised.id].baseSpeed;Emit("abilityTarget",kind,e.position,raised.position,e.id,raised.id,duration:.6f);}
      ReleaseReserved(a);a.abilityE=elapsed+(a.phase==3?10:15);value=want;duration=.6f;break;}
     case "gaze":{
      // Gaze stuns the locked tower fully (rate 0, unlike Breath's half cadence).
      a.gazes++;duration=a.phase==3?6:5;foreach(int id in a.targets){var t=towers.Find(x=>x.id==id);if(t!=null){if(!Ward(t))t.stunnedFor=Mathf.Max(t.stunnedFor,duration);if(targetId==0){target=t.position;targetId=t.id;}}}
      a.abilityE=elapsed+13;value=duration;duration=.6f;break;}
    }
-   a.activeUntil=elapsed+duration;e.ability=kind;e.abilityRemaining=duration;
+   muting=false;a.activeUntil=elapsed+duration;e.ability=kind;e.abilityRemaining=duration;
    Emit("ability",kind,e.position,target,e.id,targetId,tier,value,Mathf.Max(.6f,duration));
    if(kind=="root"||kind=="breath"||kind=="gaze")foreach(int id in a.targets)if(id!=targetId){var t=towers.Find(x=>x.id==id);if(t!=null)Emit("abilityTarget",kind,e.position,t.position,e.id,t.id,duration:duration);}
   }

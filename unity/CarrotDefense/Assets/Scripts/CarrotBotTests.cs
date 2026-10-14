@@ -198,6 +198,10 @@ namespace CarrotTD {
   public static void BandJobs(string[] args){
    policyMerges=true;
    foreach(var a in args){if(a.StartsWith("step=",StringComparison.Ordinal)){CarrotData.Pass2Step=int.Parse(a.Substring(5));continue;}
+    // mute=<cast>: that boss cast keeps its telegraph but changes nothing (invariant d).
+    if(a.StartsWith("mute=",StringComparison.Ordinal)){CarrotGame.MutedCast=a.Substring(5);continue;}
+    // mode=veteran: every level of this job loads in Veteran (the shipping gate for the mode).
+    if(a.StartsWith("mode=",StringComparison.Ordinal)){newMode=a.Substring(5);CarrotGame.AllowVeteranForTests=newMode=="veteran";continue;}
     // dial=L:v[,L:v]: a Pressure-dial override for this job (the dial fit), never used by the shipped game.
     if(a.StartsWith("dial=",StringComparison.Ordinal)){foreach(var pair in a.Substring(5).Split(',')){var kv=pair.Split(':');CarrotData.Pressure[int.Parse(kv[0])-1]=float.Parse(kv[1],CultureInfo.InvariantCulture);}continue;}
     var parts=a.Split(':');string bot=parts[0];var levels=Range(parts[1]);var seeds=Range(parts[2]);

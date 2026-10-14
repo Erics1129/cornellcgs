@@ -149,3 +149,23 @@ export function printSummary(result) {
   for (const row of result.rows) console.log(`${row.pass ? 'PASS' : row.pointPass ? 'near' : 'FAIL'} ${row.name}: R1 ${row.r1.map(x => `L${x.level} ${pct(x.rate)}`).join(', ')}${row.r2.length ? ' | R2 ' + row.r2.map(x => `L${x.level} ${pct(x.rate)}`).join(', ') : ''}`)
   for (const [k, v] of Object.entries(result.invariants)) console.log(`${v.pass === true ? 'PASS' : v.pass === false ? 'FAIL' : 'n/a '} (${k}) ${v.name} ${JSON.stringify(Object.fromEntries(Object.entries(v).filter(([kk]) => !['name', 'pass', 'rows'].includes(kk))))}${v.rows ? ' ' + JSON.stringify(v.rows.filter(x => (x.share != null && x.share < 0.75) || (x.gain != null && x.gain < 0.1))) : ''}`)
 }
+
+// Invariant (d): disabling any one boss cast flips at most 10% of R1's losses into wins. Each boss level's kit is muted
+// cast by cast (the telegraph and cooldowns stay, the consequence is gone) on the same R1 seeds as the unmuted run.
+export const KITS = { 4: ['bark', 'root', 'uproot', 'brambleSurge'], 8: ['mist', 'summon', 'blind', 'tithe', 'lanternFlood'], 12: ['mantle', 'breath', 'shatter', 'whiteout', 'glacierLance'], 16: ['bark', 'root', 'uproot', 'brambleSurge'], 20: ['rush', 'flock', 'heap', 'uproot', 'dusk', 'harvestMoon'], 24: ['rush', 'flock', 'heap', 'uproot', 'dusk', 'harvestMoon'], 25: ['gust', 'liftoff', 'cycloneCall'], 26: ['raise', 'uproot', 'graveMarch'], 27: ['blind', 'gaze', 'eyeClones', 'blackout'], 28: ['portalSummon', 'portalStorm', 'portalBlink', 'portalShift'] }
+export async function runMute({ exe, run, value, repo, jobs }) {
+  const n = Number(value('r1', 200)), specs = []
+  for (const [lv, kit] of Object.entries(KITS)) { specs.push({ lv: +lv, cast: '', args: [`R1:${lv}:0-${n - 1}`] }); for (const cast of kit) specs.push({ lv: +lv, cast, args: [`mute=${cast}`, `R1:${lv}:0-${n - 1}`] }) }
+  const results = new Map(); let next = 0
+  await Promise.all(Array.from({ length: jobs }, async () => { while (next < specs.length) { const sp = specs[next++]; const r = await run(exe, ['BandJobs', ...sp.args], { quiet: true }); results.set(sp.lv + '/' + sp.cast, r.out.split('\n').filter(l => l.startsWith('CARROT_BAND ')).map(l => JSON.parse(l.slice(12)))) } }))
+  const rows = []
+  for (const [lv, kit] of Object.entries(KITS)) {
+    const base = results.get(lv + '/'), lost = new Set(base.filter(r => !r.won).map(r => r.seed))
+    for (const cast of kit) { const m = results.get(lv + '/' + cast), flips = m.filter(r => r.won && lost.has(r.seed)).length; rows.push({ level: +lv, cast, losses: lost.size, flips, share: lost.size ? Math.round(1000 * flips / lost.size) / 1000 : 0 }) }
+  }
+  const worst = rows.reduce((a, b) => b.share > a.share ? b : a, rows[0])
+  const out = { generated: new Date().toISOString(), seeds: n, rule: 'muting one cast flips <= 10% of R1 losses (same seeds)', pass: rows.every(r => r.share <= 0.1 || r.losses < 10), worst, rows }
+  console.log(rows.map(r => `L${r.level} ${r.cast}: ${r.flips}/${r.losses} losses flip (${(100 * r.share).toFixed(0)}%)`).join('\n'))
+  console.log(`(d) ${out.pass ? 'PASS' : 'FAIL'} worst L${worst.level} ${worst.cast} ${(100 * worst.share).toFixed(0)}%`)
+  return out
+}
