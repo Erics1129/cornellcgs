@@ -1,4 +1,5 @@
 import type { CampaignSave, ChallengeBoss, ChallengeRecord, ChallengeSave } from './types'
+import { progress } from '../../lib/account/index.ts'
 // Same rule as progress.ts (kept local so the node test can import this module without a bundler): a record from a newer client is passed through untouched.
 const newerVersion=(a:unknown,b:unknown):unknown=>{const v=(r:unknown)=>r&&typeof r==='object'&&Number.isInteger((r as {version?:unknown}).version)?(r as {version:number}).version:0;const va=v(a),vb=v(b);return va<=1&&vb<=1?null:va>=vb?a:b}
 // Boss challenge record (record id `carrot:challenges`): best run per guardian. Separate from the campaign save, which stays untouched.
@@ -31,7 +32,7 @@ const fresh=():ChallengeSave=>({version:1,best:{}})
 /** The stored record, or null when storage is blocked, empty or unusable (so a sync never overwrites a server copy with a blank). */
 export function rawChallenges():ChallengeSave|null {try{return clean(JSON.parse(localStorage.getItem(key)||'null'))}catch{return null}}
 export function readChallenges():ChallengeSave {return rawChallenges()||fresh()}
-export function saveChallenges(save:ChallengeSave){try{localStorage.setItem(key,JSON.stringify(save))}catch{/* Play continues without storage. */}}
+export function saveChallenges(save:ChallengeSave){try{localStorage.setItem(key,JSON.stringify(save))}catch{/* Play continues without storage. */}progress.touch('carrot:challenges')}
 /** Only a won fight records: cleared OR, health max, seconds min, towers from the faster run. A loss (health 0) returns the save unchanged. */
 export function awardChallenge(save:ChallengeSave,boss:ChallengeBoss,health:number,seconds:number,towers=0):ChallengeSave {
  if(!isBoss(boss)||!Number.isFinite(health)||health<=0||health>10||!Number.isFinite(seconds)||seconds<0)return save
@@ -67,3 +68,5 @@ export function mergeCarrotChallenges(a:ChallengeSave|null|undefined,b:Challenge
  return {version:1,best}
 }
 export const formatSeconds=(s:number)=>`${Math.floor(s/60)}:${String(Math.floor(s%60)).padStart(2,'0')}`
+/** The best run per boss follows a signed-in player: cleared OR, health max, the faster time with its tower count (docs/accounts/HOOKS.md). */
+progress.register('carrot:challenges',{key,read:rawChallenges,merge:mergeCarrotChallenges})

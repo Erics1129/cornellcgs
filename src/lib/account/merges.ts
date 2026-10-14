@@ -34,7 +34,9 @@ export const higherVersion = <T>(a: T | null, b: T | null): T | undefined => {
   return (a.version > b.version ? a : b) as T
 }
 
-/** Carrot levels are 1..24; anything else (a stray key, '__proto__') is not a level and is dropped. */
+/** The campaign's length, shared by both repos: `unlocked` never exceeds it and medals above it are dropped. */
+export const CARROT_LEVEL_COUNT = 24
+/** Carrot levels are 1..24; anything else (a stray key, '__proto__', a challenge level) is not a level and is dropped. */
 const CARROT_LEVEL = /^([1-9]|1[0-9]|2[0-4])$/
 /** Ink Maze levels are slugs ('first-roll'); the same grammar keeps junk keys out of the union. */
 const INKMAZE_LEVEL = /^[a-z0-9][a-z0-9-]{0,39}$/i
@@ -49,7 +51,65 @@ export function mergeCarrot(a: CampaignSave | null, b: CampaignSave | null): Cam
   const aMedals = isObject(a!.medals) ? a!.medals : {}
   const bMedals = isObject(b!.medals) ? b!.medals : {}
   for (const id of new Set([...Object.keys(aMedals), ...Object.keys(bMedals)])) if (CARROT_LEVEL.test(id)) medals[id] = ((Number(aMedals[id]) || 0) | (Number(bMedals[id]) || 0)) & 7
-  return { version: 1, unlocked: Math.min(24, Math.max(Number(a!.unlocked) || 1, Number(b!.unlocked) || 1)), medals, sound: a!.sound !== false }
+  return { version: 1, unlocked: Math.min(CARROT_LEVEL_COUNT, Math.max(Number(a!.unlocked) || 1, Number(b!.unlocked) || 1)), medals, sound: a!.sound !== false }
+}
+
+/** Carrot Super record (`cgs-carrot-super-v1`): whether the merge lesson was shown, how many Supers were forged and which kinds. */
+export type SuperSave = { version: 1; taught: boolean; merges: number; kinds: Record<string, number> }
+export type ChallengeBoss = 'tornado' | 'zombie' | 'eyeball'
+export type ChallengeRecord = { cleared: boolean; health: number; seconds: number; towers: number }
+/** Carrot challenge record (`cgs-carrot-challenges-v1`): the best run per boss fight. */
+export type ChallengeSave = { version: 1; best: Partial<Record<ChallengeBoss, ChallengeRecord>> }
+
+// The two blocks below are copied verbatim from src/minigames/carrot/progress.ts and challenges.ts in the game repo
+// (the page package owns the originals); keep them identical so both repos merge a record the same way.
+const cleanKinds=(raw:unknown)=>{const kinds:Record<string,number>={};if(raw&&typeof raw==='object')for(const [kind,value] of Object.entries(raw as Record<string,unknown>))if(/^[a-z]{2,16}$/.test(kind)&&typeof value==='number'&&Number.isFinite(value)&&value>0)kinds[kind]=Math.floor(value);return kinds}
+function cleanSuper(raw:unknown):SuperSave|null {
+ if(!raw||typeof raw!=='object'||(raw as SuperSave).version!==1)return null
+ const r=raw as Partial<SuperSave>
+ return {version:1,taught:r.taught===true,merges:Math.max(0,Math.floor(Number(r.merges)||0)),kinds:cleanKinds(r.kinds)}
+}
+/** A record from a newer client (version above this code's 1) is passed through untouched rather than merged by rules it may have outgrown. */
+export function newerVersion(a:unknown,b:unknown):unknown {
+ const v=(r:unknown)=>r&&typeof r==='object'&&Number.isInteger((r as {version?:unknown}).version)?(r as {version:number}).version:0
+ const va=v(a),vb=v(b);if(va<=1&&vb<=1)return null
+ return va>=vb?a:b
+}
+/** Pure merge for account sync: taught OR, merges max, kinds per-key max, a higher version wins outright. */
+export function mergeCarrotSuper(a:SuperSave|null|undefined,b:SuperSave|null|undefined):SuperSave|null {
+ const newer=newerVersion(a,b);if(newer)return newer as SuperSave
+ const x=cleanSuper(a),y=cleanSuper(b)
+ if(!x)return y;if(!y)return x
+ const kinds:Record<string,number>={...x.kinds};for(const [kind,value] of Object.entries(y.kinds))kinds[kind]=Math.max(kinds[kind]||0,value)
+ return {version:1,taught:x.taught||y.taught,merges:Math.max(x.merges,y.merges),kinds}
+}
+
+const challengeBosses:ChallengeBoss[]=['tornado','zombie','eyeball']
+const isBoss=(v:unknown):v is ChallengeBoss=>typeof v==='string'&&(challengeBosses as string[]).includes(v)
+const cleanRecord=(raw:unknown):ChallengeRecord|null=>{
+ if(!raw||typeof raw!=='object')return null
+ const r=raw as Partial<ChallengeRecord>;const health=Math.floor(Number(r.health)),seconds=Number(r.seconds),towers=Math.floor(Number(r.towers))
+ if(r.cleared!==true||!Number.isInteger(health)||health<1||health>10||!Number.isFinite(seconds)||seconds<0)return null
+ return {cleared:true,health,seconds:Math.round(seconds*10)/10,towers:Number.isFinite(towers)&&towers>=0?towers:0}
+}
+function cleanChallenges(raw:unknown):ChallengeSave|null {
+ if(!raw||typeof raw!=='object'||(raw as ChallengeSave).version!==1)return null
+ const best:ChallengeSave['best']={};const source=(raw as ChallengeSave).best
+ if(source&&typeof source==='object')for(const [boss,record] of Object.entries(source)){const r=cleanRecord(record);if(isBoss(boss)&&r)best[boss]=r}
+ return {version:1,best}
+}
+function combine(a:ChallengeRecord,b:ChallengeRecord):ChallengeRecord {
+ const faster=a.seconds<=b.seconds?a:b
+ return {cleared:a.cleared||b.cleared,health:Math.max(a.health,b.health),seconds:faster.seconds,towers:faster.towers}
+}
+/** Pure merge for account sync: per boss, cleared OR, best health, the faster time (with its tower count); a higher version wins outright. */
+export function mergeCarrotChallenges(a:ChallengeSave|null|undefined,b:ChallengeSave|null|undefined):ChallengeSave|null {
+ const newer=newerVersion(a,b);if(newer)return newer as ChallengeSave
+ const x=cleanChallenges(a),y=cleanChallenges(b)
+ if(!x)return y;if(!y)return x
+ const best:ChallengeSave['best']={}
+ for(const boss of challengeBosses){const p=x.best[boss],q=y.best[boss];if(p&&q)best[boss]=combine(p,q);else if(p||q)best[boss]=(p||q) as ChallengeRecord}
+ return {version:1,best}
 }
 
 const beats = (run: Best, best?: Best) => !best || run.ink < best.ink || (run.ink === best.ink && run.moves < best.moves)
@@ -109,6 +169,8 @@ export const PRIVATE_RECORDS: ReadonlySet<string> = new Set(['forge:player'])
  */
 export const KNOWN_KEYS: Readonly<Record<string, { key: string; private?: boolean }>> = {
   'carrot:campaign': { key: 'cgs-carrot-defense-v1' },
+  'carrot:super': { key: 'cgs-carrot-super-v1' },
+  'carrot:challenges': { key: 'cgs-carrot-challenges-v1' },
   'inkmaze:best': { key: 'cgs-inkmaze-best-v1' },
   'inkmaze:sound': { key: 'cgs-inkmaze-sound-v1' },
   'inkmaze:code': { key: 'cgs-inkmaze-code-v1' },
@@ -121,6 +183,8 @@ export const KNOWN_KEYS: Readonly<Record<string, { key: string; private?: boolea
 /** The rule for every known record id. New Ink Maze keys default to `laterWins` (state) or `localWins` (preferences). */
 export const MERGES = {
   'carrot:campaign': mergeCarrot,
+  'carrot:super': mergeCarrotSuper as Merge<SuperSave>,
+  'carrot:challenges': mergeCarrotChallenges as Merge<ChallengeSave>,
   'inkmaze:best': mergeBests,
   'inkmaze:sound': localWins as Merge<string>,
   'inkmaze:code': laterWins as Merge<unknown>,

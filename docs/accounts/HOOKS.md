@@ -10,7 +10,34 @@ game's rule and writes the result to both places. Signed out, `touch` only
 stamps a timestamp; nothing else changes.
 
 Carrot Defense is wired (`src/minigames/carrot/progress.ts`, `CarrotPage.tsx`)
-and is the reference. This page has the exact lines for Ink Maze and Forge.
+and is the reference. This page has the exact lines for Ink Maze and Forge,
+and for the two Carrot records (Super, boss challenges) that land with the
+`carrot-3d-upgrade` branch.
+
+## Carrot Defense: Super and boss challenges
+
+The 24-level campaign keeps `carrot:campaign` (`cgs-carrot-defense-v1`, version 1,
+`unlocked` clamped to `CARROT_LEVEL_COUNT` = 24). Two more records arrive with the
+Super merge and the boss-challenge lobby; their pure merge rules already live in
+`merges.ts` (`mergeCarrotSuper`, `mergeCarrotChallenges`, exported through `MERGES`,
+keys in `KNOWN_KEYS`) and are copied verbatim from the game modules, so the three
+lines below are the whole wiring when the branches meet:
+
+```ts
+// src/minigames/carrot/progress.ts (the Super record: taught OR, merges max, kinds per-kind max)
+progress.register('carrot:super', { key: 'cgs-carrot-super-v1', read: () => cleanSuper(JSON.parse(localStorage.getItem('cgs-carrot-super-v1') || 'null')), merge: mergeCarrotSuper })
+// inside saveSuper, after its setItem (recordSuper and teachSuper both go through it):
+progress.touch('carrot:super')
+
+// src/minigames/carrot/challenges.ts (the best run per boss: cleared OR, health max, the faster time with its tower count)
+progress.register('carrot:challenges', { key: 'cgs-carrot-challenges-v1', read: rawChallenges, merge: mergeCarrotChallenges })
+// inside saveChallenges, after its setItem (awardChallenge goes through it):
+progress.touch('carrot:challenges')
+```
+
+`read` returns `null` for an unreadable record (a `version` other than 1), as
+`rawCampaign` does, so an old build never pushes a fallback over a newer format.
+Neither record is private: a shared device keeps and merges them like the campaign.
 
 ## The API
 

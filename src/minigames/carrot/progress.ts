@@ -48,7 +48,7 @@ export function newerVersion(a:unknown,b:unknown):unknown {
  return va>=vb?a:b
 }
 export function readSuper():SuperSave {try{return cleanSuper(JSON.parse(localStorage.getItem(superKey)||'null'))||freshSuper()}catch{return freshSuper()}}
-export function saveSuper(save:SuperSave){try{localStorage.setItem(superKey,JSON.stringify(save))}catch{/* Storage may be blocked; merging still works. */}}
+export function saveSuper(save:SuperSave){try{localStorage.setItem(superKey,JSON.stringify(save))}catch{/* Storage may be blocked; merging still works. */}progress.touch('carrot:super')}
 export function recordSuper(save:SuperSave,kind:string):SuperSave {
  if(!/^[a-z]{2,16}$/.test(kind))return save
  const next:SuperSave={...save,merges:save.merges+1,kinds:{...save.kinds,[kind]:(save.kinds[kind]||0)+1}}
@@ -65,3 +65,5 @@ export function mergeCarrotSuper(a:SuperSave|null|undefined,b:SuperSave|null|und
 }
 // Signed in, the campaign follows the account: medals are OR-ed, the furthest unlock wins, sound stays this device's choice.
 progress.register(RECORD,{key,read:rawCampaign,write:saveCampaign,merge:mergeCarrot})
+/** The Super record syncs too: taught OR, merges max, kinds per-kind max (see docs/accounts/HOOKS.md). */
+progress.register('carrot:super',{key:superKey,read:()=>{try{return cleanSuper(JSON.parse(localStorage.getItem(superKey)||'null'))}catch{return null}},merge:mergeCarrotSuper})
