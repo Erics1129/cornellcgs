@@ -1,5 +1,358 @@
 {
   "version": 1,
+  "enemies": [
+    {
+      "id": "mite",
+      "name": "Dew Mite",
+      "trait": "Skitter",
+      "intro": 1,
+      "hp": 24,
+      "speed": 1.0824,
+      "armor": 0,
+      "shield": 0,
+      "reward": 5,
+      "air": false,
+      "mini": false
+    },
+    {
+      "id": "beetle",
+      "name": "Acorn Beetle",
+      "trait": "Armor",
+      "intro": 2,
+      "hp": 90,
+      "speed": 0.5494,
+      "armor": 0.25,
+      "shield": 0,
+      "reward": 12,
+      "air": false,
+      "mini": false
+    },
+    {
+      "id": "slug",
+      "name": "Moss Slug",
+      "trait": "Regenerate",
+      "intro": 3,
+      "hp": 105,
+      "speed": 0.4592,
+      "armor": 0,
+      "shield": 0,
+      "reward": 13,
+      "air": false,
+      "mini": false
+    },
+    {
+      "id": "wisp",
+      "name": "Willow Wisp",
+      "trait": "Phase",
+      "intro": 4,
+      "hp": 48,
+      "speed": 0.9265999999999999,
+      "armor": 0,
+      "shield": 22,
+      "reward": 10,
+      "air": true,
+      "mini": false
+    },
+    {
+      "id": "bat",
+      "name": "Velvet Bat",
+      "trait": "Swoop",
+      "intro": 5,
+      "hp": 44,
+      "speed": 1.2136,
+      "armor": 0,
+      "shield": 0,
+      "reward": 9,
+      "air": true,
+      "mini": false
+    },
+    {
+      "id": "scarab",
+      "name": "Sun Scarab",
+      "trait": "Shield",
+      "intro": 6,
+      "hp": 80,
+      "speed": 0.6396,
+      "armor": 0.12,
+      "shield": 65,
+      "reward": 15,
+      "air": false,
+      "mini": false
+    },
+    {
+      "id": "firefly",
+      "name": "Lantern Firefly",
+      "trait": "Heal",
+      "intro": 7,
+      "hp": 50,
+      "speed": 0.7215999999999999,
+      "armor": 0,
+      "shield": 0,
+      "reward": 11,
+      "air": true,
+      "mini": false
+    },
+    {
+      "id": "sporeling",
+      "name": "Sporeling",
+      "trait": "Spores",
+      "intro": 8,
+      "hp": 86,
+      "speed": 0.5658,
+      "armor": 0,
+      "shield": 0,
+      "reward": 12,
+      "air": false,
+      "mini": false
+    },
+    {
+      "id": "tinyZombie",
+      "name": "Rootling Zombie",
+      "trait": "Rebirth",
+      "intro": 9,
+      "hp": 68,
+      "speed": 0.5412,
+      "armor": 0,
+      "shield": 0,
+      "reward": 11,
+      "air": false,
+      "mini": false
+    },
+    {
+      "id": "riftling",
+      "name": "Riftling",
+      "trait": "Blink",
+      "intro": 10,
+      "hp": 68,
+      "speed": 0.902,
+      "armor": 0,
+      "shield": 0,
+      "reward": 12,
+      "air": false,
+      "mini": false
+    },
+    {
+      "id": "shardling",
+      "name": "Glass Shardling",
+      "trait": "Splinter",
+      "intro": 11,
+      "hp": 55,
+      "speed": 0.7462,
+      "armor": 0,
+      "shield": 30,
+      "reward": 12,
+      "air": false,
+      "mini": false
+    },
+    {
+      "id": "mimic",
+      "name": "Chest Mimic",
+      "trait": "Ambush",
+      "intro": 12,
+      "hp": 125,
+      "speed": 0.5412,
+      "armor": 0.1,
+      "shield": 0,
+      "reward": 19,
+      "air": false,
+      "mini": false
+    },
+    {
+      "id": "warDrummer",
+      "name": "War Drummer",
+      "trait": "rally",
+      "intro": 2,
+      "hp": 230,
+      "speed": 0.4755999999999999,
+      "armor": 0,
+      "shield": 0,
+      "reward": 45,
+      "air": false,
+      "mini": true
+    },
+    {
+      "id": "frostHerald",
+      "name": "Frost Herald",
+      "trait": "fieldFreeze",
+      "intro": 3,
+      "hp": 250,
+      "speed": 0.4264,
+      "armor": 0,
+      "shield": 30,
+      "reward": 50,
+      "air": false,
+      "mini": true
+    },
+    {
+      "id": "witherPriest",
+      "name": "Wither Priest",
+      "trait": "wither",
+      "intro": 4,
+      "hp": 225,
+      "speed": 0.451,
+      "armor": 0,
+      "shield": 0,
+      "reward": 50,
+      "air": false,
+      "mini": true
+    },
+    {
+      "id": "stormWarden",
+      "name": "Storm Warden",
+      "trait": "stormLock",
+      "intro": 5,
+      "hp": 270,
+      "speed": 0.4755999999999999,
+      "armor": 0.15,
+      "shield": 0,
+      "reward": 55,
+      "air": false,
+      "mini": true
+    },
+    {
+      "id": "graveCaller",
+      "name": "Grave Caller",
+      "trait": "graveCall",
+      "intro": 6,
+      "hp": 260,
+      "speed": 0.41,
+      "armor": 0,
+      "shield": 0,
+      "reward": 55,
+      "air": false,
+      "mini": true
+    },
+    {
+      "id": "mirrorKnight",
+      "name": "Mirror Knight",
+      "trait": "mirrorSplit",
+      "intro": 7,
+      "hp": 290,
+      "speed": 0.49199999999999994,
+      "armor": 0.15,
+      "shield": 0,
+      "reward": 60,
+      "air": false,
+      "mini": true
+    },
+    {
+      "id": "riftStalker",
+      "name": "Rift Stalker",
+      "trait": "riftBlink",
+      "intro": 8,
+      "hp": 220,
+      "speed": 0.574,
+      "armor": 0,
+      "shield": 25,
+      "reward": 60,
+      "air": false,
+      "mini": true
+    },
+    {
+      "id": "mossGolem",
+      "name": "Moss Golem",
+      "trait": "mossShield",
+      "intro": 9,
+      "hp": 420,
+      "speed": 0.328,
+      "armor": 0.2,
+      "shield": 0,
+      "reward": 65,
+      "air": false,
+      "mini": true
+    },
+    {
+      "id": "emberBoar",
+      "name": "Ember Boar",
+      "trait": "emberCharge",
+      "intro": 10,
+      "hp": 320,
+      "speed": 0.451,
+      "armor": 0.12,
+      "shield": 0,
+      "reward": 65,
+      "air": false,
+      "mini": true
+    },
+    {
+      "id": "venomQueen",
+      "name": "Venom Queen",
+      "trait": "venomMist",
+      "intro": 11,
+      "hp": 275,
+      "speed": 0.451,
+      "armor": 0,
+      "shield": 0,
+      "reward": 65,
+      "air": false,
+      "mini": true
+    },
+    {
+      "id": "ironSnail",
+      "name": "Iron Snail",
+      "trait": "ironShell",
+      "intro": 12,
+      "hp": 400,
+      "speed": 0.29519999999999996,
+      "armor": 0.15,
+      "shield": 0,
+      "reward": 70,
+      "air": false,
+      "mini": true
+    },
+    {
+      "id": "lanternLeech",
+      "name": "Lantern Leech",
+      "trait": "coinLeech",
+      "intro": 13,
+      "hp": 280,
+      "speed": 0.451,
+      "armor": 0,
+      "shield": 40,
+      "reward": 65,
+      "air": false,
+      "mini": true
+    },
+    {
+      "id": "chronoMoth",
+      "name": "Chrono Moth",
+      "trait": "chronoField",
+      "intro": 14,
+      "hp": 255,
+      "speed": 0.5412,
+      "armor": 0,
+      "shield": 0,
+      "reward": 70,
+      "air": true,
+      "mini": true
+    },
+    {
+      "id": "thornBeast",
+      "name": "Thorn Beast",
+      "trait": "thornBind",
+      "intro": 15,
+      "hp": 340,
+      "speed": 0.4428,
+      "armor": 0.12,
+      "shield": 0,
+      "reward": 75,
+      "air": false,
+      "mini": true
+    },
+    {
+      "id": "portalSentinel",
+      "name": "Portal Sentinel",
+      "trait": "sentinelRift",
+      "intro": 16,
+      "hp": 400,
+      "speed": 0.4755999999999999,
+      "armor": 0.15,
+      "shield": 65,
+      "reward": 85,
+      "air": false,
+      "mini": true
+    }
+  ],
   "coordinates": "grid x0..14,z0..10; Unity world x-7,z-5",
   "towers": [
     {
@@ -17,11 +370,11 @@
         200
       ],
       "damage": [
-        10,
-        15,
-        23,
-        34,
-        44
+        8.2,
+        12,
+        16.1,
+        22.1,
+        28.6
       ],
       "interval": [
         0.6,
@@ -53,11 +406,11 @@
         220
       ],
       "damage": [
-        6,
-        9,
-        14,
-        21,
-        40
+        4.92,
+        7.2,
+        9.8,
+        13.65,
+        26
       ],
       "interval": [
         1.2,
@@ -89,11 +442,11 @@
         255
       ],
       "damage": [
-        34,
-        52,
-        78,
-        118,
-        190
+        27.88,
+        41.6,
+        54.6,
+        76.7,
+        123.5
       ],
       "interval": [
         1.8,
@@ -125,11 +478,11 @@
         275
       ],
       "damage": [
-        34,
-        52,
-        78,
-        114,
-        150
+        27.88,
+        41.6,
+        54.6,
+        74.1,
+        97.5
       ],
       "interval": [
         1.5,
@@ -161,11 +514,11 @@
         295
       ],
       "damage": [
-        14,
+        11.48,
+        16.8,
         21,
-        30,
-        43,
-        62
+        27.95,
+        40.3
       ],
       "interval": [
         1.2,
@@ -197,11 +550,11 @@
         240
       ],
       "damage": [
-        12,
-        19,
-        29,
-        44,
-        68
+        9.84,
+        15.2,
+        20.3,
+        28.6,
+        44.2
       ],
       "interval": [
         1.5,
@@ -233,11 +586,11 @@
         260
       ],
       "damage": [
-        15,
-        23,
-        35,
-        52,
-        78
+        12.3,
+        18.4,
+        24.5,
+        33.8,
+        50.7
       ],
       "interval": [
         1.3,
@@ -269,11 +622,11 @@
         340
       ],
       "damage": [
-        20,
-        30,
-        45,
-        68,
-        105
+        16.4,
+        24,
+        31.5,
+        44.2,
+        68.25
       ],
       "interval": [
         2.4,
@@ -305,11 +658,11 @@
         290
       ],
       "damage": [
-        18,
-        28,
-        42,
-        63,
-        98
+        14.76,
+        22.4,
+        29.4,
+        40.95,
+        63.7
       ],
       "interval": [
         1.1,
@@ -341,11 +694,11 @@
         390
       ],
       "damage": [
-        70,
-        110,
-        165,
-        245,
-        320
+        57.4,
+        88,
+        115.5,
+        159.25,
+        208
       ],
       "interval": [
         3.2,
@@ -360,6 +713,366 @@
         5,
         5.3,
         5.3
+      ]
+    },
+    {
+      "id": "bamboo",
+      "name": "Bamboo Lancer",
+      "role": "Pierce",
+      "unlock": 1,
+      "air": true,
+      "superName": "Jade Phalanx",
+      "superTrait": "Five piercing lances widen the line of fire",
+      "cost": [
+        90,
+        75,
+        130,
+        215
+      ],
+      "damage": [
+        14,
+        21,
+        30,
+        42,
+        64
+      ],
+      "interval": [
+        1.1,
+        1,
+        0.92,
+        0.85,
+        0.8
+      ],
+      "range": [
+        3.4,
+        3.6,
+        3.8,
+        4,
+        4
+      ]
+    },
+    {
+      "id": "chili",
+      "name": "Inferno Pepper",
+      "role": "Scorch",
+      "unlock": 3,
+      "air": false,
+      "superName": "Caldera Pepper",
+      "superTrait": "Longer fire trails leave enemies twenty percent vulnerable",
+      "cost": [
+        135,
+        100,
+        170,
+        270
+      ],
+      "damage": [
+        22,
+        32,
+        45,
+        63,
+        100
+      ],
+      "interval": [
+        1.7,
+        1.6,
+        1.5,
+        1.4,
+        1.3
+      ],
+      "range": [
+        3,
+        3.2,
+        3.4,
+        3.6,
+        3.6
+      ]
+    },
+    {
+      "id": "lotus",
+      "name": "Sanctuary Lotus",
+      "role": "Cleanse",
+      "unlock": 4,
+      "air": true,
+      "superName": "Sacred Lotus",
+      "superTrait": "Cleanses a wider garden and grants brief control immunity",
+      "cost": [
+        140,
+        95,
+        165,
+        265
+      ],
+      "damage": [
+        15,
+        22,
+        31,
+        44,
+        67
+      ],
+      "interval": [
+        1.8,
+        1.7,
+        1.6,
+        1.5,
+        1.4
+      ],
+      "range": [
+        2.8,
+        3,
+        3.2,
+        3.4,
+        3.4
+      ]
+    },
+    {
+      "id": "magnet",
+      "name": "Magnet Clover",
+      "role": "Shred",
+      "unlock": 5,
+      "air": true,
+      "superName": "Polarity Crown",
+      "superTrait": "Five magnetic links strip armor and shields",
+      "cost": [
+        150,
+        110,
+        180,
+        285
+      ],
+      "damage": [
+        17,
+        25,
+        36,
+        51,
+        78
+      ],
+      "interval": [
+        1.5,
+        1.4,
+        1.3,
+        1.2,
+        1.1
+      ],
+      "range": [
+        3,
+        3.2,
+        3.4,
+        3.6,
+        3.6
+      ]
+    },
+    {
+      "id": "orchid",
+      "name": "Venom Orchid",
+      "role": "Poison",
+      "unlock": 6,
+      "air": true,
+      "superName": "Nightshade Empress",
+      "superTrait": "Six poison stacks spread through a lasting spore cloud",
+      "cost": [
+        145,
+        105,
+        175,
+        280
+      ],
+      "damage": [
+        12,
+        18,
+        26,
+        37,
+        47
+      ],
+      "interval": [
+        1.6,
+        1.5,
+        1.4,
+        1.3,
+        1.2
+      ],
+      "range": [
+        3.3,
+        3.5,
+        3.7,
+        3.9,
+        3.9
+      ]
+    },
+    {
+      "id": "mushroom",
+      "name": "Dreamcap",
+      "role": "Sleep",
+      "unlock": 7,
+      "air": false,
+      "superName": "Dream Sovereign",
+      "superTrait": "Wider sleep clouds and stronger waking bursts",
+      "cost": [
+        155,
+        115,
+        185,
+        295
+      ],
+      "damage": [
+        18,
+        27,
+        39,
+        55,
+        83
+      ],
+      "interval": [
+        2.1,
+        2,
+        1.9,
+        1.8,
+        1.65
+      ],
+      "range": [
+        3,
+        3.2,
+        3.4,
+        3.6,
+        3.6
+      ]
+    },
+    {
+      "id": "cactus",
+      "name": "Thorn Cactus",
+      "role": "Bleed",
+      "unlock": 2,
+      "air": true,
+      "superName": "Briar Citadel",
+      "superTrait": "Five ricochets carve a longer bleeding wound",
+      "cost": [
+        105,
+        80,
+        140,
+        225
+      ],
+      "damage": [
+        14,
+        21,
+        30,
+        43,
+        60
+      ],
+      "interval": [
+        1.2,
+        1.1,
+        1,
+        0.9,
+        0.85
+      ],
+      "range": [
+        3.1,
+        3.3,
+        3.5,
+        3.7,
+        3.7
+      ]
+    },
+    {
+      "id": "clockflower",
+      "name": "Clockwork Bloom",
+      "role": "Tempo",
+      "unlock": 8,
+      "air": true,
+      "superName": "Eternal Bloom",
+      "superTrait": "A longer capped thirty-percent cadence aura",
+      "cost": [
+        175,
+        125,
+        205,
+        325
+      ],
+      "damage": [
+        17,
+        25,
+        36,
+        51,
+        78
+      ],
+      "interval": [
+        1.8,
+        1.7,
+        1.6,
+        1.5,
+        1.4
+      ],
+      "range": [
+        3.2,
+        3.4,
+        3.6,
+        3.8,
+        3.8
+      ]
+    },
+    {
+      "id": "dragonfruit",
+      "name": "Dragonfruit",
+      "role": "Meteor",
+      "unlock": 10,
+      "air": false,
+      "superName": "Celestial Dragon",
+      "superTrait": "Four heavy meteors strike a wider constellation",
+      "cost": [
+        240,
+        160,
+        270,
+        420
+      ],
+      "damage": [
+        36,
+        54,
+        77,
+        109,
+        164
+      ],
+      "interval": [
+        3.5,
+        3.3,
+        3.1,
+        2.9,
+        2.7
+      ],
+      "range": [
+        4,
+        4.2,
+        4.5,
+        4.8,
+        4.8
+      ]
+    },
+    {
+      "id": "moonflower",
+      "name": "Eclipse Lily",
+      "role": "Lunar",
+      "unlock": 12,
+      "air": true,
+      "superName": "Total Eclipse",
+      "superTrait": "Split lunar beams shred shields and expose doubles",
+      "cost": [
+        210,
+        145,
+        235,
+        370
+      ],
+      "damage": [
+        36,
+        54,
+        76,
+        108,
+        116
+      ],
+      "interval": [
+        1.8,
+        1.7,
+        1.6,
+        1.5,
+        1.35
+      ],
+      "range": [
+        4.2,
+        4.4,
+        4.7,
+        5,
+        5
       ]
     }
   ],
@@ -516,9 +1229,9 @@
       "waveCompositions": [
         "nibble:9",
         "nibble:11",
-        "nibble:9,dash:4",
-        "nibble:11,dash:5",
-        "nibble:11,dash:6"
+        "nibble:7,dash:4,mite:4",
+        "nibble:9,dash:5,mite:2",
+        "nibble:9,dash:6,mite:2"
       ]
     },
     {
@@ -697,10 +1410,10 @@
       "waveCompositions": [
         "nibble:12,dash:4",
         "dash:8,nibble:7",
-        "nibble:14,dash:5",
-        "swarm:14,nibble:7",
-        "dash:10,nibble:9",
-        "nibble:16,dash:10"
+        "nibble:12,dash:5,beetle:4",
+        "swarm:12,nibble:7,mite:2,warDrummer:1",
+        "dash:8,nibble:9,beetle:2",
+        "nibble:14,dash:10,mite:2"
       ]
     },
     {
@@ -875,11 +1588,11 @@
       "waveCompositions": [
         "swarm:15,nibble:9",
         "nibble:13,dash:6",
-        "swarm:20,nibble:10",
-        "shell:3,nibble:13",
-        "swarm:20,dash:10",
-        "shell:6,swarm:20",
-        "nibble:15,shell:6,dash:13"
+        "swarm:18,nibble:10,slug:4",
+        "shell:3,nibble:11,mite:2",
+        "swarm:18,dash:10,beetle:2,frostHerald:1",
+        "shell:4,swarm:20,slug:2",
+        "nibble:13,shell:6,dash:13,mite:2"
       ]
     },
     {
@@ -1054,12 +1767,12 @@
       "waveCompositions": [
         "shell:5,nibble:14",
         "nibble:16,dash:9",
-        "shell:7,swarm:22",
-        "dash:14,nibble:14",
-        "shell:8,swarm:24",
-        "nibble:19,dash:11,swarm:8",
-        "shell:9,nibble:16",
-        "boss:1,nibble:16,dash:11,shell:3"
+        "shell:5,swarm:22,wisp:4",
+        "dash:12,nibble:14,mite:2",
+        "shell:6,swarm:24,beetle:2",
+        "nibble:17,dash:11,swarm:8,slug:2,witherPriest:1",
+        "shell:7,nibble:16,wisp:2",
+        "boss:1,nibble:14,dash:11,shell:3,mite:2"
       ]
     },
     {
@@ -1067,7 +1780,7 @@
       "name": "Lantern Causeway",
       "biome": "marsh",
       "boss": "",
-      "startingGold": 300,
+      "startingGold": 340,
       "waves": 8,
       "routes": [
         [
@@ -1234,12 +1947,12 @@
       "waveCompositions": [
         "moth:4,nibble:12",
         "nibble:13,moth:7",
-        "shell:7,dash:11",
-        "moth:9,swarm:23,shell:3",
-        "nibble:16,moth:7",
-        "shell:8,swarm:23",
-        "moth:12,dash:12",
-        "shell:9,moth:12,nibble:12"
+        "shell:4,dash:11,bat:5",
+        "moth:6,swarm:23,shell:3,mite:3",
+        "nibble:13,moth:7,beetle:3",
+        "shell:5,swarm:23,slug:3,stormWarden:1",
+        "moth:9,dash:12,wisp:3",
+        "shell:6,moth:12,nibble:12,bat:3"
       ]
     },
     {
@@ -1247,7 +1960,7 @@
       "name": "Twin Reeds",
       "biome": "marsh",
       "boss": "",
-      "startingGold": 300,
+      "startingGold": 340,
       "waves": 9,
       "routes": [
         [
@@ -1426,13 +2139,13 @@
       "waveCompositions": [
         "nibble:18,dash:7",
         "swarm:27,nibble:11",
-        "moth:11,shell:7",
-        "dash:15,swarm:24,shell:3",
-        "shell:10,nibble:17",
-        "moth:12,dash:12",
-        "swarm:34,shell:9",
-        "moth:15,shell:10",
-        "nibble:20,dash:15,shell:10"
+        "moth:8,shell:7,scarab:5",
+        "dash:12,swarm:24,shell:3,mite:3",
+        "shell:7,nibble:17,beetle:3",
+        "moth:9,dash:12,slug:3",
+        "swarm:31,shell:9,wisp:3,graveCaller:1",
+        "moth:12,shell:10,bat:3",
+        "nibble:17,dash:15,shell:10,scarab:3"
       ]
     },
     {
@@ -1440,7 +2153,7 @@
       "name": "Firefly Weave",
       "biome": "marsh",
       "boss": "",
-      "startingGold": 300,
+      "startingGold": 340,
       "waves": 9,
       "routes": [
         [
@@ -1615,13 +2328,13 @@
       "waveCompositions": [
         "shaman:1,nibble:12",
         "nibble:16,shaman:3",
-        "swarm:32,shaman:3",
-        "moth:13,shell:14",
-        "shell:12,shaman:4",
-        "swarm:37,dash:16",
-        "moth:16,shaman:5",
-        "shell:13,swarm:26,shaman:1",
-        "nibble:21,shaman:4,moth:16"
+        "swarm:29,shaman:3,firefly:5",
+        "moth:10,shell:14,mite:3",
+        "shell:9,shaman:4,beetle:3",
+        "swarm:34,dash:16,slug:3",
+        "moth:13,shaman:5,wisp:3,mirrorKnight:1",
+        "shell:10,swarm:26,shaman:1,bat:3",
+        "nibble:18,shaman:4,moth:16,scarab:3"
       ]
     },
     {
@@ -1629,7 +2342,7 @@
       "name": "Moonwell",
       "biome": "marsh",
       "boss": "marsh",
-      "startingGold": 300,
+      "startingGold": 340,
       "waves": 10,
       "routes": [
         [
@@ -1842,14 +2555,14 @@
       "waveCompositions": [
         "nibble:18,moth:8",
         "shell:12,dash:15",
-        "swarm:40,shaman:3",
-        "moth:20,nibble:17",
-        "shell:17,shaman:4",
-        "dash:23,swarm:34",
-        "moth:20,shell:11,shaman:1",
-        "nibble:28,shaman:5,swarm:10",
-        "shell:17,moth:17",
-        "boss:1,nibble:17,moth:13,shell:4,dash:5"
+        "swarm:37,shaman:3,sporeling:5",
+        "moth:17,nibble:17,mite:3",
+        "shell:14,shaman:4,beetle:3",
+        "dash:20,swarm:34,slug:3",
+        "moth:17,shell:11,shaman:1,wisp:3",
+        "nibble:25,shaman:5,swarm:10,bat:3,riftStalker:1",
+        "shell:14,moth:17,scarab:3",
+        "boss:1,nibble:14,moth:13,shell:4,dash:5,firefly:3"
       ]
     },
     {
@@ -1857,7 +2570,7 @@
       "name": "Crystal Descent",
       "biome": "frost",
       "boss": "",
-      "startingGold": 360,
+      "startingGold": 420,
       "waves": 10,
       "routes": [
         [
@@ -2048,14 +2761,14 @@
       "waveCompositions": [
         "crystal:3,nibble:14",
         "shell:9,crystal:6",
-        "dash:14,moth:12",
-        "crystal:8,swarm:29",
-        "shell:16,shaman:4",
-        "moth:17,crystal:7",
-        "swarm:36,dash:17",
-        "crystal:11,shell:12",
-        "moth:17,shaman:4",
-        "crystal:12,dash:19,shell:10"
+        "dash:11,moth:12,tinyZombie:5",
+        "crystal:5,swarm:29,mite:3",
+        "shell:13,shaman:4,beetle:3",
+        "moth:14,crystal:7,slug:3",
+        "swarm:33,dash:17,wisp:3",
+        "crystal:8,shell:12,bat:3,mossGolem:1",
+        "moth:14,shaman:4,scarab:3",
+        "crystal:9,dash:19,shell:10,firefly:3"
       ]
     },
     {
@@ -2063,7 +2776,7 @@
       "name": "Split Summit",
       "biome": "frost",
       "boss": "",
-      "startingGold": 360,
+      "startingGold": 420,
       "waves": 10,
       "routes": [
         [
@@ -2280,14 +2993,14 @@
       "waveCompositions": [
         "nibble:20,crystal:7",
         "dash:18,shell:11",
-        "moth:20,swarm:35",
-        "crystal:12,shaman:4",
-        "shell:19,dash:20",
-        "swarm:40,moth:17",
-        "crystal:12,shell:12",
-        "shaman:5,nibble:25",
-        "moth:22,dash:20",
-        "crystal:15,shell:15,swarm:30"
+        "moth:17,swarm:35,riftling:5",
+        "crystal:9,shaman:4,mite:3",
+        "shell:16,dash:20,beetle:3",
+        "swarm:37,moth:17,slug:3",
+        "crystal:9,shell:12,wisp:3",
+        "shaman:2,nibble:25,bat:3,emberBoar:1",
+        "moth:19,dash:20,scarab:3",
+        "crystal:12,shell:15,swarm:30,firefly:3"
       ]
     },
     {
@@ -2295,7 +3008,7 @@
       "name": "Aurora Steps",
       "biome": "frost",
       "boss": "",
-      "startingGold": 360,
+      "startingGold": 420,
       "waves": 11,
       "routes": [
         [
@@ -2504,15 +3217,15 @@
       "waveCompositions": [
         "burrow:3,nibble:16",
         "burrow:7,dash:12",
-        "shell:16,moth:16",
-        "burrow:11,swarm:32",
-        "crystal:13,shaman:4,shell:4",
-        "moth:21,burrow:11",
-        "shell:16,dash:21",
-        "burrow:17,shaman:5",
-        "swarm:48,crystal:12,shaman:2",
-        "moth:24,burrow:13,shaman:2,crystal:4",
-        "crystal:16,burrow:13,shell:13"
+        "shell:13,moth:16,shardling:5",
+        "burrow:8,swarm:32,mite:3",
+        "crystal:10,shaman:4,shell:4,beetle:3",
+        "moth:18,burrow:11,slug:3",
+        "shell:13,dash:21,wisp:3",
+        "burrow:14,shaman:5,bat:3",
+        "swarm:45,crystal:12,shaman:2,scarab:3,venomQueen:1",
+        "moth:21,burrow:13,shaman:2,crystal:4,firefly:3",
+        "crystal:13,burrow:13,shell:13,sporeling:3"
       ]
     },
     {
@@ -2520,7 +3233,7 @@
       "name": "Last Harvest",
       "biome": "frost",
       "boss": "frost",
-      "startingGold": 360,
+      "startingGold": 420,
       "waves": 12,
       "routes": [
         [
@@ -2745,16 +3458,16 @@
       "waveCompositions": [
         "nibble:20,shell:10",
         "moth:20,crystal:10",
-        "burrow:12,dash:20",
-        "swarm:46,shaman:4",
-        "crystal:14,shell:17",
-        "nibble:29,moth:23,shell:4",
-        "burrow:14,shaman:6",
-        "shell:20,dash:23",
-        "moth:26,crystal:17,shaman:2,burrow:4",
-        "swarm:64,burrow:17,shaman:2,crystal:4",
-        "crystal:20,shaman:6,shell:14",
-        "boss:1,shell:17,moth:17,dash:6,crystal:4"
+        "burrow:9,dash:20,mimic:5",
+        "swarm:43,shaman:4,mite:3",
+        "crystal:11,shell:17,beetle:3",
+        "nibble:26,moth:23,shell:4,slug:3",
+        "burrow:11,shaman:6,wisp:3",
+        "shell:17,dash:23,bat:3",
+        "moth:23,crystal:17,shaman:2,burrow:4,scarab:3",
+        "swarm:61,burrow:17,shaman:2,crystal:4,firefly:3,ironSnail:1",
+        "crystal:17,shaman:6,shell:14,sporeling:3",
+        "boss:1,shell:14,moth:17,dash:6,crystal:4,tinyZombie:3"
       ]
     },
     {
@@ -2762,7 +3475,7 @@
       "name": "Late Bloom Terrace",
       "biome": "garden",
       "boss": "",
-      "startingGold": 500,
+      "startingGold": 580,
       "waves": 11,
       "routes": [
         [
@@ -2949,15 +3662,15 @@
       "waveCompositions": [
         "shell:4,nibble:10",
         "nibble:12,moth:8",
-        "shell:6,dash:10",
-        "swarm:23,nibble:15",
-        "crystal:7,shell:12",
-        "moth:11,burrow:7",
-        "shaman:3,swarm:28",
-        "nibble:15,dash:10,moth:10",
-        "burrow:7,shaman:4,shell:7",
-        "crystal:10,moth:15,shell:10",
-        "swarm:41,dash:17,shell:12"
+        "shell:3,dash:10,mite:3",
+        "swarm:20,nibble:15,beetle:3",
+        "crystal:4,shell:12,slug:3",
+        "moth:8,burrow:7,wisp:3",
+        "shaman:3,swarm:25,bat:3",
+        "nibble:12,dash:10,moth:10,scarab:3",
+        "burrow:4,shaman:4,shell:7,firefly:3,lanternLeech:1",
+        "crystal:7,moth:15,shell:10,sporeling:3",
+        "swarm:38,dash:17,shell:12,tinyZombie:3"
       ]
     },
     {
@@ -2965,7 +3678,7 @@
       "name": "Heron Shallows",
       "biome": "marsh",
       "boss": "",
-      "startingGold": 550,
+      "startingGold": 630,
       "waves": 11,
       "routes": [
         [
@@ -3186,15 +3899,15 @@
       "waveCompositions": [
         "shell:5,nibble:10",
         "nibble:12,moth:8",
-        "shell:6,dash:10",
-        "swarm:25,nibble:16",
-        "crystal:8,shell:13",
-        "moth:13,burrow:9",
-        "shaman:4,swarm:32",
-        "nibble:16,dash:11,moth:11,burrow:5",
-        "burrow:9,shaman:4,shell:9",
-        "crystal:11,moth:16,shell:11",
-        "swarm:45,dash:20,shell:13"
+        "shell:3,dash:10,beetle:3",
+        "swarm:22,nibble:16,slug:3",
+        "crystal:5,shell:13,wisp:3",
+        "moth:10,burrow:9,bat:3",
+        "shaman:4,swarm:29,scarab:3",
+        "nibble:13,dash:11,moth:11,burrow:5,firefly:3",
+        "burrow:6,shaman:4,shell:9,sporeling:3,chronoMoth:1",
+        "crystal:8,moth:16,shell:11,tinyZombie:3",
+        "swarm:42,dash:20,shell:13,riftling:3"
       ]
     },
     {
@@ -3202,7 +3915,7 @@
       "name": "Frozen Falls",
       "biome": "frost",
       "boss": "",
-      "startingGold": 600,
+      "startingGold": 680,
       "waves": 12,
       "routes": [
         [
@@ -3405,16 +4118,16 @@
       "waveCompositions": [
         "shell:5,nibble:10",
         "nibble:13,moth:9",
-        "shell:7,dash:11",
-        "swarm:29,nibble:18",
-        "crystal:8,shell:8",
-        "moth:14,burrow:10,shell:5",
-        "shaman:4,swarm:34",
-        "nibble:19,dash:12,moth:12",
-        "burrow:13,shaman:4,shell:8",
-        "crystal:11,moth:16,shell:11,shaman:2",
-        "swarm:45,dash:19,shell:12,shaman:2,crystal:5",
-        "shell:15,dash:23,crystal:15,shaman:7"
+        "shell:4,dash:11,slug:3",
+        "swarm:26,nibble:18,wisp:3",
+        "crystal:5,shell:8,bat:3",
+        "moth:11,burrow:10,shell:5,scarab:3",
+        "shaman:4,swarm:31,firefly:3",
+        "nibble:16,dash:12,moth:12,sporeling:3",
+        "burrow:10,shaman:4,shell:8,tinyZombie:3",
+        "crystal:8,moth:16,shell:11,shaman:2,riftling:3,thornBeast:1",
+        "swarm:42,dash:19,shell:12,shaman:2,crystal:5,shardling:3",
+        "shell:12,dash:23,crystal:15,shaman:7,mimic:3"
       ]
     },
     {
@@ -3422,7 +4135,7 @@
       "name": "Cider Gate",
       "biome": "orchard",
       "boss": "garden",
-      "startingGold": 650,
+      "startingGold": 730,
       "waves": 12,
       "routes": [
         [
@@ -3651,16 +4364,16 @@
       "waveCompositions": [
         "shell:5,nibble:11",
         "nibble:15,moth:10",
-        "shell:9,dash:13",
-        "swarm:32,nibble:20",
-        "crystal:10,shell:10",
-        "moth:16,burrow:10,shell:5",
-        "shaman:4,swarm:38",
-        "nibble:20,dash:15,moth:15",
-        "burrow:15,shaman:6,shell:10",
-        "crystal:17,moth:18,shell:12,shaman:2,swarm:14",
-        "swarm:51,dash:22,shell:15",
-        "boss:1,shell:21,moth:18,nibble:18,dash:7,crystal:5"
+        "shell:6,dash:13,wisp:3",
+        "swarm:29,nibble:20,bat:3",
+        "crystal:7,shell:10,scarab:3",
+        "moth:13,burrow:10,shell:5,firefly:3",
+        "shaman:4,swarm:35,sporeling:3",
+        "nibble:17,dash:15,moth:15,tinyZombie:3",
+        "burrow:12,shaman:6,shell:10,riftling:3",
+        "crystal:14,moth:18,shell:12,shaman:2,swarm:14,shardling:3,portalSentinel:1",
+        "swarm:48,dash:22,shell:15,mimic:3",
+        "boss:1,shell:18,moth:18,nibble:18,dash:7,crystal:5,mite:3"
       ]
     },
     {
@@ -3668,7 +4381,7 @@
       "name": "Beehive Hollow",
       "biome": "garden",
       "boss": "",
-      "startingGold": 620,
+      "startingGold": 720,
       "waves": 12,
       "routes": [
         [
@@ -3863,16 +4576,16 @@
       "waveCompositions": [
         "shell:5,nibble:11",
         "nibble:13,moth:9",
-        "shell:7,dash:11",
-        "swarm:27,nibble:17",
-        "crystal:8,shell:8",
-        "moth:13,burrow:8,shell:6",
-        "shaman:4,swarm:34",
-        "nibble:18,dash:12,moth:12",
-        "burrow:8,shaman:4,shell:8",
-        "crystal:11,moth:16,shell:11",
-        "swarm:45,dash:19,shell:13",
-        "shell:16,dash:23,crystal:16,shaman:7"
+        "shell:4,dash:11,bat:3",
+        "swarm:24,nibble:17,scarab:3",
+        "crystal:5,shell:8,firefly:3",
+        "moth:10,burrow:8,shell:6,sporeling:3",
+        "shaman:4,swarm:31,tinyZombie:3",
+        "nibble:15,dash:12,moth:12,riftling:3",
+        "burrow:5,shaman:4,shell:8,shardling:3,warDrummer:1",
+        "crystal:8,moth:16,shell:11,mimic:3",
+        "swarm:42,dash:19,shell:13,mite:3",
+        "shell:13,dash:23,crystal:16,shaman:7,beetle:3"
       ]
     },
     {
@@ -3880,7 +4593,7 @@
       "name": "Bogfire Crossing",
       "biome": "marsh",
       "boss": "",
-      "startingGold": 670,
+      "startingGold": 770,
       "waves": 13,
       "routes": [
         [
@@ -4117,17 +4830,17 @@
       "waveCompositions": [
         "shell:5,nibble:11",
         "nibble:14,moth:9",
-        "shell:8,dash:11",
-        "swarm:28,nibble:18",
-        "crystal:9,shell:9",
-        "moth:14,burrow:9,shell:6",
-        "shaman:4,swarm:35",
-        "nibble:19,dash:13,moth:13",
-        "burrow:9,shaman:4,shell:9",
-        "crystal:10,moth:15,shell:10,burrow:6",
-        "swarm:42,dash:18,shell:11",
-        "shell:14,dash:21,crystal:14,shaman:6",
-        "moth:25,crystal:16,burrow:16"
+        "shell:5,dash:11,scarab:3",
+        "swarm:25,nibble:18,firefly:3",
+        "crystal:6,shell:9,sporeling:3",
+        "moth:11,burrow:9,shell:6,tinyZombie:3",
+        "shaman:4,swarm:32,riftling:3",
+        "nibble:16,dash:13,moth:13,shardling:3",
+        "burrow:6,shaman:4,shell:9,mimic:3",
+        "crystal:7,moth:15,shell:10,burrow:6,mite:3,frostHerald:1",
+        "swarm:39,dash:18,shell:11,beetle:3",
+        "shell:11,dash:21,crystal:14,shaman:6,slug:3",
+        "moth:22,crystal:16,burrow:16,wisp:3"
       ]
     },
     {
@@ -4135,7 +4848,7 @@
       "name": "Pumpkin Rows",
       "biome": "orchard",
       "boss": "",
-      "startingGold": 740,
+      "startingGold": 840,
       "waves": 13,
       "routes": [
         [
@@ -4314,17 +5027,17 @@
       "waveCompositions": [
         "shell:5,nibble:11",
         "nibble:14,moth:9",
-        "shell:8,dash:12",
-        "swarm:31,nibble:20",
-        "crystal:10,shell:10",
-        "moth:16,burrow:11,shell:6",
-        "shaman:4,swarm:39",
-        "nibble:22,dash:15,moth:15",
-        "burrow:11,shaman:5,shell:11",
-        "crystal:11,moth:16,shell:11,burrow:6",
-        "swarm:48,dash:20,shell:14,shaman:3",
-        "shell:16,dash:24,crystal:22,shaman:11",
-        "moth:29,crystal:19,burrow:19"
+        "shell:5,dash:12,firefly:3",
+        "swarm:28,nibble:20,sporeling:3",
+        "crystal:7,shell:10,tinyZombie:3",
+        "moth:13,burrow:11,shell:6,riftling:3",
+        "shaman:4,swarm:36,shardling:3",
+        "nibble:19,dash:15,moth:15,mimic:3",
+        "burrow:8,shaman:5,shell:11,mite:3",
+        "crystal:8,moth:16,shell:11,burrow:6,beetle:3,witherPriest:1",
+        "swarm:45,dash:20,shell:14,shaman:3,slug:3",
+        "shell:13,dash:24,crystal:22,shaman:11,wisp:3",
+        "moth:26,crystal:19,burrow:19,bat:3"
       ]
     },
     {
@@ -4332,7 +5045,7 @@
       "name": "Scarecrow Field",
       "biome": "orchard",
       "boss": "orchard",
-      "startingGold": 770,
+      "startingGold": 870,
       "waves": 14,
       "routes": [
         [
@@ -4573,18 +5286,18 @@
       "waveCompositions": [
         "shell:5,nibble:11",
         "nibble:15,moth:10",
-        "shell:9,dash:13",
-        "swarm:34,nibble:22",
-        "crystal:10,shell:10",
-        "moth:18,burrow:12",
-        "shaman:4,swarm:42,shell:6",
-        "nibble:23,dash:16,moth:16",
-        "burrow:12,shaman:6,shell:12",
-        "crystal:12,moth:18,shell:12",
-        "swarm:45,dash:19,shell:13,shaman:3,burrow:6",
-        "shell:16,dash:23,crystal:22,shaman:10,swarm:16",
-        "moth:28,crystal:19,burrow:19",
-        "boss:1,moth:22,shell:22,crystal:15,dash:8"
+        "shell:6,dash:13,sporeling:3",
+        "swarm:31,nibble:22,tinyZombie:3",
+        "crystal:7,shell:10,riftling:3",
+        "moth:15,burrow:12,shardling:3",
+        "shaman:4,swarm:39,shell:6,mimic:3",
+        "nibble:20,dash:16,moth:16,mite:3",
+        "burrow:9,shaman:6,shell:12,beetle:3",
+        "crystal:9,moth:18,shell:12,slug:3",
+        "swarm:42,dash:19,shell:13,shaman:3,burrow:6,wisp:3,stormWarden:1",
+        "shell:13,dash:23,crystal:22,shaman:10,swarm:16,bat:3",
+        "moth:25,crystal:19,burrow:19,scarab:3",
+        "boss:1,moth:19,shell:22,crystal:15,dash:8,firefly:3"
       ]
     },
     {
@@ -4592,7 +5305,7 @@
       "name": "Glacier Stair",
       "biome": "frost",
       "boss": "",
-      "startingGold": 780,
+      "startingGold": 900,
       "waves": 14,
       "routes": [
         [
@@ -4837,18 +5550,18 @@
       "waveCompositions": [
         "shell:5,nibble:11",
         "nibble:13,moth:9",
-        "shell:7,dash:11",
-        "swarm:28,nibble:18",
-        "crystal:8,shell:8",
-        "moth:15,burrow:10",
-        "shaman:4,swarm:36,shell:7",
-        "nibble:21,dash:13,moth:13",
-        "burrow:10,shaman:5,shell:10",
-        "crystal:10,moth:16,shell:10",
-        "swarm:39,dash:17,shell:11",
-        "shell:13,dash:21,crystal:13,shaman:6",
-        "moth:24,crystal:16,burrow:16",
-        "nibble:42,shell:19,shaman:7"
+        "shell:4,dash:11,tinyZombie:3",
+        "swarm:25,nibble:18,riftling:3",
+        "crystal:5,shell:8,shardling:3",
+        "moth:12,burrow:10,mimic:3",
+        "shaman:4,swarm:33,shell:7,mite:3",
+        "nibble:18,dash:13,moth:13,beetle:3",
+        "burrow:7,shaman:5,shell:10,slug:3",
+        "crystal:7,moth:16,shell:10,wisp:3",
+        "swarm:36,dash:17,shell:11,bat:3,graveCaller:1",
+        "shell:10,dash:21,crystal:13,shaman:6,scarab:3",
+        "moth:21,crystal:16,burrow:16,firefly:3,lanternLeech:1",
+        "nibble:39,shell:19,shaman:7,sporeling:3"
       ]
     },
     {
@@ -4856,7 +5569,7 @@
       "name": "Windfall Grove",
       "biome": "orchard",
       "boss": "",
-      "startingGold": 830,
+      "startingGold": 950,
       "waves": 15,
       "routes": [
         [
@@ -5097,19 +5810,19 @@
       "waveCompositions": [
         "shell:5,nibble:10",
         "nibble:14,moth:9",
-        "shell:8,dash:11",
-        "swarm:29,nibble:19",
-        "crystal:9,shell:9",
-        "moth:15,burrow:10",
-        "shaman:4,swarm:38,shell:7",
-        "nibble:21,dash:14,moth:14",
-        "burrow:10,shaman:5,shell:10",
-        "crystal:10,moth:16,shell:10",
-        "swarm:39,dash:16,shell:11",
-        "shell:13,dash:19,crystal:13,shaman:6,burrow:7",
-        "moth:23,crystal:15,burrow:15",
-        "nibble:40,shell:18,shaman:8",
-        "crystal:21,moth:32,dash:32,shaman:8"
+        "shell:5,dash:11,riftling:3",
+        "swarm:26,nibble:19,shardling:3",
+        "crystal:6,shell:9,mimic:3",
+        "moth:12,burrow:10,mite:3",
+        "shaman:4,swarm:35,shell:7,beetle:3",
+        "nibble:18,dash:14,moth:14,slug:3",
+        "burrow:7,shaman:5,shell:10,wisp:3",
+        "crystal:7,moth:16,shell:10,bat:3",
+        "swarm:36,dash:16,shell:11,scarab:3",
+        "shell:10,dash:19,crystal:13,shaman:6,burrow:7,firefly:3,mirrorKnight:1",
+        "moth:20,crystal:15,burrow:15,sporeling:3",
+        "nibble:37,shell:18,shaman:8,tinyZombie:3,chronoMoth:1",
+        "crystal:18,moth:32,dash:32,shaman:8,riftling:3"
       ]
     },
     {
@@ -5117,7 +5830,7 @@
       "name": "Lantern Harvest",
       "biome": "orchard",
       "boss": "",
-      "startingGold": 860,
+      "startingGold": 980,
       "waves": 15,
       "routes": [
         [
@@ -5350,19 +6063,19 @@
       "waveCompositions": [
         "shell:4,nibble:10",
         "nibble:14,moth:9",
-        "shell:8,dash:12",
-        "swarm:31,nibble:20",
-        "crystal:10,shell:10",
-        "moth:16,burrow:11",
-        "shaman:4,swarm:42,shell:7",
-        "nibble:23,dash:15,moth:15",
-        "burrow:11,shaman:5,shell:11",
-        "crystal:12,moth:18,shell:12",
-        "swarm:44,dash:19,shell:12",
-        "shell:15,dash:22,crystal:15,shaman:7,burrow:7",
-        "moth:26,crystal:18,burrow:18,shaman:3",
-        "nibble:45,shell:20,shaman:11,crystal:7",
-        "crystal:23,moth:35,dash:35,shaman:8"
+        "shell:5,dash:12,shardling:3",
+        "swarm:28,nibble:20,mimic:3",
+        "crystal:7,shell:10,mite:3",
+        "moth:13,burrow:11,beetle:3",
+        "shaman:4,swarm:39,shell:7,slug:3",
+        "nibble:20,dash:15,moth:15,wisp:3",
+        "burrow:8,shaman:5,shell:11,bat:3",
+        "crystal:9,moth:18,shell:12,scarab:3",
+        "swarm:41,dash:19,shell:12,firefly:3",
+        "shell:12,dash:22,crystal:15,shaman:7,burrow:7,sporeling:3,riftStalker:1",
+        "moth:23,crystal:18,burrow:18,shaman:3,tinyZombie:3",
+        "nibble:42,shell:20,shaman:11,crystal:7,riftling:3,thornBeast:1",
+        "crystal:20,moth:35,dash:35,shaman:8,shardling:3"
       ]
     },
     {
@@ -5370,7 +6083,7 @@
       "name": "The Last Light",
       "biome": "orchard",
       "boss": "orchard",
-      "startingGold": 890,
+      "startingGold": 1010,
       "waves": 16,
       "routes": [
         [
@@ -5599,20 +6312,20 @@
       "waveCompositions": [
         "shell:4,nibble:10",
         "nibble:14,moth:10",
-        "shell:9,dash:13",
-        "swarm:34,nibble:22",
-        "crystal:10,shell:10",
-        "moth:18,burrow:12",
-        "shaman:4,swarm:44",
-        "nibble:25,dash:16,moth:16,shell:7",
-        "burrow:12,shaman:6,shell:12",
-        "crystal:13,moth:19,shell:13",
-        "swarm:47,dash:20,shell:13",
-        "shell:15,dash:22,crystal:15,shaman:7",
-        "moth:25,crystal:16,burrow:23,shaman:3",
-        "nibble:44,shell:19,shaman:12,crystal:7,swarm:18",
-        "crystal:23,moth:34,dash:34,shaman:9",
-        "boss:1,shell:26,moth:26,crystal:19,dash:9"
+        "shell:6,dash:13,mimic:3",
+        "swarm:31,nibble:22,mite:3",
+        "crystal:7,shell:10,beetle:3",
+        "moth:15,burrow:12,slug:3",
+        "shaman:4,swarm:41,wisp:3",
+        "nibble:22,dash:16,moth:16,shell:7,bat:3",
+        "burrow:9,shaman:6,shell:12,scarab:3",
+        "crystal:10,moth:19,shell:13,firefly:3",
+        "swarm:44,dash:20,shell:13,sporeling:3",
+        "shell:12,dash:22,crystal:15,shaman:7,tinyZombie:3",
+        "moth:22,crystal:16,burrow:23,shaman:3,riftling:3,mossGolem:1",
+        "nibble:41,shell:19,shaman:12,crystal:7,swarm:18,shardling:3",
+        "crystal:20,moth:34,dash:34,shaman:9,mimic:3,portalSentinel:1",
+        "boss:1,shell:23,moth:26,crystal:19,dash:9,mite:3"
       ]
     },
     {
@@ -5620,7 +6333,7 @@
       "name": "Giant Tornado",
       "biome": "arena",
       "boss": "tornado",
-      "startingGold": 520,
+      "startingGold": 850,
       "waves": 6,
       "routes": [
         [
@@ -5832,7 +6545,7 @@
       "name": "Zombie",
       "biome": "arena",
       "boss": "zombie",
-      "startingGold": 1500,
+      "startingGold": 2000,
       "waves": 9,
       "routes": [
         [
@@ -6047,7 +6760,7 @@
       "name": "Unknown Eyeball",
       "biome": "arena",
       "boss": "eyeball",
-      "startingGold": 2000,
+      "startingGold": 2500,
       "waves": 11,
       "routes": [
         [
@@ -6258,6 +6971,266 @@
       ],
       "challenge": "insane",
       "bossName": "Unknown Eyeball"
+    },
+    {
+      "id": 28,
+      "name": "Portal",
+      "biome": "arena",
+      "boss": "portal",
+      "startingGold": 1850,
+      "waves": 12,
+      "routes": [
+        [
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            8
+          ],
+          [
+            12,
+            8
+          ],
+          [
+            12,
+            2
+          ],
+          [
+            3,
+            2
+          ],
+          [
+            3,
+            5
+          ],
+          [
+            9,
+            5
+          ],
+          [
+            9,
+            10
+          ]
+        ],
+        [
+          [
+            14,
+            10
+          ],
+          [
+            14,
+            0
+          ],
+          [
+            10,
+            0
+          ],
+          [
+            10,
+            8
+          ],
+          [
+            12,
+            8
+          ],
+          [
+            12,
+            2
+          ],
+          [
+            3,
+            2
+          ],
+          [
+            3,
+            5
+          ],
+          [
+            9,
+            5
+          ],
+          [
+            9,
+            10
+          ]
+        ],
+        [
+          [
+            0,
+            10
+          ],
+          [
+            6,
+            10
+          ],
+          [
+            6,
+            8
+          ],
+          [
+            12,
+            8
+          ],
+          [
+            12,
+            2
+          ],
+          [
+            3,
+            2
+          ],
+          [
+            3,
+            5
+          ],
+          [
+            9,
+            5
+          ],
+          [
+            9,
+            10
+          ]
+        ]
+      ],
+      "pads": [
+        [
+          5,
+          4
+        ],
+        [
+          7,
+          4
+        ],
+        [
+          5,
+          6
+        ],
+        [
+          7,
+          6
+        ],
+        [
+          4,
+          1
+        ],
+        [
+          8,
+          1
+        ],
+        [
+          11,
+          4
+        ],
+        [
+          11,
+          6
+        ],
+        [
+          1,
+          3
+        ],
+        [
+          1,
+          6
+        ],
+        [
+          4,
+          9
+        ],
+        [
+          7,
+          9
+        ],
+        [
+          13,
+          3
+        ],
+        [
+          13,
+          6
+        ],
+        [
+          2,
+          1
+        ],
+        [
+          5,
+          1
+        ],
+        [
+          8,
+          3
+        ],
+        [
+          10,
+          9
+        ],
+        [
+          13,
+          9
+        ],
+        [
+          1,
+          9
+        ],
+        [
+          3,
+          7
+        ],
+        [
+          5,
+          7
+        ],
+        [
+          7,
+          7
+        ],
+        [
+          8,
+          7
+        ]
+      ],
+      "blockers": [
+        {
+          "pad": 8,
+          "kind": "stump"
+        },
+        {
+          "pad": 9,
+          "kind": "stump"
+        },
+        {
+          "pad": 12,
+          "kind": "crystal"
+        },
+        {
+          "pad": 13,
+          "kind": "crystal"
+        },
+        {
+          "pad": 18,
+          "kind": "crystal"
+        }
+      ],
+      "waveCompositions": [
+        "shell:8,nibble:14",
+        "scarab:8,bat:10",
+        "crystal:8,riftling:10,firefly:4",
+        "boss:1,swarm:24,shaman:3,mite:10",
+        "portalSentinel:1,beetle:10,wisp:10",
+        "scarab:10,riftling:12",
+        "mirrorKnight:1,bat:14,mimic:8",
+        "tinyZombie:14,sporeling:10,crystal:12",
+        "stormWarden:1,riftling:14,shardling:12",
+        "chronoMoth:1,scarab:14,moth:16",
+        "portalSentinel:1,graveCaller:1,bat:14,crystal:12",
+        "ironSnail:1,warDrummer:1,riftling:18,mimic:12,firefly:5"
+      ],
+      "challenge": "????",
+      "bossName": "Portal"
     }
   ]
 }

@@ -1,0 +1,1052 @@
+[
+  {
+    "name": "bamboo-1",
+    "sha256": "6673c7e749ff36a17f755d18da862b5c03a6d97456b062c243b3522bceab9b46",
+    "bytes": 444252,
+    "meshes": 9,
+    "vertices": 8642,
+    "triangles": 16608,
+    "allHaveVertexColors": true,
+    "allHaveUVs": true
+  },
+  {
+    "name": "bamboo-2",
+    "sha256": "97f201f508cc4ddd6f0cd9d5e0ffc8bd4af40ca4b373590f4d640be6d59f9668",
+    "bytes": 532588,
+    "meshes": 9,
+    "vertices": 10601,
+    "triangles": 20382,
+    "allHaveVertexColors": true,
+    "allHaveUVs": true
+  },
+  {
+    "name": "bamboo-3",
+    "sha256": "6299de0360fbc2a38c414a0eeb448c6b055a6bd725674ee6d2132cb16492795a",
+    "bytes": 615532,
+    "meshes": 9,
+    "vertices": 12373,
+    "triangles": 23798,
+    "allHaveVertexColors": true,
+    "allHaveUVs": true
+  },
+  {
+    "name": "bamboo-4",
+    "sha256": "e5578357589df54b487520cf09913585e036712257655421d932f76fbf0a661f",
+    "bytes": 704492,
+    "meshes": 9,
+    "vertices": 14332,
+    "triangles": 27572,
+    "allHaveVertexColors": true,
+    "allHaveUVs": true
+  },
+  {
+    "name": "bamboo-5",
+    "sha256": "a9f54341ceff54a9680030e5fbe31d7b21955b12b959264697d53c2b30f3d557",
+    "bytes": 927372,
+    "meshes": 11,
+    "vertices": 18854,
+    "triangles": 36340,
+    "allHaveVertexColors": true,
+    "allHaveUVs": true
+  },
+  {
+    "name": "chili-1",
+    "sha256": "e9d821b7dc1fbf42ec8eb1a450ebc64b7eabf6a1a8ef9a5cec512bc17e835ebf",
+    "bytes": 372796,
+    "meshes": 8,
+    "vertices": 7211,
+    "triangles": 13758,
+    "allHaveVertexColors": true,
+    "allHaveUVs": true
+  },
+  {
+    "name": "chili-2",
+    "sha256": "bbd345bf99ab7cf3d753449eb4ffd4e58ba39452051c3a3f73b92513d47d77e1",
+    "bytes": 412108,
+    "meshes": 8,
+    "vertices": 8146,
+    "triangles": 15576,
+    "allHaveVertexColors": true,
+    "allHaveUVs": true
+  },
+  {
+    "name": "chili-3",
+    "sha256": "4e619d350c02d8db078c68be4f856c8e26d9e9e20cb0735039c9216e20e9d1ce",
+    "bytes": 450044,
+    "meshes": 8,
+    "vertices": 8982,
+    "triangles": 17212,
+    "allHaveVertexColors": true,
+    "allHaveUVs": true
+  },
+  {
+    "name": "chili-4",
+    "sha256": "cb1fe76e40e4a0d7e81e5266cd9af17b54246e6cab70adc0581e012a051e0e86",
+    "bytes": 488476,
+    "meshes": 8,
+    "vertices": 9917,
+    "triangles": 19030,
+    "allHaveVertexColors": true,
+    "allHaveUVs": true
+  },
+  {
+    "name": "chili-5",
+    "sha256": "22d0bcc97e59dd70f6efdab5058b7518b94ed79c06b2c871835f5c3bb69e3a4c",
+    "bytes": 592796,
+    "meshes": 11,
+    "vertices": 12385,
+    "triangles": 23694,
+    "allHaveVertexColors": true,
+    "allHaveUVs": true
+  },
+  {
+    "name": "lotus-1",
+    "sha256": "6ccefa797900bb44cb9d6f1be39283851a35ed7b0d569de08c7667b89fb7b687",
+    "bytes": 463164,
+    "meshes": 12,
+    "vertices": 10112,
+    "triangles": 18780,
+    "allHaveVertexColors": true,
+    "allHaveUVs": true
+  },
+  {
+    "name": "lotus-2",
+    "sha256": "d134c4b31c9142b3474927f4974769f8a80f4386e4cff3142540d9d79ce19daf",
+    "bytes": 519900,
+    "meshes": 13,
+    "vertices": 11481,
+    "triangles": 21334,
+    "allHaveVertexColors": true,
+    "allHaveUVs": true
+  },
+  {
+    "name": "lotus-3",
+    "sha256": "d624df2c573fbc7301f64feeca8977b041cbb07eb95155d11abcf7fbe82332fe",
+    "bytes": 665084,
+    "meshes": 13,
+    "vertices": 14883,
+    "triangles": 27594,
+    "allHaveVertexColors": true,
+    "allHaveUVs": true
+  },
+  {
+    "name": "lotus-4",
+    "sha256": "c7e3ba3819b8bd02daffe2b12953e030a0cb6fadf1dc390fcc6f3999c17313f7",
+    "bytes": 695404,
+    "meshes": 13,
+    "vertices": 15642,
+    "triangles": 29024,
+    "allHaveVertexColors": true,
+    "allHaveUVs": true
+  },
+  {
+    "name": "lotus-5",
+    "sha256": "45d460772d224a0b426f30c14c405b1a07ea3505152af82e0df3f22a9c5400b1",
+    "bytes": 1014300,
+    "meshes": 14,
+    "vertices": 23394,
+    "triangles": 43272,
+    "allHaveVertexColors": true,
+    "allHaveUVs": true
+  },
+  {
+    "name": "magnet-1",
+    "sha256": "09d567c8a6cbda9cafc6ea80ff5a82e6e2641dd7f5429eaffd71e034c6dc22fa",
+    "bytes": 432492,
+    "meshes": 9,
+    "vertices": 8738,
+    "triangles": 16772,
+    "allHaveVertexColors": true,
+    "allHaveUVs": true
+  },
+  {
+    "name": "magnet-2",
+    "sha256": "a75187c78977de927d5a470f5a07f176f752bdcdde334220c6d4e96eef18f907",
+    "bytes": 472588,
+    "meshes": 9,
+    "vertices": 9675,
+    "triangles": 18594,
+    "allHaveVertexColors": true,
+    "allHaveUVs": true
+  },
+  {
+    "name": "magnet-3",
+    "sha256": "f56911a96db3e161fd8550be0239e32e49ed657a022c267a11bee9a7bd7788a3",
+    "bytes": 550364,
+    "meshes": 10,
+    "vertices": 11421,
+    "triangles": 22034,
+    "allHaveVertexColors": true,
+    "allHaveUVs": true
+  },
+  {
+    "name": "magnet-4",
+    "sha256": "7080e461a5dfc51f5b24f87c9c0c38e218873d3d5456e93c96f8dddc9dab4e7d",
+    "bytes": 589132,
+    "meshes": 10,
+    "vertices": 12358,
+    "triangles": 23856,
+    "allHaveVertexColors": true,
+    "allHaveUVs": true
+  },
+  {
+    "name": "magnet-5",
+    "sha256": "8f63814b0194a5dce195eea55f0e2b177e1d376a94a041e27d4528b6acf053a6",
+    "bytes": 653916,
+    "meshes": 13,
+    "vertices": 13648,
+    "triangles": 26348,
+    "allHaveVertexColors": true,
+    "allHaveUVs": true
+  },
+  {
+    "name": "orchid-1",
+    "sha256": "18cae2f1fb5d3744c68968cc363f564b8f97a4c9de9c485ff558361ae102a9dc",
+    "bytes": 372380,
+    "meshes": 11,
+    "vertices": 7397,
+    "triangles": 13762,
+    "allHaveVertexColors": true,
+    "allHaveUVs": true
+  },
+  {
+    "name": "orchid-2",
+    "sha256": "9345bf66e0bb42cda3754900d2fb32d4535e91dbf299eba56fe722d7482b336e",
+    "bytes": 404316,
+    "meshes": 11,
+    "vertices": 8152,
+    "triangles": 15200,
+    "allHaveVertexColors": true,
+    "allHaveUVs": true
+  },
+  {
+    "name": "orchid-3",
+    "sha256": "c2d8cb44d1e3364ba244bb56c7646ffb43b0d9a389b0462921740380cabe9c8a",
+    "bytes": 513084,
+    "meshes": 11,
+    "vertices": 11001,
+    "triangles": 20298,
+    "allHaveVertexColors": true,
+    "allHaveUVs": true
+  },
+  {
+    "name": "orchid-4",
+    "sha256": "36c22c944c2decaad280af58b05c8391bfaa899388dd871ff1fd59f7967e7381",
+    "bytes": 544652,
+    "meshes": 11,
+    "vertices": 11756,
+    "triangles": 21736,
+    "allHaveVertexColors": true,
+    "allHaveUVs": true
+  },
+  {
+    "name": "orchid-5",
+    "sha256": "7728f424089b3b3fbf18883cd09cdc8f64a3552a2c84d464d70f115113d53e3a",
+    "bytes": 633308,
+    "meshes": 12,
+    "vertices": 13733,
+    "triangles": 25350,
+    "allHaveVertexColors": true,
+    "allHaveUVs": true
+  },
+  {
+    "name": "mushroom-1",
+    "sha256": "0055fd9cb378a726669126d875491c3f5aebd94e04031ed4c32832fd6ebd279a",
+    "bytes": 367116,
+    "meshes": 8,
+    "vertices": 7616,
+    "triangles": 14468,
+    "allHaveVertexColors": true,
+    "allHaveUVs": true
+  },
+  {
+    "name": "mushroom-2",
+    "sha256": "4caf3f6617a9aab7bde90b8eefce86c99b5b4d3f41d41da1fac5e95785f0deb7",
+    "bytes": 486956,
+    "meshes": 10,
+    "vertices": 10672,
+    "triangles": 20196,
+    "allHaveVertexColors": true,
+    "allHaveUVs": true
+  },
+  {
+    "name": "mushroom-3",
+    "sha256": "2855c68b0d88654c2a2cac6fbe86f32d48e7dc80b478ff42110fad37315c985e",
+    "bytes": 584172,
+    "meshes": 10,
+    "vertices": 13321,
+    "triangles": 25134,
+    "allHaveVertexColors": true,
+    "allHaveUVs": true
+  },
+  {
+    "name": "mushroom-4",
+    "sha256": "5e20053cea2eed4504a666c55f63b5217738ece93841a4b2c175cfd28bbff8fb",
+    "bytes": 698684,
+    "meshes": 10,
+    "vertices": 16377,
+    "triangles": 30862,
+    "allHaveVertexColors": true,
+    "allHaveUVs": true
+  },
+  {
+    "name": "mushroom-5",
+    "sha256": "a4f409eb83c28e413a837280b8beb5e6c1dce101d3ae690e5add92b096170d84",
+    "bytes": 908268,
+    "meshes": 13,
+    "vertices": 21921,
+    "triangles": 41206,
+    "allHaveVertexColors": true,
+    "allHaveUVs": true
+  },
+  {
+    "name": "cactus-1",
+    "sha256": "c24823e58b9b23851b86d172eaccf2fa660a38af3ef8e18c3230a864c5122d15",
+    "bytes": 442652,
+    "meshes": 11,
+    "vertices": 8999,
+    "triangles": 16958,
+    "allHaveVertexColors": true,
+    "allHaveUVs": true
+  },
+  {
+    "name": "cactus-2",
+    "sha256": "1d33886c56ecdf969f36897800cdf0ddebec80f97d4f8bcbb2c2c33db7d80d08",
+    "bytes": 503708,
+    "meshes": 11,
+    "vertices": 10500,
+    "triangles": 19800,
+    "allHaveVertexColors": true,
+    "allHaveUVs": true
+  },
+  {
+    "name": "cactus-3",
+    "sha256": "bb510c30fdb2ce4eb10e21087a317c8a4d8d0173f234807ea23e681bd0dac07f",
+    "bytes": 574812,
+    "meshes": 12,
+    "vertices": 12242,
+    "triangles": 23016,
+    "allHaveVertexColors": true,
+    "allHaveUVs": true
+  },
+  {
+    "name": "cactus-4",
+    "sha256": "22aa77ef38ef352945d45f69c1ba8a848e744079dc579ad8ded8f05f2fb0e784",
+    "bytes": 598620,
+    "meshes": 12,
+    "vertices": 12779,
+    "triangles": 24046,
+    "allHaveVertexColors": true,
+    "allHaveUVs": true
+  },
+  {
+    "name": "cactus-5",
+    "sha256": "096341b6ff657860250ff92e90ae1bf8252edec529c07380e8895fd7f17a1bee",
+    "bytes": 723228,
+    "meshes": 13,
+    "vertices": 15881,
+    "triangles": 29842,
+    "allHaveVertexColors": true,
+    "allHaveUVs": true
+  },
+  {
+    "name": "clockflower-1",
+    "sha256": "027eea396c805390288f13b003fb263fe2b4bc4fbde3c675f1237f9c542cb7c7",
+    "bytes": 656508,
+    "meshes": 11,
+    "vertices": 13165,
+    "triangles": 25126,
+    "allHaveVertexColors": true,
+    "allHaveUVs": true
+  },
+  {
+    "name": "clockflower-2",
+    "sha256": "ef3010cfc3bd6b6c2b29c0b828fc4f938fbc3cd84fb49381427ffec7a424e029",
+    "bytes": 713484,
+    "meshes": 11,
+    "vertices": 14631,
+    "triangles": 27954,
+    "allHaveVertexColors": true,
+    "allHaveUVs": true
+  },
+  {
+    "name": "clockflower-3",
+    "sha256": "a1f4ddc5650f82728a796bc33e2390a96212ac50a9c41d552071adbe09dfdd0c",
+    "bytes": 765436,
+    "meshes": 11,
+    "vertices": 15690,
+    "triangles": 29992,
+    "allHaveVertexColors": true,
+    "allHaveUVs": true
+  },
+  {
+    "name": "clockflower-4",
+    "sha256": "721695b3d27e981b3da050e98c1afa11f09c3bb4c949b56bebc0f0353f9515af",
+    "bytes": 819500,
+    "meshes": 11,
+    "vertices": 17156,
+    "triangles": 32820,
+    "allHaveVertexColors": true,
+    "allHaveUVs": true
+  },
+  {
+    "name": "clockflower-5",
+    "sha256": "0bdb0cbb419fad70b81e55157a7b08d85e645660f26fd3cb6b86d5fbf2380b94",
+    "bytes": 943916,
+    "meshes": 12,
+    "vertices": 19795,
+    "triangles": 37946,
+    "allHaveVertexColors": true,
+    "allHaveUVs": true
+  },
+  {
+    "name": "dragonfruit-1",
+    "sha256": "fd225bf0a281b35e01194341c2b13c2567891ba92d70ce22c467b417509124dc",
+    "bytes": 469692,
+    "meshes": 9,
+    "vertices": 9562,
+    "triangles": 18096,
+    "allHaveVertexColors": true,
+    "allHaveUVs": true
+  },
+  {
+    "name": "dragonfruit-2",
+    "sha256": "83bb1f343ed2c4cfcb5ae256e45d5b0337f3ee1c7b9360ee7490dc84bd63010d",
+    "bytes": 518124,
+    "meshes": 9,
+    "vertices": 10771,
+    "triangles": 20406,
+    "allHaveVertexColors": true,
+    "allHaveUVs": true
+  },
+  {
+    "name": "dragonfruit-3",
+    "sha256": "84f6d7233914d0734e38c90fada69fb7b188c0b405d3be6d67d6ca68956e4756",
+    "bytes": 547628,
+    "meshes": 9,
+    "vertices": 11573,
+    "triangles": 21926,
+    "allHaveVertexColors": true,
+    "allHaveUVs": true
+  },
+  {
+    "name": "dragonfruit-4",
+    "sha256": "a5f3d80523d6ab591cda81fd8f6202d28262f2a627655e4828d67b4fb3d02d68",
+    "bytes": 593084,
+    "meshes": 9,
+    "vertices": 12782,
+    "triangles": 24236,
+    "allHaveVertexColors": true,
+    "allHaveUVs": true
+  },
+  {
+    "name": "dragonfruit-5",
+    "sha256": "4d83317d0d0a1fc449f2b43a17c0ed11876a645648345fff0010d42b75277324",
+    "bytes": 709884,
+    "meshes": 12,
+    "vertices": 15752,
+    "triangles": 29824,
+    "allHaveVertexColors": true,
+    "allHaveUVs": true
+  },
+  {
+    "name": "moonflower-1",
+    "sha256": "2e3d064978ba2336288681656a999f791d700c7f6ad9b2b02f307cac96631047",
+    "bytes": 309292,
+    "meshes": 10,
+    "vertices": 6078,
+    "triangles": 11404,
+    "allHaveVertexColors": true,
+    "allHaveUVs": true
+  },
+  {
+    "name": "moonflower-2",
+    "sha256": "7ac3d85aea09e9c0833b7629fc61cc442f16f2fcbf8cc11330244002b45b3ca7",
+    "bytes": 350652,
+    "meshes": 10,
+    "vertices": 6944,
+    "triangles": 13032,
+    "allHaveVertexColors": true,
+    "allHaveUVs": true
+  },
+  {
+    "name": "moonflower-3",
+    "sha256": "630f5c3039907c5ae7055ce89d6d08c574b1231ddece5a3fc0a4ff2472884786",
+    "bytes": 386124,
+    "meshes": 11,
+    "vertices": 7795,
+    "triangles": 14650,
+    "allHaveVertexColors": true,
+    "allHaveUVs": true
+  },
+  {
+    "name": "moonflower-4",
+    "sha256": "b644f8c08ebb6ef5bbcfb1401a6ce15aa0cc2f88ca250dbe5b4281cf2229e00a",
+    "bytes": 427676,
+    "meshes": 11,
+    "vertices": 8661,
+    "triangles": 16278,
+    "allHaveVertexColors": true,
+    "allHaveUVs": true
+  },
+  {
+    "name": "moonflower-5",
+    "sha256": "542df444fbec78d0311f8f0ed88761d44df062c493a1340541eed59031821434",
+    "bytes": 495484,
+    "meshes": 12,
+    "vertices": 10218,
+    "triangles": 19128,
+    "allHaveVertexColors": true,
+    "allHaveUVs": true
+  },
+  {
+    "name": "mite",
+    "sha256": "92d216907dbf035d75fa31383876c9b4906dfc0d03feccd8164071cfd3d02810",
+    "bytes": 613612,
+    "meshes": 3,
+    "vertices": 5391,
+    "triangles": 10018,
+    "allHaveVertexColors": true,
+    "allHaveUVs": true,
+    "clips": [
+      "Attack",
+      "Death",
+      "Hit",
+      "Idle",
+      "Walk"
+    ],
+    "bones": 9,
+    "unweightedVertices": 0,
+    "walkMaxVertexMotion": 0.13110139215070965
+  },
+  {
+    "name": "beetle",
+    "sha256": "6f9c105faba6733650a7fb1437d038d073ae551b021fb1a3b54f7113b7e39b14",
+    "bytes": 623836,
+    "meshes": 3,
+    "vertices": 5651,
+    "triangles": 10530,
+    "allHaveVertexColors": true,
+    "allHaveUVs": true,
+    "clips": [
+      "Attack",
+      "Death",
+      "Hit",
+      "Idle",
+      "Walk"
+    ],
+    "bones": 9,
+    "unweightedVertices": 0,
+    "walkMaxVertexMotion": 0.14508939364327422
+  },
+  {
+    "name": "slug",
+    "sha256": "47846ccc41b862310d193f2537ba49f239d0c4f8fcacec1e5096490f2332e039",
+    "bytes": 342844,
+    "meshes": 3,
+    "vertices": 4416,
+    "triangles": 8472,
+    "allHaveVertexColors": true,
+    "allHaveUVs": true,
+    "clips": [
+      "Attack",
+      "Death",
+      "Hit",
+      "Idle",
+      "Walk"
+    ],
+    "bones": 3,
+    "unweightedVertices": 0,
+    "walkMaxVertexMotion": 0.01620268069367449
+  },
+  {
+    "name": "wisp",
+    "sha256": "8a995d90c00cc702435c976d27e24c03775521b04a6d41a7d5af7cec80f6421a",
+    "bytes": 263932,
+    "meshes": 3,
+    "vertices": 3128,
+    "triangles": 5844,
+    "allHaveVertexColors": true,
+    "allHaveUVs": true,
+    "clips": [
+      "Attack",
+      "Death",
+      "Hit",
+      "Idle",
+      "Walk"
+    ],
+    "bones": 2,
+    "unweightedVertices": 0,
+    "walkMaxVertexMotion": 0.006551630319025483
+  },
+  {
+    "name": "bat",
+    "sha256": "bdff324fab9a11ead314300aabd638da070f444bb48b99a2b4f5488352e5be77",
+    "bytes": 472012,
+    "meshes": 4,
+    "vertices": 5253,
+    "triangles": 9830,
+    "allHaveVertexColors": true,
+    "allHaveUVs": true,
+    "clips": [
+      "Attack",
+      "Death",
+      "Hit",
+      "Idle",
+      "Walk"
+    ],
+    "bones": 5,
+    "unweightedVertices": 0,
+    "walkMaxVertexMotion": 0.2548973291289814
+  },
+  {
+    "name": "scarab",
+    "sha256": "404ca0de5ac3ed28a15a58c56076e69aa2773ffadfcc120979bdbe691ac079a5",
+    "bytes": 657548,
+    "meshes": 4,
+    "vertices": 6065,
+    "triangles": 11254,
+    "allHaveVertexColors": true,
+    "allHaveUVs": true,
+    "clips": [
+      "Attack",
+      "Death",
+      "Hit",
+      "Idle",
+      "Walk"
+    ],
+    "bones": 9,
+    "unweightedVertices": 0,
+    "walkMaxVertexMotion": 0.17162370056372722
+  },
+  {
+    "name": "firefly",
+    "sha256": "a0a3c8ad65c73a89e600e36769ac8248c31b0bbe3dc38d6766bb77f686b58095",
+    "bytes": 786028,
+    "meshes": 5,
+    "vertices": 6927,
+    "triangles": 12930,
+    "allHaveVertexColors": true,
+    "allHaveUVs": true,
+    "clips": [
+      "Attack",
+      "Death",
+      "Hit",
+      "Idle",
+      "Walk"
+    ],
+    "bones": 11,
+    "unweightedVertices": 0,
+    "walkMaxVertexMotion": 0.21064004190300925
+  },
+  {
+    "name": "sporeling",
+    "sha256": "3d3f174567456847fbbed032ca557e55dddee8849aba4efbd9dfc2c110d12f19",
+    "bytes": 472252,
+    "meshes": 5,
+    "vertices": 5236,
+    "triangles": 9732,
+    "allHaveVertexColors": true,
+    "allHaveUVs": true,
+    "clips": [
+      "Attack",
+      "Death",
+      "Hit",
+      "Idle",
+      "Walk"
+    ],
+    "bones": 5,
+    "unweightedVertices": 0,
+    "walkMaxVertexMotion": 0.10799281982959129
+  },
+  {
+    "name": "tinyZombie",
+    "sha256": "707b73c1353252f757e97866ba205460ef587aa1483f5a4ea60fcd54352084cd",
+    "bytes": 546076,
+    "meshes": 4,
+    "vertices": 5236,
+    "triangles": 9736,
+    "allHaveVertexColors": true,
+    "allHaveUVs": true,
+    "clips": [
+      "Attack",
+      "Death",
+      "Hit",
+      "Idle",
+      "Walk"
+    ],
+    "bones": 7,
+    "unweightedVertices": 0,
+    "walkMaxVertexMotion": 0.12216401342465814
+  },
+  {
+    "name": "riftling",
+    "sha256": "787419947813630833de64ede6455ef51ad393e9075d340812a0023487ab40e8",
+    "bytes": 481084,
+    "meshes": 3,
+    "vertices": 4930,
+    "triangles": 9128,
+    "allHaveVertexColors": true,
+    "allHaveUVs": true,
+    "clips": [
+      "Attack",
+      "Death",
+      "Hit",
+      "Idle",
+      "Walk"
+    ],
+    "bones": 6,
+    "unweightedVertices": 0,
+    "walkMaxVertexMotion": 0.12452724685156033
+  },
+  {
+    "name": "shardling",
+    "sha256": "07295b2ccc8a10266e64be438025586715cf81751201120eea9efedea21d949e",
+    "bytes": 450156,
+    "meshes": 3,
+    "vertices": 4130,
+    "triangles": 7604,
+    "allHaveVertexColors": true,
+    "allHaveUVs": true,
+    "clips": [
+      "Attack",
+      "Death",
+      "Hit",
+      "Idle",
+      "Walk"
+    ],
+    "bones": 6,
+    "unweightedVertices": 0,
+    "walkMaxVertexMotion": 0.1447546028922151
+  },
+  {
+    "name": "mimic",
+    "sha256": "5fc0a8dd2749b6613f0a883be8393bf6e8f7f7f7cc7c28fa7260498bea3d42fc",
+    "bytes": 478028,
+    "meshes": 5,
+    "vertices": 3322,
+    "triangles": 6188,
+    "allHaveVertexColors": true,
+    "allHaveUVs": true,
+    "clips": [
+      "Attack",
+      "Death",
+      "Hit",
+      "Idle",
+      "Walk"
+    ],
+    "bones": 7,
+    "unweightedVertices": 0,
+    "walkMaxVertexMotion": 0.09568699368468532
+  },
+  {
+    "name": "warDrummer",
+    "sha256": "293622365bde27664c72b4b7550d4c445ded78e09d7116b173a0fea58a1a70b4",
+    "bytes": 841212,
+    "meshes": 5,
+    "vertices": 11043,
+    "triangles": 20654,
+    "allHaveVertexColors": true,
+    "allHaveUVs": true,
+    "clips": [
+      "Attack",
+      "Death",
+      "Hit",
+      "Idle",
+      "Walk"
+    ],
+    "bones": 8,
+    "unweightedVertices": 0,
+    "walkMaxVertexMotion": 0.2430991573059219
+  },
+  {
+    "name": "frostHerald",
+    "sha256": "8e2eeb3f7fa6b44b424d59b621c16d3cdd273ba5844dda22525291291ffc9718",
+    "bytes": 758220,
+    "meshes": 6,
+    "vertices": 10989,
+    "triangles": 20686,
+    "allHaveVertexColors": true,
+    "allHaveUVs": true,
+    "clips": [
+      "Attack",
+      "Death",
+      "Hit",
+      "Idle",
+      "Walk"
+    ],
+    "bones": 5,
+    "unweightedVertices": 0,
+    "walkMaxVertexMotion": 0.14881560217576106
+  },
+  {
+    "name": "witherPriest",
+    "sha256": "aaa690e4a672886f38b65e315f9aeaf477abd2c9ae2b0e91a99c1582f873c268",
+    "bytes": 884940,
+    "meshes": 7,
+    "vertices": 13263,
+    "triangles": 25638,
+    "allHaveVertexColors": true,
+    "allHaveUVs": true,
+    "clips": [
+      "Attack",
+      "Death",
+      "Hit",
+      "Idle",
+      "Walk"
+    ],
+    "bones": 5,
+    "unweightedVertices": 0,
+    "walkMaxVertexMotion": 0.1478091759962444
+  },
+  {
+    "name": "stormWarden",
+    "sha256": "c24854a1504b9aaca122e7ed33e2e4e65d718d11e8f6b3831a806367531b4e4e",
+    "bytes": 820604,
+    "meshes": 5,
+    "vertices": 10942,
+    "triangles": 21068,
+    "allHaveVertexColors": true,
+    "allHaveUVs": true,
+    "clips": [
+      "Attack",
+      "Death",
+      "Hit",
+      "Idle",
+      "Walk"
+    ],
+    "bones": 7,
+    "unweightedVertices": 0,
+    "walkMaxVertexMotion": 0.24339578734617132
+  },
+  {
+    "name": "graveCaller",
+    "sha256": "a4df79989e4e0657f8f3c93e53824c10573582b55f558bf7fee5e34274305c50",
+    "bytes": 725260,
+    "meshes": 6,
+    "vertices": 8508,
+    "triangles": 16112,
+    "allHaveVertexColors": true,
+    "allHaveUVs": true,
+    "clips": [
+      "Attack",
+      "Death",
+      "Hit",
+      "Idle",
+      "Walk"
+    ],
+    "bones": 7,
+    "unweightedVertices": 0,
+    "walkMaxVertexMotion": 0.24093749038169646
+  },
+  {
+    "name": "mirrorKnight",
+    "sha256": "f9d21700bd02f13d3523be85a4b3e73c3d53b006237df96d5e6b9b03c88ad10f",
+    "bytes": 721180,
+    "meshes": 5,
+    "vertices": 8274,
+    "triangles": 15764,
+    "allHaveVertexColors": true,
+    "allHaveUVs": true,
+    "clips": [
+      "Attack",
+      "Death",
+      "Hit",
+      "Idle",
+      "Walk"
+    ],
+    "bones": 7,
+    "unweightedVertices": 0,
+    "walkMaxVertexMotion": 0.25252153169068403
+  },
+  {
+    "name": "riftStalker",
+    "sha256": "18e267e29c71a57beb7b7eb4d9f4c260c0750af933427e545707d0164fe5f791",
+    "bytes": 594044,
+    "meshes": 4,
+    "vertices": 5839,
+    "triangles": 10974,
+    "allHaveVertexColors": true,
+    "allHaveUVs": true,
+    "clips": [
+      "Attack",
+      "Death",
+      "Hit",
+      "Idle",
+      "Walk"
+    ],
+    "bones": 7,
+    "unweightedVertices": 0,
+    "walkMaxVertexMotion": 0.237356614511684
+  },
+  {
+    "name": "mossGolem",
+    "sha256": "d0927883e7d09ffb0593d629911f75881bb97be2a0341976a60ee9719dbc486c",
+    "bytes": 1128076,
+    "meshes": 6,
+    "vertices": 16160,
+    "triangles": 30656,
+    "allHaveVertexColors": true,
+    "allHaveUVs": true,
+    "clips": [
+      "Attack",
+      "Death",
+      "Hit",
+      "Idle",
+      "Walk"
+    ],
+    "bones": 7,
+    "unweightedVertices": 0,
+    "walkMaxVertexMotion": 0.26682037589312824
+  },
+  {
+    "name": "emberBoar",
+    "sha256": "081b1c3230974210aea970e1134858d3bd8e5059a55031d6fd26ea20249e3fec",
+    "bytes": 611932,
+    "meshes": 3,
+    "vertices": 6610,
+    "triangles": 12332,
+    "allHaveVertexColors": true,
+    "allHaveUVs": true,
+    "clips": [
+      "Attack",
+      "Death",
+      "Hit",
+      "Idle",
+      "Walk"
+    ],
+    "bones": 7,
+    "unweightedVertices": 0,
+    "walkMaxVertexMotion": 0.2470316420794946
+  },
+  {
+    "name": "venomQueen",
+    "sha256": "3ae316e7af4dbce2af1438d966754307db05d4309e39629c595b16c24c433d62",
+    "bytes": 654380,
+    "meshes": 4,
+    "vertices": 5746,
+    "triangles": 10652,
+    "allHaveVertexColors": true,
+    "allHaveUVs": true,
+    "clips": [
+      "Attack",
+      "Death",
+      "Hit",
+      "Idle",
+      "Walk"
+    ],
+    "bones": 9,
+    "unweightedVertices": 0,
+    "walkMaxVertexMotion": 0.16996810324674141
+  },
+  {
+    "name": "ironSnail",
+    "sha256": "1360799060379e07af03b806aa672fa854c0ad5e5a5c7dd932ee2a5904ef52fc",
+    "bytes": 424524,
+    "meshes": 3,
+    "vertices": 6474,
+    "triangles": 12276,
+    "allHaveVertexColors": true,
+    "allHaveUVs": true,
+    "clips": [
+      "Attack",
+      "Death",
+      "Hit",
+      "Idle",
+      "Walk"
+    ],
+    "bones": 3,
+    "unweightedVertices": 0,
+    "walkMaxVertexMotion": 0.024394453805625344
+  },
+  {
+    "name": "lanternLeech",
+    "sha256": "f03042792818e948bad82b89dceb2a2c1995940809774974ee9c9e574c20c591",
+    "bytes": 341212,
+    "meshes": 4,
+    "vertices": 3698,
+    "triangles": 7124,
+    "allHaveVertexColors": true,
+    "allHaveUVs": true,
+    "clips": [
+      "Attack",
+      "Death",
+      "Hit",
+      "Idle",
+      "Walk"
+    ],
+    "bones": 3,
+    "unweightedVertices": 0,
+    "walkMaxVertexMotion": 0.018472523518971693
+  },
+  {
+    "name": "chronoMoth",
+    "sha256": "c3b1ce23d28ed56b921addadc1d4e1048aa8a78f8530b6beb9ff0f586c679631",
+    "bytes": 514636,
+    "meshes": 5,
+    "vertices": 7697,
+    "triangles": 14458,
+    "allHaveVertexColors": true,
+    "allHaveUVs": true,
+    "clips": [
+      "Attack",
+      "Death",
+      "Hit",
+      "Idle",
+      "Walk"
+    ],
+    "bones": 4,
+    "unweightedVertices": 0,
+    "walkMaxVertexMotion": 0.3510233626053039
+  },
+  {
+    "name": "thornBeast",
+    "sha256": "392e50400f3630542ff643c65a0e0037ac61ba3d82466bcf34dba39d9811a03c",
+    "bytes": 796252,
+    "meshes": 4,
+    "vertices": 10622,
+    "triangles": 20452,
+    "allHaveVertexColors": true,
+    "allHaveUVs": true,
+    "clips": [
+      "Attack",
+      "Death",
+      "Hit",
+      "Idle",
+      "Walk"
+    ],
+    "bones": 7,
+    "unweightedVertices": 0,
+    "walkMaxVertexMotion": 0.26423032539513597
+  },
+  {
+    "name": "portalSentinel",
+    "sha256": "4d258db369c9d4f5f8c6089bdc7fa8c2a11b863d98850167555c02fe98a1ed7f",
+    "bytes": 787724,
+    "meshes": 5,
+    "vertices": 10106,
+    "triangles": 19220,
+    "allHaveVertexColors": true,
+    "allHaveUVs": true,
+    "clips": [
+      "Attack",
+      "Death",
+      "Hit",
+      "Idle",
+      "Walk"
+    ],
+    "bones": 7,
+    "unweightedVertices": 0,
+    "walkMaxVertexMotion": 0.2205133203491403
+  },
+  {
+    "name": "portal",
+    "sha256": "caee0f18522f3d9b30b6f2ab8d333f70140af01575c9f4a7b7bf3e3edb1f19e1",
+    "bytes": 623596,
+    "meshes": 18,
+    "vertices": 13280,
+    "triangles": 25740,
+    "allHaveVertexColors": true,
+    "allHaveUVs": true
+  }
+]

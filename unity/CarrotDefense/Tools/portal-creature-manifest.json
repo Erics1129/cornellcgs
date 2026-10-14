@@ -1,0 +1,535 @@
+[
+  {
+    "name": "mite",
+    "triangles": 10018,
+    "animated": true,
+    "meshes": 3,
+    "clips": [
+      "Attack",
+      "Death",
+      "Hit",
+      "Idle",
+      "Walk"
+    ],
+    "originalRig": true,
+    "height": 0.55,
+    "flight": false,
+    "bones": 9,
+    "resource": "Carrot/Models/Enemies/mite",
+    "license": "Original artwork and original animation; no new third-party source mesh"
+  },
+  {
+    "name": "beetle",
+    "triangles": 10530,
+    "animated": true,
+    "meshes": 3,
+    "clips": [
+      "Attack",
+      "Death",
+      "Hit",
+      "Idle",
+      "Walk"
+    ],
+    "originalRig": true,
+    "height": 0.72,
+    "flight": false,
+    "bones": 9,
+    "resource": "Carrot/Models/Enemies/beetle",
+    "license": "Original artwork and original animation; no new third-party source mesh"
+  },
+  {
+    "name": "slug",
+    "triangles": 8472,
+    "animated": true,
+    "meshes": 3,
+    "clips": [
+      "Attack",
+      "Death",
+      "Hit",
+      "Idle",
+      "Walk"
+    ],
+    "originalRig": true,
+    "height": 0.55,
+    "flight": false,
+    "bones": 3,
+    "resource": "Carrot/Models/Enemies/slug",
+    "license": "Original artwork and original animation; no new third-party source mesh"
+  },
+  {
+    "name": "wisp",
+    "triangles": 5844,
+    "animated": true,
+    "meshes": 3,
+    "clips": [
+      "Attack",
+      "Death",
+      "Hit",
+      "Idle",
+      "Walk"
+    ],
+    "originalRig": true,
+    "height": 0.72,
+    "flight": true,
+    "bones": 2,
+    "resource": "Carrot/Models/Enemies/wisp",
+    "license": "Original artwork and original animation; no new third-party source mesh"
+  },
+  {
+    "name": "bat",
+    "triangles": 9830,
+    "animated": true,
+    "meshes": 4,
+    "clips": [
+      "Attack",
+      "Death",
+      "Hit",
+      "Idle",
+      "Walk"
+    ],
+    "originalRig": true,
+    "height": 0.72,
+    "flight": true,
+    "bones": 5,
+    "resource": "Carrot/Models/Enemies/bat",
+    "license": "Original artwork and original animation; no new third-party source mesh"
+  },
+  {
+    "name": "scarab",
+    "triangles": 11254,
+    "animated": true,
+    "meshes": 4,
+    "clips": [
+      "Attack",
+      "Death",
+      "Hit",
+      "Idle",
+      "Walk"
+    ],
+    "originalRig": true,
+    "height": 0.72,
+    "flight": false,
+    "bones": 9,
+    "resource": "Carrot/Models/Enemies/scarab",
+    "license": "Original artwork and original animation; no new third-party source mesh"
+  },
+  {
+    "name": "firefly",
+    "triangles": 12930,
+    "animated": true,
+    "meshes": 5,
+    "clips": [
+      "Attack",
+      "Death",
+      "Hit",
+      "Idle",
+      "Walk"
+    ],
+    "originalRig": true,
+    "height": 0.72,
+    "flight": true,
+    "bones": 11,
+    "resource": "Carrot/Models/Enemies/firefly",
+    "license": "Original artwork and original animation; no new third-party source mesh"
+  },
+  {
+    "name": "sporeling",
+    "triangles": 9732,
+    "animated": true,
+    "meshes": 5,
+    "clips": [
+      "Attack",
+      "Death",
+      "Hit",
+      "Idle",
+      "Walk"
+    ],
+    "originalRig": true,
+    "height": 0.72,
+    "flight": false,
+    "bones": 5,
+    "resource": "Carrot/Models/Enemies/sporeling",
+    "license": "Original artwork and original animation; no new third-party source mesh"
+  },
+  {
+    "name": "tinyZombie",
+    "triangles": 9736,
+    "animated": true,
+    "meshes": 4,
+    "clips": [
+      "Attack",
+      "Death",
+      "Hit",
+      "Idle",
+      "Walk"
+    ],
+    "originalRig": true,
+    "height": 0.72,
+    "flight": false,
+    "bones": 7,
+    "resource": "Carrot/Models/Enemies/tinyZombie",
+    "license": "Original artwork and original animation; no new third-party source mesh"
+  },
+  {
+    "name": "riftling",
+    "triangles": 9128,
+    "animated": true,
+    "meshes": 3,
+    "clips": [
+      "Attack",
+      "Death",
+      "Hit",
+      "Idle",
+      "Walk"
+    ],
+    "originalRig": true,
+    "height": 0.72,
+    "flight": false,
+    "bones": 6,
+    "resource": "Carrot/Models/Enemies/riftling",
+    "license": "Original artwork and original animation; no new third-party source mesh"
+  },
+  {
+    "name": "shardling",
+    "triangles": 7604,
+    "animated": true,
+    "meshes": 3,
+    "clips": [
+      "Attack",
+      "Death",
+      "Hit",
+      "Idle",
+      "Walk"
+    ],
+    "originalRig": true,
+    "height": 0.72,
+    "flight": false,
+    "bones": 6,
+    "resource": "Carrot/Models/Enemies/shardling",
+    "license": "Original artwork and original animation; no new third-party source mesh"
+  },
+  {
+    "name": "mimic",
+    "triangles": 6188,
+    "animated": true,
+    "meshes": 5,
+    "clips": [
+      "Attack",
+      "Death",
+      "Hit",
+      "Idle",
+      "Walk"
+    ],
+    "originalRig": true,
+    "height": 0.72,
+    "flight": false,
+    "bones": 7,
+    "resource": "Carrot/Models/Enemies/mimic",
+    "license": "Original artwork and original animation; no new third-party source mesh"
+  },
+  {
+    "name": "warDrummer",
+    "triangles": 20654,
+    "animated": true,
+    "meshes": 5,
+    "clips": [
+      "Attack",
+      "Death",
+      "Hit",
+      "Idle",
+      "Walk"
+    ],
+    "originalRig": true,
+    "height": 1.48,
+    "flight": false,
+    "bones": 8,
+    "resource": "Carrot/Models/Minibosses/warDrummer",
+    "license": "Original artwork and original animation; no new third-party source mesh"
+  },
+  {
+    "name": "frostHerald",
+    "triangles": 20686,
+    "animated": true,
+    "meshes": 6,
+    "clips": [
+      "Attack",
+      "Death",
+      "Hit",
+      "Idle",
+      "Walk"
+    ],
+    "originalRig": true,
+    "height": 1.48,
+    "flight": false,
+    "bones": 5,
+    "resource": "Carrot/Models/Minibosses/frostHerald",
+    "license": "Original artwork and original animation; no new third-party source mesh"
+  },
+  {
+    "name": "witherPriest",
+    "triangles": 25638,
+    "animated": true,
+    "meshes": 7,
+    "clips": [
+      "Attack",
+      "Death",
+      "Hit",
+      "Idle",
+      "Walk"
+    ],
+    "originalRig": true,
+    "height": 1.48,
+    "flight": false,
+    "bones": 5,
+    "resource": "Carrot/Models/Minibosses/witherPriest",
+    "license": "Original artwork and original animation; no new third-party source mesh"
+  },
+  {
+    "name": "stormWarden",
+    "triangles": 21068,
+    "animated": true,
+    "meshes": 5,
+    "clips": [
+      "Attack",
+      "Death",
+      "Hit",
+      "Idle",
+      "Walk"
+    ],
+    "originalRig": true,
+    "height": 1.48,
+    "flight": false,
+    "bones": 7,
+    "resource": "Carrot/Models/Minibosses/stormWarden",
+    "license": "Original artwork and original animation; no new third-party source mesh"
+  },
+  {
+    "name": "graveCaller",
+    "triangles": 16112,
+    "animated": true,
+    "meshes": 6,
+    "clips": [
+      "Attack",
+      "Death",
+      "Hit",
+      "Idle",
+      "Walk"
+    ],
+    "originalRig": true,
+    "height": 1.48,
+    "flight": false,
+    "bones": 7,
+    "resource": "Carrot/Models/Minibosses/graveCaller",
+    "license": "Original artwork and original animation; no new third-party source mesh"
+  },
+  {
+    "name": "mirrorKnight",
+    "triangles": 15764,
+    "animated": true,
+    "meshes": 5,
+    "clips": [
+      "Attack",
+      "Death",
+      "Hit",
+      "Idle",
+      "Walk"
+    ],
+    "originalRig": true,
+    "height": 1.48,
+    "flight": false,
+    "bones": 7,
+    "resource": "Carrot/Models/Minibosses/mirrorKnight",
+    "license": "Original artwork and original animation; no new third-party source mesh"
+  },
+  {
+    "name": "riftStalker",
+    "triangles": 10974,
+    "animated": true,
+    "meshes": 4,
+    "clips": [
+      "Attack",
+      "Death",
+      "Hit",
+      "Idle",
+      "Walk"
+    ],
+    "originalRig": true,
+    "height": 1.42,
+    "flight": false,
+    "bones": 7,
+    "resource": "Carrot/Models/Minibosses/riftStalker",
+    "license": "Original artwork and original animation; no new third-party source mesh"
+  },
+  {
+    "name": "mossGolem",
+    "triangles": 30656,
+    "animated": true,
+    "meshes": 6,
+    "clips": [
+      "Attack",
+      "Death",
+      "Hit",
+      "Idle",
+      "Walk"
+    ],
+    "originalRig": true,
+    "height": 1.48,
+    "flight": false,
+    "bones": 7,
+    "resource": "Carrot/Models/Minibosses/mossGolem",
+    "license": "Original artwork and original animation; no new third-party source mesh"
+  },
+  {
+    "name": "emberBoar",
+    "triangles": 12332,
+    "animated": true,
+    "meshes": 3,
+    "clips": [
+      "Attack",
+      "Death",
+      "Hit",
+      "Idle",
+      "Walk"
+    ],
+    "originalRig": true,
+    "height": 1.22,
+    "flight": false,
+    "bones": 7,
+    "resource": "Carrot/Models/Minibosses/emberBoar",
+    "license": "Original artwork and original animation; no new third-party source mesh"
+  },
+  {
+    "name": "venomQueen",
+    "triangles": 10652,
+    "animated": true,
+    "meshes": 4,
+    "clips": [
+      "Attack",
+      "Death",
+      "Hit",
+      "Idle",
+      "Walk"
+    ],
+    "originalRig": true,
+    "height": 1.48,
+    "flight": false,
+    "bones": 9,
+    "resource": "Carrot/Models/Minibosses/venomQueen",
+    "license": "Original artwork and original animation; no new third-party source mesh"
+  },
+  {
+    "name": "ironSnail",
+    "triangles": 12276,
+    "animated": true,
+    "meshes": 3,
+    "clips": [
+      "Attack",
+      "Death",
+      "Hit",
+      "Idle",
+      "Walk"
+    ],
+    "originalRig": true,
+    "height": 1.22,
+    "flight": false,
+    "bones": 3,
+    "resource": "Carrot/Models/Minibosses/ironSnail",
+    "license": "Original artwork and original animation; no new third-party source mesh"
+  },
+  {
+    "name": "lanternLeech",
+    "triangles": 7124,
+    "animated": true,
+    "meshes": 4,
+    "clips": [
+      "Attack",
+      "Death",
+      "Hit",
+      "Idle",
+      "Walk"
+    ],
+    "originalRig": true,
+    "height": 1.3,
+    "flight": true,
+    "bones": 3,
+    "resource": "Carrot/Models/Minibosses/lanternLeech",
+    "license": "Original artwork and original animation; no new third-party source mesh"
+  },
+  {
+    "name": "chronoMoth",
+    "triangles": 14458,
+    "animated": true,
+    "meshes": 5,
+    "clips": [
+      "Attack",
+      "Death",
+      "Hit",
+      "Idle",
+      "Walk"
+    ],
+    "originalRig": true,
+    "height": 1.3,
+    "flight": true,
+    "bones": 4,
+    "resource": "Carrot/Models/Minibosses/chronoMoth",
+    "license": "Original artwork and original animation; no new third-party source mesh"
+  },
+  {
+    "name": "thornBeast",
+    "triangles": 20452,
+    "animated": true,
+    "meshes": 4,
+    "clips": [
+      "Attack",
+      "Death",
+      "Hit",
+      "Idle",
+      "Walk"
+    ],
+    "originalRig": true,
+    "height": 1.42,
+    "flight": false,
+    "bones": 7,
+    "resource": "Carrot/Models/Minibosses/thornBeast",
+    "license": "Original artwork and original animation; no new third-party source mesh"
+  },
+  {
+    "name": "portalSentinel",
+    "triangles": 19220,
+    "animated": true,
+    "meshes": 5,
+    "clips": [
+      "Attack",
+      "Death",
+      "Hit",
+      "Idle",
+      "Walk"
+    ],
+    "originalRig": true,
+    "height": 1.48,
+    "flight": false,
+    "bones": 7,
+    "resource": "Carrot/Models/Minibosses/portalSentinel",
+    "license": "Original artwork and original animation; no new third-party source mesh"
+  },
+  {
+    "name": "portal",
+    "triangles": 25740,
+    "animated": false,
+    "meshes": 18,
+    "clips": [],
+    "resource": "Carrot/Models/Bosses/portal",
+    "proceduralPivots": [
+      "Core",
+      "Ring01",
+      "Ring02",
+      "Ring03",
+      "Eyeball",
+      "Claw0",
+      "Claw1",
+      "Claw2",
+      "Claw3"
+    ],
+    "originalRig": false
+  }
+]

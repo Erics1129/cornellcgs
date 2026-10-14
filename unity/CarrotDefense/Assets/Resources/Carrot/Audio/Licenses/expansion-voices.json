@@ -1,0 +1,1430 @@
+[
+  {
+    "resource": "Carrot/Audio/EVoicemiteCall",
+    "sources": [
+      "cute_09.ogg",
+      "bug_04.ogg"
+    ],
+    "author": "rubberduck",
+    "sourcePage": "https://opengameart.org/content/80-cc0-creature-sfx",
+    "license": "CC0-1.0",
+    "processing": "Mono; independently resampled primary82%/texture18%; active trim; peak/RMS normalization;15ms fades. Original recorded sounds.",
+    "pitch": 1.22,
+    "duration": 0.416,
+    "sampleRate": 32000,
+    "peak": 0.56,
+    "rms": 0.1015,
+    "sha256": "7192bcd9bd59ec01bf3e55067c3fdc8ad45cc96ec06bac7110e83322be58888d"
+  },
+  {
+    "resource": "Carrot/Audio/EVoicemiteHit",
+    "sources": [
+      "cute_09.ogg",
+      "bug_04.ogg"
+    ],
+    "author": "rubberduck",
+    "sourcePage": "https://opengameart.org/content/80-cc0-creature-sfx",
+    "license": "CC0-1.0",
+    "processing": "Mono; independently resampled primary82%/texture18%; active trim; peak/RMS normalization;15ms fades. Original recorded sounds.",
+    "pitch": 1.3907999999999998,
+    "duration": 0.367,
+    "sampleRate": 32000,
+    "peak": 0.56,
+    "rms": 0.0951,
+    "sha256": "c7b820d94354ea6538245df605d7646aa42733e043a2d99028ad021e2d5f4778"
+  },
+  {
+    "resource": "Carrot/Audio/EVoicemiteAttack",
+    "sources": [
+      "cute_09.ogg",
+      "bug_04.ogg"
+    ],
+    "author": "rubberduck",
+    "sourcePage": "https://opengameart.org/content/80-cc0-creature-sfx",
+    "license": "CC0-1.0",
+    "processing": "Mono; independently resampled primary82%/texture18%; active trim; peak/RMS normalization;15ms fades. Original recorded sounds.",
+    "pitch": 1.1467999999999998,
+    "duration": 0.442,
+    "sampleRate": 32000,
+    "peak": 0.56,
+    "rms": 0.1055,
+    "sha256": "d601ae370acf3caf7b4359d04c181c460307304dbc47300f1945b2037934933f"
+  },
+  {
+    "resource": "Carrot/Audio/EVoicebeetleCall",
+    "sources": [
+      "bug_02.ogg",
+      "grunt_01.ogg"
+    ],
+    "author": "rubberduck",
+    "sourcePage": "https://opengameart.org/content/80-cc0-creature-sfx",
+    "license": "CC0-1.0",
+    "processing": "Mono; independently resampled primary82%/texture18%; active trim; peak/RMS normalization;15ms fades. Original recorded sounds.",
+    "pitch": 0.87,
+    "duration": 0.633,
+    "sampleRate": 32000,
+    "peak": 0.56,
+    "rms": 0.0287,
+    "sha256": "ed61fcb33daffeed6b070ba62b786b3243c1c9a87b99b233afaa137c50d14544"
+  },
+  {
+    "resource": "Carrot/Audio/EVoicebeetleHit",
+    "sources": [
+      "bug_02.ogg",
+      "grunt_01.ogg"
+    ],
+    "author": "rubberduck",
+    "sourcePage": "https://opengameart.org/content/80-cc0-creature-sfx",
+    "license": "CC0-1.0",
+    "processing": "Mono; independently resampled primary82%/texture18%; active trim; peak/RMS normalization;15ms fades. Original recorded sounds.",
+    "pitch": 0.9917999999999999,
+    "duration": 0.48,
+    "sampleRate": 32000,
+    "peak": 0.56,
+    "rms": 0.0306,
+    "sha256": "1ce374fd539b99f8bd6377b643b190e4852653f1ebb606821b86b18a96e6b4d4"
+  },
+  {
+    "resource": "Carrot/Audio/EVoicebeetleAttack",
+    "sources": [
+      "bug_02.ogg",
+      "grunt_01.ogg"
+    ],
+    "author": "rubberduck",
+    "sourcePage": "https://opengameart.org/content/80-cc0-creature-sfx",
+    "license": "CC0-1.0",
+    "processing": "Mono; independently resampled primary82%/texture18%; active trim; peak/RMS normalization;15ms fades. Original recorded sounds.",
+    "pitch": 0.8178,
+    "duration": 0.672,
+    "sampleRate": 32000,
+    "peak": 0.56,
+    "rms": 0.0308,
+    "sha256": "a268a09249890285de4668e5739f638afd7207557d3f9b3833e5a1d8b0d792d0"
+  },
+  {
+    "resource": "Carrot/Audio/EVoiceslugCall",
+    "sources": [
+      "burble_02.ogg",
+      "breath.ogg"
+    ],
+    "author": "rubberduck",
+    "sourcePage": "https://opengameart.org/content/80-cc0-creature-sfx",
+    "license": "CC0-1.0",
+    "processing": "Mono; independently resampled primary82%/texture18%; active trim; peak/RMS normalization;15ms fades. Original recorded sounds.",
+    "pitch": 0.78,
+    "duration": 0.784,
+    "sampleRate": 32000,
+    "peak": 0.56,
+    "rms": 0.0527,
+    "sha256": "808e762bdd15c529aee52427bbb76cb09d97efa7dcf6e20888c3f95f76b138ee"
+  },
+  {
+    "resource": "Carrot/Audio/EVoiceslugHit",
+    "sources": [
+      "burble_02.ogg",
+      "breath.ogg"
+    ],
+    "author": "rubberduck",
+    "sourcePage": "https://opengameart.org/content/80-cc0-creature-sfx",
+    "license": "CC0-1.0",
+    "processing": "Mono; independently resampled primary82%/texture18%; active trim; peak/RMS normalization;15ms fades. Original recorded sounds.",
+    "pitch": 0.8892,
+    "duration": 0.48,
+    "sampleRate": 32000,
+    "peak": 0.56,
+    "rms": 0.0634,
+    "sha256": "0ac536636a1a7c7829cf20c8ce86dba3d71b3884a8f8c2439cadd37e63a3804b"
+  },
+  {
+    "resource": "Carrot/Audio/EVoiceslugAttack",
+    "sources": [
+      "burble_02.ogg",
+      "breath.ogg"
+    ],
+    "author": "rubberduck",
+    "sourcePage": "https://opengameart.org/content/80-cc0-creature-sfx",
+    "license": "CC0-1.0",
+    "processing": "Mono; independently resampled primary82%/texture18%; active trim; peak/RMS normalization;15ms fades. Original recorded sounds.",
+    "pitch": 0.7332,
+    "duration": 0.82,
+    "sampleRate": 32000,
+    "peak": 0.56,
+    "rms": 0.0532,
+    "sha256": "081fb682f107579e552397394f6e5c892ff14dfc85083c3ea1a32aab29195074"
+  },
+  {
+    "resource": "Carrot/Audio/EVoicewispCall",
+    "sources": [
+      "alien_06.ogg",
+      "weird_03.ogg"
+    ],
+    "author": "rubberduck",
+    "sourcePage": "https://opengameart.org/content/80-cc0-creature-sfx",
+    "license": "CC0-1.0",
+    "processing": "Mono; independently resampled primary82%/texture18%; active trim; peak/RMS normalization;15ms fades. Original recorded sounds.",
+    "pitch": 1.12,
+    "duration": 0.236,
+    "sampleRate": 32000,
+    "peak": 0.5485,
+    "rms": 0.0578,
+    "sha256": "13d9b68cbfd2d37b7895465ab9c6176049db8e350f3ffcdc69fe0d37bbae1f29"
+  },
+  {
+    "resource": "Carrot/Audio/EVoicewispHit",
+    "sources": [
+      "alien_06.ogg",
+      "weird_03.ogg"
+    ],
+    "author": "rubberduck",
+    "sourcePage": "https://opengameart.org/content/80-cc0-creature-sfx",
+    "license": "CC0-1.0",
+    "processing": "Mono; independently resampled primary82%/texture18%; active trim; peak/RMS normalization;15ms fades. Original recorded sounds.",
+    "pitch": 1.2768,
+    "duration": 0.189,
+    "sampleRate": 32000,
+    "peak": 0.4892,
+    "rms": 0.056,
+    "sha256": "a645ad1347fec62cf7649628d00b35be405eb44ef72f092b66c773f48d3ca797"
+  },
+  {
+    "resource": "Carrot/Audio/EVoicewispAttack",
+    "sources": [
+      "alien_06.ogg",
+      "weird_03.ogg"
+    ],
+    "author": "rubberduck",
+    "sourcePage": "https://opengameart.org/content/80-cc0-creature-sfx",
+    "license": "CC0-1.0",
+    "processing": "Mono; independently resampled primary82%/texture18%; active trim; peak/RMS normalization;15ms fades. Original recorded sounds.",
+    "pitch": 1.0528,
+    "duration": 0.243,
+    "sampleRate": 32000,
+    "peak": 0.56,
+    "rms": 0.0633,
+    "sha256": "a048109f310da51aa13a4fb4fda4f100c931adedcaba0eef7469dd1d672e8c5d"
+  },
+  {
+    "resource": "Carrot/Audio/EVoicebatCall",
+    "sources": [
+      "scream_02.ogg",
+      "cute_10.ogg"
+    ],
+    "author": "rubberduck",
+    "sourcePage": "https://opengameart.org/content/80-cc0-creature-sfx",
+    "license": "CC0-1.0",
+    "processing": "Mono; independently resampled primary82%/texture18%; active trim; peak/RMS normalization;15ms fades. Original recorded sounds.",
+    "pitch": 1.28,
+    "duration": 0.646,
+    "sampleRate": 32000,
+    "peak": 0.56,
+    "rms": 0.0926,
+    "sha256": "ad05b150446772572e9765ec9b5406291964cd83f01b1e733a27579dcdbdb289"
+  },
+  {
+    "resource": "Carrot/Audio/EVoicebatHit",
+    "sources": [
+      "scream_02.ogg",
+      "cute_10.ogg"
+    ],
+    "author": "rubberduck",
+    "sourcePage": "https://opengameart.org/content/80-cc0-creature-sfx",
+    "license": "CC0-1.0",
+    "processing": "Mono; independently resampled primary82%/texture18%; active trim; peak/RMS normalization;15ms fades. Original recorded sounds.",
+    "pitch": 1.4591999999999998,
+    "duration": 0.48,
+    "sampleRate": 32000,
+    "peak": 0.56,
+    "rms": 0.0998,
+    "sha256": "9ff151fa3adbcd6d84fc085c114c9911c13699ecd54ddb6873f43efbdbfadc0c"
+  },
+  {
+    "resource": "Carrot/Audio/EVoicebatAttack",
+    "sources": [
+      "scream_02.ogg",
+      "cute_10.ogg"
+    ],
+    "author": "rubberduck",
+    "sourcePage": "https://opengameart.org/content/80-cc0-creature-sfx",
+    "license": "CC0-1.0",
+    "processing": "Mono; independently resampled primary82%/texture18%; active trim; peak/RMS normalization;15ms fades. Original recorded sounds.",
+    "pitch": 1.2032,
+    "duration": 0.687,
+    "sampleRate": 32000,
+    "peak": 0.56,
+    "rms": 0.0927,
+    "sha256": "309b94d29e008ce03c5ef6f279095f82d71ff182d22b3af1cea9f22ed32eb396"
+  },
+  {
+    "resource": "Carrot/Audio/EVoicescarabCall",
+    "sources": [
+      "bug_03.ogg",
+      "misc_05.ogg"
+    ],
+    "author": "rubberduck",
+    "sourcePage": "https://opengameart.org/content/80-cc0-creature-sfx",
+    "license": "CC0-1.0",
+    "processing": "Mono; independently resampled primary82%/texture18%; active trim; peak/RMS normalization;15ms fades. Original recorded sounds.",
+    "pitch": 0.72,
+    "duration": 0.725,
+    "sampleRate": 32000,
+    "peak": 0.56,
+    "rms": 0.0436,
+    "sha256": "fbfb04b0b431698f3d37073b8e0ad2e516184a9820cfef196b1d926a67747ad0"
+  },
+  {
+    "resource": "Carrot/Audio/EVoicescarabHit",
+    "sources": [
+      "bug_03.ogg",
+      "misc_05.ogg"
+    ],
+    "author": "rubberduck",
+    "sourcePage": "https://opengameart.org/content/80-cc0-creature-sfx",
+    "license": "CC0-1.0",
+    "processing": "Mono; independently resampled primary82%/texture18%; active trim; peak/RMS normalization;15ms fades. Original recorded sounds.",
+    "pitch": 0.8207999999999999,
+    "duration": 0.48,
+    "sampleRate": 32000,
+    "peak": 0.56,
+    "rms": 0.0504,
+    "sha256": "f7dbbe2dd7efed1697807b4d3d6cd317d8cae3af25e13559ca00fed18578a9fa"
+  },
+  {
+    "resource": "Carrot/Audio/EVoicescarabAttack",
+    "sources": [
+      "bug_03.ogg",
+      "misc_05.ogg"
+    ],
+    "author": "rubberduck",
+    "sourcePage": "https://opengameart.org/content/80-cc0-creature-sfx",
+    "license": "CC0-1.0",
+    "processing": "Mono; independently resampled primary82%/texture18%; active trim; peak/RMS normalization;15ms fades. Original recorded sounds.",
+    "pitch": 0.6768,
+    "duration": 0.77,
+    "sampleRate": 32000,
+    "peak": 0.56,
+    "rms": 0.0442,
+    "sha256": "f27d64bf3bb1d0a11337ad4a29484a1c53133a5c065951b95a04dc71114aea4f"
+  },
+  {
+    "resource": "Carrot/Audio/EVoicefireflyCall",
+    "sources": [
+      "cute_06.ogg",
+      "alien_01.ogg"
+    ],
+    "author": "rubberduck",
+    "sourcePage": "https://opengameart.org/content/80-cc0-creature-sfx",
+    "license": "CC0-1.0",
+    "processing": "Mono; independently resampled primary82%/texture18%; active trim; peak/RMS normalization;15ms fades. Original recorded sounds.",
+    "pitch": 1.35,
+    "duration": 0.297,
+    "sampleRate": 32000,
+    "peak": 0.5061,
+    "rms": 0.1094,
+    "sha256": "6cd44581320c64eb49cd4d6cf875359633773699b9828240efe9d464db6aac2d"
+  },
+  {
+    "resource": "Carrot/Audio/EVoicefireflyHit",
+    "sources": [
+      "cute_06.ogg",
+      "alien_01.ogg"
+    ],
+    "author": "rubberduck",
+    "sourcePage": "https://opengameart.org/content/80-cc0-creature-sfx",
+    "license": "CC0-1.0",
+    "processing": "Mono; independently resampled primary82%/texture18%; active trim; peak/RMS normalization;15ms fades. Original recorded sounds.",
+    "pitch": 1.539,
+    "duration": 0.262,
+    "sampleRate": 32000,
+    "peak": 0.4884,
+    "rms": 0.1092,
+    "sha256": "79e27bf88068a659fde9d833bd3bf4123ee44cd073e13be7d59fc6f69cc4b91a"
+  },
+  {
+    "resource": "Carrot/Audio/EVoicefireflyAttack",
+    "sources": [
+      "cute_06.ogg",
+      "alien_01.ogg"
+    ],
+    "author": "rubberduck",
+    "sourcePage": "https://opengameart.org/content/80-cc0-creature-sfx",
+    "license": "CC0-1.0",
+    "processing": "Mono; independently resampled primary82%/texture18%; active trim; peak/RMS normalization;15ms fades. Original recorded sounds.",
+    "pitch": 1.269,
+    "duration": 0.315,
+    "sampleRate": 32000,
+    "peak": 0.5212,
+    "rms": 0.1095,
+    "sha256": "ebeeeb57c7e73812fce44c102751cc39f68d8b3974316983ef518c34b0d163a8"
+  },
+  {
+    "resource": "Carrot/Audio/EVoicesporelingCall",
+    "sources": [
+      "burp_02.ogg",
+      "burble_01.ogg"
+    ],
+    "author": "rubberduck",
+    "sourcePage": "https://opengameart.org/content/80-cc0-creature-sfx",
+    "license": "CC0-1.0",
+    "processing": "Mono; independently resampled primary82%/texture18%; active trim; peak/RMS normalization;15ms fades. Original recorded sounds.",
+    "pitch": 1.06,
+    "duration": 0.701,
+    "sampleRate": 32000,
+    "peak": 0.482,
+    "rms": 0.11,
+    "sha256": "ce67e37384b5d7b2d33942403efeedd605574c757729d160a34e08f967eda93f"
+  },
+  {
+    "resource": "Carrot/Audio/EVoicesporelingHit",
+    "sources": [
+      "burp_02.ogg",
+      "burble_01.ogg"
+    ],
+    "author": "rubberduck",
+    "sourcePage": "https://opengameart.org/content/80-cc0-creature-sfx",
+    "license": "CC0-1.0",
+    "processing": "Mono; independently resampled primary82%/texture18%; active trim; peak/RMS normalization;15ms fades. Original recorded sounds.",
+    "pitch": 1.2084,
+    "duration": 0.48,
+    "sampleRate": 32000,
+    "peak": 0.4351,
+    "rms": 0.1099,
+    "sha256": "742ae7bc764aa6898a102f2b8e2d207374bc9983045e24387191658b3bcc6080"
+  },
+  {
+    "resource": "Carrot/Audio/EVoicesporelingAttack",
+    "sources": [
+      "burp_02.ogg",
+      "burble_01.ogg"
+    ],
+    "author": "rubberduck",
+    "sourcePage": "https://opengameart.org/content/80-cc0-creature-sfx",
+    "license": "CC0-1.0",
+    "processing": "Mono; independently resampled primary82%/texture18%; active trim; peak/RMS normalization;15ms fades. Original recorded sounds.",
+    "pitch": 0.9964,
+    "duration": 0.745,
+    "sampleRate": 32000,
+    "peak": 0.56,
+    "rms": 0.1069,
+    "sha256": "720ea50fbbea11c0f36fad0a6276b2e53346fcb0b4c4e29da49489165a664f52"
+  },
+  {
+    "resource": "Carrot/Audio/EVoicetinyZombieCall",
+    "sources": [
+      "grunt_04.ogg",
+      "cough_03.ogg"
+    ],
+    "author": "rubberduck",
+    "sourcePage": "https://opengameart.org/content/80-cc0-creature-sfx",
+    "license": "CC0-1.0",
+    "processing": "Mono; independently resampled primary82%/texture18%; active trim; peak/RMS normalization;15ms fades. Original recorded sounds.",
+    "pitch": 1.2,
+    "duration": 0.537,
+    "sampleRate": 32000,
+    "peak": 0.56,
+    "rms": 0.0685,
+    "sha256": "527f9f3cf68b62de2454e66832d6c56c97c6e143bc452f0e2a293f01e4e87173"
+  },
+  {
+    "resource": "Carrot/Audio/EVoicetinyZombieHit",
+    "sources": [
+      "grunt_04.ogg",
+      "cough_03.ogg"
+    ],
+    "author": "rubberduck",
+    "sourcePage": "https://opengameart.org/content/80-cc0-creature-sfx",
+    "license": "CC0-1.0",
+    "processing": "Mono; independently resampled primary82%/texture18%; active trim; peak/RMS normalization;15ms fades. Original recorded sounds.",
+    "pitch": 1.3679999999999999,
+    "duration": 0.473,
+    "sampleRate": 32000,
+    "peak": 0.56,
+    "rms": 0.0686,
+    "sha256": "ca8aeff60363dbb8f62668e16c06984e02df55046454c3b7a25c0e8067bbed96"
+  },
+  {
+    "resource": "Carrot/Audio/EVoicetinyZombieAttack",
+    "sources": [
+      "grunt_04.ogg",
+      "cough_03.ogg"
+    ],
+    "author": "rubberduck",
+    "sourcePage": "https://opengameart.org/content/80-cc0-creature-sfx",
+    "license": "CC0-1.0",
+    "processing": "Mono; independently resampled primary82%/texture18%; active trim; peak/RMS normalization;15ms fades. Original recorded sounds.",
+    "pitch": 1.128,
+    "duration": 0.57,
+    "sampleRate": 32000,
+    "peak": 0.56,
+    "rms": 0.0685,
+    "sha256": "a3b6bf72c3a45c071daf6d7b56c39ada508e69147a380e6a693f0dea2e3a694c"
+  },
+  {
+    "resource": "Carrot/Audio/EVoiceriftlingCall",
+    "sources": [
+      "alien_01.ogg",
+      "spit_03.ogg"
+    ],
+    "author": "rubberduck",
+    "sourcePage": "https://opengameart.org/content/80-cc0-creature-sfx",
+    "license": "CC0-1.0",
+    "processing": "Mono; independently resampled primary82%/texture18%; active trim; peak/RMS normalization;15ms fades. Original recorded sounds.",
+    "pitch": 0.91,
+    "duration": 0.487,
+    "sampleRate": 32000,
+    "peak": 0.56,
+    "rms": 0.0417,
+    "sha256": "e218ccfd476a20a904a43f18f559a57c8ca9f5ac9850b6b76a5bbacf22cf3b59"
+  },
+  {
+    "resource": "Carrot/Audio/EVoiceriftlingHit",
+    "sources": [
+      "alien_01.ogg",
+      "spit_03.ogg"
+    ],
+    "author": "rubberduck",
+    "sourcePage": "https://opengameart.org/content/80-cc0-creature-sfx",
+    "license": "CC0-1.0",
+    "processing": "Mono; independently resampled primary82%/texture18%; active trim; peak/RMS normalization;15ms fades. Original recorded sounds.",
+    "pitch": 1.0373999999999999,
+    "duration": 0.429,
+    "sampleRate": 32000,
+    "peak": 0.56,
+    "rms": 0.0393,
+    "sha256": "43b45407ac137363232bc4d2374334f0b1c355d24b32c2e12aff95757683593c"
+  },
+  {
+    "resource": "Carrot/Audio/EVoiceriftlingAttack",
+    "sources": [
+      "alien_01.ogg",
+      "spit_03.ogg"
+    ],
+    "author": "rubberduck",
+    "sourcePage": "https://opengameart.org/content/80-cc0-creature-sfx",
+    "license": "CC0-1.0",
+    "processing": "Mono; independently resampled primary82%/texture18%; active trim; peak/RMS normalization;15ms fades. Original recorded sounds.",
+    "pitch": 0.8553999999999999,
+    "duration": 0.518,
+    "sampleRate": 32000,
+    "peak": 0.56,
+    "rms": 0.0409,
+    "sha256": "59f12c1c0d12c9a3e35c1ed97c695c1eff6fe4e5c18971ef61ec4d7e72f332e6"
+  },
+  {
+    "resource": "Carrot/Audio/EVoiceshardlingCall",
+    "sources": [
+      "weird_04.ogg",
+      "alien_04.ogg"
+    ],
+    "author": "rubberduck",
+    "sourcePage": "https://opengameart.org/content/80-cc0-creature-sfx",
+    "license": "CC0-1.0",
+    "processing": "Mono; independently resampled primary82%/texture18%; active trim; peak/RMS normalization;15ms fades. Original recorded sounds.",
+    "pitch": 1.18,
+    "duration": 0.414,
+    "sampleRate": 32000,
+    "peak": 0.5098,
+    "rms": 0.1098,
+    "sha256": "2b3a1d806ae29f94fe5ecec1d9c7ac30c6a19dff9a322401769605ae790ce554"
+  },
+  {
+    "resource": "Carrot/Audio/EVoiceshardlingHit",
+    "sources": [
+      "weird_04.ogg",
+      "alien_04.ogg"
+    ],
+    "author": "rubberduck",
+    "sourcePage": "https://opengameart.org/content/80-cc0-creature-sfx",
+    "license": "CC0-1.0",
+    "processing": "Mono; independently resampled primary82%/texture18%; active trim; peak/RMS normalization;15ms fades. Original recorded sounds.",
+    "pitch": 1.3451999999999997,
+    "duration": 0.365,
+    "sampleRate": 32000,
+    "peak": 0.5109,
+    "rms": 0.1098,
+    "sha256": "6994b97d80f28a11726ba1701aa928bb55ce79babb75c0198f3aeb8f07a2a21f"
+  },
+  {
+    "resource": "Carrot/Audio/EVoiceshardlingAttack",
+    "sources": [
+      "weird_04.ogg",
+      "alien_04.ogg"
+    ],
+    "author": "rubberduck",
+    "sourcePage": "https://opengameart.org/content/80-cc0-creature-sfx",
+    "license": "CC0-1.0",
+    "processing": "Mono; independently resampled primary82%/texture18%; active trim; peak/RMS normalization;15ms fades. Original recorded sounds.",
+    "pitch": 1.1092,
+    "duration": 0.439,
+    "sampleRate": 32000,
+    "peak": 0.51,
+    "rms": 0.1099,
+    "sha256": "df2564638c37bcbaf344bdac1470bf35c0d1562818fd0429d5aa6a3738432016"
+  },
+  {
+    "resource": "Carrot/Audio/EVoicemimicCall",
+    "sources": [
+      "barking_02.ogg",
+      "eat_03.ogg"
+    ],
+    "author": "rubberduck",
+    "sourcePage": "https://opengameart.org/content/80-cc0-creature-sfx",
+    "license": "CC0-1.0",
+    "processing": "Mono; independently resampled primary82%/texture18%; active trim; peak/RMS normalization;15ms fades. Original recorded sounds.",
+    "pitch": 0.85,
+    "duration": 0.264,
+    "sampleRate": 32000,
+    "peak": 0.56,
+    "rms": 0.0958,
+    "sha256": "bf82607290cb7f8ec96e2b2d90e408b851eda3f4f70dd3344321ce44f4baf440"
+  },
+  {
+    "resource": "Carrot/Audio/EVoicemimicHit",
+    "sources": [
+      "barking_02.ogg",
+      "eat_03.ogg"
+    ],
+    "author": "rubberduck",
+    "sourcePage": "https://opengameart.org/content/80-cc0-creature-sfx",
+    "license": "CC0-1.0",
+    "processing": "Mono; independently resampled primary82%/texture18%; active trim; peak/RMS normalization;15ms fades. Original recorded sounds.",
+    "pitch": 0.9689999999999999,
+    "duration": 0.233,
+    "sampleRate": 32000,
+    "peak": 0.56,
+    "rms": 0.0957,
+    "sha256": "9a3cccf6aa178ba22589d2cbe8299dba8798b58b643ab78f41ffce9299d365ea"
+  },
+  {
+    "resource": "Carrot/Audio/EVoicemimicAttack",
+    "sources": [
+      "barking_02.ogg",
+      "eat_03.ogg"
+    ],
+    "author": "rubberduck",
+    "sourcePage": "https://opengameart.org/content/80-cc0-creature-sfx",
+    "license": "CC0-1.0",
+    "processing": "Mono; independently resampled primary82%/texture18%; active trim; peak/RMS normalization;15ms fades. Original recorded sounds.",
+    "pitch": 0.7989999999999999,
+    "duration": 0.28,
+    "sampleRate": 32000,
+    "peak": 0.56,
+    "rms": 0.0955,
+    "sha256": "06926c8ba3cc6c03401bdd7d6e473a2fe5cc56fc16fd18d3f31092508755a64c"
+  },
+  {
+    "resource": "Carrot/Audio/EVoicewarDrummerCall",
+    "sources": [
+      "troll_01.ogg",
+      "grunt_01.ogg"
+    ],
+    "author": "rubberduck",
+    "sourcePage": "https://opengameart.org/content/80-cc0-creature-sfx",
+    "license": "CC0-1.0",
+    "processing": "Mono; independently resampled primary82%/texture18%; active trim; peak/RMS normalization;15ms fades. Original recorded sounds.",
+    "pitch": 0.85,
+    "duration": 0.647,
+    "sampleRate": 32000,
+    "peak": 0.4097,
+    "rms": 0.11,
+    "sha256": "0d32f96b1168e04fb8ab6e00f9457c102ed87a944934e39e01510704a8e39539"
+  },
+  {
+    "resource": "Carrot/Audio/EVoicewarDrummerHit",
+    "sources": [
+      "troll_01.ogg",
+      "grunt_01.ogg"
+    ],
+    "author": "rubberduck",
+    "sourcePage": "https://opengameart.org/content/80-cc0-creature-sfx",
+    "license": "CC0-1.0",
+    "processing": "Mono; independently resampled primary82%/texture18%; active trim; peak/RMS normalization;15ms fades. Original recorded sounds.",
+    "pitch": 0.9689999999999999,
+    "duration": 0.48,
+    "sampleRate": 32000,
+    "peak": 0.3758,
+    "rms": 0.11,
+    "sha256": "1f061eb8a600e1da500449e5334708fd29845f40156e8de3f4f60e33a9fed5b4"
+  },
+  {
+    "resource": "Carrot/Audio/EVoicewarDrummerAttack",
+    "sources": [
+      "troll_01.ogg",
+      "grunt_01.ogg"
+    ],
+    "author": "rubberduck",
+    "sourcePage": "https://opengameart.org/content/80-cc0-creature-sfx",
+    "license": "CC0-1.0",
+    "processing": "Mono; independently resampled primary82%/texture18%; active trim; peak/RMS normalization;15ms fades. Original recorded sounds.",
+    "pitch": 0.7989999999999999,
+    "duration": 0.688,
+    "sampleRate": 32000,
+    "peak": 0.4072,
+    "rms": 0.11,
+    "sha256": "f27231b2fe41a2aacfbe231abaa56122e7a442dbd49411c5ff0e1ebe4576e21b"
+  },
+  {
+    "resource": "Carrot/Audio/EVoicefrostHeraldCall",
+    "sources": [
+      "howl.ogg",
+      "weird_03.ogg"
+    ],
+    "author": "rubberduck",
+    "sourcePage": "https://opengameart.org/content/80-cc0-creature-sfx",
+    "license": "CC0-1.0",
+    "processing": "Mono; independently resampled primary82%/texture18%; active trim; peak/RMS normalization;15ms fades. Original recorded sounds.",
+    "pitch": 0.83,
+    "duration": 0.606,
+    "sampleRate": 32000,
+    "peak": 0.4427,
+    "rms": 0.1099,
+    "sha256": "39205809c90ebbbce605a858778eab9e15590e987aec53025581bbecbf834226"
+  },
+  {
+    "resource": "Carrot/Audio/EVoicefrostHeraldHit",
+    "sources": [
+      "howl.ogg",
+      "weird_03.ogg"
+    ],
+    "author": "rubberduck",
+    "sourcePage": "https://opengameart.org/content/80-cc0-creature-sfx",
+    "license": "CC0-1.0",
+    "processing": "Mono; independently resampled primary82%/texture18%; active trim; peak/RMS normalization;15ms fades. Original recorded sounds.",
+    "pitch": 0.9461999999999998,
+    "duration": 0.48,
+    "sampleRate": 32000,
+    "peak": 0.4214,
+    "rms": 0.1099,
+    "sha256": "8ff698560c6d47978b4024ffaea4f6cabaa4f9865647c05454e2383d76a9c5ef"
+  },
+  {
+    "resource": "Carrot/Audio/EVoicefrostHeraldAttack",
+    "sources": [
+      "howl.ogg",
+      "weird_03.ogg"
+    ],
+    "author": "rubberduck",
+    "sourcePage": "https://opengameart.org/content/80-cc0-creature-sfx",
+    "license": "CC0-1.0",
+    "processing": "Mono; independently resampled primary82%/texture18%; active trim; peak/RMS normalization;15ms fades. Original recorded sounds.",
+    "pitch": 0.7801999999999999,
+    "duration": 0.644,
+    "sampleRate": 32000,
+    "peak": 0.442,
+    "rms": 0.1099,
+    "sha256": "bca248c496f5e3c0cc338059789e57614a448c07b5783b28c4532f1f1aeaee53"
+  },
+  {
+    "resource": "Carrot/Audio/EVoicewitherPriestCall",
+    "sources": [
+      "monster_07.ogg",
+      "breath.ogg"
+    ],
+    "author": "rubberduck",
+    "sourcePage": "https://opengameart.org/content/80-cc0-creature-sfx",
+    "license": "CC0-1.0",
+    "processing": "Mono; independently resampled primary82%/texture18%; active trim; peak/RMS normalization;15ms fades. Original recorded sounds.",
+    "pitch": 0.78,
+    "duration": 0.917,
+    "sampleRate": 32000,
+    "peak": 0.5159,
+    "rms": 0.11,
+    "sha256": "05b6ca58d9f23426582c70a5d0ca729ab38b9158dd1f1a560f767e6b33368d61"
+  },
+  {
+    "resource": "Carrot/Audio/EVoicewitherPriestHit",
+    "sources": [
+      "monster_07.ogg",
+      "breath.ogg"
+    ],
+    "author": "rubberduck",
+    "sourcePage": "https://opengameart.org/content/80-cc0-creature-sfx",
+    "license": "CC0-1.0",
+    "processing": "Mono; independently resampled primary82%/texture18%; active trim; peak/RMS normalization;15ms fades. Original recorded sounds.",
+    "pitch": 0.8892,
+    "duration": 0.48,
+    "sampleRate": 32000,
+    "peak": 0.4147,
+    "rms": 0.1098,
+    "sha256": "080e009278ddf4dde5ab611d9bdd59f2ca8502b66f41a6483a9e607d40861199"
+  },
+  {
+    "resource": "Carrot/Audio/EVoicewitherPriestAttack",
+    "sources": [
+      "monster_07.ogg",
+      "breath.ogg"
+    ],
+    "author": "rubberduck",
+    "sourcePage": "https://opengameart.org/content/80-cc0-creature-sfx",
+    "license": "CC0-1.0",
+    "processing": "Mono; independently resampled primary82%/texture18%; active trim; peak/RMS normalization;15ms fades. Original recorded sounds.",
+    "pitch": 0.7332,
+    "duration": 0.975,
+    "sampleRate": 32000,
+    "peak": 0.5157,
+    "rms": 0.11,
+    "sha256": "d6134e54de958773fbb6f36b569147495f0a49f41f7ef90c2454216d9801ccde"
+  },
+  {
+    "resource": "Carrot/Audio/EVoicestormWardenCall",
+    "sources": [
+      "roar_01.ogg",
+      "alien_06.ogg"
+    ],
+    "author": "rubberduck",
+    "sourcePage": "https://opengameart.org/content/80-cc0-creature-sfx",
+    "license": "CC0-1.0",
+    "processing": "Mono; independently resampled primary82%/texture18%; active trim; peak/RMS normalization;15ms fades. Original recorded sounds.",
+    "pitch": 0.73,
+    "duration": 0.371,
+    "sampleRate": 32000,
+    "peak": 0.3209,
+    "rms": 0.11,
+    "sha256": "c775af501d71166582078af78ea0eb5828f655f919d01592b5a26805fed9ad33"
+  },
+  {
+    "resource": "Carrot/Audio/EVoicestormWardenHit",
+    "sources": [
+      "roar_01.ogg",
+      "alien_06.ogg"
+    ],
+    "author": "rubberduck",
+    "sourcePage": "https://opengameart.org/content/80-cc0-creature-sfx",
+    "license": "CC0-1.0",
+    "processing": "Mono; independently resampled primary82%/texture18%; active trim; peak/RMS normalization;15ms fades. Original recorded sounds.",
+    "pitch": 0.8321999999999999,
+    "duration": 0.327,
+    "sampleRate": 32000,
+    "peak": 0.3523,
+    "rms": 0.1099,
+    "sha256": "76e6a29926e5c422a518bc9c34158818cd9ffd7bad78bb4d450194edfe85c5e2"
+  },
+  {
+    "resource": "Carrot/Audio/EVoicestormWardenAttack",
+    "sources": [
+      "roar_01.ogg",
+      "alien_06.ogg"
+    ],
+    "author": "rubberduck",
+    "sourcePage": "https://opengameart.org/content/80-cc0-creature-sfx",
+    "license": "CC0-1.0",
+    "processing": "Mono; independently resampled primary82%/texture18%; active trim; peak/RMS normalization;15ms fades. Original recorded sounds.",
+    "pitch": 0.6861999999999999,
+    "duration": 0.394,
+    "sampleRate": 32000,
+    "peak": 0.3442,
+    "rms": 0.11,
+    "sha256": "4eeb875b06afd1b9aca484afc2f8e55d637a4d619bf16ee039b489441d38053b"
+  },
+  {
+    "resource": "Carrot/Audio/EVoicegraveCallerCall",
+    "sources": [
+      "monster_03.ogg",
+      "cough_02.ogg"
+    ],
+    "author": "rubberduck",
+    "sourcePage": "https://opengameart.org/content/80-cc0-creature-sfx",
+    "license": "CC0-1.0",
+    "processing": "Mono; independently resampled primary82%/texture18%; active trim; peak/RMS normalization;15ms fades. Original recorded sounds.",
+    "pitch": 0.85,
+    "duration": 0.427,
+    "sampleRate": 32000,
+    "peak": 0.56,
+    "rms": 0.1016,
+    "sha256": "7cf5c41fd315783f55772a2752f8965d02bcf5eee2468c8339891181d7f0f8a2"
+  },
+  {
+    "resource": "Carrot/Audio/EVoicegraveCallerHit",
+    "sources": [
+      "monster_03.ogg",
+      "cough_02.ogg"
+    ],
+    "author": "rubberduck",
+    "sourcePage": "https://opengameart.org/content/80-cc0-creature-sfx",
+    "license": "CC0-1.0",
+    "processing": "Mono; independently resampled primary82%/texture18%; active trim; peak/RMS normalization;15ms fades. Original recorded sounds.",
+    "pitch": 0.9689999999999999,
+    "duration": 0.376,
+    "sampleRate": 32000,
+    "peak": 0.56,
+    "rms": 0.1008,
+    "sha256": "fba2822df318bec455e775e5bd63a392a446836cace14d989f522cde246ac6ff"
+  },
+  {
+    "resource": "Carrot/Audio/EVoicegraveCallerAttack",
+    "sources": [
+      "monster_03.ogg",
+      "cough_02.ogg"
+    ],
+    "author": "rubberduck",
+    "sourcePage": "https://opengameart.org/content/80-cc0-creature-sfx",
+    "license": "CC0-1.0",
+    "processing": "Mono; independently resampled primary82%/texture18%; active trim; peak/RMS normalization;15ms fades. Original recorded sounds.",
+    "pitch": 0.7989999999999999,
+    "duration": 0.453,
+    "sampleRate": 32000,
+    "peak": 0.56,
+    "rms": 0.1013,
+    "sha256": "393f6f257b11e0089df6c9187d68ec5354beafb49d9a958c757478cf3da1ad20"
+  },
+  {
+    "resource": "Carrot/Audio/EVoicemirrorKnightCall",
+    "sources": [
+      "alien_03.ogg",
+      "misc_09.ogg"
+    ],
+    "author": "rubberduck",
+    "sourcePage": "https://opengameart.org/content/80-cc0-creature-sfx",
+    "license": "CC0-1.0",
+    "processing": "Mono; independently resampled primary82%/texture18%; active trim; peak/RMS normalization;15ms fades. Original recorded sounds.",
+    "pitch": 0.84,
+    "duration": 0.751,
+    "sampleRate": 32000,
+    "peak": 0.56,
+    "rms": 0.0597,
+    "sha256": "f2d8f41cee9a56eda3e840a381c93c3d633b092641a32838a10828b4841b5ad0"
+  },
+  {
+    "resource": "Carrot/Audio/EVoicemirrorKnightHit",
+    "sources": [
+      "alien_03.ogg",
+      "misc_09.ogg"
+    ],
+    "author": "rubberduck",
+    "sourcePage": "https://opengameart.org/content/80-cc0-creature-sfx",
+    "license": "CC0-1.0",
+    "processing": "Mono; independently resampled primary82%/texture18%; active trim; peak/RMS normalization;15ms fades. Original recorded sounds.",
+    "pitch": 0.9575999999999999,
+    "duration": 0.48,
+    "sampleRate": 32000,
+    "peak": 0.56,
+    "rms": 0.0706,
+    "sha256": "f7c02e16684464c954656b638ea8646a80e61440d81fcb0366f795c476024a58"
+  },
+  {
+    "resource": "Carrot/Audio/EVoicemirrorKnightAttack",
+    "sources": [
+      "alien_03.ogg",
+      "misc_09.ogg"
+    ],
+    "author": "rubberduck",
+    "sourcePage": "https://opengameart.org/content/80-cc0-creature-sfx",
+    "license": "CC0-1.0",
+    "processing": "Mono; independently resampled primary82%/texture18%; active trim; peak/RMS normalization;15ms fades. Original recorded sounds.",
+    "pitch": 0.7896,
+    "duration": 0.798,
+    "sampleRate": 32000,
+    "peak": 0.56,
+    "rms": 0.0587,
+    "sha256": "963e9268e94664048007ebd388134570355c919bbcf427a3d4a67a2e15d19984"
+  },
+  {
+    "resource": "Carrot/Audio/EVoiceriftStalkerCall",
+    "sources": [
+      "barking_01.ogg",
+      "alien_02.ogg"
+    ],
+    "author": "rubberduck",
+    "sourcePage": "https://opengameart.org/content/80-cc0-creature-sfx",
+    "license": "CC0-1.0",
+    "processing": "Mono; independently resampled primary82%/texture18%; active trim; peak/RMS normalization;15ms fades. Original recorded sounds.",
+    "pitch": 0.76,
+    "duration": 0.568,
+    "sampleRate": 32000,
+    "peak": 0.56,
+    "rms": 0.0706,
+    "sha256": "bf3db5b64aa050018ff21f61b544270f2768628e1b6482f524c871c34cc021d0"
+  },
+  {
+    "resource": "Carrot/Audio/EVoiceriftStalkerHit",
+    "sources": [
+      "barking_01.ogg",
+      "alien_02.ogg"
+    ],
+    "author": "rubberduck",
+    "sourcePage": "https://opengameart.org/content/80-cc0-creature-sfx",
+    "license": "CC0-1.0",
+    "processing": "Mono; independently resampled primary82%/texture18%; active trim; peak/RMS normalization;15ms fades. Original recorded sounds.",
+    "pitch": 0.8664,
+    "duration": 0.48,
+    "sampleRate": 32000,
+    "peak": 0.56,
+    "rms": 0.0708,
+    "sha256": "f9ab1f2a4ae95530ee3ec37859a214d0f28dae4c3eaab2d21153ec072edec3a0"
+  },
+  {
+    "resource": "Carrot/Audio/EVoiceriftStalkerAttack",
+    "sources": [
+      "barking_01.ogg",
+      "alien_02.ogg"
+    ],
+    "author": "rubberduck",
+    "sourcePage": "https://opengameart.org/content/80-cc0-creature-sfx",
+    "license": "CC0-1.0",
+    "processing": "Mono; independently resampled primary82%/texture18%; active trim; peak/RMS normalization;15ms fades. Original recorded sounds.",
+    "pitch": 0.7143999999999999,
+    "duration": 0.603,
+    "sampleRate": 32000,
+    "peak": 0.56,
+    "rms": 0.0706,
+    "sha256": "1d523e934fc62cd4317df7060a998514dee4c398bf95507d7d12b18044573330"
+  },
+  {
+    "resource": "Carrot/Audio/EVoicemossGolemCall",
+    "sources": [
+      "troll_03.ogg",
+      "grunt_05.ogg"
+    ],
+    "author": "rubberduck",
+    "sourcePage": "https://opengameart.org/content/80-cc0-creature-sfx",
+    "license": "CC0-1.0",
+    "processing": "Mono; independently resampled primary82%/texture18%; active trim; peak/RMS normalization;15ms fades. Original recorded sounds.",
+    "pitch": 0.63,
+    "duration": 0.518,
+    "sampleRate": 32000,
+    "peak": 0.4702,
+    "rms": 0.11,
+    "sha256": "10e716cf16d57cf087f50414abb26a9cc1a083da76189eb6a6cc06c32e235e03"
+  },
+  {
+    "resource": "Carrot/Audio/EVoicemossGolemHit",
+    "sources": [
+      "troll_03.ogg",
+      "grunt_05.ogg"
+    ],
+    "author": "rubberduck",
+    "sourcePage": "https://opengameart.org/content/80-cc0-creature-sfx",
+    "license": "CC0-1.0",
+    "processing": "Mono; independently resampled primary82%/texture18%; active trim; peak/RMS normalization;15ms fades. Original recorded sounds.",
+    "pitch": 0.7182,
+    "duration": 0.456,
+    "sampleRate": 32000,
+    "peak": 0.4807,
+    "rms": 0.11,
+    "sha256": "ed188b9cea60e14539ef0e4ae246e7e19cd7b1439b0195a84dad8c9d478272ed"
+  },
+  {
+    "resource": "Carrot/Audio/EVoicemossGolemAttack",
+    "sources": [
+      "troll_03.ogg",
+      "grunt_05.ogg"
+    ],
+    "author": "rubberduck",
+    "sourcePage": "https://opengameart.org/content/80-cc0-creature-sfx",
+    "license": "CC0-1.0",
+    "processing": "Mono; independently resampled primary82%/texture18%; active trim; peak/RMS normalization;15ms fades. Original recorded sounds.",
+    "pitch": 0.5922,
+    "duration": 0.55,
+    "sampleRate": 32000,
+    "peak": 0.4798,
+    "rms": 0.11,
+    "sha256": "5c0f84f829f3ff93d1562fd496d74eb2014ada611e4de830ccbf76efc19e4544"
+  },
+  {
+    "resource": "Carrot/Audio/EVoiceemberBoarCall",
+    "sources": [
+      "grunt_03.ogg",
+      "monster_06.ogg"
+    ],
+    "author": "rubberduck",
+    "sourcePage": "https://opengameart.org/content/80-cc0-creature-sfx",
+    "license": "CC0-1.0",
+    "processing": "Mono; independently resampled primary82%/texture18%; active trim; peak/RMS normalization;15ms fades. Original recorded sounds.",
+    "pitch": 0.77,
+    "duration": 0.622,
+    "sampleRate": 32000,
+    "peak": 0.56,
+    "rms": 0.0966,
+    "sha256": "c9b257b8e6e482e304aa51da7074707c74f9d7bd763542d92551476e92dbeb01"
+  },
+  {
+    "resource": "Carrot/Audio/EVoiceemberBoarHit",
+    "sources": [
+      "grunt_03.ogg",
+      "monster_06.ogg"
+    ],
+    "author": "rubberduck",
+    "sourcePage": "https://opengameart.org/content/80-cc0-creature-sfx",
+    "license": "CC0-1.0",
+    "processing": "Mono; independently resampled primary82%/texture18%; active trim; peak/RMS normalization;15ms fades. Original recorded sounds.",
+    "pitch": 0.8777999999999999,
+    "duration": 0.48,
+    "sampleRate": 32000,
+    "peak": 0.56,
+    "rms": 0.1032,
+    "sha256": "2f5da4eb757458e2c1b22e8d0ba0e23a7d62b7fae36969cd2e4ce70f5d0b2b7c"
+  },
+  {
+    "resource": "Carrot/Audio/EVoiceemberBoarAttack",
+    "sources": [
+      "grunt_03.ogg",
+      "monster_06.ogg"
+    ],
+    "author": "rubberduck",
+    "sourcePage": "https://opengameart.org/content/80-cc0-creature-sfx",
+    "license": "CC0-1.0",
+    "processing": "Mono; independently resampled primary82%/texture18%; active trim; peak/RMS normalization;15ms fades. Original recorded sounds.",
+    "pitch": 0.7238,
+    "duration": 0.661,
+    "sampleRate": 32000,
+    "peak": 0.56,
+    "rms": 0.0969,
+    "sha256": "dbd239d0931bb07d05883c1383866e22e2fd2f5423365fb2abbe62ede4594c4b"
+  },
+  {
+    "resource": "Carrot/Audio/EVoicevenomQueenCall",
+    "sources": [
+      "spit_02.ogg",
+      "scream_01.ogg"
+    ],
+    "author": "rubberduck",
+    "sourcePage": "https://opengameart.org/content/80-cc0-creature-sfx",
+    "license": "CC0-1.0",
+    "processing": "Mono; independently resampled primary82%/texture18%; active trim; peak/RMS normalization;15ms fades. Original recorded sounds.",
+    "pitch": 0.96,
+    "duration": 0.76,
+    "sampleRate": 32000,
+    "peak": 0.56,
+    "rms": 0.0562,
+    "sha256": "4b59ce65dad4f00b793d6c997e64fb70d2ba8d59af8c6cbeea5760124bb8e648"
+  },
+  {
+    "resource": "Carrot/Audio/EVoicevenomQueenHit",
+    "sources": [
+      "spit_02.ogg",
+      "scream_01.ogg"
+    ],
+    "author": "rubberduck",
+    "sourcePage": "https://opengameart.org/content/80-cc0-creature-sfx",
+    "license": "CC0-1.0",
+    "processing": "Mono; independently resampled primary82%/texture18%; active trim; peak/RMS normalization;15ms fades. Original recorded sounds.",
+    "pitch": 1.0943999999999998,
+    "duration": 0.48,
+    "sampleRate": 32000,
+    "peak": 0.56,
+    "rms": 0.0645,
+    "sha256": "4c468eb91703dfa28606d605bb71f034390516306905ae54fc9e36bc3f261a7f"
+  },
+  {
+    "resource": "Carrot/Audio/EVoicevenomQueenAttack",
+    "sources": [
+      "spit_02.ogg",
+      "scream_01.ogg"
+    ],
+    "author": "rubberduck",
+    "sourcePage": "https://opengameart.org/content/80-cc0-creature-sfx",
+    "license": "CC0-1.0",
+    "processing": "Mono; independently resampled primary82%/texture18%; active trim; peak/RMS normalization;15ms fades. Original recorded sounds.",
+    "pitch": 0.9023999999999999,
+    "duration": 0.807,
+    "sampleRate": 32000,
+    "peak": 0.56,
+    "rms": 0.0557,
+    "sha256": "68df8450362784fa13bb45b0ddbb2f4995d03caf79fda346731bfaeb2661b095"
+  },
+  {
+    "resource": "Carrot/Audio/EVoiceironSnailCall",
+    "sources": [
+      "snore.ogg",
+      "bug_01.ogg"
+    ],
+    "author": "rubberduck",
+    "sourcePage": "https://opengameart.org/content/80-cc0-creature-sfx",
+    "license": "CC0-1.0",
+    "processing": "Mono; independently resampled primary82%/texture18%; active trim; peak/RMS normalization;15ms fades. Original recorded sounds.",
+    "pitch": 0.7,
+    "duration": 0.455,
+    "sampleRate": 32000,
+    "peak": 0.56,
+    "rms": 0.0779,
+    "sha256": "f0d8c7cb7127691655f760dca220fcfda528b8e1c060fb6c5f79c485c16b3ad5"
+  },
+  {
+    "resource": "Carrot/Audio/EVoiceironSnailHit",
+    "sources": [
+      "snore.ogg",
+      "bug_01.ogg"
+    ],
+    "author": "rubberduck",
+    "sourcePage": "https://opengameart.org/content/80-cc0-creature-sfx",
+    "license": "CC0-1.0",
+    "processing": "Mono; independently resampled primary82%/texture18%; active trim; peak/RMS normalization;15ms fades. Original recorded sounds.",
+    "pitch": 0.7979999999999999,
+    "duration": 0.401,
+    "sampleRate": 32000,
+    "peak": 0.56,
+    "rms": 0.0773,
+    "sha256": "2499baf7cfc1880b1b2e5492afa9838195e06b30247ff12ef5d0b960ba5ffcb0"
+  },
+  {
+    "resource": "Carrot/Audio/EVoiceironSnailAttack",
+    "sources": [
+      "snore.ogg",
+      "bug_01.ogg"
+    ],
+    "author": "rubberduck",
+    "sourcePage": "https://opengameart.org/content/80-cc0-creature-sfx",
+    "license": "CC0-1.0",
+    "processing": "Mono; independently resampled primary82%/texture18%; active trim; peak/RMS normalization;15ms fades. Original recorded sounds.",
+    "pitch": 0.6579999999999999,
+    "duration": 0.484,
+    "sampleRate": 32000,
+    "peak": 0.56,
+    "rms": 0.0781,
+    "sha256": "c07da5814510d49850ea6ba1630ea594af1df5e6075cffdb686fd6496b6cd1f0"
+  },
+  {
+    "resource": "Carrot/Audio/EVoicelanternLeechCall",
+    "sources": [
+      "weird_02.ogg",
+      "eat_04.ogg"
+    ],
+    "author": "rubberduck",
+    "sourcePage": "https://opengameart.org/content/80-cc0-creature-sfx",
+    "license": "CC0-1.0",
+    "processing": "Mono; independently resampled primary82%/texture18%; active trim; peak/RMS normalization;15ms fades. Original recorded sounds.",
+    "pitch": 0.91,
+    "duration": 0.283,
+    "sampleRate": 32000,
+    "peak": 0.4615,
+    "rms": 0.1099,
+    "sha256": "808d3150c785aee6c3ce93e8ed331aa239530275c038fdffaf74c7c51a16733f"
+  },
+  {
+    "resource": "Carrot/Audio/EVoicelanternLeechHit",
+    "sources": [
+      "weird_02.ogg",
+      "eat_04.ogg"
+    ],
+    "author": "rubberduck",
+    "sourcePage": "https://opengameart.org/content/80-cc0-creature-sfx",
+    "license": "CC0-1.0",
+    "processing": "Mono; independently resampled primary82%/texture18%; active trim; peak/RMS normalization;15ms fades. Original recorded sounds.",
+    "pitch": 1.0373999999999999,
+    "duration": 0.25,
+    "sampleRate": 32000,
+    "peak": 0.4385,
+    "rms": 0.1098,
+    "sha256": "9f6c4f776139a910469fb44cb3bea00683fb5d74a5a28361144bc4f6b87484e2"
+  },
+  {
+    "resource": "Carrot/Audio/EVoicelanternLeechAttack",
+    "sources": [
+      "weird_02.ogg",
+      "eat_04.ogg"
+    ],
+    "author": "rubberduck",
+    "sourcePage": "https://opengameart.org/content/80-cc0-creature-sfx",
+    "license": "CC0-1.0",
+    "processing": "Mono; independently resampled primary82%/texture18%; active trim; peak/RMS normalization;15ms fades. Original recorded sounds.",
+    "pitch": 0.8553999999999999,
+    "duration": 0.3,
+    "sampleRate": 32000,
+    "peak": 0.4574,
+    "rms": 0.1099,
+    "sha256": "572503460d3358b54c6537f2374bc2f4029b9e98a15ff130414dc6fdab70f0bf"
+  },
+  {
+    "resource": "Carrot/Audio/EVoicechronoMothCall",
+    "sources": [
+      "alien_05.ogg",
+      "cute_08.ogg"
+    ],
+    "author": "rubberduck",
+    "sourcePage": "https://opengameart.org/content/80-cc0-creature-sfx",
+    "license": "CC0-1.0",
+    "processing": "Mono; independently resampled primary82%/texture18%; active trim; peak/RMS normalization;15ms fades. Original recorded sounds.",
+    "pitch": 0.88,
+    "duration": 0.299,
+    "sampleRate": 32000,
+    "peak": 0.56,
+    "rms": 0.0453,
+    "sha256": "170ab3fec26dd1c5581a6b4a01b225208b2161c35b434559cbc20950ae3d9822"
+  },
+  {
+    "resource": "Carrot/Audio/EVoicechronoMothHit",
+    "sources": [
+      "alien_05.ogg",
+      "cute_08.ogg"
+    ],
+    "author": "rubberduck",
+    "sourcePage": "https://opengameart.org/content/80-cc0-creature-sfx",
+    "license": "CC0-1.0",
+    "processing": "Mono; independently resampled primary82%/texture18%; active trim; peak/RMS normalization;15ms fades. Original recorded sounds.",
+    "pitch": 1.0031999999999999,
+    "duration": 0.264,
+    "sampleRate": 32000,
+    "peak": 0.56,
+    "rms": 0.0427,
+    "sha256": "d7b5c47f72c9fb0edcaeb118508c4216bbd59064a62b9fa81ba50cf6b5eadb50"
+  },
+  {
+    "resource": "Carrot/Audio/EVoicechronoMothAttack",
+    "sources": [
+      "alien_05.ogg",
+      "cute_08.ogg"
+    ],
+    "author": "rubberduck",
+    "sourcePage": "https://opengameart.org/content/80-cc0-creature-sfx",
+    "license": "CC0-1.0",
+    "processing": "Mono; independently resampled primary82%/texture18%; active trim; peak/RMS normalization;15ms fades. Original recorded sounds.",
+    "pitch": 0.8271999999999999,
+    "duration": 0.317,
+    "sampleRate": 32000,
+    "peak": 0.56,
+    "rms": 0.0462,
+    "sha256": "7ef9d68de46827da7a669086a08f3937866c0e58597ab8ace220e16d37c4fe02"
+  },
+  {
+    "resource": "Carrot/Audio/EVoicethornBeastCall",
+    "sources": [
+      "roar_03.ogg",
+      "troll_02.ogg"
+    ],
+    "author": "rubberduck",
+    "sourcePage": "https://opengameart.org/content/80-cc0-creature-sfx",
+    "license": "CC0-1.0",
+    "processing": "Mono; independently resampled primary82%/texture18%; active trim; peak/RMS normalization;15ms fades. Original recorded sounds.",
+    "pitch": 0.74,
+    "duration": 0.486,
+    "sampleRate": 32000,
+    "peak": 0.56,
+    "rms": 0.0843,
+    "sha256": "abe3b2af660ee28c31d0b6e5e22c6e8946e7dbce5066f80b00811533e6c10d9f"
+  },
+  {
+    "resource": "Carrot/Audio/EVoicethornBeastHit",
+    "sources": [
+      "roar_03.ogg",
+      "troll_02.ogg"
+    ],
+    "author": "rubberduck",
+    "sourcePage": "https://opengameart.org/content/80-cc0-creature-sfx",
+    "license": "CC0-1.0",
+    "processing": "Mono; independently resampled primary82%/texture18%; active trim; peak/RMS normalization;15ms fades. Original recorded sounds.",
+    "pitch": 0.8435999999999999,
+    "duration": 0.428,
+    "sampleRate": 32000,
+    "peak": 0.56,
+    "rms": 0.0828,
+    "sha256": "96557ea1c2fd4d790fda58695e31f2b67a068aa172c7b21f236e477e52b6cd9d"
+  },
+  {
+    "resource": "Carrot/Audio/EVoicethornBeastAttack",
+    "sources": [
+      "roar_03.ogg",
+      "troll_02.ogg"
+    ],
+    "author": "rubberduck",
+    "sourcePage": "https://opengameart.org/content/80-cc0-creature-sfx",
+    "license": "CC0-1.0",
+    "processing": "Mono; independently resampled primary82%/texture18%; active trim; peak/RMS normalization;15ms fades. Original recorded sounds.",
+    "pitch": 0.6956,
+    "duration": 0.516,
+    "sampleRate": 32000,
+    "peak": 0.56,
+    "rms": 0.0845,
+    "sha256": "95b03c79a020ada50558d7fecec8004f199c768f636cd3cff8be6091caab712d"
+  },
+  {
+    "resource": "Carrot/Audio/EVoiceportalSentinelCall",
+    "sources": [
+      "monster_01.ogg",
+      "alien_06.ogg"
+    ],
+    "author": "rubberduck",
+    "sourcePage": "https://opengameart.org/content/80-cc0-creature-sfx",
+    "license": "CC0-1.0",
+    "processing": "Mono; independently resampled primary82%/texture18%; active trim; peak/RMS normalization;15ms fades. Original recorded sounds.",
+    "pitch": 0.78,
+    "duration": 0.772,
+    "sampleRate": 32000,
+    "peak": 0.56,
+    "rms": 0.0604,
+    "sha256": "9c480570213d96812e0d59aec88fa9ae5d9e43038902a7026274162a683c08b5"
+  },
+  {
+    "resource": "Carrot/Audio/EVoiceportalSentinelHit",
+    "sources": [
+      "monster_01.ogg",
+      "alien_06.ogg"
+    ],
+    "author": "rubberduck",
+    "sourcePage": "https://opengameart.org/content/80-cc0-creature-sfx",
+    "license": "CC0-1.0",
+    "processing": "Mono; independently resampled primary82%/texture18%; active trim; peak/RMS normalization;15ms fades. Original recorded sounds.",
+    "pitch": 0.8892,
+    "duration": 0.48,
+    "sampleRate": 32000,
+    "peak": 0.56,
+    "rms": 0.0652,
+    "sha256": "582a38cb87a41c05d9b3174cff30b1288852fc74e1ff082d39608573ed81e49f"
+  },
+  {
+    "resource": "Carrot/Audio/EVoiceportalSentinelAttack",
+    "sources": [
+      "monster_01.ogg",
+      "alien_06.ogg"
+    ],
+    "author": "rubberduck",
+    "sourcePage": "https://opengameart.org/content/80-cc0-creature-sfx",
+    "license": "CC0-1.0",
+    "processing": "Mono; independently resampled primary82%/texture18%; active trim; peak/RMS normalization;15ms fades. Original recorded sounds.",
+    "pitch": 0.7332,
+    "duration": 0.821,
+    "sampleRate": 32000,
+    "peak": 0.56,
+    "rms": 0.0558,
+    "sha256": "97824c5c40748aa30f1fa105bb381c879f093404ad2241b634a84ce10ef450d9"
+  },
+  {
+    "resource": "Carrot/Audio/EVoiceportalCall",
+    "sources": [
+      "monster_05.ogg",
+      "howl.ogg"
+    ],
+    "author": "rubberduck",
+    "sourcePage": "https://opengameart.org/content/80-cc0-creature-sfx",
+    "license": "CC0-1.0",
+    "processing": "Mono; independently resampled primary82%/texture18%; active trim; peak/RMS normalization;15ms fades. Original recorded sounds.",
+    "pitch": 0.62,
+    "duration": 0.716,
+    "sampleRate": 32000,
+    "peak": 0.56,
+    "rms": 0.0621,
+    "sha256": "c3122c9dce725d71de7401ad878134791e9e62a38835ffe42dc7fa6885b48787"
+  },
+  {
+    "resource": "Carrot/Audio/EVoiceportalHit",
+    "sources": [
+      "monster_05.ogg",
+      "howl.ogg"
+    ],
+    "author": "rubberduck",
+    "sourcePage": "https://opengameart.org/content/80-cc0-creature-sfx",
+    "license": "CC0-1.0",
+    "processing": "Mono; independently resampled primary82%/texture18%; active trim; peak/RMS normalization;15ms fades. Original recorded sounds.",
+    "pitch": 0.7068,
+    "duration": 0.48,
+    "sampleRate": 32000,
+    "peak": 0.56,
+    "rms": 0.0702,
+    "sha256": "71a9b6f475d988503b15cfe8bca97e40890499f196ea5882118d8c978cad87b4"
+  },
+  {
+    "resource": "Carrot/Audio/EVoiceportalAttack",
+    "sources": [
+      "monster_05.ogg",
+      "howl.ogg"
+    ],
+    "author": "rubberduck",
+    "sourcePage": "https://opengameart.org/content/80-cc0-creature-sfx",
+    "license": "CC0-1.0",
+    "processing": "Mono; independently resampled primary82%/texture18%; active trim; peak/RMS normalization;15ms fades. Original recorded sounds.",
+    "pitch": 0.5828,
+    "duration": 0.76,
+    "sampleRate": 32000,
+    "peak": 0.56,
+    "rms": 0.0629,
+    "sha256": "b4d08f2e4366c958369be4a44ce6ffabfbbabda06a15e5f91b2956dde5805400"
+  }
+]

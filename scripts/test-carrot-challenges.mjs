@@ -5,11 +5,11 @@ globalThis.localStorage={getItem:key=>values.get(key)||null,setItem:(key,value)=
 const key='cgs-carrot-challenges-v1'
 const campaign=(unlocked,medals={})=>({version:1,unlocked,medals,sound:true})
 const fresh=readChallenges()
-assert.deepEqual(fresh,{version:1,best:{}})
+assert.deepEqual(fresh,{version:2,best:{}})
 assert.equal(rawChallenges(),null,'no stored record reads as null for sync')
 assert.equal(values.has(key),false,'reading never writes')
 assert.equal(bossOfLevel(25),'tornado');assert.equal(bossOfLevel(27),'eyeball');assert.equal(bossOfLevel(24),null)
-assert.deepEqual(challengeLevels,{tornado:25,zombie:26,eyeball:27})
+assert.deepEqual(challengeLevels,{tornado:25,zombie:26,eyeball:27,portal:28})
 
 // Unlock rules: Easy is open from a fresh save; Hard after the Tornado or campaign level 12; Insane after the Zombie or campaign level 24.
 assert.equal(challengeUnlocked(25,campaign(1),fresh),true,'the Giant Tornado is open from a fresh save')
@@ -28,7 +28,7 @@ assert.equal(awardChallenge(fresh,'tornado',11,120,4),fresh,'impossible health n
 assert.equal(awardChallenge(fresh,'tornado',7,NaN,4),fresh,'a run without a time never records')
 assert.equal(awardChallenge(fresh,'dragon',7,120,4),fresh,'unknown guardians never record')
 let save=awardChallenge(fresh,'tornado',7,232.44,5)
-assert.deepEqual(save,{version:1,best:{tornado:{cleared:true,health:7,seconds:232.4,towers:5}}})
+assert.deepEqual(save,{version:2,best:{tornado:{cleared:true,health:7,seconds:232.4,towers:5}}})
 assert.deepEqual(readChallenges(),save,'the record survives a reload');assert.deepEqual(rawChallenges(),save)
 assert.equal(challengeUnlocked(26,campaign(1),save),true,'clearing the Tornado opens the Zombie')
 assert.equal(challengeUnlocked(27,campaign(1),save),false,'the Tornado alone does not open the Eyeball')
@@ -41,7 +41,7 @@ assert.equal(challengeUnlocked(27,campaign(1),save),true,'clearing the Zombie op
 assert.equal(values.get('cgs-carrot-defense-v1'),'{"version":1,"unlocked":3,"medals":{},"sound":true}','the campaign save is untouched')
 
 // Stars: 1 cleared, 2 carrot unharmed, 4 under par (240/360/480 s).
-assert.deepEqual(par,{tornado:240,zombie:360,eyeball:480})
+assert.deepEqual(par,{tornado:240,zombie:360,eyeball:480,portal:720})
 assert.equal(stars(undefined,'tornado'),0)
 assert.equal(stars({cleared:false,health:10,seconds:1,towers:1},'tornado'),0)
 assert.equal(stars(save.best.tornado,'tornado'),7,'10 HP under par earns all three')
@@ -54,23 +54,51 @@ assert.equal(formatSeconds(232.4),'3:52');assert.equal(formatSeconds(59.9),'0:59
 values.set(key,'{corrupt')
 assert.deepEqual(readChallenges(),fresh);assert.equal(rawChallenges(),null)
 values.set(key,JSON.stringify({version:1,best:{tornado:{cleared:true,health:12,seconds:10,towers:1},zombie:{cleared:false,health:5,seconds:10,towers:1},eyeball:{cleared:true,health:3.9,seconds:'77.26',towers:-2},dragon:{cleared:true,health:5,seconds:5,towers:1}}}))
-assert.deepEqual(readChallenges(),{version:1,best:{eyeball:{cleared:true,health:3,seconds:77.3,towers:0}}},'bad records are dropped and odd values cleaned')
-values.set(key,JSON.stringify({version:2,best:{}}))
+assert.deepEqual(readChallenges(),{version:2,best:{eyeball:{cleared:true,health:3,seconds:77.3,towers:0}}},'bad records are dropped and odd values cleaned')
+values.set(key,JSON.stringify({version:3,best:{}}))
 assert.deepEqual(readChallenges(),fresh,'an unknown version is not trusted');assert.equal(rawChallenges(),null)
 
 // Pure merge for account sync.
 const a={version:1,best:{tornado:{cleared:true,health:6,seconds:300,towers:7},zombie:{cleared:true,health:9,seconds:500,towers:12}}}
 const b={version:1,best:{tornado:{cleared:true,health:10,seconds:280,towers:4},eyeball:{cleared:true,health:2,seconds:900,towers:14}}}
-const merged={version:1,best:{tornado:{cleared:true,health:10,seconds:280,towers:4},zombie:{cleared:true,health:9,seconds:500,towers:12},eyeball:{cleared:true,health:2,seconds:900,towers:14}}}
+const merged={version:2,best:{tornado:{cleared:true,health:10,seconds:280,towers:4},zombie:{cleared:true,health:9,seconds:500,towers:12},eyeball:{cleared:true,health:2,seconds:900,towers:14}}}
 assert.deepEqual(mergeCarrotChallenges(a,b),merged,'cleared OR, health max, seconds min, towers follow the faster run')
 assert.deepEqual(mergeCarrotChallenges(b,a),merged,'mergeCarrotChallenges is symmetric')
-assert.deepEqual(mergeCarrotChallenges(null,b),b);assert.deepEqual(mergeCarrotChallenges(a,undefined),a);assert.equal(mergeCarrotChallenges(null,null),null)
-assert.deepEqual(mergeCarrotChallenges(a,{version:1}),a,'a side with no records adds nothing')
+assert.deepEqual(mergeCarrotChallenges(null,b),{...b,version:2});assert.deepEqual(mergeCarrotChallenges(a,undefined),{...a,version:2});assert.equal(mergeCarrotChallenges(null,null),null)
+assert.deepEqual(mergeCarrotChallenges(a,{version:1}),{...a,version:2},'a side with no records adds nothing')
 assert.deepEqual(mergeCarrotChallenges(a,{version:3,best:{}}),{version:3,best:{}},'a higher version wins outright')
-assert.deepEqual(mergeCarrotChallenges({garbage:1},b),b,'an unusable side yields the other')
+assert.deepEqual(mergeCarrotChallenges({garbage:1},b),{...b,version:2},'an unusable side yields the other')
+
+// Version 1 records migrate in memory without changing the legacy key or the campaign.
+const legacy={version:1,best:{...a.best,...b.best}}
+values.set(key,JSON.stringify(legacy))
+assert.deepEqual(rawChallenges(),{...legacy,version:2},'all three legacy guardians migrate to v2')
+assert.equal(values.get(key),JSON.stringify(legacy),'migration reads stay pure')
+const migratedAward=awardChallenge(readChallenges(),'portal',8,700,16)
+assert.equal(JSON.parse(values.get(key)).version,2,'the next award persists v2 on the existing key')
+for(const boss of ['tornado','zombie','eyeball'])assert.deepEqual(migratedAward.best[boss],legacy.best[boss],'migration retains '+boss)
+assert.deepEqual(mergeCarrotChallenges(legacy,migratedAward),migratedAward,'v1 local and v2 remote merge every record')
+assert.deepEqual(mergeCarrotChallenges(migratedAward,legacy),migratedAward,'v2 local and v1 remote merge every record')
+for(const future of [{version:3,best:{portal:{unknown:true}},seasons:[1]},{version:99,custom:'unknown'}]){
+ assert.equal(mergeCarrotChallenges(migratedAward,future),future,'future remote formats stay untouched')
+ assert.equal(mergeCarrotChallenges(future,migratedAward),future,'future local formats stay untouched')
+ values.set(key,JSON.stringify(future));assert.equal(rawChallenges(),null,'the current reader rejects future formats so sync freezes')
+}
+
+// Portal never renumbers the campaign or old challenges, and never drops a legacy record.
+assert.equal(bossOfLevel(28),'portal')
+assert.equal(challengeUnlocked(28,campaign(24,{24:7}),fresh),false,'campaign completion alone does not bypass the final challenge')
+const eyeClear=awardChallenge(save,'eyeball',6,601,17)
+assert.equal(challengeUnlocked(28,campaign(1),eyeClear),true,'defeating the Eyeball opens Portal')
+const portalClear=awardChallenge(eyeClear,'portal',4,719.8,20)
+assert.equal(stars(portalClear.best.portal,'portal'),5)
+assert.deepEqual(readChallenges(),portalClear,'Portal record persists with every old record')
+assert.deepEqual(mergeCarrotChallenges(save,portalClear),portalClear,'a legacy client record cannot erase Portal')
+assert.equal(mergeCarrotChallenges(portalClear,save).best.portal.health,4)
+assert.equal(mergeCarrotChallenges(portalClear,{version:1,best:{portal:{cleared:true,health:8,seconds:740,towers:24}}}).best.portal.seconds,719.8)
 
 globalThis.localStorage={getItem(){throw new Error('blocked')},setItem(){throw new Error('blocked')}}
 assert.deepEqual(readChallenges(),fresh,'blocked storage yields a fresh record');assert.equal(rawChallenges(),null)
 assert.equal(awardChallenge(fresh,'eyeball',10,400,6).best.eyeball.health,10,'a win is still awarded in memory without storage')
 assert.equal(challengeUnlocked(25,campaign(1),readChallenges()),true)
-console.log('Carrot challenges: unlock rules, awards, stars, merge rule, corrupt and blocked storage pass.')
+console.log('Carrot challenges: unlock rules, awards, stars, v1-to-v2 migration, future-format protection, merge rule, corrupt and blocked storage pass.')

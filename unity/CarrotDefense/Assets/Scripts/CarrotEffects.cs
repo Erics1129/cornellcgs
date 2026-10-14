@@ -9,16 +9,18 @@ namespace CarrotTD {
  // Presentation only. Combat and arrival timing remain authoritative in CarrotGame.
  // Every primitive is pooled in Awake; Handle never creates GameObjects or components.
  // Sizes are tuned for the fitted play camera (about 46 px per world unit at 1440x900): an impact covers an enemy body, never a thumbnail.
- public sealed class CarrotEffects : MonoBehaviour {
-  enum K:byte{Ring,Bolt,Shell,Decal,Light,Delay,Loop,Ghost,Tube}
-  enum Op:byte{MortarFlash2,MortarSmoke,BurnEmbers,ChargeTick,CrackleTick,ThunderBolt2,MistPuff,Fireworks,SkyFlash,PulseRing,ConductiveArc,BarkTick,ThunderAfter}
+ public sealed partial class CarrotEffects : MonoBehaviour {
+  enum K:byte{Ring,Bolt,Shell,Decal,Light,Delay,Loop,Ghost,Tube,Orbit}
+  enum Op:byte{MortarFlash2,MortarSmoke,BurnEmbers,ChargeTick,CrackleTick,ThunderBolt2,MistPuff,Fireworks,SkyFlash,PulseRing,ConductiveArc,BarkTick,ThunderAfter,ExpansionPulse,ExpansionTrail,ExpansionMeteor,ExpansionRift}
   struct Live{public K k;public int slot;public float age,life;public Vector3 a,b;public Color color;public float f0,f1,f2,f3;public int i0,i1;}
   readonly List<Live> live=new List<Live>();
+  readonly List<Live> pendingLive=new List<Live>();bool ticking;
   FxPool pool;FxSystem flash,sparks,smoke,dust,debris,embers,motes;Transform groundPlane;Camera cam;ParticleSystem ambient;ParticleSystemRenderer ambientRenderer;Material fireflyMaterial;bool ambientReady;
   FxPool.Slot auraDecal,auraRing;float auraClock;bool auraOn;
   public Action<Vector3,float,int> CameraImpulse;public Action<float,float,float> HitStop;public Func<Vector3,float> Ground=p=>0;public string Biome="garden";
   float clock;readonly Dictionary<int,float> chargedAt=new Dictionary<int,float>();float mortarAt=-9;int mortarKills;readonly Mesh[] ghostMeshes=new Mesh[2];
   public static Color Tone(string kind) {
+   if(ExpansionTone(kind,out var expansionTone))return expansionTone;
    switch(kind){case "frost":case "mantle":case "breath":case "shatter":return new Color(.35f,.8f,1f);case "prism":return new Color(.82f,.63f,1f);case "storm":case "thunder":return new Color(.56f,.75f,1f);case "gravity":return new Color(.63f,.28f,1f);case "blossom":case "root":return new Color(.58f,1f,.34f);case "book":case "mist":case "summon":case "marsh":return new Color(.3f,1f,.78f);case "bark":case "garden":return new Color(1f,.62f,.25f);case "orchard":case "rush":return new Color(1f,.55f,.2f);case "flock":return new Color(.6f,.5f,.9f);case "heap":return new Color(.85f,.70f,.30f);
     // Difficulty pass: blindness forms, uproot, tithe, the three challenge bosses and their casts, the Super merge.
     case "blind":return new Color(.12f,.1f,.2f);case "whiteout":return new Color(.9f,.97f,1f);case "dusk":return new Color(.3f,.25f,.4f);case "uproot":return new Color(.6f,.42f,.2f);case "tithe":return new Color(1f,.85f,.35f);
@@ -55,7 +57,8 @@ namespace CarrotTD {
   public void SuperMark(int slot,Vector3 p,string kind,Color tone,float alpha,bool active){
    if(slot<0||slot>=pool.emblems.Length)return;var d=pool.emblems[slot];var r=pool.superRings[slot];
    if(!active){if(d.busy){d.busy=false;d.go.SetActive(false);r.busy=false;r.go.SetActive(false);}return;}
-   if(!d.busy){d.busy=true;d.go.SetActive(true);r.busy=true;r.go.SetActive(true);d.mf.sharedMesh=pool.EmblemMesh(kind);}
+   if(!d.busy){d.busy=true;d.go.SetActive(true);r.busy=true;r.go.SetActive(true);}
+   var emblemMesh=pool.EmblemMesh(kind);if(d.mf.sharedMesh!=emblemMesh)d.mf.sharedMesh=emblemMesh;var emblemMaterial=ExpansionTower(kind)?pool.decal:pool.emblem;if(d.mr.sharedMaterial!=emblemMaterial)d.mr.sharedMaterial=emblemMaterial;
    d.t.position=G(p,.024f);d.t.rotation=Quaternion.Euler(0,clock*9+slot*36,0);d.t.localScale=new Vector3(1.3f,1,1.3f);
    d.block.SetColor("_Color",new Color(1,.92f,.62f,alpha));d.block.SetFloat("_Fade",1);d.block.SetFloat("_Erode",0);d.block.SetFloat("_Emissive",1);d.mr.SetPropertyBlock(d.block);
    float pulse=.5f+.5f*Mathf.Sin(clock*2.4f+slot);float rad=.72f+.05f*pulse;r.t.position=G(p,.05f);r.t.localScale=new Vector3(rad,1,rad);r.block.SetColor("_Color",Hot(new Color(tone.r,tone.g,tone.b,alpha*(.35f+.3f*pulse)),1.6f));r.mr.SetPropertyBlock(r.block);
@@ -83,7 +86,8 @@ namespace CarrotTD {
    bool high=CarrotQuality.Rich;var main=ambient.main;var emission=ambient.emission;var shape=ambient.shape;var sheet=ambient.textureSheetAnimation;var noise=ambient.noise;var col=ambient.colorOverLifetime;var vel=ambient.velocityOverLifetime;
    ambient.Stop(true,ParticleSystemStopBehavior.StopEmittingAndClear);shape.enabled=true;shape.shapeType=ParticleSystemShapeType.Box;sheet.enabled=true;sheet.mode=ParticleSystemAnimationMode.Grid;sheet.numTilesX=FxSheet.Tiles;sheet.numTilesY=FxSheet.Tiles;sheet.animation=ParticleSystemAnimationType.WholeSheet;sheet.frameOverTime=new ParticleSystem.MinMaxCurve(0);sheet.startFrame=FxSheet.GlowSoft/(float)(FxSheet.Tiles*FxSheet.Tiles);noise.enabled=true;noise.quality=ParticleSystemNoiseQuality.Low;col.enabled=true;vel.enabled=true;vel.space=ParticleSystemSimulationSpace.World;emission.enabled=true;ambientRenderer.sharedMaterial=pool.additiveSheet;main.gravityModifier=0;main.startSpeed=0;main.startRotation=0;
    var g=new Gradient();
-   if(biome=="frost"){int count=CarrotQuality.High?350:high?220:140;main.maxParticles=count;main.startLifetime=5;emission.rateOverTime=count/5f;shape.position=new Vector3(0,9,0);shape.scale=new Vector3(26,1,22);main.startSize=new ParticleSystem.MinMaxCurve(.06f,.12f);main.startColor=new Color(.95f,.97f,1,.9f);vel.x=.12f;vel.y=-1.1f;vel.z=0;noise.strength=.4f;noise.frequency=.25f;noise.scrollSpeed=.2f;g.SetKeys(new[]{new GradientColorKey(Color.white,0),new GradientColorKey(Color.white,1)},new[]{new GradientAlphaKey(0,0),new GradientAlphaKey(1,.08f),new GradientAlphaKey(1,.85f),new GradientAlphaKey(0,1)});}
+   if(biome=="portal"){int count=high?48:24;main.maxParticles=count;main.startLifetime=7;emission.rateOverTime=count/7f;shape.position=new Vector3(0,1,0);shape.scale=new Vector3(18,2,14);main.startSize=new ParticleSystem.MinMaxCurve(.06f,.14f);main.startColor=new Color(.45f,.74f,1,.65f);vel.x=.08f;vel.y=.18f;vel.z=-.04f;noise.strength=.45f;noise.frequency=.3f;noise.scrollSpeed=.25f;g.SetKeys(new[]{new GradientColorKey(new Color(.35f,.8f,1),0),new GradientColorKey(new Color(.7f,.4f,1),1)},new[]{new GradientAlphaKey(0,0),new GradientAlphaKey(.8f,.2f),new GradientAlphaKey(0,1)});}
+   else if(biome=="frost"){int count=CarrotQuality.High?350:high?220:140;main.maxParticles=count;main.startLifetime=5;emission.rateOverTime=count/5f;shape.position=new Vector3(0,9,0);shape.scale=new Vector3(26,1,22);main.startSize=new ParticleSystem.MinMaxCurve(.06f,.12f);main.startColor=new Color(.95f,.97f,1,.9f);vel.x=.12f;vel.y=-1.1f;vel.z=0;noise.strength=.4f;noise.frequency=.25f;noise.scrollSpeed=.2f;g.SetKeys(new[]{new GradientColorKey(Color.white,0),new GradientColorKey(Color.white,1)},new[]{new GradientAlphaKey(0,0),new GradientAlphaKey(1,.08f),new GradientAlphaKey(1,.85f),new GradientAlphaKey(0,1)});}
    else if(biome=="marsh"){int count=high?24:12;main.maxParticles=count;main.startLifetime=new ParticleSystem.MinMaxCurve(6,14);emission.rateOverTime=count/10f;shape.position=new Vector3(0,.75f,0);shape.scale=new Vector3(16,.8f,12);main.startSize=.13f;main.startColor=Color.white;vel.x=0;vel.y=.02f;vel.z=0;noise.strength=.6f;noise.frequency=.3f;noise.scrollSpeed=.4f;ambientRenderer.sharedMaterial=fireflyMaterial;g.SetKeys(new[]{new GradientColorKey(Color.white,0),new GradientColorKey(Color.white,1)},new[]{new GradientAlphaKey(0,0),new GradientAlphaKey(1,.15f),new GradientAlphaKey(.05f,.35f),new GradientAlphaKey(1,.55f),new GradientAlphaKey(.05f,.75f),new GradientAlphaKey(.8f,.9f),new GradientAlphaKey(0,1)});}
    else if(biome=="orchard"){int count=high?70:30;main.maxParticles=count;main.startLifetime=9;emission.rateOverTime=count/9f;shape.position=new Vector3(0,4.5f,0);shape.scale=new Vector3(20,1,15);main.startSize=new ParticleSystem.MinMaxCurve(.09f,.15f);main.startColor=new Color(.95f,.6f,.22f,.9f);main.startRotation=new ParticleSystem.MinMaxCurve(0,6.28f);vel.x=.25f;vel.y=-.42f;vel.z=.08f;noise.strength=.7f;noise.frequency=.35f;noise.scrollSpeed=.4f;sheet.startFrame=FxSheet.Leaf/(float)(FxSheet.Tiles*FxSheet.Tiles);ambientRenderer.sharedMaterial=pool.alphaSheet;g.SetKeys(new[]{new GradientColorKey(new Color(.95f,.6f,.22f),0),new GradientColorKey(new Color(.7f,.3f,.12f),1)},new[]{new GradientAlphaKey(0,0),new GradientAlphaKey(1,.1f),new GradientAlphaKey(1,.85f),new GradientAlphaKey(0,1)});}
    else{int count=high?90:40;main.maxParticles=count;main.startLifetime=10;emission.rateOverTime=count/10f;shape.position=new Vector3(0,1.2f,0);shape.scale=new Vector3(18,2.2f,14);main.startSize=new ParticleSystem.MinMaxCurve(.05f,.08f);main.startColor=new Color(1,.95f,.7f,.6f);vel.x=.15f;vel.y=-.03f;vel.z=.05f;noise.strength=.25f;noise.frequency=.2f;noise.scrollSpeed=.3f;g.SetKeys(new[]{new GradientColorKey(Color.white,0),new GradientColorKey(Color.white,1)},new[]{new GradientAlphaKey(0,0),new GradientAlphaKey(1,.15f),new GradientAlphaKey(1,.8f),new GradientAlphaKey(0,1)});}
@@ -93,30 +97,36 @@ namespace CarrotTD {
   /// <summary>Ground aura under a living boss: cracked earth (garden), a mint rune ring (marsh) or a frost web (frost) plus a slow HDR pulse ring. Called every frame by the view.</summary>
   public void BossAura(Vector3 p,string boss,Color tone,bool active,float dt){
    if(!active){if(auraOn){auraOn=false;auraDecal.go.SetActive(false);auraRing.go.SetActive(false);}return;}
-   if(!auraOn){auraOn=true;auraDecal.go.SetActive(true);auraRing.go.SetActive(true);auraDecal.mf.sharedMesh=pool.DecalMesh(boss=="marsh"?FxSheet.Pollen:boss=="frost"?FxSheet.FrostWeb:boss=="orchard"?FxSheet.Scorch:boss=="tornado"?FxSheet.Pollen:boss=="zombie"?FxSheet.Mud:boss=="eyeball"?FxSheet.Void:FxSheet.Crack);auraDecal.t.rotation=Quaternion.identity;auraRing.t.rotation=Quaternion.identity;}
+   if(!auraOn){auraOn=true;auraDecal.go.SetActive(true);auraRing.go.SetActive(true);auraDecal.mf.sharedMesh=pool.DecalMesh(boss=="marsh"?FxSheet.Pollen:boss=="frost"?FxSheet.FrostWeb:boss=="orchard"?FxSheet.Scorch:boss=="tornado"?FxSheet.Pollen:boss=="zombie"?FxSheet.Mud:(boss=="eyeball"||boss=="portal")?FxSheet.Void:FxSheet.Crack);auraDecal.t.rotation=Quaternion.identity;auraRing.t.rotation=Quaternion.identity;}
    auraClock+=dt;float pulse=.5f+.5f*Mathf.Sin(auraClock*2.4f);
    float auraSize=boss=="tornado"?3.4f:boss=="eyeball"?3f:2.6f;auraDecal.t.position=G(p,.02f);auraDecal.t.localScale=new Vector3(auraSize,1,auraSize);auraDecal.t.rotation=Quaternion.Euler(0,boss=="marsh"?auraClock*18:boss=="tornado"?-auraClock*120:boss=="eyeball"?auraClock*10:0,0);
    Color dc=boss=="garden"?new Color(.16f,.1f,.06f,.85f):new Color(tone.r,tone.g,tone.b,.7f);auraDecal.block.SetColor("_Color",dc);auraDecal.block.SetFloat("_Fade",.75f+.25f*pulse);auraDecal.block.SetFloat("_Erode",0);auraDecal.block.SetFloat("_Emissive",boss=="garden"?0:1);auraDecal.mr.SetPropertyBlock(auraDecal.block);
    float r=1.05f+.12f*pulse;auraRing.t.position=G(p,.05f);auraRing.t.localScale=new Vector3(r,1,r);auraRing.block.SetColor("_Color",Hot(new Color(tone.r,tone.g,tone.b,.35f+.3f*pulse),1.8f));auraRing.mr.SetPropertyBlock(auraRing.block);
   }
   void OnDestroy(){Clear();if(pool!=null)pool.Dispose();if(fireflyMaterial!=null)Destroy(fireflyMaterial);for(int i=0;i<ghostMeshes.Length;i++)if(ghostMeshes[i]!=null)Destroy(ghostMeshes[i]);}
-  public void Clear(){for(int i=0;i<live.Count;i++)Release(live[i]);live.Clear();chargedAt.Clear();clock=0;if(flash!=null){flash.Clear();sparks.Clear();smoke.Clear();dust.Clear();debris.Clear();embers.Clear();motes.Clear();}BossAura(Vector3.zero,"",Color.white,false,0);if(pool!=null){for(int i=0;i<pool.emblems.Length;i++)SuperMark(i,Vector3.zero,"",Color.white,0,false);CarrotLantern(Vector3.zero,0);}}
-  void Release(Live l){switch(l.k){case K.Ring:FxPool.Free(pool.rings[l.slot]);break;case K.Bolt:FxPool.Free(pool.bolts[l.slot]);break;case K.Shell:FxPool.Free(pool.shells[l.slot]);break;case K.Decal:FxPool.Free(pool.decals[l.slot]);break;case K.Light:pool.lights[l.slot].light.intensity=0;FxPool.Free(pool.lights[l.slot]);break;case K.Ghost:for(int g=0;g<3;g++)FxPool.Free(pool.ghosts[l.slot*3+g]);break;case K.Tube:FxPool.Free(pool.tubes[l.slot]);break;}}
-  void Add(Live l){if(live.Count>=CarrotQuality.MaxEffects){int victim=-1;for(int i=0;i<live.Count;i++)if(live[i].k==K.Delay||live[i].k==K.Loop||live[i].k==K.Decal){victim=i;break;}if(victim<0)victim=0;Release(live[victim]);live.RemoveAt(victim);}live.Add(l);}
+  public void Clear(){for(int i=0;i<live.Count;i++)Release(live[i]);live.Clear();for(int i=0;i<pendingLive.Count;i++)Release(pendingLive[i]);pendingLive.Clear();chargedAt.Clear();clock=0;if(flash!=null){flash.Clear();sparks.Clear();smoke.Clear();dust.Clear();debris.Clear();embers.Clear();motes.Clear();}BossAura(Vector3.zero,"",Color.white,false,0);if(pool!=null){for(int i=0;i<pool.emblems.Length;i++)SuperMark(i,Vector3.zero,"",Color.white,0,false);CarrotLantern(Vector3.zero,0);}}
+  void Release(Live l){switch(l.k){case K.Ring:case K.Orbit:FxPool.Free(pool.rings[l.slot]);break;case K.Bolt:FxPool.Free(pool.bolts[l.slot]);break;case K.Shell:FxPool.Free(pool.shells[l.slot]);break;case K.Decal:FxPool.Free(pool.decals[l.slot]);break;case K.Light:pool.lights[l.slot].light.intensity=0;FxPool.Free(pool.lights[l.slot]);break;case K.Ghost:for(int g=0;g<3;g++)FxPool.Free(pool.ghosts[l.slot*3+g]);break;case K.Tube:FxPool.Free(pool.tubes[l.slot]);break;}}
+  // Delayed recipes can enqueue effects from inside Tick. Defer list mutation until every
+  // current item has advanced so saturation eviction cannot overwrite another live slot.
+  void Add(Live l){if(ticking){if(pendingLive.Count>=CarrotQuality.MaxEffects){Release(l);return;}pendingLive.Add(l);return;}AddNow(l);}
+  void AddNow(Live l){if(live.Count>=CarrotQuality.MaxEffects){int victim=-1;for(int i=0;i<live.Count;i++)if(live[i].k==K.Delay||live[i].k==K.Loop||live[i].k==K.Decal){victim=i;break;}if(victim<0)victim=0;Release(live[victim]);live.RemoveAt(victim);}live.Add(l);}
   public void Tick(float dt){
    if(dt<=0)return;clock+=dt;if(cam==null)cam=Camera.main;
    flash.Simulate(dt);sparks.Simulate(dt);smoke.Simulate(dt);dust.Simulate(dt);debris.Simulate(dt);embers.Simulate(dt);motes.Simulate(dt);if(ambientReady)ambient.Simulate(dt,true,false,false);
+   ticking=true;
    for(int i=live.Count-1;i>=0;i--){
     Live l=live[i];l.age+=dt;float t=Mathf.Clamp01(l.age/Mathf.Max(.0001f,l.life));bool done=l.age>=l.life;
     switch(l.k){
+     case K.Orbit:TickOrbit(l,t);break;
      case K.Ring:{var s=pool.rings[l.slot];float e=1-(1-t)*(1-t);float r=Mathf.Lerp(l.f0,l.f1,e);s.t.localScale=new Vector3(r,1,r);Color c=l.color;c.a*=Mathf.Pow(1-t,l.f2)*(l.i1==1?.7f+.3f*Mathf.Sin(l.age*9):1);s.block.SetColor("_Color",c);s.mr.SetPropertyBlock(s.block);break;}
      case K.Bolt:{var s=pool.bolts[l.slot];if(l.i1==1){l.f3-=dt;if(l.f3<=0){l.f3=l.f2;Jitter(s.line,l.a,l.b,l.f1);}}Color c=l.color;c.a*=(1-t)*(l.i0==1?1:.75f+.25f*Mathf.Sin(l.age*60));s.line.startColor=s.line.endColor=c;s.line.widthMultiplier=l.f0*(l.i0==1?1-t*.4f:1-t*.7f);break;}
-     case K.Shell:{var s=pool.shells[l.slot];Vector3 p=Arc(l.a,l.b,l.f0,t);s.t.position=p;if(l.i1==1&&cam!=null)s.t.rotation=cam.transform.rotation*Quaternion.Euler(0,0,l.age*l.f1);else s.t.rotation=Quaternion.Euler(l.age*l.f1,l.age*l.f1*.6f,l.age*l.f1*.3f);
+     case K.Shell:{var s=pool.shells[l.slot];Vector3 p=Arc(l.a,l.b,l.f0,t);s.t.position=p;if(l.i1==1&&cam!=null)s.t.rotation=cam.transform.rotation*Quaternion.Euler(0,0,l.age*l.f1);else if(l.i1==2){Vector3 d=Arc(l.a,l.b,l.f0,Mathf.Min(1,t+.01f))-Arc(l.a,l.b,l.f0,Mathf.Max(0,t-.01f));if(d.sqrMagnitude>.00001f)s.t.rotation=Quaternion.LookRotation(d)*Quaternion.Euler(0,0,l.age*l.f1);}else s.t.rotation=Quaternion.Euler(l.age*l.f1,l.age*l.f1*.6f,l.age*l.f1*.3f);
       if(cam!=null)s.glow.rotation=cam.transform.rotation;
       for(int j=0;j<8;j++)s.trail.SetPosition(j,Arc(l.a,l.b,l.f0,Mathf.Clamp01(t-j*l.f2)));
       if(l.i0==1){l.f3+=dt;if(l.f3>.08f){l.f3=0;Smoke(p,1,.3f,.42f,.5f,new Color(.6f,.55f,.5f,.45f),0);embers.Frame(FxSheet.Ember);for(int k=0;k<2;k++)embers.Emit(p,UnityEngine.Random.insideUnitSphere*.5f,.12f,.35f,new Color(1,.5f,.15f));}}
       else if(l.i0==2){l.f3+=dt;if(l.f3>.08f){l.f3=0;motes.Frame(FxSheet.Flake);motes.Emit(p,UnityEngine.Random.insideUnitSphere*.4f,.1f,.55f,new Color(.75f,.9f,1,.8f),R(0,360),200);}}
       else if(l.i0==3){l.f3+=dt;if(l.f3>.06f){l.f3=0;flash.Frame(FxSheet.StarGlyph);flash.Emit(p,Vector3.up*.3f,.18f,.4f,new Color(1,.85f,.4f,.8f),R(0,360),120);}}
+      else if(l.i0>=5)ExpansionTrail(ref l,p,dt);
       else if(l.i0==0){l.f3+=dt;if(l.f3>.05f){l.f3=0;motes.Frame(FxSheet.GlowSoft);motes.Emit(p,UnityEngine.Random.insideUnitSphere*.15f,.16f,.22f,new Color(1,.8f,.35f,.6f));}}
       break;}
      case K.Decal:{var s=pool.decals[l.slot];float size=Mathf.Lerp(l.f0,l.f1,Mathf.Min(1,l.age/.35f));s.t.localScale=new Vector3(size,1,size);float fade=Mathf.Min(1,l.age/.08f)*(1-Mathf.Pow(t,3));float erode=l.i1==1?Mathf.Max(0,t-.3f)/.7f*.9f:0;s.block.SetColor("_Color",l.color);s.block.SetFloat("_Fade",fade*l.f2);s.block.SetFloat("_Erode",erode);s.block.SetFloat("_Emissive",l.f3);s.mr.SetPropertyBlock(s.block);break;}
@@ -128,6 +138,7 @@ namespace CarrotTD {
     }
     if(done){Release(l);int last=live.Count-1;live[i]=live[last];live.RemoveAt(last);}else live[i]=l;
    }
+   ticking=false;for(int i=0;i<pendingLive.Count;i++)AddNow(pendingLive[i]);pendingLive.Clear();
   }
   static Vector3 Arc(Vector3 a,Vector3 b,float height,float t){Vector3 m=(a+b)*.5f+Vector3.up*height;return Vector3.Lerp(Vector3.Lerp(a,m,t),Vector3.Lerp(m,b,t),t);}
   // ---- primitives -------------------------------------------------------------------------------------------
@@ -142,7 +153,7 @@ namespace CarrotTD {
   public void Burst(Vector3 p,Color color,int count,float size,float life,float speed=1.2f){Motes(p,N(count),size,life,color,speed,Vector3.up*.08f,FxSheet.GlowSoft,.6f);}
   public void Ring(Vector3 p,Color color,float radius,float life,float width=.035f){RingFx(p,radius*.2f,radius,life,color,width>.05f?1:0,2);}
   /// <summary>kind 0 thin ring, 1 thick ring, 2 shockwave band, 3 flat glow disc (radius = scale).</summary>
-  void RingFx(Vector3 p,float r0,float r1,float life,Color c,int kind=0,float power=2,bool pulse=false,float y=.045f){int slot=FxPool.Take(pool.rings);if(slot<0)return;var s=pool.rings[slot];s.mf.sharedMesh=kind==0?pool.ringThin:kind==1?pool.ringThick:kind==2?pool.ringShock:pool.glowDisc;
+  void RingFx(Vector3 p,float r0,float r1,float life,Color c,int kind=0,float power=2,bool pulse=false,float y=.045f){int slot=TakeRing(pulse);if(slot<0)return;var s=pool.rings[slot];s.mf.sharedMesh=kind==0?pool.ringThin:kind==1?pool.ringThick:kind==2?pool.ringShock:pool.glowDisc;
    // Pulsing (telegraph) rings on the arena read through the tornado funnel and the eyeball's bulk: the ZTest-Always FxAdditive.
    s.mr.sharedMaterial=pulse&&Through?pool.additiveTop:pool.additiveSheet;s.t.position=G(p,y);s.t.rotation=Quaternion.identity;s.t.localScale=new Vector3(r0,1,r0);Add(new Live{k=K.Ring,slot=slot,life=life,f0=r0,f1=r1,f2=power,color=c,i1=pulse?1:0});}
   /// <summary>Bright ground pool under an impact: the one element that reads from any distance.</summary>
@@ -150,7 +161,7 @@ namespace CarrotTD {
   void BoltFx(Vector3 a,Vector3 b,float width,float life,Color c,float jitter=.16f,int branches=0,bool beam=false,float crackle=0,float hot=1){int slot=FxPool.Take(pool.bolts);if(slot<0)return;var s=pool.bolts[slot];s.line.positionCount=beam?2:16;if(beam){s.line.SetPosition(0,a);s.line.SetPosition(1,b);}else Jitter(s.line,a,b,jitter);s.line.widthMultiplier=width;s.line.startColor=s.line.endColor=c;s.block.SetColor("_Color",new Color(hot,hot,hot,1));s.line.SetPropertyBlock(s.block);Add(new Live{k=K.Bolt,slot=slot,life=life,a=a,b=b,f0=width,f1=jitter,f2=crackle,f3=crackle,color=c,i0=beam?1:0,i1=crackle>0?1:0});
    for(int j=0;j<branches;j++){Vector3 start=Vector3.Lerp(a,b,.3f+j*.2f);Vector3 axis=Vector3.Cross((b-a).normalized,Vector3.up);if(axis.sqrMagnitude<.01f)axis=Vector3.right;Vector3 end=start+axis*(j%2==0?.7f:-.7f)+Vector3.down*.5f+Vector3.forward*(j==2?.4f:0);BoltFx(start,end,width*.45f,life*.75f,c*.85f,jitter*.6f,0,false,0,hot);}}
   static void Jitter(LineRenderer line,Vector3 a,Vector3 b,float amplitude){int n=line.positionCount;Vector3 axis=Vector3.Cross((b-a).normalized,Vector3.up);if(axis.sqrMagnitude<.01f)axis=Vector3.right;Vector3 axis2=Vector3.Cross(axis,(b-a).normalized);for(int i=0;i<n;i++){float t=i/(float)(n-1);float w=(i==0||i==n-1)?0:Mathf.Sin(t*Mathf.PI)*amplitude;line.SetPosition(i,Vector3.Lerp(a,b,t)+axis*R(-w,w)+axis2*R(-w,w)*.6f);}}
-  void ShellFx(string kind,Vector3 from,Vector3 to,float life,int tier){int slot=FxPool.Take(pool.shells);if(slot<0)return;var s=pool.shells[slot];bool sprite=kind=="frost"||kind=="book";float height=kind=="mortar"?1.6f:kind=="book"?.7f:.16f;int mode=kind=="mortar"?1:kind=="frost"?2:kind=="starfruit"?3:kind=="book"?4:0;
+  void ShellFx(string kind,Vector3 from,Vector3 to,float life,int tier){int slot=FxPool.Take(pool.shells);if(slot<0)return;var s=pool.shells[slot];s.mr.SetPropertyBlock(null);bool sprite=kind=="frost"||kind=="book";float height=kind=="mortar"?1.6f:kind=="book"?.7f:.16f;int mode=kind=="mortar"?1:kind=="frost"?2:kind=="starfruit"?3:kind=="book"?4:0;
    // Super (tier 5) shells: a hotter, thicker trail and a larger glow so the merged tower's fire reads as its own.
    bool super=tier>=5;
    s.mf.sharedMesh=kind=="mortar"?pool.iron:kind=="starfruit"?pool.star:sprite?pool.sprite:pool.husk;s.mr.sharedMaterial=kind=="mortar"?pool.ironShell:kind=="starfruit"?pool.starShell:sprite?pool.additiveSheet:pool.seedShell;
@@ -171,7 +182,7 @@ namespace CarrotTD {
    Add(new Live{k=K.Tube,slot=slot,life=life,f0=grow,f1=radius,f3=0});}
   void Delay(float seconds,Op op,Vector3 a,Vector3 b,Color c,float f=0,int i=0){Add(new Live{k=K.Delay,life=seconds,i0=(int)op,a=a,b=b,color=c,f0=f,i1=i});}
   void Loop(float life,float interval,Op op,Vector3 a,Vector3 b,Color c,float f=0,int i=0){Add(new Live{k=K.Loop,life=life,f1=interval,f3=0,i0=(int)op,a=a,b=b,color=c,f0=f,i1=i});}
-  void Run(Op op,Vector3 a,Vector3 b,Color c,float f,int i,float t=0){switch(op){
+  void Run(Op op,Vector3 a,Vector3 b,Color c,float f,int i,float t=0){if(RunExpansion(op,a,b,c,f,i,t))return;switch(op){
    case Op.MortarFlash2:Flash(a,1.1f,.12f,new Color(1,.7f,.35f),FxSheet.Star4,R(0,360));break;
    case Op.MortarSmoke:Smoke(a,N(12),1.0f,1.6f,1.8f,new Color(.42f,.38f,.34f,.85f),.7f,.8f);break;
    case Op.BurnEmbers:Embers(a,N(i),.3f,.45f,new Color(1,.45f,.12f),1.2f,f);break;
@@ -188,10 +199,10 @@ namespace CarrotTD {
   }}
   public void Echo(GameObject actor,Vector3 from,Vector3 to,float duration){
    int group=-1;for(int g=0;g<2;g++)if(!pool.ghosts[g*3].busy){group=g;break;}if(group<0)return;
-   var parts=new List<CombineInstance>();var baked=new List<Mesh>();
+   var parts=new List<CombineInstance>();var baked=new List<Mesh>();bool measuredRig=actor.GetComponentInChildren<CarrotModelMetrics>()!=null;
    foreach(var r in actor.GetComponentsInChildren<Renderer>()){
     if(!r.enabled||!r.gameObject.activeInHierarchy||r.name=="Contact shadow")continue;Mesh mesh=null;
-    if(r is SkinnedMeshRenderer skin){mesh=new Mesh();skin.BakeMesh(mesh);baked.Add(mesh);}
+    if(r is SkinnedMeshRenderer skin){mesh=new Mesh();if(measuredRig)skin.BakeMesh(mesh,true);else skin.BakeMesh(mesh);baked.Add(mesh);}
     else{var filter=r.GetComponent<MeshFilter>();if(filter!=null)mesh=filter.sharedMesh;}
     if(mesh==null||!mesh.isReadable)continue;for(int i=0;i<mesh.subMeshCount;i++)parts.Add(new CombineInstance{mesh=mesh,subMeshIndex=i,transform=Matrix4x4.Translate(-from)*r.localToWorldMatrix});
    }
@@ -201,7 +212,7 @@ namespace CarrotTD {
    Add(new Live{k=K.Ghost,slot=group,life=Mathf.Clamp(duration,.5f,1.8f),a=from,b=to,color=new Color(.35f,.9f,.83f,.24f)});
   }
   // ---- recipes -----------------------------------------------------------------------------------------------
-  public void Handle(CarrotEvent e){Color c=Tone(e.kind);switch(e.type){
+  public void Handle(CarrotEvent e){Color c=Tone(e.kind);if(HandleExpansion(e,c))return;switch(e.type){
    case "shot":Shot(e,c);break;
    case "impact":Impact(e,c);break;
    case "hit":{Vector3 p=e.position+Vector3.up*.3f;Flash(p,.32f,.08f,new Color(1,.95f,.85f,.9f),FxSheet.GlowHard);Sparks(p,N(3),1,2.2f,.22f,new Color(1,.85f,.5f));break;}

@@ -1,0 +1,352 @@
+[
+  {
+    "name": "bamboo-1",
+    "triangles": 16608,
+    "animated": false,
+    "meshes": 9,
+    "clips": []
+  },
+  {
+    "name": "bamboo-2",
+    "triangles": 20382,
+    "animated": false,
+    "meshes": 9,
+    "clips": []
+  },
+  {
+    "name": "bamboo-3",
+    "triangles": 23798,
+    "animated": false,
+    "meshes": 9,
+    "clips": []
+  },
+  {
+    "name": "bamboo-4",
+    "triangles": 27572,
+    "animated": false,
+    "meshes": 9,
+    "clips": []
+  },
+  {
+    "name": "bamboo-5",
+    "triangles": 36340,
+    "animated": false,
+    "meshes": 11,
+    "clips": []
+  },
+  {
+    "name": "chili-1",
+    "triangles": 13758,
+    "animated": false,
+    "meshes": 8,
+    "clips": []
+  },
+  {
+    "name": "chili-2",
+    "triangles": 15576,
+    "animated": false,
+    "meshes": 8,
+    "clips": []
+  },
+  {
+    "name": "chili-3",
+    "triangles": 17212,
+    "animated": false,
+    "meshes": 8,
+    "clips": []
+  },
+  {
+    "name": "chili-4",
+    "triangles": 19030,
+    "animated": false,
+    "meshes": 8,
+    "clips": []
+  },
+  {
+    "name": "chili-5",
+    "triangles": 23694,
+    "animated": false,
+    "meshes": 11,
+    "clips": []
+  },
+  {
+    "name": "lotus-1",
+    "triangles": 18780,
+    "animated": false,
+    "meshes": 12,
+    "clips": []
+  },
+  {
+    "name": "lotus-2",
+    "triangles": 21334,
+    "animated": false,
+    "meshes": 13,
+    "clips": []
+  },
+  {
+    "name": "lotus-3",
+    "triangles": 27594,
+    "animated": false,
+    "meshes": 13,
+    "clips": []
+  },
+  {
+    "name": "lotus-4",
+    "triangles": 29024,
+    "animated": false,
+    "meshes": 13,
+    "clips": []
+  },
+  {
+    "name": "lotus-5",
+    "triangles": 43272,
+    "animated": false,
+    "meshes": 14,
+    "clips": []
+  },
+  {
+    "name": "magnet-1",
+    "triangles": 16772,
+    "animated": false,
+    "meshes": 9,
+    "clips": []
+  },
+  {
+    "name": "magnet-2",
+    "triangles": 18594,
+    "animated": false,
+    "meshes": 9,
+    "clips": []
+  },
+  {
+    "name": "magnet-3",
+    "triangles": 22034,
+    "animated": false,
+    "meshes": 10,
+    "clips": []
+  },
+  {
+    "name": "magnet-4",
+    "triangles": 23856,
+    "animated": false,
+    "meshes": 10,
+    "clips": []
+  },
+  {
+    "name": "magnet-5",
+    "triangles": 26348,
+    "animated": false,
+    "meshes": 13,
+    "clips": []
+  },
+  {
+    "name": "orchid-1",
+    "triangles": 13762,
+    "animated": false,
+    "meshes": 11,
+    "clips": []
+  },
+  {
+    "name": "orchid-2",
+    "triangles": 15200,
+    "animated": false,
+    "meshes": 11,
+    "clips": []
+  },
+  {
+    "name": "orchid-3",
+    "triangles": 20298,
+    "animated": false,
+    "meshes": 11,
+    "clips": []
+  },
+  {
+    "name": "orchid-4",
+    "triangles": 21736,
+    "animated": false,
+    "meshes": 11,
+    "clips": []
+  },
+  {
+    "name": "orchid-5",
+    "triangles": 25350,
+    "animated": false,
+    "meshes": 12,
+    "clips": []
+  },
+  {
+    "name": "mushroom-1",
+    "triangles": 14468,
+    "animated": false,
+    "meshes": 8,
+    "clips": []
+  },
+  {
+    "name": "mushroom-2",
+    "triangles": 20196,
+    "animated": false,
+    "meshes": 10,
+    "clips": []
+  },
+  {
+    "name": "mushroom-3",
+    "triangles": 25134,
+    "animated": false,
+    "meshes": 10,
+    "clips": []
+  },
+  {
+    "name": "mushroom-4",
+    "triangles": 30862,
+    "animated": false,
+    "meshes": 10,
+    "clips": []
+  },
+  {
+    "name": "mushroom-5",
+    "triangles": 41206,
+    "animated": false,
+    "meshes": 13,
+    "clips": []
+  },
+  {
+    "name": "cactus-1",
+    "triangles": 16958,
+    "animated": false,
+    "meshes": 11,
+    "clips": []
+  },
+  {
+    "name": "cactus-2",
+    "triangles": 19800,
+    "animated": false,
+    "meshes": 11,
+    "clips": []
+  },
+  {
+    "name": "cactus-3",
+    "triangles": 23016,
+    "animated": false,
+    "meshes": 12,
+    "clips": []
+  },
+  {
+    "name": "cactus-4",
+    "triangles": 24046,
+    "animated": false,
+    "meshes": 12,
+    "clips": []
+  },
+  {
+    "name": "cactus-5",
+    "triangles": 29842,
+    "animated": false,
+    "meshes": 13,
+    "clips": []
+  },
+  {
+    "name": "clockflower-1",
+    "triangles": 25126,
+    "animated": false,
+    "meshes": 11,
+    "clips": []
+  },
+  {
+    "name": "clockflower-2",
+    "triangles": 27954,
+    "animated": false,
+    "meshes": 11,
+    "clips": []
+  },
+  {
+    "name": "clockflower-3",
+    "triangles": 29992,
+    "animated": false,
+    "meshes": 11,
+    "clips": []
+  },
+  {
+    "name": "clockflower-4",
+    "triangles": 32820,
+    "animated": false,
+    "meshes": 11,
+    "clips": []
+  },
+  {
+    "name": "clockflower-5",
+    "triangles": 37946,
+    "animated": false,
+    "meshes": 12,
+    "clips": []
+  },
+  {
+    "name": "dragonfruit-1",
+    "triangles": 18096,
+    "animated": false,
+    "meshes": 9,
+    "clips": []
+  },
+  {
+    "name": "dragonfruit-2",
+    "triangles": 20406,
+    "animated": false,
+    "meshes": 9,
+    "clips": []
+  },
+  {
+    "name": "dragonfruit-3",
+    "triangles": 21926,
+    "animated": false,
+    "meshes": 9,
+    "clips": []
+  },
+  {
+    "name": "dragonfruit-4",
+    "triangles": 24236,
+    "animated": false,
+    "meshes": 9,
+    "clips": []
+  },
+  {
+    "name": "dragonfruit-5",
+    "triangles": 29824,
+    "animated": false,
+    "meshes": 12,
+    "clips": []
+  },
+  {
+    "name": "moonflower-1",
+    "triangles": 11404,
+    "animated": false,
+    "meshes": 10,
+    "clips": []
+  },
+  {
+    "name": "moonflower-2",
+    "triangles": 13032,
+    "animated": false,
+    "meshes": 10,
+    "clips": []
+  },
+  {
+    "name": "moonflower-3",
+    "triangles": 14650,
+    "animated": false,
+    "meshes": 11,
+    "clips": []
+  },
+  {
+    "name": "moonflower-4",
+    "triangles": 16278,
+    "animated": false,
+    "meshes": 11,
+    "clips": []
+  },
+  {
+    "name": "moonflower-5",
+    "triangles": 19128,
+    "animated": false,
+    "meshes": 12,
+    "clips": []
+  }
+]
