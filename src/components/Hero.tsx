@@ -171,6 +171,13 @@ export default function Hero() {
                 <RollLabel text={hero.ctaPrimary.label} />
               </a>
               <a
+                href={hero.ctaGames.href}
+                className="btn hero-btn-ghost neon neon-idle justify-center col-span-2 md:col-span-1"
+                style={{ ['--neon-from' as string]: '120deg' }}
+              >
+                <RollLabel text={hero.ctaGames.label} />
+              </a>
+              <a
                 href={hero.ctaSecondary.href}
                 onClick={(e) => {
                   e.preventDefault()
