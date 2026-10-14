@@ -83,8 +83,10 @@ namespace CarrotTD {
    if(string.IsNullOrEmpty(kind)||System.Array.IndexOf(AllyKinds,kind)>=0||kind=="merge"||kind=="mergeUndo"||kind=="super")return c;
    if(separated.TryGetValue(kind,out var cached))return cached;
    if(allyLab==null){allyLab=new Vector3[AllyKinds.Length];for(int i=0;i<AllyKinds.Length;i++)allyLab[i]=OkLab(ToneRaw(AllyKinds[i]));}
-   Vector3 lab=OkLab(c),threat=OkLab(Threat);Color result=c;
-   if(MinAllyDistance(lab)<.09f){float lo=0,hi=1;for(int it=0;it<14;it++){float mid=(lo+hi)*.5f;if(MinAllyDistance(Vector3.Lerp(lab,threat,mid))>=.095f)hi=mid;else lo=mid;}result=FromOkLab(Vector3.Lerp(lab,threat,hi),c.a);}
+   // Step directly away from the nearest tower colour (keeps the ability's own hue family); toward the threat pink only for an exact twin.
+   Vector3 lab=OkLab(c);Color result=c;
+   for(int it=0;it<24&&MinAllyDistance(lab)<.095f;it++){Vector3 near=allyLab[0];float best=9;foreach(var a in allyLab){float d=Vector3.Distance(a,lab);if(d<best){best=d;near=a;}}Vector3 dir=lab-near;if(dir.sqrMagnitude<1e-6f)dir=OkLab(Threat)-lab;lab+=dir.normalized*.012f;lab.x=Mathf.Clamp(lab.x,.05f,.98f);}
+   if(lab!=OkLab(c))result=FromOkLab(lab,c.a);
    separated[kind]=result;return result;
   }
   static float MinAllyDistance(Vector3 lab){float m=9;foreach(var a in allyLab)m=Mathf.Min(m,Vector3.Distance(a,lab));return m;}

@@ -209,6 +209,7 @@ namespace CarrotTD {
   // rAF timing jitters a few ms either way, so an estimate snaps to the nearest standard period within 12%.
   static float SnapPeriod(float period){float best=period,err=float.MaxValue;foreach(var sp in StandardPeriods){float e=Mathf.Abs(period-sp);if(e<sp*.12f&&e<err){err=e;best=sp;}}return best;}
   System.Collections.IEnumerator WatchFrameWork(){var wait=new WaitForEndOfFrame();while(true){yield return wait;if(frameStart>0){workAccum+=Time.realtimeSinceStartup-frameStart;workFrames++;}}}
+  static bool IsStandardPeriod(float p){foreach(var sp in StandardPeriods)if(Mathf.Abs(p-sp)<.05f)return true;return false;}
   bool TierChangeAllowed(bool promotion){if(sessionClock-lastTierChangeAt<120)return false;if(promotion&&sessionClock-lastDemoteAt<60)return false;return true;}
   void WatchFrameTime(){
    frameStart=Time.realtimeSinceStartup;float frame=Time.unscaledDeltaTime;sessionClock+=frame;tierClock+=frame;
@@ -224,7 +225,7 @@ namespace CarrotTD {
    if(tierRefresh==float.MaxValue)tierRefresh=measured;
    else if(measured<tierRefresh-.4f){if(Mathf.Abs(measured-lowerCandidate)<.4f)lowerHeld++;else{lowerCandidate=measured;lowerHeld=1;}if(lowerHeld>=3&&measured>=6.9f){Debug.Log("CarrotQuality panel="+measured.ToString("F2")+" ms reason=three faster windows (was "+tierRefresh.ToString("F2")+")");tierRefresh=measured;lowerHeld=0;panelConfirm=0;}}
    else lowerHeld=0;
-   if(steady&&measured>tierRefresh+.4f&&work<measured*.5f){if(Mathf.Abs(measured-slowerCandidate)<.4f)slowerHeld++;else{slowerCandidate=measured;slowerHeld=1;}if(slowerHeld>=3){Debug.Log("CarrotQuality panel="+measured.ToString("F2")+" ms reason=steady slower cadence (was "+tierRefresh.ToString("F2")+")");tierRefresh=measured;slowerHeld=0;panelConfirm=0;}}
+   if(steady&&measured>tierRefresh+.4f&&work<measured*.5f&&IsStandardPeriod(measured)){if(Mathf.Abs(measured-slowerCandidate)<.4f)slowerHeld++;else{slowerCandidate=measured;slowerHeld=1;}if(slowerHeld>=3){Debug.Log("CarrotQuality panel="+measured.ToString("F2")+" ms reason=steady slower cadence (was "+tierRefresh.ToString("F2")+")");tierRefresh=measured;slowerHeld=0;panelConfirm=0;}}
    else slowerHeld=0;
    float panel=tierRefresh;if(Mathf.Abs(measured-panel)<.4f)panelConfirm++;else panelConfirm=0;
    bool hz120=Mathf.Abs(panel-1000f/120)<.3f&&panelConfirm>=3;float paced=panel*interval;
@@ -232,7 +233,7 @@ namespace CarrotTD {
    if(interval>1&&(panel>=11f||!hz120&&panelConfirm>=3)){SetInterval(1,"panel"+why);return;}
    bool steadyAtPanel=steady&&Mathf.Abs(SnapPeriod(median)-paced)<.4f;
    bool slow=mean>paced*1.25f&&!steadyAtPanel;bool gpuBound=slow&&work<mean*.6f;bool cpuBound=work>14f||(slow&&work>mean*.8f);
-   float floor=CarrotQuality.Phone?.6f:.7f;
+   float floor=CarrotQuality.Phone||CarrotQuality.WebKit?.6f:.7f;
    if(cpuBound){cpuWindows++;cleanWindows=0;
     if(hz120&&interval==1&&work<=14f){SetInterval(2,"work"+why);cpuWindows=0;return;}
     if(cpuWindows>=2&&sessionClock-lastStepAt>10&&TierChangeAllowed(false)){if(CarrotQuality.Demote("work"+why)){lastStepAt=sessionClock;lastTierChangeAt=lastDemoteAt=sessionClock;cpuWindows=0;OnTierChanged();}}
@@ -286,7 +287,7 @@ namespace CarrotTD {
    if(sun!=null)sun.cookie=biome!="frost"&&biome!="arena"&&high?cookie:null;
    Vector4 heightFog=biome=="marsh"?new Vector4(.045f,-.3f,2.2f,.1f):biome=="frost"?new Vector4(.026f,-.5f,1.6f,0):biome=="orchard"?new Vector4(.03f,-.5f,1.8f,.05f):biome=="arena"?new Vector4(.034f,-.5f,1.7f,.04f):new Vector4(.015f,-.7f,1.4f,0);if(!rich)heightFog.x=0;Shader.SetGlobalVector("_CarrotHeightFog",heightFog);Shader.SetGlobalColor("_CarrotHeightFogColor",Color.Lerp(RenderSettings.fogColor,horizon,.55f));
    foreach(var lantern in lanterns)if(lantern!=null)lantern.enabled=biome=="marsh"||biome=="orchard"||biome=="arena";
-   var profile=Resources.Load<VolumeProfile>("Carrot/Volumes/"+biome);if(profile==null)profile=Resources.Load<VolumeProfile>("Carrot/Volumes/garden");if(profile!=null&&grade!=null){AssignGrade(profile);var live=grade.profile;if(live.TryGet<DepthOfField>(out var dof))dof.active=high;if(live.TryGet<Bloom>(out var bloom)){bloom.highQualityFiltering.value=high;bloom.scatter.value=rich?.6f:.5f;}if(live.TryGet<ShadowsMidtonesHighlights>(out var smh))smh.active=rich;if(live.TryGet<ChromaticAberration>(out var ca))ca.active=rich;}
+   var profile=Resources.Load<VolumeProfile>("Carrot/Volumes/"+biome);if(profile==null)profile=Resources.Load<VolumeProfile>("Carrot/Volumes/garden");if(profile!=null&&grade!=null){AssignGrade(profile);var live=grade.profile;if(live.TryGet<DepthOfField>(out var dof))dof.active=high;if(live.TryGet<Bloom>(out var bloom)){bloom.highQualityFiltering.value=high;bloom.scatter.value=rich?.6f:.5f;bloom.filter.value=high?BloomFilterMode.Gaussian:BloomFilterMode.Dual;bloom.filter.overrideState=true;bloom.downscale.value=high?BloomDownscaleMode.Half:BloomDownscaleMode.Quarter;bloom.downscale.overrideState=true;bloom.maxIterations.value=high?6:rich?5:4;bloom.maxIterations.overrideState=true;}if(live.TryGet<ShadowsMidtonesHighlights>(out var smh))smh.active=rich;if(live.TryGet<ChromaticAberration>(out var ca))ca.active=rich;}
    ApplyPrismLighting();ApplyGroundedLighting(biome,ground);
   }
   Material Material(string id,Color tint,int texture=-1,float gloss=.25f,float metallic=0,float gain=1){if(materials.TryGetValue(id,out var m))return m;m=new Material(Shader.Find("Carrot/Storybook"));m.name=id;m.color=tint;m.SetFloat("_Glossiness",gloss);m.SetFloat("_Metallic",metallic);m.SetFloat("_AlbedoGain",gain);m.SetFloat("_SnowStrength",texture==1||texture==0?1:.35f);if(texture>=0&&atlas!=null){m.SetTexture("_MainTex",atlas);m.SetTextureScale("_MainTex",new Vector2(1f/3,.5f));m.SetTextureOffset("_MainTex",new Vector2((texture%3)/3f,texture<3?.5f:0));m.SetFloat("_WorldTexture",1);m.SetFloat("_TextureScale",.6f);}if(texture>=0)ApplyPhysicalMaps(m,texture==0?"Soil":texture==1?"Stone":texture==2?"Bark":texture==5?"Metal":null);materials[id]=m;return m;}
