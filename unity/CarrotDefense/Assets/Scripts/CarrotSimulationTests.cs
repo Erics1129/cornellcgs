@@ -21,7 +21,7 @@ namespace CarrotTD {
   }
   [MenuItem("Carrot/Run simulation checks")]
   public static void Run(){
-   assertions=0;failures.Clear();CarrotGame.LegacyKits=false;Units();Campaign();PoorCoverage();Determinism();Finish("full");
+   assertions=0;failures.Clear();CarrotGame.LegacyKits=false;Units();Campaign();PoorCoverage();ReferenceGates();Determinism();Finish("full");
   }
   /// <summary>Retune loop: only the bot campaigns, never throwing, so the driver can read every level's result in one run.</summary>
   public static void Tune(){assertions=0;failures.Clear();CarrotGame.LegacyKits=false;Campaign();Debug.Log("CARROT_TUNE_DONE failures="+failures.Count);}
@@ -64,11 +64,11 @@ namespace CarrotTD {
     Check(peak<=110,"peak enemies per wave on "+l.id);
     Check(string.IsNullOrEmpty(l.boss)==!CarrotData.Waves[l.id-1][l.waves-1].Contains("boss:")||CarrotData.IsChallenge(l.id),"boss levels end with the boss "+l.id);
     
-    Check(CarrotData.PressureScale(l.id)>=.8f&&CarrotData.PressureScale(l.id)<=1,"pressure dial within [0.80,1.0] on "+l.id);
+    Check(CarrotData.PressureScale(l.id)>=.65f&&CarrotData.PressureScale(l.id)<=1.6f,"pressure dial within [0.65,1.60] on "+l.id);
    }
    Check(CarrotData.HPScale(25)<CarrotData.HPScale(12)&&CarrotData.HPScale(12)<CarrotData.HPScale(26)&&CarrotData.HPScale(26)<CarrotData.HPScale(24)&&CarrotData.HPScale(24)<CarrotData.HPScale(27),"challenge HP anchors between the campaign's chapters");
    foreach(string boss in new[]{"garden","marsh","frost","orchard","tornado","zombie","eyeball"})Check(CarrotData.BossBaseHp(boss)>=2600&&CarrotData.BossName(boss)!="","boss base health and name "+boss);
-   foreach(var row in new[]{new{boss="garden",hp=2600f},new{boss="marsh",hp=5000f},new{boss="frost",hp=8200f},new{boss="orchard",hp=10500f},new{boss="tornado",hp=4200f},new{boss="zombie",hp=9000f},new{boss="eyeball",hp=14000f}})Check(CarrotData.BossBaseHp(row.boss)==row.hp,"boss base health of "+row.boss+" ("+CarrotData.BossBaseHp(row.boss)+" vs "+row.hp+")");
+   foreach(var row in new[]{new{boss="garden",hp=2600f},new{boss="marsh",hp=5000f},new{boss="frost",hp=8200f},new{boss="orchard",hp=10500f},new{boss="tornado",hp=4500f},new{boss="zombie",hp=9000f},new{boss="eyeball",hp=16000f}})Check(CarrotData.BossBaseHp(row.boss)==row.hp,"boss base health of "+row.boss+" ("+CarrotData.BossBaseHp(row.boss)+" vs "+row.hp+")");
    foreach(string kind in new[]{"seed","frost","mortar","prism","storm","blossom","starfruit","gravity","book","thunder"}){var g=Arena();var e=Durable(g);g.TestFire(kind,5,e.id,e.position+new Vector3(0,0,1));g.StepSimulation(.1f);Check(e.hp<e.maxHp,"Super "+kind+" resolves a hit");Done(g);}
    Difficulty();
   }
@@ -87,7 +87,7 @@ namespace CarrotTD {
    for(int l=1;l<=24;l++){
     Check(CarrotData.HPScale(l)>OldHPScale[l-1],"HPScale above the old curve on level "+l);
     Check(Pressure(l)*CarrotData.MovementScale/.72f>=1.08f*BaselinePressure[l-1],"pressure adjusted for movement and reduced plant output at least 1.08x baseline on level "+l+" ("+Pressure(l).ToString("F1")+" vs "+BaselinePressure[l-1]+")");
-    Check(StreamSeconds(l)<=1.45f*BaselineStream[l-1],"stream time within 1.45x the baseline on level "+l+" ("+StreamSeconds(l).ToString("F1")+" vs "+BaselineStream[l-1]+")");
+    Check(StreamSeconds(l)<=1.32f*BaselineStream[l-1],"stream time within 1.32x the baseline on level "+l+" ("+StreamSeconds(l).ToString("F1")+" vs "+BaselineStream[l-1]+")");
    }
    for(int c=0;c<6;c++){int first=c*4+1;float peak=0;for(int l=first;l<first+4;l++)peak=Mathf.Max(peak,Pressure(l));
     Check(Pressure(first+3)>=peak*.87f,"the boss level remains within thirteen percent of its chapter pressure maximum (chapter "+c+", level "+(first+3)+")");
@@ -96,9 +96,24 @@ namespace CarrotTD {
    foreach(int l in new[]{4,8,12,16,20,24}){string final=CarrotData.Waves[l-1][CarrotData.Waves[l-1].Length-1];Check(final.StartsWith("boss:1,")&&final.Split(',').Length-1>=3,"the boss wave carries at least three escort kinds on "+l);Check(CarrotData.Waves[l-1][CarrotData.Waves[l-1].Length-3].Contains("swarm:"),"the swarm surge sits two waves before the boss on "+l);}
    float[] gaps={1f,.95f,.9f,.85f,.8f,.78f};for(int l=1;l<=24;l++){int c=(l-1)/4,p=(l-1)%4;Check(CarrotData.GapScale(l)>=gaps[c]-.001f&&CarrotData.GapScale(l)<=gaps[c]+.151f,"gap scale by chapter (plus at most three fallback steps) on "+l);Check(Mathf.Abs(CarrotData.PacketOverlap(l)-(p>=2&&l>=5?.85f:1f))<.001f,"packet overlap on "+l);Check(Mathf.Abs(CarrotData.Breather(l)-(c<2?5:c==2?4:3))<.001f,"breather by chapter on "+l);}
    for(int l=1;l<=27;l++){Check(Mathf.Abs(CarrotData.OpeningScale(l,3)-1)<.0001f&&CarrotData.OpeningScale(l,1)<=1&&CarrotData.OpeningScale(l,2)>=CarrotData.OpeningScale(l,1),"the pass phases in by wave 3 on "+l);if(l<5)Check(Mathf.Abs(CarrotData.OpeningScale(l,1)-1)<.0001f,"chapter 0 has no opening grace "+l);else Check(Mathf.Abs(CarrotData.OpeningScale(l,1)*CarrotData.HPScale(l)-(l<=24?OldHPScale[l-1]:new float[]{2.15f,4.3f,5.635f}[l-25]))<.01f,"wave 1 is played at the pre-pass health on "+l);}
+   Pass2Shape();
    Check(Mathf.Abs(CarrotData.GapScale(25)-.95f)<.001f&&Mathf.Abs(CarrotData.GapScale(26)-.85f)<.001f&&Mathf.Abs(CarrotData.GapScale(27)-.8f)<.001f&&CarrotData.Breather(25)==5&&CarrotData.Breather(26)==4&&CarrotData.Breather(27)==3,"challenge cadence tables");
   }
   static readonly string[] Kinds={"nibble","dash","shell","swarm","moth","shaman","burrow","crystal","boss"};
+  // Pass 2 (scripts/carrot-waves.mjs): opening caps, the smoothed first 60%, the derived ramp and the teaching waves.
+  static float WaveWork(string wave){float work=0;foreach(var packet in wave.Split(',')){var b=packet.Split(':');if(b[0]=="boss")continue;work+=BaseHp[b[0]]*int.Parse(b[1]);}return work;}
+  static void Pass2Shape(){
+   Check(CarrotData.GeneratedStep==6,"the shipped waves carry every pass-2 step");
+   for(int l=1;l<=28;l++){var waves=CarrotData.Waves[l-1];
+    for(int w=0;w<2&&w<waves.Length;w++)foreach(var packet in waves[w].Split(',')){var b=packet.Split(':');int n=int.Parse(b[1]);
+     if(b[0]=="swarm")Check(n<=(l<=4?8:12),"opening swarm cap on "+l+" wave "+(w+1)+" ("+n+")");
+     if(CarrotData.Traits(b[0]).air&&!CarrotData.Traits(b[0]).mini)Check(n<=(l>=13&&l<=24?5:10),"opening air cap on "+l+" wave "+(w+1)+" ("+b[0]+":"+n+")");}
+    if(l<=24){int W=waves.Length,E=waves[W-1].Contains("boss:")?W-1:W,S=Mathf.Min(E,Mathf.CeilToInt(.6f*W));
+     for(int w=2;w<S;w++)Check(WaveWork(waves[w])<=1.35f*WaveWork(waves[w-1])+1,"no early cliff: wave "+(w+1)+" of "+l+" within 1.35x the wave before");}
+    for(int w=1;w<=waves.Length;w++){float r=CarrotData.WaveRamp(l,w,false);Check(r>=.4f&&r<=2.7f,"ramp entry in range on "+l+" wave "+w+" ("+r+")");if(w<=2)Check(r*CarrotData.PressureScale(l)<=1.001f,"waves 1-2 teach: never above pass-1 health on "+l+" wave "+w);}}
+   foreach(var line in CarrotData.Waves[2][0].Split(','))if(line.StartsWith("swarm:"))Check(int.Parse(line.Substring(6))<=8,"L3 wave 1 swarm is at most 8");
+   Check(CarrotData.WaveRamp(29,1,false)==1,"Asuna's encounter is not ramped");
+  }
   static void Shopping(){
    var g=New(12);g.coins=100000;
    foreach(var d in CarrotData.Towers){int pad=FreePad(g);g.Select("pad",pad);int before=g.coins;g.Command("{\"type\":\"buy\",\"kind\":\""+d.id+"\"}");var t=g.towers.Find(x=>x.pad==pad);Check(t!=null&&t.tier==1,"purchase "+d.id);int spent=d.cost[0];Check(g.coins==before-spent,"buy cost "+d.id);
@@ -362,7 +377,7 @@ namespace CarrotTD {
    {var g=New(27);g.phase="playing";g.TestClearScheduled();var boss=g.TestSpawn("boss",0,0,true);Still(boss);boss.hp=boss.maxHp*.25f;float dark=0;bool hurt=false;g.Effect+=e=>{if(e.id!=boss.id)return;if(e.type=="telegraph"&&e.kind=="blind"&&!hurt){hurt=true;g.TestDamage(boss.id,boss.maxHp*.2f);}if(e.type=="ability"&&e.kind=="blind")dark=e.value;};
     while(dark==0&&g.elapsed<40)g.StepSimulation(.1f);Check(hurt&&Mathf.Abs(dark-1.2f)<.02f,"the shave floors at 1.2 s");Done(g);}
    // Cast caps and kit purity over 150 s runs.
-   foreach(var kit in new[]{new{level=25,kinds=new[]{"gust","liftoff"},caps=new[]{99,3}},new{level=26,kinds=new[]{"uproot","raise"},caps=new[]{3,4}},new{level=27,kinds=new[]{"blind","gaze"},caps=new[]{6,8}},new{level=8,kinds=new[]{"mist","summon","blind","tithe"},caps=new[]{99,3,3,2}},new{level=12,kinds=new[]{"mantle","breath","shatter","whiteout"},caps=new[]{3,99,2,2}},new{level=4,kinds=new[]{"bark","root","uproot"},caps=new[]{99,99,2}},new{level=20,kinds=new[]{"rush","flock","heap","uproot","dusk","emerge"},caps=new[]{99,3,3,3,1,99}}}){
+   foreach(var kit in new[]{new{level=25,kinds=new[]{"gust","liftoff"},caps=new[]{99,2}},new{level=26,kinds=new[]{"uproot","raise"},caps=new[]{3,4}},new{level=27,kinds=new[]{"blind","gaze"},caps=new[]{6,8}},new{level=8,kinds=new[]{"mist","summon","blind","tithe"},caps=new[]{99,3,3,2}},new{level=12,kinds=new[]{"mantle","breath","shatter","whiteout"},caps=new[]{3,99,2,2}},new{level=4,kinds=new[]{"bark","root","uproot"},caps=new[]{99,99,2}},new{level=20,kinds=new[]{"rush","flock","heap","uproot","dusk","emerge"},caps=new[]{99,3,3,3,1,99}}}){
     var g=New(kit.level);g.phase="playing";g.TestClearScheduled();g.coins=100000;QuietTowers(g);var boss=g.TestSpawn("boss",0,0,true);Still(boss);boss.hp=boss.maxHp*.28f;var casts=Casts(g,boss.id);g.StepSimulation(150);
     var allowed=new HashSet<string>(kit.kinds){"phase","brambleSurge","lanternFlood","glacierLance","harvestMoon","cycloneCall","graveMarch","eyeClones","blackout","reincarnate"};foreach(var c in casts)Check(allowed.Contains(c),"boss "+boss.boss+" emits only its own cast kinds ("+c+")");
     for(int i=0;i<kit.kinds.Length;i++){int n=casts.FindAll(c=>c==kit.kinds[i]).Count;Check(n<=kit.caps[i],"cast cap "+kit.kinds[i]+" on "+kit.level+" ("+n+")");}

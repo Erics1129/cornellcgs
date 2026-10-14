@@ -263,14 +263,14 @@ namespace CarrotTD {
     case "tornado":velocity=.26f;reward=200;break;
     case "zombie":velocity=.24f;reward=300;break;
     case "eyeball":velocity=.22f;reward=400;break;
-    case "portal":velocity=.21f;reward=600;break;
+    case "portal":velocity=.18f;reward=600;break;
     case "asuna":velocity=0;reward=650;break;
    }
    var added=CarrotData.Enemy(id);if(added!=null){hp=added.hp;velocity=added.speed;reward=added.reward;armor=added.armor;shield=added.shield;}
    if(clone&&id=="eyeball"){hp=240;velocity=.5f;shield=0;reward=0;}
    if(clone&&id=="asuna"){hp=75;velocity=.8f;shield=0;reward=0;}
-   velocity*=CarrotData.MovementScale;
-   if(!boss&&id!="fragment"){float scale=CarrotData.HPScale(level.id)*CarrotData.PressureScale(level.id)*CarrotData.OpeningScale(level.id,fromWave);hp*=scale;shield*=scale;}
+   velocity*=CarrotData.MovementScale*(boss?1:CarrotData.Pace(level.id));
+   if(!boss&&id!="fragment"){float scale=CarrotData.HPScale(level.id)*CarrotData.PressureScale(level.id)*CarrotData.OpeningScale(level.id,fromWave)*(summoned?1:CarrotData.WaveRamp(level.id,fromWave,added!=null&&added.mini))*(Veteran?1.1f:1);hp*=scale;shield*=scale;}
    // Bosses start from the authored base table; returning and new bosses past level 12 keep pace with the ordinary curve (BossScale is 1 on levels 1-12 and on a boss's home level).
    if(boss)hp=CarrotData.BossBaseHp(id)*CarrotData.BossScale(level.id,id);
    // On challenge levels summons belong to the wave that is current when they appear, so the next wave waits for them but not for the boss.
@@ -408,7 +408,7 @@ namespace CarrotTD {
      else if(elapsed>=a.abilityA)BeginCast(e,a,"rush",1.2f,2.5f);
      break;
     case "tornado":
-     if(a.phase>=2&&elapsed>=a.abilityD&&a.lifts<3)BeginCast(e,a,"liftoff",1.2f,4);
+     if(a.phase>=2&&elapsed>=a.abilityD&&a.lifts<2)BeginCast(e,a,"liftoff",1.2f,4);
      else if(elapsed>=a.abilityA)BeginCast(e,a,"gust",1.1f,2.5f);
      break;
     case "zombie":
