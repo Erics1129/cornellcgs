@@ -70,7 +70,7 @@ namespace CarrotTD {
    for(int i=0;i<8;i++)decalMeshes[i]=FlatQuad(FxSheet.Cell(FxSheet.Scorch+i));
    BuildExpansionMeshes();
    var root=new GameObject("Effect pools").transform;root.SetParent(parent,false);
-   rings=new Slot[16];for(int i=0;i<rings.Length;i++)rings[i]=MeshSlot(root,"Ring",ringThin,additiveSheet);
+   rings=new Slot[high?24:16];for(int i=0;i<rings.Length;i++)rings[i]=MeshSlot(root,"Ring",ringThin,additiveSheet);
    bolts=new Slot[12];for(int i=0;i<bolts.Length;i++)bolts[i]=LineSlot(root,"Bolt",16);
    shells=new Slot[24];for(int i=0;i<shells.Length;i++){var s=MeshSlot(root,"Shell",husk,seedShell);var trail=LineSlot(s.t,"Trail",8);trail.line.widthMultiplier=.05f;trail.line.enabled=true;trail.go.SetActive(true);s.trail=trail.line;
     // Every shell carries a camera-facing glow sprite so a 0.1 u pellet still reads at the fitted play distance.

@@ -1,7 +1,7 @@
 Shader "Carrot/BlindOverlay" {
  // One quad on the camera near plane: the Blindness screen effect. uGUI's UI/Default is stripped by CarrotShaderStripper, so this is a world
  // quad drawn after every transparent (Queue Overlay) and before post-processing, which keeps black black under ACES.
- // _Radial 0 = flat colour, 1 = edge vignette (Whiteout). _Hole = screen uv x, y, radius, strength: keeps the Unknown Eyeball's iris visible.
+ // _Radial 0 = flat colour (capped at 0.85 alpha inside a 1.0 vignette ring), 1 = edge vignette (Whiteout). _Hole = screen uv x, y, radius, strength: keeps the Unknown Eyeball's iris visible.
  Properties {_Color("Color",Color)=(0,0,0,0) _Radial("Radial",Float)=0 _Hole("Hole",Vector)=(.5,.5,.12,0)}
  SubShader { Tags {"Queue"="Overlay" "RenderType"="Transparent" "IgnoreProjector"="True" "RenderPipeline"="UniversalPipeline"} Blend SrcAlpha OneMinusSrcAlpha ZWrite Off ZTest Always Cull Off
   Pass { Name "Forward" Tags {"LightMode"="UniversalForward"}
@@ -19,7 +19,9 @@ Shader "Carrot/BlindOverlay" {
     float aspect=_ScreenParams.x/max(1,_ScreenParams.y);
     float2 hd=i.uv-_Hole.xy;hd.x*=aspect;
     float hole=1-_Hole.w*(1-smoothstep(_Hole.z*.45,_Hole.z,length(hd)));
-    return float4(_Color.rgb,saturate(_Color.a*radial*hole));
+    // Darkness never goes fully opaque over the board: 0.85 in the middle, 1.0 only in a soft vignette ring (the Whiteout mode keeps its own edge ramp).
+    float cap=lerp(lerp(.85,1,smoothstep(.72,1.18,r)),1,_Radial);
+    return float4(_Color.rgb,min(saturate(_Color.a*radial*hole),cap));
    }
    ENDHLSL
   }

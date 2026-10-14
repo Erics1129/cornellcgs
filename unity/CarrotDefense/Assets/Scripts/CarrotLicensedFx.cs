@@ -8,7 +8,7 @@ namespace CarrotTD {
  /// Only an audited private Library.asset enables it; no vendor asset is assumed or substituted.
  /// Source scripts/animators/audio/trail renderers are rejected, not run and then destroyed.
  /// </summary>
- public sealed class CarrotLicensedFx : MonoBehaviour {
+ public sealed partial class CarrotLicensedFx : MonoBehaviour {
   sealed class Slot {
    public GameObject go;public Transform transform,follow;public ParticleSystem[] roots,systems;
    public CarrotLicensedFxLibrary.Effect effect;public float age,life;public int particles;public bool active;

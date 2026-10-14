@@ -40,7 +40,7 @@ public static class CarrotBuild {
   var graphics=new SerializedObject(settings[0]);var shaders=graphics.FindProperty("m_AlwaysIncludedShaders");
   var standard=Shader.Find("Standard");
   for(int i=shaders.arraySize-1;i>=0;i--)if(shaders.GetArrayElementAtIndex(i).objectReferenceValue==standard)shaders.DeleteArrayElementAtIndex(i);
-  foreach(var name in new[]{"Carrot/Storybook","Carrot/FxAdditive","Carrot/FxAlpha","Carrot/Water","Carrot/Contact","Carrot/FxDecalQuad","Carrot/Sky","Carrot/HeightFog","Carrot/BlindOverlay","Carrot/PortalAperture"}) {
+  foreach(var name in new[]{"Carrot/Storybook","Carrot/FxAdditive","Carrot/FxAlpha","Carrot/Water","Carrot/Contact","Carrot/FxDecalQuad","Carrot/Sky","Carrot/HeightFog","Carrot/BlindOverlay","Carrot/PortalAperture","Carrot/WorldBar"}) {
    var shader=Shader.Find(name);if(!shader)throw new InvalidOperationException("Missing shader "+name);
    bool found=false;for(int i=0;i<shaders.arraySize;i++)if(shaders.GetArrayElementAtIndex(i).objectReferenceValue==shader)found=true;
    if(!found){shaders.InsertArrayElementAtIndex(shaders.arraySize);shaders.GetArrayElementAtIndex(shaders.arraySize-1).objectReferenceValue=shader;}
@@ -61,6 +61,29 @@ public static class CarrotBuild {
   CarrotAsunaAssets.RequirePrepared();
   CarrotLicensedFxImporter.RequirePrepared();
   Debug.Log("CARROT_PRIVATE_PREPARED");
+ }
+ /// <summary>
+ /// Packed-asset breakdown of a player build (the data file's real contents): totals by top-level source folder, by Resources
+ /// sub-folder and by asset type, plus the 60 largest single assets, written to output/carrot-build-report-{mode}.txt and logged
+ /// as CARROT_DATA lines. Sizes are packed (pre-gzip) bytes.
+ /// </summary>
+ public static void WriteReport(BuildReport report,string mode) {
+  var byFolder=new System.Collections.Generic.Dictionary<string,long>();var byType=new System.Collections.Generic.Dictionary<string,long>();var assets=new System.Collections.Generic.Dictionary<string,long>();long total=0;
+  foreach(var file in report.packedAssets)foreach(var info in file.contents){
+   string path=string.IsNullOrEmpty(info.sourceAssetPath)?"(built-in)":info.sourceAssetPath;long size=(long)info.packedSize;total+=size;
+   string folder=path;var parts=path.Split('/');
+   if(parts.Length>=4&&parts[0]=="Assets"&&parts[1]=="Resources")folder=string.Join("/",parts,0,Math.Min(parts.Length-1,5));
+   else if(parts.Length>=3)folder=parts[0]+"/"+parts[1]+"/"+parts[2];
+   byFolder[folder]=(byFolder.TryGetValue(folder,out var f)?f:0)+size;
+   string type=info.type!=null?info.type.Name:"?";byType[type]=(byType.TryGetValue(type,out var t)?t:0)+size;
+   assets[path]=(assets.TryGetValue(path,out var a)?a:0)+size;
+  }
+  var lines=new System.Collections.Generic.List<string>{"Carrot "+mode+" build: packed assets "+(total/1048576.0).ToString("F2")+" MiB, total output "+(report.summary.totalSize/1048576.0).ToString("F2")+" MiB","","By folder:"};
+  foreach(var p in byFolder.OrderByDescending(p=>p.Value))lines.Add("  "+(p.Value/1048576.0).ToString("F2").PadLeft(8)+" MiB  "+p.Key);
+  lines.Add("");lines.Add("By type:");foreach(var p in byType.OrderByDescending(p=>p.Value))lines.Add("  "+(p.Value/1048576.0).ToString("F2").PadLeft(8)+" MiB  "+p.Key);
+  lines.Add("");lines.Add("Largest assets:");foreach(var p in assets.OrderByDescending(p=>p.Value).Take(60))lines.Add("  "+(p.Value/1048576.0).ToString("F2").PadLeft(8)+" MiB  "+p.Key);
+  Directory.CreateDirectory("../../output");File.WriteAllLines("../../output/carrot-build-report-"+mode+".txt",lines);
+  foreach(var p in byFolder.OrderByDescending(p=>p.Value).Take(25))Debug.Log("CARROT_DATA "+(p.Value/1048576.0).ToString("F2")+" MiB "+p.Key);
  }
  /// <summary>Crunched DXT for the web target; the data file is dominated by textures.</summary>
  public static void WebTexture(TextureImporter importer,int maxSize,int quality,bool crunch=true) {
@@ -95,6 +118,7 @@ public static class CarrotBuild {
   var output=Path.GetFullPath("../../public/unity/carrot");Directory.CreateDirectory(output);
   var report=BuildPipeline.BuildPlayer(new BuildPlayerOptions{scenes=new[]{ScenePath},locationPathName=output,target=BuildTarget.WebGL,options=BuildOptions.None});
   if(report.summary.result!=BuildResult.Succeeded)throw new Exception("Carrot Web build failed: "+report.summary.result);
+  WriteReport(report,"release");
   using(var sha=System.Security.Cryptography.SHA256.Create()) {
    var files=new[]{"carrot.data.unityweb","carrot.wasm.unityweb","carrot.framework.js.unityweb"};
    var bytes=files.SelectMany(f=>File.ReadAllBytes(Path.Combine(output,"Build",f))).ToArray();
@@ -115,6 +139,7 @@ public static class CarrotBuild {
   try {
    var report=BuildPipeline.BuildPlayer(new BuildPlayerOptions{scenes=new[]{ScenePath},locationPathName=output,target=BuildTarget.WebGL,options=BuildOptions.None});
    if(report.summary.result!=BuildResult.Succeeded)throw new Exception("Carrot Web QA build failed: "+report.summary.result);
+   WriteReport(report,"qa");
    Debug.Log("CARROT_QA_BUILD_OK "+report.summary.totalSize);
   } finally { PlayerSettings.SetScriptingDefineSymbols(target,defines); }
  }
