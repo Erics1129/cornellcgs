@@ -87,6 +87,7 @@ namespace CarrotTD {
    superRings=new Slot[6];for(int i=0;i<superRings.Length;i++)superRings[i]=MeshSlot(root,"Super ring",ringThin,additiveSheet);
    additiveTop=Mat("Carrot/FxAdditive");additiveTop.SetTexture("_MainTex",sheet);additiveTop.SetFloat("_UseAtlas",1);additiveTop.SetFloat("_Soft",0);additiveTop.SetFloat("_ZTest",8);
    overlayGlow=Mat("Carrot/FxAdditive");overlayGlow.SetTexture("_MainTex",sheet);overlayGlow.SetFloat("_UseAtlas",1);overlayGlow.SetFloat("_Soft",0);overlayGlow.SetFloat("_ZTest",8);overlayGlow.renderQueue=4001;
+   BuildPrismRibbons(root);
   }
   Material Mat(string shader){var m=new Material(Shader.Find(shader));ownedMaterials.Add(m);return m;}
   Slot MeshSlot(Transform root,string name,Mesh mesh,Material material){var go=new GameObject(name);go.transform.SetParent(root,false);var s=new Slot{go=go,t=go.transform,mf=go.AddComponent<MeshFilter>(),mr=go.AddComponent<MeshRenderer>(),block=new MaterialPropertyBlock()};s.mf.sharedMesh=mesh;s.mr.sharedMaterial=material;s.mr.shadowCastingMode=ShadowCastingMode.Off;s.mr.receiveShadows=false;go.SetActive(false);return s;}

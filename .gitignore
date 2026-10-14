@@ -29,3 +29,20 @@ unity/**/__pycache__/
 
 # Local research downloads; used assets carry licenses in the Unity project.
 docs/carrot-defense/source-assets/
+
+# Unity Asset Store Asuna: acquired source and derived Unity assets are private.
+# Only the compiled game may be published; importer code and provenance stay tracked.
+private-assets/Asuna/
+unity/CarrotDefense/Assets/Licensed/Asuna/
+unity/CarrotDefense/Assets/Licensed/Asuna.meta
+unity/CarrotDefense/Assets/Resources/Carrot/AsunaRuntime/
+unity/CarrotDefense/Assets/Resources/Carrot/AsunaRuntime.meta
+unity/CarrotDefense/Assets/Resources/Carrot/Models/Bosses/Asuna.prefab
+unity/CarrotDefense/Assets/Resources/Carrot/Models/Bosses/Asuna.prefab.meta
+
+# Licensed VFX source, derived playback prefabs and private Asset Store mappings.
+private-assets/CarrotLicensedVFX/
+unity/CarrotDefense/Assets/Private/CarrotLicensedVFX/
+unity/CarrotDefense/Assets/Private/CarrotLicensedVFX.meta
+unity/CarrotDefense/Assets/Resources/Carrot/LicensedFx/
+unity/CarrotDefense/Assets/Resources/Carrot/LicensedFx.meta

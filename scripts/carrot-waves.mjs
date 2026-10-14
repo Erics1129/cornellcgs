@@ -63,8 +63,8 @@ const expectedHp=[1.05,1.23,1.35,1.65,1.67,1.93,2.18,2.62,2.67,3.01,3.36,4.03,4.
 if(hpScale.join()!==expectedHp.join())throw new Error('HPScale formula drifted from the frozen table: '+hpScale.join())
 const challengeHp=[hpScale[7],hpScale[19],round2(hpScale[23]*1.15)]
 const gapByChapter=[1,.95,.9,.85,.8,.78]
-const gapScale=L=>L>=25?[.95,.85,.8,.82][L-25]:round2(gapByChapter[Math.floor((L-1)/4)]+(tuning.gapBonus[L]||0))
-const breather=L=>L>=25?[5,4,3,4][L-25]:(Math.floor((L-1)/4)<2?5:Math.floor((L-1)/4)===2?4:3)
+const gapScale=L=>L>=25?[.95,.85,.8,.82,.88][L-25]:round2(gapByChapter[Math.floor((L-1)/4)]+(tuning.gapBonus[L]||0))
+const breather=L=>L>=25?[5,4,3,4,4][L-25]:(Math.floor((L-1)/4)<2?5:Math.floor((L-1)/4)===2?4:3)
 const overlap=L=>L>=25?1:((L-1)%4>=2&&L>=5?.85:1)
 
 // Challenge waves (25-27) are authored, not generated: the boss arrives mid-level and the remaining waves spawn as adds.
@@ -98,10 +98,10 @@ const portalWaves=[
  'tinyZombie:14,sporeling:10,crystal:12','stormWarden:1,riftling:14,shardling:12','chronoMoth:1,scarab:14,moth:16',
  'portalSentinel:1,graveCaller:1,bat:14,crystal:12','ironSnail:1,warDrummer:1,riftling:18,mimic:12,firefly:5'
 ]
-const waves=[...Array.from({length:24},(_,i)=>expand(generate(i+1),i+1)),...scaledChallenge,portalWaves]
-const allHp=[...hpScale,...challengeHp,9.25]
-// Wave-1 health grace: 1 / (new HPScale / pre-pass HPScale) from chapter 1 on; the challenge anchors' pre-pass values are levels 8, 20 and 24 x 1.15 of the old table.
-const oldAnchors=[baseline.hpScale[7],baseline.hpScale[19],round2(baseline.hpScale[23]*1.15),6.2]
+const waves=[...Array.from({length:24},(_,i)=>expand(generate(i+1),i+1)),...scaledChallenge,portalWaves,['boss:1,nibble:6,beetle:2']]
+const allHp=[...hpScale,...challengeHp,9.25,5.6]
+// Wave-1 health grace: 1 / (new HPScale / pre-pass HPScale) from chapter 1 on; the challenge anchors' pre-pass values are levels 8, 20 and 24 x 1.15 of the old table. Asuna uses its full authored health from the opening.
+const oldAnchors=[baseline.hpScale[7],baseline.hpScale[19],round2(baseline.hpScale[23]*1.15),6.2,5.6]
 const opening=allHp.map((hp,i)=>i<4?1:Math.round(10000*(i<24?baseline.hpScale[i]:oldAnchors[i-24])/hp)/10000)
 
 // Pressure = HP-weighted spawn work per stream second (ordinary enemies only; the boss is a separate spike).

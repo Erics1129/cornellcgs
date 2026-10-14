@@ -3,6 +3,7 @@ import type { Command, GameState } from './types'
 import { miniBosses } from './expansion'
 
 const encounters:Record<string,{level:number;abilities:string[]}>= {
+ asuna:{level:29,abilities:['prismDash','prismLances','prismaticAegis','spectrumRain','mirrorRush','prismOverdrive']},
  garden:{level:4,abilities:['brambleSurge','uproot']},marsh:{level:8,abilities:['lanternFlood','blind']},
  frost:{level:12,abilities:['glacierLance','whiteout']},orchard:{level:24,abilities:['harvestMoon','dusk']},
  tornado:{level:25,abilities:['cycloneCall','gust','liftoff']},zombie:{level:26,abilities:['graveMarch','raise']},

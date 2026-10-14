@@ -14,19 +14,26 @@ mergeInto(LibraryManager.library, {
       return CarrotMusic.own;
     },
     slot: function (index) { return CarrotMusic.slots[index] || null; },
+    position: function (s, ctx) {
+      var offset = s.paused ? s.offset : Math.max(0, ctx.currentTime - s.startedAt);
+      return s.loop ? offset % s.buffer.duration : Math.min(offset, s.buffer.duration);
+    },
     // Starts (or restarts after a pause) the slot's source at an offset into the loop.
     start: function (s, offset) {
-      var ctx = CarrotMusic.context(); if (!ctx || !s.buffer) return;
+      var ctx = CarrotMusic.context(); if (!ctx || !s.buffer || s.finished) return;
       try { if (ctx.state === 'suspended' && ctx.resume) ctx.resume(); } catch (e) {}
-      var source = ctx.createBufferSource(); source.buffer = s.buffer; source.loop = true; source.connect(s.gain);
+      offset = Math.max(0, offset);
+      if (!s.loop && offset >= s.buffer.duration) { s.finished = true; s.paused = false; return; }
       offset = s.buffer.duration > 0 ? offset % s.buffer.duration : 0;
-      source.start(0, offset); s.source = source; s.startedAt = ctx.currentTime - offset; s.paused = false;
+      var source = ctx.createBufferSource(); source.buffer = s.buffer; source.loop = s.loop; source.connect(s.gain);
+      source.onended = function () { if (s.source === source && !s.loop) { s.finished = true; s.paused = false; s.offset = s.buffer.duration; s.source = null; try { source.disconnect(); } catch (e) {} } };
+      source.start(0, offset); s.source = source; s.startedAt = ctx.currentTime - offset; s.offset = offset; s.paused = false;
     },
     halt: function (s) {
       if (!s.source) return;
-      try { s.source.stop(); } catch (e) {}
-      try { s.source.disconnect(); } catch (e) {}
-      s.source = null;
+      var source = s.source; s.source = null; source.onended = null;
+      try { source.stop(); } catch (e) {}
+      try { source.disconnect(); } catch (e) {}
     }
   },
   Carrot_MusicLoad__deps: ['$CarrotMusic'],
@@ -62,7 +69,7 @@ mergeInto(LibraryManager.library, {
     var name = UTF8ToString(namePtr), t = CarrotMusic.tracks[name], ctx = CarrotMusic.context();
     if (!t || t.state !== 1 || !ctx) return 0;
     var s = CarrotMusic.slot(index); if (s) { CarrotMusic.halt(s); try { s.gain.disconnect(); } catch (e) {} }
-    s = CarrotMusic.slots[index] = { name: name, buffer: t.buffer, gain: ctx.createGain(), source: null, startedAt: 0, offset: 0, paused: false };
+    s = CarrotMusic.slots[index] = { name: name, buffer: t.buffer, gain: ctx.createGain(), source: null, startedAt: 0, offset: 0, paused: false, loop: true, finished: false };
     s.gain.gain.value = volume; s.gain.connect(ctx.destination);
     CarrotMusic.start(s, 0);
     return 1;
@@ -74,10 +81,27 @@ mergeInto(LibraryManager.library, {
   },
   Carrot_MusicPause__deps: ['$CarrotMusic'],
   Carrot_MusicPause: function (index, paused) {
-    var s = CarrotMusic.slot(index), ctx = CarrotMusic.context(); if (!s || !ctx) return;
-    if (paused) { if (s.source) { s.offset = ctx.currentTime - s.startedAt; CarrotMusic.halt(s); } s.paused = true; }
+    var s = CarrotMusic.slot(index), ctx = CarrotMusic.context(); if (!s || !ctx || s.finished) return;
+    if (paused) {
+      if (s.source) { s.offset = CarrotMusic.position(s, ctx); CarrotMusic.halt(s); }
+      // Audio may have finished before its queued onended event is dispatched.
+      // A nonlooping tail must never wrap to its beginning in that small window.
+      if (!s.loop && s.offset >= s.buffer.duration) { s.finished = true; s.paused = false; }
+      else s.paused = true;
+    }
     else if (s.paused) CarrotMusic.start(s, s.offset);
   },
+  // After a result, finish the current song instead of interrupting it. Pause retains the exact position.
+  Carrot_MusicTail__deps: ['$CarrotMusic'],
+  Carrot_MusicTail: function (index) {
+    var s = CarrotMusic.slot(index), ctx = CarrotMusic.context(); if (!s || !ctx || !s.loop) return;
+    // Rebase to this loop cycle before changing to a one-shot. Otherwise elapsed
+    // time from previous cycles would look like an already-completed tail.
+    s.offset = CarrotMusic.position(s, ctx); s.startedAt = ctx.currentTime - s.offset;
+    s.loop = false; if (s.source) s.source.loop = false;
+  },
+  Carrot_MusicFinished__deps: ['$CarrotMusic'],
+  Carrot_MusicFinished: function (index) { var s = CarrotMusic.slot(index); return s && s.finished ? 1 : 0; },
   Carrot_MusicStop__deps: ['$CarrotMusic'],
   Carrot_MusicStop: function (index) {
     var s = CarrotMusic.slot(index); if (!s) return;

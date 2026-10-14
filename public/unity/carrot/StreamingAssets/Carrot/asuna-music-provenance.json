@@ -1,0 +1,12 @@
+{
+  "track": "MusicAsuna",
+  "source": "game.m4a",
+  "providedBy": "Project owner",
+  "sourceSha256": "6cc034a924b253f2d9af5fe9e1c8193e9605f6418642580fe188671ac9d9b8f3",
+  "durationSeconds": 216.446667,
+  "edits": "Entire supplied recording retained; browser format conversion and constant -3.74 dB headroom to avoid clipping. No cuts or generated replacement.",
+  "licensing": "User-provided audio; no third-party license asserted.",
+  "sourceRms": 0.342429,
+  "sourcePeak": 1.2296,
+  "conversionGain": 0.65
+}

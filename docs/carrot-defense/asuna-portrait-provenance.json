@@ -1,0 +1,15 @@
+{
+  "asset": "46-asuna-portrait.png",
+  "source": "MSGDI Free Test Character Asuna 2.2, Unity Asset Store product 205897",
+  "source_url": "https://assetstore.unity.com/packages/3d/characters/humanoids/sci-fi/free-test-character-asuna-205897",
+  "license": "Standard Unity Asset Store EULA; user acquired/accepted package in official store",
+  "method": "Unity evaluated official Idle1 pose; private posed mesh handoff; Blender Cycles CPU with original publisher PBR textures,96samples,soft daylight; no image generation",
+  "geometry_unchanged": true,
+  "sha256": "5d15cf3664a6ea7b0c2b3546632f370f03cd825b89d015bda70dcc0c62edbc17",
+  "dimensions": [
+    1024,
+    1024
+  ],
+  "private_intermediates": "Ignored private-assets/Asuna/portrait-pose.json and portrait.blend",
+  "runtime_validation": "Separate browser QA; offline portrait is not evidence of WebGL appearance or performance."
+}
