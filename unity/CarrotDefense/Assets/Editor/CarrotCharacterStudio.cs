@@ -29,6 +29,9 @@ public static class CarrotCharacterStudio {
  public static readonly string[] Creatures={"nibble","dash","shell","swarm","moth","shaman","burrow","crystal","mite","beetle","slug","wisp","bat","scarab","firefly","sporeling","tinyZombie","riftling","shardling","mimic"};
  public static readonly string[] Minibosses={"warDrummer","frostHerald","witherPriest","stormWarden","graveCaller","mirrorKnight","riftStalker","mossGolem","emberBoar","venomQueen","ironSnail","lanternLeech","chronoMoth","thornBeast","portalSentinel"};
  public static readonly string[] Bosses={"garden","marsh","frost","orchard","tornado","zombie","eyeball","portal"};
+ // Fronts: the original creatures and guardians face +Z (the view yaws them along their path); the Portal-era creatures, minibosses and towers face -Z.
+ static readonly HashSet<string> PlusZ=new HashSet<string>{"nibble","dash","shell","swarm","moth","shaman","burrow","crystal","garden","marsh","frost","orchard","zombie"};
+ static float FrontYaw(string group,string name,float turn){return group=="tower"||group=="hero"?-turn:PlusZ.Contains(name)&&group!="tower"?180-turn:-turn;}
 
  static string Arg(string name,string fallback=null){var args=Environment.GetCommandLineArgs();for(int i=0;i<args.Length-1;i++)if(args[i]==name)return args[i+1];return fallback;}
  static string OutDir(){string dir=Arg("-studioOut",Path.GetFullPath("../../output/carrot-studio"));Directory.CreateDirectory(dir);return dir;}
@@ -111,11 +114,11 @@ public static class CarrotCharacterStudio {
    foreach(var item in Roster(true)){
     if(only!=""&&!only.Split(',').Contains(item.name))continue;
     var prefab=AssetDatabase.LoadAssetAtPath<GameObject>(item.path);if(prefab==null){Debug.LogWarning("STUDIO_MISSING "+item.path);continue;}
-    var go=UnityEngine.Object.Instantiate(prefab);go.transform.rotation=Quaternion.Euler(0,item.group=="tower"||item.group=="hero"?-20:150,0);PoseIdle(go);
+    var go=UnityEngine.Object.Instantiate(prefab);go.transform.rotation=Quaternion.Euler(0,FrontYaw(item.group,item.name,float.Parse(Arg("-studioTurn","24"),CultureInfo.InvariantCulture)),0);PoseIdle(go);
     var b=VisibleBounds(go);go.transform.position-=new Vector3(b.center.x,b.min.y,b.center.z);b=VisibleBounds(go);
-    float radius=Mathf.Max(b.extents.magnitude,.25f);var dirv=Quaternion.Euler(34,-9,0)*Vector3.forward;
+    float radius=Mathf.Max(b.extents.magnitude,.25f);var dirv=Quaternion.Euler(float.Parse(Arg("-studioPitch","34"),CultureInfo.InvariantCulture),-9,0)*Vector3.forward;
     float dist=radius/Mathf.Sin(s.camera.fieldOfView*.5f*Mathf.Deg2Rad)*1.02f;s.camera.transform.position=b.center-dirv*dist;s.camera.transform.rotation=Quaternion.LookRotation(dirv);
-    s.key.shadowNearPlane=.1f;var tex=Render(s,640,640);File.WriteAllBytes(Path.Combine(dir,item.group+"-"+item.name+".png"),tex.EncodeToPNG());UnityEngine.Object.DestroyImmediate(tex);
+    s.key.shadowNearPlane=.1f;int px=int.Parse(Arg("-studioSize","640"),CultureInfo.InvariantCulture);var tex=Render(s,px,px);File.WriteAllBytes(Path.Combine(dir,item.group+"-"+item.name+".png"),tex.EncodeToPNG());UnityEngine.Object.DestroyImmediate(tex);
     UnityEngine.Object.DestroyImmediate(go);
    }
   }
@@ -132,7 +135,7 @@ public static class CarrotCharacterStudio {
     var prefab=AssetDatabase.LoadAssetAtPath<GameObject>(item.path);if(prefab==null){Debug.LogWarning("STUDIO_MISSING "+item.path);continue;}
     var go=UnityEngine.Object.Instantiate(prefab);
     // Towers and the hero face the camera (front is -Z); creatures turn three-quarters toward camera-left, like the field guide cards.
-    go.transform.rotation=Quaternion.Euler(0,item.group=="tower"||item.group=="hero"?-24:(item.group=="boss"&&(item.name=="tornado"||item.name=="eyeball"||item.name=="portal")?-18:152),0);PoseIdle(go,.4f);
+    go.transform.rotation=Quaternion.Euler(0,FrontYaw(item.group,item.name,item.name=="tornado"||item.name=="eyeball"||item.name=="portal"?18:26),0);PoseIdle(go,.4f);
     var b=VisibleBounds(go);go.transform.position-=new Vector3(b.center.x,b.min.y,b.center.z);b=VisibleBounds(go);
     var dirv=Quaternion.Euler(16,-6,0)*Vector3.forward;
     // Fit the projected box (not the sphere) so tall and wide models both fill the cell.
@@ -217,14 +220,15 @@ public static class CarrotCharacterStudio {
     case "look":{
      // look enemy|tower|carrot|point KIND|x,y,z DIST PITCH YAW FOV [LIFT]: frame a live actor in the real level light.
      float F(int i)=>float.Parse(parts[i],CultureInfo.InvariantCulture);Vector3 target=Vector3.zero;bool found=false;
-     if(parts[1]=="enemy"){foreach(var e in game.enemies)if(e.kind==parts[2]||e.boss==parts[2]||e.miniboss==parts[2]){target=e.position;found=true;break;}}
+     float yawOffset=0;
+     if(parts[1]=="enemy"||parts[1]=="along"){foreach(var e in game.enemies)if(e.kind==parts[2]||e.boss==parts[2]||e.miniboss==parts[2]){target=e.position;found=true;if(parts[1]=="along"&&e.direction.sqrMagnitude>.0001f)yawOffset=Mathf.Atan2(e.direction.x,e.direction.z)*Mathf.Rad2Deg;break;}}
      else if(parts[1]=="tower"){foreach(var t in game.towers)if(t.kind==parts[2]||t.kind+"-"+t.tier==parts[2]){target=t.position;found=true;break;}}
      else if(parts[1]=="carrot"){var r=game.level.routes[0];target=r[r.Length-1];found=true;}
      else{var xyz=parts[2].Split(',');target=new Vector3(float.Parse(xyz[0],CultureInfo.InvariantCulture),float.Parse(xyz[1],CultureInfo.InvariantCulture),float.Parse(xyz[2],CultureInfo.InvariantCulture));found=true;}
      if(!found){Debug.LogWarning("STUDIO_LOOK_MISSING "+step);break;}
      target+=Vector3.up*(parts.Length>7?F(7):.4f);
      if(studioCam==null){studioCam=new GameObject("Studio camera").AddComponent<Camera>();studioCam.CopyFrom(view.GameCamera);studioCam.targetTexture=null;var d=studioCam.GetUniversalAdditionalCameraData();var g=view.GameCamera.GetUniversalAdditionalCameraData();d.renderPostProcessing=true;d.antialiasing=g.antialiasing;d.renderShadows=true;d.volumeLayerMask=-1;d.dithering=true;studioCam.enabled=false;}
-     var rot=Quaternion.Euler(F(4),F(5),0);studioCam.transform.rotation=rot;studioCam.transform.position=target-rot*Vector3.forward*F(3);studioCam.fieldOfView=F(6);break;}
+     var rot=Quaternion.Euler(F(4),F(5)+yawOffset,0);studioCam.transform.rotation=rot;studioCam.transform.position=target-rot*Vector3.forward*F(3);studioCam.fieldOfView=F(6);break;}
     case "gamecam":if(studioCam!=null){UnityEngine.Object.Destroy(studioCam.gameObject);studioCam=null;}break;
     case "shot":{int w=parts.Length>3?int.Parse(parts[2],CultureInfo.InvariantCulture):1440,h=parts.Length>3?int.Parse(parts[3],CultureInfo.InvariantCulture):900;var cam=studioCam!=null?studioCam:view.GameCamera;
      var rt=new RenderTexture(w,h,24,RenderTextureFormat.ARGB32,RenderTextureReadWrite.sRGB);rt.Create();var previous=cam.targetTexture;cam.targetTexture=rt;

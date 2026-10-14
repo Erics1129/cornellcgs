@@ -1,16 +1,16 @@
 [
   {
-    "name": "tornado",
-    "triangles": 9064,
-    "animated": false,
-    "meshes": 19,
-    "clips": []
-  },
-  {
     "name": "eyeball",
     "triangles": 7016,
     "animated": false,
     "meshes": 18,
+    "clips": []
+  },
+  {
+    "name": "tornado",
+    "triangles": 12570,
+    "animated": false,
+    "meshes": 19,
     "clips": []
   }
 ]

@@ -18,6 +18,29 @@ public static class CarrotModels {
     static readonly string[] Bosses = { "garden", "marsh", "frost", "orchard", "zombie" };
     /// <summary>Non-animated multi-part challenge bosses: the view spins and bobs their named pivots.</summary>
     static readonly string[] Props = { "tornado", "eyeball" };
+    /// <summary>Models whose imported normals are recomputed (see Configure).</summary>
+    static readonly string[] SmoothNormals = { "shell" };
+    /// <summary>
+    /// The original eight creatures and the four biome guardians plus the zombie were authored front -Y in Blender, which imports as
+    /// Unity -Z, but the view yaws enemy roots along +Z (LookRotation of the path direction; only Portal-era actors get an extra 180).
+    /// They walked backwards. The prefab now turns their Geometry 180 degrees so the prefab front is +Z, matching the view.
+    /// </summary>
+    static readonly string[] PlusZFront = { "nibble", "dash", "shell", "swarm", "moth", "shaman", "burrow", "crystal", "garden", "marsh", "frost", "orchard", "zombie" };
+    /// <summary>Per-actor surface category for an imported material name (null keeps the material's own category).</summary>
+    static string ActorCategory(string source,string renderer,string material) {
+        if(source=="Carrot"&&material=="Organic"&&renderer.StartsWith("Eye",StringComparison.Ordinal))return "Eye";
+        if(material=="Organic") {
+            switch(source) {
+                case "nibble": case "shaman": return "Mushroom";
+                case "shell": case "moth": return "Chitin";
+                case "swarm": return "Gel";
+                case "dash": case "burrow": return "Pelt";
+                case "zombie": return "ZombieHide";
+            }
+        }
+        if(material=="Glow"&&(source.StartsWith("frost-",StringComparison.Ordinal)||source=="crystal"))return "Ice";
+        return null;
+    }
     public static void Prepare() {
         Directory.CreateDirectory(Root + "/Models/Materials");
         Directory.CreateDirectory(Root + "/Models/Towers");
@@ -28,6 +51,7 @@ public static class CarrotModels {
         PrepareSurfaceTextures();
         ConfigureBiologicalRelief();
         PreparePortalSurfaces();
+        ConfigureDetailNormals();
         foreach (var path in Directory.GetFiles(Root + "/Models/Source", "*.fbx")) Configure(path.Replace('\\','/'));
         if (Directory.Exists(Root + "/Nature/Source")) foreach (var path in Directory.GetFiles(Root + "/Nature/Source", "*.fbx")) Configure(path.Replace('\\','/'));
         Make("Carrot", "Models/Carrot", false);
@@ -63,6 +87,9 @@ public static class CarrotModels {
         importer.importCameras=false; importer.importLights=false;
         importer.importBlendShapes=true;
         importer.importNormals=ModelImporterNormals.Import;
+        // The licensed spider ships flat-shaded split normals; recompute with a 60 degree smoothing angle so the
+        // chitin reads as rounded plates (hard creases above 60 degrees stay hard).
+        if(SmoothNormals.Contains(modelName)){importer.importNormals=ModelImporterNormals.Calculate;importer.normalSmoothingAngle=60;importer.normalCalculationMode=ModelImporterNormalCalculationMode.AreaAndAngleWeighted;importer.normalSmoothingSource=ModelImporterNormalSmoothingSource.PreferSmoothingGroups;}
         importer.importTangents=ModelImporterTangents.CalculateMikk;
         importer.meshCompression=Path.GetFileNameWithoutExtension(path)=="Carrot"?ModelImporterMeshCompression.Low:ModelImporterMeshCompression.Medium;
         importer.isReadable=path.Contains("/Nature/")||modelName=="portal";
@@ -137,6 +164,34 @@ public static class CarrotModels {
             }
         }
     }
+    /// <summary>
+    /// The Giant Tornado's wind shells (Tools/refine_carrot_characters.tornado_v2): Carrot/FxAlpha with the baked wind-streak sheet,
+    /// flat puff shading and one render queue per layer so the inner shell always draws before the outer ones.
+    /// </summary>
+    static Material WindShell(string name) {
+        int layer=int.Parse(name.Substring("TornadoShell".Length),System.Globalization.CultureInfo.InvariantCulture);
+        string path=Root+"/Models/Materials/"+name+".mat";var shader=Shader.Find("Carrot/FxAlpha");
+        if(!shader)throw new InvalidOperationException("Carrot/FxAlpha shader must exist before preparing the tornado.");
+        var m=AssetDatabase.LoadAssetAtPath<Material>(path);if(!m){m=new Material(shader);AssetDatabase.CreateAsset(m,path);}
+        m.shader=shader;m.SetColor("_Color",Color.white);m.SetTexture("_MainTex",AssetDatabase.LoadAssetAtPath<Texture2D>(Root+"/Models/Materials/TornadoStreaks.png"));
+        m.SetTextureScale("_MainTex",new Vector2(layer==4?6:2+layer,1));m.SetTextureOffset("_MainTex",new Vector2(.37f*layer,0));
+        m.SetFloat("_UseAtlas",1);m.SetFloat("_Puff",0);m.SetFloat("_Translucency",.55f);m.SetFloat("_SoftFade",.3f);
+        m.renderQueue=3000+layer;m.enableInstancing=false;EditorUtility.SetDirty(m);return m;
+    }
+    /// <summary>Import settings for the giant-update detail normals, the tornado wind sheet and the zombie albedo tint (Tools/bake_detail_normals.py).</summary>
+    static void ConfigureDetailNormals() {
+        foreach(string name in new[]{"MushroomPore","ChitinPlate","GelRipple","IceFacet","SkinPore","FurStrand"}) {
+            string path=Root+"/Models/Materials/"+name+"Detail.png";var importer=AssetImporter.GetAtPath(path) as TextureImporter;
+            if(importer==null)throw new InvalidOperationException("Detail normal missing (run Tools/bake_detail_normals.py): "+path);
+            importer.textureType=TextureImporterType.NormalMap;importer.sRGBTexture=false;importer.convertToNormalmap=false;
+            importer.wrapMode=TextureWrapMode.Repeat;importer.filterMode=FilterMode.Trilinear;importer.anisoLevel=2;importer.mipmapEnabled=true;importer.isReadable=false;
+            importer.maxTextureSize=512;CarrotBuild.WebTexture(importer,512,80);importer.SaveAndReimport();
+        }
+        var streaks=AssetImporter.GetAtPath(Root+"/Models/Materials/TornadoStreaks.png") as TextureImporter;
+        if(streaks!=null){streaks.textureType=TextureImporterType.Default;streaks.sRGBTexture=true;streaks.alphaSource=TextureImporterAlphaSource.FromInput;streaks.alphaIsTransparency=true;streaks.wrapModeU=TextureWrapMode.Repeat;streaks.wrapModeV=TextureWrapMode.Clamp;streaks.filterMode=FilterMode.Trilinear;streaks.mipmapEnabled=true;streaks.isReadable=false;streaks.maxTextureSize=512;CarrotBuild.WebTexture(streaks,512,70);streaks.SaveAndReimport();}
+        var tint=AssetImporter.GetAtPath(Root+"/Models/Materials/ZombieHideTint.png") as TextureImporter;
+        if(tint!=null){tint.textureType=TextureImporterType.Default;tint.sRGBTexture=true;tint.mipmapEnabled=false;tint.filterMode=FilterMode.Point;tint.wrapMode=TextureWrapMode.Repeat;tint.isReadable=false;tint.maxTextureSize=32;tint.textureCompression=TextureImporterCompression.Uncompressed;var web=tint.GetPlatformTextureSettings("WebGL");web.overridden=true;web.maxTextureSize=32;web.format=TextureImporterFormat.RGBA32;tint.SetPlatformTextureSettings(web);tint.SaveAndReimport();}
+    }
     static void PreparePortalSurfaces() {
         string atlasPath=Root+"/Textures/PortalBioAtlas.png";
         var source=AssetImporter.GetAtPath(atlasPath) as TextureImporter;
@@ -183,7 +238,7 @@ public static class CarrotModels {
         CarrotBuild.WebTexture(importer,512,normal?85:75);importer.SaveAndReimport();
     }
     static Material Surface(string category) {
-        string[] categories={"PortalChitin","PortalCap","PortalBamboo","PortalPeel","SuperGlow","Metal","Glow","Carrot","Leaf","Bark","Stone","Fur","Scale","Petal"};
+        string[] categories={"PortalChitin","PortalCap","PortalBamboo","PortalPeel","SuperGlow","Metal","Glow","Carrot","Leaf","Bark","Stone","Fur","Scale","Petal","Mushroom","Chitin","Gel","Ice","Eye","ZombieHide","Pelt","TornadoDust"};
         category=categories.FirstOrDefault(c=>category.StartsWith(c,StringComparison.Ordinal)) ?? "Organic";
         string path=Root+"/Models/Materials/"+category+".mat";
         var material=AssetDatabase.LoadAssetAtPath<Material>(path);
@@ -217,14 +272,22 @@ public static class CarrotModels {
         Texture2D roughness=AssetDatabase.LoadAssetAtPath<Texture2D>(pbr+"Roughness.jpg");
         Texture2D occlusion=AssetDatabase.LoadAssetAtPath<Texture2D>(pbr+"AO.jpg");
         bool biologicalSurface=category=="Carrot"||category=="Leaf"||category=="Fur"||category=="Scale";
-        if(biologicalSurface) {
-            normal=AssetDatabase.LoadAssetAtPath<Texture2D>(Root+"/Models/Materials/"+category+"MicroNormal.png");
-            roughness=AssetDatabase.LoadAssetAtPath<Texture2D>(Root+"/Models/Materials/"+category+"MicroRoughness.png");
+        if(biologicalSurface||category=="Pelt") {
+            // Pelt (bunny, mole) shares the fur relief but keeps the creature's own painted colour (no fur albedo).
+            string relief=category=="Pelt"?"Fur":category;
+            normal=AssetDatabase.LoadAssetAtPath<Texture2D>(Root+"/Models/Materials/"+relief+"MicroNormal.png");
+            roughness=AssetDatabase.LoadAssetAtPath<Texture2D>(Root+"/Models/Materials/"+relief+"MicroRoughness.png");
         }
-        float reliefStrength=category=="Fur"?.82f:category=="Scale"?.86f:category=="Carrot"?.68f:category=="Leaf"?.72f:category=="Bark"?1.0f:category=="Stone"?.9f:.72f;
+        float reliefStrength=category=="Fur"||category=="Pelt"?.82f:category=="Scale"?.86f:category=="Carrot"?.68f:category=="Leaf"?.72f:category=="Bark"?1.0f:category=="Stone"?.9f:.72f;
         material.SetTexture("_BumpMap",normal);material.SetFloat("_BumpScale",normal?reliefStrength:0f);
         material.SetTexture("_RoughnessMap",roughness);material.SetFloat("_UseRoughnessMap",roughness?1:0);
         material.SetTexture("_OcclusionMap",occlusion);material.SetFloat("_UseOcclusionMap",occlusion?1:0);material.SetFloat("_OcclusionStrength",.63f);
+        if(category=="ZombieHide") {
+            // The grave-green the view used to lerp in every frame (tint .46/.55/.38 at 70 %), baked as a flat sRGB
+            // albedo multiplier so property-block tints (hit flash, slow) can no longer wash it out.
+            material.SetTexture("_MainTex",AssetDatabase.LoadAssetAtPath<Texture2D>(Root+"/Models/Materials/ZombieHideTint.png"));
+            material.SetTextureScale("_MainTex",Vector2.one);
+        }
         if(category.StartsWith("Portal",StringComparison.Ordinal)) {
             // Authored palette supplies identity; generated atlas supplies pore/fibre
             // variation. Neutral detail avoids multiplying red/blue animal palettes.
@@ -237,7 +300,48 @@ public static class CarrotModels {
             material.SetFloat("_Glossiness",category=="PortalCap"?.23f:category=="PortalPeel"?.59f:.42f);
             material.SetFloat("_Translucency",category=="PortalBamboo"?.23f:category=="PortalPeel"?.08f:0);
         }
+        ApplyBlendedRealism(material,category);
         material.enableInstancing=false;EditorUtility.SetDirty(material);return material;
+    }
+    /// <summary>
+    /// Living-miniature surface response per category (Storybook T0 properties). Values follow docs/carrot-defense/giant-update/characters.md:
+    /// skin wrap capped at .35 and fur sheen at .4 so low-poly toys never turn waxy. Every category resets every property, so re-running is idempotent.
+    /// </summary>
+    static void ApplyBlendedRealism(Material m,string category) {
+        float sss=0,sheen=0,detailStrength=0,detailScale=6;Color sssTint=Color.white,sheenTint=Color.white;string detail=null;
+        switch(category) {
+            case "Carrot": sss=.30f;sssTint=new Color(1f,.42f,.16f);detail="SkinPore";detailScale=5;detailStrength=.35f;break;
+            case "Leaf": sss=.45f;sssTint=new Color(.62f,1f,.30f);break;
+            case "Petal": sss=.40f;sssTint=new Color(1f,.78f,.80f);break;
+            case "Fur": case "Pelt": sss=.20f;sssTint=new Color(1f,.70f,.55f);sheen=.40f;sheenTint=new Color(1f,.96f,.90f);detail="FurStrand";detailScale=4;detailStrength=.45f;break;
+            case "Scale": sss=.22f;sssTint=new Color(1f,.55f,.55f);break;
+            case "Mushroom": sss=.20f;sssTint=new Color(1f,.82f,.66f);sheen=.20f;sheenTint=new Color(1f,.95f,.88f);detail="MushroomPore";detailScale=4;detailStrength=.60f;break;
+            case "Chitin": detail="ChitinPlate";detailScale=3;detailStrength=.70f;break;
+            case "Gel": sss=.50f;sssTint=new Color(.62f,1f,.52f);detail="GelRipple";detailScale=2;detailStrength=.80f;break;
+            case "Ice": sss=.50f;sssTint=new Color(.55f,.82f,1f);detail="IceFacet";detailScale=2;detailStrength=.75f;break;
+            case "Eye": break;
+            case "ZombieHide": sss=.10f;sssTint=new Color(.8f,1f,.7f);detail="SkinPore";detailScale=4;detailStrength=.40f;break;
+            case "PortalCap": sheen=.20f;sheenTint=new Color(1f,.95f,.88f);break;
+            case "PortalChitin": detail="ChitinPlate";detailScale=2.5f;detailStrength=.35f;break;
+            case "PortalPeel": sss=.18f;sssTint=new Color(1f,.6f,.5f);break;
+            case "Bark": detail="BarkGrain";detailScale=4;detailStrength=.45f;break;
+            case "Organic": sss=.10f;sssTint=new Color(1f,.82f,.70f);break;
+        }
+        // Category-specific base response for the new surfaces.
+        if(category=="Mushroom"){m.SetFloat("_Glossiness",.45f);m.SetFloat("_Translucency",.20f);m.SetFloat("_ReflectionStrength",.55f);}
+        else if(category=="Chitin"){m.SetFloat("_Glossiness",.65f);m.SetFloat("_ReflectionStrength",1.0f);m.SetFloat("_Translucency",0f);}
+        else if(category=="Gel"){m.SetFloat("_Glossiness",.78f);m.SetFloat("_ReflectionStrength",1.0f);m.SetFloat("_Translucency",.35f);}
+        else if(category=="Ice"){m.SetFloat("_Glossiness",.85f);m.SetFloat("_ReflectionStrength",1.2f);m.SetFloat("_Translucency",.40f);m.SetColor("_EmissionColor",new Color(.11f,.13f,.14f,1)*1.2f);}
+        else if(category=="Eye"){m.SetFloat("_Glossiness",.93f);m.SetFloat("_ReflectionStrength",1.25f);m.SetFloat("_Translucency",0f);}
+        else if(category=="ZombieHide"){m.SetFloat("_Glossiness",.30f);m.SetFloat("_Translucency",.05f);}
+        else if(category=="Pelt"){m.SetFloat("_Glossiness",.16f);m.SetFloat("_Translucency",.25f);}
+        else if(category=="TornadoDust"){m.SetFloat("_Glossiness",.10f);m.SetFloat("_Translucency",.30f);m.SetFloat("_ReflectionStrength",.35f);sss=.25f;sssTint=new Color(.7f,.78f,.95f);}
+        m.SetFloat("_Subsurface",sss);m.SetColor("_SubsurfaceTint",sssTint);m.SetFloat("_Sheen",sheen);m.SetColor("_SheenTint",sheenTint);
+        Texture2D detailMap=null;
+        if(detail=="BarkGrain")detailMap=AssetDatabase.LoadAssetAtPath<Texture2D>(Root+"/Textures/PBR/BarkNormal.png");
+        else if(detail!=null)detailMap=AssetDatabase.LoadAssetAtPath<Texture2D>(Root+"/Models/Materials/"+detail+"Detail.png");
+        m.SetTexture("_DetailNormal",detailMap);m.SetFloat("_DetailScale",detailScale);m.SetFloat("_DetailStrength",detailMap!=null?detailStrength:0f);
+        m.SetFloat("_HitFlash",0);m.SetFloat("_RimBoost",0);
     }
     static void Make(string source,string destination,bool animated,bool nature=false) {
         string path=Root+(nature?"/Nature/Source/":"/Models/Source/")+source+".fbx";
@@ -247,10 +351,12 @@ public static class CarrotModels {
         var instance=new GameObject(source);imported.transform.SetParent(instance.transform,false);
         foreach (Renderer r in instance.GetComponentsInChildren<Renderer>(true)) {
             var mats=r.sharedMaterials;
-            for (int i=0;i<mats.Length;i++) mats[i]=Surface(mats[i]?mats[i].name:"Organic");
-            r.sharedMaterials=mats;r.shadowCastingMode=ShadowCastingMode.On;r.receiveShadows=true;
+            bool wind=false;
+            for (int i=0;i<mats.Length;i++){string name=mats[i]?mats[i].name:"Organic";if(name.StartsWith("TornadoShell",StringComparison.Ordinal)){mats[i]=WindShell(name);wind=true;}else mats[i]=Surface(ActorCategory(source,r.name,name)??name);}
+            r.sharedMaterials=mats;r.shadowCastingMode=wind?ShadowCastingMode.Off:ShadowCastingMode.On;r.receiveShadows=!wind;
             if (r is SkinnedMeshRenderer skin) skin.updateWhenOffscreen=false;
         }
+        if(PlusZFront.Contains(source)){var turn=Quaternion.Euler(0,180,0);imported.transform.localPosition=turn*imported.transform.localPosition;imported.transform.localRotation=turn*imported.transform.localRotation;}
         if(!animated&&!nature) NormalizeAnimationPivots(imported.transform,source=="portal"||ExpansionKinds.Any(k=>source.StartsWith(k+"-",StringComparison.Ordinal)));
         if (animated) {
             foreach (var animator in instance.GetComponentsInChildren<Animator>(true)) UnityEngine.Object.DestroyImmediate(animator);

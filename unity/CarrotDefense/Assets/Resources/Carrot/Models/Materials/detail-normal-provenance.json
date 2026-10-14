@@ -1,0 +1,114 @@
+[
+  {
+    "name": "MushroomPoreDetail.png",
+    "kind": "detail normal",
+    "size": 512,
+    "gain": 3.0,
+    "pattern": "felted cap wrinkles and pores",
+    "sha256": "3aebca5875299dae7d8dd9e3419aa0350adfba2a88309119d8df68d07a49dec8",
+    "maxSlope": 0.1362,
+    "meanSlope": 0.0255,
+    "seamMismatch": 0.115965,
+    "generator": "Tools/bake_detail_normals.py",
+    "licence": "original work (project licence)",
+    "normalConvention": "Tangent space, OpenGL Y+, imported as Unity NormalMap"
+  },
+  {
+    "name": "ChitinPlateDetail.png",
+    "kind": "detail normal",
+    "size": 512,
+    "gain": 4.0,
+    "pattern": "exoskeleton plate grooves and dimples",
+    "sha256": "fb934a8c2fabadff6dd3864366f43f26ef67a0a77421a065cbda7011dbf6b68f",
+    "maxSlope": 0.1464,
+    "meanSlope": 0.0258,
+    "seamMismatch": 0.255938,
+    "generator": "Tools/bake_detail_normals.py",
+    "licence": "original work (project licence)",
+    "normalConvention": "Tangent space, OpenGL Y+, imported as Unity NormalMap"
+  },
+  {
+    "name": "GelRippleDetail.png",
+    "kind": "detail normal",
+    "size": 512,
+    "gain": 4.5,
+    "pattern": "slime lumps and ripples",
+    "sha256": "c4b137915bcb3a64f50ecb1b5fa4d14fdd558096001a85c8116d2ad8c27610c5",
+    "maxSlope": 0.0286,
+    "meanSlope": 0.0124,
+    "seamMismatch": 0.044182,
+    "generator": "Tools/bake_detail_normals.py",
+    "licence": "original work (project licence)",
+    "normalConvention": "Tangent space, OpenGL Y+, imported as Unity NormalMap"
+  },
+  {
+    "name": "IceFacetDetail.png",
+    "kind": "detail normal",
+    "size": 512,
+    "gain": 3.4,
+    "pattern": "tilted ice facets and hairline cracks",
+    "sha256": "e9cdcfccbb6c4980fe0a2539d5295b255c90d9bae463504b33dbf023cb700ea6",
+    "maxSlope": 0.4278,
+    "meanSlope": 0.0229,
+    "seamMismatch": 0.05404,
+    "generator": "Tools/bake_detail_normals.py",
+    "licence": "original work (project licence)",
+    "normalConvention": "Tangent space, OpenGL Y+, imported as Unity NormalMap"
+  },
+  {
+    "name": "SkinPoreDetail.png",
+    "kind": "detail normal",
+    "size": 512,
+    "gain": 2.4,
+    "pattern": "plant-skin lenticels and pores",
+    "sha256": "aff7f67a214c6e18512d969d2d266f89c6222b7bc9ad20748c41b63a49f30858",
+    "maxSlope": 0.1946,
+    "meanSlope": 0.0246,
+    "seamMismatch": 0.128859,
+    "generator": "Tools/bake_detail_normals.py",
+    "licence": "original work (project licence)",
+    "normalConvention": "Tangent space, OpenGL Y+, imported as Unity NormalMap"
+  },
+  {
+    "name": "FurStrandDetail.png",
+    "kind": "detail normal",
+    "size": 512,
+    "gain": 2.6,
+    "pattern": "fine directional strands",
+    "sha256": "2826bd28f559f8cdb7bb699e4887200a67a188e4a75af2d3760872895f08c2d3",
+    "maxSlope": 0.1575,
+    "meanSlope": 0.0575,
+    "seamMismatch": 0.680366,
+    "generator": "Tools/bake_detail_normals.py",
+    "licence": "original work (project licence)",
+    "normalConvention": "Tangent space, OpenGL Y+, imported as Unity NormalMap"
+  },
+  {
+    "name": "TornadoStreaks.png",
+    "kind": "FxAlpha wind sheet",
+    "size": [
+      512,
+      256
+    ],
+    "meanAlpha": 0.1299,
+    "sha256": "ccda4af7e92e4dadb5d3049b0cf076b2e6445cce8f3c4816b904f4b8b47118ac",
+    "generator": "Tools/bake_detail_normals.py",
+    "licence": "original work (project licence)"
+  },
+  {
+    "name": "ZombieHideTint.png",
+    "kind": "flat sRGB albedo multiplier",
+    "size": [
+      4,
+      4
+    ],
+    "value": [
+      159,
+      175,
+      144
+    ],
+    "sha256": "bc3b8558694dc12c84250fe513175e503b44292f978a6bf13e9184fc105e6aff",
+    "generator": "Tools/bake_detail_normals.py",
+    "licence": "original work (project licence)"
+  }
+]
