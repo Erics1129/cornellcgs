@@ -1,0 +1,474 @@
+{
+ "note": "Round-robin variants for CarrotSfxBank; packs are the same CC0 archives recorded in kenney-impact-sounds-provenance.json and kenney-rpg-audio-provenance.json.",
+ "totalBytes": 449292,
+ "files": [
+  {
+   "resource": "Carrot/Audio/Variants/Metal/Metal1",
+   "source": "kenney-impact-sounds/Audio/impactMetal_medium_001.ogg",
+   "pack": "Kenney Impact Sounds 1.0 (https://kenney.nl/assets/impact-sounds)",
+   "license": "CC0-1.0",
+   "sha256": "e8a9eaba7c4d27422e4eeb3e6c7100d5d7dc0f83e005efc98c960adcc5265337",
+   "bytes": 6151,
+   "processing": "none (byte copy; Unity downmixes to mono and re-encodes at import)"
+  },
+  {
+   "resource": "Carrot/Audio/Variants/Metal/Metal2",
+   "source": "kenney-impact-sounds/Audio/impactMetal_medium_002.ogg",
+   "pack": "Kenney Impact Sounds 1.0 (https://kenney.nl/assets/impact-sounds)",
+   "license": "CC0-1.0",
+   "sha256": "7e89ce2ca0dbda95ea2b78d4b50791cab35c10d20e9f5ccd45dd0b00e99ff548",
+   "bytes": 5857,
+   "processing": "none (byte copy; Unity downmixes to mono and re-encodes at import)"
+  },
+  {
+   "resource": "Carrot/Audio/Variants/Metal/Metal3",
+   "source": "kenney-impact-sounds/Audio/impactMetal_medium_003.ogg",
+   "pack": "Kenney Impact Sounds 1.0 (https://kenney.nl/assets/impact-sounds)",
+   "license": "CC0-1.0",
+   "sha256": "2a185e2e57211d02c1bdd33b872d6b6a2fe83e6c14f4e56f426a95e717acf08e",
+   "bytes": 6964,
+   "processing": "none (byte copy; Unity downmixes to mono and re-encodes at import)"
+  },
+  {
+   "resource": "Carrot/Audio/Variants/Metal/Metal4",
+   "source": "kenney-impact-sounds/Audio/impactMetal_medium_004.ogg",
+   "pack": "Kenney Impact Sounds 1.0 (https://kenney.nl/assets/impact-sounds)",
+   "license": "CC0-1.0",
+   "sha256": "03e10f800199c7166208e41c11cf4acfac6cc265467f02357da71972bc967295",
+   "bytes": 5744,
+   "processing": "none (byte copy; Unity downmixes to mono and re-encodes at import)"
+  },
+  {
+   "resource": "Carrot/Audio/Variants/Glass/Glass1",
+   "source": "kenney-impact-sounds/Audio/impactGlass_medium_001.ogg",
+   "pack": "Kenney Impact Sounds 1.0 (https://kenney.nl/assets/impact-sounds)",
+   "license": "CC0-1.0",
+   "sha256": "d3d806cb3012c9ddd87010b30295ccb74d6d8b690077d19e67afd09a9d8feb03",
+   "bytes": 8605,
+   "processing": "none (byte copy; Unity downmixes to mono and re-encodes at import)"
+  },
+  {
+   "resource": "Carrot/Audio/Variants/Glass/Glass2",
+   "source": "kenney-impact-sounds/Audio/impactGlass_medium_002.ogg",
+   "pack": "Kenney Impact Sounds 1.0 (https://kenney.nl/assets/impact-sounds)",
+   "license": "CC0-1.0",
+   "sha256": "48616f22c95589ed9fe55babf0fd012721d7b2ef1b9e85c2ad6408a2cd7c164f",
+   "bytes": 8341,
+   "processing": "none (byte copy; Unity downmixes to mono and re-encodes at import)"
+  },
+  {
+   "resource": "Carrot/Audio/Variants/Glass/Glass3",
+   "source": "kenney-impact-sounds/Audio/impactGlass_medium_003.ogg",
+   "pack": "Kenney Impact Sounds 1.0 (https://kenney.nl/assets/impact-sounds)",
+   "license": "CC0-1.0",
+   "sha256": "dccea1ecc3d942ee5fd217c684632638f6c039c97cd3ae59c75ab15d0c3f0b59",
+   "bytes": 8596,
+   "processing": "none (byte copy; Unity downmixes to mono and re-encodes at import)"
+  },
+  {
+   "resource": "Carrot/Audio/Variants/Glass/Glass4",
+   "source": "kenney-impact-sounds/Audio/impactGlass_medium_004.ogg",
+   "pack": "Kenney Impact Sounds 1.0 (https://kenney.nl/assets/impact-sounds)",
+   "license": "CC0-1.0",
+   "sha256": "853fe77ad46bd0cf106e40e741b039e15b90f73edecd92cde524fbad9e3ebe00",
+   "bytes": 8397,
+   "processing": "none (byte copy; Unity downmixes to mono and re-encodes at import)"
+  },
+  {
+   "resource": "Carrot/Audio/Variants/GlassLight/GlassLight1",
+   "source": "kenney-impact-sounds/Audio/impactGlass_light_000.ogg",
+   "pack": "Kenney Impact Sounds 1.0 (https://kenney.nl/assets/impact-sounds)",
+   "license": "CC0-1.0",
+   "sha256": "d750cf88097d0c3e69920e6e14496e1444e1a9da01aa4cca8f5ec8cb44c57b4f",
+   "bytes": 6526,
+   "processing": "none (byte copy; Unity downmixes to mono and re-encodes at import)"
+  },
+  {
+   "resource": "Carrot/Audio/Variants/GlassLight/GlassLight2",
+   "source": "kenney-impact-sounds/Audio/impactGlass_light_001.ogg",
+   "pack": "Kenney Impact Sounds 1.0 (https://kenney.nl/assets/impact-sounds)",
+   "license": "CC0-1.0",
+   "sha256": "05e513fbd42829060eb37855f8c3866722ec5c39a8937c9bfde518cc609effa2",
+   "bytes": 6544,
+   "processing": "none (byte copy; Unity downmixes to mono and re-encodes at import)"
+  },
+  {
+   "resource": "Carrot/Audio/Variants/GlassLight/GlassLight3",
+   "source": "kenney-impact-sounds/Audio/impactGlass_light_002.ogg",
+   "pack": "Kenney Impact Sounds 1.0 (https://kenney.nl/assets/impact-sounds)",
+   "license": "CC0-1.0",
+   "sha256": "710db7451bb7857b9140dfe6afe4621ea2188ad65eda3919c569d1bb285b933d",
+   "bytes": 6562,
+   "processing": "none (byte copy; Unity downmixes to mono and re-encodes at import)"
+  },
+  {
+   "resource": "Carrot/Audio/Variants/GlassLight/GlassLight4",
+   "source": "kenney-impact-sounds/Audio/impactGlass_light_003.ogg",
+   "pack": "Kenney Impact Sounds 1.0 (https://kenney.nl/assets/impact-sounds)",
+   "license": "CC0-1.0",
+   "sha256": "765290ce32fa108c939a0dbd6fbacbcd05abde622b57b708eb8a64058ef4225a",
+   "bytes": 6618,
+   "processing": "none (byte copy; Unity downmixes to mono and re-encodes at import)"
+  },
+  {
+   "resource": "Carrot/Audio/Variants/Wood/Wood1",
+   "source": "kenney-impact-sounds/Audio/impactWood_medium_001.ogg",
+   "pack": "Kenney Impact Sounds 1.0 (https://kenney.nl/assets/impact-sounds)",
+   "license": "CC0-1.0",
+   "sha256": "15271dbe8e2872dbb0ff1aeb7b12b2d2b92b7c1951c88532b9ab9158c36dfc73",
+   "bytes": 6555,
+   "processing": "none (byte copy; Unity downmixes to mono and re-encodes at import)"
+  },
+  {
+   "resource": "Carrot/Audio/Variants/Wood/Wood2",
+   "source": "kenney-impact-sounds/Audio/impactWood_medium_002.ogg",
+   "pack": "Kenney Impact Sounds 1.0 (https://kenney.nl/assets/impact-sounds)",
+   "license": "CC0-1.0",
+   "sha256": "3f3f1917428b828f733a963167833c707bf88296ff158e1559c57c5cb813d799",
+   "bytes": 6607,
+   "processing": "none (byte copy; Unity downmixes to mono and re-encodes at import)"
+  },
+  {
+   "resource": "Carrot/Audio/Variants/Wood/Wood3",
+   "source": "kenney-impact-sounds/Audio/impactWood_medium_003.ogg",
+   "pack": "Kenney Impact Sounds 1.0 (https://kenney.nl/assets/impact-sounds)",
+   "license": "CC0-1.0",
+   "sha256": "635c37cfcd854b187d643d450ff0397798dcc29ae94da32192b814fae6bd854c",
+   "bytes": 6598,
+   "processing": "none (byte copy; Unity downmixes to mono and re-encodes at import)"
+  },
+  {
+   "resource": "Carrot/Audio/Variants/Wood/Wood4",
+   "source": "kenney-impact-sounds/Audio/impactWood_medium_004.ogg",
+   "pack": "Kenney Impact Sounds 1.0 (https://kenney.nl/assets/impact-sounds)",
+   "license": "CC0-1.0",
+   "sha256": "7ba48f2f99c91c71be420841a91f1e69c0cbc4fe887fcd7213144d67bb87b13a",
+   "bytes": 6481,
+   "processing": "none (byte copy; Unity downmixes to mono and re-encodes at import)"
+  },
+  {
+   "resource": "Carrot/Audio/Variants/Plate/Plate1",
+   "source": "kenney-impact-sounds/Audio/impactPlate_light_000.ogg",
+   "pack": "Kenney Impact Sounds 1.0 (https://kenney.nl/assets/impact-sounds)",
+   "license": "CC0-1.0",
+   "sha256": "6e797cf8a5bfc52d7ed5eb47c227974c1cf2a674954fec5b539cea7d62c7282c",
+   "bytes": 10474,
+   "processing": "none (byte copy; Unity downmixes to mono and re-encodes at import)"
+  },
+  {
+   "resource": "Carrot/Audio/Variants/Plate/Plate2",
+   "source": "kenney-impact-sounds/Audio/impactPlate_light_001.ogg",
+   "pack": "Kenney Impact Sounds 1.0 (https://kenney.nl/assets/impact-sounds)",
+   "license": "CC0-1.0",
+   "sha256": "947915c2eb6ac57ee08fd3a48b297fd108d69abc72076e79882c21cad0eef56e",
+   "bytes": 11730,
+   "processing": "none (byte copy; Unity downmixes to mono and re-encodes at import)"
+  },
+  {
+   "resource": "Carrot/Audio/Variants/Plate/Plate3",
+   "source": "kenney-impact-sounds/Audio/impactPlate_light_002.ogg",
+   "pack": "Kenney Impact Sounds 1.0 (https://kenney.nl/assets/impact-sounds)",
+   "license": "CC0-1.0",
+   "sha256": "8ac5869ea434cf0d364872774efe70b2d666a4f02ba35ddfc1e051d336721be8",
+   "bytes": 9932,
+   "processing": "none (byte copy; Unity downmixes to mono and re-encodes at import)"
+  },
+  {
+   "resource": "Carrot/Audio/Variants/Plate/Plate4",
+   "source": "kenney-impact-sounds/Audio/impactPlate_light_003.ogg",
+   "pack": "Kenney Impact Sounds 1.0 (https://kenney.nl/assets/impact-sounds)",
+   "license": "CC0-1.0",
+   "sha256": "dbfb7c1d002576696df3e9a43d6639ee3f342068398b5e7b55bc2389d20508a9",
+   "bytes": 10626,
+   "processing": "none (byte copy; Unity downmixes to mono and re-encodes at import)"
+  },
+  {
+   "resource": "Carrot/Audio/Variants/Mining/Mining1",
+   "source": "kenney-impact-sounds/Audio/impactMining_000.ogg",
+   "pack": "Kenney Impact Sounds 1.0 (https://kenney.nl/assets/impact-sounds)",
+   "license": "CC0-1.0",
+   "sha256": "36b4ea107222d073c67ca64dde26944975609202d5090b2f2021213c1a7e35cd",
+   "bytes": 12035,
+   "processing": "none (byte copy; Unity downmixes to mono and re-encodes at import)"
+  },
+  {
+   "resource": "Carrot/Audio/Variants/Mining/Mining2",
+   "source": "kenney-impact-sounds/Audio/impactMining_001.ogg",
+   "pack": "Kenney Impact Sounds 1.0 (https://kenney.nl/assets/impact-sounds)",
+   "license": "CC0-1.0",
+   "sha256": "61235a18de3f3d92118235398222dbf51d448f1be70b1c8bc962b10b86f2d9c6",
+   "bytes": 11481,
+   "processing": "none (byte copy; Unity downmixes to mono and re-encodes at import)"
+  },
+  {
+   "resource": "Carrot/Audio/Variants/Mining/Mining3",
+   "source": "kenney-impact-sounds/Audio/impactMining_002.ogg",
+   "pack": "Kenney Impact Sounds 1.0 (https://kenney.nl/assets/impact-sounds)",
+   "license": "CC0-1.0",
+   "sha256": "059558ec751115ca6b1441e00f0adc837c1a3eeb0a066b109e0fd879fc5d0b0c",
+   "bytes": 11235,
+   "processing": "none (byte copy; Unity downmixes to mono and re-encodes at import)"
+  },
+  {
+   "resource": "Carrot/Audio/Variants/Mining/Mining4",
+   "source": "kenney-impact-sounds/Audio/impactMining_003.ogg",
+   "pack": "Kenney Impact Sounds 1.0 (https://kenney.nl/assets/impact-sounds)",
+   "license": "CC0-1.0",
+   "sha256": "4237fa2cd80364ad81cd0af44f67d7497f1c5edcc7bdb02cd22be2ba4580c83d",
+   "bytes": 12160,
+   "processing": "none (byte copy; Unity downmixes to mono and re-encodes at import)"
+  },
+  {
+   "resource": "Carrot/Audio/Variants/Punch/Punch1",
+   "source": "kenney-impact-sounds/Audio/impactPunch_medium_000.ogg",
+   "pack": "Kenney Impact Sounds 1.0 (https://kenney.nl/assets/impact-sounds)",
+   "license": "CC0-1.0",
+   "sha256": "486988aa2d6440ffc4c62a0e8ccf3c23673ba84424bd4723378d451b7255eb5c",
+   "bytes": 8800,
+   "processing": "none (byte copy; Unity downmixes to mono and re-encodes at import)"
+  },
+  {
+   "resource": "Carrot/Audio/Variants/Punch/Punch2",
+   "source": "kenney-impact-sounds/Audio/impactPunch_medium_001.ogg",
+   "pack": "Kenney Impact Sounds 1.0 (https://kenney.nl/assets/impact-sounds)",
+   "license": "CC0-1.0",
+   "sha256": "e71d23abcc3f10d9d6bc9615b2a431fff70b12333a5fcdd9964457564ace4349",
+   "bytes": 8701,
+   "processing": "none (byte copy; Unity downmixes to mono and re-encodes at import)"
+  },
+  {
+   "resource": "Carrot/Audio/Variants/Punch/Punch3",
+   "source": "kenney-impact-sounds/Audio/impactPunch_medium_002.ogg",
+   "pack": "Kenney Impact Sounds 1.0 (https://kenney.nl/assets/impact-sounds)",
+   "license": "CC0-1.0",
+   "sha256": "6492f9ccbc8d24dcef607bb1b48790b7870961474561f7fe5601e1c73a3018ef",
+   "bytes": 10399,
+   "processing": "none (byte copy; Unity downmixes to mono and re-encodes at import)"
+  },
+  {
+   "resource": "Carrot/Audio/Variants/Punch/Punch4",
+   "source": "kenney-impact-sounds/Audio/impactPunch_medium_003.ogg",
+   "pack": "Kenney Impact Sounds 1.0 (https://kenney.nl/assets/impact-sounds)",
+   "license": "CC0-1.0",
+   "sha256": "2d7c719c05999e0532f4384e1018e04cd916db715140bf16dee2dff3f820e908",
+   "bytes": 9509,
+   "processing": "none (byte copy; Unity downmixes to mono and re-encodes at import)"
+  },
+  {
+   "resource": "Carrot/Audio/Variants/Bell/Bell1",
+   "source": "kenney-impact-sounds/Audio/impactBell_heavy_000.ogg",
+   "pack": "Kenney Impact Sounds 1.0 (https://kenney.nl/assets/impact-sounds)",
+   "license": "CC0-1.0",
+   "sha256": "94b8bb5f2d43ab65e4bcc32b28562416e9bc2c51d9fd4be1e333660ee52f977f",
+   "bytes": 13915,
+   "processing": "none (byte copy; Unity downmixes to mono and re-encodes at import)"
+  },
+  {
+   "resource": "Carrot/Audio/Variants/Bell/Bell2",
+   "source": "kenney-impact-sounds/Audio/impactBell_heavy_001.ogg",
+   "pack": "Kenney Impact Sounds 1.0 (https://kenney.nl/assets/impact-sounds)",
+   "license": "CC0-1.0",
+   "sha256": "9df61e3ae9a83dc65e5a1fd3ed19d480876f3b22b963a1b9ef6fa293592dcec4",
+   "bytes": 15577,
+   "processing": "none (byte copy; Unity downmixes to mono and re-encodes at import)"
+  },
+  {
+   "resource": "Carrot/Audio/Variants/Soft/Soft1",
+   "source": "kenney-impact-sounds/Audio/impactSoft_medium_000.ogg",
+   "pack": "Kenney Impact Sounds 1.0 (https://kenney.nl/assets/impact-sounds)",
+   "license": "CC0-1.0",
+   "sha256": "7d3ba0bb5e60a11b5d3e558c141303dcf494256675fbf753c0d252d2cf0481e3",
+   "bytes": 5351,
+   "processing": "none (byte copy; Unity downmixes to mono and re-encodes at import)"
+  },
+  {
+   "resource": "Carrot/Audio/Variants/Soft/Soft2",
+   "source": "kenney-impact-sounds/Audio/impactSoft_medium_001.ogg",
+   "pack": "Kenney Impact Sounds 1.0 (https://kenney.nl/assets/impact-sounds)",
+   "license": "CC0-1.0",
+   "sha256": "7642a4fd43e547afe4f7adfadb3dabb681c0ff512f52c1674bae30a726841faf",
+   "bytes": 5506,
+   "processing": "none (byte copy; Unity downmixes to mono and re-encodes at import)"
+  },
+  {
+   "resource": "Carrot/Audio/Variants/Soft/Soft3",
+   "source": "kenney-impact-sounds/Audio/impactSoft_medium_002.ogg",
+   "pack": "Kenney Impact Sounds 1.0 (https://kenney.nl/assets/impact-sounds)",
+   "license": "CC0-1.0",
+   "sha256": "5069e3571a77d7f7aae9ef71d0364aa245fb7d64a7c8cc9956f221d03088c089",
+   "bytes": 5358,
+   "processing": "none (byte copy; Unity downmixes to mono and re-encodes at import)"
+  },
+  {
+   "resource": "Carrot/Audio/Variants/Soft/Soft4",
+   "source": "kenney-impact-sounds/Audio/impactSoft_medium_003.ogg",
+   "pack": "Kenney Impact Sounds 1.0 (https://kenney.nl/assets/impact-sounds)",
+   "license": "CC0-1.0",
+   "sha256": "5c4a1f35fde7e14046931da7bc3d1b23736541b7190ba107e08a379c4ca43cd6",
+   "bytes": 5392,
+   "processing": "none (byte copy; Unity downmixes to mono and re-encodes at import)"
+  },
+  {
+   "resource": "Carrot/Audio/Variants/Soft/Soft5",
+   "source": "kenney-impact-sounds/Audio/impactSoft_medium_004.ogg",
+   "pack": "Kenney Impact Sounds 1.0 (https://kenney.nl/assets/impact-sounds)",
+   "license": "CC0-1.0",
+   "sha256": "b0a4dea90eed47accf50b768beff1166f2f1486fb139e4d025b2427637624bca",
+   "bytes": 5438,
+   "processing": "none (byte copy; Unity downmixes to mono and re-encodes at import)"
+  },
+  {
+   "resource": "Carrot/Audio/Variants/SoftHeavy/SoftHeavy1",
+   "source": "kenney-impact-sounds/Audio/impactSoft_heavy_001.ogg",
+   "pack": "Kenney Impact Sounds 1.0 (https://kenney.nl/assets/impact-sounds)",
+   "license": "CC0-1.0",
+   "sha256": "4d0096364ba9e46119d2ff6df493fdc101bd2e1efae061da5e5f77a53b3fdcb6",
+   "bytes": 6689,
+   "processing": "none (byte copy; Unity downmixes to mono and re-encodes at import)"
+  },
+  {
+   "resource": "Carrot/Audio/Variants/SoftHeavy/SoftHeavy2",
+   "source": "kenney-impact-sounds/Audio/impactSoft_heavy_002.ogg",
+   "pack": "Kenney Impact Sounds 1.0 (https://kenney.nl/assets/impact-sounds)",
+   "license": "CC0-1.0",
+   "sha256": "d130ae541951243d3f6ed963d0057450a445ffe117fbf9a084d34eb1635cb563",
+   "bytes": 6749,
+   "processing": "none (byte copy; Unity downmixes to mono and re-encodes at import)"
+  },
+  {
+   "resource": "Carrot/Audio/Variants/SoftHeavy/SoftHeavy3",
+   "source": "kenney-impact-sounds/Audio/impactSoft_heavy_003.ogg",
+   "pack": "Kenney Impact Sounds 1.0 (https://kenney.nl/assets/impact-sounds)",
+   "license": "CC0-1.0",
+   "sha256": "d00286a2dc62ee5cb4d42bf56120e7050a855f69e655fc1294410aadd337eba3",
+   "bytes": 6665,
+   "processing": "none (byte copy; Unity downmixes to mono and re-encodes at import)"
+  },
+  {
+   "resource": "Carrot/Audio/Variants/SoftHeavy/SoftHeavy4",
+   "source": "kenney-impact-sounds/Audio/impactSoft_heavy_004.ogg",
+   "pack": "Kenney Impact Sounds 1.0 (https://kenney.nl/assets/impact-sounds)",
+   "license": "CC0-1.0",
+   "sha256": "e008f0b6b14f62339c8fe9f9b45cbd6317ba4f66604c4899053b8017020a36f0",
+   "bytes": 6478,
+   "processing": "none (byte copy; Unity downmixes to mono and re-encodes at import)"
+  },
+  {
+   "resource": "Carrot/Audio/Variants/Grass/Grass1",
+   "source": "kenney-impact-sounds/Audio/footstep_grass_001.ogg",
+   "pack": "Kenney Impact Sounds 1.0 (https://kenney.nl/assets/impact-sounds)",
+   "license": "CC0-1.0",
+   "sha256": "fb28781bd22b2eefdc14077f1adf5c94d7fe9c3a130194633b55f3e0d39d9f04",
+   "bytes": 8313,
+   "processing": "none (byte copy; Unity downmixes to mono and re-encodes at import)"
+  },
+  {
+   "resource": "Carrot/Audio/Variants/Grass/Grass2",
+   "source": "kenney-impact-sounds/Audio/footstep_grass_002.ogg",
+   "pack": "Kenney Impact Sounds 1.0 (https://kenney.nl/assets/impact-sounds)",
+   "license": "CC0-1.0",
+   "sha256": "73a520139f5be716a403bfe9c80e0e94d1e61d8e9de04a354b336392164b53dc",
+   "bytes": 8278,
+   "processing": "none (byte copy; Unity downmixes to mono and re-encodes at import)"
+  },
+  {
+   "resource": "Carrot/Audio/Variants/Grass/Grass3",
+   "source": "kenney-impact-sounds/Audio/footstep_grass_003.ogg",
+   "pack": "Kenney Impact Sounds 1.0 (https://kenney.nl/assets/impact-sounds)",
+   "license": "CC0-1.0",
+   "sha256": "0546e1d8ab2def714425701a18bd34c5ee2794b12e858e5b595aabcf38a34137",
+   "bytes": 8129,
+   "processing": "none (byte copy; Unity downmixes to mono and re-encodes at import)"
+  },
+  {
+   "resource": "Carrot/Audio/Variants/Grass/Grass4",
+   "source": "kenney-impact-sounds/Audio/footstep_grass_004.ogg",
+   "pack": "Kenney Impact Sounds 1.0 (https://kenney.nl/assets/impact-sounds)",
+   "license": "CC0-1.0",
+   "sha256": "086fd4ab3546a507ea5f5c759a9a10e535c95ade13705c238bc0eeffd7d4e8ba",
+   "bytes": 7800,
+   "processing": "none (byte copy; Unity downmixes to mono and re-encodes at import)"
+  },
+  {
+   "resource": "Carrot/Audio/Variants/Snow/Snow1",
+   "source": "kenney-impact-sounds/Audio/footstep_snow_001.ogg",
+   "pack": "Kenney Impact Sounds 1.0 (https://kenney.nl/assets/impact-sounds)",
+   "license": "CC0-1.0",
+   "sha256": "980fb9a1c9227aed7995067b0357f373053337f2416316db8ea0438418542fb4",
+   "bytes": 7794,
+   "processing": "none (byte copy; Unity downmixes to mono and re-encodes at import)"
+  },
+  {
+   "resource": "Carrot/Audio/Variants/Snow/Snow2",
+   "source": "kenney-impact-sounds/Audio/footstep_snow_002.ogg",
+   "pack": "Kenney Impact Sounds 1.0 (https://kenney.nl/assets/impact-sounds)",
+   "license": "CC0-1.0",
+   "sha256": "db52bafdc66304f3b999f2c29227826c65993916e630ac2ffbca17d07b263178",
+   "bytes": 7694,
+   "processing": "none (byte copy; Unity downmixes to mono and re-encodes at import)"
+  },
+  {
+   "resource": "Carrot/Audio/Variants/Snow/Snow3",
+   "source": "kenney-impact-sounds/Audio/footstep_snow_003.ogg",
+   "pack": "Kenney Impact Sounds 1.0 (https://kenney.nl/assets/impact-sounds)",
+   "license": "CC0-1.0",
+   "sha256": "68272e3f1cabcabd02d328fd344454d7c04cb58b5a86972fcdd858f845e3d007",
+   "bytes": 7860,
+   "processing": "none (byte copy; Unity downmixes to mono and re-encodes at import)"
+  },
+  {
+   "resource": "Carrot/Audio/Variants/Snow/Snow4",
+   "source": "kenney-impact-sounds/Audio/footstep_snow_004.ogg",
+   "pack": "Kenney Impact Sounds 1.0 (https://kenney.nl/assets/impact-sounds)",
+   "license": "CC0-1.0",
+   "sha256": "7fe9ce5f5732aaa0a50ef02bb1ac162c27f6bd85214e86aaea6e13e7a41dbc00",
+   "bytes": 7630,
+   "processing": "none (byte copy; Unity downmixes to mono and re-encodes at import)"
+  },
+  {
+   "resource": "Carrot/Audio/Variants/Slice/Slice1",
+   "source": "kenney-rpg-audio/Audio/knifeSlice2.ogg",
+   "pack": "Kenney RPG Audio (https://kenney.nl/assets/rpg-audio)",
+   "license": "CC0-1.0",
+   "sha256": "6c2064d0ef988d1ec3d56868e823ea8823a5cac00f2742560052633529407def",
+   "bytes": 15099,
+   "processing": "none (byte copy; Unity downmixes to mono and re-encodes at import)"
+  },
+  {
+   "resource": "Carrot/Audio/Variants/Slice/Slice2",
+   "source": "kenney-rpg-audio/Audio/drawKnife1.ogg",
+   "pack": "Kenney RPG Audio (https://kenney.nl/assets/rpg-audio)",
+   "license": "CC0-1.0",
+   "sha256": "276403e72c3b71c47bc24db3083970c23f8e5551ffa78f436f83483c56f3f0bb",
+   "bytes": 11134,
+   "processing": "none (byte copy; Unity downmixes to mono and re-encodes at import)"
+  },
+  {
+   "resource": "Carrot/Audio/Variants/Slice/Slice3",
+   "source": "kenney-rpg-audio/Audio/drawKnife2.ogg",
+   "pack": "Kenney RPG Audio (https://kenney.nl/assets/rpg-audio)",
+   "license": "CC0-1.0",
+   "sha256": "d5df6a4130cbb016f97b4883769a418917b9629cb4c21717030b186e0c73281a",
+   "bytes": 12395,
+   "processing": "none (byte copy; Unity downmixes to mono and re-encodes at import)"
+  },
+  {
+   "resource": "Carrot/Audio/Variants/Slice/Slice4",
+   "source": "kenney-rpg-audio/Audio/drawKnife3.ogg",
+   "pack": "Kenney RPG Audio (https://kenney.nl/assets/rpg-audio)",
+   "license": "CC0-1.0",
+   "sha256": "a11ae62fb1a628425769d11a9de394980ad8909c31f4c9a4316f226963e21caf",
+   "bytes": 12726,
+   "processing": "none (byte copy; Unity downmixes to mono and re-encodes at import)"
+  },
+  {
+   "resource": "Carrot/Audio/Variants/Coin/Coin1",
+   "source": "kenney-rpg-audio/Audio/handleCoins2.ogg",
+   "pack": "Kenney RPG Audio (https://kenney.nl/assets/rpg-audio)",
+   "license": "CC0-1.0",
+   "sha256": "4b857968d64f9ac9336a10ffac6694d7547e1f01566ad6857b30bc8db3ee6c32",
+   "bytes": 13094,
+   "processing": "none (byte copy; Unity downmixes to mono and re-encodes at import)"
+  }
+ ]
+}

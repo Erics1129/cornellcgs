@@ -22,17 +22,17 @@ namespace CarrotTD {
   void TickPrismMusic(){
    if(!prismMusicTail||playing!="MusicAsuna")return;
    int slot=targetA?0:1;
-   if(Carrot_MusicFinished(slot)==1){prismMusicTail=false;Transition("MusicExplore",1.6f);}
+   if(Carrot_MusicFinished(slot)==1){prismMusicTail=false;pool=new[]{"MusicExplore"};poolIndex=0;Transition("MusicExplore",1.6f);}
   }
   bool PrismSound(CarrotEvent e,float variant){
    // One cue at the caster. Recipient events remain silent even during dense reinforcements.
    if(e.type=="abilityTarget"){
     // The dash has one authoritative arrival; its landing accent follows the
     // actual travel duration instead of sounding at takeoff.
-    if(e.kind=="prismDash")Later(e.duration,"ImpactGlass",.07f,1.5f,"prism-land",.5f);
+    if(e.kind=="prismDash"){LaterBank(e.duration,"GlassLight",.08f,1.4f,PBoss,"prism-land",.5f);Later(e.duration,"SubThump",.08f,1.2f,"prism-landsub",.5f,PBoss);}
     return false;
    }
-   if(e.type=="ability"&&e.kind=="prismReinforce"){Play("MoonChime",.04f,.85f,"prism-reinforce",2);return true;}
+   if(e.type=="ability"&&e.kind=="prismReinforce"){Play("MoonChime",.04f,.85f,"prism-reinforce",2,priority:PSignature);return true;}
    string clip=null;switch(e.kind){
     case "prismDash":clip="PrismDash";break;
     case "prismLances":clip="PrismLances";break;
@@ -43,14 +43,15 @@ namespace CarrotTD {
    }
    if(clip==null)return false;
    if(e.type=="telegraph"){
-    Play("PrismWindup",.105f,e.kind=="prismOverdrive"?.72f:1,"prism-warning",.65f,priority:3);
-    Later(.16f,"ImpactGlass",.04f,1.35f,"prism-charge-glass",.65f);return true;
+    Play("PrismWindup",.105f,e.kind=="prismOverdrive"?.72f:1,"prism-warning",.65f,priority:PThreat);
+    LaterBank(.16f,"GlassLight",.045f,1.35f,PThreat,"prism-charge-glass",.65f);return true;
    }
    if(e.type!="ability")return false;
-   Play(clip,.16f,1,"prism-"+e.kind,.35f,priority:3);
-   if(e.kind=="prismDash")Play("Slice",.11f,.72f,"prism-air",.5f,priority:2);
-   if(e.kind=="prismLances"||e.kind=="spectrumRain")Later(.08f,"ImpactMetal",.055f,1.2f,"prism-strike",.5f);
-   if(e.kind=="prismOverdrive"){Later(.16f,"RiftUnfold",.075f,1.4f,"prism-overdrive",1);Duck(1.4f);}
+   Play(clip,.16f,1,"prism-"+e.kind,.35f,priority:PBoss);
+   if(e.kind=="prismDash")PlayBank("Slice",.11f,.72f,PBoss,"prism-air",.5f,e.position);
+   if(e.kind=="prismLances"||e.kind=="spectrumRain"){LaterBank(.08f,"Metal",.055f,1.2f,PBoss,"prism-strike",.5f);Later(.08f,"SubThump",.07f,1.3f,"prism-strikesub",.5f,PBoss);}
+   if(e.kind=="prismaticAegis")LaterBank(.1f,"Bell",.06f,1.5f,PBoss,"prism-aegisbell",1);
+   if(e.kind=="prismOverdrive"){Later(.16f,"RiftUnfold",.075f,1.4f,"prism-overdrive",1,PBoss);Play("SubThump",.14f,.8f,"prism-overdrivesub",1,priority:PBoss);DuckMusic(-6,.1f,1.2f,.8f);}
    return true;
   }
  }
