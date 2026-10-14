@@ -62,6 +62,46 @@ public static class CarrotPortalModelChecks {
    UnityEngine.Object.DestroyImmediate(go);
   }
  }
+ /// <summary>
+ /// Giant-update character checks (characters.md): nibble eyes visible from the 34 degree game camera, spider normals continuous
+ /// below the 60 degree smoothing angle, a spring chain on every rigged actor, gait data on every animated actor, and the crowd
+ /// Mesh LODs present. Throws on failure; prints CHARACTER_CHECKS PASS.
+ /// </summary>
+ public static void GiantUpdate(){
+  var fails=new List<string>();
+  // 1. Nibble pupils: rays toward the camera (front +Z, camera 34 degrees above) must not hit the model.
+  {var go=UnityEngine.Object.Instantiate(AssetDatabase.LoadAssetAtPath<GameObject>(R+"Enemies/nibble.prefab"));var anim=go.GetComponentInChildren<Animation>();var idle=anim.GetClip("Idle");if(idle!=null)idle.SampleAnimation(anim.gameObject,0);
+   var skin=go.GetComponentInChildren<SkinnedMeshRenderer>();var baked=new Mesh();skin.BakeMesh(baked,true);var m=skin.transform.localToWorldMatrix;
+   var verts=baked.vertices.Select(v=>m.MultiplyPoint3x4(v)).ToArray();var colors=skin.sharedMesh.colors;if(colors.Length!=verts.Length)colors=baked.colors;var tris=baked.triangles;
+   Debug.Log("NIBBLE_MESH verts="+verts.Length+" colors="+colors.Length+" shared="+skin.sharedMesh.vertexCount+" readable="+skin.sharedMesh.isReadable+" darkest="+(colors.Length>0?colors.Min(c=>c.r+c.g+c.b):-1)+" distinct="+string.Join(" ",colors.Select(c=>((Color32)c).ToString()).Distinct().Take(10)));
+   var toCamera=new Vector3(0,Mathf.Sin(34*Mathf.Deg2Rad),Mathf.Cos(34*Mathf.Deg2Rad));int pupils=0,hidden=0;
+   for(int i=0;i<verts.Length;i++){var c=colors.Length==verts.Length?colors[i]:Color.white;if(c.r+c.g+c.b>.4f)continue;pupils++;var o=verts[i]+toCamera*.004f;
+    for(int t=0;t<tris.Length;t+=3){if(RayHits(o,toCamera,verts[tris[t]],verts[tris[t+1]],verts[tris[t+2]])){hidden++;break;}}}
+   float share=pupils>0?hidden/(float)pupils:1;Debug.Log("NIBBLE_EYES pupils="+pupils+" occluded="+hidden+" share="+share.ToString("F3"));if(pupils==0||share>.05f)fails.Add("nibble eyes occluded "+share);
+   UnityEngine.Object.DestroyImmediate(baked);UnityEngine.Object.DestroyImmediate(go);}
+  // 2. Spider normals: split vertices may differ by more than 30 degrees only where their faces meet at a hard (>60 degree) crease.
+  {var mesh=AssetDatabase.LoadAllAssetsAtPath("Assets/Resources/Carrot/Models/Source/shell.fbx").OfType<Mesh>().OrderByDescending(x=>x.vertexCount).First();var v=mesh.vertices;var n=mesh.normals;var tri=mesh.triangles;
+   var faceNormals=new Dictionary<Vector3Int,List<Vector3>>();var vertexNormals=new Dictionary<Vector3Int,List<Vector3>>();float quantum=mesh.bounds.size.magnitude/20000f;Vector3Int Key(Vector3 p)=>new Vector3Int(Mathf.RoundToInt(p.x/quantum),Mathf.RoundToInt(p.y/quantum),Mathf.RoundToInt(p.z/quantum));
+   for(int t=0;t<tri.Length;t+=3){var fn=Vector3.Cross(v[tri[t+1]]-v[tri[t]],v[tri[t+2]]-v[tri[t]]);if(fn.sqrMagnitude<1e-14f)continue;fn.Normalize();for(int k=0;k<3;k++){var key=Key(v[tri[t+k]]);if(!faceNormals.TryGetValue(key,out var l))faceNormals[key]=l=new List<Vector3>();l.Add(fn);}}
+   for(int i=0;i<v.Length;i++){var key=Key(v[i]);if(!vertexNormals.TryGetValue(key,out var l))vertexNormals[key]=l=new List<Vector3>();l.Add(n[i]);}
+   int seams=0,bad=0;foreach(var pair in vertexNormals){var l=pair.Value;float worst=0;for(int a=0;a<l.Count;a++)for(int b=a+1;b<l.Count;b++)worst=Mathf.Max(worst,Vector3.Angle(l[a],l[b]));if(worst<=30)continue;seams++;
+    float crease=0;if(faceNormals.TryGetValue(pair.Key,out var f))for(int a=0;a<f.Count;a++)for(int b=a+1;b<f.Count;b++)crease=Mathf.Max(crease,Vector3.Angle(f[a],f[b]));if(crease<=60)bad++;}
+   Debug.Log("SHELL_NORMALS positions="+vertexNormals.Count+" splits>30deg="+seams+" withoutHardCrease="+bad);if(bad>0)fails.Add("shell normal discontinuities "+bad);}
+  // 3-5. Springs, gait and Mesh LODs on every rigged actor.
+  foreach(string group in new[]{"Enemies","Minibosses","Bosses"})foreach(string path in System.IO.Directory.GetFiles(R+group,"*.prefab")){
+   var prefab=AssetDatabase.LoadAssetAtPath<GameObject>(path);if(prefab.GetComponentInChildren<SkinnedMeshRenderer>(true)==null)continue;
+   var motion=prefab.GetComponent<CarrotSecondaryMotion>();if(motion==null||motion.links.Length==0||motion.links.Any(l=>l.bone==null))fails.Add("no spring chain: "+prefab.name);
+   if(prefab.GetComponent<CarrotGait>()==null)fails.Add("no gait: "+prefab.name);
+   if(group!="Bosses"&&prefab.GetComponent<CarrotTierLod>()==null)fails.Add("no tier LOD: "+prefab.name);
+   foreach(var l in motion!=null?motion.links:new CarrotSecondaryMotion.Link[0])if(l.maxDegrees>10)fails.Add("spring over 10 deg: "+prefab.name+"/"+l.bone.name);
+  }
+  if(fails.Count>0)throw new Exception("CHARACTER_CHECKS FAIL\n"+string.Join("\n",fails));
+  Debug.Log("CHARACTER_CHECKS PASS");
+ }
+ static bool RayHits(Vector3 o,Vector3 d,Vector3 a,Vector3 b,Vector3 c){
+  // Moller-Trumbore, forward hits only.
+  var e1=b-a;var e2=c-a;var p=Vector3.Cross(d,e2);float det=Vector3.Dot(e1,p);if(Mathf.Abs(det)<1e-9f)return false;float inv=1/det;var t=o-a;float u=Vector3.Dot(t,p)*inv;if(u<0||u>1)return false;var q=Vector3.Cross(t,e1);float v=Vector3.Dot(d,q)*inv;if(v<0||u+v>1)return false;return Vector3.Dot(e2,q)*inv>1e-5f;
+ }
  static Bounds BoundsOf(GameObject go){if(go==null)throw new Exception("Missing prefab");var rs=go.GetComponentsInChildren<Renderer>(true);var b=rs[0].bounds;foreach(var r in rs)b.Encapsulate(r.bounds);return b;}
 }
 }
