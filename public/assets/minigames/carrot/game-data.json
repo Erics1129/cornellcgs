@@ -8,6 +8,8 @@
       "role": "Burst",
       "unlock": 1,
       "air": true,
+      "superName": "Harvest Cannon",
+      "superTrait": "Fires a second seed at the next target for half damage",
       "cost": [
         80,
         65,
@@ -18,18 +20,21 @@
         10,
         15,
         23,
-        34
+        34,
+        44
       ],
       "interval": [
         0.6,
         0.55,
         0.5,
-        0.45
+        0.45,
+        0.44
       ],
       "range": [
         3,
         3.2,
         3.4,
+        3.6,
         3.6
       ]
     },
@@ -39,6 +44,8 @@
       "role": "Freeze",
       "unlock": 1,
       "air": false,
+      "superName": "Glacier Bloom",
+      "superTrait": "Wider splash, a 50% slow and a full-second freeze",
       "cost": [
         95,
         75,
@@ -49,18 +56,21 @@
         6,
         9,
         14,
-        21
+        21,
+        40
       ],
       "interval": [
         1.2,
         1.1,
         1,
+        0.9,
         0.9
       ],
       "range": [
         2.8,
         3,
         3.2,
+        3.4,
         3.4
       ]
     },
@@ -70,6 +80,8 @@
       "role": "Burn",
       "unlock": 2,
       "air": false,
+      "superName": "Pumpkin Howitzer",
+      "superTrait": "Wider blast with a larger full-damage core and a hotter burn",
       "cost": [
         120,
         90,
@@ -80,18 +92,21 @@
         34,
         52,
         78,
-        118
+        118,
+        190
       ],
       "interval": [
         1.8,
         1.7,
         1.6,
-        1.5
+        1.5,
+        1.4
       ],
       "range": [
         3.8,
         4,
         4.2,
+        4.5,
         4.5
       ]
     },
@@ -101,6 +116,8 @@
       "role": "Focus",
       "unlock": 3,
       "air": true,
+      "superName": "Sunfocus Crystal",
+      "superTrait": "Focus ramps to +80% damage on one enemy",
       "cost": [
         130,
         100,
@@ -111,18 +128,21 @@
         34,
         52,
         78,
-        114
+        114,
+        150
       ],
       "interval": [
         1.5,
         1.4,
         1.3,
-        1.2
+        1.2,
+        1.1
       ],
       "range": [
         4.4,
         4.7,
         5,
+        5.3,
         5.3
       ]
     },
@@ -132,6 +152,8 @@
       "role": "Chain",
       "unlock": 5,
       "air": true,
+      "superName": "Tempest Bell",
+      "superTrait": "Lightning chains across six enemies with longer conductivity",
       "cost": [
         145,
         110,
@@ -142,18 +164,21 @@
         14,
         21,
         30,
-        43
+        43,
+        62
       ],
       "interval": [
         1.2,
         1.1,
         1,
-        0.9
+        0.9,
+        0.8
       ],
       "range": [
         3,
         3.2,
         3.4,
+        3.6,
         3.6
       ]
     },
@@ -163,6 +188,8 @@
       "role": "Aura",
       "unlock": 6,
       "air": false,
+      "superName": "Solar Blossom",
+      "superTrait": "A stronger, longer cadence aura for nearby towers",
       "cost": [
         110,
         85,
@@ -173,18 +200,21 @@
         12,
         19,
         29,
-        44
+        44,
+        68
       ],
       "interval": [
         1.5,
         1.4,
         1.3,
-        1.2
+        1.2,
+        1
       ],
       "range": [
         2,
         2.2,
         2.4,
+        2.6,
         2.6
       ]
     },
@@ -194,6 +224,8 @@
       "role": "Return",
       "unlock": 2,
       "air": true,
+      "superName": "Constellation",
+      "superTrait": "Fires returning stars at seven enemies",
       "cost": [
         125,
         90,
@@ -204,18 +236,21 @@
         15,
         23,
         35,
-        52
+        52,
+        78
       ],
       "interval": [
         1.3,
         1.2,
         1.1,
-        1
+        1,
+        0.9
       ],
       "range": [
         3,
         3.2,
         3.4,
+        3.6,
         3.6
       ]
     },
@@ -225,6 +260,8 @@
       "role": "Pull",
       "unlock": 7,
       "air": false,
+      "superName": "Event Horizon",
+      "superTrait": "A wider well with a 50% slow and a full-unit pull",
       "cost": [
         185,
         130,
@@ -235,18 +272,21 @@
         20,
         30,
         45,
-        68
+        68,
+        105
       ],
       "interval": [
         2.4,
         2.3,
         2.2,
-        2.1
+        2.1,
+        1.9
       ],
       "range": [
         3.2,
         3.4,
         3.6,
+        3.8,
         3.8
       ]
     },
@@ -256,6 +296,8 @@
       "role": "Rewind",
       "unlock": 4,
       "air": true,
+      "superName": "Grimoire",
+      "superTrait": "The rewind also catches the nearest other enemy",
       "cost": [
         150,
         110,
@@ -266,18 +308,21 @@
         18,
         28,
         42,
-        63
+        63,
+        98
       ],
       "interval": [
         1.1,
         1,
         0.9,
-        0.8
+        0.8,
+        0.7
       ],
       "range": [
         3.5,
         3.7,
         3.9,
+        4.1,
         4.1
       ]
     },
@@ -287,6 +332,8 @@
       "role": "Burst",
       "unlock": 8,
       "air": true,
+      "superName": "Stormcrown",
+      "superTrait": "Strikes four enemies and briefly stuns ordinary ones",
       "cost": [
         220,
         150,
@@ -297,18 +344,21 @@
         70,
         110,
         165,
-        245
+        245,
+        320
       ],
       "interval": [
         3.2,
         3,
         2.8,
-        2.6
+        2.6,
+        2.5
       ],
       "range": [
         4.4,
         4.7,
         5,
+        5.3,
         5.3
       ]
     }
@@ -464,11 +514,11 @@
         }
       ],
       "waveCompositions": [
-        "nibble:8",
-        "nibble:10",
-        "nibble:8,dash:3",
-        "nibble:10,dash:4",
-        "nibble:10,dash:5"
+        "nibble:9",
+        "nibble:11",
+        "nibble:9,dash:4",
+        "nibble:11,dash:5",
+        "nibble:11,dash:6"
       ]
     },
     {
@@ -645,12 +695,12 @@
         }
       ],
       "waveCompositions": [
-        "nibble:10,dash:3",
-        "dash:7,nibble:6",
         "nibble:12,dash:4",
-        "swarm:12,nibble:6",
-        "dash:9,nibble:8",
-        "nibble:14,dash:9"
+        "dash:8,nibble:7",
+        "nibble:14,dash:5",
+        "swarm:14,nibble:7",
+        "dash:10,nibble:9",
+        "nibble:16,dash:10"
       ]
     },
     {
@@ -823,13 +873,13 @@
         }
       ],
       "waveCompositions": [
-        "swarm:12,nibble:7",
-        "nibble:10,dash:5",
-        "swarm:16,nibble:8",
-        "shell:3,nibble:10",
-        "swarm:16,dash:8",
-        "shell:5,swarm:16",
-        "nibble:12,shell:5,dash:10"
+        "swarm:15,nibble:9",
+        "nibble:13,dash:6",
+        "swarm:20,nibble:10",
+        "shell:3,nibble:13",
+        "swarm:20,dash:10",
+        "shell:6,swarm:20",
+        "nibble:15,shell:6,dash:13"
       ]
     },
     {
@@ -1002,14 +1052,14 @@
         }
       ],
       "waveCompositions": [
-        "shell:4,nibble:10",
-        "nibble:12,dash:7",
-        "shell:5,swarm:16",
-        "dash:10,nibble:10",
-        "shell:6,swarm:18",
-        "nibble:14,dash:8",
-        "shell:7,nibble:12",
-        "boss:1,nibble:12,dash:5"
+        "shell:5,nibble:14",
+        "nibble:16,dash:9",
+        "shell:7,swarm:22",
+        "dash:14,nibble:14",
+        "shell:8,swarm:24",
+        "nibble:19,dash:11,swarm:8",
+        "shell:9,nibble:16",
+        "boss:1,nibble:16,dash:11,shell:3"
       ]
     },
     {
@@ -1183,13 +1233,13 @@
       ],
       "waveCompositions": [
         "moth:4,nibble:12",
-        "nibble:12,moth:6",
-        "shell:6,dash:9",
-        "moth:8,swarm:20",
-        "nibble:14,moth:6",
-        "shell:7,swarm:20",
-        "moth:10,dash:10",
-        "shell:8,moth:10,nibble:10"
+        "nibble:13,moth:7",
+        "shell:7,dash:11",
+        "moth:9,swarm:23,shell:3",
+        "nibble:16,moth:7",
+        "shell:8,swarm:23",
+        "moth:12,dash:12",
+        "shell:9,moth:12,nibble:12"
       ]
     },
     {
@@ -1375,14 +1425,14 @@
       ],
       "waveCompositions": [
         "nibble:18,dash:7",
-        "swarm:24,nibble:10",
-        "moth:9,shell:6",
-        "dash:12,swarm:20",
-        "shell:8,nibble:14",
-        "moth:10,dash:10",
-        "swarm:28,shell:7",
-        "moth:12,shell:8",
-        "nibble:16,dash:12,shell:8"
+        "swarm:27,nibble:11",
+        "moth:11,shell:7",
+        "dash:15,swarm:24,shell:3",
+        "shell:10,nibble:17",
+        "moth:12,dash:12",
+        "swarm:34,shell:9",
+        "moth:15,shell:10",
+        "nibble:20,dash:15,shell:10"
       ]
     },
     {
@@ -1564,14 +1614,14 @@
       ],
       "waveCompositions": [
         "shaman:1,nibble:12",
-        "nibble:14,shaman:2",
-        "swarm:24,shaman:2",
-        "moth:10,shell:8",
-        "shell:9,shaman:3",
-        "swarm:28,dash:12",
-        "moth:12,shaman:3",
-        "shell:10,swarm:20",
-        "nibble:16,shaman:3,moth:12"
+        "nibble:16,shaman:3",
+        "swarm:32,shaman:3",
+        "moth:13,shell:14",
+        "shell:12,shaman:4",
+        "swarm:37,dash:16",
+        "moth:16,shaman:5",
+        "shell:13,swarm:26,shaman:1",
+        "nibble:21,shaman:4,moth:16"
       ]
     },
     {
@@ -1791,15 +1841,15 @@
       ],
       "waveCompositions": [
         "nibble:18,moth:8",
-        "shell:10,dash:12",
-        "swarm:28,shaman:2",
-        "moth:14,nibble:12",
-        "shell:10,shaman:3",
-        "dash:16,swarm:24",
-        "moth:14,shell:8",
-        "nibble:20,shaman:3",
-        "shell:12,moth:12",
-        "boss:1,nibble:12,moth:6"
+        "shell:12,dash:15",
+        "swarm:40,shaman:3",
+        "moth:20,nibble:17",
+        "shell:17,shaman:4",
+        "dash:23,swarm:34",
+        "moth:20,shell:11,shaman:1",
+        "nibble:28,shaman:5,swarm:10",
+        "shell:17,moth:17",
+        "boss:1,nibble:17,moth:13,shell:4,dash:5"
       ]
     },
     {
@@ -1997,15 +2047,15 @@
       ],
       "waveCompositions": [
         "crystal:3,nibble:14",
-        "shell:8,crystal:5",
-        "dash:12,moth:10",
-        "crystal:7,swarm:24",
-        "shell:10,shaman:3",
-        "moth:14,crystal:6",
-        "swarm:30,dash:14",
-        "crystal:9,shell:10",
-        "moth:14,shaman:3",
-        "crystal:10,dash:16,shell:8"
+        "shell:9,crystal:6",
+        "dash:14,moth:12",
+        "crystal:8,swarm:29",
+        "shell:16,shaman:4",
+        "moth:17,crystal:7",
+        "swarm:36,dash:17",
+        "crystal:11,shell:12",
+        "moth:17,shaman:4",
+        "crystal:12,dash:19,shell:10"
       ]
     },
     {
@@ -2229,15 +2279,15 @@
       ],
       "waveCompositions": [
         "nibble:20,crystal:7",
-        "dash:16,shell:10",
-        "moth:16,swarm:28",
-        "crystal:10,shaman:3",
-        "shell:12,dash:16",
-        "swarm:32,moth:14",
-        "crystal:10,shell:10",
-        "shaman:4,nibble:20",
-        "moth:18,dash:16",
-        "crystal:12,shell:12,swarm:24"
+        "dash:18,shell:11",
+        "moth:20,swarm:35",
+        "crystal:12,shaman:4",
+        "shell:19,dash:20",
+        "swarm:40,moth:17",
+        "crystal:12,shell:12",
+        "shaman:5,nibble:25",
+        "moth:22,dash:20",
+        "crystal:15,shell:15,swarm:30"
       ]
     },
     {
@@ -2453,16 +2503,16 @@
       ],
       "waveCompositions": [
         "burrow:3,nibble:16",
-        "burrow:6,dash:10",
-        "shell:12,moth:12",
-        "burrow:8,swarm:24",
-        "crystal:10,shaman:3",
-        "moth:16,burrow:8",
-        "shell:12,dash:16",
-        "burrow:10,shaman:4",
-        "swarm:36,crystal:9",
-        "moth:18,burrow:10",
-        "crystal:12,burrow:10,shell:10"
+        "burrow:7,dash:12",
+        "shell:16,moth:16",
+        "burrow:11,swarm:32",
+        "crystal:13,shaman:4,shell:4",
+        "moth:21,burrow:11",
+        "shell:16,dash:21",
+        "burrow:17,shaman:5",
+        "swarm:48,crystal:12,shaman:2",
+        "moth:24,burrow:13,shaman:2,crystal:4",
+        "crystal:16,burrow:13,shell:13"
       ]
     },
     {
@@ -2694,18 +2744,3520 @@
       ],
       "waveCompositions": [
         "nibble:20,shell:10",
-        "moth:16,crystal:8",
-        "burrow:8,dash:14",
-        "swarm:32,shaman:3",
-        "crystal:10,shell:12",
-        "nibble:20,moth:16",
-        "burrow:10,shaman:4",
-        "shell:14,dash:16",
-        "moth:18,crystal:12",
-        "swarm:36,burrow:12",
-        "crystal:14,shaman:4,shell:10",
-        "boss:1,shell:8,moth:8"
+        "moth:20,crystal:10",
+        "burrow:12,dash:20",
+        "swarm:46,shaman:4",
+        "crystal:14,shell:17",
+        "nibble:29,moth:23,shell:4",
+        "burrow:14,shaman:6",
+        "shell:20,dash:23",
+        "moth:26,crystal:17,shaman:2,burrow:4",
+        "swarm:64,burrow:17,shaman:2,crystal:4",
+        "crystal:20,shaman:6,shell:14",
+        "boss:1,shell:17,moth:17,dash:6,crystal:4"
       ]
+    },
+    {
+      "id": 13,
+      "name": "Late Bloom Terrace",
+      "biome": "garden",
+      "boss": "",
+      "startingGold": 500,
+      "waves": 11,
+      "routes": [
+        [
+          [
+            0,
+            1
+          ],
+          [
+            10,
+            1
+          ],
+          [
+            10,
+            4
+          ],
+          [
+            3,
+            4
+          ],
+          [
+            3,
+            7
+          ],
+          [
+            11,
+            7
+          ],
+          [
+            11,
+            9
+          ],
+          [
+            6,
+            9
+          ]
+        ],
+        [
+          [
+            14,
+            0
+          ],
+          [
+            14,
+            4
+          ],
+          [
+            10,
+            4
+          ],
+          [
+            3,
+            4
+          ],
+          [
+            3,
+            7
+          ],
+          [
+            11,
+            7
+          ],
+          [
+            11,
+            9
+          ],
+          [
+            6,
+            9
+          ]
+        ]
+      ],
+      "pads": [
+        [
+          6,
+          6
+        ],
+        [
+          8,
+          6
+        ],
+        [
+          10,
+          6
+        ],
+        [
+          8,
+          8
+        ],
+        [
+          4,
+          5
+        ],
+        [
+          10,
+          8
+        ],
+        [
+          9,
+          10
+        ],
+        [
+          13,
+          0
+        ],
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          10
+        ],
+        [
+          7,
+          0
+        ],
+        [
+          14,
+          10
+        ],
+        [
+          4,
+          10
+        ],
+        [
+          0,
+          6
+        ],
+        [
+          14,
+          5
+        ],
+        [
+          9,
+          3
+        ],
+        [
+          3,
+          2
+        ],
+        [
+          6,
+          3
+        ],
+        [
+          12,
+          3
+        ],
+        [
+          2,
+          8
+        ]
+      ],
+      "blockers": [
+        {
+          "pad": 3,
+          "kind": "hedge"
+        },
+        {
+          "pad": 4,
+          "kind": "hedge"
+        },
+        {
+          "pad": 17,
+          "kind": "stump"
+        },
+        {
+          "pad": 15,
+          "kind": "stump"
+        },
+        {
+          "pad": 16,
+          "kind": "stump"
+        },
+        {
+          "pad": 18,
+          "kind": "crystal"
+        },
+        {
+          "pad": 19,
+          "kind": "crystal"
+        }
+      ],
+      "waveCompositions": [
+        "shell:4,nibble:10",
+        "nibble:12,moth:8",
+        "shell:6,dash:10",
+        "swarm:23,nibble:15",
+        "crystal:7,shell:12",
+        "moth:11,burrow:7",
+        "shaman:3,swarm:28",
+        "nibble:15,dash:10,moth:10",
+        "burrow:7,shaman:4,shell:7",
+        "crystal:10,moth:15,shell:10",
+        "swarm:41,dash:17,shell:12"
+      ]
+    },
+    {
+      "id": 14,
+      "name": "Heron Shallows",
+      "biome": "marsh",
+      "boss": "",
+      "startingGold": 550,
+      "waves": 11,
+      "routes": [
+        [
+          [
+            0,
+            9
+          ],
+          [
+            3,
+            9
+          ],
+          [
+            3,
+            2
+          ],
+          [
+            10,
+            2
+          ],
+          [
+            10,
+            8
+          ],
+          [
+            5,
+            8
+          ],
+          [
+            5,
+            4
+          ],
+          [
+            8,
+            4
+          ]
+        ],
+        [
+          [
+            14,
+            10
+          ],
+          [
+            12,
+            10
+          ],
+          [
+            12,
+            2
+          ],
+          [
+            10,
+            2
+          ],
+          [
+            10,
+            8
+          ],
+          [
+            5,
+            8
+          ],
+          [
+            5,
+            4
+          ],
+          [
+            8,
+            4
+          ]
+        ],
+        [
+          [
+            0,
+            0
+          ],
+          [
+            3,
+            0
+          ],
+          [
+            3,
+            2
+          ],
+          [
+            10,
+            2
+          ],
+          [
+            10,
+            8
+          ],
+          [
+            5,
+            8
+          ],
+          [
+            5,
+            4
+          ],
+          [
+            8,
+            4
+          ]
+        ]
+      ],
+      "pads": [
+        [
+          7,
+          5
+        ],
+        [
+          7,
+          7
+        ],
+        [
+          9,
+          5
+        ],
+        [
+          9,
+          3
+        ],
+        [
+          9,
+          7
+        ],
+        [
+          7,
+          3
+        ],
+        [
+          4,
+          5
+        ],
+        [
+          0,
+          10
+        ],
+        [
+          14,
+          0
+        ],
+        [
+          0,
+          1
+        ],
+        [
+          14,
+          9
+        ],
+        [
+          13,
+          4
+        ],
+        [
+          4,
+          10
+        ],
+        [
+          4,
+          0
+        ],
+        [
+          0,
+          6
+        ],
+        [
+          8,
+          10
+        ],
+        [
+          10,
+          0
+        ],
+        [
+          11,
+          9
+        ],
+        [
+          2,
+          8
+        ],
+        [
+          2,
+          3
+        ]
+      ],
+      "blockers": [
+        {
+          "pad": 3,
+          "kind": "hedge"
+        },
+        {
+          "pad": 4,
+          "kind": "hedge"
+        },
+        {
+          "pad": 17,
+          "kind": "stump"
+        },
+        {
+          "pad": 11,
+          "kind": "stump"
+        },
+        {
+          "pad": 15,
+          "kind": "stump"
+        },
+        {
+          "pad": 19,
+          "kind": "crystal"
+        },
+        {
+          "pad": 18,
+          "kind": "crystal"
+        }
+      ],
+      "waveCompositions": [
+        "shell:5,nibble:10",
+        "nibble:12,moth:8",
+        "shell:6,dash:10",
+        "swarm:25,nibble:16",
+        "crystal:8,shell:13",
+        "moth:13,burrow:9",
+        "shaman:4,swarm:32",
+        "nibble:16,dash:11,moth:11,burrow:5",
+        "burrow:9,shaman:4,shell:9",
+        "crystal:11,moth:16,shell:11",
+        "swarm:45,dash:20,shell:13"
+      ]
+    },
+    {
+      "id": 15,
+      "name": "Frozen Falls",
+      "biome": "frost",
+      "boss": "",
+      "startingGold": 600,
+      "waves": 12,
+      "routes": [
+        [
+          [
+            14,
+            0
+          ],
+          [
+            4,
+            0
+          ],
+          [
+            4,
+            3
+          ],
+          [
+            12,
+            3
+          ],
+          [
+            12,
+            6
+          ],
+          [
+            2,
+            6
+          ],
+          [
+            2,
+            9
+          ],
+          [
+            7,
+            9
+          ],
+          [
+            7,
+            7
+          ]
+        ],
+        [
+          [
+            14,
+            10
+          ],
+          [
+            10,
+            10
+          ],
+          [
+            10,
+            8
+          ],
+          [
+            14,
+            8
+          ],
+          [
+            14,
+            6
+          ],
+          [
+            12,
+            6
+          ],
+          [
+            2,
+            6
+          ],
+          [
+            2,
+            9
+          ],
+          [
+            7,
+            9
+          ],
+          [
+            7,
+            7
+          ]
+        ]
+      ],
+      "pads": [
+        [
+          5,
+          7
+        ],
+        [
+          9,
+          7
+        ],
+        [
+          9,
+          5
+        ],
+        [
+          3,
+          7
+        ],
+        [
+          11,
+          5
+        ],
+        [
+          7,
+          5
+        ],
+        [
+          5,
+          5
+        ],
+        [
+          0,
+          0
+        ],
+        [
+          14,
+          9
+        ],
+        [
+          14,
+          1
+        ],
+        [
+          0,
+          10
+        ],
+        [
+          6,
+          1
+        ],
+        [
+          10,
+          1
+        ],
+        [
+          7,
+          10
+        ],
+        [
+          0,
+          4
+        ],
+        [
+          4,
+          10
+        ],
+        [
+          14,
+          5
+        ],
+        [
+          0,
+          7
+        ],
+        [
+          11,
+          9
+        ],
+        [
+          3,
+          2
+        ]
+      ],
+      "blockers": [
+        {
+          "pad": 3,
+          "kind": "hedge"
+        },
+        {
+          "pad": 4,
+          "kind": "hedge"
+        },
+        {
+          "pad": 18,
+          "kind": "stump"
+        },
+        {
+          "pad": 15,
+          "kind": "stump"
+        },
+        {
+          "pad": 13,
+          "kind": "stump"
+        },
+        {
+          "pad": 16,
+          "kind": "crystal"
+        },
+        {
+          "pad": 8,
+          "kind": "crystal"
+        },
+        {
+          "pad": 11,
+          "kind": "crystal"
+        }
+      ],
+      "waveCompositions": [
+        "shell:5,nibble:10",
+        "nibble:13,moth:9",
+        "shell:7,dash:11",
+        "swarm:29,nibble:18",
+        "crystal:8,shell:8",
+        "moth:14,burrow:10,shell:5",
+        "shaman:4,swarm:34",
+        "nibble:19,dash:12,moth:12",
+        "burrow:13,shaman:4,shell:8",
+        "crystal:11,moth:16,shell:11,shaman:2",
+        "swarm:45,dash:19,shell:12,shaman:2,crystal:5",
+        "shell:15,dash:23,crystal:15,shaman:7"
+      ]
+    },
+    {
+      "id": 16,
+      "name": "Cider Gate",
+      "biome": "orchard",
+      "boss": "garden",
+      "startingGold": 650,
+      "waves": 12,
+      "routes": [
+        [
+          [
+            0,
+            10
+          ],
+          [
+            3,
+            10
+          ],
+          [
+            3,
+            3
+          ],
+          [
+            7,
+            3
+          ],
+          [
+            11,
+            3
+          ],
+          [
+            11,
+            8
+          ],
+          [
+            5,
+            8
+          ],
+          [
+            5,
+            5
+          ],
+          [
+            8,
+            5
+          ]
+        ],
+        [
+          [
+            14,
+            10
+          ],
+          [
+            14,
+            0
+          ],
+          [
+            11,
+            0
+          ],
+          [
+            11,
+            3
+          ],
+          [
+            11,
+            8
+          ],
+          [
+            5,
+            8
+          ],
+          [
+            5,
+            5
+          ],
+          [
+            8,
+            5
+          ]
+        ],
+        [
+          [
+            0,
+            0
+          ],
+          [
+            7,
+            0
+          ],
+          [
+            7,
+            3
+          ],
+          [
+            11,
+            3
+          ],
+          [
+            11,
+            8
+          ],
+          [
+            5,
+            8
+          ],
+          [
+            5,
+            5
+          ],
+          [
+            8,
+            5
+          ]
+        ]
+      ],
+      "pads": [
+        [
+          8,
+          7
+        ],
+        [
+          10,
+          5
+        ],
+        [
+          6,
+          6
+        ],
+        [
+          10,
+          7
+        ],
+        [
+          4,
+          6
+        ],
+        [
+          12,
+          6
+        ],
+        [
+          4,
+          8
+        ],
+        [
+          0,
+          1
+        ],
+        [
+          8,
+          0
+        ],
+        [
+          13,
+          1
+        ],
+        [
+          4,
+          2
+        ],
+        [
+          13,
+          10
+        ],
+        [
+          0,
+          7
+        ],
+        [
+          9,
+          10
+        ],
+        [
+          10,
+          2
+        ],
+        [
+          6,
+          10
+        ],
+        [
+          1,
+          4
+        ],
+        [
+          5,
+          4
+        ],
+        [
+          12,
+          3
+        ],
+        [
+          11,
+          9
+        ]
+      ],
+      "blockers": [
+        {
+          "pad": 3,
+          "kind": "hedge"
+        },
+        {
+          "pad": 4,
+          "kind": "hedge"
+        },
+        {
+          "pad": 17,
+          "kind": "stump"
+        },
+        {
+          "pad": 18,
+          "kind": "stump"
+        },
+        {
+          "pad": 14,
+          "kind": "stump"
+        },
+        {
+          "pad": 19,
+          "kind": "crystal"
+        },
+        {
+          "pad": 10,
+          "kind": "crystal"
+        },
+        {
+          "pad": 15,
+          "kind": "crystal"
+        }
+      ],
+      "waveCompositions": [
+        "shell:5,nibble:11",
+        "nibble:15,moth:10",
+        "shell:9,dash:13",
+        "swarm:32,nibble:20",
+        "crystal:10,shell:10",
+        "moth:16,burrow:10,shell:5",
+        "shaman:4,swarm:38",
+        "nibble:20,dash:15,moth:15",
+        "burrow:15,shaman:6,shell:10",
+        "crystal:17,moth:18,shell:12,shaman:2,swarm:14",
+        "swarm:51,dash:22,shell:15",
+        "boss:1,shell:21,moth:18,nibble:18,dash:7,crystal:5"
+      ]
+    },
+    {
+      "id": 17,
+      "name": "Beehive Hollow",
+      "biome": "garden",
+      "boss": "",
+      "startingGold": 620,
+      "waves": 12,
+      "routes": [
+        [
+          [
+            0,
+            1
+          ],
+          [
+            13,
+            1
+          ],
+          [
+            13,
+            9
+          ],
+          [
+            1,
+            9
+          ],
+          [
+            1,
+            4
+          ],
+          [
+            10,
+            4
+          ],
+          [
+            10,
+            6
+          ],
+          [
+            6,
+            6
+          ]
+        ],
+        [
+          [
+            14,
+            0
+          ],
+          [
+            13,
+            0
+          ],
+          [
+            13,
+            1
+          ],
+          [
+            13,
+            9
+          ],
+          [
+            1,
+            9
+          ],
+          [
+            1,
+            4
+          ],
+          [
+            10,
+            4
+          ],
+          [
+            10,
+            6
+          ],
+          [
+            6,
+            6
+          ]
+        ]
+      ],
+      "pads": [
+        [
+          10,
+          7
+        ],
+        [
+          8,
+          7
+        ],
+        [
+          11,
+          4
+        ],
+        [
+          4,
+          6
+        ],
+        [
+          8,
+          3
+        ],
+        [
+          12,
+          6
+        ],
+        [
+          7,
+          5
+        ],
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          10
+        ],
+        [
+          14,
+          10
+        ],
+        [
+          14,
+          1
+        ],
+        [
+          0,
+          5
+        ],
+        [
+          5,
+          10
+        ],
+        [
+          4,
+          2
+        ],
+        [
+          10,
+          0
+        ],
+        [
+          9,
+          10
+        ],
+        [
+          2,
+          8
+        ],
+        [
+          14,
+          4
+        ],
+        [
+          7,
+          0
+        ],
+        [
+          12,
+          2
+        ]
+      ],
+      "blockers": [
+        {
+          "pad": 3,
+          "kind": "hedge"
+        },
+        {
+          "pad": 4,
+          "kind": "hedge"
+        },
+        {
+          "pad": 19,
+          "kind": "stump"
+        },
+        {
+          "pad": 16,
+          "kind": "stump"
+        },
+        {
+          "pad": 13,
+          "kind": "stump"
+        },
+        {
+          "pad": 11,
+          "kind": "crystal"
+        },
+        {
+          "pad": 12,
+          "kind": "crystal"
+        },
+        {
+          "pad": 15,
+          "kind": "crystal"
+        }
+      ],
+      "waveCompositions": [
+        "shell:5,nibble:11",
+        "nibble:13,moth:9",
+        "shell:7,dash:11",
+        "swarm:27,nibble:17",
+        "crystal:8,shell:8",
+        "moth:13,burrow:8,shell:6",
+        "shaman:4,swarm:34",
+        "nibble:18,dash:12,moth:12",
+        "burrow:8,shaman:4,shell:8",
+        "crystal:11,moth:16,shell:11",
+        "swarm:45,dash:19,shell:13",
+        "shell:16,dash:23,crystal:16,shaman:7"
+      ]
+    },
+    {
+      "id": 18,
+      "name": "Bogfire Crossing",
+      "biome": "marsh",
+      "boss": "",
+      "startingGold": 670,
+      "waves": 13,
+      "routes": [
+        [
+          [
+            0,
+            1
+          ],
+          [
+            7,
+            1
+          ],
+          [
+            7,
+            5
+          ],
+          [
+            2,
+            5
+          ],
+          [
+            2,
+            9
+          ],
+          [
+            12,
+            9
+          ],
+          [
+            12,
+            4
+          ],
+          [
+            9,
+            4
+          ],
+          [
+            9,
+            6
+          ]
+        ],
+        [
+          [
+            14,
+            1
+          ],
+          [
+            7,
+            1
+          ],
+          [
+            7,
+            5
+          ],
+          [
+            2,
+            5
+          ],
+          [
+            2,
+            9
+          ],
+          [
+            12,
+            9
+          ],
+          [
+            12,
+            4
+          ],
+          [
+            9,
+            4
+          ],
+          [
+            9,
+            6
+          ]
+        ],
+        [
+          [
+            7,
+            0
+          ],
+          [
+            7,
+            1
+          ],
+          [
+            7,
+            5
+          ],
+          [
+            2,
+            5
+          ],
+          [
+            2,
+            9
+          ],
+          [
+            12,
+            9
+          ],
+          [
+            12,
+            4
+          ],
+          [
+            9,
+            4
+          ],
+          [
+            9,
+            6
+          ]
+        ]
+      ],
+      "pads": [
+        [
+          5,
+          7
+        ],
+        [
+          10,
+          7
+        ],
+        [
+          8,
+          3
+        ],
+        [
+          7,
+          6
+        ],
+        [
+          6,
+          4
+        ],
+        [
+          10,
+          3
+        ],
+        [
+          3,
+          6
+        ],
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          10
+        ],
+        [
+          14,
+          10
+        ],
+        [
+          14,
+          0
+        ],
+        [
+          14,
+          5
+        ],
+        [
+          5,
+          0
+        ],
+        [
+          7,
+          10
+        ],
+        [
+          0,
+          4
+        ],
+        [
+          10,
+          10
+        ],
+        [
+          3,
+          10
+        ],
+        [
+          3,
+          3
+        ],
+        [
+          0,
+          7
+        ],
+        [
+          9,
+          0
+        ]
+      ],
+      "blockers": [
+        {
+          "pad": 3,
+          "kind": "hedge"
+        },
+        {
+          "pad": 4,
+          "kind": "hedge"
+        },
+        {
+          "pad": 15,
+          "kind": "stump"
+        },
+        {
+          "pad": 17,
+          "kind": "stump"
+        },
+        {
+          "pad": 13,
+          "kind": "stump"
+        },
+        {
+          "pad": 16,
+          "kind": "crystal"
+        },
+        {
+          "pad": 11,
+          "kind": "crystal"
+        },
+        {
+          "pad": 18,
+          "kind": "crystal"
+        }
+      ],
+      "waveCompositions": [
+        "shell:5,nibble:11",
+        "nibble:14,moth:9",
+        "shell:8,dash:11",
+        "swarm:28,nibble:18",
+        "crystal:9,shell:9",
+        "moth:14,burrow:9,shell:6",
+        "shaman:4,swarm:35",
+        "nibble:19,dash:13,moth:13",
+        "burrow:9,shaman:4,shell:9",
+        "crystal:10,moth:15,shell:10,burrow:6",
+        "swarm:42,dash:18,shell:11",
+        "shell:14,dash:21,crystal:14,shaman:6",
+        "moth:25,crystal:16,burrow:16"
+      ]
+    },
+    {
+      "id": 19,
+      "name": "Pumpkin Rows",
+      "biome": "orchard",
+      "boss": "",
+      "startingGold": 740,
+      "waves": 13,
+      "routes": [
+        [
+          [
+            0,
+            2
+          ],
+          [
+            11,
+            2
+          ],
+          [
+            11,
+            4
+          ],
+          [
+            3,
+            4
+          ],
+          [
+            3,
+            6
+          ],
+          [
+            11,
+            6
+          ],
+          [
+            11,
+            8
+          ],
+          [
+            7,
+            8
+          ]
+        ],
+        [
+          [
+            14,
+            0
+          ],
+          [
+            14,
+            10
+          ],
+          [
+            1,
+            10
+          ],
+          [
+            1,
+            8
+          ],
+          [
+            7,
+            8
+          ]
+        ]
+      ],
+      "pads": [
+        [
+          5,
+          7
+        ],
+        [
+          9,
+          9
+        ],
+        [
+          8,
+          7
+        ],
+        [
+          12,
+          7
+        ],
+        [
+          3,
+          7
+        ],
+        [
+          11,
+          9
+        ],
+        [
+          12,
+          5
+        ],
+        [
+          0,
+          0
+        ],
+        [
+          7,
+          0
+        ],
+        [
+          13,
+          0
+        ],
+        [
+          4,
+          3
+        ],
+        [
+          0,
+          10
+        ],
+        [
+          0,
+          4
+        ],
+        [
+          9,
+          3
+        ],
+        [
+          0,
+          7
+        ],
+        [
+          4,
+          0
+        ],
+        [
+          10,
+          0
+        ],
+        [
+          6,
+          9
+        ],
+        [
+          6,
+          5
+        ],
+        [
+          12,
+          2
+        ]
+      ],
+      "blockers": [
+        {
+          "pad": 3,
+          "kind": "hedge"
+        },
+        {
+          "pad": 4,
+          "kind": "hedge"
+        },
+        {
+          "pad": 18,
+          "kind": "stump"
+        },
+        {
+          "pad": 17,
+          "kind": "stump"
+        },
+        {
+          "pad": 13,
+          "kind": "stump"
+        },
+        {
+          "pad": 10,
+          "kind": "crystal"
+        },
+        {
+          "pad": 19,
+          "kind": "crystal"
+        },
+        {
+          "pad": 14,
+          "kind": "crystal"
+        }
+      ],
+      "waveCompositions": [
+        "shell:5,nibble:11",
+        "nibble:14,moth:9",
+        "shell:8,dash:12",
+        "swarm:31,nibble:20",
+        "crystal:10,shell:10",
+        "moth:16,burrow:11,shell:6",
+        "shaman:4,swarm:39",
+        "nibble:22,dash:15,moth:15",
+        "burrow:11,shaman:5,shell:11",
+        "crystal:11,moth:16,shell:11,burrow:6",
+        "swarm:48,dash:20,shell:14,shaman:3",
+        "shell:16,dash:24,crystal:22,shaman:11",
+        "moth:29,crystal:19,burrow:19"
+      ]
+    },
+    {
+      "id": 20,
+      "name": "Scarecrow Field",
+      "biome": "orchard",
+      "boss": "orchard",
+      "startingGold": 770,
+      "waves": 14,
+      "routes": [
+        [
+          [
+            0,
+            2
+          ],
+          [
+            7,
+            2
+          ],
+          [
+            7,
+            6
+          ],
+          [
+            2,
+            6
+          ],
+          [
+            2,
+            9
+          ],
+          [
+            13,
+            9
+          ],
+          [
+            13,
+            4
+          ],
+          [
+            10,
+            4
+          ],
+          [
+            10,
+            7
+          ]
+        ],
+        [
+          [
+            14,
+            2
+          ],
+          [
+            7,
+            2
+          ],
+          [
+            7,
+            6
+          ],
+          [
+            2,
+            6
+          ],
+          [
+            2,
+            9
+          ],
+          [
+            13,
+            9
+          ],
+          [
+            13,
+            4
+          ],
+          [
+            10,
+            4
+          ],
+          [
+            10,
+            7
+          ]
+        ],
+        [
+          [
+            7,
+            0
+          ],
+          [
+            7,
+            2
+          ],
+          [
+            7,
+            6
+          ],
+          [
+            2,
+            6
+          ],
+          [
+            2,
+            9
+          ],
+          [
+            13,
+            9
+          ],
+          [
+            13,
+            4
+          ],
+          [
+            10,
+            4
+          ],
+          [
+            10,
+            7
+          ]
+        ]
+      ],
+      "pads": [
+        [
+          5,
+          7
+        ],
+        [
+          12,
+          7
+        ],
+        [
+          8,
+          6
+        ],
+        [
+          8,
+          4
+        ],
+        [
+          7,
+          8
+        ],
+        [
+          10,
+          3
+        ],
+        [
+          3,
+          7
+        ],
+        [
+          0,
+          0
+        ],
+        [
+          5,
+          0
+        ],
+        [
+          14,
+          0
+        ],
+        [
+          0,
+          10
+        ],
+        [
+          10,
+          10
+        ],
+        [
+          14,
+          4
+        ],
+        [
+          4,
+          4
+        ],
+        [
+          0,
+          4
+        ],
+        [
+          14,
+          10
+        ],
+        [
+          4,
+          10
+        ],
+        [
+          0,
+          7
+        ],
+        [
+          9,
+          0
+        ],
+        [
+          11,
+          5
+        ]
+      ],
+      "blockers": [
+        {
+          "pad": 3,
+          "kind": "hedge"
+        },
+        {
+          "pad": 4,
+          "kind": "hedge"
+        },
+        {
+          "pad": 13,
+          "kind": "hedge"
+        },
+        {
+          "pad": 19,
+          "kind": "stump"
+        },
+        {
+          "pad": 11,
+          "kind": "stump"
+        },
+        {
+          "pad": 16,
+          "kind": "stump"
+        },
+        {
+          "pad": 12,
+          "kind": "crystal"
+        },
+        {
+          "pad": 17,
+          "kind": "crystal"
+        },
+        {
+          "pad": 15,
+          "kind": "crystal"
+        }
+      ],
+      "waveCompositions": [
+        "shell:5,nibble:11",
+        "nibble:15,moth:10",
+        "shell:9,dash:13",
+        "swarm:34,nibble:22",
+        "crystal:10,shell:10",
+        "moth:18,burrow:12",
+        "shaman:4,swarm:42,shell:6",
+        "nibble:23,dash:16,moth:16",
+        "burrow:12,shaman:6,shell:12",
+        "crystal:12,moth:18,shell:12",
+        "swarm:45,dash:19,shell:13,shaman:3,burrow:6",
+        "shell:16,dash:23,crystal:22,shaman:10,swarm:16",
+        "moth:28,crystal:19,burrow:19",
+        "boss:1,moth:22,shell:22,crystal:15,dash:8"
+      ]
+    },
+    {
+      "id": 21,
+      "name": "Glacier Stair",
+      "biome": "frost",
+      "boss": "",
+      "startingGold": 780,
+      "waves": 14,
+      "routes": [
+        [
+          [
+            0,
+            1
+          ],
+          [
+            13,
+            1
+          ],
+          [
+            13,
+            3
+          ],
+          [
+            1,
+            3
+          ],
+          [
+            1,
+            5
+          ],
+          [
+            13,
+            5
+          ],
+          [
+            13,
+            7
+          ],
+          [
+            4,
+            7
+          ],
+          [
+            4,
+            9
+          ],
+          [
+            8,
+            9
+          ],
+          [
+            8,
+            8
+          ]
+        ],
+        [
+          [
+            14,
+            3
+          ],
+          [
+            13,
+            3
+          ],
+          [
+            1,
+            3
+          ],
+          [
+            1,
+            5
+          ],
+          [
+            13,
+            5
+          ],
+          [
+            13,
+            7
+          ],
+          [
+            4,
+            7
+          ],
+          [
+            4,
+            9
+          ],
+          [
+            8,
+            9
+          ],
+          [
+            8,
+            8
+          ]
+        ],
+        [
+          [
+            0,
+            5
+          ],
+          [
+            1,
+            5
+          ],
+          [
+            13,
+            5
+          ],
+          [
+            13,
+            7
+          ],
+          [
+            4,
+            7
+          ],
+          [
+            4,
+            9
+          ],
+          [
+            8,
+            9
+          ],
+          [
+            8,
+            8
+          ]
+        ]
+      ],
+      "pads": [
+        [
+          6,
+          6
+        ],
+        [
+          8,
+          6
+        ],
+        [
+          10,
+          4
+        ],
+        [
+          10,
+          6
+        ],
+        [
+          4,
+          6
+        ],
+        [
+          6,
+          4
+        ],
+        [
+          8,
+          4
+        ],
+        [
+          0,
+          0
+        ],
+        [
+          14,
+          10
+        ],
+        [
+          14,
+          0
+        ],
+        [
+          0,
+          10
+        ],
+        [
+          5,
+          10
+        ],
+        [
+          14,
+          5
+        ],
+        [
+          9,
+          10
+        ],
+        [
+          0,
+          4
+        ],
+        [
+          5,
+          0
+        ],
+        [
+          10,
+          0
+        ],
+        [
+          1,
+          7
+        ],
+        [
+          12,
+          8
+        ],
+        [
+          3,
+          2
+        ]
+      ],
+      "blockers": [
+        {
+          "pad": 3,
+          "kind": "hedge"
+        },
+        {
+          "pad": 4,
+          "kind": "hedge"
+        },
+        {
+          "pad": 11,
+          "kind": "stump"
+        },
+        {
+          "pad": 19,
+          "kind": "stump"
+        },
+        {
+          "pad": 18,
+          "kind": "stump"
+        },
+        {
+          "pad": 12,
+          "kind": "crystal"
+        },
+        {
+          "pad": 13,
+          "kind": "crystal"
+        },
+        {
+          "pad": 17,
+          "kind": "crystal"
+        }
+      ],
+      "waveCompositions": [
+        "shell:5,nibble:11",
+        "nibble:13,moth:9",
+        "shell:7,dash:11",
+        "swarm:28,nibble:18",
+        "crystal:8,shell:8",
+        "moth:15,burrow:10",
+        "shaman:4,swarm:36,shell:7",
+        "nibble:21,dash:13,moth:13",
+        "burrow:10,shaman:5,shell:10",
+        "crystal:10,moth:16,shell:10",
+        "swarm:39,dash:17,shell:11",
+        "shell:13,dash:21,crystal:13,shaman:6",
+        "moth:24,crystal:16,burrow:16",
+        "nibble:42,shell:19,shaman:7"
+      ]
+    },
+    {
+      "id": 22,
+      "name": "Windfall Grove",
+      "biome": "orchard",
+      "boss": "",
+      "startingGold": 830,
+      "waves": 15,
+      "routes": [
+        [
+          [
+            0,
+            1
+          ],
+          [
+            3,
+            1
+          ],
+          [
+            3,
+            9
+          ],
+          [
+            12,
+            9
+          ],
+          [
+            12,
+            3
+          ],
+          [
+            9,
+            3
+          ],
+          [
+            9,
+            7
+          ],
+          [
+            6,
+            7
+          ],
+          [
+            6,
+            5
+          ]
+        ],
+        [
+          [
+            14,
+            1
+          ],
+          [
+            3,
+            1
+          ],
+          [
+            3,
+            9
+          ],
+          [
+            12,
+            9
+          ],
+          [
+            12,
+            3
+          ],
+          [
+            9,
+            3
+          ],
+          [
+            9,
+            7
+          ],
+          [
+            6,
+            7
+          ],
+          [
+            6,
+            5
+          ]
+        ],
+        [
+          [
+            0,
+            10
+          ],
+          [
+            3,
+            10
+          ],
+          [
+            3,
+            9
+          ],
+          [
+            12,
+            9
+          ],
+          [
+            12,
+            3
+          ],
+          [
+            9,
+            3
+          ],
+          [
+            9,
+            7
+          ],
+          [
+            6,
+            7
+          ],
+          [
+            6,
+            5
+          ]
+        ]
+      ],
+      "pads": [
+        [
+          10,
+          6
+        ],
+        [
+          9,
+          8
+        ],
+        [
+          6,
+          8
+        ],
+        [
+          8,
+          6
+        ],
+        [
+          10,
+          4
+        ],
+        [
+          8,
+          4
+        ],
+        [
+          4,
+          8
+        ],
+        [
+          0,
+          0
+        ],
+        [
+          14,
+          0
+        ],
+        [
+          14,
+          10
+        ],
+        [
+          5,
+          0
+        ],
+        [
+          0,
+          5
+        ],
+        [
+          14,
+          5
+        ],
+        [
+          4,
+          4
+        ],
+        [
+          10,
+          0
+        ],
+        [
+          0,
+          9
+        ],
+        [
+          12,
+          2
+        ],
+        [
+          11,
+          10
+        ],
+        [
+          5,
+          6
+        ],
+        [
+          7,
+          10
+        ]
+      ],
+      "blockers": [
+        {
+          "pad": 3,
+          "kind": "hedge"
+        },
+        {
+          "pad": 4,
+          "kind": "hedge"
+        },
+        {
+          "pad": 18,
+          "kind": "hedge"
+        },
+        {
+          "pad": 19,
+          "kind": "stump"
+        },
+        {
+          "pad": 16,
+          "kind": "stump"
+        },
+        {
+          "pad": 13,
+          "kind": "stump"
+        },
+        {
+          "pad": 17,
+          "kind": "crystal"
+        },
+        {
+          "pad": 12,
+          "kind": "crystal"
+        },
+        {
+          "pad": 14,
+          "kind": "crystal"
+        }
+      ],
+      "waveCompositions": [
+        "shell:5,nibble:10",
+        "nibble:14,moth:9",
+        "shell:8,dash:11",
+        "swarm:29,nibble:19",
+        "crystal:9,shell:9",
+        "moth:15,burrow:10",
+        "shaman:4,swarm:38,shell:7",
+        "nibble:21,dash:14,moth:14",
+        "burrow:10,shaman:5,shell:10",
+        "crystal:10,moth:16,shell:10",
+        "swarm:39,dash:16,shell:11",
+        "shell:13,dash:19,crystal:13,shaman:6,burrow:7",
+        "moth:23,crystal:15,burrow:15",
+        "nibble:40,shell:18,shaman:8",
+        "crystal:21,moth:32,dash:32,shaman:8"
+      ]
+    },
+    {
+      "id": 23,
+      "name": "Lantern Harvest",
+      "biome": "orchard",
+      "boss": "",
+      "startingGold": 860,
+      "waves": 15,
+      "routes": [
+        [
+          [
+            0,
+            8
+          ],
+          [
+            3,
+            8
+          ],
+          [
+            3,
+            1
+          ],
+          [
+            11,
+            1
+          ],
+          [
+            11,
+            8
+          ],
+          [
+            5,
+            8
+          ],
+          [
+            5,
+            4
+          ],
+          [
+            7,
+            4
+          ]
+        ],
+        [
+          [
+            14,
+            10
+          ],
+          [
+            13,
+            10
+          ],
+          [
+            13,
+            0
+          ],
+          [
+            11,
+            0
+          ],
+          [
+            11,
+            1
+          ],
+          [
+            11,
+            8
+          ],
+          [
+            5,
+            8
+          ],
+          [
+            5,
+            4
+          ],
+          [
+            7,
+            4
+          ]
+        ],
+        [
+          [
+            0,
+            0
+          ],
+          [
+            3,
+            0
+          ],
+          [
+            3,
+            1
+          ],
+          [
+            11,
+            1
+          ],
+          [
+            11,
+            8
+          ],
+          [
+            5,
+            8
+          ],
+          [
+            5,
+            4
+          ],
+          [
+            7,
+            4
+          ]
+        ]
+      ],
+      "pads": [
+        [
+          8,
+          6
+        ],
+        [
+          6,
+          7
+        ],
+        [
+          10,
+          5
+        ],
+        [
+          10,
+          3
+        ],
+        [
+          6,
+          5
+        ],
+        [
+          10,
+          7
+        ],
+        [
+          4,
+          6
+        ],
+        [
+          0,
+          1
+        ],
+        [
+          0,
+          10
+        ],
+        [
+          5,
+          0
+        ],
+        [
+          14,
+          0
+        ],
+        [
+          14,
+          9
+        ],
+        [
+          14,
+          4
+        ],
+        [
+          8,
+          10
+        ],
+        [
+          0,
+          6
+        ],
+        [
+          4,
+          10
+        ],
+        [
+          9,
+          0
+        ],
+        [
+          11,
+          10
+        ],
+        [
+          4,
+          3
+        ],
+        [
+          7,
+          2
+        ]
+      ],
+      "blockers": [
+        {
+          "pad": 3,
+          "kind": "hedge"
+        },
+        {
+          "pad": 4,
+          "kind": "hedge"
+        },
+        {
+          "pad": 18,
+          "kind": "hedge"
+        },
+        {
+          "pad": 19,
+          "kind": "stump"
+        },
+        {
+          "pad": 16,
+          "kind": "stump"
+        },
+        {
+          "pad": 12,
+          "kind": "stump"
+        },
+        {
+          "pad": 17,
+          "kind": "crystal"
+        },
+        {
+          "pad": 13,
+          "kind": "crystal"
+        },
+        {
+          "pad": 9,
+          "kind": "crystal"
+        }
+      ],
+      "waveCompositions": [
+        "shell:4,nibble:10",
+        "nibble:14,moth:9",
+        "shell:8,dash:12",
+        "swarm:31,nibble:20",
+        "crystal:10,shell:10",
+        "moth:16,burrow:11",
+        "shaman:4,swarm:42,shell:7",
+        "nibble:23,dash:15,moth:15",
+        "burrow:11,shaman:5,shell:11",
+        "crystal:12,moth:18,shell:12",
+        "swarm:44,dash:19,shell:12",
+        "shell:15,dash:22,crystal:15,shaman:7,burrow:7",
+        "moth:26,crystal:18,burrow:18,shaman:3",
+        "nibble:45,shell:20,shaman:11,crystal:7",
+        "crystal:23,moth:35,dash:35,shaman:8"
+      ]
+    },
+    {
+      "id": 24,
+      "name": "The Last Light",
+      "biome": "orchard",
+      "boss": "orchard",
+      "startingGold": 890,
+      "waves": 16,
+      "routes": [
+        [
+          [
+            0,
+            1
+          ],
+          [
+            3,
+            1
+          ],
+          [
+            7,
+            1
+          ],
+          [
+            11,
+            1
+          ],
+          [
+            11,
+            8
+          ],
+          [
+            3,
+            8
+          ],
+          [
+            3,
+            4
+          ],
+          [
+            7,
+            4
+          ]
+        ],
+        [
+          [
+            14,
+            10
+          ],
+          [
+            13,
+            10
+          ],
+          [
+            13,
+            0
+          ],
+          [
+            11,
+            0
+          ],
+          [
+            11,
+            1
+          ],
+          [
+            11,
+            8
+          ],
+          [
+            3,
+            8
+          ],
+          [
+            3,
+            4
+          ],
+          [
+            7,
+            4
+          ]
+        ],
+        [
+          [
+            7,
+            0
+          ],
+          [
+            7,
+            1
+          ],
+          [
+            11,
+            1
+          ],
+          [
+            11,
+            8
+          ],
+          [
+            3,
+            8
+          ],
+          [
+            3,
+            4
+          ],
+          [
+            7,
+            4
+          ]
+        ]
+      ],
+      "pads": [
+        [
+          6,
+          6
+        ],
+        [
+          4,
+          6
+        ],
+        [
+          8,
+          6
+        ],
+        [
+          10,
+          4
+        ],
+        [
+          10,
+          6
+        ],
+        [
+          10,
+          2
+        ],
+        [
+          12,
+          5
+        ],
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          10
+        ],
+        [
+          5,
+          0
+        ],
+        [
+          12,
+          10
+        ],
+        [
+          7,
+          10
+        ],
+        [
+          14,
+          0
+        ],
+        [
+          0,
+          5
+        ],
+        [
+          3,
+          3
+        ],
+        [
+          3,
+          9
+        ],
+        [
+          6,
+          3
+        ],
+        [
+          14,
+          3
+        ],
+        [
+          14,
+          7
+        ],
+        [
+          8,
+          0
+        ]
+      ],
+      "blockers": [
+        {
+          "pad": 3,
+          "kind": "hedge"
+        },
+        {
+          "pad": 4,
+          "kind": "hedge"
+        },
+        {
+          "pad": 16,
+          "kind": "hedge"
+        },
+        {
+          "pad": 14,
+          "kind": "stump"
+        },
+        {
+          "pad": 11,
+          "kind": "stump"
+        },
+        {
+          "pad": 15,
+          "kind": "stump"
+        },
+        {
+          "pad": 17,
+          "kind": "crystal"
+        },
+        {
+          "pad": 18,
+          "kind": "crystal"
+        },
+        {
+          "pad": 19,
+          "kind": "crystal"
+        }
+      ],
+      "waveCompositions": [
+        "shell:4,nibble:10",
+        "nibble:14,moth:10",
+        "shell:9,dash:13",
+        "swarm:34,nibble:22",
+        "crystal:10,shell:10",
+        "moth:18,burrow:12",
+        "shaman:4,swarm:44",
+        "nibble:25,dash:16,moth:16,shell:7",
+        "burrow:12,shaman:6,shell:12",
+        "crystal:13,moth:19,shell:13",
+        "swarm:47,dash:20,shell:13",
+        "shell:15,dash:22,crystal:15,shaman:7",
+        "moth:25,crystal:16,burrow:23,shaman:3",
+        "nibble:44,shell:19,shaman:12,crystal:7,swarm:18",
+        "crystal:23,moth:34,dash:34,shaman:9",
+        "boss:1,shell:26,moth:26,crystal:19,dash:9"
+      ]
+    },
+    {
+      "id": 25,
+      "name": "Giant Tornado",
+      "biome": "arena",
+      "boss": "tornado",
+      "startingGold": 520,
+      "waves": 6,
+      "routes": [
+        [
+          [
+            0,
+            5
+          ],
+          [
+            0,
+            1
+          ],
+          [
+            5,
+            1
+          ],
+          [
+            5,
+            3
+          ],
+          [
+            2,
+            3
+          ],
+          [
+            2,
+            8
+          ],
+          [
+            5,
+            8
+          ],
+          [
+            5,
+            10
+          ],
+          [
+            7,
+            10
+          ],
+          [
+            7,
+            5
+          ]
+        ],
+        [
+          [
+            14,
+            5
+          ],
+          [
+            14,
+            9
+          ],
+          [
+            9,
+            9
+          ],
+          [
+            9,
+            7
+          ],
+          [
+            12,
+            7
+          ],
+          [
+            12,
+            2
+          ],
+          [
+            9,
+            2
+          ],
+          [
+            9,
+            0
+          ],
+          [
+            7,
+            0
+          ],
+          [
+            7,
+            5
+          ]
+        ]
+      ],
+      "pads": [
+        [
+          6,
+          4
+        ],
+        [
+          8,
+          6
+        ],
+        [
+          6,
+          6
+        ],
+        [
+          8,
+          4
+        ],
+        [
+          4,
+          5
+        ],
+        [
+          10,
+          5
+        ],
+        [
+          4,
+          7
+        ],
+        [
+          10,
+          3
+        ],
+        [
+          1,
+          7
+        ],
+        [
+          13,
+          3
+        ],
+        [
+          3,
+          10
+        ],
+        [
+          11,
+          0
+        ],
+        [
+          9,
+          10
+        ],
+        [
+          5,
+          0
+        ],
+        [
+          0,
+          8
+        ],
+        [
+          14,
+          2
+        ],
+        [
+          10,
+          1
+        ],
+        [
+          4,
+          9
+        ],
+        [
+          1,
+          0
+        ],
+        [
+          13,
+          10
+        ]
+      ],
+      "blockers": [
+        {
+          "pad": 10,
+          "kind": "stump"
+        },
+        {
+          "pad": 11,
+          "kind": "stump"
+        },
+        {
+          "pad": 14,
+          "kind": "crystal"
+        },
+        {
+          "pad": 15,
+          "kind": "crystal"
+        },
+        {
+          "pad": 18,
+          "kind": "hedge"
+        },
+        {
+          "pad": 19,
+          "kind": "hedge"
+        }
+      ],
+      "waveCompositions": [
+        "shell:5,nibble:12",
+        "nibble:14,dash:8",
+        "swarm:22,moth:8",
+        "boss:1,nibble:14,shell:4",
+        "swarm:24,moth:10,dash:10",
+        "shell:10,dash:14,crystal:6"
+      ],
+      "challenge": "easy",
+      "bossName": "Giant Tornado"
+    },
+    {
+      "id": 26,
+      "name": "Zombie",
+      "biome": "arena",
+      "boss": "zombie",
+      "startingGold": 1500,
+      "waves": 9,
+      "routes": [
+        [
+          [
+            0,
+            5
+          ],
+          [
+            0,
+            1
+          ],
+          [
+            5,
+            1
+          ],
+          [
+            5,
+            3
+          ],
+          [
+            2,
+            3
+          ],
+          [
+            2,
+            8
+          ],
+          [
+            5,
+            8
+          ],
+          [
+            5,
+            10
+          ],
+          [
+            7,
+            10
+          ],
+          [
+            7,
+            5
+          ]
+        ],
+        [
+          [
+            14,
+            5
+          ],
+          [
+            14,
+            9
+          ],
+          [
+            9,
+            9
+          ],
+          [
+            9,
+            7
+          ],
+          [
+            12,
+            7
+          ],
+          [
+            12,
+            2
+          ],
+          [
+            9,
+            2
+          ],
+          [
+            9,
+            0
+          ],
+          [
+            7,
+            0
+          ],
+          [
+            7,
+            5
+          ]
+        ]
+      ],
+      "pads": [
+        [
+          6,
+          4
+        ],
+        [
+          8,
+          6
+        ],
+        [
+          6,
+          6
+        ],
+        [
+          8,
+          4
+        ],
+        [
+          4,
+          5
+        ],
+        [
+          10,
+          5
+        ],
+        [
+          4,
+          7
+        ],
+        [
+          10,
+          3
+        ],
+        [
+          1,
+          7
+        ],
+        [
+          13,
+          3
+        ],
+        [
+          3,
+          10
+        ],
+        [
+          11,
+          0
+        ],
+        [
+          9,
+          10
+        ],
+        [
+          5,
+          0
+        ],
+        [
+          0,
+          8
+        ],
+        [
+          14,
+          2
+        ],
+        [
+          10,
+          1
+        ],
+        [
+          4,
+          9
+        ],
+        [
+          1,
+          0
+        ],
+        [
+          13,
+          10
+        ]
+      ],
+      "blockers": [
+        {
+          "pad": 10,
+          "kind": "stump"
+        },
+        {
+          "pad": 11,
+          "kind": "stump"
+        },
+        {
+          "pad": 14,
+          "kind": "crystal"
+        },
+        {
+          "pad": 15,
+          "kind": "crystal"
+        },
+        {
+          "pad": 18,
+          "kind": "hedge"
+        },
+        {
+          "pad": 19,
+          "kind": "hedge"
+        }
+      ],
+      "waveCompositions": [
+        "shell:6,nibble:12",
+        "nibble:14,moth:8",
+        "shell:8,dash:10",
+        "swarm:28,shaman:3",
+        "crystal:9,burrow:10,moth:12",
+        "boss:1,shell:10,nibble:16",
+        "swarm:36,dash:16,shaman:4",
+        "moth:18,crystal:12,shell:10",
+        "crystal:14,dash:22,shell:14,shaman:5"
+      ],
+      "challenge": "hard",
+      "bossName": "Zombie"
+    },
+    {
+      "id": 27,
+      "name": "Unknown Eyeball",
+      "biome": "arena",
+      "boss": "eyeball",
+      "startingGold": 2000,
+      "waves": 11,
+      "routes": [
+        [
+          [
+            0,
+            5
+          ],
+          [
+            0,
+            1
+          ],
+          [
+            5,
+            1
+          ],
+          [
+            5,
+            3
+          ],
+          [
+            2,
+            3
+          ],
+          [
+            2,
+            8
+          ],
+          [
+            5,
+            8
+          ],
+          [
+            5,
+            10
+          ],
+          [
+            7,
+            10
+          ],
+          [
+            7,
+            5
+          ]
+        ],
+        [
+          [
+            14,
+            5
+          ],
+          [
+            14,
+            9
+          ],
+          [
+            9,
+            9
+          ],
+          [
+            9,
+            7
+          ],
+          [
+            12,
+            7
+          ],
+          [
+            12,
+            2
+          ],
+          [
+            9,
+            2
+          ],
+          [
+            9,
+            0
+          ],
+          [
+            7,
+            0
+          ],
+          [
+            7,
+            5
+          ]
+        ]
+      ],
+      "pads": [
+        [
+          6,
+          4
+        ],
+        [
+          8,
+          6
+        ],
+        [
+          6,
+          6
+        ],
+        [
+          8,
+          4
+        ],
+        [
+          4,
+          5
+        ],
+        [
+          10,
+          5
+        ],
+        [
+          4,
+          7
+        ],
+        [
+          10,
+          3
+        ],
+        [
+          1,
+          7
+        ],
+        [
+          13,
+          3
+        ],
+        [
+          3,
+          10
+        ],
+        [
+          11,
+          0
+        ],
+        [
+          9,
+          10
+        ],
+        [
+          5,
+          0
+        ],
+        [
+          0,
+          8
+        ],
+        [
+          14,
+          2
+        ],
+        [
+          10,
+          1
+        ],
+        [
+          4,
+          9
+        ],
+        [
+          1,
+          0
+        ],
+        [
+          13,
+          10
+        ]
+      ],
+      "blockers": [
+        {
+          "pad": 10,
+          "kind": "stump"
+        },
+        {
+          "pad": 11,
+          "kind": "stump"
+        },
+        {
+          "pad": 14,
+          "kind": "crystal"
+        },
+        {
+          "pad": 15,
+          "kind": "crystal"
+        },
+        {
+          "pad": 18,
+          "kind": "hedge"
+        },
+        {
+          "pad": 19,
+          "kind": "hedge"
+        }
+      ],
+      "waveCompositions": [
+        "shell:8,nibble:14",
+        "nibble:14,moth:9",
+        "shell:9,dash:11",
+        "swarm:29,shaman:4",
+        "crystal:11,burrow:11,moth:13",
+        "shell:13,dash:18,shaman:5",
+        "boss:1,moth:13,shell:11",
+        "swarm:29,crystal:11,dash:16",
+        "moth:20,shell:14,shaman:5",
+        "crystal:16,burrow:13,dash:22,shaman:5",
+        "nibble:32,shell:16,crystal:13,moth:14"
+      ],
+      "challenge": "insane",
+      "bossName": "Unknown Eyeball"
     }
   ]
 }

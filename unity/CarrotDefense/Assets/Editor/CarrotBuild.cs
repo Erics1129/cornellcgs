@@ -36,7 +36,7 @@ public static class CarrotBuild {
   var graphics=new SerializedObject(settings[0]);var shaders=graphics.FindProperty("m_AlwaysIncludedShaders");
   var standard=Shader.Find("Standard");
   for(int i=shaders.arraySize-1;i>=0;i--)if(shaders.GetArrayElementAtIndex(i).objectReferenceValue==standard)shaders.DeleteArrayElementAtIndex(i);
-  foreach(var name in new[]{"Carrot/Storybook","Carrot/FxAdditive","Carrot/FxAlpha","Carrot/Water","Carrot/Contact","Carrot/FxDecalQuad","Carrot/Sky","Carrot/HeightFog"}) {
+  foreach(var name in new[]{"Carrot/Storybook","Carrot/FxAdditive","Carrot/FxAlpha","Carrot/Water","Carrot/Contact","Carrot/FxDecalQuad","Carrot/Sky","Carrot/HeightFog","Carrot/BlindOverlay"}) {
    var shader=Shader.Find(name);if(!shader)throw new InvalidOperationException("Missing shader "+name);
    bool found=false;for(int i=0;i<shaders.arraySize;i++)if(shaders.GetArrayElementAtIndex(i).objectReferenceValue==shader)found=true;
    if(!found){shaders.InsertArrayElementAtIndex(shaders.arraySize);shaders.GetArrayElementAtIndex(shaders.arraySize-1).objectReferenceValue=shader;}
@@ -58,8 +58,9 @@ public static class CarrotBuild {
    importer.textureType=normal?TextureImporterType.NormalMap:TextureImporterType.Default;
    importer.sRGBTexture=!linear;importer.isReadable=false;importer.mipmapEnabled=true;
    bool detail=path.Contains("AO")||path.Contains("Roughness");
-   importer.maxTextureSize=detail?512:1024;importer.anisoLevel=path.Contains("Soil")?4:2;importer.wrapMode=TextureWrapMode.Repeat;
-   WebTexture(importer,detail?512:1024,normal?85:70);importer.SaveAndReimport();
+   // 512 px albedo and normal, 256 px AO and roughness: at 46-97 px per world unit with TextureScale 0.85-1.3 the 1024 mip is never sampled, so this is lossless on screen and halves the texture download.
+   importer.maxTextureSize=detail?256:512;importer.anisoLevel=path.Contains("Soil")?4:2;importer.wrapMode=TextureWrapMode.Repeat;
+   WebTexture(importer,detail?256:512,normal?85:70);importer.SaveAndReimport();
   }
   var environment=AssetImporter.GetAtPath(root+"/Environment.hdr") as TextureImporter;
   if(environment!=null) {
@@ -82,6 +83,27 @@ public static class CarrotBuild {
    File.WriteAllText(Path.GetFullPath("../../src/minigames/carrot/unity-build.json"),"{\"version\":\""+hash+"\"}\n");
   }
   Debug.Log("CARROT_BUILD_OK "+report.summary.totalSize);
+ }
+ /// <summary>Release-settings build for QA measurements (the shipped player's options, plus the CARROT_QA define so the `debugCoins` command exists) into
+ /// output/carrot-qa; unity-build.json and public/ are never touched, and the define is removed again after the build.</summary>
+ public static void WebQa() {
+  Prepare();
+  var output=Path.GetFullPath("../../output/carrot-qa");Directory.CreateDirectory(output);
+  var target=NamedBuildTarget.WebGL;var defines=PlayerSettings.GetScriptingDefineSymbols(target);
+  PlayerSettings.SetScriptingDefineSymbols(target,string.IsNullOrEmpty(defines)?"CARROT_QA":defines+";CARROT_QA");
+  try {
+   var report=BuildPipeline.BuildPlayer(new BuildPlayerOptions{scenes=new[]{ScenePath},locationPathName=output,target=BuildTarget.WebGL,options=BuildOptions.None});
+   if(report.summary.result!=BuildResult.Succeeded)throw new Exception("Carrot Web QA build failed: "+report.summary.result);
+   Debug.Log("CARROT_QA_BUILD_OK "+report.summary.totalSize);
+  } finally { PlayerSettings.SetScriptingDefineSymbols(target,defines); }
+ }
+ /// <summary>Development build for QA (DEVELOPMENT_BUILD defines the `debugCoins` command) into output/carrot-dev; unity-build.json and public/ are never touched.</summary>
+ public static void WebDev() {
+  Prepare();
+  var output=Path.GetFullPath("../../output/carrot-dev");Directory.CreateDirectory(output);
+  var report=BuildPipeline.BuildPlayer(new BuildPlayerOptions{scenes=new[]{ScenePath},locationPathName=output,target=BuildTarget.WebGL,options=BuildOptions.Development});
+  if(report.summary.result!=BuildResult.Succeeded)throw new Exception("Carrot Web dev build failed: "+report.summary.result);
+  Debug.Log("CARROT_DEV_BUILD_OK "+report.summary.totalSize);
  }
 }
 }

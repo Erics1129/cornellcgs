@@ -4,7 +4,7 @@ using UnityEngine;
 
 namespace CarrotTD {
  [Serializable] public class TowerDef {
-  public string id,name,role; public int unlock; public bool air;
+  public string id,name,role; public int unlock; public bool air; public string superName,superTrait;
   public int[] cost; public float[] damage,interval,range;
  }
  [Serializable] public class LevelDef {
@@ -13,13 +13,13 @@ namespace CarrotTD {
  }
  [Serializable] public class BlockerSeed {public int pad; public string kind;}
  [Serializable] public class TowerState {
-  public int id,pad,tier,spent; public string kind; public Vector3 position;
-  public float cooldown,slowFor,disabledFor,lastShot,buff; public Vector3 aim;
+  public int id,pad,tier,spent,mergedSpent; public string kind; public Vector3 position;
+  public float cooldown,slowFor,disabledFor,stunnedFor,lastShot,buff,builtAt; public Vector3 aim;
  }
  [Serializable] public class EnemyState {
   public int id,route,phase; public string kind,boss,ability;
   public Vector3 position,direction;
-  public float hp,maxHp,shield,maxShield,distance,routeLength,speed,hitAt,slowUntil,slowFactor,age;
+  public float hp,maxHp,shield,maxShield,distance,routeLength,speed,hitAt,slowUntil,slowFactor,rushUntil,age;
   public float castRemaining,abilityRemaining,biteRemaining,deadFor;
   public bool alive=true,air,hidden,summoned; public int reward;
  }

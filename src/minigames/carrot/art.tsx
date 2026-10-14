@@ -1,11 +1,54 @@
+import { useEffect, useState } from 'react'
 import type { CSSProperties } from 'react'
 const base='/assets/minigames/carrot/'
 const sheets:Record<string,string>={seed:'05-seed-tiers',frost:'06-frost-tiers',mortar:'07-mortar-tiers',prism:'08-prism-tiers',storm:'09-storm-tiers',blossom:'10-blossom-tiers',starfruit:'18-starfruit-tiers',gravity:'19-gravity-tiers',book:'20-book-tiers',thunder:'21-thunder-tiers'}
-export const chapterArt=(biome:string)=>base+({garden:'01-garden-keyart',marsh:'03-marsh-keyart',frost:'04-frost-keyart'}[biome]||'01-garden-keyart')+'.jpg'
+// The Super plates (26 forms, 27 emblems) are 5x2 grids in this kind order.
+const superOrder=['seed','frost','mortar','prism','storm','blossom','starfruit','gravity','book','thunder']
+const challengeBossRow:Record<string,number>={tornado:0,zombie:1,eyeball:2}
+export const chapterArt=(biome:string)=>base+({garden:'01-garden-keyart',marsh:'03-marsh-keyart',frost:'04-frost-keyart',orchard:'23-orchard-keyart',arena:'31-arena-keyart'}[biome]||'01-garden-keyart')+'.jpg'
+export const challengeArt=(boss:string)=>{const name={tornado:'28-tornado-keyart',zombie:'29-zombie-keyart',eyeball:'30-eyeball-keyart'}[boss];return name?base+name+'.jpg':chapterArt('arena')}
+export const superForms=base+'26-super-forms.jpg',superEmblems=base+'27-super-emblems.png',abilityGlyphs=base+'33-ability-glyphs.png'
+
+// Optional plates: a sheet that 404s falls back to the painted tier-4 cell or a typographic mark, so the HUD never shows a blank square.
+const imageStatus=new Map<string,boolean>(),waiters=new Map<string,Set<(ok:boolean)=>void>>()
+function probe(url:string,notify:(ok:boolean)=>void){
+ const known=imageStatus.get(url);if(known!==undefined){notify(known);return()=>{}}
+ let set=waiters.get(url);if(!set){set=new Set();waiters.set(url,set);const image=new Image();const settle=(ok:boolean)=>{imageStatus.set(url,ok);for(const w of waiters.get(url)||[])w(ok);waiters.delete(url)};image.onload=()=>settle(true);image.onerror=()=>settle(false);image.src=url}
+ set.add(notify);return()=>{waiters.get(url)?.delete(notify)}
+}
+export function useImageAvailable(url:string){
+ const [ok,setOk]=useState(()=>imageStatus.get(url)??true)
+ useEffect(()=>probe(url,setOk),[url])
+ return ok
+}
+const grid=(index:number,columns:number,rows:number)=>({backgroundSize:`${columns*100}% ${rows*100}%`,backgroundPosition:`${columns>1?(index%columns)*100/(columns-1):0}% ${rows>1?Math.floor(index/columns)*100/(rows-1):0}%`})
 export function TowerPortrait({kind,tier=1,className=''}:{kind:string;tier?:number;className?:string}){
+ const superOk=useImageAvailable(superForms)
+ const index=superOrder.indexOf(kind)
+ if(tier>=5&&superOk&&index>=0)return <span aria-hidden="true" className={`ct-portrait ct-portrait--super ${className}`} style={{backgroundImage:`url(${superForms})`,...grid(index,5,2)}}/>
  return <span aria-hidden="true" className={`ct-portrait ${className}`} style={{backgroundImage:`url(${base}${sheets[kind]||sheets.seed}.jpg)`,backgroundPosition:`${(Math.max(1,Math.min(4,tier))-1)*100/3}% 0%`}} />
 }
-export function BossPortrait({kind,className=''}:{kind:string;className?:string}){return <span aria-hidden="true" className={`ct-portrait ct-portrait--boss ${className}`} style={{backgroundImage:`url(${base}22-bosses-menacing.jpg)`,backgroundPosition:`0% ${kind==='marsh'?50:kind==='frost'?100:0}%`}}/>}
+/** Round golden sigil of a kind's Super form; a typographic crown stands in when the sprite sheet is missing. */
+export function SuperEmblem({kind,className=''}:{kind:string;className?:string}){
+ const ok=useImageAvailable(superEmblems)
+ const index=superOrder.indexOf(kind)
+ if(ok&&index>=0)return <span aria-hidden="true" className={`ct-emblem ${className}`} style={{backgroundImage:`url(${superEmblems})`,...grid(index,5,2)}}/>
+ return <span aria-hidden="true" className={`ct-emblem ct-emblem--text ${className}`}><b>S</b></span>
+}
+export function BossPortrait({kind,className=''}:{kind:string;className?:string}){
+ if(kind==='orchard')return <span aria-hidden="true" className={`ct-portrait ct-portrait--boss ct-portrait--plate ${className}`} style={{backgroundImage:`url(${base}25-hollowhead-menacing.jpg)`}}/>
+ const row=challengeBossRow[kind]
+ // 32 is a vertical stack of three 4-pose sheets (1024x2049): the first panel of each row, cropped to the upper body.
+ if(row!==undefined)return <span aria-hidden="true" className={`ct-portrait ct-portrait--boss ct-portrait--challenge ${className}`} style={{backgroundImage:`url(${base}32-challenge-bosses-menacing.jpg)`,backgroundSize:'400% 800.4%',backgroundPosition:`0% ${[7.9,45.9,84][row]}%`}}/>
+ return <span aria-hidden="true" className={`ct-portrait ct-portrait--boss ${className}`} style={{backgroundImage:`url(${base}22-bosses-menacing.jpg)`,backgroundPosition:`0% ${kind==='marsh'?50:kind==='frost'?100:0}%`}}/>}
+const glyphIndex:Record<string,number>={blind:0,uproot:1,thornwall:2,tithe:3,whiteout:4,crowcurse:5,dusk:5}
+/** Optional ability glyph (33 is a 3x2 grid); null when the ability has no glyph or the sheet is missing, so the caller falls back to text. */
+export function AbilityGlyph({ability,className=''}:{ability:string;className?:string}){
+ const ok=useImageAvailable(abilityGlyphs)
+ const index=glyphIndex[ability]
+ if(!ok||index===undefined)return null
+ return <span aria-hidden="true" className={`ct-glyph ${className}`} style={{backgroundImage:`url(${abilityGlyphs})`,...grid(index,3,2)}}/>
+}
 export function CarrotPortrait({pose=0,className=''}:{pose?:number;className?:string}){return <span aria-hidden="true" className={`ct-portrait ${className}`} style={{backgroundImage:`url(${base}02-carrot-animation.jpg)`,backgroundPosition:`${pose%4*100/3}% ${Math.floor(pose/4)*50}%`}}/>}
 export function RouteDrawing({routes}: {routes?:Array<Array<{x:number;y?:number;z:number}|number[]>>}) {
  if(!routes?.length)return null

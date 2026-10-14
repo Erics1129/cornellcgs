@@ -96,9 +96,15 @@ A jslib function `InkMazeEmit(type, payloadJson)` runs
   stains retract). The drawn marble is a separate object from the physics body,
   and visual code never writes a rigidbody, a collider or the colored blocks.
 - `ready` is sent after the warm-up frames: Unity draws every material, the
-  particles and the post-processing once in hidden form during its first three
-  frames, then sends `ready` in frame 4, so the first roll does not stall on
-  shader compiles.
+  particles and the post-processing once in hidden form during its first
+  frames and rolls a hidden ball once on a tiny warm-up board with its events
+  suppressed, so the first roll stalls neither on shader compiles nor on
+  first-use costs. On Chromium-like browsers that is one shader program a
+  frame over eleven frames (no single frame freezes the 2D board for long) and
+  `ready` comes in frame 12; on WebKit (iOS, Safari), where programs compile
+  in parallel with one long wait a frame, the set is batched into two frames
+  and `ready` comes in frame 6. No `cell`, `roll`, `impact` or `settled` is
+  ever sent before `ready`.
 
 ## Physics
 

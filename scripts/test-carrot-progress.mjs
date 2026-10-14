@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import {readCampaign,awardCampaign} from '../src/minigames/carrot/progress.ts'
+import {readCampaign,awardCampaign,readSuper,recordSuper,teachSuper,mergeCarrotSuper} from '../src/minigames/carrot/progress.ts'
 const values=new Map([['cgs-forge-v1','untouched forge save'],['ink-maze-v1','untouched maze save']])
 globalThis.localStorage={getItem:key=>values.get(key)||null,setItem:(key,value)=>values.set(key,value)}
 const key='cgs-carrot-defense-v1'
@@ -14,16 +14,55 @@ campaign=awardCampaign(campaign,1,2,false)
 assert.equal(campaign.medals[1],7,'a weaker replay never erases previous medals')
 assert.deepEqual(readCampaign(),campaign,'progress survives a reload')
 assert.equal(awardCampaign(campaign,2,0),campaign,'a loss cannot award progress')
-assert.equal(awardCampaign(campaign,13,10),campaign,'no phantom thirteenth level')
+assert.equal(awardCampaign(campaign,25,10),campaign,'no phantom twenty-fifth level')
+assert.equal(awardCampaign(campaign,13,10).unlocked,14,'the harvest road continues past level 12')
 assert.equal(awardCampaign(campaign,2,NaN),campaign)
-assert.equal(awardCampaign(campaign,12,10).unlocked,12)
+assert.equal(awardCampaign(campaign,12,10).unlocked,13,'winning level 12 unlocks the harvest road')
+assert.equal(awardCampaign(campaign,24,10).unlocked,24,'the finale caps the unlock at 24')
+assert.equal(awardCampaign(campaign,23,10).medals[23],3,'a flawless win on a new level earns its medals')
 assert.equal(values.get('cgs-forge-v1'),'untouched forge save')
 assert.equal(values.get('ink-maze-v1'),'untouched maze save')
 values.set(key,'{corrupt')
 assert.deepEqual(readCampaign(),initial)
-values.set(key,JSON.stringify({version:1,unlocked:2.9,medals:{1:19,2:-2,13:7},sound:false}))
-assert.deepEqual(readCampaign(),{version:1,unlocked:2,medals:{1:7,2:0},sound:false})
+values.set(key,JSON.stringify({version:1,unlocked:2.9,medals:{1:19,2:-2,13:7,25:7},sound:false}))
+assert.deepEqual(readCampaign(),{version:1,unlocked:2,medals:{1:7,2:0,13:7},sound:false})
+values.set(key,JSON.stringify({version:1,unlocked:12,medals:{},sound:true}))
+assert.equal(readCampaign().unlocked,12,'an older twelve-level save loads unchanged')
+assert.equal(awardCampaign(readCampaign(),12,8).unlocked,13,'winning level 12 from an older save opens exactly level 13')
+
+// Super record: cgs-carrot-super-v1, separate from the campaign save.
+const superKey='cgs-carrot-super-v1'
+const freshSuper=readSuper()
+assert.deepEqual(freshSuper,{version:1,taught:false,merges:0,kinds:{}},'a fresh Super record has nothing taught and no merges')
+assert.equal(values.has(superKey),false,'reading never writes')
+let sup=recordSuper(freshSuper,'seed')
+sup=recordSuper(sup,'seed')
+sup=recordSuper(sup,'frost')
+assert.deepEqual(sup,{version:1,taught:false,merges:3,kinds:{seed:2,frost:1}},'recordSuper counts merges and per-kind forges')
+assert.deepEqual(readSuper(),sup,'the Super record survives a reload')
+assert.equal(recordSuper(sup,'Not a kind'),sup,'an invalid kind is ignored')
+sup=teachSuper(sup)
+assert.equal(sup.taught,true)
+assert.equal(teachSuper(sup),sup,'teaching twice returns the same record')
+assert.equal(readSuper().taught,true,'taught is persisted so the toast fires once per device')
+assert.equal(values.get(key),JSON.stringify(readCampaign()),'the campaign save is untouched by Super writes')
+values.set(superKey,'{corrupt')
+assert.deepEqual(readSuper(),freshSuper,'corrupt Super JSON falls back to a fresh record')
+values.set(superKey,JSON.stringify({version:1,taught:'yes',merges:-4,kinds:{seed:2.7,'bad key':3,frost:'x'}}))
+assert.deepEqual(readSuper(),{version:1,taught:false,merges:0,kinds:{seed:2}},'odd values are cleaned')
+values.set(superKey,JSON.stringify({version:2,taught:true,merges:9,kinds:{}}))
+assert.deepEqual(readSuper(),freshSuper,'an unknown version is not trusted')
+// Pure merge for account sync.
+const a={version:1,taught:true,merges:2,kinds:{seed:2}},b={version:1,taught:false,merges:5,kinds:{seed:1,storm:3}}
+const merged={version:1,taught:true,merges:5,kinds:{seed:2,storm:3}}
+assert.deepEqual(mergeCarrotSuper(a,b),merged,'taught OR, merges max, kinds per-key max')
+assert.deepEqual(mergeCarrotSuper(b,a),merged,'mergeCarrotSuper is symmetric')
+assert.deepEqual(mergeCarrotSuper(null,b),b);assert.deepEqual(mergeCarrotSuper(a,undefined),a);assert.equal(mergeCarrotSuper(null,null),null)
+assert.deepEqual(mergeCarrotSuper(a,{version:3,taught:false,merges:0,kinds:{}}),{version:3,taught:false,merges:0,kinds:{}},'a higher version wins outright')
+assert.deepEqual(mergeCarrotSuper(a,{corrupt:true}),a,'an unusable side yields the other')
 globalThis.localStorage={getItem(){throw new Error('blocked')},setItem(){throw new Error('blocked')}}
 assert.deepEqual(readCampaign(),initial)
 assert.equal(awardCampaign(initial,1,10).unlocked,2,'play works without browser storage')
-console.log('Carrot progression: replay medals, unlocks, save isolation, corrupt and blocked storage pass.')
+assert.deepEqual(readSuper(),freshSuper,'blocked storage yields a fresh Super record')
+assert.equal(recordSuper(freshSuper,'book').merges,1,'merging works without browser storage')
+console.log('Carrot progression: replay medals, unlocks, Super record, save isolation, corrupt and blocked storage pass.')

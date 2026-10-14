@@ -47,6 +47,13 @@ namespace CarrotTD {
   public readonly Slot[] rings,bolts,shells,decals,lights,ghosts,tubes;public readonly Mesh[] tubeMeshes=new Mesh[4];public readonly Spline[] tubeSplines=new Spline[4];public readonly Material bark,mint;
   public readonly Mesh ringThin,ringThick,ringShock,glowDisc,husk,iron,star,sprite,glowQuad;readonly Mesh[] decalMeshes=new Mesh[8];
   public readonly Material additiveSheet,additiveHot,alphaSheet,alphaPuff,bolt,decal,seedShell,ironShell,starShell;
+  // Super towers: six emblem decals and six thin rings allocated here (never lazily; a seventh Super gets the shader pulse only). The emblem
+  // texture is Carrot/Textures/SuperEmblems (5x2 cells: seed, frost, mortar, prism, storm / blossom, starfruit, gravity, book, thunder); the
+  // FxSheet Star6 cell stands in when it is missing. `additiveTop` is the ZTest-Always FxAdditive for arena telegraph rings; `overlayGlow` draws
+  // after the blind overlay (render queue 4001) for the faint lantern glow at the carrot while the screen is dark.
+  public readonly Slot[] emblems,superRings;public readonly Material emblem,additiveTop,overlayGlow;public readonly bool emblemTexture;readonly Mesh[] emblemMeshes=new Mesh[10];
+  public static readonly string[] SuperOrder={"seed","frost","mortar","prism","storm","blossom","starfruit","gravity","book","thunder"};
+  public Mesh EmblemMesh(string kind){int i=System.Array.IndexOf(SuperOrder,kind);return emblemMeshes[Mathf.Clamp(i,0,9)];}
   readonly List<Mesh> owned=new List<Mesh>();readonly List<Material> ownedMaterials=new List<Material>();
   public FxPool(Transform parent,Texture2D sheet,bool high){
    additiveSheet=Mat("Carrot/FxAdditive");additiveSheet.SetTexture("_MainTex",sheet);additiveSheet.SetFloat("_UseAtlas",1);additiveSheet.SetFloat("_Soft",0);
@@ -72,6 +79,13 @@ namespace CarrotTD {
    ghosts=new Slot[6];for(int i=0;i<ghosts.Length;i++)ghosts[i]=MeshSlot(root,"Echo",null,additiveSheet);
    bark=Mat("Carrot/Storybook");bark.color=new Color(.42f,.3f,.16f);bark.SetFloat("_Glossiness",.3f);mint=Mat("Carrot/Storybook");mint.color=new Color(.5f,1,.85f);mint.SetColor("_EmissionColor",new Color(.3f,1,.78f)*1.4f);
    tubes=new Slot[4];for(int i=0;i<tubes.Length;i++){tubeMeshes[i]=new Mesh{name="Spline tube"};owned.Add(tubeMeshes[i]);tubes[i]=MeshSlot(root,"Tube",tubeMeshes[i],bark);tubes[i].mr.shadowCastingMode=ShadowCastingMode.On;}
+   var emblemTex=Resources.Load<Texture2D>("Carrot/Textures/SuperEmblems");emblemTexture=emblemTex!=null;
+   emblem=Mat("Carrot/FxDecalQuad");emblem.SetTexture("_MainTex",emblemTexture?emblemTex:sheet);emblem.SetFloat("_Emissive",1);
+   for(int i=0;i<10;i++)emblemMeshes[i]=emblemTexture?FlatQuad(new Rect((i%5)/5f,1-(i/5+1)/2f,1/5f,1/2f)):FlatQuad(FxSheet.Cell(FxSheet.Star6));
+   emblems=new Slot[6];for(int i=0;i<emblems.Length;i++)emblems[i]=MeshSlot(root,"Super emblem",emblemMeshes[0],emblem);
+   superRings=new Slot[6];for(int i=0;i<superRings.Length;i++)superRings[i]=MeshSlot(root,"Super ring",ringThin,additiveSheet);
+   additiveTop=Mat("Carrot/FxAdditive");additiveTop.SetTexture("_MainTex",sheet);additiveTop.SetFloat("_UseAtlas",1);additiveTop.SetFloat("_Soft",0);additiveTop.SetFloat("_ZTest",8);
+   overlayGlow=Mat("Carrot/FxAdditive");overlayGlow.SetTexture("_MainTex",sheet);overlayGlow.SetFloat("_UseAtlas",1);overlayGlow.SetFloat("_Soft",0);overlayGlow.SetFloat("_ZTest",8);overlayGlow.renderQueue=4001;
   }
   Material Mat(string shader){var m=new Material(Shader.Find(shader));ownedMaterials.Add(m);return m;}
   Slot MeshSlot(Transform root,string name,Mesh mesh,Material material){var go=new GameObject(name);go.transform.SetParent(root,false);var s=new Slot{go=go,t=go.transform,mf=go.AddComponent<MeshFilter>(),mr=go.AddComponent<MeshRenderer>(),block=new MaterialPropertyBlock()};s.mf.sharedMesh=mesh;s.mr.sharedMaterial=material;s.mr.shadowCastingMode=ShadowCastingMode.Off;s.mr.receiveShadows=false;go.SetActive(false);return s;}
