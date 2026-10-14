@@ -91,7 +91,7 @@ const PAGES = {
   // the numbers must match src/minigames/inkmaze/levels.ts
   'ink-maze': {
     title: 'Ink Maze · Cornell Computational Game Society',
-    desc: 'Roll a ball to color every floor block before the ink runs out. There are 25 levels, on boards from 4 × 4 to 9 × 9, and the last is a small one that takes the most planning.',
+    desc: 'Roll a ball to color every floor block before the ink runs out. There are 25 levels on boards from 4 × 4 to 9 × 9, plus a 26th where you write code in Java, Python, JavaScript, C or C++ to solve random boards.',
     image: '/assets/minigames/ink-maze/cover.png',
   },
   contact: {
