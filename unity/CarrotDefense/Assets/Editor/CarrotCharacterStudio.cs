@@ -185,6 +185,12 @@ public static class CarrotCharacterStudio {
   if(errors>0||ShaderUtil.ShaderHasError(shader))EditorApplication.Exit(4);
  }
 
+ /// <summary>Lists the Mesh LOD API surface of this editor (reflection), for characters.md.</summary>
+ public static void LodProbe(){
+  foreach(var t in new[]{typeof(ModelImporter),typeof(Mesh),typeof(Renderer),typeof(SkinnedMeshRenderer),typeof(MeshRenderer),typeof(QualitySettings)})
+   foreach(var m in t.GetMembers(System.Reflection.BindingFlags.Public|System.Reflection.BindingFlags.Instance|System.Reflection.BindingFlags.Static|System.Reflection.BindingFlags.DeclaredOnly))
+    if(m.Name.IndexOf("lod",StringComparison.OrdinalIgnoreCase)>=0)Debug.Log("LOD_API "+t.Name+"."+m.Name+" "+m.MemberType+" "+m);
+ }
  // ---------- play-mode shot list ----------
  static CarrotCharacterStudio(){if(!string.IsNullOrEmpty(SessionState.GetString(PlanKey,""))){EditorApplication.update-=Tick;EditorApplication.update+=Tick;}}
  /// <summary>Plan file: one step per line. load N | cmd {json} | wait FRAMES | step SECONDS | quality high|medium|low | shot NAME [W H] | spawn KIND ROUTE DISTANCE [boss] | cam x y z pitch yaw fov | gamecam | exit.</summary>
@@ -195,7 +201,7 @@ public static class CarrotCharacterStudio {
   EditorApplication.update-=Tick;EditorApplication.update+=Tick;
   Time.captureFramerate=30;EditorApplication.EnterPlaymode();
  }
- static RenderTexture screen;static Camera studioCam;static int frameGuard;
+ static RenderTexture screen;static Camera studioCam;static int frameGuard;static string lastLook;
  static void Finish(int code){SessionState.EraseString(PlanKey);EditorApplication.update-=Tick;Debug.Log("CARROT_STUDIO_PLAY_DONE "+code);EditorApplication.Exit(code);}
  static void Tick(){
   if(!EditorApplication.isPlaying){if(++frameGuard>20000)Finish(3);return;}
@@ -217,7 +223,7 @@ public static class CarrotCharacterStudio {
     case "spawn":game.TestSpawn(parts[1],int.Parse(parts[2],CultureInfo.InvariantCulture),float.Parse(parts[3],CultureInfo.InvariantCulture),parts.Length>4&&parts[4]=="boss");break;
     case "cam":{if(studioCam==null){studioCam=new GameObject("Studio camera").AddComponent<Camera>();studioCam.CopyFrom(view.GameCamera);var d=studioCam.GetUniversalAdditionalCameraData();var g=view.GameCamera.GetUniversalAdditionalCameraData();d.renderPostProcessing=true;d.antialiasing=g.antialiasing;d.renderShadows=true;d.volumeLayerMask=-1;d.dithering=true;studioCam.enabled=false;}
      float F(int i)=>float.Parse(parts[i],CultureInfo.InvariantCulture);studioCam.transform.position=new Vector3(F(1),F(2),F(3));studioCam.transform.rotation=Quaternion.Euler(F(4),F(5),0);studioCam.fieldOfView=F(6);break;}
-    case "look":{
+    case "look":{lastLook=step;
      // look enemy|tower|carrot|point KIND|x,y,z DIST PITCH YAW FOV [LIFT]: frame a live actor in the real level light.
      float F(int i)=>float.Parse(parts[i],CultureInfo.InvariantCulture);Vector3 target=Vector3.zero;bool found=false;
      float yawOffset=0;
@@ -229,12 +235,38 @@ public static class CarrotCharacterStudio {
      target+=Vector3.up*(parts.Length>7?F(7):.4f);
      if(studioCam==null){studioCam=new GameObject("Studio camera").AddComponent<Camera>();studioCam.CopyFrom(view.GameCamera);studioCam.targetTexture=null;var d=studioCam.GetUniversalAdditionalCameraData();var g=view.GameCamera.GetUniversalAdditionalCameraData();d.renderPostProcessing=true;d.antialiasing=g.antialiasing;d.renderShadows=true;d.volumeLayerMask=-1;d.dithering=true;studioCam.enabled=false;}
      var rot=Quaternion.Euler(F(4),F(5)+yawOffset,0);studioCam.transform.rotation=rot;studioCam.transform.position=target-rot*Vector3.forward*F(3);studioCam.fieldOfView=F(6);break;}
+    case "stats":{
+     // stats NAME: visible triangles and renderers, secondary-motion cost, foot slide and actor animation allocations, appended to stats.jsonl.
+     long tris=0,actorTris=0,skinnedTris=0;int renderers=0;var byKind=new Dictionary<string,long>();
+     foreach(var r in UnityEngine.Object.FindObjectsByType<Renderer>(FindObjectsSortMode.None)){if(!r.enabled||!r.gameObject.activeInHierarchy||!r.isVisible)continue;Mesh m=r is SkinnedMeshRenderer sk?sk.sharedMesh:(r.GetComponent<MeshFilter>()!=null?r.GetComponent<MeshFilter>().sharedMesh:null);if(m==null)continue;renderers++;long t=0;int level=r.forceMeshLod>=0&&m.lodCount>1?Mathf.Min(r.forceMeshLod,m.lodCount-1):0;for(int i=0;i<m.subMeshCount;i++)t+=m.lodCount>1?m.GetLod(i,level).indexCount/3:m.GetIndexCount(i)/3;tris+=t;if(r is SkinnedMeshRenderer)skinnedTris+=t;
+      string owner="scene:"+m.name;for(var p=r.transform;p!=null;p=p.parent)if(p.name.EndsWith(" actor",StringComparison.Ordinal)){owner=p.name.Substring(0,p.name.Length-6);actorTris+=t;break;}
+      byKind[owner]=(byKind.TryGetValue(owner,out var v)?v:0)+t;}
+     Debug.Log("STUDIO_TRIS "+string.Join(" ",byKind.OrderByDescending(kv=>kv.Value).Take(30).Select(kv=>kv.Key+"="+kv.Value)));
+     long alloc=-1;var hook=typeof(CarrotView).GetMethod("QaActorAllocations");if(hook!=null)alloc=(long)hook.Invoke(view,new object[]{100});
+     int springs=UnityEngine.Object.FindObjectsByType<CarrotSecondaryMotion>(FindObjectsSortMode.None).Length;
+     string line="{\"name\":\""+parts[1]+"\",\"level\":"+game.level.id+",\"tier\":\""+CarrotQuality.Name(CarrotQuality.Tier)+"\",\"enemies\":"+game.enemies.Count+",\"towers\":"+game.towers.Count+",\"visibleTriangles\":"+tris+",\"actorTriangles\":"+actorTris+",\"skinnedTriangles\":"+skinnedTris+",\"visibleRenderers\":"+renderers
+      +",\"springActors\":"+springs+",\"springLinks\":"+CarrotSecondaryMotion.LastFrameLinks+",\"springMs\":"+CarrotSecondaryMotion.LastFrameMs.ToString("F3",CultureInfo.InvariantCulture)+",\"springMaxDeg\":"+CarrotSecondaryMotion.LastFrameMaxDegrees.ToString("F2",CultureInfo.InvariantCulture)+",\"springMeanMs\":"+CarrotSecondaryMotion.MeanMs.ToString("F3",CultureInfo.InvariantCulture)+",\"springWorstMs\":"+CarrotSecondaryMotion.WorstMs.ToString("F3",CultureInfo.InvariantCulture)+",\"springWorstDeg\":"+CarrotSecondaryMotion.WorstDegrees.ToString("F2",CultureInfo.InvariantCulture)+",\"springFrames\":"+CarrotSecondaryMotion.StatFrames
+      +",\"worstFootSlide\":"+CarrotView.WorstFootSlide.ToString("F3",CultureInfo.InvariantCulture)+",\"actorAllocBytesPer100\":"+alloc+"}";
+     File.AppendAllText(Path.Combine(SessionState.GetString(OutKey,OutDir()),"stats.jsonl"),line+"\n");Debug.Log("STUDIO_STATS "+line);break;}
+    case "lod":{
+     // lod N | lod tier: force every crowd actor to Mesh LOD N, or hand control back to CarrotTierLod.
+     foreach(var t in UnityEngine.Object.FindObjectsByType<CarrotTierLod>(FindObjectsSortMode.None)){if(parts[1]=="tier"){t.enabled=false;t.enabled=true;continue;}short n=short.Parse(parts[1],CultureInfo.InvariantCulture);foreach(var r in t.GetComponentsInChildren<Renderer>(true))r.forceMeshLod=n;}
+     break;}
+    case "resetstats":CarrotSecondaryMotion.ResetStats();break;
     case "gamecam":if(studioCam!=null){UnityEngine.Object.Destroy(studioCam.gameObject);studioCam=null;}break;
     case "shot":{int w=parts.Length>3?int.Parse(parts[2],CultureInfo.InvariantCulture):1440,h=parts.Length>3?int.Parse(parts[3],CultureInfo.InvariantCulture):900;var cam=studioCam!=null?studioCam:view.GameCamera;
      var rt=new RenderTexture(w,h,24,RenderTextureFormat.ARGB32,RenderTextureReadWrite.sRGB);rt.Create();var previous=cam.targetTexture;cam.targetTexture=rt;
      RenderPipeline.SubmitRenderRequest(cam,new UniversalRenderPipeline.SingleCameraRequest{destination=rt});
      var old=RenderTexture.active;RenderTexture.active=rt;var tex=new Texture2D(w,h,TextureFormat.RGB24,false);tex.ReadPixels(new Rect(0,0,w,h),0,0);tex.Apply();RenderTexture.active=old;cam.targetTexture=previous;
      string file=Path.Combine(SessionState.GetString(OutKey,OutDir()),parts[1]+".png");File.WriteAllBytes(file,tex.EncodeToPNG());UnityEngine.Object.Destroy(tex);rt.Release();UnityEngine.Object.Destroy(rt);Debug.Log("STUDIO_SHOT "+file);break;}
+    case "burst":{
+     // burst NAME COUNT EVERY [W H]: COUNT shots EVERY frames apart (re-framed by the last look), named NAME-00..; used for motion strips.
+     int count=int.Parse(parts[2],CultureInfo.InvariantCulture),every=int.Parse(parts[3],CultureInfo.InvariantCulture);int done=SessionState.GetInt("CarrotStudio.Burst",0);
+     string size=parts.Length>5?" "+parts[4]+" "+parts[5]:"";
+     var rest=new List<string>(steps);int at=index+1;
+     rest.Insert(at,"shot "+parts[1]+"-"+done.ToString("00",CultureInfo.InvariantCulture)+size);
+     if(done+1<count){rest.Insert(at+1,"wait "+every);if(lastLook!=null)rest.Insert(at+2,lastLook);rest.Insert(at+(lastLook!=null?3:2),step);SessionState.SetInt("CarrotStudio.Burst",done+1);}else SessionState.SetInt("CarrotStudio.Burst",0);
+     SessionState.SetString(PlanKey,string.Join("\n",rest));SessionState.SetInt(IndexKey,at);break;}
     case "exit":Finish(0);break;
     default:Debug.LogError("STUDIO_UNKNOWN "+step);break;
    }

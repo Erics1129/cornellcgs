@@ -331,6 +331,9 @@ GameObject:
   m_Component:
   - component: {fileID: 3276435251298728776}
   - component: {fileID: 7834173296794569696}
+  - component: {fileID: 7898161202567506575}
+  - component: {fileID: 197666584763461688}
+  - component: {fileID: 985615979867854011}
   m_Layer: 0
   m_Name: shardling
   m_TagString: Untagged
@@ -364,9 +367,63 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 949cee01497784e64b45e46cc30bef04, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CarrotTD.CarrotModelMetrics
   healthAnchor: {x: 0, y: 0.71999997, z: 0}
+--- !u!114 &7898161202567506575
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5533649170483272777}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 11c1d08773a784edd81bba79354e7321, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CarrotTD.CarrotGait
+  walkClip: Walk
+  walkCycle: 1
+  walkSpeed: 0.4397741
+  runSpeed: 0
+  strideBone: Leg1
+  idleA: Idle
+  idleB: 
+--- !u!114 &197666584763461688
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5533649170483272777}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ac4502c74ef6f4b59a71bbd49630780c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CarrotTD.CarrotSecondaryMotion
+  links:
+  - bone: {fileID: 7677909001794723178}
+    maxDegrees: 3
+    lean: 0.35
+    mode: 0
+    trackSelf: 1
+  stiffness: 120
+  damping: 12
+--- !u!114 &985615979867854011
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5533649170483272777}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c5516e686a18e4193a7f832bac89b28a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CarrotTD.CarrotTierLod
+  high: 1
+  medium: 1
+  low: 2
 --- !u!1 &7215560575680930500
 GameObject:
   m_ObjectHideFlags: 0

@@ -562,6 +562,9 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 6688534754873482267}
+  - component: {fileID: 7255329221186809469}
+  - component: {fileID: 7406348915939607040}
+  - component: {fileID: 6597686857002272204}
   m_Layer: 0
   m_Name: moth
   m_TagString: Untagged
@@ -585,6 +588,70 @@ Transform:
   - {fileID: 4199763023150027542}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &7255329221186809469
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4855094522118280784}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 11c1d08773a784edd81bba79354e7321, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CarrotTD.CarrotGait
+  walkClip: Fast_Flying
+  walkCycle: 0.8333334
+  walkSpeed: 0
+  runSpeed: 0
+  strideBone: 
+  idleA: Flying_Idle
+  idleB: Yes
+--- !u!114 &7406348915939607040
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4855094522118280784}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ac4502c74ef6f4b59a71bbd49630780c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CarrotTD.CarrotSecondaryMotion
+  links:
+  - bone: {fileID: 7447610053877382910}
+    maxDegrees: 6
+    lean: 1
+    mode: 0
+    trackSelf: 1
+  - bone: {fileID: 7698911650412498950}
+    maxDegrees: 6
+    lean: 1
+    mode: 0
+    trackSelf: 1
+  - bone: {fileID: 5176133096668213718}
+    maxDegrees: 4
+    lean: 0.5
+    mode: 0
+    trackSelf: 0
+  stiffness: 120
+  damping: 12
+--- !u!114 &6597686857002272204
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4855094522118280784}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c5516e686a18e4193a7f832bac89b28a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CarrotTD.CarrotTierLod
+  high: 0
+  medium: 1
+  low: 2
 --- !u!1 &5412310963347383337
 GameObject:
   m_ObjectHideFlags: 0

@@ -94,6 +94,11 @@ public static class CarrotModels {
         importer.meshCompression=Path.GetFileNameWithoutExtension(path)=="Carrot"?ModelImporterMeshCompression.Low:ModelImporterMeshCompression.Medium;
         importer.isReadable=path.Contains("/Nature/")||modelName=="portal";
         importer.optimizeMeshPolygons=true; importer.optimizeMeshVertices=true;
+        // Mesh LOD (index ranges inside the same mesh, no extra vertices) for the actors that crowd the board; CarrotTierLod picks the level per quality tier.
+        bool crowd=Enemies.Contains(modelName)||ExpansionEnemies.Contains(modelName)||Minibosses.Contains(modelName);
+        // Heavy statics (tower tiers III-V, guardians, the hero) get one reduced level for the Low tier only.
+        bool heavy=modelName=="Carrot"||Bosses.Contains(modelName)||Props.Contains(modelName)||modelName=="portal"||(!path.Contains("/Nature/")&&modelName.Length>2&&modelName[modelName.Length-2]=='-'&&modelName[modelName.Length-1]>='3');
+        importer.generateMeshLods=crowd||heavy;if(crowd)importer.maximumMeshLod=2;else if(heavy)importer.maximumMeshLod=1;
         importer.materialImportMode=ModelImporterMaterialImportMode.ImportStandard;
         importer.animationType=animate ? ModelImporterAnimationType.Legacy : ModelImporterAnimationType.None;
         importer.importAnimation=animate;
@@ -368,10 +373,96 @@ public static class CarrotModels {
         }
         if (source=="Carrot") foreach(var t in instance.GetComponentsInChildren<Transform>(true)) if(t.name=="MouthHurt"||t.name=="MouthHappy"||t.name=="BitePatch")t.gameObject.SetActive(false);
         if(ExpansionEnemies.Contains(source)||Minibosses.Contains(source)) AddMeasuredHealthAnchor(instance);
+        if(animated){AddGait(instance,imported);AddSecondaryMotion(instance);}
+        else if(source=="Carrot")AddSecondaryMotion(instance);
+        if(!nature)AddTierLod(instance,source);
         var renderers=instance.GetComponentsInChildren<Renderer>(true);
         if(renderers.Length>0){var bounds=renderers[0].bounds;foreach(var renderer in renderers)bounds.Encapsulate(renderer.bounds);Debug.Log("MODEL_BOUNDS "+destination+" size="+bounds.size.ToString("F3")+" min="+bounds.min.ToString("F3")+" nativeRotation="+imported.transform.localEulerAngles.ToString("F2"));}
         PrefabUtility.SaveAsPrefabAsset(instance,Root+"/"+destination+".prefab");
         UnityEngine.Object.DestroyImmediate(instance);
+    }
+    /// <summary>
+    /// Spring links for CarrotSecondaryMotion, chosen by bone name (docs/carrot-defense/giant-update/characters.md lists them per prefab).
+    /// Appendages swing most, heads and arms a little; a creature with none of the named bones springs its Body so every rig gets a chain.
+    /// At most six links per actor keep the per-frame cost flat with 110 actors on screen.
+    /// </summary>
+    static void AddSecondaryMotion(GameObject instance) {
+        var links=new List<CarrotSecondaryMotion.Link>();
+        var bones=new HashSet<Transform>();
+        foreach(var skin in instance.GetComponentsInChildren<SkinnedMeshRenderer>(true))if(skin.bones!=null)foreach(var b in skin.bones)if(b!=null)bones.Add(b);
+        bool rigged=bones.Count>0;
+        IEnumerable<Transform> candidates=rigged?(IEnumerable<Transform>)bones:instance.GetComponentsInChildren<Transform>(true);
+        void Add(Transform t,float max,float lean,byte mode=CarrotSecondaryMotion.Tilt,bool self=true){if(links.Count<6&&!links.Any(l=>l.bone==t))links.Add(new CarrotSecondaryMotion.Link{bone=t,maxDegrees=max,lean=lean,mode=mode,trackSelf=self});}
+        var ordered=candidates.OrderBy(t=>Depth(t)).ThenBy(t=>t.name,StringComparer.Ordinal).ToList();
+        foreach(var t in ordered){string n=t.name;
+            if(n.StartsWith("Ear",StringComparison.Ordinal)||n.StartsWith("Antenna",StringComparison.Ordinal)){char digit=n.Length>3&&char.IsDigit(n[3])?n[3]:'1';Add(t,8,digit=='1'?1.6f:digit=='2'?1.0f:.7f);}
+            else if(n.StartsWith("Tail",StringComparison.Ordinal))Add(t,8,1.4f);
+            else if(n=="Leaves"||n.StartsWith("Leaf",StringComparison.Ordinal))Add(t,8,1.8f);}
+        foreach(var t in ordered){string n=t.name;
+            if(n=="Jaw")Add(t,8,1.0f,CarrotSecondaryMotion.Hinge);
+            else if(n.StartsWith("Wing",StringComparison.Ordinal)&&(n.EndsWith("1.L")||n.EndsWith("1.R")||n=="WingL"||n=="WingR"))Add(t,6,1.0f);
+            else if(n=="Head2")Add(t,5,.9f);else if(n=="Head3")Add(t,6,1.2f);
+            else if(n=="Cap"||n=="Drum")Add(t,6,1.0f);
+            else if(n=="Abdomen")Add(t,5,.8f);}
+        foreach(var t in ordered){string n=t.name;
+            if(n=="Head")Add(t,4,.5f,CarrotSecondaryMotion.Tilt,false);
+            else if(n=="ArmL"||n=="ArmR"||n=="UpperArm.L"||n=="UpperArm.R")Add(t,5,.7f,CarrotSecondaryMotion.Tilt,false);}
+        if(links.Count==0)foreach(var t in ordered)if(t.name=="Body"||t.name=="Body1"){Add(t,3,.35f);break;}
+        if(links.Count==0){Debug.LogWarning("SECONDARY_MOTION none for "+instance.name);return;}
+        var motion=instance.AddComponent<CarrotSecondaryMotion>();motion.links=links.ToArray();
+        Debug.Log("SECONDARY_MOTION "+instance.name+" "+string.Join(",",links.Select(l=>l.bone.name+"("+l.maxDegrees+")")));
+    }
+    /// <summary>Tier LOD for crowd actors: High keeps full detail on light rigs and drops heavy ones (over 6k triangles) one level; Medium one level; Low two.</summary>
+    static void AddTierLod(GameObject instance,string source) {
+        bool crowd=Enemies.Contains(source)||ExpansionEnemies.Contains(source)||Minibosses.Contains(source);
+        int levels=0;long triangles=0;
+        foreach(var r in instance.GetComponentsInChildren<Renderer>(true)){Mesh m=r is SkinnedMeshRenderer sk?sk.sharedMesh:r.GetComponent<MeshFilter>()?.sharedMesh;if(m==null)continue;levels=Mathf.Max(levels,m.lodCount);for(int i=0;i<m.subMeshCount;i++)triangles+=m.GetIndexCount(i)/3;}
+        if(levels<=1)return;
+        var lod=instance.AddComponent<CarrotTierLod>();
+        if(crowd){lod.high=!Minibosses.Contains(source)&&triangles>6000?1:0;lod.medium=Mathf.Min(1,levels-1);lod.low=Mathf.Min(2,levels-1);}
+        else{lod.high=0;lod.medium=0;lod.low=1;}
+        Debug.Log("TIER_LOD "+source+" levels="+levels+" triangles="+triangles+" high="+lod.high+" medium="+lod.medium+" low="+lod.low);
+    }
+    static int Depth(Transform t){int d=0;while(t.parent!=null){t=t.parent;d++;}return d;}
+    /// <summary>
+    /// Measures the locomotion clips once. Each foot (or leg) bone gets a tip point fixed in its own space (the farthest vertex skinned
+    /// to it, via the bind pose), and the tip's fore-aft travel relative to the prefab root over one cycle gives the stride: a planted
+    /// foot covers about 55 % of the stride while in contact, so ground speed at 1x = (travel / .55) / cycle. Legless hoppers and
+    /// flyers stay unmeasured (speed 0) and keep the view's relative playback. The rest pose is restored afterwards.
+    /// </summary>
+    static void AddGait(GameObject instance,GameObject imported) {
+        var animation=imported.GetComponent<Animation>();if(animation==null)return;
+        AnimationClip walk=null,run=null,idleA=null,idleB=null;
+        foreach(AnimationState st in animation){string n=st.name.ToLowerInvariant();if(walk==null&&n.Contains("walk"))walk=st.clip;if(run==null&&n.Contains("run"))run=st.clip;}
+        if(walk==null)foreach(AnimationState st in animation){string n=st.name.ToLowerInvariant();if(n.Contains("fly")&&!n.Contains("idle")){walk=st.clip;break;}}
+        foreach(AnimationState st in animation){string n=st.name.ToLowerInvariant();if(idleA==null&&n=="idle")idleA=st.clip;}
+        if(idleA==null)foreach(AnimationState st in animation){string n=st.name.ToLowerInvariant();if(n.Contains("idle")){idleA=st.clip;break;}}
+        foreach(string pick in new[]{"dance","yes","jump_idle","flying_idle","duck","no"})foreach(AnimationState st in animation){if(idleB==null&&st.name.ToLowerInvariant()==pick&&st.clip!=idleA)idleB=st.clip;}
+        var gait=instance.AddComponent<CarrotGait>();gait.idleA=idleA!=null?idleA.name:"";gait.idleB=idleB!=null?idleB.name:"";
+        if(walk==null)return;
+        gait.walkClip=walk.name;gait.walkCycle=walk.length;
+        // Tip points per candidate bone, from the bind pose of every skin that uses it.
+        var tips=new Dictionary<Transform,Vector3>();
+        foreach(var skin in imported.GetComponentsInChildren<SkinnedMeshRenderer>(true)){
+            var mesh=skin.sharedMesh;if(mesh==null||skin.bones==null)continue;var bones=skin.bones;var bind=mesh.bindposes;var vertices=mesh.vertices;var weights=mesh.boneWeights;if(weights.Length!=vertices.Length)continue;
+            for(int b=0;b<bones.Length;b++){var bone=bones[b];if(bone==null)continue;string n=bone.name;
+                bool foot=(n.Contains("Foot")||n.StartsWith("Leg",StringComparison.Ordinal))&&!n.Contains("Target")&&!n.Contains("Pole");if(!foot)continue;
+                Vector3 best=Vector3.zero;float far=-1;
+                for(int i=0;i<vertices.Length;i++){var w=weights[i];float wb=w.boneIndex0==b?w.weight0:w.boneIndex1==b?w.weight1:w.boneIndex2==b?w.weight2:w.boneIndex3==b?w.weight3:0;if(wb<.4f)continue;var local=bind[b].MultiplyPoint3x4(vertices[i]);float d=local.sqrMagnitude;if(d>far){far=d;best=local;}}
+                if(far>=0&&(!tips.TryGetValue(bone,out var old)||best.sqrMagnitude>old.sqrMagnitude))tips[bone]=best;}
+        }
+        var transforms=imported.GetComponentsInChildren<Transform>(true);var rest=transforms.Select(t=>(t,t.localPosition,t.localRotation,t.localScale)).ToArray();
+        float Stride(AnimationClip clip,out string boneName){
+            boneName="";if(clip==null||tips.Count==0)return 0;var root=instance.transform;var lo=new Dictionary<Transform,float>();var hi=new Dictionary<Transform,float>();
+            for(int s=0;s<=32;s++){clip.SampleAnimation(imported,clip.length*s/32f);foreach(var pair in tips){float z=root.InverseTransformPoint(pair.Key.TransformPoint(pair.Value)).z;lo[pair.Key]=lo.TryGetValue(pair.Key,out var a)?Mathf.Min(a,z):z;hi[pair.Key]=hi.TryGetValue(pair.Key,out var b)?Mathf.Max(b,z):z;}}
+            float travel=0;foreach(var pair in tips){float r=hi[pair.Key]-lo[pair.Key];if(r>travel){travel=r;boneName=pair.Key.name;}}
+            foreach(var r in rest){r.t.localPosition=r.Item2;r.t.localRotation=r.Item3;r.t.localScale=r.Item4;}
+            return travel>.02f?travel/.55f:0;
+        }
+        bool flight=walk.name.ToLowerInvariant().Contains("fly");
+        string walkBone="",runBone;float walkStride=flight?0:Stride(walk,out walkBone),runStride=flight||run==null?0:Stride(run,out runBone);
+        gait.walkSpeed=walkStride>0?walkStride/walk.length:0;gait.runSpeed=runStride>0&&run!=null?runStride/run.length:0;gait.strideBone=walkStride>0?walkBone:"";
+        Debug.Log("GAIT "+instance.name+" walk="+walk.name+"/"+walk.length.ToString("F2")+" stride="+walkStride.ToString("F3")+" speed="+gait.walkSpeed.ToString("F3")+" run="+(run!=null?run.name:"-")+" runSpeed="+gait.runSpeed.ToString("F3")+" bone="+gait.strideBone+" idle="+gait.idleA+"/"+gait.idleB);
     }
     public static void RebuildExpansionStatic() {
         foreach(string kind in ExpansionKinds)for(int tier=1;tier<=5;tier++)Make(kind+"-"+tier,"Models/Towers/"+kind+"-"+tier,false);

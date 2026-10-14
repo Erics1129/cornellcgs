@@ -62,7 +62,12 @@ namespace CarrotTD {
   }
   static Material MakeMaterial(string name){
    string path=Root+"/Materials/"+name+".mat";var m=AssetDatabase.LoadAssetAtPath<Material>(path);var shader=Shader.Find("Carrot/Storybook");if(shader==null)throw new Exception("Carrot/Storybook shader missing");if(m==null){m=new Material(shader);AssetDatabase.CreateAsset(m,path);}m.shader=shader;m.color=Color.white;m.SetTexture("_MainTex",Texture(name,"Albedo"));m.SetTexture("_BumpMap",Texture(name,"Normal"));m.SetFloat("_BumpScale",.8f);m.SetTexture("_RoughnessMap",Texture(name,"Roughness"));m.SetFloat("_UseRoughnessMap",1);m.SetTexture("_OcclusionMap",Texture(name,"AO"));m.SetFloat("_UseOcclusionMap",1);m.SetFloat("_OcclusionStrength",.7f);m.SetFloat("_Metallic",0);m.SetFloat("_Glossiness",name=="MossRock"?.22f:name=="Stump"?.3f:.4f);m.SetFloat("_Translucency",(name=="Fern"||name=="Shrub")?.55f:0);m.SetFloat("_SnowStrength",name=="MossRock"?1:.5f);m.SetFloat("_WorldTexture",0);m.SetFloat("_ReflectionStrength",.6f);m.SetColor("_EmissionColor",Color.black);
-   bool fern=name=="Fern"||name=="Shrub";m.SetFloat("_Cutoff",fern?.38f:0);m.SetFloat("_Cull",fern?0:2);m.SetFloat("_Wind",fern?.012f:0);m.renderQueue=fern?2450:2000;m.enableInstancing=false;EditorUtility.SetDirty(m);return m;
+   bool fern=name=="Fern"||name=="Shrub";m.SetFloat("_Cutoff",fern?.38f:0);m.SetFloat("_Cull",fern?0:2);m.SetFloat("_Wind",fern?.012f:0);m.renderQueue=fern?2450:2000;m.enableInstancing=false;
+   // Living-miniature response (Storybook T0): fronds scatter light past the terminator, stumps get fine bark grain; rocks stay as scanned.
+   m.SetFloat("_Subsurface",fern?.35f:0);m.SetColor("_SubsurfaceTint",new Color(.62f,1f,.30f));m.SetFloat("_Sheen",0);m.SetColor("_SheenTint",Color.white);
+   var grain=name=="Stump"?AssetDatabase.LoadAssetAtPath<Texture2D>("Assets/Resources/Carrot/Textures/PBR/BarkNormal.png"):null;m.SetTexture("_DetailNormal",grain);m.SetFloat("_DetailScale",3);m.SetFloat("_DetailStrength",grain!=null?.4f:0);
+   m.SetFloat("_HitFlash",0);m.SetFloat("_RimBoost",0);
+   EditorUtility.SetDirty(m);return m;
   }
   static Texture2D Texture(string name,string map){var t=AssetDatabase.LoadAssetAtPath<Texture2D>(Root+"/Textures/"+name+map+".png");if(t==null)throw new Exception("Missing scan texture "+name+map);return t;}
  }
