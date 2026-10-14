@@ -43,10 +43,10 @@ export const typing = {
 }
 
 export const hero = {
-  ctaPrimary: { label: 'Join CGS', href: '#join' },
-  ctaSecondary: { label: 'See what we do', href: '#what-we-do' },
-  /** the mini games are real pages at /minigames/, so this one navigates instead of scrolling */
-  ctaGames: { label: 'Play mini games', href: '/minigames/' },
+  /** the coffee chat form (the same link as the Join page's card) */
+  ctaPrimary: { label: 'Join CGS', href: 'https://docs.google.com/forms/d/e/1FAIpQLSfCJEW9kdTEYV41YZZCt4MQRg8c9KdNSbrw9IGmSgCRF9eglw/viewform' },
+  /** the mini games are real pages at /minigames/ */
+  ctaSecondary: { label: 'Play mini games', href: '/minigames/' },
   scrollHint: 'Scroll',
 }
 

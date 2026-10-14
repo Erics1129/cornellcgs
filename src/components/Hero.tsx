@@ -10,7 +10,6 @@ import ParticleField from './ParticleField'
 import EnergyVeil from './EnergyVeil'
 import { hero } from '../content'
 import { EASE } from '../lib/eases'
-import { scrollToId } from '../lib/scroll'
 import { BOOTED_EVENT, prefersReducedMotion } from '../lib/motion'
 
 /**
@@ -160,29 +159,17 @@ export default function Hero() {
               className="hero-actions life-float grid w-full grid-cols-2 gap-3 sm:w-[23rem] md:w-[16.5rem] md:grid-cols-1"
               style={{ ['--life-dur' as string]: '12s', ['--life-delay' as string]: '-4.1s' }}
             >
+              {/* the coffee chat form opens in its own tab; the mini games are a real page */}
               <a
                 href={hero.ctaPrimary.href}
-                onClick={(e) => {
-                  e.preventDefault()
-                  scrollToId('join')
-                }}
+                target="_blank"
+                rel="noopener"
                 className="btn btn-primary neon neon-idle justify-center"
               >
                 <RollLabel text={hero.ctaPrimary.label} />
               </a>
               <a
-                href={hero.ctaGames.href}
-                className="btn hero-btn-ghost neon neon-idle justify-center col-span-2 md:col-span-1"
-                style={{ ['--neon-from' as string]: '120deg' }}
-              >
-                <RollLabel text={hero.ctaGames.label} />
-              </a>
-              <a
                 href={hero.ctaSecondary.href}
-                onClick={(e) => {
-                  e.preventDefault()
-                  scrollToId('what-we-do')
-                }}
                 className="btn hero-btn-ghost neon neon-idle justify-center"
                 style={{ ['--neon-from' as string]: '180deg' }}
               >
