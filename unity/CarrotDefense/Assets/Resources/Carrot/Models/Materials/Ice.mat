@@ -45,7 +45,7 @@ Material:
         m_Offset: {x: 0, y: 0}
     m_Ints: []
     m_Floats:
-    - _AlbedoGain: 1
+    - _AlbedoGain: 0.55
     - _AlbedoSaturation: 1
     - _Bend: 0
     - _BumpScale: 0
@@ -54,18 +54,18 @@ Material:
     - _DetailScale: 2
     - _DetailStrength: 0.75
     - _Dissolve: 0
-    - _Glossiness: 0.85
+    - _Glossiness: 0.9
     - _HitFlash: 0
     - _Metallic: 0
     - _OcclusionStrength: 0.63
-    - _ReflectionStrength: 1.2
+    - _ReflectionStrength: 1.4
     - _RimBoost: 0
     - _Sheen: 0
     - _SnowStrength: 0.35
     - _Subsurface: 0.5
     - _SuperPulse: 0
     - _TextureScale: 1
-    - _Translucency: 0.4
+    - _Translucency: 0.45
     - _UseOcclusionMap: 0
     - _UseRoughnessMap: 0
     - _VertexColorSRGB: 1
@@ -74,8 +74,8 @@ Material:
     m_Colors:
     - _Color: {r: 1, g: 1, b: 1, a: 1}
     - _DissolveEdge: {r: 1, g: 0.6, b: 0.19999996, a: 1}
-    - _EmissionColor: {r: 0.132, g: 0.156, b: 0.16800001, a: 1.2}
+    - _EmissionColor: {r: 0.02, g: 0.05, b: 0.08, a: 1}
     - _SheenTint: {r: 1, g: 1, b: 1, a: 1}
-    - _SubsurfaceTint: {r: 0.55, g: 0.82, b: 1, a: 1}
+    - _SubsurfaceTint: {r: 0.45, g: 0.75, b: 1, a: 1}
   m_BuildTextureStacks: []
   m_AllowLocking: 1

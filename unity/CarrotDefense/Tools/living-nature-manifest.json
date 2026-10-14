@@ -1,0 +1,38 @@
+[
+  {
+    "name": "TreePine",
+    "triangles": 1504,
+    "generator": "Tools/build_carrot_living_nature.py",
+    "licence": "original work (project licence)"
+  },
+  {
+    "name": "Pumpkin",
+    "triangles": 1108,
+    "generator": "Tools/build_carrot_living_nature.py",
+    "licence": "original work (project licence)"
+  },
+  {
+    "name": "HayBale",
+    "triangles": 1280,
+    "generator": "Tools/build_carrot_living_nature.py",
+    "licence": "original work (project licence)"
+  },
+  {
+    "name": "CrateStack",
+    "triangles": 756,
+    "generator": "Tools/build_carrot_living_nature.py",
+    "licence": "original work (project licence)"
+  },
+  {
+    "name": "TreeAutumn",
+    "triangles": 2652,
+    "generator": "Tools/build_carrot_living_nature.py",
+    "licence": "original work (project licence)"
+  },
+  {
+    "name": "TreeOak",
+    "triangles": 2652,
+    "generator": "Tools/build_carrot_living_nature.py",
+    "licence": "original work (project licence)"
+  }
+]

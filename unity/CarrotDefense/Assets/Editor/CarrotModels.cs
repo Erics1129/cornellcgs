@@ -185,7 +185,7 @@ public static class CarrotModels {
     }
     /// <summary>Import settings for the giant-update detail normals, the tornado wind sheet and the zombie albedo tint (Tools/bake_detail_normals.py).</summary>
     static void ConfigureDetailNormals() {
-        foreach(string name in new[]{"MushroomPore","ChitinPlate","GelRipple","IceFacet","SkinPore","FurStrand"}) {
+        foreach(string name in new[]{"MushroomPore","ChitinPlate","GelRipple","IceFacet","SkinPore","FurStrand","LeafCluster"}) {
             string path=Root+"/Models/Materials/"+name+"Detail.png";var importer=AssetImporter.GetAtPath(path) as TextureImporter;
             if(importer==null)throw new InvalidOperationException("Detail normal missing (run Tools/bake_detail_normals.py): "+path);
             importer.textureType=TextureImporterType.NormalMap;importer.sRGBTexture=false;importer.convertToNormalmap=false;
@@ -194,6 +194,8 @@ public static class CarrotModels {
         }
         var streaks=AssetImporter.GetAtPath(Root+"/Models/Materials/TornadoStreaks.png") as TextureImporter;
         if(streaks!=null){streaks.textureType=TextureImporterType.Default;streaks.sRGBTexture=true;streaks.alphaSource=TextureImporterAlphaSource.FromInput;streaks.alphaIsTransparency=true;streaks.wrapModeU=TextureWrapMode.Repeat;streaks.wrapModeV=TextureWrapMode.Clamp;streaks.filterMode=FilterMode.Trilinear;streaks.mipmapEnabled=true;streaks.isReadable=false;streaks.maxTextureSize=512;CarrotBuild.WebTexture(streaks,512,70);streaks.SaveAndReimport();}
+        var foliage=AssetImporter.GetAtPath(Root+"/Models/Materials/FoliageDetail.png") as TextureImporter;
+        if(foliage!=null){foliage.textureType=TextureImporterType.Default;foliage.sRGBTexture=true;foliage.wrapMode=TextureWrapMode.Repeat;foliage.filterMode=FilterMode.Trilinear;foliage.anisoLevel=2;foliage.mipmapEnabled=true;foliage.isReadable=false;foliage.maxTextureSize=512;CarrotBuild.WebTexture(foliage,512,70);foliage.SaveAndReimport();}
         var tint=AssetImporter.GetAtPath(Root+"/Models/Materials/ZombieHideTint.png") as TextureImporter;
         if(tint!=null){tint.textureType=TextureImporterType.Default;tint.sRGBTexture=true;tint.mipmapEnabled=false;tint.filterMode=FilterMode.Point;tint.wrapMode=TextureWrapMode.Repeat;tint.isReadable=false;tint.maxTextureSize=32;tint.textureCompression=TextureImporterCompression.Uncompressed;var web=tint.GetPlatformTextureSettings("WebGL");web.overridden=true;web.maxTextureSize=32;web.format=TextureImporterFormat.RGBA32;tint.SetPlatformTextureSettings(web);tint.SaveAndReimport();}
     }
@@ -243,7 +245,7 @@ public static class CarrotModels {
         CarrotBuild.WebTexture(importer,512,normal?85:75);importer.SaveAndReimport();
     }
     static Material Surface(string category) {
-        string[] categories={"PortalChitin","PortalCap","PortalBamboo","PortalPeel","SuperGlow","Metal","Glow","Carrot","Leaf","Bark","Stone","Fur","Scale","Petal","Mushroom","Chitin","Gel","Ice","Eye","ZombieHide","Pelt","TornadoDust"};
+        string[] categories={"PortalChitin","PortalCap","PortalBamboo","PortalPeel","SuperGlow","Metal","Glow","Carrot","Leaf","Bark","Stone","Fur","Scale","Petal","Mushroom","Chitin","Gel","Ice","Eye","ZombieHide","Pelt","TornadoDust","Foliage","Gourd","Straw"};
         category=categories.FirstOrDefault(c=>category.StartsWith(c,StringComparison.Ordinal)) ?? "Organic";
         string path=Root+"/Models/Materials/"+category+".mat";
         var material=AssetDatabase.LoadAssetAtPath<Material>(path);
@@ -323,7 +325,7 @@ public static class CarrotModels {
             case "Mushroom": sss=.20f;sssTint=new Color(1f,.82f,.66f);sheen=.20f;sheenTint=new Color(1f,.95f,.88f);detail="MushroomPore";detailScale=4;detailStrength=.60f;break;
             case "Chitin": detail="ChitinPlate";detailScale=3;detailStrength=.70f;break;
             case "Gel": sss=.50f;sssTint=new Color(.62f,1f,.52f);detail="GelRipple";detailScale=2;detailStrength=.80f;break;
-            case "Ice": sss=.50f;sssTint=new Color(.55f,.82f,1f);detail="IceFacet";detailScale=2;detailStrength=.75f;break;
+            case "Ice": sss=.50f;sssTint=new Color(.45f,.75f,1f);detail="IceFacet";detailScale=2;detailStrength=.75f;break;
             case "Eye": break;
             case "ZombieHide": sss=.10f;sssTint=new Color(.8f,1f,.7f);detail="SkinPore";detailScale=4;detailStrength=.40f;break;
             case "PortalCap": sheen=.20f;sheenTint=new Color(1f,.95f,.88f);break;
@@ -331,15 +333,24 @@ public static class CarrotModels {
             case "PortalPeel": sss=.18f;sssTint=new Color(1f,.6f,.5f);break;
             case "Bark": detail="BarkGrain";detailScale=4;detailStrength=.45f;break;
             case "Organic": sss=.10f;sssTint=new Color(1f,.82f,.70f);break;
+            case "Foliage": sss=.30f;sssTint=new Color(1f,.85f,.45f);sheen=.10f;sheenTint=new Color(.9f,1f,.8f);detail="LeafCluster";detailScale=2.5f;detailStrength=1.3f;break;
+            case "Gourd": sss=.28f;sssTint=new Color(1f,.55f,.18f);detail="SkinPore";detailScale=3;detailStrength=.35f;break;
+            case "Straw": sss=.15f;sssTint=new Color(1f,.85f,.5f);sheen=.25f;sheenTint=new Color(1f,.95f,.8f);detail="FurStrand";detailScale=2;detailStrength=.6f;break;
         }
         // Category-specific base response for the new surfaces.
         if(category=="Mushroom"){m.SetFloat("_Glossiness",.45f);m.SetFloat("_Translucency",.20f);m.SetFloat("_ReflectionStrength",.55f);}
         else if(category=="Chitin"){m.SetFloat("_Glossiness",.65f);m.SetFloat("_ReflectionStrength",1.0f);m.SetFloat("_Translucency",0f);}
         else if(category=="Gel"){m.SetFloat("_Glossiness",.78f);m.SetFloat("_ReflectionStrength",1.0f);m.SetFloat("_Translucency",.35f);}
-        else if(category=="Ice"){m.SetFloat("_Glossiness",.85f);m.SetFloat("_ReflectionStrength",1.2f);m.SetFloat("_Translucency",.40f);m.SetColor("_EmissionColor",new Color(.11f,.13f,.14f,1)*1.2f);}
+        else if(category=="Ice"){
+            // Ice reads through its highlights and the blue light scattered inside, not a bright albedo: the painted ICE blue is
+            // halved, the surface turns glassy and reflective, and the old grey glow becomes a faint cold core.
+            m.SetFloat("_AlbedoGain",.55f);m.SetFloat("_Glossiness",.9f);m.SetFloat("_ReflectionStrength",1.4f);m.SetFloat("_Translucency",.45f);m.SetColor("_EmissionColor",new Color(.02f,.05f,.08f,1));}
         else if(category=="Eye"){m.SetFloat("_Glossiness",.93f);m.SetFloat("_ReflectionStrength",1.25f);m.SetFloat("_Translucency",0f);}
         else if(category=="ZombieHide"){m.SetFloat("_Glossiness",.30f);m.SetFloat("_Translucency",.05f);}
         else if(category=="Pelt"){m.SetFloat("_Glossiness",.16f);m.SetFloat("_Translucency",.25f);}
+        else if(category=="Foliage"){m.SetFloat("_Glossiness",.26f);m.SetFloat("_Translucency",.35f);m.SetFloat("_Wind",.008f);m.SetFloat("_SnowStrength",1f);m.SetFloat("_ReflectionStrength",.5f);}
+        else if(category=="Gourd"){m.SetFloat("_Glossiness",.46f);m.SetFloat("_Translucency",.10f);}
+        else if(category=="Straw"){m.SetFloat("_Glossiness",.12f);m.SetFloat("_Translucency",.20f);m.SetFloat("_ReflectionStrength",.3f);}
         else if(category=="TornadoDust"){m.SetFloat("_Glossiness",.10f);m.SetFloat("_Translucency",.30f);m.SetFloat("_ReflectionStrength",.35f);sss=.25f;sssTint=new Color(.7f,.78f,.95f);}
         m.SetFloat("_Subsurface",sss);m.SetColor("_SubsurfaceTint",sssTint);m.SetFloat("_Sheen",sheen);m.SetColor("_SheenTint",sheenTint);
         Texture2D detailMap=null;
@@ -368,7 +379,10 @@ public static class CarrotModels {
             var animation=imported.GetComponent<Animation>();if(!animation)animation=imported.AddComponent<Animation>();
             animation.playAutomatically=false;animation.cullingType=AnimationCullingType.AlwaysAnimate;
             var clips=AssetDatabase.LoadAllAssetsAtPath(path).OfType<AnimationClip>().Where(c=>!c.name.StartsWith("__preview__")).ToArray();
-            foreach(var clip in clips) { animation.AddClip(clip,clip.name); if(clip.name.ToLowerInvariant().Contains("idle"))animation.clip=clip; }
+            foreach(var clip in clips) animation.AddClip(clip,clip.name);
+            // Deterministic default clip (the asset order of a re-import is not stable): exactly "Idle", else the first idle by name.
+            var idle=clips.FirstOrDefault(c=>c.name.Equals("Idle",StringComparison.OrdinalIgnoreCase))??clips.Where(c=>c.name.ToLowerInvariant().Contains("idle")).OrderBy(c=>c.name,StringComparer.Ordinal).FirstOrDefault();
+            if(idle!=null)animation.clip=idle;
             if(clips.Length==0)throw new InvalidOperationException("Skeletal clips missing: "+source);
         }
         if (source=="Carrot") foreach(var t in instance.GetComponentsInChildren<Transform>(true)) if(t.name=="MouthHurt"||t.name=="MouthHappy"||t.name=="BitePatch")t.gameObject.SetActive(false);

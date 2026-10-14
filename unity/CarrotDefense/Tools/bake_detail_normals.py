@@ -64,6 +64,36 @@ def cells(u, v, count, seed, jitter=.7, ids=False):
     return d1, d2
 
 
+def leaf_splat(count=3200, seed=7):
+    """Tileable mass of overlapping leaves: each an ellipse with a random heading, a domed cross-section, a lighter tip and a
+    faint midrib, splatted back-to-front with wrap-around. Returns (height, shade) on SIZE x SIZE."""
+    rng = np.random.default_rng(seed)
+    height = np.full((SIZE, SIZE), -.6); shade = np.full((SIZE, SIZE), .36)
+    for _ in range(count):
+        cx, cy = rng.uniform(0, SIZE, 2); ang = rng.uniform(0, np.pi * 2); L = rng.uniform(9, 15); W = L * rng.uniform(.36, .5)
+        lift = rng.uniform(-.2, .3); value = rng.uniform(.80, 1.0); ca, sa = np.cos(ang), np.sin(ang)
+        r = int(L) + 2; xs = np.arange(int(cx) - r, int(cx) + r + 1); ys = np.arange(int(cy) - r, int(cy) + r + 1)
+        X, Y = np.meshgrid(xs, ys); dx, dy = X - cx, Y - cy
+        a = (dx * ca + dy * sa) / L; b = (-dx * sa + dy * ca) / W   # along / across the blade
+        inside = a * a + b * b < 1
+        if not inside.any():
+            continue
+        dome = np.sqrt(np.clip(1 - a * a - b * b, 0, 1))
+        h = lift + .35 * dome + .25 * a                                # tips curl up toward the light
+        sh = value * (.78 + .22 * (a * .5 + .5)) * (1 - .12 * np.exp(-(b / .08) ** 2))
+        yi, xi = Y[inside] % SIZE, X[inside] % SIZE
+        height[yi, xi] = h[inside]; shade[yi, xi] = sh[inside]
+    return height, shade
+
+
+_LEAVES = None
+def leaves():
+    global _LEAVES
+    if _LEAVES is None:
+        _LEAVES = leaf_splat()
+    return _LEAVES
+
+
 def heightfield(kind, u, v):
     if kind == "MushroomPore":
         # Felted cap skin: soft radial-free wrinkles and scattered shallow pores.
@@ -106,6 +136,9 @@ def heightfield(kind, u, v):
         strands = np.sin(TAU * (u * 96 + drift * 6) + phase)
         clumps = fbm(u, v, 12, 2, 43)
         return .35 * strands * (.5 + .5 * clumps) * (.6 + .4 * value_noise(u, v, 32, 59)) + .35 * clumps
+    if kind == "LeafCluster":
+        # Massed leaves on a canopy clump: overlapping domed blades with random headings (leaf_splat), tips curling up.
+        return leaves()[0]
     raise ValueError(kind)
 
 
@@ -117,6 +150,7 @@ DETAILS = {
     "IceFacet": (3.4, "tilted ice facets and hairline cracks"),
     "SkinPore": (2.4, "plant-skin lenticels and pores"),
     "FurStrand": (2.6, "fine directional strands"),
+    "LeafCluster": (2.4, "massed, overlapping leaf blades on canopy clumps"),
 }
 
 
@@ -181,6 +215,12 @@ def main():
     rgba, mean_alpha = bake_streaks()
     rows.append({"name": "TornadoStreaks.png", "kind": "FxAlpha wind sheet", "size": [512, 256], "meanAlpha": round(mean_alpha, 4),
                  "sha256": png(ROOT / "TornadoStreaks.png", rgba), "generator": "Tools/bake_detail_normals.py", "licence": "original work (project licence)"})
+    # Foliage albedo breakup: the same leaf cells as LeafClusterDetail as a grey multiplier (dark gaps, per-blade value shifts),
+    # loaded by CarrotModels.Surface as the Foliage material's _MainTex (Foliage<Detail>.png convention).
+    shade = np.clip(.42 + .62 * leaves()[1], 0, 1)
+    g = np.round(shade * 255).astype(np.uint8); fol = np.stack([g, g, g, np.full_like(g, 255)], -1)[::-1].copy()
+    rows.append({"name": "FoliageDetail.png", "kind": "albedo multiplier (grey)", "size": SIZE, "meanShade": round(float(shade.mean()), 4),
+                 "sha256": png(ROOT / "FoliageDetail.png", fol), "generator": "Tools/bake_detail_normals.py", "licence": "original work (project licence)"})
     # Zombie albedo multiplier: the sRGB tint the view used to lerp in every frame (lerp(white, (.46,.55,.38), .7)).
     tint = np.zeros((4, 4, 4), np.uint8); tint[..., 0], tint[..., 1], tint[..., 2], tint[..., 3] = 159, 175, 144, 255
     rows.append({"name": "ZombieHideTint.png", "kind": "flat sRGB albedo multiplier", "size": [4, 4], "value": [159, 175, 144],

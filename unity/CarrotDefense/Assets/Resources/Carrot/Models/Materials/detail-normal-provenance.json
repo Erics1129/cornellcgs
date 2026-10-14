@@ -84,6 +84,20 @@
     "normalConvention": "Tangent space, OpenGL Y+, imported as Unity NormalMap"
   },
   {
+    "name": "LeafClusterDetail.png",
+    "kind": "detail normal",
+    "size": 512,
+    "gain": 2.4,
+    "pattern": "massed, overlapping leaf blades on canopy clumps",
+    "sha256": "38742103b174d7ca8298bc501754b52f3cc02d813c7c1e12a538c1111dce4902",
+    "maxSlope": 0.2067,
+    "meanSlope": 0.0271,
+    "seamMismatch": 0.278115,
+    "generator": "Tools/bake_detail_normals.py",
+    "licence": "original work (project licence)",
+    "normalConvention": "Tangent space, OpenGL Y+, imported as Unity NormalMap"
+  },
+  {
     "name": "TornadoStreaks.png",
     "kind": "FxAlpha wind sheet",
     "size": [
@@ -92,6 +106,15 @@
     ],
     "meanAlpha": 0.1299,
     "sha256": "ccda4af7e92e4dadb5d3049b0cf076b2e6445cce8f3c4816b904f4b8b47118ac",
+    "generator": "Tools/bake_detail_normals.py",
+    "licence": "original work (project licence)"
+  },
+  {
+    "name": "FoliageDetail.png",
+    "kind": "albedo multiplier (grey)",
+    "size": 512,
+    "meanShade": 0.888,
+    "sha256": "bb20a3c834b48d9b1dee8674446a2bd6b86e4e9b7cdc99c8cdc00891f4fe81d3",
     "generator": "Tools/bake_detail_normals.py",
     "licence": "original work (project licence)"
   },
