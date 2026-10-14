@@ -79,6 +79,10 @@
   scroll-margin-top: calc(var(--imc-bar) + 8px); /* under the sticky site bar */
 }
 @container imc-left (min-width: 540px) {
+  /* The board column gets an explicit width. Sizing it from aspect-ratio plus a
+     percentage max-width inside an auto grid track can collapse to 0 px in Safari. */
+  .imc-stage { max-width: none; }
+  .imc-board { width: calc(var(--imc-board-h) * var(--imc-aspect, 1)); max-width: none; }
   .imc-screen { grid-template-columns: auto minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr) auto; grid-template-areas: 'stage top' 'stage banner' 'stage tools'; align-items: start; column-gap: 14px; }
   .imc-screen__tools { align-self: end; }
   .imc-banner { align-self: start; }
