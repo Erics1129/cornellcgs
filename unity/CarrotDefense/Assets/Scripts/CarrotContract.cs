@@ -121,6 +121,13 @@ namespace CarrotTD {
   public int DefenseChain {get{return statStreak;}}
   public int Kills {get{return statKills;}}
   public int Leaks {get{return statLeaks;}}
+  public int BestChain {get{return statBestStreak;}}
+  public int PerfectWaves {get{return statPerfect;}}
+  /// <summary>Hearts lost to enemies of wave w (1-based) and the number of bites they made.</summary>
+  public int WaveHeartsLost(int w){return waveHearts!=null&&w>=1&&w<waveHearts.Length?waveHearts[w]:0;}
+  public int WaveLeakCount(int w){return waveLeakCount!=null&&w>=1&&w<waveLeakCount.Length?waveLeakCount[w]:0;}
+  /// <summary>The planned spawns of wave w (the same list BeginWave schedules); read-only for bots and the preview.</summary>
+  public IReadOnlyList<CarrotData.PlannedSpawn> WavePlan(int w){return wavePlans!=null&&w>=1&&w<wavePlans.Length?wavePlans[w]:null;}
   void ResetStats(){
    statKills=statLeaks=statStreak=statBestStreak=statPerfect=judgeSeq=judgeWave=0;judgeValue=0;judgeKind="";
    waveHearts=new int[level.waves+1];waveLeakCount=new int[level.waves+1];leakKinds.Clear();leakCounts.Clear();dmgKinds.Clear();dmgValues.Clear();leakRecords.Clear();

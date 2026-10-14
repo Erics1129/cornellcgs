@@ -386,7 +386,7 @@ namespace CarrotTD {
     if(level<=12&&r.phase!="won")failures.Add("merges-off strategy "+strategy+" level "+level+" must still win ("+r.phase+", wave "+r.wave+")");}
    policyMerges=true;
   }
-  class Result {public string phase;public int health,lowest,wave,towers,supers,earned;public float seconds,bossHp,bossGap;public string roster;}
+  class Result {public string phase;public int health,lowest,wave,towers,supers,earned;public float seconds,bossHp,bossGap;public string roster;public BotRun run;}
   static void CampaignRuns(string tag,int levels,bool merges,bool assertSupers){
    policyMerges=merges;var supers=new int[2];
    for(int strategy=0;strategy<2;strategy++)for(int level=1;level<=levels;level++){
@@ -399,16 +399,18 @@ namespace CarrotTD {
    }
    if(assertSupers)for(int strategy=0;strategy<2;strategy++)if(supers[strategy]<4)failures.Add(tag+" policy "+strategy+" fields a Super in only "+supers[strategy]+" runs");
   }
-  static Result RunCampaign(int level,int strategy){
-   if(level==29)return RunPrismCampaign(strategy);
+  static Result RunCampaign(int level,int strategy,BotRng noise=null){
+   if(level==29)return RunPrismCampaign(strategy,noise);
+   scoreNoise=noise;
    var g=New(level);float bossGap=-1;g.Effect+=v=>{if(v.type=="death"){var fallen=g.enemies.Find(e=>e.id==v.id);if(fallen!=null&&!string.IsNullOrEmpty(fallen.boss))bossGap=fallen.routeLength-fallen.distance;}if((v.type=="telegraph"||v.type=="telegraphTarget")&&v.kind=="uproot"&&v.target>0){var t=g.towers.Find(x=>x.id==v.target);if(t!=null){g.Select("tower",t.id);g.Command("{\"type\":\"sell\"}");}}};if(strategy==1&&level==1){g.Select("pad",0);g.Command("{\"type\":\"buy\",\"kind\":\"seed\"}");g.Select("pad",1);g.Command("{\"type\":\"buy\",\"kind\":\"frost\"}");}BuyBest(g,strategy);BuyBest(g,strategy);g.Command("{\"type\":\"start\"}");float limit=0;int lowest=10,lastMergeWave=-1,merges=0;
    float validateAt=0;
-   while(g.phase=="playing"&&limit<1200){for(int i=0;i<4;i++)if(!BuyBest(g,strategy))break;if(policyMerges&&g.wave!=lastMergeWave&&MergeBest(g)){lastMergeWave=g.wave;merges++;}Focus(g);g.StepSimulation(.25f);limit+=.25f;lowest=Mathf.Min(lowest,g.health);Check(g.coins>=0,"never spend nonexistent coins "+level);
+   while(g.phase=="playing"&&limit<1200){for(int i=0;i<4;i++)if(!BuyBest(g,strategy))break;if(policyMerges&&g.wave!=lastMergeWave&&MergeBest(g)){lastMergeWave=g.wave;merges++;}Focus(g);float step=noise==null?.25f:.25f+(float)noise.Unit()*.25f;g.StepSimulation(step);limit+=step;lowest=Mathf.Min(lowest,g.health);Check(g.coins>=0,"never spend nonexistent coins "+level);
     // Every bot run doubles as a bridge-contract run: the published snapshot must always parse.
     if(limit>=validateAt){validateAt+=15;ValidateSnapshot(g.LastSnapshot,"campaign "+level);}}
    ValidateSnapshot(g.Snapshot(),"campaign end "+level);
    string roster="";int supers=0;foreach(var t in g.towers){roster+=t.kind+"/"+t.tier+",";if(t.tier==5)supers++;}
    var r=new Result{phase=g.phase,health=g.health,lowest=lowest,wave=g.wave,towers=g.towers.Count,supers=Mathf.Max(supers,merges),earned=g.TotalEarned,seconds=g.elapsed,bossHp=g.enemies.Find(e=>!string.IsNullOrEmpty(e.boss))?.hp??0,bossGap=bossGap,roster=roster};
+   r.run=Collect(g,"R0",0,strategy,lowest);r.run.supers=r.supers;scoreNoise=null;
    if(g.phase=="won")Check(g.progress==1,"complete progress "+level);Done(g);return r;
   }
   // Bots focus Brambleback's root knots; on challenge levels they shoot a grave once they field four towers.
@@ -458,6 +460,9 @@ namespace CarrotTD {
    }
   }
 
+  // R0 seed variants perturb every candidate score by up to +-1% (null: the canonical policy, bit for bit).
+  static BotRng scoreNoise;
+  static float Jitter(){return scoreNoise==null?1f:1f+(float)(scoreNoise.Unit()*2-1)*.01f;}
   // A deterministic policy buys only legal unlocked towers with earned money; no outcome shortcuts.
   static bool BuyBest(CarrotGame g,int strategy=0){
    if(policyMerges&&strategy==1&&g.level.id>=20&&g.level.id<=24&&g.wave>=7&&g.health>=8&&g.towers.Count>=8&&!g.towers.Exists(t=>t.tier==5)&&InvestInPair(g))return true;
@@ -465,7 +470,7 @@ namespace CarrotTD {
     if(counter!=null&&g.coins>=CarrotData.Tower(counter).cost[0]){int pad=-1;float coverage=0;for(int i=0;i<g.level.pads.Length;i++)if(!g.towers.Exists(t=>t.pad==i)&&!g.blockers.Exists(b=>b.pad==i)){float score=Coverage(g,g.level.pads[i],CarrotData.Tower(counter).range[0]);if(score>coverage){coverage=score;pad=i;}}if(pad>=0){g.Select("pad",pad);g.Command("{\"type\":\"buy\",\"kind\":\""+counter+"\"}");return true;}}
    }
    float best=0,bestAffordable=0;int selected=-1,affordable=-1;string kind=null,affordableKind=null;bool upgrading=false,affordableUpgrade=false;
-   int minTowers=CarrotData.IsChallenge(g.level.id)?5:3;foreach(var t in g.towers)if(t.tier<4&&g.towers.Count>=minTowers){var d=CarrotData.Tower(t.kind);{float old=Power(d,t.tier-1)*Preference(d.id,strategy,g.level.id),next=Power(d,t.tier)*Preference(d.id,strategy,g.level.id);float score=(next-old)*Coverage(g,t.position,d.range[t.tier])/d.cost[t.tier]*(g.towers.Count<5?.75f:1.1f);if(score>best){best=score;selected=t.id;upgrading=true;}if(d.cost[t.tier]<=g.coins&&score>bestAffordable){bestAffordable=score;affordable=t.id;affordableUpgrade=true;}}}
+   int minTowers=CarrotData.IsChallenge(g.level.id)?5:3;foreach(var t in g.towers)if(t.tier<4&&g.towers.Count>=minTowers){var d=CarrotData.Tower(t.kind);{float old=Power(d,t.tier-1)*Preference(d.id,strategy,g.level.id),next=Power(d,t.tier)*Preference(d.id,strategy,g.level.id);float score=(next-old)*Coverage(g,t.position,d.range[t.tier])/d.cost[t.tier]*(g.towers.Count<5?.75f:1.1f)*Jitter();if(score>best){best=score;selected=t.id;upgrading=true;}if(d.cost[t.tier]<=g.coins&&score>bestAffordable){bestAffordable=score;affordable=t.id;affordableUpgrade=true;}}}
    for(int p=0;p<g.level.pads.Length;p++)if(!g.towers.Exists(t=>t.pad==p)&&!g.blockers.Exists(b=>b.pad==p))foreach(var d in CarrotData.Towers)if(d.unlock<=g.level.id&&(g.towers.Count>=2||d.cost[0]<=g.coins)){
     float overlap=0;foreach(var t in g.towers)if(Vector3.Distance(t.position,g.level.pads[p])<3.2f)overlap+=.16f;
     float score=Power(d,0)*Preference(d.id,strategy,g.level.id)*Coverage(g,g.level.pads[p],d.range[0])/d.cost[0]/(1+overlap+g.towers.Count*.05f);
@@ -476,6 +481,7 @@ namespace CarrotTD {
     if(g.towers.Count>=5&&d.id=="lotus"&&!g.towers.Exists(t=>t.kind=="lotus"))score*=1.65f;
     if(strategy==0&&g.level.id==1&&d.id=="frost")score=0;
     if(d.id=="frost"&&(g.towers.Count<2||g.towers.Exists(t=>t.kind=="frost"&&Vector3.Distance(t.position,g.level.pads[p])<5)))score*=.2f;
+    score*=Jitter();
     if(score>best){best=score;selected=p;kind=d.id;upgrading=false;}
     if(d.cost[0]<=g.coins&&score>bestAffordable){bestAffordable=score;affordable=p;affordableKind=d.id;affordableUpgrade=false;}
    }

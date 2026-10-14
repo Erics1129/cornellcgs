@@ -55,7 +55,7 @@ namespace CarrotTD {
    Check(g.phase=="lost"&&g.health==0,"the same fully funded opening left stationary loses; long-lane relocation matters");Debug.Log("PRISM_STATIC_LOSS seconds="+g.elapsed.ToString("F1"));Done(g);
   }
   public static void PrismOnly(){for(int strategy=0;strategy<2;strategy++){var r=RunPrismCampaign(strategy);Debug.Log("PRISM_POLICY policy="+strategy+" result="+r.phase+" hearts="+r.health+" seconds="+r.seconds.ToString("F1")+" earned="+r.earned+" bossHp="+r.bossHp.ToString("F1")+" bossGap="+r.bossGap.ToString("F1")+" roster="+r.roster);}}
-  static Result RunPrismCampaign(int strategy){
+  static Result RunPrismCampaign(int strategy,BotRng noise=null){
    var g=New(29);int lowest=10,relocations=0;float bossGap=-1;
    string[] mix=strategy==0?new[]{"prism","thunder","moonflower","frost","lotus"}:new[]{"prism","chili","magnet","frost","lotus"};
    g.Effect+=v=>{if(v.type=="death"){var e=g.enemies.Find(x=>x.id==v.id);if(e!=null&&e.boss=="asuna")bossGap=e.routeLength-e.distance;}};
@@ -64,12 +64,12 @@ namespace CarrotTD {
     var boss=g.enemies.Find(e=>e.alive&&e.boss=="asuna");
     var front=boss;if(boss==null){foreach(var e in g.enemies)if(e.alive&&(front==null||e.distance>front.distance))front=e;}
     if(front!=null){foreach(var tower in g.towers.ToArray())if(tower.position.x+CarrotData.Tower(tower.kind).range[tower.tier-1]<front.position.x-.5f){g.Select("tower",tower.id);g.Command("{\"type\":\"sell\"}");relocations++;}}
-    for(int i=0;i<4&&BuyPrism(g,mix);i++){}if(boss!=null&&!g.enemies.Exists(e=>e.alive&&e.id!=boss.id&&!e.clone&&e.distance>boss.distance+7))g.Select("enemy",boss.id);else g.Select("",-1);g.StepSimulation(.25f);lowest=Mathf.Min(lowest,g.health);Check(g.coins>=0,"Asuna policy never spends unearned coins");
+    for(int i=0;i<4&&BuyPrism(g,mix);i++){}if(boss!=null&&!g.enemies.Exists(e=>e.alive&&e.id!=boss.id&&!e.clone&&e.distance>boss.distance+7))g.Select("enemy",boss.id);else g.Select("",-1);g.StepSimulation(noise==null?.25f:.25f+(float)noise.Unit()*.25f);lowest=Mathf.Min(lowest,g.health);Check(g.coins>=0,"Asuna policy never spends unearned coins");
     if(Mathf.Repeat(g.elapsed,10)<.25f)ValidateSnapshot(g.LastSnapshot,"asuna campaign");
    }
    string roster="";foreach(var t in g.towers)roster+=t.kind+"/"+t.tier+"@"+t.pad+",";
    Debug.Log("PRISM_RELOCATIONS policy="+strategy+" count="+relocations+" coins="+g.coins);
-   var r=new Result{phase=g.phase,health=g.health,lowest=lowest,wave=g.wave,towers=g.towers.Count,earned=g.TotalEarned,seconds=g.elapsed,bossHp=g.enemies.Find(e=>e.boss=="asuna")?.hp??0,bossGap=bossGap,roster=roster};Done(g);return r;
+   var r=new Result{phase=g.phase,health=g.health,lowest=lowest,wave=g.wave,towers=g.towers.Count,earned=g.TotalEarned,seconds=g.elapsed,bossHp=g.enemies.Find(e=>e.boss=="asuna")?.hp??0,bossGap=bossGap,roster=roster};r.run=Collect(g,"R0",0,strategy,lowest);Done(g);return r;
   }
   static bool BuyPrism(CarrotGame g,string[] mix){
    var boss=g.enemies.Find(e=>e.alive&&e.boss=="asuna");if(boss==null){foreach(var e in g.enemies)if(e.alive&&(boss==null||e.distance>boss.distance))boss=e;}float x=boss?.position.x??g.level.routes[0][0].x;
