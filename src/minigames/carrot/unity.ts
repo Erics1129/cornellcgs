@@ -6,7 +6,7 @@ type Factory=(canvas:HTMLCanvasElement,config:Record<string,unknown>,progress:(v
 const reviewBuild=import.meta.env.DEV&&new URLSearchParams(location.search).has('carrot-qa')
 const playerRoot=reviewBuild?'/output/carrot-qa':'/unity/carrot'
 const playerName=reviewBuild?'carrot-qa':'carrot'
-const playerVersion=reviewBuild?'portal-review':build.version
+const playerVersion=reviewBuild?'prism-review':build.version
 let factoryPromise:Promise<Factory>|undefined
 let lifetime:Promise<void>=Promise.resolve()
 function factory():Promise<Factory>{
@@ -24,11 +24,14 @@ export class CarrotUnity {
  private dead=false
  private release!:()=>void
  private loaded=false
+ private motion=matchMedia('(prefers-reduced-motion: reduce)')
+ private syncMotion=()=>this.instance?.SendMessage('CarrotGame','SetReducedMotion',this.motion.matches?'1':'0')
  readonly canvas=document.createElement('canvas')
  private onState:(state:GameState)=>void
  constructor(root:HTMLElement,hooks:{state:(state:GameState)=>void;progress:(value:number)=>void;ready:()=>void;error:(message:string)=>void},level:number,muted:boolean){
   this.onState=hooks.state;this.canvas.id='carrot-unity-canvas';this.canvas.className='ct-canvas';this.canvas.tabIndex=0;this.canvas.setAttribute('aria-label','Carrot Defense 3D battlefield. Tap a clearing to build.');root.replaceChildren(this.canvas)
   window.addEventListener('carrot-state',this.receive)
+  this.motion.addEventListener('change',this.syncMotion)
   measureDisplayPeriod()
   const previous=lifetime;lifetime=new Promise(resolve=>{this.release=resolve})
   const files_:Record<string,[number,number]>={}
@@ -40,7 +43,7 @@ export class CarrotUnity {
    if(this.dead){files.forEach(revoke);this.release();return}
    const instance=await create(this.canvas,{webglContextAttributes:{alpha:false,antialias:false,powerPreference:'high-performance',preserveDrawingBuffer:false},dataUrl:files[0],frameworkUrl:files[1],codeUrl:files[2],streamingAssetsUrl:`${playerRoot}/StreamingAssets`,companyName:'Cornell Computational Game Society',productName:'Carrot Defense 3D',productVersion:'1.0',devicePixelRatio:Math.min(devicePixelRatio,innerWidth<700?1.25:1.75),showBanner:(message:string,type:string)=>{if(type==='error')hooks.error(message)}},value=>progress(.8+.2*value))
    files.forEach(revoke)
-   if(this.dead){await instance.Quit();this.release();return}this.instance=instance;this.loaded=true;this.send({type:'load',level});this.send({type:'mute',value:muted?1:0});hooks.ready()
+   if(this.dead){await instance.Quit();this.release();return}this.instance=instance;this.loaded=true;this.syncMotion();this.send({type:'load',level});this.send({type:'mute',value:muted?1:0});hooks.ready()
   }catch(error){if(!this.dead)hooks.error(error instanceof Error?error.message:'The garden could not open.');this.release()}})()
  }
  private receive=(event:Event)=>{if(this.dead||!this.loaded)return;const s=(event as CustomEvent<GameState>).detail;if(s&&typeof s.level==='number')this.onState(s)}
@@ -48,7 +51,7 @@ export class CarrotUnity {
  /** Additive debug entry (never called by the page): forces a tier ("high", "medium", "low") or toggles one feature for A/B captures. */
  quality(setting:string){this.instance?.SendMessage('CarrotGame','Quality',setting)}
  uiSound(kind='click'){this.instance?.SendMessage('CarrotGame','UiSound',kind)}
- dispose(){this.dead=true;window.removeEventListener('carrot-state',this.receive);if(this.instance){const instance=this.instance;this.instance=undefined;void instance.Quit().finally(this.release)}this.canvas.remove()}
+ dispose(){this.dead=true;this.motion.removeEventListener('change',this.syncMotion);window.removeEventListener('carrot-state',this.receive);if(this.instance){const instance=this.instance;this.instance=undefined;void instance.Quit().finally(this.release)}this.canvas.remove()}
 }
 
 /**

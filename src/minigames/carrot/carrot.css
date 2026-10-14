@@ -126,3 +126,64 @@
 }
 @media(prefers-reduced-transparency:reduce){.ct-page .ct-game .ct-glass{background:linear-gradient(145deg,#394641,#182723)}}
 @media(prefers-reduced-motion:reduce){.ct-page .ct-loading progress::-webkit-progress-value{transition:none}}
+
+/* Prismatic Causeway — bright surfaces, restrained dark type, chromatic health. */
+.ct-page .ct-challenge--asuna{background-position:center;box-shadow:none}
+.ct-page .ct-challenge--asuna::before{background:linear-gradient(0deg,#122b39f2,#123c5480 44%,#f2f7fa05 80%)}
+.ct-page .ct-portrait--asuna{background-size:cover;background-position:center 20%;background-color:#dceff1}
+.ct-challenge--asuna .ct-challenge__portrait .ct-portrait{border:0;border-radius:4px;background-color:transparent;filter:drop-shadow(0 3px 12px #193c4e66)}
+.ct-page .ct-boss--asuna{--ct-meter-from:#7369e6;--ct-meter-mid:#61dbe8;--ct-meter-to:#f5d994}
+.ct-page .ct-boss--asuna .ct-meter--boss>i{background:linear-gradient(90deg,#a78bfa,#6e9cff 24%,#62d8e6 45%,#aee4be 65%,#f1d59a 82%,#f4a5b6)}
+.ct-page.is-prism .ct-game{color:#163748;--ct-ink:#163748;--ct-muted:#486576;--ct-panel:#f4faf5e8;--ct-line:transparent;--ct-accent:#244e62;color-scheme:light}
+.ct-page.is-prism .ct-game .ct-glass{background:linear-gradient(120deg,#fafffff5,#e0edf1e6);box-shadow:0 6px 24px #1239491c;border:0}
+.ct-page.is-prism .ct-game .ct-kicker{color:#486576}
+.ct-page.is-prism .ct-game :is(.ct-boss__ability,.ct-wave-actions,.ct-wallet,.ct-life,.ct-level-progress){color:#244555}
+.ct-page.is-prism .ct-game .ct-meter{background:#25496217}
+.ct-page.is-prism .ct-game .ct-icon:hover{background:#16425810}
+.ct-page.is-prism .ct-game .ct-primary{background:linear-gradient(115deg,#20566b,#367586);color:white}
+.ct-page.is-prism .ct-game .ct-telegraph span{color:#3e5e6c}
+.ct-page.is-prism .ct-game .ct-warning--asuna{background:linear-gradient(110deg,#fafffff2,#d9edf3eb);color:#173b50;box-shadow:0 12px 60px #346b7933;border:0}
+.ct-page.is-prism .ct-warning--asuna span{color:#426174}
+.ct-page .ct-reinforcements{position:absolute;right:24px;top:110px;min-width:142px;padding:11px 13px;border-radius:4px;pointer-events:none;display:grid;grid-template-columns:1fr auto;gap:8px 12px;font-variant-numeric:tabular-nums;z-index:4}
+.ct-reinforcements>span{font-size:10px;display:flex;flex-direction:column;gap:2px;color:#486576}
+.ct-reinforcements>span b{font-size:15px;font-weight:650;color:#214a60}
+.ct-reinforcements>strong{align-self:center;font-size:24px;letter-spacing:-.04em;font-weight:500}
+.ct-reinforcements>strong small{font-size:11px;margin-left:2px;color:#486576}
+.ct-escalation{display:flex;gap:3px;grid-column:1/-1;height:3px}
+.ct-escalation i{flex:1;background:#31667b20;transform:skew(-22deg)}
+.ct-escalation i.is-lit{background:linear-gradient(90deg,#8d86e7,#6dcfd4)}
+@media(min-width:901px){.ct-challenge-grid,.ct-campaign-challenges>div{grid-template-columns:repeat(3,minmax(0,1fr))!important}.ct-page .ct-challenge{aspect-ratio:.9}}
+@media(max-width:700px){.ct-page .ct-reinforcements{right:12px;top:auto;bottom:94px;min-width:108px;padding:7px 9px;gap:5px 10px}.ct-reinforcements>span{font-size:8px}.ct-reinforcements>span b{font-size:11px}.ct-reinforcements>strong{font-size:18px}}
+
+.ct-page.is-prism .ct-game :is(.ct-purchase-info p,.ct-tower-detail p,.ct-range,.ct-ready>span,.ct-outcome__card p,.ct-telegraph strong small,.ct-focus-detail p){color:#486576}
+.ct-page.is-prism .ct-game .ct-tower-option.is-picked{background:linear-gradient(145deg,#82c6d74f,#9c8bdb29)}
+.ct-page.is-prism .ct-game .ct-tower-option:hover{background:#17647a18}
+.ct-page.is-prism .ct-game .ct-wallet svg,.ct-page.is-prism .ct-game .ct-tower-option>span:last-child svg{color:#846326}
+
+/* Prism control states keep dark type on light glass, including inherited combat overrides. */
+.ct-page.is-prism .ct-game .ct-primary:not(:disabled):not(.ct-merge){background:linear-gradient(115deg,#20566b,#326e80);color:#fff;box-shadow:0 3px 12px #183c4d24}
+.ct-page.is-prism .ct-game .ct-primary:not(:disabled):not(.ct-merge):hover{background:linear-gradient(115deg,#28657a,#357488);color:#fff}
+.ct-page.is-prism .ct-game .ct-primary:disabled{background:linear-gradient(115deg,#d2e0e5,#c3d5dd);color:#405c6a;opacity:1;box-shadow:none}
+.ct-page.is-prism .ct-game .ct-primary.ct-merge:not(:disabled){background:linear-gradient(115deg,#f4df9e,#e6c47c);color:#49340d;box-shadow:0 3px 12px #8063261c}
+.ct-page.is-prism .ct-game .ct-primary.ct-merge:not(:disabled):hover{background:linear-gradient(115deg,#ffebac,#efd18e);color:#49340d}
+.ct-page.is-prism .ct-game button:focus-visible{outline-color:#20566b}
+.ct-page.is-prism .ct-game :is(.ct-upgrade-stats,.ct-wave-actions>span,.ct-life small,.ct-tier-label,.ct-focus-detail>span,.ct-tower-option.is-locked>span:last-child){color:#486576}
+.ct-page.is-prism .ct-game .ct-upgrade-stats{border-bottom-color:#2549621c}
+.ct-page.is-prism .ct-game .ct-upgrade-stats b{color:#163748}
+.ct-page.is-prism .ct-game :is(.ct-upgrade-stats em,.ct-helper,.ct-focus-detail>svg){color:#286552}
+.ct-page.is-prism .ct-game :is(.ct-super-note,.ct-teach>svg){color:#805b1d}
+.ct-page.is-prism .ct-game .ct-life.is-low b{color:#ac3e2d}
+.ct-page.is-prism .ct-game :is(.ct-sell,.ct-wave-actions>button){background:linear-gradient(115deg,#d6e6ec,#c9dfe6);color:#22495b}
+.ct-page.is-prism .ct-game :is(.ct-sell,.ct-wave-actions>button):hover:not(:disabled){background:linear-gradient(115deg,#c8dfe8,#b8d3df);color:#193f52}
+.ct-page.is-prism .ct-game .ct-sell svg{color:#3e6372}
+.ct-page.is-prism .ct-game .ct-tier-strip>div{opacity:1}
+.ct-page.is-prism .ct-game .ct-tier-strip>div:not(.is-current):not(.is-complete)>.ct-portrait{opacity:.55}
+.ct-page.is-prism .ct-game .ct-tier-strip>div>span:last-child{color:#486576}
+.ct-page.is-prism .ct-game .ct-tier-strip>div.is-current{background:linear-gradient(180deg,#70b8d52b,#8b99c010)}
+.ct-page.is-prism .ct-game .ct-tier-strip>div.is-current>span:last-child{color:#173f52}
+.ct-page.is-prism .ct-game .ct-text-button{color:#385c6e!important}
+.ct-page.is-prism .ct-game .ct-notice{color:#f1f7f9}
+.ct-page.is-prism .ct-game .ct-loading{color:#f1f7f9}
+.ct-page.is-prism .ct-game .ct-loading .ct-kicker{color:#d8e6ea}
+@media(prefers-reduced-transparency:reduce){.ct-page.is-prism .ct-game .ct-glass{background:#edf5f7}}
+@media(prefers-contrast:more){.ct-page.is-prism .ct-game .ct-glass{background:#fff}.ct-page.is-prism .ct-game .ct-meter{background:#24495b42}}

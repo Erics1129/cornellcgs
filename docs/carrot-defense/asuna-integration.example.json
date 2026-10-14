@@ -1,0 +1,50 @@
+{
+  "sourcePrefab": "",
+  "animatorPath": "",
+  "avatarPath": "",
+  "sourceVersion": "",
+  "sourceSha256": "",
+  "correctionEuler": {
+    "x": 0,
+    "y": 0,
+    "z": 0
+  },
+  "targetHeight": 2.1,
+  "chargeBonePath": "",
+  "trailBonePath": "",
+  "clips": [
+    {
+      "state": "Idle",
+      "path": "",
+      "clip": ""
+    },
+    {
+      "state": "Walk",
+      "path": "",
+      "clip": ""
+    },
+    {
+      "state": "Attack",
+      "path": "",
+      "clip": ""
+    },
+    {
+      "state": "Dash",
+      "path": "",
+      "clip": ""
+    },
+    {
+      "state": "Hit",
+      "path": "",
+      "clip": ""
+    },
+    {
+      "state": "Death",
+      "path": "",
+      "clip": ""
+    }
+  ],
+  "textures": [],
+  "avatarMaskPath": "",
+  "excludeObjectNames": []
+}

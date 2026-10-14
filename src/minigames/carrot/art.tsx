@@ -6,8 +6,8 @@ const sheets:Record<string,string>={seed:'05-seed-tiers',frost:'06-frost-tiers',
 // The Super plates (26 forms, 27 emblems) are 5x2 grids in this kind order.
 const superOrder=['seed','frost','mortar','prism','storm','blossom','starfruit','gravity','book','thunder']
 const challengeBossRow:Record<string,number>={tornado:0,zombie:1,eyeball:2}
-export const chapterArt=(biome:string)=>base+({garden:'01-garden-keyart',marsh:'03-marsh-keyart',frost:'04-frost-keyart',orchard:'23-orchard-keyart',arena:'31-arena-keyart',portal:'40-portal-keyart'}[biome]||'01-garden-keyart')+'.jpg'
-export const challengeArt=(boss:string)=>{const name={tornado:'28-tornado-keyart',zombie:'29-zombie-keyart',eyeball:'30-eyeball-keyart',portal:'40-portal-keyart'}[boss];return name?base+name+'.jpg':chapterArt('arena')}
+export const chapterArt=(biome:string)=>base+({garden:'01-garden-keyart',marsh:'03-marsh-keyart',frost:'04-frost-keyart',orchard:'23-orchard-keyart',arena:'31-arena-keyart',portal:'40-portal-keyart',prism:'45-prism-keyart'}[biome]||'01-garden-keyart')+'.jpg'
+export const challengeArt=(boss:string)=>{const name={tornado:'28-tornado-keyart',zombie:'29-zombie-keyart',eyeball:'30-eyeball-keyart',portal:'40-portal-keyart',asuna:'45-prism-keyart'}[boss];return name?base+name+'.jpg':chapterArt('arena')}
 export const superForms=base+'26-super-forms.jpg',superEmblems=base+'27-super-emblems.png',abilityGlyphs=base+'33-ability-glyphs.png'
 
 // Optional plates: a sheet that 404s falls back to the painted tier-4 cell or a typographic mark, so the HUD never shows a blank square.
@@ -47,6 +47,7 @@ export function SuperEmblem({kind,className=''}:{kind:string;className?:string})
  return <span aria-hidden="true" className={`ct-emblem ct-emblem--text ${className}`}><b>S</b></span>
 }
 export function BossPortrait({kind,className=''}:{kind:string;className?:string}){
+ if(kind==='asuna')return <span aria-hidden="true" className={`ct-portrait ct-portrait--boss ct-portrait--asuna ${className}`} style={{backgroundImage:`url(${base}46-asuna-portrait.png)`}}/>
  if(kind==='portal')return <span aria-hidden="true" className={`ct-portrait ct-portrait--boss ct-portrait--portal ${className}`} style={{backgroundImage:`url(${base}40-portal-keyart.jpg)`}}/>
  if(kind==='orchard')return <span aria-hidden="true" className={`ct-portrait ct-portrait--boss ct-portrait--plate ${className}`} style={{backgroundImage:`url(${base}25-hollowhead-menacing.jpg)`}}/>
  const row=challengeBossRow[kind]
@@ -69,7 +70,11 @@ export function CreaturePortrait({kind,className=''}:{kind:string;className?:str
 }
 export function RouteDrawing({routes}: {routes?:Array<Array<{x:number;y?:number;z:number}|number[]>>}) {
  if(!routes?.length)return null
- const world=routes.some(r=>r.some(p=>!Array.isArray(p)&&p.x<0))
- return <svg className="ct-route-drawing" viewBox="0 0 16 12" aria-hidden="true">{routes.map((r,i)=><polyline key={i} points={r.map(p=>Array.isArray(p)?`${p[0]+.5},${p[1]+.5}`:`${p.x+(world?7.5:.5)},${p.z+(world?5.5:.5)}`).join(' ')} fill="none" stroke="currentColor" strokeWidth=".25" strokeLinecap="round" strokeLinejoin="round" opacity={1-i*.2}/> )}</svg>
+ const points=routes.flatMap(r=>r.map(p=>Array.isArray(p)?{x:p[0],z:p[1]}:p))
+ const minX=Math.min(...points.map(p=>p.x)),maxX=Math.max(...points.map(p=>p.x)),minZ=Math.min(...points.map(p=>p.z)),maxZ=Math.max(...points.map(p=>p.z))
+ const extended=maxX-minX>16||maxZ-minZ>12,world=points.some(p=>p.x<0)
+ const scale=extended?Math.min(14/Math.max(1,maxX-minX),10/Math.max(1,maxZ-minZ)):1
+ const point=(p:{x:number;z:number}|number[])=>{const x=Array.isArray(p)?p[0]:p.x,z=Array.isArray(p)?p[1]:p.z;return extended?`${8+(x-(minX+maxX)/2)*scale},${6+(z-(minZ+maxZ)/2)*scale}`:`${x+(world?7.5:.5)},${z+(world?5.5:.5)}`}
+ return <svg className="ct-route-drawing" viewBox="0 0 16 12" aria-hidden="true">{routes.map((r,i)=><polyline key={i} points={r.map(point).join(' ')} fill="none" stroke="currentColor" strokeWidth=".25" strokeLinecap="round" strokeLinejoin="round" opacity={Math.max(.25,1-i*.2)}/> )}</svg>
 }
 export const meterStyle=(ratio:number)=>({'--fill':`${Math.max(0,Math.min(1,Number.isFinite(ratio)?ratio:0))*100}%`} as CSSProperties)

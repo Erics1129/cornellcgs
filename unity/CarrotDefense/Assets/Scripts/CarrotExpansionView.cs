@@ -20,6 +20,7 @@ namespace CarrotTD {
    }
   }
   string ExpansionEnemyPath(EnemyState e){
+   if(e.kind=="asuna"||e.boss=="asuna")return "Carrot/Models/Bosses/Asuna";
    if(!string.IsNullOrEmpty(e.boss))return "Carrot/Models/Bosses/"+e.boss;
    if(!string.IsNullOrEmpty(e.miniboss))return "Carrot/Models/Minibosses/"+e.miniboss;
    if(e.clone&&e.kind=="eyeball")return "Carrot/Models/Bosses/eyeball";

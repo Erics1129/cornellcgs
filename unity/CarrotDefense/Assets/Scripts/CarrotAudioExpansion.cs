@@ -16,8 +16,8 @@ namespace CarrotTD {
   }
   // The same boss never switches score just because it changes phase or reincarnates.
   // RMS-matched new scores: Portal's dense orchestra is deliberately attenuated most.
-  static float TrackGain(string track){switch(track){case "MusicEyeball":return .76f;case "MusicOrchard":return .93f;case "MusicZombie":return .98f;case "MusicPortal":return .43f;case "MusicTornado":return .73f;default:return 1;}}
-  static string BossTheme(string kind){switch(kind){case "garden":return "Garden";case "marsh":return "Marsh";case "frost":return "Frost";case "orchard":return "Orchard";case "tornado":return "Tornado";case "zombie":return "Zombie";case "eyeball":return "Eyeball";case "portal":return "Portal";default:return "Garden";}}
+  static float TrackGain(string track){switch(track){case "MusicAsuna":return .5f;case "MusicEyeball":return .76f;case "MusicOrchard":return .93f;case "MusicZombie":return .98f;case "MusicPortal":return .43f;case "MusicTornado":return .73f;default:return 1;}}
+  static string BossTheme(string kind){switch(kind){case "garden":return "Garden";case "marsh":return "Marsh";case "frost":return "Frost";case "orchard":return "Orchard";case "tornado":return "Tornado";case "zombie":return "Zombie";case "eyeball":return "Eyeball";case "portal":return "Portal";case "asuna":return "Asuna";default:return "Garden";}}
   bool ExpansionCreature(string kind,string action,Vector3 at){
    if(!expansionVoices.Contains(kind))return false;
    bool small=smallVoices.Contains(kind),major=action=="roar"||action=="growl";
@@ -28,6 +28,7 @@ namespace CarrotTD {
    lastSound["creature-global"]=soundClock;return true;
   }
   bool ExpansionSound(CarrotEvent e,float variant){
+   if(PrismSound(e,variant))return true;
    if(e.type=="miniEnter"){
     Unlock();Creature(e.kind,"roar",e.position);Play("ImpactWood",.07f,.78f,"minientry",.8f,priority:2);return true;
    }

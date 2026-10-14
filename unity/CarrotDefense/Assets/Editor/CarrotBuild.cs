@@ -11,6 +11,10 @@ namespace CarrotTD {
 public static class CarrotBuild {
  const string ScenePath="Assets/Scenes/Carrot.unity";
  public static void Prepare() {
+  // Level 29 is public: a missing licensed character must fail the build before
+  // modifying scenes or emitting a playable level with an empty/proxy boss.
+  CarrotAsunaAssets.RequirePrepared();
+  CarrotLicensedFxImporter.RequirePrepared();
   CarrotPipeline.Prepare();
   CarrotVfxSheet.Prepare();
   CarrotCinematicsAuthoring.Prepare();
@@ -88,6 +92,8 @@ public static class CarrotBuild {
  /// output/carrot-qa; unity-build.json and public/ are never touched, and the define is removed again after the build.</summary>
  public static void WebQa() {
   Prepare();
+  CarrotQaTelemetry.Enable();
+  EditorSceneManager.SaveScene(UnityEngine.SceneManagement.SceneManager.GetActiveScene(),ScenePath);
   var output=Path.GetFullPath("../../output/carrot-qa");Directory.CreateDirectory(output);
   var target=NamedBuildTarget.WebGL;var defines=PlayerSettings.GetScriptingDefineSymbols(target);
   PlayerSettings.SetScriptingDefineSymbols(target,string.IsNullOrEmpty(defines)?"CARROT_QA":defines+";CARROT_QA");

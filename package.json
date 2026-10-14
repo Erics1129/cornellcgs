@@ -10,7 +10,7 @@
     "deploy": "sh scripts/deploy.sh",
     "admin:connect": "node scripts/admin-connect.mjs",
     "equity": "node scripts/equity.mjs",
-    "test": "node scripts/test-solver.mjs && node scripts/test-inkmaze.mjs && node scripts/test-inkmaze-code.mjs && node scripts/test-forge.mjs && node scripts/test-forge-input.mjs && node scripts/test-forge-flow.mjs && node scripts/test-forge-backend.mjs && node scripts/test-forge-bridge.mjs && node scripts/test-forge-feel.mjs && node scripts/test-forge-audio.mjs && node scripts/test-forge-sync.mjs && node scripts/test-carrot-progress.mjs && node scripts/test-carrot-challenges.mjs && node scripts/test-account-backend.mjs && node scripts/test-account-sync.mjs",
+    "test": "node scripts/test-solver.mjs && node scripts/test-inkmaze.mjs && node scripts/test-inkmaze-code.mjs && node scripts/test-forge.mjs && node scripts/test-forge-input.mjs && node scripts/test-forge-flow.mjs && node scripts/test-forge-backend.mjs && node scripts/test-forge-bridge.mjs && node scripts/test-forge-feel.mjs && node scripts/test-forge-audio.mjs && node scripts/test-forge-sync.mjs && node scripts/test-carrot-progress.mjs && node scripts/test-carrot-challenges.mjs && node scripts/test-carrot-music.mjs && node scripts/test-account-backend.mjs && node scripts/test-account-sync.mjs",
     "inkmaze:solve": "node scripts/inkmaze-solve.mjs",
     "forge:simulate": "node scripts/forge-simulate.mjs",
     "lint": "eslint src/minigames/forge src/minigames/carrot backend/forge/worker.ts src/minigames/MinigamesPage.tsx backend/account/worker.ts src/lib/account",

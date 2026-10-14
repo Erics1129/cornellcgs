@@ -94,3 +94,20 @@ License: CC0 1.0 Universal, https://creativecommons.org/publicdomain/zero/1.0/
 These are licensed existing compositions, not an exclusive commissioned score. Original source/download URLs and checksums: Audio/Licenses/expansion-music.json. Tracks are streamed in Ogg and MP3, with measured level offsets and limited combat mixing.
 
 84 additional short calls/hits/attacks are authored combinations of rubberduck's existing CC0 creature recordings. Source performances remain credited to rubberduck: https://opengameart.org/content/80-cc0-creature-sfx. They are edited recordings, not generated voices. Per-cue source pairs, processing, duration, level measurements and checksums: Audio/Licenses/expansion-voices.json. Existing sound effects and music remain available.
+
+## Prismatic Causeway: Asuna and additional licensed effects
+
+Asuna's character, armor, Humanoid rig and animation clips are by MSGDI:
+- Free Test Character Asuna — https://assetstore.unity.com/packages/3d/characters/humanoids/sci-fi/free-test-character-asuna-205897
+
+Additional particle artwork and authored particle effects:
+- Magic Effects FREE — Hovl Studio: https://assetstore.unity.com/packages/vfx/particles/spells/magic-effects-free-247933
+- Free Quick Effects Vol. 1 — Gabriel Aguiar Prod: https://assetstore.unity.com/packages/vfx/particles/free-quick-effects-vol-1-304424
+- Buff Loop FX — DrGame: https://assetstore.unity.com/packages/vfx/particles/spells/buff-loop-fx-34104
+- Cartoon FX Remaster Free — Jean Moreno: https://assetstore.unity.com/packages/vfx/particles/cartoon-fx-remaster-free-109565
+
+These five packages were acquired from the Unity Asset Store under its Standard EULA. They are incorporated into the compiled game; this project does not distribute their source packages. Source archives, selected source assets and derived Unity playback prefabs remain private. Game-specific timing, effect bindings, performance limits, material compatibility and animation control are adaptations. Existing original effects are retained.
+
+The bright causeway architecture, rainbow dash choreography and six encounter powers are original game work. Its menu environment painting is an original generated image, separate from the real-time 3D scene; the Asuna portrait is rendered from the licensed character.
+
+The Asuna encounter recording was supplied by the project owner as game.m4a. It is preserved in full, with playback headroom and Ogg/MP3 browser encodings. This supplied recording is not represented as CC0 or as a newly composed soundtrack. Short encounter stingers and restrained impact layers are authored for the game.

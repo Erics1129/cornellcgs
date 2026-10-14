@@ -30,6 +30,7 @@ namespace CarrotTD {
     case "zombie":allowed="raise,uproot,graveMarch";break;
     case "eyeball":allowed="blind,gaze,eyeClones,blackout";break;
     case "portal":allowed="portalSummon,portalStorm,portalBlink,portalShift";break;
+    case "asuna":allowed="prismDash,prismLances,prismaticAegis,spectrumRain,mirrorRush,prismOverdrive";break;
    }
    if(Array.IndexOf(allowed.Split(','),kind)<0||string.IsNullOrEmpty(kind))return;float hold=0;
    switch(kind){case "bark":hold=5;break;case "root":hold=3.5f;break;case "mist":hold=5;break;case "blind":hold=3;break;case "mantle":hold=7;break;case "breath":hold=4;break;case "whiteout":hold=2.5f;break;case "rush":hold=2.5f;break;case "heap":hold=2;break;case "dusk":hold=3;break;case "gust":hold=2.5f;break;case "liftoff":hold=4;break;case "gaze":hold=5;break;}
@@ -56,7 +57,7 @@ namespace CarrotTD {
   void ConsumeGrantedShield(EnemyState e,float amount){var x=Extra(e);x.grantedShield=Mathf.Max(0,x.grantedShield-amount);}
   void ClearGrantedShield(EnemyState e){var x=Extra(e);if(x.grantUntil>0)e.maxShield=x.shieldMaxBefore;x.grantedShield=0;x.grantUntil=0;}
   void ExpireNativeShield(EnemyState e,Actor a){if(a.shieldUntil<=0||elapsed<a.shieldUntil)return;e.shield=Mathf.Min(e.shield,Extra(e).grantedShield);a.shieldUntil=0;}
-  void ResetExpansion(){extras.Clear();extraSpawns.Clear();clouds.Clear();controlWard.Clear();blackoutReady=0;freezeReady=0;}
+  void ResetExpansion(){extras.Clear();extraSpawns.Clear();clouds.Clear();controlWard.Clear();blackoutReady=0;freezeReady=0;ResetPrism();}
   void InitExpansion(EnemyState e,bool clone,int owner){
    var def=CarrotData.Enemy(e.kind);e.miniboss=def!=null&&def.mini&&!clone?e.kind:"";e.clone=clone;
    var x=Extra(e);x.clone=clone;x.owner=owner;
@@ -72,6 +73,7 @@ namespace CarrotTD {
    }
   }
   void TickExpansion(){
+   TickPrism();
    for(int i=clouds.Count-1;i>=0;i--){var c=clouds[i];if(elapsed>=c.until){clouds.RemoveAt(i);continue;}if(elapsed<c.tick)continue;c.tick=elapsed+.4f;
     foreach(var e in enemies)if(Eligible(e,true)&&FlatDistance(c.position,e.position)<=c.radius&&c.touched.Add(e.id)){var x=Extra(e);x.poisonCap=Mathf.Max(x.poisonCap,c.tier==5?6:4);x.poisonStacks=Mathf.Min(x.poisonCap,x.poisonStacks+1);x.poisonDps=Mathf.Max(x.poisonDps,c.damage*.16f*x.poisonStacks);x.poisonUntil=Mathf.Max(x.poisonUntil,elapsed+2.5f);Emit("ability","orchidPoison",e.position,e.position,c.source,e.id,c.tier,0,.6f);}
    }

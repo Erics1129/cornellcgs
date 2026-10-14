@@ -22,7 +22,7 @@ export default defineConfig({
   server: {
     port: 5190,
     strictPort: true,
-    // Unity import caches contain thousands of changing files unrelated to HMR.
-    watch: { ignored: ['**/unity/**', '**/output/**', '**/.pages-publish/**'] },
+    // Ignore Editor caches, while watching public/unity for newly built media.
+    watch: { ignored: [here('./unity') + '/**', '**/output/**', '**/.pages-publish/**'] },
   },
 })

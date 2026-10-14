@@ -88,7 +88,7 @@ namespace CarrotTD {
     default:ExpansionShell(e.kind,a,b,life,tier);break;
    }
   }
-  void ExpansionImpact(CarrotEvent e,Color c){Vector3 p=e.to==Vector3.zero?e.position:e.to;Vector3 body=p+Vector3.up*.3f;float power=e.tier>=5?1.3f:1;
+  void ExpansionImpact(CarrotEvent e,Color c){Vector3 p=e.to;Vector3 body=p+Vector3.up*.3f;float power=e.tier>=5?1.3f:1;
    switch(e.kind){
     case "bamboo":Sparks(body,N(8),1.4f,3.1f,.32f,new Color(.9f,1,.55f));Debris(body,N(5),FxSheet.Husk,.09f,.15f,1,2,.65f,c);Flash(body,.65f*power,.1f,Color.white,FxSheet.Star4);break;
     case "chili":Embers(body,N(10),.18f,.65f,new Color(1,.42f,.08f),1.2f,.4f);Flash(body,.7f,.12f,new Color(1,.8f,.32f),FxSheet.GlowHard);Smoke(body,N(3),.3f,.6f,.9f,new Color(.37f,.19f,.18f,.45f),.3f);Disc(p,.18f,.75f*power,.3f,new Color(1,.3f,.1f,.65f));break;

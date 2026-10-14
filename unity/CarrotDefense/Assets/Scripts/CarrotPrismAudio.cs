@@ -1,0 +1,57 @@
+using UnityEngine;
+
+namespace CarrotTD {
+ public sealed partial class CarrotAudio {
+  bool prismMusicTail;
+  void PreparePrismAudio(){
+   clips["AsunaArrival"]=Stinger("Prismatic overture",new[]{293.66f,440f,587.33f,880f},1.7f,2);
+   clips["PrismWindup"]=Stinger("Spectral charge",new[]{440f,554.37f,659.25f},.8f,1);
+   clips["PrismDash"]=Stinger("Rainbow refraction",new[]{293.66f,440f,659.25f,987.77f},.55f,3);
+   clips["PrismLances"]=Stinger("Chromatic lances",new[]{880f,1174.66f,1318.51f},.48f,2);
+   clips["PrismAegis"]=Stinger("Sevenfold shield",new[]{329.63f,493.88f,659.25f},1.05f,2);
+   clips["PrismRain"]=Stinger("Spectrum rain",new[]{1174.66f,987.77f,783.99f,587.33f},.85f,3);
+   clips["PrismMirror"]=Stinger("Mirror procession",new[]{392f,554.37f,783.99f},.72f,1);
+   clips["PrismOverdrive"]=Stinger("Solar overdrive",new[]{146.83f,220f,440f,880f},1.35f,0);
+  }
+  bool FinishPrismScore(){
+   if(desired!="MusicAsuna"&&playing!="MusicAsuna")return false;
+   prismMusicTail=true;
+   for(int i=0;i<slotTrack.Length;i++)if(slotTrack[i]=="MusicAsuna")Carrot_MusicTail(i);
+   return true;
+  }
+  void TickPrismMusic(){
+   if(!prismMusicTail||playing!="MusicAsuna")return;
+   int slot=targetA?0:1;
+   if(Carrot_MusicFinished(slot)==1){prismMusicTail=false;Transition("MusicExplore",1.6f);}
+  }
+  bool PrismSound(CarrotEvent e,float variant){
+   // One cue at the caster. Recipient events remain silent even during dense reinforcements.
+   if(e.type=="abilityTarget"){
+    // The dash has one authoritative arrival; its landing accent follows the
+    // actual travel duration instead of sounding at takeoff.
+    if(e.kind=="prismDash")Later(e.duration,"ImpactGlass",.07f,1.5f,"prism-land",.5f);
+    return false;
+   }
+   if(e.type=="ability"&&e.kind=="prismReinforce"){Play("MoonChime",.04f,.85f,"prism-reinforce",2);return true;}
+   string clip=null;switch(e.kind){
+    case "prismDash":clip="PrismDash";break;
+    case "prismLances":clip="PrismLances";break;
+    case "prismaticAegis":clip="PrismAegis";break;
+    case "spectrumRain":clip="PrismRain";break;
+    case "mirrorRush":clip="PrismMirror";break;
+    case "prismOverdrive":clip="PrismOverdrive";break;
+   }
+   if(clip==null)return false;
+   if(e.type=="telegraph"){
+    Play("PrismWindup",.105f,e.kind=="prismOverdrive"?.72f:1,"prism-warning",.65f,priority:3);
+    Later(.16f,"ImpactGlass",.04f,1.35f,"prism-charge-glass",.65f);return true;
+   }
+   if(e.type!="ability")return false;
+   Play(clip,.16f,1,"prism-"+e.kind,.35f,priority:3);
+   if(e.kind=="prismDash")Play("Slice",.11f,.72f,"prism-air",.5f,priority:2);
+   if(e.kind=="prismLances"||e.kind=="spectrumRain")Later(.08f,"ImpactMetal",.055f,1.2f,"prism-strike",.5f);
+   if(e.kind=="prismOverdrive"){Later(.16f,"RiftUnfold",.075f,1.4f,"prism-overdrive",1);Duck(1.4f);}
+   return true;
+  }
+ }
+}

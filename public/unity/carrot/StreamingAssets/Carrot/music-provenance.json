@@ -124,5 +124,19 @@
     "seconds": 71.9,
     "bytes": 921667,
     "bitrateKbps": 112
+  },
+  {
+    "source": "MusicAsuna.m4a",
+    "output": "MusicAsuna.mp3",
+    "seconds": 216.5,
+    "bytes": 3031814,
+    "bitrateKbps": 112
+  },
+  {
+    "source": "MusicAsuna.m4a",
+    "output": "MusicAsuna.ogg",
+    "seconds": 216.5,
+    "bytes": 3099324,
+    "bitrateKbps": 112
   }
 ]

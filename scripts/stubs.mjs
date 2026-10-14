@@ -85,7 +85,7 @@ const PAGES = {
   },
   'carrot-defense': {
     title: 'Carrot Defense 3D — Cornell CGS',
-    desc: 'Protect the carrot across twelve original 3D landscapes. Grow ten tower families, cover branching paths, and defeat three unique guardians.',
+    desc: 'Protect the carrot across 24 original 3D landscapes. Grow 20 tower families, cover branching paths, and face five boss challenges, including Asuna.',
     image: '/assets/minigames/carrot/01-garden-keyart.jpg',
   },
   // the numbers must match src/minigames/inkmaze/levels.ts

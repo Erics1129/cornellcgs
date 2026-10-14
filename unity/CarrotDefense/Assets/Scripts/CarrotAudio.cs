@@ -19,16 +19,26 @@ namespace CarrotTD {
   [DllImport("__Internal")] static extern void Carrot_MusicVolume(int slot,float volume);
   [DllImport("__Internal")] static extern void Carrot_MusicPause(int slot,int paused);
   [DllImport("__Internal")] static extern void Carrot_MusicStop(int slot);
+  [DllImport("__Internal")] static extern void Carrot_MusicTail(int slot);
+  [DllImport("__Internal")] static extern int Carrot_MusicFinished(int slot);
 #else
   static void Carrot_MusicLoad(string name,string url){}
   static int Carrot_MusicState(string name){return -2;}
   static int Carrot_MusicRunning(){return 0;}
   static float Carrot_MusicSeconds(string name){return 0;}
+#if UNITY_EDITOR
+  static void Carrot_MusicUnload(string name){musicTestUnload?.Invoke(name);}
+  static int Carrot_MusicPlay(int slot,string name,float volume){return musicTestPlay?.Invoke(slot,name,volume)??0;}
+  static void Carrot_MusicStop(int slot){musicTestStop?.Invoke(slot);}
+#else
   static void Carrot_MusicUnload(string name){}
   static int Carrot_MusicPlay(int slot,string name,float volume){return 0;}
+  static void Carrot_MusicStop(int slot){}
+#endif
   static void Carrot_MusicVolume(int slot,float volume){}
   static void Carrot_MusicPause(int slot,int paused){}
-  static void Carrot_MusicStop(int slot){}
+  static void Carrot_MusicTail(int slot){}
+  static int Carrot_MusicFinished(int slot){return 0;}
 #endif
   // Music slots 0 (A) and 1 (B) live in the browser: slotTrack is the track each slot plays, slotVolume the last gain sent, musicReady the decoded tracks.
   readonly string[] slotTrack=new string[2];readonly float[] slotVolume={-1,-1};readonly HashSet<string> musicReady=new HashSet<string>();
@@ -38,15 +48,15 @@ namespace CarrotTD {
   void Awake(){interfaceVoice=Source("Interface");interfaceVoice.priority=8;for(int i=0;i<14;i++)voices.Add(Source("Foley "+i));foreach(var name in new[]{"ImpactSoft","ImpactGlass","ImpactWood","ImpactMetal","FootstepGrass","FootstepSnow","Coin","Build","Page","BookOpen","Chop","Slice"}){var clip=Resources.Load<AudioClip>("Carrot/Audio/"+name);if(clip!=null)clips[name]=clip;else Debug.LogWarning("Carrot audio missing: "+name);}foreach(var family in new[]{"Nibble","Dash","Shell","Swarm","Moth","Shaman","Burrow","Crystal"})foreach(var action in new[]{"Call","Hit","Attack"})LoadVoice("Voice"+family+action);foreach(var family in new[]{"Garden","Marsh","Frost"})foreach(var action in new[]{"Roar","Growl","Hit"})LoadVoice("Voice"+family+action);clips["GardenArrival"]=Stinger("Brambleback arrival",new[]{98f,146.83f,196f},1.6f,0);clips["MarshArrival"]=Stinger("Lantern Regent arrival",new[]{164.81f,246.94f,293.66f},1.8f,1);clips["FrostArrival"]=Stinger("Crown of Winter arrival",new[]{261.63f,392f,523.25f},2.1f,2);clips["OrchardArrival"]=Stinger("Old Hollowhead arrival",new[]{110f,164.81f,207.65f},1.9f,0);clips["Victory"]=Stinger("Harvest celebration",new[]{261.63f,329.63f,392f,523.25f},2f,3);clips["Defeat"]=Stinger("A quiet retry",new[]{220f,174.61f,146.83f},1.6f,4);clips["Upgrade"]=Stinger("Blossoming upgrade",new[]{523.25f,659.25f,783.99f},.7f,3);
    // Difficulty pass cues (procedural, no new recordings): blindness, uproot, tithe, the Super merge and the three challenge-boss arrivals.
    clips["LanternSnuff"]=Stinger("Lantern snuff",new[]{392f,311.13f,233.08f},1.2f,1);clips["RootSnap"]=Stinger("Root snap",new[]{110f,82.41f},.5f,0);clips["TitheJingle"]=Stinger("Tithe jingle",new[]{783.99f,987.77f,1174.66f},.8f,3);
-   clips["SuperForge"]=Stinger("Super forge",new[]{196f,293.66f,392f,587.33f},1.4f,2);clips["TornadoArrival"]=Stinger("Giant Tornado arrival",new[]{146.83f,220f,293.66f},1.8f,2);clips["ZombieArrival"]=Stinger("Zombie arrival",new[]{82.41f,123.47f,155.56f},2.2f,0);clips["EyeballArrival"]=Stinger("Unknown Eyeball arrival",new[]{233.08f,349.23f,466.16f,622.25f},2.4f,1);PrepareExpansionAudio();}
+   clips["SuperForge"]=Stinger("Super forge",new[]{196f,293.66f,392f,587.33f},1.4f,2);clips["TornadoArrival"]=Stinger("Giant Tornado arrival",new[]{146.83f,220f,293.66f},1.8f,2);clips["ZombieArrival"]=Stinger("Zombie arrival",new[]{82.41f,123.47f,155.56f},2.2f,0);clips["EyeballArrival"]=Stinger("Unknown Eyeball arrival",new[]{233.08f,349.23f,466.16f,622.25f},2.4f,1);PrepareExpansionAudio();PreparePrismAudio();}
   void LoadVoice(string name){var clip=Resources.Load<AudioClip>("Carrot/Audio/"+name);if(clip!=null){clips[name]=clip;if(clip.loadState==AudioDataLoadState.Unloaded)clip.LoadAudioData();}else Debug.LogWarning("Carrot voice missing: "+name);}
   AudioSource Source(string name){var go=new GameObject(name);go.transform.SetParent(transform,false);var s=go.AddComponent<AudioSource>();s.playOnAwake=false;s.spatialBlend=0;s.dopplerLevel=0;s.priority=name.StartsWith("Orchestra")?32:128;s.volume=0;return s;}
-  public void SetBiome(string biome){pending.Clear();lastSound.Clear();foreach(var v in voices)v.Stop();desired="MusicExplore";playing="";if(unlocked)Transition(desired,1.7f);else EnsureMusic(desired);}
+  public void SetBiome(string biome){prismMusicTail=false;if(biome=="prism")EnsureMusic("MusicAsuna");pending.Clear();lastSound.Clear();foreach(var v in voices)v.Stop();desired="MusicExplore";playing="";if(unlocked)Transition(desired,1.7f);else EnsureMusic(desired);}
   public void Unlock(){if(unlocked)return;unlocked=true;Transition(desired,.8f);}
   public void SetMuted(bool value){muted=value;ApplyVolumes();if(muted){foreach(var v in voices)v.volume=0;if(interfaceVoice!=null)interfaceVoice.Stop();}}
   public void Duck(float seconds){duckFor=Mathf.Max(duckFor,seconds);}
   void Later(float delay,string name,float volume,float pitch,string throttle,float gap,int priority=0){if(pending.Count>=96)return;pending.Add(new Pending{at=soundClock+delay,name=name,volume=volume,pitch=pitch,throttle=throttle,gap=gap,priority=priority,position=eventPosition});}
-  public void Tick(float dt,bool isPaused,string phase){soundClock+=dt;for(int i=pending.Count-1;i>=0;i--){if(soundClock<pending[i].at)continue;var p=pending[i];pending.RemoveAt(i);if(!paused)Play(p.name,p.volume,p.pitch,p.throttle,p.gap,false,p.priority,p.position);}if(isPaused!=paused){paused=isPaused;foreach(var v in voices){if(paused)v.Pause();else v.UnPause();}for(int slot=0;slot<2;slot++)if(slotTrack[slot]!=null)Carrot_MusicPause(slot,paused?1:0);}if(paused)return;duckFor=Mathf.Max(0,duckFor-dt);duck=Mathf.MoveTowards(duck,duckFor>0?.52f:1,dt*2);blend=Mathf.Min(1,blend+dt/Mathf.Max(.1f,fadeSeconds));ApplyVolumes();if(blend>=1){int old=targetA?1:0;if(slotTrack[old]!=null)ReleaseSlot(old);}}
+  public void Tick(float dt,bool isPaused,string phase){soundClock+=dt;for(int i=pending.Count-1;i>=0;i--){if(soundClock<pending[i].at)continue;var p=pending[i];pending.RemoveAt(i);if(!paused)Play(p.name,p.volume,p.pitch,p.throttle,p.gap,false,p.priority,p.position);}if(isPaused!=paused){paused=isPaused;foreach(var v in voices){if(paused)v.Pause();else v.UnPause();}for(int slot=0;slot<2;slot++)if(slotTrack[slot]!=null)Carrot_MusicPause(slot,paused?1:0);}if(paused)return;TickPrismMusic();duckFor=Mathf.Max(0,duckFor-dt);duck=Mathf.MoveTowards(duck,duckFor>0?.52f:1,dt*2);blend=Mathf.Min(1,blend+dt/Mathf.Max(.1f,fadeSeconds));ApplyVolumes();if(blend>=1){int old=targetA?1:0;if(slotTrack[old]!=null)ReleaseSlot(old);}}
   void ApplyVolumes(){float level=muted?0:.24f*duck;float inVolume=Mathf.Sin(blend*Mathf.PI*.5f)*level,outVolume=Mathf.Cos(blend*Mathf.PI*.5f)*level;SetSlotVolume(0,targetA?inVolume:outVolume);SetSlotVolume(1,targetA?outVolume:inVolume);}
   void SetSlotVolume(int slot,float volume){if(slotTrack[slot]==null||Mathf.Abs(slotVolume[slot]-volume)<.0005f)return;slotVolume[slot]=volume;Carrot_MusicVolume(slot,volume*TrackGain(slotTrack[slot]));}
   /// <summary>Music tracks live in StreamingAssets (Ogg Vorbis, MP3 for WebKit; about 8 MB the data file no longer carries). The first request for a track asks the browser (CarrotMusic.jslib) to fetch and decode it; the transition starts once the decode is in. Unity's own DownloadHandlerAudioClip is not used: on the Web player it rejects Ogg before the browser sees it and hands WebKit an empty clip after the MP3 decodes.</summary>
@@ -60,9 +70,10 @@ namespace CarrotTD {
    // The page's own Play click already resumed the audio context, so the first track starts as soon as it is decoded rather than waiting for a tap in the garden.
    if(!unlocked&&Carrot_MusicRunning()==1){Unlock();yield break;}
    if(desired==name&&playing!=name)Transition(name,pendingFade);}
-  void Transition(string name,float duration){desired=name;if(!unlocked||name==playing)return;if(!musicReady.Contains(name)){pendingFade=duration;EnsureMusic(name);return;}targetA=!targetA;int slot=targetA?0:1;ReleaseSlot(slot);if(Carrot_MusicPlay(slot,name,0)==0){Debug.LogWarning("Carrot music could not start: "+name);return;}slotTrack[slot]=name;slotVolume[slot]=0;if(paused)Carrot_MusicPause(slot,1);playing=name;blend=0;fadeSeconds=duration;}
-  // Stops a slot and drops its decoded buffer from browser memory unless the other slot still plays the same track.
-  void ReleaseSlot(int slot){string old=slotTrack[slot];Carrot_MusicStop(slot);slotTrack[slot]=null;slotVolume[slot]=-1;if(old!=null&&slotTrack[1-slot]!=old){musicReady.Remove(old);Carrot_MusicUnload(old);}}
+  void Transition(string name,float duration){desired=name;if(!unlocked||name==playing)return;if(!musicReady.Contains(name)){pendingFade=duration;EnsureMusic(name);return;}int slot=targetA?1:0;ReleaseSlot(slot,name);if(Carrot_MusicPlay(slot,name,0)==0){Debug.LogWarning("Carrot music could not start: "+name);return;}targetA=slot==0;slotTrack[slot]=name;slotVolume[slot]=0;if(name=="MusicAsuna"&&prismMusicTail)Carrot_MusicTail(slot);if(paused)Carrot_MusicPause(slot,1);playing=name;blend=0;fadeSeconds=duration;}
+  // A quick retry may restart the same track that is fading out in this slot.
+  // Keep that decoded buffer until Play consumes it; normal releases still unload it.
+  void ReleaseSlot(int slot,string retain=null){string old=slotTrack[slot];Carrot_MusicStop(slot);slotTrack[slot]=null;slotVolume[slot]=-1;if(old!=null&&old!=retain&&slotTrack[1-slot]!=old){musicReady.Remove(old);Carrot_MusicUnload(old);}}
   void Play(string name,float volume,float pitch=1,string throttle=null,float minGap=0,bool creature=false,int priority=0,Vector3? at=null){if(!unlocked||muted||paused||!clips.TryGetValue(name,out var clip))return;if(clip.loadState!=AudioDataLoadState.Loaded){clip.LoadAudioData();return;}at=at??eventPosition;string key=throttle??name;if(lastSound.TryGetValue(key,out float last)&&soundClock-last<minGap)return;lastSound[key]=soundClock;AudioSource voice=null;int first=creature?12:0,lastIndex=creature?14:12;for(int i=first;i<lastIndex;i++)if(!voices[i].isPlaying){voice=voices[i];break;}if(voice==null&&priority>0){int lowest=priority;for(int i=first;i<lastIndex;i++){int rank=priorities.TryGetValue(voices[i],out int n)?n:0;if(rank<lowest){lowest=rank;voice=voices[i];}}}if(voice==null)return;float aggregate=0;for(int i=first;i<lastIndex;i++)if(voices[i]!=voice&&voices[i].isPlaying)aggregate+=voices[i].volume;float budget=creature?(priority>=3?.34f:.20f):.54f;volume=Mathf.Min(volume,Mathf.Max(0,budget-aggregate));if(volume<.008f)return;voice.Stop();priorities[voice]=priority;voice.clip=clip;voice.volume=Mathf.Clamp(volume,0,.46f);voice.pitch=Mathf.Clamp(pitch,.55f,1.8f);voice.spatialBlend=at.HasValue?.25f:0;voice.minDistance=18;voice.maxDistance=42;voice.rolloffMode=AudioRolloffMode.Linear;voice.transform.position=at??transform.position;voice.panStereo=at.HasValue?Mathf.Clamp(at.Value.x*.035f,-.3f,.3f):0;voice.priority=priority>=3?16:creature?100:128;voice.Play();if(priority>=3)duckFor=Mathf.Max(duckFor,1.2f);}
   public void UiSound(string kind){eventPosition=null;Unlock();if(muted)return;if(lastSound.TryGetValue("ui",out var last)&&soundClock-last<.045f)return;string key=kind=="open"?"BookOpen":kind=="close"?"Page":"ImpactSoft";if(!clips.TryGetValue(key,out var clip))return;if(clip.loadState!=AudioDataLoadState.Loaded){if(clip.loadState==AudioDataLoadState.Unloaded)clip.LoadAudioData();return;}lastSound["ui"]=soundClock;interfaceVoice.Stop();interfaceVoice.clip=clip;interfaceVoice.volume=kind=="click"?.065f:.075f;interfaceVoice.pitch=kind=="close"?.95f:1.4f;interfaceVoice.Play();}
   public void Creature(string kind,string action,Vector3 at){
@@ -109,8 +120,8 @@ namespace CarrotTD {
     else if(e.kind=="breath"||e.kind=="shatter"){Play("ImpactGlass",.25f,.73f,"iceability",.4f);Play("Slice",.12f,.8f);}else if(e.kind=="root"||e.kind=="bark"||e.kind=="rush"||e.kind=="heap")Play("ImpactWood",.26f,.61f,"rootability",.35f);else{Play("Page",.2f,.6f,"spellability",.4f);Play("ImpactSoft",.15f,.65f);}break;
    case "merge":Play("SuperForge",.3f,1,priority:3);Later(.08f,"Build",.2f,.9f,"forgebuild",.1f);break;
    case "mergeUndo":Play("Page",.16f,.7f,"mergeundo",.3f);Play("Coin",.1f,1.1f);break;
-   case "victory":Play("Victory",.32f,priority:3);Transition("MusicExplore",3f);break;
-   case "defeat":Play("Defeat",.28f,priority:3);Transition("MusicExplore",3f);break;
+   case "victory":Play("Victory",.32f,priority:3);if(!FinishPrismScore())Transition("MusicExplore",3f);break;
+   case "defeat":Play("Defeat",.28f,priority:3);if(!FinishPrismScore())Transition("MusicExplore",3f);break;
   }eventPosition=null;}
   bool SignatureSound(CarrotEvent e){string clip=null;float pitch=1,volume=.08f;switch(e.kind){case "seedBurst":clip="FootstepGrass";pitch=1.4f;break;case "crystallize":case "shieldBreak":clip="ImpactGlass";pitch=1.6f;break;case "burn":clip="ImpactWood";pitch=.68f;break;case "prismFocus":clip="Slice";pitch=1.7f;volume=.04f;break;case "conductive":clip="ImpactMetal";pitch=1.7f;volume=.04f;break;case "blossomBuff":clip="Upgrade";pitch=.78f;volume=.055f;break;case "gravity":clip="BookOpen";pitch=.56f;volume=.12f;break;case "rewind":clip="Page";pitch=.65f;volume=.12f;break;}if(clip==null)return false;Play(clip,volume,pitch,"signature-"+e.kind,.23f,at:e.position);return true;}
   void Shot(CarrotEvent e,float variant){
