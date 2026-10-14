@@ -91,6 +91,8 @@ export class InkMazeRenderer implements InkMazeView {
   private oy = 0
   private patterns: Partial<Record<'table' | 'rim', CanvasPattern>> = {}
   private reduced: boolean
+  /** how fast rolls play (1 = normal); the coding level's playback sets it */
+  private speed = 1
   /** false while another view has the board: no drawing, no animation frames */
   private active = true
   private resizeObserver: ResizeObserver
@@ -110,6 +112,14 @@ export class InkMazeRenderer implements InkMazeView {
 
   setReducedMotion(reduced: boolean) {
     this.reduced = reduced
+  }
+
+  /**
+   * Playback speed for later rolls: 2 plays them twice as fast. Only the
+   * timing changes; the coding level uses it for replays (the game never does).
+   */
+  setSpeed(speed: number) {
+    this.speed = Number.isFinite(speed) && speed > 0 ? Math.min(16, Math.max(0.25, speed)) : 1
   }
 
   /**
@@ -172,7 +182,7 @@ export class InkMazeRenderer implements InkMazeView {
       return
     }
     const start = performance.now()
-    const duration = Math.min(MS_MAX, MS_BASE + MS_PER_BLOCK * result.path.length)
+    const duration = Math.min(MS_MAX, MS_BASE + MS_PER_BLOCK * result.path.length) / this.speed
     this.roll = { from: toXY(from, from.ball), path: result.path, start, duration, done, reached: 0, stop, lastSpeedAt: -Infinity }
     this.loop()
   }

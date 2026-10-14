@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<!--
+  Ink Maze level 26: the code sandbox host. Loaded only as a hidden
+  <iframe sandbox="allow-scripts"> by src/minigames/inkmaze/code/sandbox.ts, so
+  it has an opaque origin: no cookies, no storage, no access to the page.
+  Runtime workers are made from blob: URLs and inherit this policy. Scripts and
+  connections are limited to 'self', blob: and the pinned CDN prefixes in
+  src/minigames/inkmaze/code/contract.ts (CDN_PREFIXES); the Node test checks
+  that both lists match it exactly. WebKit does not match 'self' inside the
+  workers, so self-hosted files reach them through the page (host.asset).
+-->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' blob: 'unsafe-eval' 'wasm-unsafe-eval' https://cdn.jsdelivr.net/pyodide/v314.0.7/full/ https://cdn.jsdelivr.net/npm/@yowasp/clang@22.0.0-git20542-10/; worker-src blob:; child-src blob:; connect-src 'self' blob: https://cdn.jsdelivr.net/pyodide/v314.0.7/full/ https://cdn.jsdelivr.net/npm/@yowasp/clang@22.0.0-git20542-10/; base-uri 'none'; form-action 'none'">
+<meta name="referrer" content="no-referrer">
+<title>Ink Maze code sandbox</title>
+</head>
+<body>
+<script src="sandbox.js?v=1"></script>
+</body>
+</html>

@@ -45,6 +45,8 @@ export const typing = {
 export const hero = {
   ctaPrimary: { label: 'Join CGS', href: '#join' },
   ctaSecondary: { label: 'See what we do', href: '#what-we-do' },
+  /** the mini games are real pages at /minigames/, so this one navigates instead of scrolling */
+  ctaGames: { label: 'Play mini games', href: '/minigames/' },
   scrollHint: 'Scroll',
 }
 

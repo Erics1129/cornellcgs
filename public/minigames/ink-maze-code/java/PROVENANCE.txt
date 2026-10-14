@@ -1,0 +1,158 @@
+Ink Maze level 26 — Java runtime provenance
+============================================
+
+What runs the player's Java
+---------------------------
+TeaVM-javac: OpenJDK's javac (Java 25 language level) and the TeaVM 0.13.1
+ahead-of-time compiler, both compiled to WebAssembly GC by TeaVM, run inside
+the sandbox's Java worker:
+
+  Solution.java --javac--> class files --TeaVM (+ GuardTransformer)--> app.wasm
+
+The hidden harness (InkMazeHarness.class, compiled ahead of time) is the
+entry point; javac never sees it. Every Run instantiates app.wasm afresh.
+Nothing is loaded from a CDN: the page serves every file below to the sandbox.
+
+Sources and versions
+--------------------
+  teavm-javac  https://github.com/konsoletyper/teavm-javac
+               commit 2ddcf02e4983e5c74d45b945c2fd41a829358828 (2026-09-04, TeaVM 0.13.1)
+               archive https://github.com/konsoletyper/teavm-javac/archive/2ddcf02e4983e5c74d45b945c2fd41a829358828.zip
+               SHA-256 2bc0df47265054653ce6f52cee144184470dc0eba1ea6f6da38d53302d86e38e
+  + upstream   commit 199bed0c353d944b8107b517fc1893c86afb83c2 (StdlibConverter applies @Rename;
+               getClass()/getMessage()/getStackTrace() in the compile class library):
+               scripts/inkmaze-code/build/java/rename-fix-199bed0.diff
+  + this site  scripts/inkmaze-code/build/java/teavm-javac-inkmaze.patch (Apache-2.0), see below
+  TeaVM        0.13.1 from Maven Central (org.teavm:teavm-core, -classlib, -jso, -jso-apis, -jso-impl,
+               -interop, -platform, -tooling, relocated ASM 9.8 / HPPC / Rhino 1.7.15 / commons-io)
+  OpenJDK      jdk25u revision 6c48f4ed707bf0b15f9b6098de30db8aae6fa40f (javac; GPL-2.0 with the
+               Classpath Exception), https://github.com/openjdk/jdk25u/archive/6c48f4ed707bf0b15f9b6098de30db8aae6fa40f.zip
+  Build JDK    Temurin 25.0.3+9 (also compiles the harness: javac --release 25 -g -XDstringConcat=inline)
+  Gradle       9.1.0 (teavm-javac's wrapper)
+
+The site's patch (teavm-javac-inkmaze.patch)
+---------------------------------------------
+  guard/Guard.java             the cooperative deadline and allocation meter: static methods that
+                               call the "inkGuard" imports (check, limit, memory, exit), plus
+                               Java-semantics helpers (index, idiv, irem, ldiv, lrem).
+  guard/GuardTransformer.java  a TeaVM ClassHolderTransformer. PROGRAM mode (installed by
+                               Compiler.generateWebAssembly for every program, last): Guard.tick()
+                               at every loop header (back-edge target, exception edges included),
+                               at the entry of every method that calls anything and every 256
+                               instructions; Guard.work(n) before System.arraycopy; Guard.alloc*
+                               before every allocation (objects by field count, +4 KiB for a
+                               Throwable, +512 B for a Reference, +1 KiB for a Thread; arrays,
+                               multi-dimensional arrays, clones, reflect.Array.newInstance);
+                               Guard.exit in place of System.exit / Runtime.exit / Runtime.halt;
+                               in the player's classes (unnamed package) Guard.index before every
+                               array element access; integer division / remainder by a
+                               non-constant through Guard.idiv & co. COMPILER mode (installed by
+                               Patches while TeaVM builds the compiler itself): ticks, allocations
+                               and divisions in javac and TeaVM, so compiles stop at their deadline
+                               and memory budget (and javac no longer traps on MIN_VALUE / -1).
+                               Runtime support is never instrumented: org.teavm.runtime, .interop,
+                               .jso, .platform, *.runtime.* and the Guard (COMPILER mode also leaves
+                               out .classlib.impl). In PROGRAM mode the class library's helpers in
+                               org.teavm.classlib.impl ARE instrumented (since 2026-10-13): they are
+                               ordinary Java the player drives through java.*, e.g. java.util.Base64
+                               runs its whole loop and allocates its result in Base64Impl. Left out,
+                               a Base64 bomb grew WebKit to 4.5 GB unmetered, ran past the deadline
+                               into the host backstop and kept a core busy after terminate().
+  WasmBodyPatch.java + Patches a non-void method that can never return (a loop with no exit)
+                               made a function body without its result, which every engine
+                               rejects; a non-void body that ends with a statement now gets
+                               `unreachable` after it (applied to WasmGCMethodGenerator by Patches).
+  StdlibConverter.java         javac sees System.exit(int) (TeaVM's System has none).
+  Compiler.java                guard option (default on); compile() starts a fresh javac even when
+                               the previous compile was stopped mid-way.
+  JavaDiagnostic.java          fileName is null for a diagnostic without a source (a note), not a trap.
+  TeaVMDiagnostic.java         the rendered message, not the {{m0}} template.
+  WebAssemblyCompilationOptions.java, Worker.java   the guard option.
+  build.gradle                 runtime-classlib.bin also carries org/teavm/javac/guard/Guard.class.
+
+The limits runtime.js applies through the guard
+-----------------------------------------------
+  time        io.check() at least every 16,384 ticks (a tick: a loop header, a call, 256 instructions,
+              1,024 copied elements, 4 KiB allocated, 64 Throwables); a program stops itself at its
+              deadline, catch blocks cannot hold it (TeaVM catches only its Java exception tag)
+  memory      one allocation <= job.memoryLimitBytes (256 MiB); everything allocated in a run <= 2x
+              that (512 MiB, garbage included); javac may allocate 384 MiB and TeaVM 6 GiB per compile (garbage included; a
+              typical solution: TeaVM 0.5-0.6 GiB, a program that pulls in String.format, BigInteger,
+              regex, streams and most collections 2.7 GiB, which the old 2 GiB budget refused)
+  output      io.stdout / io.stderr (the output limit); answers go through the harness's own import
+  after a limit  a run stopped by its deadline or the output limit keeps the worker; memory_limit and
+              any limit while compiling replace it (the guard may have stopped javac or TeaVM anywhere)
+
+Rebuild
+-------
+  JAVA_HOME=<Temurin 25> sh scripts/inkmaze-code/build/java/build.sh
+(downloads the archive above and checks its hash, applies both patches, runs
+`./gradlew --no-daemon :compiler:build -x test`, compiles the harness, gzips
+compiler.wasm, copies the files here and prints their SHA-256). Two builds of
+the same tree are byte-identical; a tree that once built other versions may
+differ in a few hundred bytes of constants, so check a rebuild by function
+(scripts/inkmaze-code/test-runtime-java.mjs), not only by hash.
+
+Shipped files (SHA-256)
+-----------------------
+  runtime.js                    the Runtime (contract.ts), the site's own work, written by hand
+  teavm-runtime.js              TeaVM's WebAssembly GC loader (compiler.wasm-runtime.js), unchanged
+  compiler.gz.bin               gzip -9 -n of compiler.wasm (javac + TeaVM + the guard), inflated in
+                                the worker with DecompressionStream; named .bin so no server labels it
+                                Content-Encoding: gzip
+  compile-classlib.bin          the class library javac compiles against
+  runtime-classlib.bin          the class library TeaVM links (plus Guard.class)
+  deobfuscator.wasm             TeaVM's stack deobfuscator (line numbers in Chromium), unchanged
+  InkMazeHarness.class          the hidden harness (scripts/inkmaze-code/build/java/InkMazeHarness.java)
+  LICENSE-*.txt, NOTICE-third-party.txt   licence texts (see LICENSES.txt one folder up)
+
+  17729d4cb1d0fb240ea235b17c1bc95094a81442462aa73f4f724d66fa8824f6  runtime.js  (46,062 bytes)
+  bd103f277be99fd2f3ffc0248b3558e6c2c85a44902bfeef042c6bedcf0b2c63  teavm-runtime.js  (13,936 bytes)
+  3473f12f2b6e30c9f27edb06cb44c4e36b1c97eb00ed71f84e657f90fa07e8c9  compiler.gz.bin  (1,690,834 bytes)
+  26bec7c812c2dae0ab4e193687c153555cceb9a51fbadfda9157a3bfba2fd7a0  compile-classlib.bin  (200,186 bytes)
+  daa604dae42f032d23a0b5ef0fcf9375ffae4e4034d09e562158df6b3a827690  runtime-classlib.bin  (2,388,353 bytes)
+  0e8f5d502437a114c6b61b10e199ad40c947eaebcface06d84e09c608fdff44c  deobfuscator.wasm  (36,608 bytes)
+  a8c162101d2de80c6b149a28bf5a53b213ce3ab009f94f0573e5159824344c22  InkMazeHarness.class  (4,236 bytes)
+  e7c3e1ed874056773d97ee86784d3f40762d487ceb7ab31ae965877d741a88ef  compiler.wasm, inflated  (4,510,061 bytes)
+  total download: 4,380,290 bytes
+
+Measured (scripts/inkmaze-code/test-runtime-java.mjs, Chromium 151 and WebKit 26.5, M5 Max, localhost,
+2026-10-13, after the guard was extended to org.teavm.classlib.impl; the submission is problem.ts's
+17 boards at that date; the machine was shared with other jobs, so times are upper bounds)
+-------------------------------------------------------------------------------------------------------
+                                    Chromium 151            WebKit 26.5
+  download (first visit)            4.38 MB                 4.38 MB (compiler.wasm travels gzipped)
+  cold load, empty cache, localhost 179 ms to ready         213 ms
+  cold load at 20 Mbit/s + 40 ms    2.1 s to ready, first accepted submission at 3.2 s (Chromium only)
+  first Run after load (warm-up)    0.42 s                  1.4 s (the prelude waits for warm())
+  warm Run, reference, 17 boards    javac + TeaVM 462 ms,   527 ms, run 5 ms
+                                    run 1 ms
+  warm Run, naive, 17 boards        371 ms, run 5 ms        418 ms, run 15 ms
+  the same text again (cache)       1 ms                    5 ms
+  a library-heavy program           compile 2.5 s, browser  compile 3.0 s, peak 1.26 GiB
+  (format, BigInteger, regex,       peak 1.36 GiB
+  streams, most collections)
+  memory with Java loaded           +291 MiB (sandbox       +406 MiB (WebContent)
+                                    renderer + worker)
+  recursion (DFS-shaped method)     2000 frames ok,         300 ok, 400 overflows
+                                    4000 overflow           (200 is promised)
+  a 512 MiB allocation bomb         +0.5 GB peak            +0.6 GB peak in a fresh page; WebKit keeps
+                                                            freed memory resident: ~+2 GB after the
+                                                            suite's bombs in one page
+  Every runaway in test-runtime-java.mjs (33 programs: loops in catch / finally / recursion,
+  exponential recursion, threads, sleeping, wait() forever, threads ping-ponging, copies, a lying
+  comparator, library loops: streams, regex, String.join, Arrays.fill; output floods; allocation
+  bombs: arrays, small objects, multi-dimensional, string doubling, clones, reflection, exceptions,
+  threads, Base64 in the library's helper code; one Base64 decode stopped inside the call; compile
+  deadline and two compile bombs) was stopped by the guard (stoppedBy 'runtime', never 'host'), the
+  next run worked, and the CPU was back to <= 0.03 cores in the 1.5 s window from 0.3 s after the
+  limit (after memory_limit and compile limits: once the fresh worker had loaded), in both engines.
+  Positive control (an unchecked wasm loop, echo runtime): 1.05 / 1.07 cores after terminate().
+  Before the guard covered org.teavm.classlib.impl, a Base64 encode bomb reached the host backstop
+  in WebKit (stoppedBy 'host', 4.5 GB peak, a core still busy after terminate()).
+
+Known class-library gaps (TeaVM 0.13.1; the same with and without the guard; the suite pins each
+as a clean error): String.format / printf %f and %.2f (NullPointerException inside the library),
+%n (UnknownFormatConversionException), EnumMap / EnumSet (NullPointerException: no enum constants
+by reflection), Integer::sum and Collectors.groupingBy(f, mapFactory, downstream) (missing from
+the compile class library: javac says cannot find symbol / incompatible types).
