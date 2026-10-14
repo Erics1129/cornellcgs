@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import { CarrotUnity } from './unity'
+import build from './unity-build.json'
 import { CarrotReview } from './CarrotReview'
 import { menuSound, stopMenuSound } from './uiAudio'
 import { LevelCount, RECORD, awardCampaign, readCampaign, readSuper, recordSuper, saveCampaign, teachSuper } from './progress'
@@ -73,7 +74,7 @@ export default function CarrotPage(){
  const send=useCallback((command:Command)=>engine.current?.send(command),[])
  // Development preview only (tree-shaken from production): a QA harness can drive the level, read the live state, or inject a snapshot to review the HUD without the engine.
  useEffect(()=>{if(!preview)return;const w=window as unknown as {__carrot?:{send:(c:Command)=>void;state:()=>GameState|null;inject:(s:GameState|null)=>void;ready:()=>void}};w.__carrot={send:c=>engine.current?.send(c),state:()=>current.current,inject:s=>setState(s),ready:()=>{setError('');setReady(true)}};return()=>{delete w.__carrot}},[preview])
- useEffect(()=>{let active=true;fetch('/assets/minigames/carrot/game-data.json').then(r=>{if(!r.ok)throw new Error('The garden guide could not download. Please retry.');return r.json()}).then((d:GameDefinitions)=>{if(active&&Array.isArray(d.towers)&&Array.isArray(d.levels))setDefinitions(d)}).catch(e=>{if(active)setError(e.message)});return()=>{active=false}},[])
+ useEffect(()=>{let active=true;fetch(`/assets/minigames/carrot/game-data.json?v=${build.version}`).then(r=>{if(!r.ok)throw new Error('The garden guide could not download. Please retry.');return r.json()}).then((d:GameDefinitions)=>{if(active&&Array.isArray(d.towers)&&Array.isArray(d.levels))setDefinitions(d)}).catch(e=>{if(active)setError(e.message)});return()=>{active=false}},[])
  useEffect(()=>{const oldTitle=document.title;document.title='Carrot Defense 3D · Cornell CGS';document.documentElement.classList.add('ct-document');return()=>{document.title=oldTitle;document.documentElement.classList.remove('ct-document')}},[])
  useEffect(()=>{
   if(!entered||!mount.current)return
