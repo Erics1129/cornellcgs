@@ -55,6 +55,12 @@ export type Report = {
   animate: boolean
   /** an accepted submission: play every board, fast */
   montage: boolean
+  /**
+   * A run that stopped part way (a limit or a runtime error after some
+   * boards were answered): these boards' answers play first, fast, then the
+   * focus board shows where it stopped. Indices into the tests; [] otherwise.
+   */
+  partial: number[]
   /** extra lines for the Result tab */
   details: string[]
 }
@@ -67,8 +73,15 @@ export function testLabel(tests: readonly Board[], index: number): string {
   return `Hidden test ${index} of ${tests.length - 1}`
 }
 
+/** The same in a sentence: 'your map', 'hidden test 13' */
+function shortLabel(index: number): string {
+  return index === 0 ? 'your map' : `hidden test ${index}`
+}
+
 const ERROR_STATUSES: readonly RunStatus[] = ['compile_error', 'runtime_error', 'crashed']
 const LIMIT_STATUSES: readonly RunStatus[] = ['time_limit', 'memory_limit', 'output_limit']
+/** a run that ends like this may still have answered boards before it stopped, and those play */
+const PARTIAL_STATUSES: readonly RunStatus[] = [...LIMIT_STATUSES, 'runtime_error']
 
 function toneOf(status: RunStatus): Tone {
   if (ERROR_STATUSES.includes(status)) return 'error'
@@ -122,7 +135,7 @@ export function buildReport(kind: RunKind, tests: readonly Board[], result: RunR
     return { index: i, label: testLabel(tests, i), name: hidden && !revealed && state !== 'passed' ? 'Hidden board' : test.name, hidden, state, revealed, verdict, catches }
   })
 
-  const base = { kind, status: result.status, total, rows, details: [] as string[] }
+  const base = { kind, status: result.status, total, rows, details: [] as string[], partial: [] as number[] }
 
   if (judgement) {
     const passed = judgement.passed
@@ -162,14 +175,24 @@ export function buildReport(kind: RunKind, tests: readonly Board[], result: RunR
   if (stop !== null && result.status === 'crashed' && result.answered < total) details.push(`It answered ${plural(result.answered, 'board')} of ${total}.`)
   if (stop !== null && rows[stop].catches) details.push(`That test checks ${rows[stop].catches}.`)
   const lead = title.startsWith('Bug') ? title : `Bug: ${title}`
-  const banner = result.status === 'cancelled' ? 'Stopped before your code finished.'
-    : result.status === 'unavailable' ? result.message
-      : `${lead}. The ball did not move.`
   const answeredCount = verdicts.filter(Boolean).length
+  // the boards it answered before it stopped play first (a hidden one only when it passed or is the one revealed)
+  const partial = PARTIAL_STATUSES.includes(result.status)
+    ? rows.filter((row) => row.verdict && (row.state === 'passed' || row.revealed)).map((row) => row.index)
+    : []
+  let banner: string
+  if (result.status === 'cancelled') banner = 'Stopped before your code finished.'
+  else if (result.status === 'unavailable') banner = result.message
+  else if (partial.length && stop !== null) {
+    // 'Bug: Time Limit Exceeded on hidden test 13 (Big room).' (after the board, when it had answered that one already)
+    const name = stop > 0 && rows[stop].revealed ? ` (${tests[stop].name})` : ''
+    banner = `${lead} ${rows[stop].verdict ? 'after' : 'on'} ${shortLabel(stop)}${name}.`
+  } else if (partial.length) banner = `${lead}.`
+  else banner = `${lead}. The ball did not move.`
   return {
     ...base, title, tone: toneOf(result.status), message, accepted: false,
     passed: answeredCount ? verdicts.filter((v) => v?.kind === 'accepted').length : null,
-    banner, focus: stop !== null && rows[stop].revealed ? stop : 0, animate: false, montage: false, details,
+    banner, focus: stop !== null && rows[stop].revealed ? stop : (partial.at(-1) ?? 0), animate: false, montage: false, partial, details,
   }
 }
 

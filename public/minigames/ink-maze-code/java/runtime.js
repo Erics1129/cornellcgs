@@ -779,7 +779,7 @@ async function execute(bytes, job, io) {
 
   try { flush() } catch (error) { if (!thrown) thrown = error }
   const where = thrown ? await locate(thrown, bytes) : null
-  const at = (base) => describeWhere(base, where, R.board)
+  const at = (base) => describeWhere(base, where)
 
   // a limit, whatever else happened (D3, D6)
   if (io.limit || (thrown && thrown.name === 'LimitError') || (settled && settled.deadline)) {
@@ -798,7 +798,7 @@ async function execute(bytes, job, io) {
   if (thrown instanceof ExitCalled) {
     return {
       status: 'runtime_error',
-      message: `solve() must return; it called exit(${thrown.status})${R.board >= 0 ? ` on board ${R.board + 1}` : ''}.`,
+      message: `solve() must return; it called exit(${thrown.status}).`,
       error: { type: 'SystemExit', message: `solve() must return; it called exit(${thrown.status})`, line: where && where.line, column: null, test: R.board >= 0 ? R.board : null, trace: where && where.trace },
     }
   }
@@ -827,11 +827,10 @@ function limitError(status, message, where, board) {
   const type = { time_limit: 'TimeLimitExceeded', memory_limit: 'MemoryLimitExceeded', output_limit: 'OutputLimitExceeded' }[status]
   return { type, message, line: where ? where.line : null, column: null, test: board >= 0 ? board : null, trace: where ? where.trace : undefined }
 }
-function describeWhere(message, where, board) {
-  const parts = []
-  if (where && where.method) parts.push(`in ${where.method}${where.line ? `, line ${where.line}` : ''}`)
-  if (board >= 0) parts.push(`on board ${board + 1}`)
-  return parts.length ? `${message.replace(/\.$/, '')} (stopped ${parts.join(', ')}).` : message
+// which board it was on is the page's to say (error.test): it calls them 'your map' and 'hidden test N'
+function describeWhere(message, where) {
+  if (!where || !where.method) return message
+  return `${message.replace(/\.$/, '')} (stopped in ${where.method}${where.line ? `, line ${where.line}` : ''}).`
 }
 
 /** A Java exception the harness caught (H4): its class, message and the player's frames. */

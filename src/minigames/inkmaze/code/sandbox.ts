@@ -377,7 +377,9 @@ export class CodeSandbox {
     try {
       await new Promise<void>((resolve, reject) => waiting.waiters.push({ resolve, reject }))
     } finally {
-      if (!this.current && this._state.phase === 'loading') this.setState({ phase: 'idle' })
+      // only this runtime's own loading line ends here: a language picked meanwhile may be loading now
+      const state = this._state
+      if (!this.current && state.phase === 'loading' && runtimeFor(state.language) === runtime) this.setState({ phase: 'idle' })
     }
   }
 

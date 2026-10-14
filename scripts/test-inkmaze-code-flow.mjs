@@ -32,7 +32,9 @@
  *    judged move, the HUD agrees); each hostile program (scripts/inkmaze-code/
  *    flow-cases.mjs) shows its error and "The ball did not move", and on the
  *    desktop the browser's CPU is back to idle 0.3-1.8 s after a runaway
- *    (loop, recursion, output flood) hit its limit; Stop ends a
+ *    (loop, recursion, output flood, a long library call) hit its limit; a
+ *    submission that runs out of time part way plays the boards it answered
+ *    and then names the board it stopped on; Stop ends a
  *    runaway run at once; the limits each run got are the ones the problem
  *    states;
  *  - switching languages keeps each language's code, and so does a reload;
@@ -210,8 +212,18 @@ async function language(page, lang, view, notes, meter) {
     assert.equal(r.status, 'time_limit', `${where} unpruned search: ${r.status} ${r.result.message}`)
     assert.equal(r.title, STATUS_TITLES.time_limit)
     assert.equal(r.result.stoppedBy, 'runtime', `${where} unpruned search stopped itself at its deadline`)
-    assert.ok(r.result.answers.filter(Boolean).length < tests.length, `${where} unpruned search: not every board answered`)
-    assert.equal(r.settled, 0, `${where} unpruned search: the ball does not move`)
+    assert.ok(r.result.answered < tests.length, `${where} unpruned search: not every board answered`)
+    // the boards it answered before the limit play (fast), then the board it stopped on shows at rest
+    const played = r.report.partial.reduce((sum, i) => sum + r.report.rows[i].verdict.steps.length, 0)
+    assert.ok(r.report.partial.length >= 1, `${where} unpruned search: it answered the map at least`)
+    assert.equal(r.settled, played, `${where} unpruned search: one settled roll per move of the boards it answered`)
+    const stop = r.report.focus
+    assert.match(r.banner, new RegExp(`^Bug: ${STATUS_TITLES.time_limit} on ${stop === 0 ? 'your map' : `hidden test ${stop}`}`), `${where} unpruned search: "${r.banner}"`)
+    assert.doesNotMatch(r.banner, /did not move/, `${where} unpruned search: the ball did move`)
+    // the Result tab names the board one way only: the runtime's own message counts no boards of its own
+    assert.doesNotMatch(r.report.message, /\bboard \d/, `${where} unpruned search: "${r.report.message}"`)
+    assert.ok(r.report.details.some((line) => line.startsWith(`It stopped on ${stop === 0 ? 'your map' : `hidden test ${stop} of`}`)), `${where} unpruned search: ${r.report.details.join(' ')}`)
+    assert.equal(r.hud.moves, 0, `${where} unpruned search: the board it stopped on is at rest`)
     timings.push({ where, what: 'unpruned submit', ...r.result.timings })
   }
   if (view === 'phone' && info.runtime === 'clang') {
@@ -233,7 +245,7 @@ async function language(page, lang, view, notes, meter) {
   // what breaks: each shows its error and the ball does not move
   let idle = 0
   if (meter) { await pause(300); idle = await meter.cores(1500) }
-  const cases = view === 'desktop' ? ['compile', 'runtime', 'spin', 'recursion', 'allocate', 'flood', 'marker', 'exit'] : ['compile', 'spin']
+  const cases = view === 'desktop' ? ['compile', 'runtime', 'spin', 'recursion', 'allocate', 'flood', 'marker', 'exit', 'native'] : ['compile', 'spin']
   for (const name of cases) {
     const source = program(lang, name)
     if (!source) continue
@@ -248,11 +260,12 @@ async function language(page, lang, view, notes, meter) {
       assert.equal(line, LINE[lang].compile, `${where} compile error on line ${LINE[lang].compile}, not ${line}`)
       assert.ok(await page.locator('.imc-editor .cm-lintRange-error').count(), `${where}: the error is marked in the editor`)
     }
+    if (name === 'native') assert.equal(r.result.stoppedBy, 'runtime', `${where} native: the long library call stopped itself at its deadline`)
     if (name === 'spin') {
       assert.equal(r.result.stoppedBy, 'runtime', `${where} spin: the program stopped itself at its deadline`)
       assert.ok(r.result.timings.runMs >= timeLimitFor(lang, 'run') - 50 && r.result.timings.runMs < timeLimitFor(lang, 'run') + 1500, `${where} spin stopped at the limit: ${r.result.timings.runMs} ms`)
     }
-    if (meter && (name === 'spin' || name === 'flood' || name === 'recursion')) {
+    if (meter && (name === 'spin' || name === 'flood' || name === 'recursion' || name === 'native')) {
       // the runaway is really gone: the browser's CPU (WebKit's WebContent and GPU processes, or
       // Chromium's renderers) is back to idle in the 1.5 s from 0.3 s after the result
       // (the board has finished playing it by then; it plays nothing for a bug)

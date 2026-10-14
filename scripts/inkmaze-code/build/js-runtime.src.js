@@ -2,11 +2,35 @@
  * Ink Maze level 26: the JavaScript runtime. The player's JavaScript runs
  * inside QuickJS compiled to WebAssembly (quickjs-emscripten), never as the
  * worker's own JavaScript, so it cannot see the worker's globals, gets a hard
- * memory cap (QuickJS's own allocator) and a cooperative time limit (QuickJS's
- * interrupt handler, which makes even a tight loop return to JS so the worker
- * thread goes idle without terminate() -- the WebKit-safe stop of contract
- * D1-D9). A fresh QuickJS runtime and context per run means nothing a program
- * does can reach the next run.
+ * memory cap (QuickJS's own allocator) and a cooperative time limit, and the
+ * worker thread goes idle by itself at the limit, without terminate() (the
+ * WebKit-safe stop of contract D1-D9). A fresh QuickJS runtime and context
+ * per run means nothing a program does can reach the next run.
+ *
+ * The time limit has two layers:
+ *  1. QuickJS's interrupt handler. The bytecode interpreter polls it on every
+ *     jump back and every call, so a loop or a recursion in the player's
+ *     JavaScript ends with an uncatchable "interrupted" error at the deadline,
+ *     QuickJS unwinds cleanly and the worker stays (healthy).
+ *  2. Fuel in the machine code, for QuickJS's own C code. A built-in such as
+ *     'a'.repeat(1 << 21).indexOf('a'.repeat(1 << 20) + 'b') runs for minutes
+ *     inside one native call that never polls (split, replace and the default
+ *     sort run as long as their input lets them, too); in WebKit terminate()
+ *     cannot stop it either, and the thread kept a core busy after the page
+ *     was gone. So at
+ *     load quickjs.wasm goes through instrumentWasm(), the fuel pass the C
+ *     runtime uses too (src/minigames/inkmaze/code/runtimes/fuel.ts, set up
+ *     for QuickJS in quickjs-fuel.ts): a fuel counter at every loop header
+ *     and the entry of every function that calls, bulk memory ops charged by
+ *     length, and an "ink.check" import when the fuel runs out.
+ *     During a run that check throws a LimitError NATIVE_GRACE_MS past the
+ *     deadline (so the interrupt handler, the clean stop, goes first); the
+ *     throw unwinds every wasm frame back to run(), and as QuickJS's heap may
+ *     be mid-operation the runtime reports healthy: false and the worker is
+ *     replaced. The interpreter function itself is left without fuel (it is
+ *     the hot loop, ~45% slower with it, and layer 1 covers it), found by
+ *     its index and size in this pinned quickjs.wasm (quickjs-fuel.ts
+ *     INTERPRETER); if those do not match, nothing is exempt.
  *
  * Default-exports a Runtime (src/minigames/inkmaze/code/contract.ts). This file
  * is the esbuild entry; scripts/inkmaze-code/build/build-javascript.mjs bundles
@@ -16,6 +40,7 @@
  */
 import { newQuickJSWASMModuleFromVariant, newVariant } from 'quickjs-emscripten-core'
 import releaseSync from '@jitl/quickjs-wasmfile-release-sync'
+import { NATIVE_GRACE_MS, instrumentQuickJS } from '../../../src/minigames/inkmaze/code/runtimes/quickjs-fuel.ts'
 import harnessSource from './js-harness.js?text'
 
 const FILE = 'solution.js'
@@ -39,6 +64,10 @@ const PREAMBLE = `(function(){
 
 let QuickJS = null
 let hostRef = null
+/** what the instrumented QuickJS calls when its fuel runs out: nothing between runs, the deadline check during one */
+let fuelCheck = () => {}
+/** how the fuel pass went, for the load info and the tests */
+let fuelReport = null
 
 const RUNTIME = {
   id: 'javascript',
@@ -46,43 +75,76 @@ const RUNTIME = {
 
   async load(host) {
     hostRef = host
-    host.progress('Starting the JavaScript engine (QuickJS)', 1, 2)
-    // wasmBinary supplies the bytes (fetched through the page, under the CSP);
+    host.progress('Starting the JavaScript engine (QuickJS)', 1, 3)
+    // the bytes come through the page (host.asset, under the CSP); the fuel pass takes ~10 ms
+    const bytes = new Uint8Array(await host.asset('javascript/quickjs.wasm'))
+    const report = instrumentQuickJS(bytes)
+    const module = await WebAssembly.compile(report.bytes)
+    fuelReport = { functions: report.functions, loops: report.loops, bulk: report.bulk, exempted: report.exempted }
+    host.progress('Starting the JavaScript engine (QuickJS)', 2, 3)
+    // Emscripten hands its imports to instantiateWasm; the fuel check joins them as "ink".
     // locateFile keeps Emscripten from doing new URL('...', import.meta.url),
     // which throws here because this module was imported from a blob: URL.
+    let failInstantiate
+    const instantiateFailed = new Promise((_, reject) => { failInstantiate = reject })
     const variant = newVariant(releaseSync, {
-      wasmBinary: () => host.asset('javascript/quickjs.wasm'),
       locateFile: (file) => file,
+      emscriptenModule: {
+        instantiateWasm(imports, receive) {
+          WebAssembly.instantiate(module, { ...imports, ink: { check: () => fuelCheck() } })
+            .then((instance) => receive(instance, module), (error) => failInstantiate(error))
+          return {}
+        },
+      },
     })
-    QuickJS = await newQuickJSWASMModuleFromVariant(variant)
-    host.progress('Starting the JavaScript engine (QuickJS)', 2, 2)
+    QuickJS = await Promise.race([newQuickJSWASMModuleFromVariant(variant), instantiateFailed])
+    host.progress('Starting the JavaScript engine (QuickJS)', 3, 3)
     host.lockdown() // nothing more from the network; the player is inside QuickJS regardless
-    return { engine: 'quickjs', version: 'quickjs-emscripten 0.32.0' }
+    return { engine: 'quickjs', version: 'quickjs-emscripten 0.32.0', fuel: fuelReport }
   },
 
   async run(job, io) {
-    const rt = QuickJS.newRuntime()
-    rt.setMemoryLimit(job.memoryLimitBytes)
-    rt.setMaxStackSize(STACK_BYTES)
+    const tooLong = `Your code ran longer than ${seconds(job.timeLimitMs)}.`
+    // layer 2 (the header): past the deadline and the grace, QuickJS's C code is stopped where it is.
+    // Sticky: once it has thrown, every later check throws too, so whatever runs on this instance stops at once.
+    let trapped = false
+    fuelCheck = () => {
+      if (!trapped && io.timeLeft() > -NATIVE_GRACE_MS) return
+      if (!trapped) { trapped = true; io.hit('time_limit', tooLong) }
+      throw new io.LimitError('time_limit', tooLong)
+    }
+    let rt = null
+    let ctx = null
     let outputHit = false
     let interrupted = false
-    rt.setInterruptHandler(() => {
-      if (outputHit) return true
-      if (io.timeLeft() <= 0) { interrupted = true; return true }
-      return false
-    })
-    const ctx = rt.newContext()
-    const enc = new TextEncoder()
+    // the heap may be mid-operation after a trap (or anything else thrown out of the wasm): nothing of this QuickJS
+    // is touched again, and a fresh worker takes over (healthy: false)
+    const done = (res) => {
+      if (trapped) return { status: 'time_limit', message: tooLong, healthy: false }
+      if (res.healthy === false) return res
+      fuelCheck = () => {}
+      try { ctx?.dispose() } catch { /* ignore */ }
+      try { rt?.dispose() } catch { /* ignore */ }
+      return res
+    }
+    try {
+      rt = QuickJS.newRuntime()
+      rt.setMemoryLimit(job.memoryLimitBytes)
+      rt.setMaxStackSize(STACK_BYTES)
+      rt.setInterruptHandler(() => {
+        if (outputHit || trapped) return true
+        if (io.timeLeft() <= 0) { interrupted = true; return true }
+        return false
+      })
+      ctx = rt.newContext()
+    } catch (e) {
+      if (trapped) return done(null)
+      return done({ status: 'crashed', message: `The JavaScript runtime failed: ${String((e && e.message) || e).slice(0, 500)}`, healthy: false })
+    }
 
     const outWrite = (text) => { try { io.stdout(text) } catch (e) { if (isLimit(e)) outputHit = true; else throw e } }
     const errWrite = (text) => { try { io.stderr(text) } catch (e) { if (isLimit(e)) outputHit = true; else throw e } }
     let currentTest = null
-
-    const done = (res) => {
-      try { ctx.dispose() } catch { /* ignore */ }
-      try { rt.dispose() } catch { /* ignore */ }
-      return res
-    }
 
     try {
       // host functions reachable from inside QuickJS
@@ -132,9 +194,8 @@ const RUNTIME = {
         return done({ status: 'output_limit', message, healthy: true })
       }
       if (interrupted || (errorDump && /interrupted/i.test(String(errorDump.message)))) {
-        const message = `Your code ran longer than ${seconds(job.timeLimitMs)}.`
-        io.hit('time_limit', message)
-        return done({ status: 'time_limit', message, healthy: true })
+        io.hit('time_limit', tooLong)
+        return done({ status: 'time_limit', message: tooLong, healthy: true })
       }
       if (errorDump) {
         const info = describe(errorDump, currentTest)
@@ -149,10 +210,17 @@ const RUNTIME = {
       }
       return done({ status: 'ok', healthy: true })
     } catch (e) {
-      // a failure of QuickJS itself (e.g. a wasm trap): this runtime instance is done
+      // the fuel check stopped QuickJS's own code (done() reports it), or QuickJS itself failed (a wasm trap):
+      // either way this runtime instance is done
       if (isLimit(e)) {
         io.hit(e.limit)
-        return done({ status: e.limit, healthy: true })
+        return done({ status: e.limit, healthy: false })
+      }
+      // the browser's own stack ran out before QuickJS's limit (STACK_BYTES) said so: in WebKit a recursion about
+      // 240 deep does that while the engine still runs QuickJS unoptimized (a fresh worker). It is the player's
+      // recursion all the same, so it is reported as QuickJS reports its own.
+      if (e instanceof RangeError && /call stack/i.test(String(e.message))) {
+        return done({ status: 'runtime_error', error: { type: 'RangeError', message: 'stack overflow (the recursion went too deep)', line: null, column: null, test: currentTest }, healthy: false })
       }
       return done({ status: 'crashed', message: `The JavaScript runtime failed: ${String((e && e.message) || e).slice(0, 500)}`, healthy: false })
     }

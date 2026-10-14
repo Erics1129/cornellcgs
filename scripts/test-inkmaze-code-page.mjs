@@ -30,16 +30,26 @@
  *    editor, Runtime Error, Time Limit Exceeded, the harness broken, Stop;
  *  - Submit: Accepted plays every board and clears the level (saved, shown on
  *    the tile); a wrong submission shows only the first failing hidden board;
+ *  - a submission that stops part way (a limit after some boards): the boards
+ *    it answered play, then the board it stopped on shows, named on the board;
  *  - New board, speed, replay and skip; the console tabs by keyboard; the
- *    live region; a phone at 390 x 844 (stacked, the problem folds, the board
- *    comes into view after a run, no sideways scroll);
+ *    live region; a phone at 390 x 844 (stacked, the problem folds and folds
+ *    again when Run starts, the board comes into view after a run that moves
+ *    the ball and the console after one that cannot, the editor has no fold
+ *    or error gutter and wraps long lines, no sideways scroll); a phone held
+ *    sideways (844 x 390) gets the stacked layout too;
+ *  - from the 3D board (when the Unity build is on the server) to the coding
+ *    level and back five times: each switch is a page load, the 3D board is
+ *    back every time with no more WebGL contexts than at first, no console
+ *    errors, and the browser's memory does not grow trip after trip;
  *  - the JavaScript and Java runtimes, when they are on the server: a real
  *    depth-first search submitted through the screen is Accepted.
  */
 import assert from 'node:assert/strict'
 import { existsSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
-import { devServer, launch, pause } from './inkmaze-code-browser.mjs'
+import { spawnSync } from 'node:child_process'
+import { cpuMeter, devServer, launch, pause } from './inkmaze-code-browser.mjs'
 import { LEVELS } from '../src/minigames/inkmaze/levels.ts'
 import { applyMove, initialState, legalMoves, rollPath, status, DIRECTIONS } from '../src/minigames/inkmaze/engine.ts'
 import { minInk } from '../src/minigames/inkmaze/solver.ts'
@@ -110,8 +120,23 @@ const solve = (board) => letters(minInk(board).moves)
   assert.deepEqual(r.rows.map((row) => row.state), [...Array(5).fill('passed'), 'error', ...Array(tests.length - 6).fill('not-run')])
   assert.equal(r.focus, 5, 'the board it stopped on is shown'); assert.ok(r.rows[5].revealed); assert.equal(r.passed, 5)
   assert.ok(r.details.some((line) => line.includes(testLabel(tests, 5).toLowerCase())))
+  // it answered five boards before it stopped: those play first, then the board it stopped on, named
+  assert.deepEqual(r.partial, [0, 1, 2, 3, 4]); assert.ok(!r.animate && !r.montage)
+  assert.equal(r.banner, `Bug: Runtime Error on hidden test 5 (${tests[5].name}).`)
   r = report('run', [map], { status: 'time_limit', phase: 'run', stoppedBy: 'runtime', message: 'Your code ran longer than 4 s.' })
   assert.equal(r.title, 'Time Limit Exceeded'); assert.equal(r.tone, 'limit'); assert.equal(r.rows[0].state, 'error')
+  assert.deepEqual(r.partial, []); assert.equal(r.banner, 'Bug: Time Limit Exceeded. The ball did not move.', 'nothing answered: the ball did not move')
+  // a submission out of time on hidden test 13, the twelve before it and the map answered
+  r = report('submit', tests, { status: 'time_limit', phase: 'run', stoppedBy: 'runtime', answered: 13, answers: [...tests.slice(0, 13).map(solve), ...tests.slice(13).map(() => '')], message: 'Your code ran longer than 8 s.' })
+  assert.deepEqual(r.partial, [...Array(13).keys()]); assert.equal(r.focus, 13); assert.equal(r.passed, 13)
+  assert.equal(r.banner, `Bug: Time Limit Exceeded on hidden test 13 (${tests[13].name}).`)
+  assert.ok(r.details.includes(`It stopped on ${testLabel(tests, 13).toLowerCase()} (${tests[13].name}).`), 'the Result tab names the same board')
+  // a wrong hidden answer before the limit: that board is the one revealed; the board it stopped on keeps its name hidden
+  const early = tests.slice(0, 8).map(solve); early[2] = early[2] === 'U' ? 'D' : 'U'
+  r = report('submit', tests, { status: 'time_limit', phase: 'run', answered: 8, answers: [...early, ...tests.slice(8).map(() => '')] })
+  assert.equal(r.rows[2].state, 'failed'); assert.ok(r.rows[2].revealed); assert.ok(!r.rows[8].revealed)
+  assert.deepEqual(r.partial, [...Array(8).keys()], 'the boards it answered play: the passed ones and the one failure revealed')
+  assert.equal(r.focus, 7, 'it ends on the last board played'); assert.equal(r.banner, 'Bug: Time Limit Exceeded on hidden test 8.')
   r = report('run', [map], { status: 'crashed', phase: 'run', message: "Your code broke the game's runner." })
   assert.equal(r.title, STATUS_TITLES.crashed); assert.equal(r.banner, `${STATUS_TITLES.crashed}. The ball did not move.`)
   r = report('run', [map], { status: 'cancelled', message: 'Stopped.' })
@@ -316,7 +341,74 @@ async function runtimeRun(browser, base, language, program) {
   }
 }
 
+/** resident memory of these processes, in MB */
+function rssMB(pids) {
+  if (!pids.length) return 0
+  const out = spawnSync('ps', ['-o', 'rss=', '-p', pids.join(',')], { encoding: 'utf8' }).stdout
+  return Math.round(out.trim().split(/\s+/).filter(Boolean).reduce((sum, kb) => sum + Number(kb), 0) / 1024)
+}
+
+/**
+ * From the 3D board to the coding level and back, five times. Each switch is a
+ * page load (InkMazePage.tsx), so a page never shuts Unity down and starts it
+ * again (Quit() kept the whole build and its WebGL context, and WebKit logged
+ * WebGL errors as the canvas went). Skipped when the 3D board does not come up.
+ */
+async function unityTrips(browser, base, meter) {
+  meter.mark()
+  const page = await openPage(browser, null, { viewport: { width: 1280, height: 860 } })
+  // count the WebGL contexts each document makes
+  await page.context().addInitScript(() => {
+    const getContext = HTMLCanvasElement.prototype.getContext
+    window.__glContexts = 0
+    HTMLCanvasElement.prototype.getContext = function (type, ...rest) {
+      const context = getContext.call(this, type, ...rest)
+      if (context && /webgl/.test(String(type)) && !this.__inkCounted) { this.__inkCounted = true; window.__glContexts++ }
+      return context
+    }
+  })
+  try {
+    // codeRuntime=echo goes along to the coding level, so each visit loads the tiny echo runtime, not Java
+    await page.goto(`${base}/minigames/inkMaze/?level=${LEVELS.length}&codeRuntime=echo`)
+    const unity = async () => {
+      await page.waitForFunction(() => ['on', 'failed', 'off'].includes(document.querySelector('.im-stage')?.dataset.unity), null, { timeout: 120_000 })
+      return page.locator('.im-stage').getAttribute('data-unity')
+    }
+    const first = await unity()
+    if (first !== 'on') return `the 3D board is ${first} here: skipped the trips from it`
+    const pids = meter.capture()
+    // (support checks make throwaway contexts too: what matters is that a trip back makes no more than the first load)
+    const contexts = await page.evaluate(() => window.__glContexts)
+    assert.ok(contexts >= 1 && contexts <= 6, `the 3D board made ${contexts} WebGL contexts`)
+    await pause(1500)
+    const memory = [rssMB(pids)]
+    for (let trip = 1; trip <= 5; trip++) {
+      await page.locator('.im-levels__code').click()
+      await page.waitForSelector('.imc-editor .cm-content', { timeout: 30_000 })
+      assert.match(page.url(), new RegExp(`level=${CODE_NUMBER}`))
+      await page.waitForFunction(() => document.querySelector('.imc-statusbar__ready'), null, { timeout: 30_000 })
+      assert.equal(await page.evaluate(() => window.__glContexts), 0, `trip ${trip}: the coding level makes no WebGL context`)
+      await page.locator('.imc-back').click()
+      await page.waitForSelector('#ink-maze-board[data-ready="true"]', { timeout: 30_000 })
+      assert.equal(await unity(), 'on', `trip ${trip}: the 3D board is back`)
+      assert.equal(await page.locator('.im-levels__item[aria-current="true"]').textContent(), String(LEVELS.length), `trip ${trip}: on the level it left`)
+      assert.equal(await page.evaluate(() => window.__glContexts), contexts, `trip ${trip}: the page made as many WebGL contexts as the first time`)
+      await pause(1500)
+      memory.push(rssMB(meter.capture()))
+    }
+    noteSandbox(page)
+    assert.deepEqual(page.errors, [], 'no console errors on the trips (WebGL ones included)')
+    // the leak this guards against added 130-190 MB a trip; a page load gives it all back
+    const growth = Math.max(...memory.slice(2)) - memory[1]
+    assert.ok(growth < 250, `the browser's memory does not grow trip after trip: ${memory.join(' -> ')} MB`)
+    return `3D board <-> coding level, 5 trips: Unity back each time, browser memory ${memory.join(' -> ')} MB`
+  } finally {
+    await page.close()
+  }
+}
+
 async function testBrowser(name, base) {
+  const meter = cpuMeter()
   const browser = await launch(name)
   const notes = []
   try {
@@ -522,6 +614,18 @@ async function testBrowser(name, base) {
     for (let i = 2; i < tests.length; i++) {
       if ((await rows.nth(i).getAttribute('data-state')) === 'failed') assert.equal(await rows.nth(i).locator('.imc-mini').count(), 0, `hidden test ${i} stays hidden`)
     }
+    await page.getByRole('tab', { name: 'Result' }).click()
+
+    // out of time part way through a submission: the map it answered plays, then the board it stopped on shows
+    await setSource(page, `answer ${solution}\nspin\n`)
+    r = await runCode(page, 'submit')
+    assert.equal(r.title, STATUS_TITLES.time_limit)
+    assert.deepEqual(r.report.partial, [0])
+    assert.deepEqual(r.events.filter((e) => e.type === 'clip').map((e) => e.index), [0], 'the map it answered plays')
+    assert.equal(settledCount(r.events), r.report.rows[0].verdict.steps.length, 'every move of that answer rolls')
+    assert.equal(r.banner, `Bug: ${STATUS_TITLES.time_limit} on hidden test 1 (${tests[1].name}).`)
+    assert.equal(await page.locator('.imc-screen__label strong').textContent(), testLabel(tests, 1), 'the board it stopped on is shown')
+    assert.equal(r.hud.moves, 0, '...at rest')
 
     // speed, replay, a new map
     await page.locator('.imc-speed__option', { hasText: '4×' }).click()
@@ -595,23 +699,71 @@ async function testBrowser(name, base) {
       const b = await phone.locator(selector).first().boundingBox()
       assert.ok(b.height >= 44, `${selector} is a 44px target on a phone`)
     }
-    await setSource(phone, 'solve\n')
+    // the editor gives the phone's width to the code: no fold or error gutter, and long lines wrap
+    const editorLayout = () => phone.evaluate(() => {
+      const scroller = document.querySelector('.imc-editor .cm-scroller')
+      return {
+        fold: document.querySelectorAll('.imc-editor .cm-foldGutter').length,
+        lint: document.querySelectorAll('.imc-editor .cm-gutter-lint').length,
+        wrapping: document.querySelector('.imc-editor .cm-content').classList.contains('cm-lineWrapping'),
+        sideways: scroller.scrollWidth - scroller.clientWidth,
+      }
+    })
+    await setSource(phone, `# ${'a comment long enough to run past the edge of a phone, '.repeat(3)}\nsolve\n`)
+    assert.deepEqual(await editorLayout(), { fold: 0, lint: 0, wrapping: true, sideways: 0 }, 'no gutters but the line numbers, and long lines wrap')
+    // a run that moves the ball: the problem folds away when it starts, and the board comes into view
+    await toggle.click()
+    assert.equal(await toggle.getAttribute('aria-expanded'), 'true')
     await phone.locator('.imc-btn--run').scrollIntoViewIfNeeded()
     r = await runCode(phone)
     assert.equal(r.title, 'Accepted')
+    assert.equal(await toggle.getAttribute('aria-expanded'), 'false', 'Run folds the problem away')
     const top = await phone.evaluate(() => document.querySelector('.imc-screen').getBoundingClientRect().top)
     const bar = await phone.evaluate(() => document.querySelector('.sp-bar').getBoundingClientRect().bottom)
     assert.ok(top >= bar - 1 && top < 300, `the board is in view after a run (top ${top}, bar ${bar})`)
+    const runTop = await phone.evaluate(() => document.querySelector('.imc-btn--run').getBoundingClientRect().top)
+    assert.ok(runTop < 844 * 1.5, `Run is close by for the next try (${Math.round(runTop)} px down)`)
+    // a run where the ball cannot move (a compile error): the console's result comes into view instead
+    await setSource(phone, 'compile-error expected ;\n')
+    await phone.locator('.imc-btn--run').scrollIntoViewIfNeeded()
+    r = await runCode(phone)
+    assert.equal(r.title, 'Compile Error')
+    await pause(900) // the smooth scroll
+    // (the console is near the end of the page, so it may stop short of the top: its result just has to be in view)
+    const result = await phone.evaluate(() => {
+      const title = document.querySelector('.imc-result__title').getBoundingClientRect()
+      return { top: title.top, bottom: title.bottom, board: document.querySelector('.imc-screen').getBoundingClientRect().top }
+    })
+    assert.ok(result.top >= bar - 1 && result.bottom <= 844, `the console's result is in view after a compile error (${JSON.stringify(result)})`)
+    assert.ok(result.board < bar, 'and the page did not jump back to the board')
     assert.equal(await phone.evaluate(() => document.documentElement.scrollWidth - innerWidth), 0)
     noteSandbox(phone)
     assert.deepEqual(phone.errors, [])
     await phone.close()
 
+    // ---------------------------------------------- a phone held sideways: stacked too, nothing past the right edge
+    const sideways = await openPage(browser, codeUrl(base), { viewport: { width: 844, height: 390 }, isMobile: true, hasTouch: true })
+    await ready(sideways)
+    const wide = await sideways.evaluate(() => ({
+      sideways: document.documentElement.scrollWidth - innerWidth,
+      split: getComputedStyle(document.querySelector('.imc-split')).display,
+      submit: document.querySelector('.imc-btn--submit').getBoundingClientRect().right,
+      right: document.querySelector('.imc-right').getBoundingClientRect().right,
+    }))
+    assert.equal(wide.sideways, 0, 'no sideways scroll on a phone held sideways')
+    assert.equal(wide.split, 'none', 'the panes stack on a phone held sideways')
+    assert.ok(wide.submit <= 844 && wide.right <= 844, `nothing runs off the right edge (${JSON.stringify(wide)})`)
+    assert.deepEqual(sideways.errors, [])
+    await sideways.close()
+
+    // ---------------------------------------------- the 3D board and back
+    notes.push(await unityTrips(browser, base, meter))
+
     // ---------------------------------------------- the JavaScript runtime, when it is on the server
     notes.push(await runtimeRun(browser, base, 'javascript', JS_SOLUTION))
     notes.push(await runtimeRun(browser, base, 'java', JAVA_SOLUTION))
 
-    console.log(`PASS ${name}: board levels untouched, the tile, lazy loading, the editor, every result moves the ball, Submit and the montage, the first failing hidden board, speed/replay/skip/new map, code kept per language, a phone`)
+    console.log(`PASS ${name}: board levels untouched, the tile, lazy loading, the editor, every result moves the ball, Submit and the montage, the first failing hidden board, a submission stopped part way, speed/replay/skip/new map, code kept per language, a phone upright and sideways, the 3D board and back`)
     for (const note of notes) console.log(`  ${name}: ${note}`)
     for (const line of sandboxRefusals) console.log(`  ${name}: the sandbox's CSP refused (a runtime's business): ${line}`)
     sandboxRefusals.clear()

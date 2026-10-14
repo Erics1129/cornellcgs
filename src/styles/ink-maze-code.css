@@ -31,7 +31,8 @@
 /* ---- the two panes ---------------------------------------------------------- */
 .imc-main {
   display: grid;
-  grid-template-columns: minmax(20rem, var(--imc-left, 44%)) 12px minmax(26rem, 1fr);
+  /* the minimums give way before they could add up to more than the window */
+  grid-template-columns: minmax(min(20rem, 44%), var(--imc-left, 44%)) 12px minmax(min(26rem, 54%), 1fr);
   height: calc(100svh - var(--imc-bar) - 1px);
   min-height: 36rem;
   padding: 10px 14px 14px;
@@ -311,7 +312,9 @@ span.imc-diagnostics__where { text-decoration: none; color: var(--imc-dark-dim);
 .imc-tests__why { color: var(--imc-red-text); }
 
 /* ---- a phone (and a narrow window): one column -------------------------------------- */
-@media (max-width: 760px) {
+/* also a touch screen held sideways (844 x 390 ...): the phone's large root font would make
+   the two panes wider than the screen. Keep in step with code/ui/layout.ts STACKED_QUERY. */
+@media (max-width: 760px), (pointer: coarse) and (max-height: 500px) {
   .subpage--ink-code { --imc-bar: 4rem; }
   /* as wide as the phone allows, never taller than 19rem (set here: --imc-aspect lives on the board) */
   .imc-board { height: min(19rem, calc((100vw - 3rem) / var(--imc-aspect, 1))); }
@@ -336,9 +339,16 @@ span.imc-diagnostics__where { text-decoration: none; color: var(--imc-dark-dim);
   .imc-btn--ghost { min-height: 40px; }
   .imc-tool, .imc-speed__option, .imc-back { min-height: 44px; }
   .imc-example__body { flex-direction: column; }
-  .imc-editor .cm-foldGutter, .imc-editor .cm-gutter-lint { display: none; } /* room for code; errors stay underlined */
+  /* room for code: Editor.tsx leaves these gutters out here (errors stay underlined); this is
+     the fallback, and it needs !important to beat CodeMirror's own '.cm-gutter { display: flex !important }' */
+  .imc-editor .cm-gutter.cm-foldGutter, .imc-editor .cm-gutter.cm-gutter-lint { display: none !important; }
 }
-@media (max-width: 760px) and (pointer: coarse) {
+/* sideways on a phone the screen is short: the board leaves room for the tools under it */
+@media (pointer: coarse) and (max-height: 500px) {
+  .imc-board { height: min(19rem, 62svh, calc((100vw - 3rem) / var(--imc-aspect, 1))); }
+  .imc-editor { height: min(80svh, 32rem); }
+}
+@media (max-width: 760px) and (pointer: coarse), (pointer: coarse) and (max-height: 500px) {
   .imc-editor .cm-editor { font-size: 16px; } /* 16px: Safari does not zoom in on the editor */
 }
 @media (prefers-reduced-motion: reduce) {

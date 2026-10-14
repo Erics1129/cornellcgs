@@ -16,8 +16,13 @@
  *
  * After the last board level comes the coding level (code/CodeLevel.tsx, a
  * lazy chunk with its editor and sandbox): its tile ends the level list, and
- * ?level=<its number> or ?level=code opens it. The board game unmounts while
- * it is open and comes back on the level the player left.
+ * ?level=<its number> or ?level=code opens it. Going there and back is a real
+ * page load (like the site's other pages, lib/router.ts), never a switch
+ * inside this page: the Unity build cannot be shut down and started again in
+ * one page (Quit() frees neither its memory nor its WebGL context, and WebKit
+ * logs WebGL errors as React removes its canvas), and a phone needs that
+ * memory back before a compiler loads. The board comes back on the level the
+ * player left (kept for the tab in sessionStorage).
  */
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { CSSProperties } from 'react'
@@ -94,11 +99,32 @@ function startingLevel(bests: Bests): number | 'code' {
   return firstOpenLevel(bests)
 }
 
-/** Puts ?level=<number> in the address bar without a new history entry. */
-function showLevelInUrl(number: number) {
+/**
+ * Opens ?level=<number> as a new page (the other parameters, such as ?renderer=, stay).
+ * It replaces this history entry, as level changes always have: Back still leaves the
+ * game, and the page left behind cannot wait in the back-forward cache with Unity's memory.
+ */
+function loadLevelPage(number: number) {
   const url = new URL(location.href)
   url.searchParams.set('level', String(number))
-  history.replaceState(null, '', url)
+  location.replace(url.href)
+}
+
+/** the board level (1-based) the coding level goes back to, for this tab */
+const RETURN_KEY = 'cgs-inkmaze-return-v1'
+
+function rememberReturn(number: number) {
+  try {
+    sessionStorage.setItem(RETURN_KEY, String(number))
+  } catch { /* storage blocked: the way back is the last board level */ }
+}
+
+function returnLevel(): number {
+  let saved = NaN
+  try {
+    saved = Number(sessionStorage.getItem(RETURN_KEY))
+  } catch { /* storage blocked */ }
+  return Number.isInteger(saved) && saved >= 1 && saved <= LEVELS.length ? saved : LEVELS.length
 }
 
 /** The saved sound choice, for the button's first render (sound.ts owns the setting). */
@@ -129,22 +155,16 @@ function SoundIcon({ on }: { on: boolean }) {
 }
 
 /**
- * The page: the board levels, or the coding level after them. Switching
- * remounts the board game, which starts on the level it is given.
+ * The page: the board levels, or the coding level after them, as the address
+ * says. Switching between them loads the other page.
  */
 export default function InkMazePage() {
-  const [open, setOpen] = useState<number | 'code'>(() => startingLevel(loadBests()))
-  /** the board level to come back to from the coding level */
-  const lastLevel = useRef(typeof open === 'number' ? open : LEVELS.length - 1)
+  const [open] = useState<number | 'code'>(() => startingLevel(loadBests()))
   const openCode = useCallback((from: number) => {
-    lastLevel.current = from
-    showLevelInUrl(CODE_NUMBER)
-    setOpen('code')
+    rememberReturn(from + 1)
+    loadLevelPage(CODE_NUMBER)
   }, [])
-  const leaveCode = useCallback(() => {
-    showLevelInUrl(lastLevel.current + 1)
-    setOpen(lastLevel.current)
-  }, [])
+  const leaveCode = useCallback(() => loadLevelPage(returnLevel()), [])
   if (open === 'code') {
     return <Suspense fallback={<CodeLevelLoading />}>
       <CodeLevel number={CODE_NUMBER} levelCount={LEVELS.length} onLeave={leaveCode} />

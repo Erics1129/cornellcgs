@@ -12,9 +12,12 @@
  * the engine, and the game screen plays the judged moves, so every run moves
  * the ball: a move into a wall bumps and stops with the error, an empty pot
  * shows the board out of ink, and code that does not compile, throws, runs
- * too long or breaks the harness shows a bug instead. An accepted submission
- * plays a quick montage of every board and marks the level cleared
- * (progress.ts).
+ * too long or breaks the harness shows a bug instead. Code that answered some
+ * boards before it threw or hit a limit plays those boards fast, then shows
+ * the board it stopped on. An accepted submission plays a quick montage of
+ * every board and marks the level cleared (progress.ts). On a phone the
+ * panes stack (ui/layout.ts): Run folds the problem away, and afterwards the
+ * board comes into view when the ball moves, the console when it cannot.
  *
  * This file is a lazy chunk: CodeMirror, the problem and the sandbox load
  * only when the coding level opens, and a language's toolchain only when it
@@ -32,6 +35,7 @@ import type { Language, RunKind, RunLanguage, RunResult, RuntimeId, SandboxState
 import { BoardGenerationError, HIDDEN_TESTS, PROBLEM, STARTER_CODE, judgeRun, randomBoard, submissionTests } from './problem.ts'
 import type { Board } from './problem.ts'
 import { CODE_LEVEL } from './ui/level.ts'
+import { STACKED_QUERY, stackedNow } from './ui/layout.ts'
 import { buildReport, testLabel } from './ui/report.ts'
 import type { Report } from './ui/report.ts'
 import { verdictMs } from './ui/playback.ts'
@@ -141,10 +145,11 @@ export default function CodeLevel({ number, levelCount, onLeave }: Props) {
   const [cleared, setCleared] = useState(() => !!loadBests()[CODE_LEVEL.id])
   const [cursor, setCursor] = useState({ line: 1, column: 1 })
   const [saved, setSaved] = useState(true)
-  const phone = useMedia('(max-width: 760px)')
+  /** the panes stack (a phone, upright or sideways): board, problem, editor, console */
+  const phone = useMedia(STACKED_QUERY)
   const phoneRef = useRef(phone)
   phoneRef.current = phone
-  const [problemCollapsed, setProblemCollapsed] = useState(() => window.matchMedia('(max-width: 760px)').matches)
+  const [problemCollapsed, setProblemCollapsed] = useState(stackedNow)
   const [leftShare, setLeftShare] = useState(44)
   const [consoleShare, setConsoleShare] = useState(36)
 
@@ -243,13 +248,13 @@ export default function CodeLevel({ number, levelCount, onLeave }: Props) {
     const clip = (i: number, s: number, gapMs: number): Clip => ({
       board: tests[i], index: i, label: testLabel(tests, i), name: tests[i].name, verdict: report.rows[i].verdict!, speed: s, gapMs,
     })
-    if (report.montage) {
-      return tests.map((_, i) => {
-        const verdict = report.rows[i].verdict!
-        const fast = Math.min(14, Math.max(2.5, verdictMs(verdict) / MONTAGE_BOARD_MS))
-        return { ...clip(i, fast, 20), quiet: true }
-      })
+    const fastClip = (i: number): Clip => {
+      const fast = Math.min(14, Math.max(2.5, verdictMs(report.rows[i].verdict!) / MONTAGE_BOARD_MS))
+      return { ...clip(i, fast, 20), quiet: true }
     }
+    if (report.montage) return tests.map((_, i) => fastClip(i))
+    // stopped part way: the boards it answered, fast, like the montage (the stopped board shows after)
+    if (report.partial.length) return report.partial.map(fastClip)
     if (report.animate && report.rows[report.focus]?.verdict) return [clip(report.focus, playSpeed, Math.round(150 / playSpeed))]
     return []
   }, [])
@@ -266,8 +271,12 @@ export default function CodeLevel({ number, levelCount, onLeave }: Props) {
       setBanner({ tone: report.tone, text: report.banner })
       return
     }
-    const finished = await s.play(clips, report.montage ? 160 : 600)
-    if (finished && alive.current) setBanner({ tone: report.tone, text: report.banner })
+    const fast = report.montage || report.partial.length > 0
+    const finished = await s.play(clips, fast ? 160 : 600)
+    if (!finished || !alive.current) return
+    // a run that stopped part way ends on the board it stopped on, at rest
+    if (report.partial.length && !report.partial.includes(report.focus)) s.show(tests[report.focus], testLabel(tests, report.focus))
+    setBanner({ tone: report.tone, text: report.banner })
   }, [clipsFor])
 
   const replay = () => {
@@ -277,7 +286,11 @@ export default function CodeLevel({ number, levelCount, onLeave }: Props) {
 
   /** the game screen skipped to the end of its playback: the result line shows now */
   const skip = () => {
-    if (last) setBanner({ tone: last.report.tone, text: last.report.banner })
+    if (!last) return
+    const { report, tests } = last
+    // as at the end of the playback: a run that stopped part way shows the board it stopped on
+    if (report.partial.length && !report.partial.includes(report.focus)) screen.current?.show(tests[report.focus], testLabel(tests, report.focus))
+    setBanner({ tone: report.tone, text: report.banner })
   }
 
   // ------------------------------------------------------------- Run and Submit
@@ -289,6 +302,8 @@ export default function CodeLevel({ number, levelCount, onLeave }: Props) {
     const tests = kind === 'run' ? [board] : submissionTests(board)
     busyRef.current = kind
     setBusy(kind)
+    // on a phone the problem folds away, so Run stays near the board for the next try
+    if (phoneRef.current) setProblemCollapsed(true)
     screen.current?.show(board, 'Your map')
     setBanner(null)
     setTab('result')
@@ -324,9 +339,12 @@ export default function CodeLevel({ number, levelCount, onLeave }: Props) {
       recordWin(CODE_LEVEL.id, { ink: verdict.inkUsed, moves: verdict.steps.length })
       setCleared(true)
     }
-    // on a phone the board is above the editor: bring it into view so the ball is seen to move
+    // on a phone the board is above the editor: bring it into view when the ball will move; when it
+    // cannot (the code did not compile, or stopped before it answered a board), the console's result instead
     if (phoneRef.current) {
-      const box = main.current?.querySelector('.imc-screen')?.getBoundingClientRect()
+      const moves = report.animate || report.montage || report.partial.length > 0
+      const target = main.current?.querySelector(moves ? '.imc-screen' : '.imc-console')
+      const box = target?.getBoundingClientRect()
       const bar = document.querySelector('.sp-bar')?.getBoundingClientRect().height ?? 0
       if (box && (box.top < bar || box.top > innerHeight * 0.5)) {
         window.scrollTo({ top: scrollY + box.top - bar - 8, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' })
@@ -407,7 +425,9 @@ export default function CodeLevel({ number, levelCount, onLeave }: Props) {
   const runtimeId = runtimeFor(language)
   const runtime = sandbox?.runtimeInfo(language)
   const loading = sandboxState.phase === 'loading' && sandboxState.language === language ? sandboxState : null
-  const total = loading?.total || RUNTIME_INFO[runtimeId].downloadBytes
+  // the size is what comes over the network: a runtime's own progress may count something else (the
+  // C/C++ compiler counts its unpacked 105 MB), so its numbers give only the percentage
+  const total = RUNTIME_INFO[runtimeId].downloadBytes
   const percent = loading && loading.total && loading.done ? Math.min(100, Math.round((loading.done / loading.total) * 100)) : null
   // the runtime's own step ("Starting the compiler"), when it has said one
   const step = loading && loading.label !== `Loading ${info.label}` ? ` ${loading.label}` : ''

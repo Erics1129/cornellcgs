@@ -21,6 +21,12 @@
  *     recursion, deep recursion, an allocation bomb, an output flood) is stopped
  *     by QuickJS's interrupt handler / memory cap and the CPU is back to idle
  *     within ~1 s of the limit, in WebKit too (terminate() is only the backstop);
+ *   - a long call inside one of QuickJS's own built-ins (a string search, split,
+ *     replace, a default sort of millions of strings), which never reaches the
+ *     interrupt handler, is stopped by the fuel in quickjs.wasm (stoppedBy
+ *     'runtime', the worker replaced) and the CPU is back to idle, in WebKit too;
+ *     the fuel pass exempts exactly the interpreter (INTERPRETER matches the
+ *     shipped quickjs.wasm);
  *   - the player cannot reach the worker's globals (postMessage, close) and a
  *     re-declared harness name is harmless;
  *   - a positive control shows the meter sees the QuickJS worker's CPU.
@@ -32,8 +38,42 @@ import { judgeAll, randomBoard, submissionTests } from '../../src/minigames/inkm
 import { LIMITS } from '../../src/minigames/inkmaze/code/contract.ts'
 import { checkConsistency } from '../../src/minigames/inkmaze/code/runtimes/javascript.ts'
 import { cpuMeter, devServer, launch, openCodePage, pause, runOnPage } from '../inkmaze-code-browser.mjs'
+import { INTERPRETER, NATIVE_GRACE_MS, instrumentQuickJS } from '../../src/minigames/inkmaze/code/runtimes/quickjs-fuel.ts'
 
 assert.deepEqual(checkConsistency(), [], 'contract.ts / problem.ts agree with the JavaScript runtime')
+
+// the fuel pass over the shipped quickjs.wasm (in Node): it validates, and the one function it exempts is the
+// interpreter, the biggest body in the module (if the wasm changes, INTERPRETER must be found again)
+{
+  const wasm = new Uint8Array(readFileSync(fileURLToPath(new URL('../../public/minigames/ink-maze-code/javascript/quickjs.wasm', import.meta.url))))
+  const sizes = codeBodySizes(wasm)
+  assert.equal(Math.max(...sizes), INTERPRETER.bodyBytes, 'INTERPRETER is the biggest function body in quickjs.wasm')
+  assert.equal(sizes.indexOf(INTERPRETER.bodyBytes), INTERPRETER.index, 'INTERPRETER.index points at it')
+  const report = instrumentQuickJS(wasm)
+  assert.equal(report.exempted, 1, 'exactly one function goes without fuel')
+  assert.ok(report.loops > 1000 && report.bulk > 50, `loops and bulk ops are metered (${report.loops} loops, ${report.bulk} bulk ops)`)
+  assert.ok(WebAssembly.validate(report.bytes), 'the instrumented quickjs.wasm validates')
+  assert.ok(NATIVE_GRACE_MS > 0 && NATIVE_GRACE_MS + 100 < LIMITS.selfStopSlackMs, 'a native call stops well inside the self-stop slack')
+}
+
+/** the body size of every defined function, in order */
+function codeBodySizes(bytes) {
+  let p = 8
+  const u32 = () => { let r = 0, shift = 0, b; do { b = bytes[p++]; r |= (b & 0x7f) << shift; shift += 7 } while (b & 0x80); return r >>> 0 }
+  while (p < bytes.length) {
+    const id = bytes[p++]
+    const size = u32()
+    const start = p
+    if (id === 10) {
+      const n = u32()
+      const sizes = []
+      for (let i = 0; i < n; i++) { const s = u32(); sizes.push(s); p += s }
+      return sizes
+    }
+    p = start + size
+  }
+  throw new Error('no code section')
+}
 
 const SOL = fileURLToPath(new URL('./solutions/', import.meta.url))
 const REF = readFileSync(SOL + 'javascript-reference.js', 'utf8')
@@ -80,6 +120,7 @@ async function suite(name) {
     log(`cold load: ${loadMs} ms; ${JSON.stringify(info.info)}`)
     assert.equal(info.status, 'ready')
     assert.equal(info.info.engine, 'quickjs')
+    assert.equal(info.info.fuel?.exempted, 1, 'QuickJS loaded with its fuel pass (the interpreter exempt)')
     assert.ok(!page.requests.some((u) => /cdn\.jsdelivr|unpkg|skypack/.test(u)), 'JavaScript needs nothing from a CDN')
     assert.ok(page.requests.some((u) => u.includes('/ink-maze-code/javascript/quickjs.wasm')), 'the QuickJS wasm is self-hosted')
     await pause(400)
@@ -140,6 +181,23 @@ async function suite(name) {
     await runaway('regex backtracking', solve('return "aaaaaaaaaaaaaaaaaaaaaaaaaaa!".replace(/(a+)+$/, "")'), 'time_limit')
     await runaway('output flood', solve('while (true) console.log("x".repeat(2000))'), 'output_limit', { timeLimitMs: 4000 })
     await runaway('allocation bomb', solve('const a = []; while (true) a.push(new Array(100000).fill(0))'), 'memory_limit', { timeLimitMs: 4000 })
+    // a long call inside QuickJS's own C code never reaches the interrupt handler: the fuel stops it
+    // (the worker is replaced, since QuickJS's heap may be mid-operation)
+    // (each of these runs for minutes without the fuel; the interrupt handler cannot fire inside it, so a stop
+    // NATIVE_GRACE_MS after the deadline shows it was the fuel)
+    const native = async (name2, source, timeLimitMs = 1000) => {
+      const res = await runaway(name2, solve(source), 'time_limit', { timeLimitMs })
+      const ms = res.timings.runMs
+      assert.ok(ms >= timeLimitMs + NATIVE_GRACE_MS - 30 && ms <= timeLimitMs + NATIVE_GRACE_MS + LIMITS.selfStopSlackMs, `${name2}: the fuel stopped it just past its deadline (${ms} ms, limit ${timeLimitMs} ms)`)
+      log(`${name2}: stopped at ${ms} ms (limit ${timeLimitMs} ms)`)
+      return res
+    }
+    await native('string search (indexOf)', "const s = 'a'.repeat(1 << 21); const t = 'a'.repeat(1 << 20) + 'b'; return String(s.indexOf(t))")
+    await native('split', "const s = 'a'.repeat(1 << 21); return String(s.split('a'.repeat(1 << 20) + 'b').length)")
+    await native('lastIndexOf', "const s = 'a'.repeat(1 << 21); return String(s.lastIndexOf('a'.repeat(1 << 20) + 'b'))")
+    await native('replace', "const s = 'a'.repeat(1 << 21); return s.replace('a'.repeat(1 << 20) + 'b', '').slice(0, 1)")
+    // six million numbers (built in C too), then the default sort, which compares them as strings, in C, for seconds
+    await native('default sort', 'const a = [...Array(6e6).keys()]; a.sort(); return ""', 700)
     const deep = await run(solve('function f(n){ return f(n + 1) } return f(0)'))
     assert.equal(deep.status, 'runtime_error')
     assert.equal(deep.error.type, 'RangeError', 'deep recursion is a clean stack-overflow RangeError, not a hang')

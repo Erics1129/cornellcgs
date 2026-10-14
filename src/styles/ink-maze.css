@@ -243,7 +243,7 @@
   align-items: center;
   gap: 0.75rem;
   width: 100%;
-  min-height: 3rem;
+  min-height: max(3rem, 44px); /* the root font shrinks on small phones: never under a 44px target, like the level tiles */
   padding: 0 1.4rem 0 0.95rem;
   border: 1px solid var(--sp-ink);
   border-radius: 10px;

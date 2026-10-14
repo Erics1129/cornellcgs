@@ -326,6 +326,21 @@ for (const [name, engine] of [['chromium', chromium], ['webkit', webkit]]) {
     assert.equal(await phone.evaluate(() => document.documentElement.scrollWidth - innerWidth), 0, 'no sideways scroll on a phone')
     await phone.close()
 
+    // every level tile, the coding one too, stays a 44px target where the site's root font is small
+    for (const [width, height] of [[320, 640], [375, 812], [768, 1024]]) {
+      const small = await browser.newPage({ viewport: { width, height }, hasTouch: true })
+      await small.goto(game('level=1'))
+      await small.waitForSelector(BOARD)
+      const tiles = await small.evaluate(() => [...document.querySelectorAll('.im-levels__item, .im-levels__code')].map((e) => {
+        const r = e.getBoundingClientRect()
+        return { code: e.classList.contains('im-levels__code'), width: r.width, height: r.height }
+      }))
+      assert.equal(tiles.length, LEVELS.length + 1)
+      for (const tile of tiles) assert.ok(tile.width >= 44 && tile.height >= 44, `${tile.code ? 'the coding tile' : 'a level tile'} is a 44px target at ${width} x ${height} (${tile.width.toFixed(1)} x ${tile.height.toFixed(1)})`)
+      assert.equal(await small.evaluate(() => document.documentElement.scrollWidth - innerWidth), 0, `no sideways scroll at ${width} x ${height}`)
+      await small.close()
+    }
+
     // --------------------------------- no art at all: plain colors, still playable
     const bare = await browser.newPage({ viewport: { width: 1024, height: 768 } })
     await bare.route(/\/assets\/minigames\/ink-maze\//, (route) => route.fulfill({ status: 404, body: '' }))

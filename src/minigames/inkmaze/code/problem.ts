@@ -1049,9 +1049,10 @@ class Solution {
     static final int[] DC = {0, 0, -1, 1};
 
     /**
-     * grid: one string per row. '#' wall, '.' floor, 'o' the ball (on floor, already colored).
-     * ink:  the ink in the pot. Every block the ball rolls onto costs 1.
-     * Return the moves as a string of U, D, L and R, for example "RDLU".
+     * grid: one string per row. '#' wall, '.' floor,
+     *       'o' the ball (on floor, already colored).
+     * ink:  the ink in the pot. Each block rolled onto costs 1.
+     * Return the moves as a string of U, D, L and R ("RDLU").
      */
     public String solve(String[] grid, int ink) {
         int rows = grid.length, cols = grid[0].length();
@@ -1060,8 +1061,9 @@ class Solution {
             for (int c = 0; c < cols; c++)
                 if (grid[r].charAt(c) == 'o') { ballRow = r; ballCol = c; }
 
-        // TODO: try every move (a depth-first search), undo the ones that lead
-        // nowhere, and return the first line of moves that colors every floor block.
+        // TODO: try every move (a depth-first search), undo the
+        // ones that lead nowhere, and return the first line of
+        // moves that colors every floor block.
         return "";
     }
 }
@@ -1071,20 +1073,24 @@ class Solution {
     MOVES = [('U', -1, 0), ('D', 1, 0), ('L', 0, -1), ('R', 0, 1)]
 
     def solve(self, grid: list[str], ink: int) -> str:
-        # grid: one string per row. '#' wall, '.' floor, 'o' the ball (on floor, already colored).
-        # ink:  the ink in the pot. Every block the ball rolls onto costs 1.
-        # Return the moves as a string of U, D, L and R, for example "RDLU".
+        # grid: one string per row. '#' wall, '.' floor,
+        #       'o' the ball (on floor, already colored).
+        # ink:  the ink in the pot. Each block rolled onto costs 1.
+        # Return the moves as a string of U, D, L and R ("RDLU").
         rows, cols = len(grid), len(grid[0])
-        ball = next((r, c) for r in range(rows) for c in range(cols) if grid[r][c] == 'o')
+        ball = next((r, c) for r in range(rows)
+                    for c in range(cols) if grid[r][c] == 'o')
 
-        # TODO: try every move (a depth-first search), undo the ones that lead
-        # nowhere, and return the first line of moves that colors every floor block.
+        # TODO: try every move (a depth-first search), undo the
+        # ones that lead nowhere, and return the first line of
+        # moves that colors every floor block.
         return ""
 `,
   javascript: `/**
- * @param {string[]} grid  one string per row. '#' wall, '.' floor, 'o' the ball (on floor, already colored)
- * @param {number} ink     the ink in the pot. Every block the ball rolls onto costs 1.
- * @return {string}        the moves as a string of U, D, L and R, for example "RDLU"
+ * @param {string[]} grid  one string per row: '#' wall, '.' floor,
+ *                         'o' the ball (on floor, already colored)
+ * @param {number} ink     the ink; each block rolled onto costs 1
+ * @return {string}        the moves as U, D, L and R ("RDLU")
  */
 function solve(grid, ink) {
   // The four moves: [letter, row step, column step]
@@ -1095,8 +1101,9 @@ function solve(grid, ink) {
     for (let c = 0; c < cols; c++)
       if (grid[r][c] === 'o') { ballRow = r; ballCol = c }
 
-  // TODO: try every move (a depth-first search), undo the ones that lead
-  // nowhere, and return the first line of moves that colors every floor block.
+  // TODO: try every move (a depth-first search), undo the ones
+  // that lead nowhere, and return the first line of moves that
+  // colors every floor block.
   return ""
 }
 `,
@@ -1110,11 +1117,12 @@ static const int DR[4] = {-1, 1, 0, 0};
 static const int DC[4] = {0, 0, -1, 1};
 
 /*
- * grid: rows strings of cols characters. '#' wall, '.' floor, 'o' the ball
- *       (on floor, already colored). It is your own copy: change it if you like.
- * ink:  the ink in the pot. Every block the ball rolls onto costs 1.
- * Return the moves as a string of U, D, L and R, for example "RDLU"
- * (a static buffer or malloc'd memory; it is never freed).
+ * grid: rows strings of cols characters. '#' wall, '.' floor,
+ *       'o' the ball (on floor, already colored). It is your
+ *       own copy: change it if you like.
+ * ink:  the ink in the pot. Each block rolled onto costs 1.
+ * Return the moves as a string of U, D, L and R ("RDLU"), in a
+ * static buffer or malloc'd memory (it is never freed).
  */
 char *solve(char **grid, int rows, int cols, int ink) {
     static char moves[64];
@@ -1123,8 +1131,9 @@ char *solve(char **grid, int rows, int cols, int ink) {
         for (int c = 0; c < cols; c++)
             if (grid[r][c] == 'o') { ballRow = r; ballCol = c; }
 
-    /* TODO: try every move (a depth-first search), undo the ones that lead
-       nowhere, and return the first line of moves that colors every floor block. */
+    /* TODO: try every move (a depth-first search), undo the
+       ones that lead nowhere, and return the first line of
+       moves that colors every floor block. */
     moves[0] = '\\0';
     return moves;
 }
@@ -1136,9 +1145,10 @@ using namespace std;
 class Solution {
 public:
     /**
-     * grid: one string per row. '#' wall, '.' floor, 'o' the ball (on floor, already colored).
-     * ink:  the ink in the pot. Every block the ball rolls onto costs 1.
-     * Return the moves as a string of U, D, L and R, for example "RDLU".
+     * grid: one string per row. '#' wall, '.' floor,
+     *       'o' the ball (on floor, already colored).
+     * ink:  the ink in the pot. Each block rolled onto costs 1.
+     * Return the moves as a string of U, D, L and R ("RDLU").
      */
     string solve(vector<string>& grid, int ink) {
         // The four moves, in the order you try them: up, down, left, right
@@ -1150,8 +1160,9 @@ public:
             for (int c = 0; c < cols; c++)
                 if (grid[r][c] == 'o') { ballRow = r; ballCol = c; }
 
-        // TODO: try every move (a depth-first search), undo the ones that lead
-        // nowhere, and return the first line of moves that colors every floor block.
+        // TODO: try every move (a depth-first search), undo the
+        // ones that lead nowhere, and return the first line of
+        // moves that colors every floor block.
         return "";
     }
 };

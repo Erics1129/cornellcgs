@@ -6,8 +6,14 @@ What runs the player's JavaScript
 QuickJS (Fabrice Bellard & Charlie Gordon), compiled to WebAssembly and driven
 from JavaScript by quickjs-emscripten. The player's code never runs as the
 worker's own JavaScript: it is compiled and executed inside a fresh QuickJS
-runtime, which gives a hard memory cap and a cooperative time limit (the
-interrupt handler) and keeps the worker's globals out of reach. The two host
+runtime, which gives a hard memory cap and a cooperative time limit and keeps
+the worker's globals out of reach. The time limit has two layers: QuickJS's
+interrupt handler (the interpreter polls it on every jump back and every call,
+so the player's loops and recursion stop cleanly), and fuel added to
+quickjs.wasm when it loads, so that one long call inside QuickJS's own C code
+(a string search over megabytes, split, replace, a default sort of millions
+of strings) stops at the deadline too: in WebKit nothing else can stop a
+thread that runs WebAssembly. The two host
 output functions (__inkLog / __inkErr) are captured into the console preamble's
 closure and then revoked from the QuickJS global, so player code cannot call
 them directly (forging an answer marker was already caught as 'crashed').
@@ -22,8 +28,8 @@ the quickjs-emscripten MIT notice and the QuickJS MIT notice).
 Shipped files
 -------------
   runtime.js    the Runtime (src/minigames/inkmaze/code/contract.ts), with
-                quickjs-emscripten-core, the release-sync loader and the hidden
-                harness bundled in by esbuild. One ES module, absolute/no imports.
+                quickjs-emscripten-core, the release-sync loader, the fuel pass
+                and the hidden harness bundled in by esbuild. One ES module, absolute/no imports.
                 The harness (js-harness.js) parses every board and captures the
                 built-ins it uses (String.prototype.split/slice/charCodeAt,
                 String.fromCharCode, Number, ...) BEFORE the player's code is
@@ -32,7 +38,15 @@ Shipped files
   quickjs.wasm  the QuickJS WebAssembly module, copied verbatim from
                 @jitl/quickjs-wasmfile-release-sync/dist/emscripten-module.wasm.
                 It is loaded through the page (host.asset), not fetched by the
-                worker, so it stays under the sandbox CSP.
+                worker, so it stays under the sandbox CSP. The file is not
+                changed; at load runtime.js runs the site's fuel pass over it
+                in memory (src/minigames/inkmaze/code/runtimes/fuel.ts, set up
+                in quickjs-fuel.ts): a counter at every loop header and at the
+                entry of every function that calls, bulk memory ops charged by
+                length, and a call to an added "ink.check" import when the
+                fuel runs out, which throws past the deadline. The bytecode
+                interpreter (defined function 202) is left as it is: it polls
+                the interrupt handler itself.
 
 SHA-256
 -------

@@ -127,12 +127,21 @@ const highlight = HighlightStyle.define([
   { tag: t.invalid, color: '#f0776c' },
 ])
 
-/** Everything but the grammar: one editor setup for every language. */
+/**
+ * What depends on the width (Editor.tsx keeps it in a Compartment and swaps it
+ * when the layout changes). Side by side: the fold and error gutters, long
+ * lines scroll. Stacked on a phone: every column goes to the code, so no fold
+ * or error gutter (an error is still underlined, and listed in the console),
+ * and long lines wrap instead of running off the edge.
+ */
+export function widthExtensions(narrow: boolean): Extension[] {
+  return narrow ? [EditorView.lineWrapping] : [foldGutter(), lintGutter()]
+}
+
+/** Everything but the grammar and the width: one editor setup for every language. */
 export function baseExtensions(language: RunLanguage, keys: EditorKeys): Extension[] {
   return [
     lineNumbers(),
-    foldGutter(),
-    lintGutter(),
     highlightActiveLineGutter(),
     highlightSpecialChars(),
     history(),

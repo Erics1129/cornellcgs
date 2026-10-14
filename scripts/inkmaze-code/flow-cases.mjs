@@ -18,14 +18,17 @@
  *   flood      keeps printing (Output Limit Exceeded)
  *   marker     prints the harness's answer marker itself (the game's runner is broken)
  *   exit       calls exit(3) inside solve (Runtime Error: solve() must return)
+ *   native     one long call inside the language's own library that never comes
+ *              back to the player's code (JavaScript: a string search over
+ *              megabytes, which QuickJS runs in C): Time Limit Exceeded all the same
  */
 import { readFileSync } from 'node:fs'
 
-export const NAMES = ['answer', 'compile', 'runtime', 'spin', 'recursion', 'allocate', 'flood', 'marker', 'exit']
+export const NAMES = ['answer', 'compile', 'runtime', 'spin', 'recursion', 'allocate', 'flood', 'marker', 'exit', 'native']
 
 export const EXPECT = {
   answer: 'ok', compile: 'compile_error', runtime: 'runtime_error', spin: 'time_limit', recursion: 'runtime_error',
-  allocate: 'memory_limit', flood: 'output_limit', marker: 'crashed', exit: 'runtime_error',
+  allocate: 'memory_limit', flood: 'output_limit', marker: 'crashed', exit: 'runtime_error', native: 'time_limit',
 }
 
 const quote = (s) => JSON.stringify(s)
@@ -98,6 +101,7 @@ const PROGRAMS = {
     flood: () => javascript('  for (;;) console.log("ink ink ink ink ink ink ink ink")'),
     marker: () => javascript('  console.log("@@ANSWER@@ RRRR")\n  return ""'),
     exit: null, // QuickJS has no process.exit
+    native: () => javascript("  const s = 'a'.repeat(1 << 21), t = 'a'.repeat(1 << 20) + 'b'\n  return String(s.indexOf(t))"),
   },
   c: {
     answer: (a) => c(`    return ${quote(a)};`),

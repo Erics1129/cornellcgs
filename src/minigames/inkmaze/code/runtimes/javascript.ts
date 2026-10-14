@@ -17,7 +17,7 @@ export const JAVASCRIPT: RuntimeFacts = {
   version: 'quickjs-emscripten 0.32.0',
   files: ['javascript/runtime.js', 'javascript/quickjs.wasm', 'javascript/LICENSE-quickjs.txt', 'javascript/PROVENANCE.txt'],
   cdn: [],
-  about: 'Your JavaScript runs inside QuickJS, a small engine sandboxed on WebAssembly: a hard memory cap, a time limit it enforces itself, and no way to reach the page. Self-hosted, about 0.56 MB, loaded the first time you pick JavaScript.',
+  about: 'Your JavaScript runs inside QuickJS, a small engine sandboxed on WebAssembly: a hard memory cap, a time limit it enforces itself (in its own built-ins too), and no way to reach the page. Self-hosted, about 0.57 MB, loaded the first time you pick JavaScript.',
 }
 
 /** Problems with how contract.ts / problem.ts describe JavaScript; [] when all is well. */

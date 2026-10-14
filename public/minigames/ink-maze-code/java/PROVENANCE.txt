@@ -106,7 +106,7 @@ Shipped files (SHA-256)
   InkMazeHarness.class          the hidden harness (scripts/inkmaze-code/build/java/InkMazeHarness.java)
   LICENSE-*.txt, NOTICE-third-party.txt   licence texts (see LICENSES.txt one folder up)
 
-  b81bf62badcf61e96b0b7b661c251a2671239e8989d770bcf60616a1b6fe0f6e  runtime.js  (46,137 bytes)
+  17729d4cb1d0fb240ea235b17c1bc95094a81442462aa73f4f724d66fa8824f6  runtime.js  (46,062 bytes)
   bd103f277be99fd2f3ffc0248b3558e6c2c85a44902bfeef042c6bedcf0b2c63  teavm-runtime.js  (13,936 bytes)
   3473f12f2b6e30c9f27edb06cb44c4e36b1c97eb00ed71f84e657f90fa07e8c9  compiler.gz.bin  (1,690,834 bytes)
   26bec7c812c2dae0ab4e193687c153555cceb9a51fbadfda9157a3bfba2fd7a0  compile-classlib.bin  (200,186 bytes)

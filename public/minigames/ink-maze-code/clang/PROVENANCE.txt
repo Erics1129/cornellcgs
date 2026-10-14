@@ -4,10 +4,11 @@ Ink Maze level 26 — C and C++ runtime: provenance
 What ships in this folder
 --------------------------
 - runtime.js         the C/C++ runtime (the sandbox's `clang` runtime), built
-                     from src/minigames/inkmaze/code/runtimes/c.ts by
-                     scripts/inkmaze-code/build/build-clang.mjs (esbuild, one
-                     ES module, minified). It imports only TYPES from
-                     contract.ts (erased at build), so it is self-contained.
+                     from src/minigames/inkmaze/code/runtimes/c.ts (and the
+                     fuel pass it shares with the JavaScript runtime,
+                     runtimes/fuel.ts) by scripts/inkmaze-code/build/build-clang.mjs
+                     (esbuild, one ES module, minified). It imports only TYPES
+                     from contract.ts (erased at build), so it is self-contained.
 - harness.c          the hidden C harness (problem.ts H1-H6)
 - harness.cpp        the hidden C++ harness
 - ink-harness.h      shared by both: reads stdin, the undefined-behaviour

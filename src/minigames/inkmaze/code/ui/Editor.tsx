@@ -5,6 +5,8 @@
  * text, cursor and undo history), so switching languages and back loses
  * nothing. The parent reads and replaces the text through the handle, and
  * marks compile and runtime errors in the player's file with setDiagnostics.
+ * When the panes stack (a phone), the gutters shrink to the line numbers and
+ * long lines wrap (editorSetup.ts widthExtensions).
  */
 import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react'
 import { Compartment, EditorSelection, EditorState } from '@codemirror/state'
@@ -12,7 +14,8 @@ import { EditorView } from '@codemirror/view'
 import { setDiagnostics } from '@codemirror/lint'
 import type { Diagnostic as CmDiagnostic } from '@codemirror/lint'
 import type { Diagnostic, RunLanguage } from '../contract.ts'
-import { baseExtensions, languageSupport } from './editorSetup.ts'
+import { baseExtensions, languageSupport, widthExtensions } from './editorSetup.ts'
+import { STACKED_QUERY, stackedNow } from './layout.ts'
 
 export type EditorHandle = {
   getSource(): string
@@ -42,6 +45,9 @@ const Editor = forwardRef<EditorHandle, Props>(function Editor({ language, initi
   const states = useRef(new Map<RunLanguage, EditorState>())
   const shown = useRef<RunLanguage | null>(null)
   const grammar = useRef(new Compartment())
+  /** the gutters and line wrapping, which follow the layout */
+  const width = useRef(new Compartment())
+  const narrow = useRef(stackedNow())
   // the latest callbacks, so the editor's extensions never need rebuilding
   const latest = useRef({ initialSource, onChange, onCursor, onRun, onSubmit })
   latest.current = { initialSource, onChange, onCursor, onRun, onSubmit }
@@ -51,6 +57,7 @@ const Editor = forwardRef<EditorHandle, Props>(function Editor({ language, initi
     extensions: [
       baseExtensions(lang, { run: () => latest.current.onRun(), submit: () => latest.current.onSubmit() }),
       grammar.current.of([]),
+      width.current.of(widthExtensions(narrow.current)),
       EditorView.updateListener.of((update) => {
         if (update.docChanged) latest.current.onChange(lang, update.state.doc.toString())
         if (update.docChanged || update.selectionSet) {
@@ -72,6 +79,8 @@ const Editor = forwardRef<EditorHandle, Props>(function Editor({ language, initi
     if (!state) { state = makeState(lang); states.current.set(lang, state) }
     v.setState(state)
     shown.current = lang
+    // a state kept from before the layout changed catches up now
+    v.dispatch({ effects: width.current.reconfigure(widthExtensions(narrow.current)) })
     const head = state.selection.main.head
     const line = state.doc.lineAt(head)
     latest.current.onCursor?.(line.number, head - line.from + 1)
@@ -103,6 +112,20 @@ const Editor = forwardRef<EditorHandle, Props>(function Editor({ language, initi
   }, [])
 
   useEffect(() => { showLanguage(language) })
+
+  // the layout can change while the level is open (a phone turned, a window resized)
+  useEffect(() => {
+    let list: MediaQueryList
+    try { list = window.matchMedia(STACKED_QUERY) } catch { return }
+    const apply = () => {
+      if (narrow.current === list.matches) return
+      narrow.current = list.matches
+      view.current?.dispatch({ effects: width.current.reconfigure(widthExtensions(list.matches)) })
+    }
+    apply()
+    list.addEventListener?.('change', apply)
+    return () => list.removeEventListener?.('change', apply)
+  }, [])
 
   useImperativeHandle(ref, () => ({
     getSource: () => view.current?.state.doc.toString() ?? '',
