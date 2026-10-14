@@ -47,6 +47,21 @@ public static class CarrotBuild {
   }
   graphics.ApplyModifiedProperties();AssetDatabase.SaveAssets();
  }
+ /// <summary>
+ /// Batch entry for a restored private source (the owner's acquired Asset Store packages copied into the git-ignored folders):
+ /// inventories and prepares the official Asuna character, audits and prepares the licensed effect playback copies, then runs both
+ /// release gates. Never fabricates a substitute; a missing or changed source throws.
+ /// </summary>
+ public static void PreparePrivate() {
+  AssetDatabase.Refresh();
+  CarrotAsunaAssets.InventorySource();
+  CarrotAsunaAssets.Prepare();
+  CarrotLicensedFxImporter.AuditSource();
+  CarrotLicensedFxImporter.Prepare();
+  CarrotAsunaAssets.RequirePrepared();
+  CarrotLicensedFxImporter.RequirePrepared();
+  Debug.Log("CARROT_PRIVATE_PREPARED");
+ }
  /// <summary>Crunched DXT for the web target; the data file is dominated by textures.</summary>
  public static void WebTexture(TextureImporter importer,int maxSize,int quality,bool crunch=true) {
   var settings=importer.GetPlatformTextureSettings("WebGL");settings.overridden=true;settings.maxTextureSize=maxSize;settings.format=TextureImporterFormat.Automatic;
