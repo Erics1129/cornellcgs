@@ -1,0 +1,923 @@
+diff -ruN a/compiler/build.gradle b/compiler/build.gradle
+--- a/compiler/build.gradle
++++ b/compiler/build.gradle
+@@ -99,7 +99,7 @@
+ }
+ 
+ def prepareTeaVMClassLib = tasks.register("prepareTeaVMClassLib", Copy) {
+-    dependsOn unpackTeaVMClasslib, repackCldr
++    dependsOn unpackTeaVMClasslib, repackCldr, compileJava
+     from(unpackTeaVMClasslib) {
+         exclude "org/teavm/classlib/impl/unicode/cldr-json.zip"
+     }
+@@ -117,6 +117,10 @@
+         include "org/teavm/backend/wasm/WasmRuntime*.class"
+         include "org/teavm/backend/wasm/WasmHeap*.class"
+         include "com/jcraft/jzlib/**"
++    }
++    // Ink Maze: the deadline / allocation guard that GuardTransformer calls
++    from(sourceSets.main.output.classesDirs) {
++        include "org/teavm/javac/guard/Guard.class"
+     }
+     from(repackCldr) {
+         eachFile {
+diff -ruN a/compiler/src/main/java/org/teavm/javac/Compiler.java b/compiler/src/main/java/org/teavm/javac/Compiler.java
+--- a/compiler/src/main/java/org/teavm/javac/Compiler.java
++++ b/compiler/src/main/java/org/teavm/javac/Compiler.java
+@@ -37,6 +37,7 @@
+ import org.teavm.backend.wasm.WasmDebugInfoLocation;
+ import org.teavm.backend.wasm.WasmGCTarget;
+ import org.teavm.classlib.impl.JCLPlugin;
++import org.teavm.javac.guard.GuardTransformer;
+ import org.teavm.jso.JSClass;
+ import org.teavm.jso.JSExport;
+ import org.teavm.jso.core.JSObjects;
+@@ -218,6 +219,9 @@
+ 
+     @JSExport
+     public boolean compile() {
++        // Ink Maze: a compile stopped by the deadline (a JavaScript exception skips the finally below) must not
++        // leave its half-used javac behind for the next one
++        compiler = null;
+         initCompiler();
+         try {
+             return compiler.simpleCompile();
+@@ -255,6 +259,8 @@
+         var mainClass = options.getMainClass().stringValue();
+         var strictMode = JSObjects.isUndefined(options.getStrictMode()) || options.getStrictMode().booleanValue();
+         var obfuscated = JSObjects.isUndefined(options.getObfuscated()) || options.getObfuscated().booleanValue();
++        var guard = JSObjects.isUndefined(options.getGuard()) || options.getGuard() == null
++                || options.getGuard().booleanValue();
+ 
+         var target = new WasmGCTarget();
+         var refCache = new ReferenceCache();
+@@ -277,6 +283,10 @@
+         new JSOPlugin().install(teavm);
+         new PlatformPlugin().install(teavm);
+         new JCLPlugin().install(teavm);
++        if (guard) {
++            // last, so it sees every other transformation
++            teavm.add(new GuardTransformer(GuardTransformer.Mode.PROGRAM));
++        }
+         teavm.setEntryPoint(mainClass);
+         target.setObfuscated(false);
+         target.setDebugInfoLocation(WasmDebugInfoLocation.EMBEDDED);
+diff -ruN a/compiler/src/main/java/org/teavm/javac/JavaDiagnostic.java b/compiler/src/main/java/org/teavm/javac/JavaDiagnostic.java
+--- a/compiler/src/main/java/org/teavm/javac/JavaDiagnostic.java
++++ b/compiler/src/main/java/org/teavm/javac/JavaDiagnostic.java
+@@ -71,7 +71,9 @@
+     @JSExport
+     @JSProperty
+     public String getFileName() {
+-        return innerDiagnostic.getSource().getName();
++        // Ink Maze: a diagnostic about no file (a note) has no source; the getter must not fail then
++        var source = innerDiagnostic.getSource();
++        return source != null ? source.getName() : null;
+     }
+ 
+     @JSExport
+diff -ruN a/compiler/src/main/java/org/teavm/javac/Patches.java b/compiler/src/main/java/org/teavm/javac/Patches.java
+--- a/compiler/src/main/java/org/teavm/javac/Patches.java
++++ b/compiler/src/main/java/org/teavm/javac/Patches.java
+@@ -18,13 +18,16 @@
+ 
+ import java.lang.annotation.Annotation;
+ import java.util.stream.Stream;
++import org.teavm.javac.guard.GuardTransformer;
+ import org.teavm.model.ClassHolder;
+ import org.teavm.model.ClassHolderTransformer;
+ import org.teavm.model.ClassHolderTransformerContext;
+ import org.teavm.model.MethodDescriptor;
+ import org.teavm.model.MethodHolder;
++import org.teavm.model.MethodReference;
+ import org.teavm.model.ValueType;
+ import org.teavm.model.emit.ProgramEmitter;
++import org.teavm.model.instructions.InvocationType;
+ import org.teavm.model.instructions.InvokeInstruction;
+ import org.teavm.vm.spi.TeaVMHost;
+ import org.teavm.vm.spi.TeaVMPlugin;
+@@ -33,6 +36,8 @@
+     @Override
+     public void install(TeaVMHost host) {
+         host.add(this);
++        // Ink Maze: deadline checks inside javac and TeaVM themselves (a compile that never ends stops)
++        host.add(new GuardTransformer(GuardTransformer.Mode.COMPILER));
+     }
+ 
+     @Override
+@@ -56,6 +61,51 @@
+             case "java.lang.System":
+                 transformSystem(cls, context);
+                 break;
++            case "org.teavm.backend.wasm.generate.gc.methods.WasmGCMethodGenerator":
++                transformWasmGCMethodGenerator(cls);
++                break;
++        }
++    }
++
++    // Ink Maze: after generateRegularMethodBody() generates a body, WasmBodyPatch.finish() ends a non-void one
++    // with `unreachable` (a method that never returns made invalid wasm)
++    private void transformWasmGCMethodGenerator(ClassHolder cls) {
++        var patched = false;
++        var statement = ValueType.object("org.teavm.ast.Statement");
++        var finish = new MethodReference(WasmBodyPatch.class.getName(), "finish",
++                ValueType.object("org.teavm.backend.wasm.model.WasmFunction"), ValueType.object("java.util.List"),
++                ValueType.VOID);
++        for (var method : cls.getMethods()) {
++            if (!method.getName().equals("generateRegularMethodBody") || method.getProgram() == null
++                    || method.parameterCount() != 2) {
++                continue;
++            }
++            var program = method.getProgram();
++            var calls = new java.util.ArrayList<InvokeInstruction>();
++            for (var block : program.getBasicBlocks()) {
++                for (var instruction : block) {
++                    if (instruction instanceof InvokeInstruction invoke
++                            && invoke.getMethod().getName().equals("generate")
++                            && invoke.getArguments().size() == 2
++                            && invoke.getMethod().parameterType(0).equals(statement)) {
++                        calls.add(invoke);
++                    }
++                }
++            }
++            for (var invoke : calls) {
++                var call = new InvokeInstruction();
++                call.setType(InvocationType.SPECIAL);
++                call.setMethod(finish);
++                // variable 2 is the second parameter, the WasmFunction (0: this, 1: the MethodHolder)
++                call.setArguments(program.variableAt(2), invoke.getArguments().get(1));
++                call.setLocation(invoke.getLocation());
++                invoke.insertNext(call);
++                patched = true;
++            }
++        }
++        if (!patched) {
++            throw new IllegalStateException("Ink Maze: WasmGCMethodGenerator.generateRegularMethodBody "
++                    + "was not patched");
+         }
+     }
+ 
+diff -ruN a/compiler/src/main/java/org/teavm/javac/StdlibConverter.java b/compiler/src/main/java/org/teavm/javac/StdlibConverter.java
+--- a/compiler/src/main/java/org/teavm/javac/StdlibConverter.java
++++ b/compiler/src/main/java/org/teavm/javac/StdlibConverter.java
+@@ -152,6 +152,18 @@
+         return super.visitAnnotation(desc, visible);
+     }
+ 
++    @Override
++    public void visitEnd() {
++        // Ink Maze: TeaVM's System has no exit(); javac must accept it, and GuardTransformer turns the call
++        // into Guard.exit, which the harness reports
++        if (visible && "java/lang/System".equals(className) && emittedMethods.add("exit(I)V")) {
++            var mv = super.visitMethod(Opcodes.ACC_PUBLIC | Opcodes.ACC_STATIC | Opcodes.ACC_NATIVE, "exit", "(I)V",
++                    null, null);
++            mv.visitEnd();
++        }
++        super.visitEnd();
++    }
++
+     class FieldVisitorImpl extends FieldVisitor {
+         FieldVisitorImpl(FieldVisitor fv) {
+             super(Opcodes.ASM5, fv);
+diff -ruN a/compiler/src/main/java/org/teavm/javac/TeaVMDiagnostic.java b/compiler/src/main/java/org/teavm/javac/TeaVMDiagnostic.java
+--- a/compiler/src/main/java/org/teavm/javac/TeaVMDiagnostic.java
++++ b/compiler/src/main/java/org/teavm/javac/TeaVMDiagnostic.java
+@@ -55,7 +55,8 @@
+             problem.render(consumer);
+             message = consumer.getText();
+         }
+-        return problem.getText();
++        // Ink Maze: the rendered text, not the template with its {{m0}} placeholders
++        return message;
+     }
+ 
+     @Override
+diff -ruN a/compiler/src/main/java/org/teavm/javac/WasmBodyPatch.java b/compiler/src/main/java/org/teavm/javac/WasmBodyPatch.java
+--- a/compiler/src/main/java/org/teavm/javac/WasmBodyPatch.java
++++ b/compiler/src/main/java/org/teavm/javac/WasmBodyPatch.java
+@@ -0,0 +1,41 @@
++/*
++ *  Ink Maze level 26 (Cornell CGS site): a fix for TeaVM 0.13.1's WebAssembly GC backend.
++ *
++ *  A method that can never return (a loop with no exit: javac accepts it)
++ *  compiled to a function body that ends without its result, which every
++ *  engine rejects ("expected 1 elements on the stack for fallthru"). Patches
++ *  calls finish() right after WasmGCMethodGenerator has generated a method
++ *  body. When a non-void body ends with a statement that leaves no value (a
++ *  loop, a block, a try, an if), its end is never reached in valid Java
++ *  (javac checked that every path returns or throws), so finish() says so
++ *  with `unreachable`. A body that ends with its result value is left alone.
++ *
++ *  Licensed under the Apache License, Version 2.0, like the rest of teavm-javac.
++ */
++package org.teavm.javac;
++
++import java.util.List;
++import org.teavm.backend.wasm.model.WasmFunction;
++import org.teavm.backend.wasm.model.expression.WasmBlock;
++import org.teavm.backend.wasm.model.expression.WasmConditional;
++import org.teavm.backend.wasm.model.expression.WasmExpression;
++import org.teavm.backend.wasm.model.expression.WasmTry;
++import org.teavm.backend.wasm.model.expression.WasmUnreachable;
++
++public final class WasmBodyPatch {
++    private WasmBodyPatch() {
++    }
++
++    public static void finish(WasmFunction function, List<WasmExpression> target) {
++        if (function.getType() == null || function.getType().getSingleReturnType() == null || target.isEmpty()) {
++            return;
++        }
++        var last = target.get(target.size() - 1);
++        var noValue = (last instanceof WasmBlock block && block.getType() == null)
++                || (last instanceof WasmTry tryBlock && tryBlock.getType() == null)
++                || (last instanceof WasmConditional conditional && conditional.getType() == null);
++        if (noValue) {
++            target.add(new WasmUnreachable());
++        }
++    }
++}
+diff -ruN a/compiler/src/main/java/org/teavm/javac/WebAssemblyCompilationOptions.java b/compiler/src/main/java/org/teavm/javac/WebAssemblyCompilationOptions.java
+--- a/compiler/src/main/java/org/teavm/javac/WebAssemblyCompilationOptions.java
++++ b/compiler/src/main/java/org/teavm/javac/WebAssemblyCompilationOptions.java
+@@ -33,4 +33,8 @@
+ 
+     @JSProperty
+     JSBoolean getObfuscated();
++
++    /** Ink Maze: instrument the program with org.teavm.javac.guard.Guard (default true) */
++    @JSProperty
++    JSBoolean getGuard();
+ }
+diff -ruN a/compiler/src/main/java/org/teavm/javac/Worker.java b/compiler/src/main/java/org/teavm/javac/Worker.java
+--- a/compiler/src/main/java/org/teavm/javac/Worker.java
++++ b/compiler/src/main/java/org/teavm/javac/Worker.java
+@@ -227,6 +227,11 @@
+             public JSBoolean getObfuscated() {
+                 return JSBoolean.valueOf(true);
+             }
++
++            @Override
++            public JSBoolean getGuard() {
++                return JSBoolean.valueOf(false);
++            }
+         };
+         var reg = compiler.onDiagnostic(diagnostic -> handleTeaVMDiagnostic((TeaVMDiagnostic) diagnostic, requestId));
+         var result = compiler.generateWebAssembly(options);
+diff -ruN a/compiler/src/main/java/org/teavm/javac/guard/Guard.java b/compiler/src/main/java/org/teavm/javac/guard/Guard.java
+--- a/compiler/src/main/java/org/teavm/javac/guard/Guard.java
++++ b/compiler/src/main/java/org/teavm/javac/guard/Guard.java
+@@ -0,0 +1,225 @@
++/*
++ *  Ink Maze level 26 (Cornell CGS site): the cooperative deadline and the
++ *  allocation meter for code that TeaVM compiles to WebAssembly.
++ *
++ *  GuardTransformer inserts calls to these static methods: tick() at every loop
++ *  header, at the entry of every method that makes calls and every 256
++ *  instructions of straight-line code; work() before size-proportional
++ *  intrinsics (System.arraycopy); and the alloc* methods before every object
++ *  and array allocation. The decisions are made in JavaScript through the
++ *  "inkGuard" imports: check() reads the deadline and THROWS a JavaScript
++ *  exception past it (or once any limit was hit), and memory() throws when the
++ *  allocations pass the budget JavaScript sets. TeaVM's catch blocks
++ *  only catch the Java exception tag, so Java code (catch Throwable, finally)
++ *  can never swallow that exception: the program stops.
++ *
++ *  No static initializer on purpose (every field starts at 0), so calling it
++ *  never triggers class initialization. It is never instrumented itself and it
++ *  calls nothing but its imports.
++ *
++ *  Licensed under the Apache License, Version 2.0, like the rest of teavm-javac.
++ */
++package org.teavm.javac.guard;
++
++import org.teavm.interop.Import;
++
++public final class Guard {
++    /** ticks between two calls into JavaScript (which reads the clock) */
++    private static final int FUEL = 16384;
++
++    private static int fuel;
++    /** bytes allocated by this instance so far (an estimate: 16 per header, 8 per field or reference) */
++    private static double allocated;
++    /** when allocated passes this, ask JavaScript (it moves the mark; 0 at first, so the first allocation asks) */
++    private static double mark;
++    /** the largest single allocation, in bytes (asked once) */
++    private static double single;
++    /** a multi-dimensional allocation in progress (dim() ... allocDims()) */
++    private static boolean dimsActive;
++    private static double dimsCount;
++    private static double dimsBytes;
++
++    private Guard() {
++    }
++
++    /** a loop header, a method entry, a long straight run of code */
++    public static void tick() {
++        int f = fuel - 1;
++        fuel = f;
++        if (f < 0) {
++            refuel();
++        }
++    }
++
++    /** work proportional to {@code units} that runs as one instruction (System.arraycopy) */
++    public static void work(int units) {
++        int f = fuel - 1;
++        if (units > 1024) {
++            f -= units >>> 10;
++        }
++        fuel = f;
++        if (f < 0) {
++            refuel();
++        }
++    }
++
++    private static void refuel() {
++        fuel = FUEL;
++        mark = check(allocated);
++    }
++
++    /** an object of a size known when compiling */
++    public static void alloc(int bytes) {
++        charge(bytes);
++    }
++
++    /** an array of {@code length} elements of {@code elementBytes} bytes */
++    public static void allocArray(int length, int elementBytes) {
++        if (length < 0) {
++            // what the JVM throws (TeaVM's own check would trap instead)
++            throw new NegativeArraySizeException(String.valueOf(length));
++        }
++        double bytes = 16;
++        if (length > 0) {
++            bytes += (double) length * elementBytes;
++        }
++        charge(bytes);
++    }
++
++    /** an array about to be cloned (8 bytes per element: the element type is not known here) */
++    public static void cloneArray(Object array) {
++        if (array != null) {
++            // a wasm intrinsic (the array's virtual table), not a call into the class library
++            allocArray(java.lang.reflect.Array.getLength(array), 8);
++        }
++    }
++
++    /**
++     * One dimension of a multi-dimensional array, outermost first; allocDims()
++     * ends the list. Every level but the innermost is an array of references.
++     */
++    public static void dim(int length) {
++        if (!dimsActive) {
++            dimsActive = true;
++            dimsCount = 1;
++            dimsBytes = 0;
++        }
++        double n = length > 0 ? length : 0;
++        // dimsCount arrays of `length` references each
++        dimsBytes += dimsCount * 16 + dimsCount * n * 8;
++        dimsCount *= n;
++    }
++
++    /** the innermost dim() was an array of {@code leafBytes}-byte elements, not references */
++    public static void allocDims(int leafBytes) {
++        double bytes = dimsBytes + dimsCount * (leafBytes - 8);
++        dimsActive = false;
++        dimsCount = 0;
++        dimsBytes = 0;
++        charge(bytes);
++    }
++
++    /** java.lang.reflect.Array.newInstance(type, int... dimensions) */
++    public static void allocDimsArray(int[] dimensions) {
++        if (dimensions == null) {
++            return;
++        }
++        int count = dimensions.length;
++        for (int i = 0; i < count; i++) {
++            dim(dimensions[i]);
++        }
++        allocDims(8);
++    }
++
++    private static void charge(double bytes) {
++        if (single == 0) {
++            single = limit(1);
++        }
++        double total = allocated + bytes;
++        allocated = total;
++        if (total > mark || bytes > single) {
++            mark = memory(bytes, total);
++        }
++        // clearing the memory is work too: one tick per 4 KiB
++        int f = fuel - 1;
++        if (bytes > 4096) {
++            f -= bytes > 4.0e9 ? 1 << 20 : (int) (bytes / 4096);
++        }
++        fuel = f;
++        if (f < 0) {
++            refuel();
++        }
++    }
++
++    /**
++     * An array access in the player's code: the JVM's ArrayIndexOutOfBoundsException, which
++     * the program may catch (TeaVM's non-strict code would trap, and a trap cannot be caught).
++     */
++    public static void index(Object array, int index) {
++        // a wasm intrinsic (the array's virtual table); a null array traps here, as it would anyway
++        int length = java.lang.reflect.Array.getLength(array);
++        if (index < 0 || index >= length) {
++            StringBuilder sb = new StringBuilder();
++            sb.append("Index ").append(index).append(" out of bounds for length ").append(length);
++            throw new ArrayIndexOutOfBoundsException(sb.toString());
++        }
++    }
++
++    /** int / int with the JVM's rules: ArithmeticException for 0, MIN_VALUE / -1 == MIN_VALUE (wasm traps) */
++    public static int idiv(int a, int b) {
++        if (b == 0) {
++            throw new ArithmeticException("/ by zero");
++        }
++        return b == -1 ? -a : a / b;
++    }
++
++    public static int irem(int a, int b) {
++        if (b == 0) {
++            throw new ArithmeticException("/ by zero");
++        }
++        return b == -1 ? 0 : a % b;
++    }
++
++    public static long ldiv(long a, long b) {
++        if (b == 0) {
++            throw new ArithmeticException("/ by zero");
++        }
++        return b == -1 ? -a : a / b;
++    }
++
++    public static long lrem(long a, long b) {
++        if (b == 0) {
++            throw new ArithmeticException("/ by zero");
++        }
++        return b == -1 ? 0 : a % b;
++    }
++
++    /** the bytes this program has allocated so far (the harness reports it at the end) */
++    public static double allocatedBytes() {
++        return allocated;
++    }
++
++    /** System.exit / Runtime.exit: the harness reports it as an error; never returns */
++    public static void exit(int status) {
++        exited(status);
++    }
++
++    /**
++     * The deadline check: throws (in JavaScript) past the deadline or once any limit was hit.
++     * Gets the bytes allocated so far; returns the allocation mark for charge().
++     */
++    @Import(module = "inkGuard", name = "check")
++    private static native double check(double allocated);
++
++    /** 1: the largest single allocation in bytes */
++    @Import(module = "inkGuard", name = "limit")
++    private static native double limit(int which);
++
++    /** the allocations passed the mark, or one is too big: throws when over the budget, else the next mark */
++    @Import(module = "inkGuard", name = "memory")
++    private static native double memory(double bytes, double total);
++
++    /** records the exit status and throws */
++    @Import(module = "inkGuard", name = "exit")
++    private static native void exited(int status);
++}
+diff -ruN a/compiler/src/main/java/org/teavm/javac/guard/GuardTransformer.java b/compiler/src/main/java/org/teavm/javac/guard/GuardTransformer.java
+--- a/compiler/src/main/java/org/teavm/javac/guard/GuardTransformer.java
++++ b/compiler/src/main/java/org/teavm/javac/guard/GuardTransformer.java
+@@ -0,0 +1,424 @@
++/*
++ *  Ink Maze level 26 (Cornell CGS site): instruments TeaVM's IR with calls to
++ *  Guard (the cooperative deadline and the allocation meter).
++ *
++ *  For every method of every class it does not exclude:
++ *   - Guard.tick() at the start of every loop header (the target of a back
++ *     edge in the control-flow graph, exception edges included, so every cycle
++ *     passes one), at the entry of every method that calls anything (so call
++ *     trees and recursion pass one per call), and every 256 instructions of
++ *     straight-line code;
++ *   - Guard.work(length) before System.arraycopy (one wasm instruction that
++ *     copies `length` elements);
++ *   - Guard.alloc*() before every allocation (new, new[], multi-dimensional
++ *     new, array clone, reflect.Array.newInstance);
++ *   - integer division and remainder by a divisor that is not a constant
++ *     become Guard.idiv / irem / ldiv / lrem (the JVM's ArithmeticException
++ *     and MIN_VALUE / -1; TeaVM's non-strict code traps on both);
++ *   - in PROGRAM mode, Guard.exit(status) in place of System.exit /
++ *     Runtime.exit / Runtime.halt, and in the player's own classes (the
++ *     unnamed package) Guard.index() before every array element access, so
++ *     an index out of bounds is an ArrayIndexOutOfBoundsException the program
++ *     can catch, as on a JVM.
++ *  COMPILER mode is for the in-browser compiler itself (javac + TeaVM), so a
++ *  compile that never ends, or eats memory (nested try/finally blocks double
++ *  javac's work per level), stops at the compile deadline or the budget.
++ *
++ *  Licensed under the Apache License, Version 2.0, like the rest of teavm-javac.
++ */
++package org.teavm.javac.guard;
++
++import java.util.ArrayList;
++import java.util.HashMap;
++import java.util.HashSet;
++import java.util.List;
++import java.util.Map;
++import java.util.Set;
++import org.teavm.common.Graph;
++import org.teavm.common.GraphUtils;
++import org.teavm.model.BasicBlock;
++import org.teavm.model.ClassHolder;
++import org.teavm.model.ClassHolderTransformer;
++import org.teavm.model.ClassHolderTransformerContext;
++import org.teavm.model.ClassReader;
++import org.teavm.model.ClassReaderSource;
++import org.teavm.model.ElementModifier;
++import org.teavm.model.FieldReader;
++import org.teavm.model.Instruction;
++import org.teavm.model.MethodHolder;
++import org.teavm.model.MethodReference;
++import org.teavm.model.Program;
++import org.teavm.model.ValueType;
++import org.teavm.model.Variable;
++import org.teavm.model.instructions.BinaryInstruction;
++import org.teavm.model.instructions.BinaryOperation;
++import org.teavm.model.instructions.CloneArrayInstruction;
++import org.teavm.model.instructions.ConstructArrayInstruction;
++import org.teavm.model.instructions.ConstructInstruction;
++import org.teavm.model.instructions.ConstructMultiArrayInstruction;
++import org.teavm.model.instructions.GetElementInstruction;
++import org.teavm.model.instructions.IntegerConstantInstruction;
++import org.teavm.model.instructions.InvocationType;
++import org.teavm.model.instructions.InvokeInstruction;
++import org.teavm.model.instructions.LongConstantInstruction;
++import org.teavm.model.instructions.NumericOperandType;
++import org.teavm.model.instructions.PutElementInstruction;
++import org.teavm.model.instructions.UnwrapArrayInstruction;
++import org.teavm.model.util.ProgramUtils;
++
++public final class GuardTransformer implements ClassHolderTransformer {
++    public enum Mode { COMPILER, PROGRAM }
++
++    public static final String GUARD = "org.teavm.javac.guard.Guard";
++    private static final ValueType OBJECT = ValueType.object("java.lang.Object");
++    private static final ValueType CLASS = ValueType.object("java.lang.Class");
++    private static final MethodReference TICK = new MethodReference(GUARD, "tick", ValueType.VOID);
++    private static final MethodReference WORK = new MethodReference(GUARD, "work", ValueType.INTEGER, ValueType.VOID);
++    private static final MethodReference ALLOC = new MethodReference(GUARD, "alloc", ValueType.INTEGER, ValueType.VOID);
++    private static final MethodReference ALLOC_ARRAY = new MethodReference(GUARD, "allocArray", ValueType.INTEGER,
++            ValueType.INTEGER, ValueType.VOID);
++    private static final MethodReference CLONE_ARRAY = new MethodReference(GUARD, "cloneArray", OBJECT,
++            ValueType.VOID);
++    private static final MethodReference DIM = new MethodReference(GUARD, "dim", ValueType.INTEGER, ValueType.VOID);
++    private static final MethodReference ALLOC_DIMS = new MethodReference(GUARD, "allocDims", ValueType.INTEGER,
++            ValueType.VOID);
++    private static final MethodReference ALLOC_DIMS_ARRAY = new MethodReference(GUARD, "allocDimsArray",
++            ValueType.arrayOf(ValueType.INTEGER), ValueType.VOID);
++    private static final MethodReference EXIT = new MethodReference(GUARD, "exit", ValueType.INTEGER, ValueType.VOID);
++    private static final MethodReference INDEX = new MethodReference(GUARD, "index", OBJECT, ValueType.INTEGER,
++            ValueType.VOID);
++    private static final MethodReference IDIV = new MethodReference(GUARD, "idiv", ValueType.INTEGER,
++            ValueType.INTEGER, ValueType.INTEGER);
++    private static final MethodReference IREM = new MethodReference(GUARD, "irem", ValueType.INTEGER,
++            ValueType.INTEGER, ValueType.INTEGER);
++    private static final MethodReference LDIV = new MethodReference(GUARD, "ldiv", ValueType.LONG, ValueType.LONG,
++            ValueType.LONG);
++    private static final MethodReference LREM = new MethodReference(GUARD, "lrem", ValueType.LONG, ValueType.LONG,
++            ValueType.LONG);
++
++    private static final MethodReference ARRAYCOPY = new MethodReference("java.lang.System", "arraycopy", OBJECT,
++            ValueType.INTEGER, OBJECT, ValueType.INTEGER, ValueType.INTEGER, ValueType.VOID);
++    private static final MethodReference NEW_ARRAY = new MethodReference("java.lang.reflect.Array", "newInstance",
++            CLASS, ValueType.INTEGER, OBJECT);
++    private static final MethodReference NEW_ARRAY_DIMS = new MethodReference("java.lang.reflect.Array",
++            "newInstance", CLASS, ValueType.arrayOf(ValueType.INTEGER), OBJECT);
++    private static final MethodReference OBJECT_CLONE = new MethodReference("java.lang.Object", "clone", OBJECT);
++    /**
++     * Objects that also hold JavaScript-side memory the meter cannot see, charged extra: a Throwable keeps the
++     * JavaScript stack trace it captured, a Reference a WeakRef and a FinalizationRegistry entry, a Thread its
++     * fiber and timers.
++     */
++    private static final String[][] JS_BACKED = {
++        {"java.lang.Throwable", "4096"},
++        {"java.lang.ref.Reference", "512"},
++        {"java.lang.Thread", "1024"},
++    };
++
++    /** straight-line instructions between two ticks */
++    private static final int STRAIGHT_RUN = 256;
++
++    private final Mode mode;
++
++    public GuardTransformer(Mode mode) {
++        this.mode = mode;
++    }
++
++    /** Runtime support that must not be instrumented (it runs inside the checks, or below them). */
++    public boolean excluded(String className) {
++        if (className.startsWith("org.teavm.")) {
++            if (mode == Mode.PROGRAM) {
++                // Runtime support only. The class library's helpers in org.teavm.classlib.impl are ordinary Java
++                // the player drives through java.* (java.util.Base64 -> Base64Impl loops over the whole array and
++                // allocates its result there), so they carry ticks and the allocation meter like the rest.
++                return className.startsWith("org.teavm.javac.guard.")
++                        || className.startsWith("org.teavm.runtime.")
++                        || className.startsWith("org.teavm.interop.")
++                        || className.startsWith("org.teavm.jso.")
++                        || className.startsWith("org.teavm.platform.")
++                        || className.contains(".runtime.");
++            }
++            return className.startsWith("org.teavm.javac.guard.")
++                    || className.startsWith("org.teavm.runtime.")
++                    || className.startsWith("org.teavm.interop.")
++                    || className.startsWith("org.teavm.jso.")
++                    || className.startsWith("org.teavm.platform.")
++                    || className.startsWith("org.teavm.classlib.impl.")
++                    || className.contains(".runtime.");
++        }
++        return false;
++    }
++
++    @Override
++    public void transformClass(ClassHolder cls, ClassHolderTransformerContext context) {
++        if (excluded(cls.getName())) {
++            return;
++        }
++        for (MethodHolder method : cls.getMethods()) {
++            Program program = method.getProgram();
++            if (program == null || program.basicBlockCount() == 0) {
++                continue;
++            }
++            instrument(program, context, mode == Mode.PROGRAM && cls.getName().indexOf('.') < 0);
++        }
++    }
++
++    private void instrument(Program program, ClassHolderTransformerContext context, boolean playerClass) {
++        int blockCount = program.basicBlockCount();
++        Graph cfg = ProgramUtils.buildControlFlowGraph(program);
++        int[] backEdges = GraphUtils.findBackEdges(cfg);
++        Set<Integer> headers = new HashSet<>();
++        for (int i = 1; i < backEdges.length; i += 2) {
++            headers.add(backEdges[i]);
++        }
++
++        boolean calls = false;
++        for (int b = 0; b < blockCount; b++) {
++            BasicBlock block = program.basicBlockAt(b);
++            if (block == null) {
++                continue;
++            }
++            for (Instruction insn : block) {
++                if (insn instanceof InvokeInstruction) {
++                    calls = true;
++                    break;
++                }
++            }
++            if (calls) {
++                break;
++            }
++        }
++
++        // SSA: one definition per variable (constants and array unwraps are looked up by it)
++        Map<Variable, Instruction> definitions = new HashMap<>();
++        for (int b = 0; b < blockCount; b++) {
++            BasicBlock block = program.basicBlockAt(b);
++            if (block == null) {
++                continue;
++            }
++            for (Instruction insn : block) {
++                if (insn instanceof IntegerConstantInstruction constant) {
++                    definitions.put(constant.getReceiver(), insn);
++                } else if (insn instanceof LongConstantInstruction constant) {
++                    definitions.put(constant.getReceiver(), insn);
++                } else if (insn instanceof UnwrapArrayInstruction unwrap && unwrap.getReceiver() != null) {
++                    definitions.put(unwrap.getReceiver(), insn);
++                }
++            }
++        }
++
++        for (int b = 0; b < blockCount; b++) {
++            BasicBlock block = program.basicBlockAt(b);
++            if (block == null) {
++                continue;
++            }
++            // snapshot: inserting while iterating
++            List<Instruction> original = new ArrayList<>();
++            for (Instruction insn : block) {
++                original.add(insn);
++            }
++            int run = 0;
++            for (Instruction insn : original) {
++                if (++run >= STRAIGHT_RUN) {
++                    run = 0;
++                    insertBefore(insn, program, TICK);
++                }
++                if (insn instanceof InvokeInstruction invoke) {
++                    MethodReference target = invoke.getMethod();
++                    if (target.equals(ARRAYCOPY) && invoke.getArguments().size() == 5) {
++                        insertBefore(insn, program, WORK, invoke.getArguments().get(4));
++                    } else {
++                        instrumentCall(invoke, program);
++                    }
++                } else if (insn instanceof BinaryInstruction binary) {
++                    instrumentDivision(binary, program, definitions);
++                } else if (playerClass
++                        && (insn instanceof GetElementInstruction || insn instanceof PutElementInstruction)) {
++                    instrumentIndex(insn, program, definitions);
++                } else {
++                    instrumentAllocation(insn, program, context);
++                }
++            }
++            if ((b == 0 && calls) || headers.contains(b)) {
++                Instruction first = block.getFirstInstruction();
++                InvokeInstruction tick = invoke(TICK);
++                if (first != null) {
++                    tick.setLocation(first.getLocation());
++                    first.insertPrevious(tick);
++                } else {
++                    block.add(tick);
++                }
++            }
++        }
++    }
++
++    private void instrumentCall(InvokeInstruction invoke, Program program) {
++        MethodReference target = invoke.getMethod();
++        String owner = target.getClassName();
++        String name = target.getName();
++        if (mode == Mode.PROGRAM && name.equals("exit") && target.getDescriptor().parameterCount() == 1
++                && target.getDescriptor().parameterType(0).equals(ValueType.INTEGER)
++                && target.getReturnType().equals(ValueType.VOID)
++                && (owner.equals("java.lang.System") || owner.equals("java.lang.Runtime"))) {
++            Variable status = invoke.getArguments().get(0);
++            invoke.setType(InvocationType.SPECIAL);
++            invoke.setInstance(null);
++            invoke.setMethod(EXIT);
++            invoke.setArguments(status);
++            return;
++        }
++        if (mode == Mode.PROGRAM && name.equals("halt") && owner.equals("java.lang.Runtime")
++                && invoke.getArguments().size() == 1) {
++            Variable status = invoke.getArguments().get(0);
++            invoke.setType(InvocationType.SPECIAL);
++            invoke.setInstance(null);
++            invoke.setMethod(EXIT);
++            invoke.setArguments(status);
++            return;
++        }
++        if (target.equals(NEW_ARRAY) && invoke.getArguments().size() == 2) {
++            insertBefore(invoke, program, ALLOC_ARRAY, invoke.getArguments().get(1), constant(invoke, program, 8));
++        } else if (target.equals(NEW_ARRAY_DIMS) && invoke.getArguments().size() == 2) {
++            insertBefore(invoke, program, ALLOC_DIMS_ARRAY, invoke.getArguments().get(1));
++        } else if (target.equals(OBJECT_CLONE)) {
++            // super.clone() of a Cloneable object (array clones are CloneArrayInstruction)
++            insertBefore(invoke, program, ALLOC, constant(invoke, program, 64));
++        }
++    }
++
++    private void instrumentDivision(BinaryInstruction binary, Program program, Map<Variable, Instruction> definitions) {
++        BinaryOperation op = binary.getOperation();
++        if (op != BinaryOperation.DIVIDE && op != BinaryOperation.MODULO) {
++            return;
++        }
++        NumericOperandType type = binary.getOperandType();
++        if (type != NumericOperandType.INT && type != NumericOperandType.LONG) {
++            return;
++        }
++        Instruction divisor = definitions.get(binary.getSecondOperand());
++        if (divisor instanceof IntegerConstantInstruction constant && constant.getConstant() != 0
++                && constant.getConstant() != -1) {
++            return;
++        }
++        if (divisor instanceof LongConstantInstruction constant && constant.getConstant() != 0
++                && constant.getConstant() != -1) {
++            return;
++        }
++        MethodReference method = type == NumericOperandType.INT
++                ? (op == BinaryOperation.DIVIDE ? IDIV : IREM)
++                : (op == BinaryOperation.DIVIDE ? LDIV : LREM);
++        InvokeInstruction call = invoke(method, binary.getFirstOperand(), binary.getSecondOperand());
++        call.setReceiver(binary.getReceiver());
++        call.setLocation(binary.getLocation());
++        binary.replace(call);
++    }
++
++    private void instrumentIndex(Instruction insn, Program program, Map<Variable, Instruction> definitions) {
++        Variable data;
++        Variable index;
++        if (insn instanceof GetElementInstruction get) {
++            data = get.getArray();
++            index = get.getIndex();
++        } else {
++            PutElementInstruction put = (PutElementInstruction) insn;
++            data = put.getArray();
++            index = put.getIndex();
++        }
++        // the element access reads the unwrapped data; the check needs the array object itself
++        if (definitions.get(data) instanceof UnwrapArrayInstruction unwrap && unwrap.getArray() != null) {
++            insertBefore(insn, program, INDEX, unwrap.getArray(), index);
++        }
++    }
++
++    private void instrumentAllocation(Instruction insn, Program program, ClassHolderTransformerContext context) {
++        if (insn instanceof ConstructInstruction construct) {
++            insertBefore(insn, program, ALLOC, constant(insn, program, objectBytes(construct.getType(), context)));
++        } else if (insn instanceof ConstructArrayInstruction array) {
++            insertBefore(insn, program, ALLOC_ARRAY, array.getSize(),
++                    constant(insn, program, elementBytes(array.getItemType())));
++        } else if (insn instanceof ConstructMultiArrayInstruction multi) {
++            List<Variable> dimensions = multi.getDimensions();
++            ValueType leaf = multi.getItemType();
++            for (int i = 0; i < dimensions.size() && leaf instanceof ValueType.Array; i++) {
++                leaf = ((ValueType.Array) leaf).getItemType();
++            }
++            for (Variable dimension : dimensions) {
++                insertBefore(insn, program, DIM, dimension);
++            }
++            insertBefore(insn, program, ALLOC_DIMS, constant(insn, program, elementBytes(leaf)));
++        } else if (insn instanceof CloneArrayInstruction clone) {
++            insertBefore(insn, program, CLONE_ARRAY, clone.getArray());
++        }
++    }
++
++    private static int elementBytes(ValueType type) {
++        if (type instanceof ValueType.Primitive primitive) {
++            switch (primitive.getKind()) {
++                case BOOLEAN:
++                case BYTE:
++                    return 1;
++                case CHARACTER:
++                case SHORT:
++                    return 2;
++                case INTEGER:
++                case FLOAT:
++                    return 4;
++                default:
++                    return 8;
++            }
++        }
++        return 8;
++    }
++
++    /** 16 bytes of header plus 8 per instance field, up the superclass chain; more for JS_BACKED classes */
++    private static int objectBytes(String className, ClassHolderTransformerContext context) {
++        int bytes = 16;
++        int extra = 0;
++        try {
++            ClassReaderSource classes = context.getHierarchy().getClassSource();
++            String name = className;
++            for (int depth = 0; name != null && depth < 64; depth++) {
++                for (String[] backed : JS_BACKED) {
++                    if (name.equals(backed[0])) {
++                        extra = Math.max(extra, Integer.parseInt(backed[1]));
++                    }
++                }
++                ClassReader cls = classes.get(name);
++                if (cls == null) {
++                    break;
++                }
++                for (FieldReader field : cls.getFields()) {
++                    if (!field.hasModifier(ElementModifier.STATIC)) {
++                        bytes += 8;
++                    }
++                }
++                name = cls.getParent();
++            }
++        } catch (RuntimeException e) {
++            bytes = Math.max(bytes, 64);
++        }
++        return bytes + extra;
++    }
++
++    private static Variable constant(Instruction before, Program program, int value) {
++        IntegerConstantInstruction constant = new IntegerConstantInstruction();
++        constant.setConstant(value);
++        constant.setReceiver(program.createVariable());
++        constant.setLocation(before.getLocation());
++        before.insertPrevious(constant);
++        return constant.getReceiver();
++    }
++
++    private static void insertBefore(Instruction before, Program program, MethodReference method, Variable... args) {
++        InvokeInstruction call = invoke(method, args);
++        call.setLocation(before.getLocation());
++        before.insertPrevious(call);
++    }
++
++    private static InvokeInstruction invoke(MethodReference method, Variable... args) {
++        InvokeInstruction call = new InvokeInstruction();
++        call.setType(InvocationType.SPECIAL);
++        call.setMethod(method);
++        call.setArguments(args);
++        return call;
++    }
++}

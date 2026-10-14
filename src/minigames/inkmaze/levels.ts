@@ -25,17 +25,30 @@
  *
  * prints that board and its numbers again.
  *
- * Levels 21 to 25 come from an annealing search on wall layouts (the end of
- * the generator's header says how) and have no board ids. Each one is harder
- * than level 20 and than the ones before it on a vote of eleven measures,
- * all computed exactly (nothing is sampled), most of them about a careful
- * player who never makes a move that visibly loses;
+ * Levels 21 to 25 come from annealing searches on wall layouts (outside the
+ * repo; scripts/inkmaze-generate.mjs's header says how) and were chosen by a
+ * held-out panel of seventeen players that the searches did not aim at:
+ * careful random players looking 0 to 30 moves ahead, a careful player that
+ * prefers moves coloring many new blocks for little ink, beam search under
+ * four scorings, careful depth-first search in random and in greedy move
+ * order, nested Monte Carlo search, and how many moves of the least-ink line
+ * go against the careful player's instinct (PANEL in
+ * scripts/inkmaze-hardness.mjs; scripts/inkmaze-panel.mjs measures them).
+ * For every pair from level 20 on, the later level is harder on at least
+ * twice as many of these as it is easier, and never easier by a large
+ * margin; the curve table in scripts/test-inkmaze.mjs checks it and records
+ * where a later level gives way (the players disagree with each other, so no
+ * level is harder for every one of them). None gives any slack.
  *
- *   node scripts/inkmaze-generate.mjs --hardness 20-25 --slow
- *
- * prints them, and the curve table in scripts/test-inkmaze.mjs checks the
- * order. None gives any slack. Level 25 is a 7 x 7 on purpose: the last level
- * is the hardest to plan, not the biggest board.
+ * Level 25 is an 8 x 8 on purpose: the last level is the hardest to plan,
+ * not the biggest board. It is harder than level 24 on fifteen of the
+ * seventeen and level with it on the other two (two of the beam widths), and
+ * a careful player can reach more positions on it than on level 24.
+ * It has two least-ink lines: each of the 1426 single-line 8 x 8 boards the
+ * searches found is much easier than level 24 on at least one of the exact
+ * panel measures (ten times the chance for a careful or the soft player, or
+ * three fewer counter-instinct moves), and none of the 189 7 x 7 boards
+ * measured on the whole panel even beat level 20 without such a reversal.
  */
 import type { Level } from './engine.ts'
 
@@ -367,97 +380,98 @@ export const LEVELS: Level[] = [
       '....#....',
     ],
   },
-  // annealed
+  // annealed, ordered by the player panel
   {
-    id: 'the-pantry',
-    name: 'The Pantry',
+    id: 'scullery',
+    name: 'Scullery',
     slack: 0,
-    par: 87,
-    ink: 87,
+    par: 94,
+    ink: 94,
     grid: [
-      '....#....',
-      '..#..##.#',
-      'o.##.##..',
-      '##...#...',
-      '..#......',
-      '..#....#.',
-      '.#####.#.',
-      '..######.',
-      '#........',
-    ],
-  },
-  // annealed
-  {
-    id: 'long-hall',
-    name: 'Long Hall',
-    slack: 0,
-    par: 93,
-    ink: 93,
-    grid: [
-      '...##...#',
-      '.#......#',
-      '..#......',
-      '#.#..#...',
-      '#.#..#...',
-      '..##.#...',
-      '...#.o..#',
-      '.#.###.##',
-      '#..##....',
-    ],
-  },
-  // annealed
-  {
-    id: 'boiler-room',
-    name: 'Boiler Room',
-    slack: 0,
-    par: 91,
-    ink: 91,
-    grid: [
-      '###.o.#..',
-      '##.....#.',
+      '....#..o.',
+      '.......##',
+      '##..##...',
+      '##..###..',
       '.........',
-      '##...###.',
-      '..##...##',
-      '..#.##...',
-      '#...####.',
-      '.#.....#.',
-      '...##....',
+      '##...##..',
+      '.#.####.#',
+      '.....##..',
+      '..##..#..',
     ],
   },
-  // annealed
+  // annealed, ordered by the player panel
   {
-    id: 'the-study',
-    name: 'The Study',
+    id: 'the-gallery',
+    name: 'The Gallery',
     slack: 0,
-    par: 97,
-    ink: 97,
+    par: 108,
+    ink: 108,
     grid: [
       '....###..',
-      '.#....#..',
-      '..###.#..',
-      '#...#.o..',
-      '.....#...',
-      '.#...#...',
-      '##.##...#',
-      '##...#.##',
-      '....#....',
+      '.........',
+      '#.#.###.#',
+      '...o##...',
+      '.....#..#',
+      '#...#####',
+      '......###',
+      '#......##',
+      '...#....#',
     ],
   },
-  // annealed, small on purpose
+  // annealed, ordered by the player panel
   {
-    id: 'locked-room',
-    name: 'Locked Room',
+    id: 'bell-tower',
+    name: 'Bell Tower',
     slack: 0,
-    par: 83,
-    ink: 83,
+    par: 88,
+    ink: 88,
     grid: [
-      '..#..#.',
-      '#..#...',
-      '.#.....',
-      '..#....',
-      '#.....#',
-      '....o..',
-      '...#.##',
+      '#...#....',
+      '..#..##.#',
+      '.###.##..',
+      '#....#...',
+      '##.......',
+      '###.o..#.',
+      '##..###..',
+      '.######..',
+      '........#',
+    ],
+  },
+  // annealed, ordered by the player panel
+  {
+    id: 'clock-room',
+    name: 'Clock Room',
+    slack: 0,
+    par: 114,
+    ink: 114,
+    grid: [
+      '##..#....',
+      '#...##...',
+      '.....#...',
+      '#.#.....#',
+      '#.....#..',
+      '.......#.',
+      '#......##',
+      '#o...#.##',
+      '##..#....',
+    ],
+  },
+  // annealed, ordered by the player panel (8 x 8 on purpose)
+  {
+    id: 'the-vault',
+    name: 'The Vault',
+    slack: 0,
+    par: 96,
+    ink: 96,
+    grid: [
+      '.....#..',
+      '..#.#...',
+      '..#....#',
+      '#....#.#',
+      '#..#.#..',
+      '.......o',
+      '.#....##',
+      '#...#...',
     ],
   },
 ]

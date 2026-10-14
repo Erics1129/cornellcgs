@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 /**
  * Ink Maze: rules, session, plain-data state, every level clearable with its
- * ink, and levels that keep getting harder from level 20 on.
+ * ink, and levels that keep getting harder from level 20 on (by a held-out
+ * panel of players, see the curve table).
  *
  *   node scripts/test-inkmaze.mjs        (also part of `npm test`)
  */
@@ -13,7 +14,7 @@ import {
 import { createSession, current, inkUsed, movesUsed, play, restart, undo } from '../src/minigames/inkmaze/session.ts'
 import { minInk, replay, solvableWith } from '../src/minigames/inkmaze/solver.ts'
 import { LEVELS } from '../src/minigames/inkmaze/levels.ts'
-import { CAREFUL_MEASURES, MEASURES, compare, difference, hardness } from './inkmaze-hardness.mjs'
+import { PANEL, difference, panel, panelCompare } from './inkmaze-hardness.mjs'
 
 const at = (state, x, y) => y * state.width + x
 
@@ -146,7 +147,7 @@ assert.equal(sizes[0], 4, 'the first level is 4 by 4')
 assert.equal(Math.max(...sizes), 9, 'the largest boards are 9 by 9 (the 3D view is tested up to 9 by 9)')
 // boards never shrink, except the final level: a small board on purpose
 sizes.slice(0, -1).forEach((size, i) => i && assert.ok(size >= sizes[i - 1], `level ${i + 1} is not smaller than level ${i}`))
-assert.ok(sizes.at(-1) <= 7, `the final level is a small board (at most 7 by 7), not ${sizes.at(-1)} by ${sizes.at(-1)}`)
+assert.ok(sizes.at(-1) < sizes.at(-2), `the final level is smaller than the ${sizes.at(-2)} by ${sizes.at(-2)} boards before it (the hardest to plan, not the biggest), not ${sizes.at(-1)} by ${sizes.at(-1)}`)
 for (const level of LEVELS) {
   const s = initialState(level)
   assert.equal(s.width, s.height, `${level.id} is square`)
@@ -175,64 +176,66 @@ for (const level of LEVELS) {
 }
 
 // ------------------------------------------------------- the difficulty curve
-// Each of levels 21 to 25 must be harder than level 20 and than each of them
-// before it. Eleven measures, all at par ink (MEASURES in
-// scripts/inkmaze-hardness.mjs says what each is and which way is harder).
-// Five model a careful player, one who never makes a move that visibly loses
-// (more blocks left than ink, or a block no roll can reach again):
-//   careful    its chance to clear the level, picking at random among the moves it would make
-//   safeWrong  moves offered on the least-ink line that look safe but can no longer win
-//   horizon    how many moves such a move lets it go on, on average, before the dead end shows
-//   beam       the smallest beam search width that clears the level, best of five scorings
-//   nmcs       how many of six seeded nested Monte Carlo searches clear it
-// and six are plainer ones, the ones the first picks for these levels were judged by:
-//   lines, decisions, planner (the least lookahead a simple planner needs),
-//   greedy (ink over par a greedy player needs; Infinity: it gets stuck),
-//   moves, inkPerFloor
-// A level is harder than another when it is harder on more of the eleven
-// than it is easier, and also on more of the five careful-player ones. On
-// top of that careful, safeWrong and horizon must rise at every step. The
-// last level is a small board: a narrower beam search clears it, and it has
-// a second least-ink line, but it is harder on every other measure that
-// differs.
-// The quick, exact measures are recomputed here and must match the table;
-// beam, nmcs, planner and greedy take longer, so they are written down.
-// After changing any of these levels, run
-//   node scripts/inkmaze-generate.mjs --hardness 20-25 --slow
-// (about a quarter of an hour) and paste the rows it prints.
+// Levels 21 to 25 get harder at every step from level 20, judged by a panel
+// of seventeen players that were not what the search for these levels aimed
+// at (PANEL in scripts/inkmaze-hardness.mjs says what each one is): careful
+// random players looking 0 to 30 moves ahead, a careful player that prefers
+// moves coloring many new blocks for little ink, beam search under four
+// scorings, a careful depth-first search in random and in greedy move order,
+// nested Monte Carlo search, and how many moves of the least-ink line go
+// against the careful player's instinct. All play at par ink.
+// The rule, for every pair of levels from 20 on (not only neighbours): the
+// later one is harder on at least twice as many panel measures as it is
+// easier, and it is never easier by a large margin (10 times the chance to
+// clear it, 2 times less search, a 4 times narrower beam, 3 fewer
+// counter-instinct moves, or twice the Monte Carlo wins). The table also
+// records where a later level is easier; the panel players disagree with
+// each other, so no level is harder on every one of them.
+// The exact columns (careful*, soft, counterFresh, counterEff, lines, states)
+// are recomputed here with panel() and must match; the search players come
+// from scripts/inkmaze-panel.c and are written down. After changing any of
+// these levels, run
+//   node scripts/inkmaze-panel.mjs 20-25
+// (a few minutes) and paste the rows it prints.
 const CURVE = [
-  { id: 'dead-end', careful: 6.729e-13, safeWrong: 45, horizon: 30.53, beam: 16384, nmcs: 2, lines: 2, decisions: 34, planner: 38, greedy: Infinity, moves: 38, inkPerFloor: 1.951 },
-  { id: 'the-pantry', careful: 2.243e-13, safeWrong: 47, horizon: 31.31, beam: 32768, nmcs: 0, lines: 1, decisions: 36, planner: 22, greedy: Infinity, moves: 39, inkPerFloor: 1.642 },
-  { id: 'long-hall', careful: 8.412e-14, safeWrong: 48, horizon: 31.38, beam: 32768, nmcs: 0, lines: 1, decisions: 37, planner: 33, greedy: Infinity, moves: 40, inkPerFloor: 1.691 },
-  { id: 'boiler-room', careful: 4.206e-14, safeWrong: 49, horizon: 31.47, beam: 65536, nmcs: 0, lines: 1, decisions: 39, planner: 43, greedy: Infinity, moves: 43, inkPerFloor: 1.717 },
-  { id: 'the-study', careful: 9.346e-15, safeWrong: 52, horizon: 31.64, beam: 65536, nmcs: 0, lines: 1, decisions: 39, planner: 44, greedy: Infinity, moves: 44, inkPerFloor: 1.732 },
-  { id: 'locked-room', careful: 2.769e-15, safeWrong: 55, horizon: 32.15, beam: 2048, nmcs: 0, lines: 2, decisions: 39, planner: 45, greedy: Infinity, moves: 45, inkPerFloor: 2.184 },
+  { id: 'dead-end', careful0: 6.729e-13, careful2: 1.615e-11, careful4: 4.845e-11, careful8: 1.454e-9, careful12: 1.861e-8, careful20: 9.303e-8, careful30: 0.000004207, soft: 4.27e-16, beamGainInk: 32768, beamAStar: 32768, beamRareFirst: 16384, beamTwiceColored: 32768, dfsRandom: 78495, dfsGreedy: 124408, counterFresh: 7, counterEff: 2, nmcs: [4, 300], lines: 2, states: 68830 },
+  { id: 'scullery', careful0: 3.988e-13, careful2: 4.785e-12, careful4: 7.178e-12, careful8: 1.938e-10, careful12: 7.752e-10, careful20: 6.202e-9, careful30: 0.000002009, soft: 3.557e-15, beamGainInk: 131072, beamAStar: 65536, beamRareFirst: 16384, beamTwiceColored: 32768, dfsRandom: 147443, dfsGreedy: 291434, counterFresh: 5, counterEff: 3, nmcs: [4, 300], lines: 1, states: 143432 },
+  { id: 'the-gallery', careful0: 1.682e-13, careful2: 2.019e-12, careful4: 4.038e-12, careful8: 9.69e-11, careful12: 1.211e-10, careful20: 1.569e-9, careful30: 4.14e-7, soft: 4.412e-16, beamGainInk: 131072, beamAStar: 131072, beamRareFirst: 8192, beamTwiceColored: 65536, dfsRandom: 519817, dfsGreedy: 331573, counterFresh: 6, counterEff: 1, nmcs: [3, 300], lines: 2, states: 315788 },
+  { id: 'bell-tower', careful0: 8.412e-14, careful2: 6.729e-13, careful4: 6.729e-13, careful8: 4.038e-12, careful12: 1.211e-11, careful20: 5.814e-10, careful30: 3.489e-9, soft: 1.779e-15, beamGainInk: 131072, beamAStar: 131072, beamRareFirst: 16384, beamTwiceColored: 32768, dfsRandom: 894994, dfsGreedy: 1084447, counterFresh: 7, counterEff: 2, nmcs: [0, 300], lines: 1, states: 545054 },
+  { id: 'clock-room', careful0: 2.215e-14, careful2: 4.431e-14, careful4: 6.646e-14, careful8: 5.982e-13, careful12: 2.393e-12, careful20: 2.871e-11, careful30: 7.752e-10, soft: 1.16e-15, beamGainInk: 262144, beamAStar: 262144, beamRareFirst: 16384, beamTwiceColored: 65536, dfsRandom: 789038, dfsGreedy: 649155, counterFresh: 9, counterEff: 2, nmcs: [5, 300], lines: 1, states: 451106 },
+  { id: 'the-vault', careful0: 2.532e-18, careful2: 1.519e-17, careful4: 1.519e-17, careful8: 1.368e-16, careful12: 3.282e-15, careful20: 5.908e-13, careful30: 1.595e-11, soft: 1.274e-18, beamGainInk: 262144, beamAStar: 262144, beamRareFirst: 131072, beamTwiceColored: 262144, dfsRandom: 1049775, dfsGreedy: 986150, counterFresh: 11, counterEff: 9, nmcs: [0, 300], lines: 2, states: 524864 },
 ]
 {
   const first = LEVELS.findIndex((level) => level.id === CURVE[0].id)
   assert.equal(first, 19, 'the curve starts at level 20')
   assert.deepEqual(LEVELS.slice(first).map((level) => level.id), CURVE.map((row) => row.id), 'the curve table lists level 20 and every level after it, in order')
+  const columns = ['id', ...Object.keys(PANEL), 'lines', 'states'].sort()
+  const exactKeys = ['careful0', 'careful2', 'careful4', 'careful8', 'careful12', 'careful20', 'careful30', 'soft', 'counterFresh', 'counterEff', 'lines', 'states']
   for (const row of CURVE) {
-    assert.deepEqual(Object.keys(row).sort(), ['id', ...Object.keys(MEASURES)].sort(), `${row.id}: the table gives every measure`)
+    assert.deepEqual(Object.keys(row).sort(), columns, `${row.id}: the table gives every panel measure`)
     const level = LEVELS.find((entry) => entry.id === row.id)
-    const h = hardness(level, level.par) // par was checked against minInk above
-    const exact = {
-      careful: Number(h.careful.toExponential(3)), safeWrong: h.safeWrong, horizon: Number(h.horizon.toFixed(2)),
-      lines: h.lines, decisions: h.decisions, moves: h.moves, inkPerFloor: Number(h.inkPerFloor.toFixed(3)),
+    const exact = panel(level, level.par) // par was checked against minInk above
+    for (const key of exactKeys) {
+      if (key.startsWith('careful') || key === 'soft') {
+        // the C tool prints five significant digits and the table keeps four
+        assert.ok(Math.abs(row[key] - exact[key]) <= 1e-3 * exact[key], `${row.id}: ${key} is ${exact[key].toExponential(3)}, the table says ${row[key]}`)
+      } else {
+        assert.equal(row[key], exact[key], `${row.id}: ${key} is ${exact[key]}, the table says ${row[key]}`)
+      }
     }
-    for (const [key, value] of Object.entries(exact)) assert.equal(row[key], value, `${row.id}: ${key} is ${value}, the table says ${row[key]}`)
   }
+  const notes = []
+  let margin = Infinity
   CURVE.forEach((row, i) => {
-    if (!i) return
-    const before = CURVE[i - 1]
-    for (const key of ['careful', 'safeWrong', 'horizon']) assert.equal(compare(before, row, [key]).harder, 1, `${row.id} is harder than ${before.id} on ${key}`)
     for (const other of CURVE.slice(0, i)) {
-      const all = compare(other, row)
-      const careful = compare(other, row, CAREFUL_MEASURES)
-      assert.ok(all.harder > all.easier, `${row.id} is harder than ${other.id} on most measures (${all.harder} harder, ${all.easier} easier)`)
-      assert.ok(careful.harder > careful.easier, `${row.id} is harder than ${other.id} for the careful player (${careful.harder} harder, ${careful.easier} easier)`)
+      const { harder, easier, easierOn, large } = panelCompare(other, row)
+      margin = Math.min(margin, harder - easier)
+      assert.deepEqual(large, [], `${row.id} is much easier than ${other.id} on ${large.join(', ')}`)
+      assert.ok(harder >= 2 * easier && harder > easier, `${row.id} is harder than ${other.id} on ${harder} panel measures and easier on ${easier} (${easierOn.join(', ')}): not a clear majority`)
+      if (other === CURVE[i - 1]) notes.push(`${i + 20} ${harder}-${easier}`)
     }
   })
+  console.log(`  curve from level 20, each level against the one before (harder-easier of ${Object.keys(PANEL).length}): ${notes.join(', ')}; every pair at least ${margin} more harder than easier`)
 }
 
 // The search-result text for /minigames/inkMaze/ (scripts/stubs.mjs) is typed by hand: keep its numbers true
@@ -246,4 +249,4 @@ const CURVE = [
   assert.ok(desc.includes(`from ${side(LEVELS[0])} to ${side(largest)}`), `stubs.mjs gives the board sizes (${side(LEVELS[0])} to ${side(largest)}): "${desc}"`)
 }
 
-console.log(`PASS ink maze: rules, sessions, plain-data state, ${LEVELS.length} levels clearable with their ink, harder at every step from level 20 to ${LEVELS.length}`)
+console.log(`PASS ink maze: rules, sessions, plain-data state, ${LEVELS.length} levels clearable with their ink, the player panel's order from level 20 to ${LEVELS.length}`)

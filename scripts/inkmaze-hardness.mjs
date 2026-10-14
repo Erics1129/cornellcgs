@@ -5,6 +5,7 @@
  * (all of them, including the slow search players).
  *
  *   import { hardness, smallestBeam, nmcsWins, plannerDepth, MEASURES, compare, difference } from './inkmaze-hardness.mjs'
+ *   import { panel, PANEL, panelCompare } from './inkmaze-hardness.mjs'
  *
  * Every measure plays the level with exactly par ink, under the rules in
  * src/minigames/inkmaze/engine.ts (rolls stop at walls, each block entered
@@ -36,6 +37,12 @@
  * (a power of two) that clears the level, how many of six seeded nested
  * Monte Carlo searches (level 5) clear it, and the least lookahead with which
  * a simple planner does.
+ *
+ * panel(level) gives the exact part of the held-out player panel that levels
+ * 20 to 25 are ordered by (careful players with lookahead, the soft player,
+ * counter-instinct moves; see PANEL for all seventeen and panelCompare for
+ * the rule), the measures scripts/test-inkmaze.mjs recomputes; the search
+ * players of the panel come from scripts/inkmaze-panel.c.
  *
  * MEASURES lists eleven of these numbers and which way is harder; compare(a,
  * b) counts on how many of them b is harder than a and on how many easier.
@@ -358,6 +365,224 @@ export function hardness(level, par = minInk(level)?.ink) {
     par, lines, careful, uniform, moves: line.length, line, decisions, wrong, safeWrong, hard,
     horizon: hard ? horizonSum / hard : 0, horizonMax, inkPerFloor: par / board.floors, memo: memo.n, floors: board.floors,
   }
+}
+
+// ------------------------------------------------------- the player panel
+/**
+ * Lookahead depths of the careful players in panel(): careful<L> is the
+ * chance that a player who looks L moves ahead clears the level, picking at
+ * random among the moves from which some line of L more moves does not
+ * visibly lose (careful0 is hardness().careful).
+ */
+export const LOOKAHEADS = [0, 2, 4, 8, 12, 20, 30]
+
+const H_INF = 100000
+
+/**
+ * The exact part of the held-out player panel the curve test checks (all at
+ * par ink, nothing sampled):
+ *   lines          least-ink lines
+ *   careful0 ... careful30   the careful players of LOOKAHEADS (lower is harder)
+ *   soft           a careful player that weighs each move by exp(new blocks - ink spent) (lower is harder)
+ *   counterFresh   the fewest moves on any least-ink line that color fewer new blocks than the
+ *                  best careful move there (higher is harder: the line goes against the instinct)
+ *   counterEff     the same for new blocks per ink spent
+ *   states         positions a careful player can reach (the search space; higher is harder)
+ * The rules are those of the panel's C tool (scratchpad rx.c, an independent
+ * implementation: the test's table came from it and these numbers must match
+ * it). The slow search players of the panel (beam widths, depth-first search
+ * effort, nested Monte Carlo) are recorded in the test's table.
+ */
+export function panel(level, par = minInk(level)?.ink) {
+  if (par === undefined) throw new Error(`${level.id ?? 'level'}: no solution`)
+  const board = compile(level.grid)
+  const { NW, floors, floor, cover } = board
+  const P = positions(board)
+  const { col, left, move, stop } = P
+  const NL = LOOKAHEADS.length
+  // per position: lines, h (most moves the careful player can still make; H_INF: it wins), careful[NL], soft
+  const STRIDE = 3 + NL
+  const WIN = -1
+  const LOST = -2
+  const NONE = -3
+  const memo = new Table(NW, 1)
+  let vals = new Float64Array(STRIDE * 4096)
+  let count = 0
+  const kids = new Int32Array(400 * 4)
+  const fresh = new Int32Array(400 * 4)
+  const cost = new Int32Array(400 * 4)
+  const get = (id, j) => (id >= 0 ? vals[id * STRIDE + j] : id === WIN ? (j === 1 ? H_INF : 1) : 0)
+  const rec = (t, ball, ink) => {
+    const lf = left(t)
+    if (lf === 0) return WIN
+    if (lf > ink) return LOST
+    for (let w = 0; w < NW; w++) if ((floor[w] & ~col[t * NW + w] & ~cover[ball * NW + w]) !== 0) return LOST
+    const tag = ball * 4096 + ink + 1
+    const found = memo.find(col, t * NW, tag)
+    if (found >= 0) return memo.vals[found]
+    const before = floors - lf
+    const base = t * 4
+    let legal = 0
+    for (let d = 0; d < 4; d++) {
+      const k = move(t, ball, ink, d)
+      if (!k) { kids[base + d] = NONE; continue }
+      legal++
+      cost[base + d] = k
+      fresh[base + d] = floors - left(t + 1) - before
+      kids[base + d] = rec(t + 1, stop(ball, d, k), ink - k)
+    }
+    if ((count + 1) * STRIDE > vals.length) { const bigger = new Float64Array(vals.length * 2); bigger.set(vals); vals = bigger }
+    const o = count * STRIDE
+    if (legal) {
+      let lines = 0
+      let most = 0
+      for (let d = 0; d < 4; d++) {
+        const id = kids[base + d]
+        if (id === NONE) continue
+        lines += get(id, 0)
+        const h = get(id, 1)
+        if (h > most) most = h
+      }
+      vals[o] = lines
+      vals[o + 1] = most >= H_INF ? H_INF : most + 1
+      for (let l = 0; l < NL; l++) {
+        let c = 0
+        let s = 0
+        for (let d = 0; d < 4; d++) {
+          const id = kids[base + d]
+          if (id !== NONE && get(id, 1) > LOOKAHEADS[l]) { c++; s += get(id, 2 + l) }
+        }
+        vals[o + 2 + l] = c ? s / c : 0
+      }
+      let ws = 0
+      let s = 0
+      for (let d = 0; d < 4; d++) {
+        const id = kids[base + d]
+        if (id === NONE || get(id, 1) <= 0) continue
+        const w = Math.exp(fresh[base + d] - cost[base + d])
+        ws += w
+        s += w * get(id, 2 + NL)
+      }
+      vals[o + 2 + NL] = ws > 0 ? s / ws : 0
+    } else {
+      vals.fill(0, o, o + STRIDE)
+    }
+    memo.vals[memo.add(col, t * NW, tag)] = count
+    return count++
+  }
+  P.reset(board.start)
+  const root = rec(0, board.start, par)
+  const result = { par, lines: get(root, 0), states: count }
+  LOOKAHEADS.forEach((l, i) => { result[`careful${l}`] = get(root, 2 + i) })
+  result.soft = get(root, 2 + NL)
+  // every least-ink line, counting its moves that go against the careful player's instinct
+  let counterFresh = Infinity
+  let counterEff = Infinity
+  const walk = (t, ball, ink, a, b) => {
+    if (left(t) === 0) { counterFresh = Math.min(counterFresh, a); counterEff = Math.min(counterEff, b); return }
+    const before = floors - left(t)
+    const options = []
+    for (let d = 0; d < 4; d++) {
+      const k = move(t, ball, ink, d)
+      if (!k) continue
+      const id = rec(t + 1, stop(ball, d, k), ink - k)
+      if (get(id, 1) <= 0) continue
+      const f = floors - left(t + 1) - before
+      options.push({ d, k, f, e: f / k, wins: get(id, 0) > 0 })
+    }
+    const maxF = Math.max(...options.map((o) => o.f))
+    const maxE = Math.max(...options.map((o) => o.e))
+    for (const o of options) {
+      if (!o.wins) continue
+      move(t, ball, ink, o.d)
+      walk(t + 1, stop(ball, o.d, o.k), ink - o.k, a + (o.f < maxF ? 1 : 0), b + (o.e < maxE - 1e-12 ? 1 : 0))
+    }
+  }
+  if (result.lines > 0) { P.reset(board.start); walk(0, board.start, par, 0, 0) }
+  result.counterFresh = counterFresh
+  result.counterEff = counterEff
+  return result
+}
+
+/**
+ * The held-out player panel that levels 20 to 25 are ordered by: seventeen
+ * players, none of them the target of the search that found the levels.
+ * `kind` says how two values compare:
+ *   chance  a chance to clear the level (lower is harder); within 1.5 times is a tie, 10 times or more is large
+ *   beam    a beam width (higher is harder); powers of two, any change counts, 4 times or more is large
+ *   nodes   search effort (higher is harder); within 1.25 times is a tie, 2 times or more is large
+ *   count   moves (higher is harder); any change counts, 3 or more is large
+ *   rate    [wins, runs] (lower is harder); within two standard errors is a tie, large when the
+ *           easier level is won at least twice as often and by at least 5 points
+ * careful*, soft, counterFresh and counterEff are exact (panel() above); the
+ * rest come from scripts/inkmaze-panel.c (scripts/inkmaze-panel.mjs prints them).
+ */
+export const PANEL = {
+  careful0: { kind: 'chance', about: 'a careful player (never a move that visibly loses) picking at random' },
+  careful2: { kind: 'chance', about: 'the same, looking 2 moves ahead' },
+  careful4: { kind: 'chance', about: 'looking 4 moves ahead' },
+  careful8: { kind: 'chance', about: 'looking 8 moves ahead' },
+  careful12: { kind: 'chance', about: 'looking 12 moves ahead' },
+  careful20: { kind: 'chance', about: 'looking 20 moves ahead' },
+  careful30: { kind: 'chance', about: 'looking 30 moves ahead' },
+  soft: { kind: 'chance', about: 'a careful player that prefers moves coloring more new blocks for less ink: weight exp(new - ink)' },
+  beamGainInk: { kind: 'beam', about: 'beam search scored by blocks colored minus ink spent' },
+  beamAStar: { kind: 'beam', about: 'beam search scored like A* (ink spent plus blocks left)' },
+  beamRareFirst: { kind: 'beam', about: 'beam search that values blocks few rolls pass over' },
+  beamTwiceColored: { kind: 'beam', about: 'beam search scored by twice the blocks colored minus ink spent' },
+  dfsRandom: { kind: 'nodes', about: 'careful depth-first search with a dead-end memo, random move order: median nodes over 201 seeds' },
+  dfsGreedy: { kind: 'nodes', about: 'the same, trying the move that colors the most new blocks first' },
+  counterFresh: { kind: 'count', about: 'moves on the least-ink line that color fewer new blocks than the best careful move (fewest over all lines)' },
+  counterEff: { kind: 'count', about: 'moves on the least-ink line that color fewer new blocks per ink than the best careful move' },
+  nmcs: { kind: 'rate', about: 'nested Monte Carlo search, level 4: wins out of runs' },
+}
+
+const PANEL_TIE = { chance: 1.5, nodes: 1.25 }
+const PANEL_LARGE = { chance: 10, beam: 4, nodes: 2, count: 3 }
+
+/** +1 when b is harder than a on the panel measure, -1 easier, 0 a tie; and whether an easier is a large reversal */
+export function panelStep(key, a, b) {
+  const { kind } = PANEL[key]
+  const x = a[key]
+  const y = b[key]
+  if (kind === 'rate') {
+    const [wa, na] = x
+    const [wb, nb] = y
+    const pa = wa / na
+    const pb = wb / nb
+    const se = Math.sqrt(Math.max((pa * (1 - pa)) / na + (pb * (1 - pb)) / nb, 1e-9))
+    if (Math.abs(pa - pb) <= 2 * se) return { step: 0, large: false }
+    return pb < pa ? { step: 1, large: false } : { step: -1, large: pb >= 2 * pa && pb - pa >= 0.05 }
+  }
+  if (kind === 'count') {
+    if (x === y) return { step: 0, large: false }
+    return y > x ? { step: 1, large: false } : { step: -1, large: x - y >= PANEL_LARGE.count }
+  }
+  if (x === y) return { step: 0, large: false }
+  // how many times harder b is
+  const ratio = kind === 'chance' ? (y === 0 ? Infinity : x / y) : y / x
+  const tie = PANEL_TIE[kind] ?? 1
+  if (ratio > tie) return { step: 1, large: false }
+  if (ratio < 1 / tie || (tie === 1 && ratio < 1)) return { step: -1, large: ratio <= 1 / PANEL_LARGE[kind] }
+  return { step: 0, large: false }
+}
+
+/** On how many panel measures b is harder than a, and easier; which are easier, and which of those are large reversals. */
+export function panelCompare(a, b, keys = Object.keys(PANEL)) {
+  let harder = 0
+  let easier = 0
+  const easierOn = []
+  const large = []
+  for (const key of keys) {
+    const { step, large: big } = panelStep(key, a, b)
+    if (step > 0) harder++
+    else if (step < 0) {
+      easier++
+      easierOn.push(key)
+      if (big) large.push(key)
+    }
+  }
+  return { harder, easier, easierOn, large }
 }
 
 /**

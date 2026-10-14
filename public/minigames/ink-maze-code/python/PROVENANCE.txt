@@ -1,0 +1,112 @@
+Ink Maze level 26 — Python runtime provenance
+==============================================
+
+What runs the player's Python
+-----------------------------
+Pyodide 314.0.7 (CPython 3.14.2 compiled to WebAssembly). Pyodide's own files
+are NOT self-hosted: they load, only when the player picks Python, from the
+pinned CDN
+  https://cdn.jsdelivr.net/pyodide/v314.0.7/full/
+  (pyodide.mjs, pyodide.asm.mjs, pyodide.asm.wasm, python_stdlib.zip,
+   pyodide-lock.json)
+which sandbox.html's Content-Security-Policy allows (script-src and connect-src
+list exactly this prefix; the version is pinned in the path). First load
+transfers about 6 MB (brotli). npm pyodide@314.0.7, published 2026-09-14.
+
+Self-hosted here (the site's own code)
+--------------------------------------
+  runtime.js    the Runtime (src/minigames/inkmaze/code/contract.ts): loads
+                Pyodide, caps the wasm heap, routes stdout/stderr to the run's
+                io, installs a ONE-SHOT, self-disarming interrupt buffer (the
+                getter returns SIGINT once past the deadline, then disarms so it
+                cannot re-fire into the tick's _InkStop or the driver's cleanup
+                and abort the interpreter), installs driver.py and runs the
+                player's code.
+  driver.py     compiles the player's code as solution.py and enforces the
+                WebKit-safe cooperative deadline of contract D1-D9 three ways,
+                because worker.terminate() does not stop a running wasm loop:
+                 1. an AST pass that calls __ink_tick__ at every loop body,
+                    function entry AND comprehension / generator-expression
+                    iterable (so a `for ... in` driven by a C builtin still
+                    ticks), raising a sticky, uncatchable _InkStop past the
+                    deadline. The instrumented player code is compiled as the
+                    body of a nested function, so __ink_tick__ / __ink_iter__
+                    resolve as CLOSURE free variables (LOAD_DEREF), NOT as
+                    player-writable globals -- globals()['__ink_tick__']=... or
+                    exec('__ink_tick__=...') cannot shadow them (and are rejected
+                    as compile errors besides, together with assignment to any
+                    __ink* subscript/attribute, reads of __closure__/__globals__/
+                    frame internals, and exec/eval/compile). Module semantics are
+                    preserved: every name the player binds at module level is
+                    declared `global` in that nested function (via symtable), so
+                    `global`, classes, imports and recursion behave exactly as at
+                    true module scope;
+                 2. the runtime's interrupt buffer, which raises one
+                    KeyboardInterrupt at the next bytecode boundary so a C-driven
+                    bytecode loop (a key/reduce lambda, a callable-iterator) is
+                    kicked back out to an instrumented frame; stickiness against a
+                    swallow comes from the unshadowable tick (1), not the buffer;
+                 3. the pure-C / JS loops and blocking calls that take no
+                    bytecode per step are bounded at the source: the O(1)-memory
+                    C consumers (sum/any/all/max/min/sorted/math.prod/math.fsum/
+                    functools.reduce/operator.countOf/collections.deque) and the
+                    infinite sources (2-arg iter, itertools.count/cycle/repeat)
+                    are wrapped to drive their input through a ticking generator;
+                    math.factorial/comb/perm and pow() with a huge argument are
+                    capped, math.isqrt is capped by the argument's bit length,
+                    sys.set_int_max_str_digits is clamped so int<->str stays a
+                    ValueError; the re / regex modules (catastrophic backtracking
+                    has no Python back-edge) are refused; and time.sleep -- a
+                    Pyodide busy-wait in JS that never re-enters the eval loop --
+                    is replaced by a Python wait loop that ticks every iteration,
+                    so a short sleep returns and time.sleep(10 ** 9) becomes a
+                    cooperative time_limit (stoppedBy 'runtime', no sandbox
+                    rebuild, no grace-window CPU) instead of the host backstop.
+                    os.close of fd 0/1/2 is refused so it cannot crash the
+                    interpreter. (The reachable asyncio event loop / selectors /
+                    signal.pause do not block synchronously in this build.)
+                Before parsing, a plain character scan rejects source that nests
+                brackets or indents beyond a WebKit-safe depth, so a compile bomb
+                is a clean compile_error, not a C-parser stack overflow + forced
+                worker rebuild. Player errors are formatted from solution.py
+                frames only, without TracebackException and without invoking a
+                player __str__/__repr__, so a looping __str__ is a clean
+                runtime_error (not a Pyodide fatal) and a real error is never
+                masked as "module re is not available" (the driver pre-imports
+                _pylong so the interpreter's own re stays reachable for huge-int
+                work while the player's `import re` is still refused).
+                sys.addaudithook is refused by wrapping the function itself:
+                auditing is INERT in this Pyodide/CPython 3.14 build (an added
+                hook never fires), so the refusal cannot ride on a
+                'sys.addaudithook' audit event.
+                It restores the interpreter between runs (builtins, modules, the
+                recursion limit, gc.callbacks, the fd streams, the C-surface
+                wrappers, the addaudithook wrapper), fingerprints the modules it
+                relies on, runs end-of-run gc under the same deadline, and reports
+                the outcome.
+  harness.py    the hidden harness (problem.ts H1-H6): the driver reads every
+                board (via the harness's _ink_parse) BEFORE any player code runs
+                (H1), then one Solution() per board and one "@@ANSWER@@ <moves>"
+                line per board, escapeAnswer matched to problem.ts exactly. The
+                harness captures the built-ins it uses (ord/chr/str/int/...) at
+                startup, and the driver binds the real stdout.write before player
+                code, so a run that replaces builtins or sys.stdout cannot forge,
+                corrupt or hide an answer line; str subclasses are read as their
+                plain value, so a hostile __str__/__iter__ cannot run here.
+
+Licences
+--------
+Pyodide is MPL-2.0; the bundled CPython and its C libraries are each under their
+own licence (PSF, zlib, bzip2, libexpat, mpdecimal, liblzma/xz, HACL*, SQLite).
+Because the compiled form is distributed to the browser, the MPL asks that the
+source be findable: Pyodide 314.0.7 source is at
+  https://github.com/pyodide/pyodide  (release tag 314.0.7)
+Loading from jsDelivr means the CDN distributes those files; this note and the
+top-level LICENSES.txt record the notices. The site's own driver.py, harness.py
+and runtime.js are not covered by those licences.
+
+Not shipped
+-----------
+The reference and naive solutions live in
+scripts/inkmaze-code/solutions/python-{reference,naive}.py and are used only by
+the tests; they are never served to the player.

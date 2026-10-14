@@ -40,6 +40,13 @@ implement it. The canvas view emits `cell` events on the same timing it draws,
 and an `impact` when a roll ends against a wall or the edge (not when the ink
 runs out mid-roll).
 
+A page makes at most one `UnityInkMaze`, and `destroy()` is only for a 3D board
+that failed: Unity's `Quit()` frees neither the build's memory nor its WebGL
+context (each new instance in the same page kept another 130-190 MB), and WebKit
+logs WebGL errors when the canvas goes. So the coding level (level 26) and the
+board levels are separate page loads (`InkMazePage.tsx`), never a switch inside
+one page.
+
 ## Unity bridge
 
 ### Page to Unity
@@ -188,7 +195,7 @@ chosen tier reach the console; without it the console stays quiet.
 - The build writes `src/minigames/inkmaze/unityBuildVersion.ts` (a hash of the
   build) and `unity.ts` adds it to the file URLs as `?v=`, so a browser never
   mixes a cached old build with a new one.
-- Self-test: `Tools/selftest.sh` plays all 20 levels (844 moves) in batch mode
+- Self-test: `Tools/selftest.sh` plays all 25 levels twice (1276 moves) in batch mode
   and checks that every move settles exactly on the engine's block within
   0.76 s of simulated time.
 

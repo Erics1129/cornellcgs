@@ -28,8 +28,9 @@
  *   --hardness a-b  print the quick measures (scripts/inkmaze-hardness.mjs) for levels a to b, or
  *                   for every level without a-b, then stop
  *   --slow          with --hardness, also the beam search, the nested Monte Carlo runs and the
- *                   planner (minutes for a large level), the rows for the curve table in
- *                   scripts/test-inkmaze.mjs, and how each level compares with the ones before it
+ *                   planner (minutes for a large level), and how each level compares with the ones
+ *                   before it on those eleven measures (the curve table in scripts/test-inkmaze.mjs
+ *                   comes from scripts/inkmaze-panel.mjs instead)
  *
  * What it does with each board
  *  1. Walls at random, a random start on floor. Floor that no roll from the
@@ -60,36 +61,38 @@
  * Levels 21 to 25 were chosen differently. The score above rewards long
  * lines and rolling back over colored blocks, but it does not see what makes
  * a level hard for a player who simply never makes a move that visibly loses
- * (more blocks left than ink, or a block no roll can reach again): boards it
- * ranks above level 20 can be easier for that player. So they were picked on
- * the eleven measures in scripts/inkmaze-hardness.mjs (MEASURES), all at par
- * ink. Five are about that careful player: its chance to clear the level by
- * picking at random among the moves it would make, how many moves on the
- * line look safe but cannot win, how long such a move lets it play on before
- * the dead end shows, the smallest beam search that clears the level, and
- * how many of six seeded nested Monte Carlo searches do. Six are the plainer
- * ones: least-ink lines, decision points, the lookahead a simple planner
- * needs, this script's greedy player, moves, and ink per floor block.
+ * (more blocks left than ink, or a block no roll can reach again). A first
+ * set was picked on the eleven measures in scripts/inkmaze-hardness.mjs
+ * (MEASURES; `--hardness --slow` still prints them), and a review found it
+ * easier at several steps for players those measures leave out. So the
+ * levels now in levels.ts were chosen by a held-out panel of seventeen
+ * players that the searches did not aim at (PANEL in
+ * scripts/inkmaze-hardness.mjs; scripts/inkmaze-panel.mjs measures them with
+ * scripts/inkmaze-panel.c): careful random players looking 0 to 30 moves
+ * ahead, a careful player that prefers moves coloring many new blocks for
+ * little ink, beam search under four scorings, careful depth-first search in
+ * random and greedy order over 201 seeds, nested Monte Carlo search over 300
+ * runs, and the moves of the least-ink line that go against the careful
+ * player's instinct.
  *
- * The boards came from an annealing search outside this script, written in C
- * for speed (toggle or move a wall, move the start, fill in floor no roll
- * reaches, keep one least-ink line, walls at most 40%), aimed at bands of the
- * quick measures and kept at least 25% away from every level already here.
- * Several hundred 9 x 9 boards came out between level 20 and level 25 on the
- * quick measures; about three hundred were measured on all eleven. The four
- * for levels 21 to 24 are a set with the widest margin: each of levels 21 to
- * 25 is harder than every level from 20 up to it on at least four more
- * measures than it is easier, and from 21 to 24 no level is easier than the
- * one before it on anything. Against level 20 they give way only on the
- * planner (levels 21 and 22) and on ink per floor block, where level 20 is
- * unusually high. Level 25 is a 7 x 7 from the same search on small boards,
- * started from one an earlier review proposed; a small board needs a
- * narrower beam search, and this one has a second least-ink line, but it is
- * harder than every 9 x 9 here on everything else that differs.
- * `--hardness 20-25 --slow` prints all eleven numbers and how each level
- * compares with the ones before it; scripts/test-inkmaze.mjs keeps them in a
- * table and checks the order. With all twenty-five levels in levels.ts,
- * `--pick` looks for ten more after level 25 by this script's own score.
+ * The boards came from annealing searches outside this script (written in C
+ * and Python for speed: toggle a wall, move the start, keep every floor block
+ * reachable, stay at least 25% away from every level already here), aimed
+ * at the panel's exact measures relative to level 20, and from the pool of
+ * the earlier search. About 530 9 x 9 and 8 x 8 boards were measured on the
+ * whole panel and about 5,100 more 8 x 8 boards on its exact part. The five
+ * picked pass the curve rule in scripts/test-inkmaze.mjs (for every pair
+ * from level 20 on, the later level is harder on at least twice as many
+ * panel measures as it is easier, and never easier by a large margin) with
+ * a wide margin: every later level is harder than every earlier one on at
+ * least nine more measures than it is easier. Among the sets that pass, they
+ * were chosen so that the last level is at least level 24 on every beam
+ * width, on the random-order depth-first search and on the positions a
+ * careful player can reach.
+ * Level 25 is an 8 x 8 with two least-ink lines; levels.ts says why.
+ * `node scripts/inkmaze-panel.mjs 20-25` prints the table rows again. With
+ * all twenty-five levels in levels.ts, `--pick` looks for ten more after
+ * level 25 by this script's own score.
  */
 import { DIRECTIONS, FLOOR, WALL, START, applyMove, floorCount, initialState, rollPath } from '../src/minigames/inkmaze/engine.ts'
 import { minInk, solvableWith } from '../src/minigames/inkmaze/solver.ts'
