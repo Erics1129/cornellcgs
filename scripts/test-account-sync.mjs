@@ -1,7 +1,7 @@
 // Player accounts, client side: the merge rules per game, then the sync engine
 // driven with a fake storage, a fake fetch and a fake clock. Plain node, no DOM.
 import assert from 'node:assert/strict'
-import {mergeCarrot,mergeCarrotSuper,mergeCarrotChallenges,CARROT_LEVEL_COUNT,mergeBests,localWins,laterWins,mergeForgeScores,mergeForgePlayer,higherVersion,MERGES,PRIVATE_RECORDS,KNOWN_KEYS} from '../src/lib/account/merges.ts'
+import {mergeCarrot,mergeCarrotSuper,mergeCarrotChallenges,mergeCarrotRecords,CARROT_LEVEL_COUNT,mergeBests,localWins,laterWins,mergeForgeScores,mergeForgePlayer,higherVersion,MERGES,PRIVATE_RECORDS,KNOWN_KEYS} from '../src/lib/account/merges.ts'
 import {createSync,META_KEY,DEBOUNCE_MS,MAX_WAIT_MS,PUT_FLOOR_MS,FRESH_PULL_MS} from '../src/lib/account/sync.ts'
 import {SESSION_KEY,GZIP_FROM_BYTES} from '../src/lib/account/session.ts'
 import {mergeCarrotChallenges as mergePageChallenges} from '../src/minigames/carrot/challenges.ts'
@@ -50,7 +50,11 @@ assert.deepEqual(mergeCarrotChallenges(null,chB,meta()),{version:3,best:{tornado
 assert.deepEqual(mergeCarrotChallenges({version:1,best:{tornado:{cleared:false,health:9,seconds:1,towers:1},dragon:{cleared:true,health:9,seconds:1,towers:1},zombie:{cleared:true,health:11,seconds:1,towers:1}}},{version:1,best:{eyeball:{cleared:true,health:5,seconds:-1,towers:1}}},meta()),{version:3,best:{}},'challenges: uncleared, unknown-boss and out-of-range records are dropped')
 {const v4={version:4,best:{},runs:[]};assert.equal(mergeCarrotChallenges(chA,v4,meta()),v4,'challenges: a newer format wins whole');assert.equal(mergeCarrotChallenges(v4,chA,meta()),v4)}
 assert.equal(KNOWN_KEYS['carrot:super'].key,'cgs-carrot-super-v1');assert.equal(KNOWN_KEYS['carrot:challenges'].key,'cgs-carrot-challenges-v1')
-for(const id of ['carrot:campaign','carrot:super','carrot:challenges','inkmaze:best','inkmaze:sound','inkmaze:code','inkmaze:code-prefs','forge:run','forge:player','forge:scores'])assert.equal(typeof MERGES[id],'function',id)
+assert.equal(KNOWN_KEYS['carrot:records'].key,'cgs-carrot-records-v1','carrot: the records key is known (clear-device and account replace cover it)')
+{const rA={version:1,levels:{2:{grade:3,bestStreak:2,bestSeconds:180,vgrade:0}},seen:{abilities:['uproot'],creatures:[]},tutorial:false},rB={version:1,levels:{2:{grade:4,bestStreak:1,bestSeconds:200,vgrade:0}},seen:{abilities:['blind'],creatures:['moth']},tutorial:true}
+ assert.deepEqual(mergeCarrotRecords(rA,rB,meta()),{version:1,levels:{2:{grade:4,bestStreak:2,bestSeconds:180,vgrade:0}},seen:{abilities:['blind','uproot'],creatures:['moth']},tutorial:true},'carrot records: grade max, chain max, fastest time, seen union, tutorial OR')
+ assert.equal(mergeCarrotRecords(rA,{version:2},meta()).version,2,'carrot records: a newer format wins whole');assert.equal(MERGES['carrot:records'],mergeCarrotRecords)}
+for(const id of ['carrot:campaign','carrot:super','carrot:challenges','carrot:records','inkmaze:best','inkmaze:sound','inkmaze:code','inkmaze:code-prefs','forge:run','forge:player','forge:scores'])assert.equal(typeof MERGES[id],'function',id)
 assert.ok(PRIVATE_RECORDS.has('forge:player'),'the Forge identity is account-private')
 // junk keys never reach the union; a '__proto__' key cannot poison the result
 {
