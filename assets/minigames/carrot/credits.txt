@@ -78,3 +78,19 @@ Thirty-three edited vocal excerpts serve eight ordinary creatures (Call/Hit/Atta
 - Darsycho — https://opengameart.org/content/monster-snarls
 
 Exact source filenames, trims, mono conversion, normalization, durations and output SHA-256 are preserved in `Assets/Resources/Carrot/Audio/Licenses/creature-voices.json`. License/source notice: `Audio/Licenses/CREATURE-VOICES.md`. Original recordings and source pages are retained in `carrot-defense-preproduction/source-assets/creature-voices/`.
+
+
+## Portal expansion: additional original models, portraits and audio
+
+The original game remains intact. The expansion adds ten tower families, each with four paid upgrade forms and a merged Super form; fifteen distinct minibosses, twelve ordinary creature types and the Portal boss. New native rigs and mesh authoring sources are in Tools/build_portal_towers.py and Tools/build_portal_creatures.py, with inventory manifests. Generated interface plates 38 and40–44 contain the new tower references, Portal painting,15miniboss portraits,12creature portraits and50upgrade portraits. These are separate from the actual animated geometry. A four-region generated biological albedo atlas provides chitin, mushroom, bamboo and fruit-skin color detail. They are original generated/authored assets; generated albedo is not a measured scan.
+
+Five additional author-published CC0 scores give every encounter boss a different composition:
+- Old Hollowhead: Battle Theme — Wolfgang_ (Theodore Kerr), https://opengameart.org/node/16611
+- Giant Tornado: Battle Theme A — cynicmusic, https://opengameart.org/content/battle-theme-a (cynicmusic.com / pixelsphere.org)
+- Zombie: Col Legno — Vehicle, https://opengameart.org/content/col-legno
+- Unknown Eyeball: Pressure — yd, https://opengameart.org/content/pressure
+- Portal: Epic Boss Battle — Juhani Junkala / SubspaceAudio, https://opengameart.org/content/boss-battle-music
+License: CC0 1.0 Universal, https://creativecommons.org/publicdomain/zero/1.0/
+These are licensed existing compositions, not an exclusive commissioned score. Original source/download URLs and checksums: Audio/Licenses/expansion-music.json. Tracks are streamed in Ogg and MP3, with measured level offsets and limited combat mixing.
+
+84 additional short calls/hits/attacks are authored combinations of rubberduck's existing CC0 creature recordings. Source performances remain credited to rubberduck: https://opengameart.org/content/80-cc0-creature-sfx. They are edited recordings, not generated voices. Per-cue source pairs, processing, duration, level measurements and checksums: Audio/Licenses/expansion-voices.json. Existing sound effects and music remain available.
