@@ -5,7 +5,7 @@ using UnityEngine;
 namespace CarrotTD {
  // Cue design: layered plant signatures, kills, bites, risers, judgements, deadlines, coins, heartbeat and ducks.
  public sealed partial class CarrotAudio {
-  public static readonly string[] SynthLayers={"SigSeed","SigMortar","SigFrost","SigPrism","SigStorm","SigThunder","SigBook","SigGravity","SigBlossom","SigStarfruit","SigBamboo","SigChili","SigLotus","SigMagnet","SigOrchid","SigMushroom","SigCactus","SigClockflower","SigDragonfruit","SigMoonflower","SubThump","ImpactBoom","KillPop","KillPopB","EliteBurst","SuperForge","PhaseBreak","BossFall","AlarmDeadline75","AlarmDeadline90","WaveHorn","Heartbeat","HealChime","CoinTick","TornadoWind","ZombieGroan","EyeballShriek","HoldDown","HoldUp","IncomingAir","IncomingGround"};
+  public static readonly string[] SynthLayers={"SigSeed","SigMortar","SigFrost","SigPrism","SigStorm","SigThunder","SigBook","SigGravity","SigBlossom","SigStarfruit","SigBamboo","SigChili","SigLotus","SigMagnet","SigOrchid","SigMushroom","SigCactus","SigClockflower","SigDragonfruit","SigMoonflower","SigSeedB","SigFrostB","SigPrismB","SigStormB","SigStarfruitB","SigBambooB","SigCactusB","SigMagnetB","SigMushroomB","SubThump","ImpactBoom","KillPop","KillPopB","KillPopC","EliteBurst","SuperForge","PhaseBreak","BossFall","AlarmDeadline75","AlarmDeadline90","WaveHorn","Heartbeat","HealChime","CoinTick","CoinTickB","TornadoWind","ZombieGroan","EyeballShriek","HoldDown","HoldUp","IncomingAir","IncomingGround"};
   // Plant family signature: a recorded transient (bank or clip) under a synthesised body/tail.
   struct Sig {public string bank,clip,body;public float tp,tv,bp,bv,gap;}
   static Sig S(string bank,float tp,float tv,string body,float bv,float gap,string clip=null,float bp=1){return new Sig{bank=bank,clip=clip,tp=tp,tv=tv,body=body,bp=bp,bv=bv,gap=gap};}
@@ -224,13 +224,14 @@ namespace CarrotTD {
    if(!ShotSigs.TryGetValue(e.kind??"",out var sig))return;
    int tier=Mathf.Clamp(e.tier,1,5);bool super=tier>=5;
    float vt=(1+.07f*(tier-1))*(super?1.2f:1),pt=(1-.025f*(tier-1))*(super?.9f:1);
-   string throttle="shot-"+e.kind;
+   string throttle=K("shot-",e.kind);
    if(!unlocked||muted||paused)return;
    if(lastSound.TryGetValue(throttle,out var last)&&soundClock-last<sig.gap)return;
    lastSound[throttle]=soundClock;
    if(sig.bank!=null){var clip=bank!=null?bank.Next(sig.bank):null;PlayClip(clip,sig.tv*vt*(bank!=null?bank.Volume():1),sig.tp*pt*(bank!=null?bank.Pitch():1),PRoutine,e.position,false,null,0);}
    else if(clips.TryGetValue(sig.clip,out var c))PlayClip(c,sig.tv*vt,sig.tp*pt*(bank!=null?bank.Pitch():1),PRoutine,e.position,false,null,0);
-   if(clips.TryGetValue(sig.body,out var body))PlayClip(body,sig.bv*vt,sig.bp*pt*(bank!=null?Mathf.Lerp(1,bank.Pitch(),.5f):1),PRoutine,e.position,false,null,0);
+   var body=bank!=null&&bank.Has(sig.body)?bank.Next(sig.body):clips.TryGetValue(sig.body,out var single)?single:null;
+   if(body!=null)PlayClip(body,sig.bv*vt,sig.bp*pt*(bank!=null?Mathf.Lerp(1,bank.Pitch(),.5f):1),PRoutine,e.position,false,null,0);
    if(super)Play("SubThump",.05f,1.3f,"supershot",.25f,priority:PSignature);
   }
   void Impact(CarrotEvent e){
@@ -242,9 +243,9 @@ namespace CarrotTD {
     case "frost":PlayBank("Glass",.06f,1.2f,PRoutine,"glasshit",.14f,at);PlayBank("Snow",.05f,1.4f,PRoutine,"frostimpact",.12f,at);break;
     case "prism":PlayBank("GlassLight",.06f,1.2f,PRoutine,"glasshit",.14f,at);break;
     case "storm":PlayBank("Metal",.03f,1.6f,PRoutine,"stormhit",.12f,at);break;
-    case "bamboo":case "cactus":Play("Chop",.045f,1.3f*(bank!=null?bank.Pitch():1),"impact-"+k,.17f,false,PRoutine,at);break;
+    case "bamboo":case "cactus":Play("Chop",.045f,1.3f*(bank!=null?bank.Pitch():1),K("impact-",k),.17f,false,PRoutine,at);break;
     case "chili":PlayBank("Wood",.065f,.7f,PRoutine,"impact-chili",.17f,at);break;
-    case "lotus":case "mushroom":Play("LotusDrop",.045f,.84f,"impact-"+k,.17f,false,PRoutine,at);break;
+    case "lotus":case "mushroom":Play("LotusDrop",.045f,.84f,K("impact-",k),.17f,false,PRoutine,at);break;
     case "magnet":PlayBank("Metal",.045f,1.5f,PRoutine,"impact-magnet",.17f,at);break;
     case "orchid":PlayBank("Grass",.045f,.65f,PRoutine,"impact-orchid",.17f,at);break;
     case "clockflower":Play("ClockChime",.045f,1.25f,"impact-clock",.17f,false,PRoutine,at);break;
@@ -255,7 +256,10 @@ namespace CarrotTD {
 
   // ---------------- kills, bites and big beats ----------------
   void Death(CarrotEvent e){
-   string k=e.kind??"";
+   string k=e.kind??"";var dead=FindEnemy(e.id);
+   // Decoys and echoes (Asuna's mirror rush, eyeball clones) carry the boss kind but are not the boss: they die like elites.
+   bool decoy=dead!=null&&dead.clone;
+   if(BossKinds.Contains(k)&&decoy){Play("EliteBurst",.11f,1.15f,"decoy",.15f,false,PElite,e.position);PlayBank("GlassLight",.06f,1.3f,PElite,"decoyglass",.15f,e.position);return;}
    if(BossKinds.Contains(k)){
     Play("BossFall",.3f,1,"bossfall",1,false,PThreat,e.position);PlayBank("Mining",.16f,.8f,PThreat,"bossmining",1,e.position);Play("SubThump",.2f,.7f,"bosssub",1,false,PThreat,e.position);
     Coins(8,1,"boss");DuckMusic(-9,.3f,.6f,1.4f);Cue("bossDeath:"+k,0);
@@ -279,9 +283,12 @@ namespace CarrotTD {
    if(health>0&&health<=3){heartbeatHealth=health;heartbeatBpm=health>=3?72:health==2?84:96;if(heartbeatUntil<=soundClock)nextBeat=soundClock+.35f;heartbeatUntil=soundClock+8;}
   }
   void WaveStart(CarrotEvent e){
-   // Horn and drum, moved onto the playing track's tonic when its key is known; it plays at once (within the same frame).
-   float pitch=Mathf.Pow(2,KeyShift(Carrot_MusicKey())/12f);
-   Play("WaveHorn",.22f,pitch,"wavehorn",1,false,PBoss,null);Cue("wave",e.value);
+   // Horn and drum on the playing track's tonic when its key is known; otherwise the unpitched drum alone (a wrong-key
+   // horn over an orchestral score sounds worse than none). Either plays at once, in the frame of the wave event.
+   int key=Carrot_MusicKey();
+   if(key>=0)Play("WaveHorn",.22f,Mathf.Pow(2,KeyShift(key)/12f),"wavehorn",1,false,PBoss,null);
+   else{Play("IncomingGround",.2f,.85f,"wavehorn",1,false,PBoss,null);Play("SubThump",.13f,.75f,"wavesub",1,false,PBoss,null);}
+   Cue("wave",e.value);
   }
   void PhaseBreakSound(CarrotEvent e){
    lastPhaseBreak=soundClock;Vector3? at=e!=null?e.position:(Vector3?)null;
@@ -295,11 +302,11 @@ namespace CarrotTD {
   }
   // Coin ticks: one per 60 ms, rising a semitone each within the burst; only stipends, scenery, elites, bosses and cascades.
   void Coins(int count,float pitch,string reason){
-   if(!clips.TryGetValue("CoinTick",out var tick))return;
-   for(int i=0;i<count;i++)LaterClip(i*.06f,tick,.075f*(1-.05f*i),pitch*Mathf.Pow(1.0594631f,i),"cointick",.05f,PSignature);
+   if(bank==null||!bank.Has("CoinTick"))return;
+   for(int i=0;i<count;i++)LaterClip(i*.06f,bank.Next("CoinTick"),.075f*(1-.05f*i),pitch*Mathf.Pow(1.0594631f,i),"cointick",.05f,PSignature);
    PlayBank("Coin",.07f,pitch,PSignature,"coinbag",.25f);Cue("coins:"+reason,count);
   }
-  void CoinsDown(){if(!clips.TryGetValue("CoinTick",out var tick))return;for(int i=0;i<3;i++)LaterClip(i*.07f,tick,.06f,.9f*Mathf.Pow(.94387f,i),"cointick",.05f,PSignature);}
+  void CoinsDown(){if(bank==null||!bank.Has("CoinTick"))return;for(int i=0;i<3;i++)LaterClip(i*.07f,bank.Next("CoinTick"),.06f,.9f*Mathf.Pow(.94387f,i),"cointick",.05f,PSignature);}
   void LegacyClear(){
    // Simulations without the judgement contract: the stipend (paid when a wave resolves) carries a quiet clear chord.
    int key=Carrot_MusicKey();if(key>=0)PlayJudgementChord("clear",key,.08f,true);else Quantized(()=>PlayBank("Bell",.05f,1.25f,PSignature,"judge-bell",.4f));Cue("clear:legacy",0);

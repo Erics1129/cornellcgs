@@ -24,7 +24,9 @@ mergeInto(LibraryManager.library, {
     bus: null,
     meta: {},
     cueLog: [],
-    gains: { makeup: 1.0, output: 0.94 },
+    // Calibrated on dense L24 combat (scripts/carrot-audio-qa.mjs): -4 dB makeup and -0.5 dB output put the combat RMS
+    // median at -20 dBFS with peaks near -3 dBFS (the compressor's own automatic makeup is already +7 dB at these settings).
+    gains: { makeup: 0.631, output: 0.944 },
     context: function () {
       try { if (typeof WEBAudio !== 'undefined' && WEBAudio.audioContext) return WEBAudio.audioContext; } catch (e) {}
       if (!CarrotMusic.own) { var C = window.AudioContext || window.webkitAudioContext; CarrotMusic.own = C ? new C() : null; }

@@ -161,6 +161,7 @@ const SOUNDS = {
   ImpactBoom: { maxLen: 0.7, seed: 202, params: 'blast: sub 80->35 Hz + pink LP 2k->200 Hz + 20 debris grains + room', render(r) { const x = buf(.85); thump(x, 0, 80, 35, .14, .16, 1.1, .8); noise(x, 0, .8, r, t => ({ cut: 2000 * Math.pow(.1, Math.min(1, t / .5)), q: .8 }), ad(.002, .14), 1, 'pink'); crackle(x, .03, .5, r, 20, .3, 3000); return room(x, .3, .9, .45) }, drive: .5 },
   KillPop: { seed: 203, params: 'kill pop: sine 780->260 Hz in 40 ms + BP noise snap 2.5 kHz', render(r) { const x = buf(.22); tone(x, 0, .2, glide(780, 260, .04), [[1, 1], [2, .25, .02]], ad(.001, .05), { gain: .8 }); noise(x, 0, .03, r, () => ({ cut: 2500, q: 1.2, mode: 'bp' }), ad(.0005, .008), .7); return room(x, .12, .5) } },
   KillPopB: { seed: 204, params: 'kill pop: sine 660->220 Hz in 45 ms + BP noise snap 3.2 kHz', render(r) { const x = buf(.22); tone(x, 0, .2, glide(660, 220, .045), [[1, 1], [2, .25, .02]], ad(.001, .055), { gain: .8 }); noise(x, 0, .03, r, () => ({ cut: 3200, q: 1.2, mode: 'bp' }), ad(.0005, .008), .7); return room(x, .12, .5) } },
+  KillPopC: { seed: 206, params: 'kill pop: sine 920->300 Hz in 35 ms + BP noise snap 2 kHz', render(r) { const x = buf(.22); tone(x, 0, .2, glide(920, 300, .035), [[1, 1], [2, .25, .02]], ad(.001, .045), { gain: .8 }); noise(x, 0, .03, r, () => ({ cut: 2000, q: 1.2, mode: 'bp' }), ad(.0005, .008), .7); return room(x, .12, .5) } },
   EliteBurst: { maxLen: 0.55, seed: 205, params: 'elite kill: sub 90->40 Hz + rising sparkle (A6 E7 A7) + HP noise burst', render(r) { const x = buf(.7); thump(x, 0, 90, 40, .1, .12, .8, .5); [note(24), note(31), note(36)].forEach((f, i) => tone(x, .02 + i * .03, .45, f, [[1, 1], [2.01, .2, .05]], ad(.002, .14), { gain: .22 })); noise(x, 0, .25, r, () => ({ cut: 5000, q: .7, mode: 'hp' }), ad(.001, .05), .4); return room(x, .3, .8, .25) } },
 
   // ----- signature beats -----
@@ -175,6 +176,7 @@ const SOUNDS = {
   Heartbeat: { maxLen: 0.36, seed: 406, params: 'heartbeat lub-dub: sine 58+40 Hz 70 ms, dub at 180 ms (64 Hz), LP', render() { const x = buf(.45); thump(x, 0, 70, 52, .03, .06, 1, .3); tone(x, 0, .2, 40, [[1, 1]], ad(.005, .05), { gain: .4 }); thump(x, .18, 80, 60, .03, .05, .75, .25); return x }, drive: .3 },
   HealChime: { maxLen: 0.5, seed: 407, params: 'shaman heal: soft major arpeggio C6 E6 G6 (sines) + room', render() { const x = buf(.65); [note(3 + 12), note(7 + 12), note(10 + 12)].forEach((f, i) => tone(x, i * .05, .5, f, [[1, 1], [2, .1]], ad(.006, .15), { gain: .28 })); return room(x, .4, .7, .25) } },
   CoinTick: { seed: 408, params: 'coin ting: sines 2637 + 3951 Hz, 1 ms attack, 25 ms decay', render() { const x = buf(.11); tone(x, 0, .1, 2637, [[1, 1], [1.4983, .6], [2.76, .15]], ad(.001, .025), { gain: .5 }); return x } },
+  CoinTickB: { seed: 416, params: 'coin ting: sines 3136 + 4699 Hz, 1 ms attack, 22 ms decay', render() { const x = buf(.11); tone(x, 0, .1, 3136, [[1, 1], [1.4983, .6], [2.76, .15]], ad(.001, .022), { gain: .5 }); return x } },
   TornadoWind: { seed: 409, params: 'tornado: pink noise BP with 3 slow sweeps 250-1400 Hz Q3 + low LP rumble', render(r) { const L = 1.3, x = buf(L); noise(x, 0, L, r, t => ({ cut: 250 + 1150 * (.5 + .5 * Math.sin(TAU * t / .62 + 1)), q: 3, mode: 'bp' }), swell(.25, .5, L), 1, 'pink'); noise(x, 0, L, r, () => ({ cut: 160, q: .8 }), swell(.2, .5, L), .6, 'pink'); return x } },
   ZombieGroan: { seed: 410, params: 'zombie: granular groan, buzz 82 Hz with jitter through formants 450/1050 Hz', render(r) { const L = 1.1, x = buf(L), n = x.length, f1 = svf(), f2 = svf(); let ph = 0; for (let i = 0; i < n; i++) { const t = i / SR; ph += TAU * 82 * (1 + .06 * Math.sin(TAU * 3.1 * t) + (r() - .5) * .04) / SR; const src = (ph / TAU % 1) * 2 - 1, grain = .55 + .45 * Math.sin(TAU * 9 * t + Math.sin(TAU * 1.3 * t) * 3); x[i] = (f1(src, 450, 6).bp + .6 * f2(src, 1050, 8).bp) * grain * swell(.15, .6, L)(t) } return room(x, .25, .8) }, drive: .3 },
   EyeballShriek: { seed: 411, params: 'eyeball: formant shriek, saw 520->760 Hz through "ee" formants 2.3k/3.1k', render(r) { const L = .8, x = buf(L), n = x.length, f1 = svf(), f2 = svf(); let ph = 0; for (let i = 0; i < n; i++) { const t = i / SR, fr = 520 * Math.pow(760 / 520, Math.min(1, t / .5)) * (1 + .01 * Math.sin(TAU * 7 * t)); ph += fr / SR; const src = (ph % 1) * 2 - 1; x[i] = (f1(src, 2300, 9).bp + .7 * f2(src, 3100, 10).bp) * swell(.06, .45, L)(t) } noise(x, 0, L, r, () => ({ cut: 3000, q: 2, mode: 'bp' }), swell(.05, .4, L), .15); return room(x, .3, .8) } },
@@ -182,6 +184,15 @@ const SOUNDS = {
   HoldUp: { seed: 413, params: 'speed hold off: tape-start, A3 rising 1 octave in 250 ms through LP 400->2.5k Hz', render() { const x = buf(.38), n = x.length, f = svf(); let ph = 0; for (let i = 0; i < n; i++) { const t = i / SR; ph += TAU * note(-12) * Math.pow(2, Math.min(1, t / .25)) / SR; const s = Math.sin(ph) + .3 * Math.sin(2 * ph) + .15 * Math.sin(3 * ph); x[i] = f(s, 400 * Math.pow(6.25, Math.min(1, t / .25)), .9).lp * swell(.03, .12, .38)(t) } return x } },
   IncomingAir: { seed: 414, params: 'air warning: wing flutter, BP noise 1.6 kHz amplitude-modulated at 24 Hz, rising', render(r) { const x = buf(.38); noise(x, 0, .36, r, t => ({ cut: 1300 + 900 * t / .36, q: 2.5, mode: 'bp' }), t => swell(.05, .15, .36)(t) * (.5 + .5 * Math.sin(TAU * 24 * t)), 1, 'pink'); return room(x, .2, .5) } },
   IncomingGround: { maxLen: 0.34, seed: 415, params: 'ground warning: low double tom 90->60 Hz with noise head', render(r) { const x = buf(.42); for (const at of [0, .16]) { thump(x, at, 95, 62, .05, .09, 1, .25); noise(x, at, .06, r, () => ({ cut: 900, q: 1.1, mode: 'bp' }), ad(.001, .015), .4, 'pink') } return room(x, .25, .7) } },
+}
+
+// Second takes of the busiest plant bodies: another seed (new noise, new pings) and a varispeed retune, so two shots in
+// a row of the same plant are never the same buffer (CarrotSfxBank deals Sig<Family> and Sig<Family>B round-robin).
+function varispeed(x, k) { const n = Math.floor(x.length / k), y = new Float64Array(n); for (let i = 0; i < n; i++) { const p = i * k, a = Math.floor(p), f = p - a; y[i] = (x[a] || 0) * (1 - f) + (x[a + 1] || 0) * f } return y }
+const TAKES = { SigSeed: [2, .22], SigFrost: [1.5, .36], SigPrism: [2, .34], SigStorm: [1.5, .3], SigStarfruit: [3, .3], SigBamboo: [2, .12], SigCactus: [2, .17], SigMagnet: [1, .28], SigMushroom: [2, .26] }
+for (const [base, [st, cap]] of Object.entries(TAKES)) {
+  const spec = SOUNDS[base]
+  SOUNDS[base + 'B'] = { seed: spec.seed + 1000, maxLen: cap, drive: spec.drive, fadeOut: spec.fadeOut, params: `${spec.params}; second take: seed ${spec.seed + 1000}, varispeed +${st} st`, render: r => varispeed(spec.render(r), Math.pow(2, st / 12)) }
 }
 
 // ---------- output ----------
@@ -245,11 +256,11 @@ const range = (stem, from, to) => Array.from({ length: to - from + 1 }, (_, i) =
 const BANKS = {
   Metal: [IMPACT, range('impactMetal_medium', 1, 4)],
   Glass: [IMPACT, range('impactGlass_medium', 1, 4)],
-  GlassLight: [IMPACT, range('impactGlass_light', 0, 3)],
+  GlassLight: [IMPACT, range('impactGlass_light', 0, 4)],
   Wood: [IMPACT, range('impactWood_medium', 1, 4)],
-  Plate: [IMPACT, range('impactPlate_light', 0, 3)],
-  Mining: [IMPACT, range('impactMining', 0, 3)],
-  Punch: [IMPACT, range('impactPunch_medium', 0, 3)],
+  Plate: [IMPACT, range('impactPlate_light', 0, 4)],
+  Mining: [IMPACT, range('impactMining', 0, 4)],
+  Punch: [IMPACT, range('impactPunch_medium', 0, 4)],
   Bell: [IMPACT, range('impactBell_heavy', 0, 1)],
   Soft: [IMPACT, range('impactSoft_medium', 0, 4)],
   SoftHeavy: [IMPACT, range('impactSoft_heavy', 1, 4)],

@@ -26,7 +26,7 @@ namespace CarrotTD {
    string suffix=action=="spawn"||action=="roar"?"Call":action=="attack"||action=="growl"?"Attack":"Hit";
    float volume=major?.19f:action=="attack"?.09f:action=="spawn"?(small?.038f:.085f):small?.045f:.067f;
    float pitch=bank!=null?Mathf.Lerp(1,bank.Pitch(),.4f):1;
-   Play("EVoice"+kind+suffix,volume,pitch,"creature-"+kind+action,major?1.25f:action=="spawn"?1.6f:.32f,true,major?PBoss:small?PRoutine:PKill,at);
+   Play(K("EVoice",kind,suffix),volume,pitch,K("creature-",kind,action),major?1.25f:action=="spawn"?1.6f:.32f,true,major?PBoss:small?PRoutine:PKill,at);
    lastSound["creature-global"]=soundClock;return true;
   }
   bool ExpansionSound(CarrotEvent e,float variant){
@@ -80,10 +80,10 @@ namespace CarrotTD {
    }
    if(clip==null&&bankName==null)return false;
    int priority=major?PBoss:PSignature;
-   if(bankName!=null)PlayBank(bankName,major?.18f:volume,pitch,priority,"expansion-"+e.kind,gap,e.position);else Play(clip,major?.18f:volume,pitch,"expansion-"+e.kind,gap,false,priority,e.position);
+   if(bankName!=null)PlayBank(bankName,major?.18f:volume,pitch,priority,K("expansion-",e.kind),gap,e.position);else Play(clip,major?.18f:volume,pitch,K("expansion-",e.kind),gap,false,priority,e.position);
    float lv=major?.085f:volume*.48f,lp=Mathf.Clamp(pitch*1.1f,.6f,1.7f);
-   if(layer!=null)Later(.07f,layer,lv,lp,"expansion-layer-"+e.kind,gap,major?PBoss:PRoutine);
-   else if(layerBank!=null)LaterBank(.07f,layerBank,lv,lp,major?PBoss:PRoutine,"expansion-layer-"+e.kind,gap);
+   if(layer!=null)Later(.07f,layer,lv,lp,K("expansion-layer-",e.kind),gap,major?PBoss:PRoutine);
+   else if(layerBank!=null)LaterBank(.07f,layerBank,lv,lp,major?PBoss:PRoutine,K("expansion-layer-",e.kind),gap);
    if(major)Play("SubThump",.1f,.9f,"expansion-sub",.4f,false,PBoss,e.position);
    return true;
   }

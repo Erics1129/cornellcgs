@@ -70,7 +70,7 @@ namespace CarrotTD {
   // Priorities (spec event_intensity): telegraph/bite 10 > boss 8 > signature 6 > elite 5 > kill 3 > routine 2.
   public const int PRoutine=2,PKill=3,PElite=5,PSignature=6,PBoss=8,PThreat=10;
   public const int VoiceCount=20,CreatureVoiceLimit=5,PerClipConcurrency=6;
-  public const float Debounce=.02f,MusicLevel=.40f,MusicMax=.8f,FoleyBudget=.85f,RoutineBudget=.4f,SfxGain=1.6f,PanScale=.07f,PanLimit=.6f;
+  public const float Debounce=.02f,MusicLevel=.40f,MusicMax=.8f,FoleyBudget=.85f,RoutineBudget=.6f,SfxGain=2.1f,PanScale=.07f,PanLimit=.6f;
   // Music slots 0 (A) and 1 (B) live in the browser: slotTrack is the track each slot plays, slotVolume the last gain sent, musicReady the decoded tracks.
   readonly string[] slotTrack=new string[2];readonly float[] slotVolume={-1,-1};readonly HashSet<string> musicReady=new HashSet<string>();
   sealed class Voice {public AudioSource source;public AudioClip clip;public int priority;public float start,end,volume,fadeTo=-1;public bool creature;public int owner;}
@@ -118,8 +118,10 @@ namespace CarrotTD {
   public void SetBiome(string biome){prismMusicTail=false;pending.Clear();lastSound.Clear();foreach(var v in voices)StopVoice(v);risers.Clear();ResetRun();BeginLevelMusic(biome);if(ambience!=null)StartCoroutine(ambience.Use(biome));}
   public void Unlock(){if(unlocked)return;unlocked=true;Transition(desired,.8f);}
   public void SetMuted(bool value){muted=value;ApplyVolumes();if(muted){foreach(var v in voices)StopVoice(v);if(interfaceVoice!=null)interfaceVoice.Stop();}}
-  /// <summary>Legacy duck (hit-stop and blindness from the view): -6 dB for the given hold.</summary>
-  public void Duck(float seconds){DuckMusic(-6,.08f,Mathf.Clamp(seconds,0,6),.6f);}
+  /// <summary>Legacy duck from the view. Blindness (1 s or more) ducks -6 dB for its hold; the short hit-stop calls
+  /// (0.6 s, fired on routine thunder strikes and mortar double kills) are ignored, because routine fire never ducks and
+  /// the big beats (Super, phase break, boss death, bites, telegraphs) schedule their own ducks.</summary>
+  public void Duck(float seconds){if(seconds>=1)DuckMusic(-6,.08f,Mathf.Clamp(seconds,0,6),.6f);}
   void Later(float delay,string name,float volume,float pitch,string throttle,float gap,int priority=PRoutine){if(pending.Count>=96)return;pending.Add(new Pending{at=soundClock+delay,name=name,volume=volume,pitch=pitch,throttle=throttle,gap=gap,priority=priority,position=eventPosition});}
   void LaterClip(float delay,AudioClip clip,float volume,float pitch,string throttle,float gap,int priority){if(clip==null||pending.Count>=96)return;pending.Add(new Pending{at=soundClock+delay,clip=clip,volume=volume,pitch=pitch,throttle=throttle,gap=gap,priority=priority,position=eventPosition});}
 
@@ -210,10 +212,10 @@ namespace CarrotTD {
    float volume=major?(action=="roar"?.27f:.19f):boss?.11f:action=="spawn"?.045f:action=="attack"?.105f:action=="death"?.08f:.055f;
    float basePitch=boss?(kind=="garden"?.9f:kind=="marsh"?.94f:kind=="orchard"?.78f:kind=="tornado"?.58f:kind=="zombie"?.70f:kind=="eyeball"?1.12f:.88f):kind=="moth"?1.07f:kind=="dash"?1.04f:1;
    float variation=bank!=null?Mathf.Lerp(1,bank.Pitch(),action=="hit"?1:.35f):1;float gap=action=="spawn"?1.8f:major?1.25f:action=="hit"?.40f:.30f;
-   Play("Voice"+family+suffix,volume,basePitch*variation,"creature-"+kind+action,gap,true,priority,at);lastSound["creature-global"]=soundClock;
+   Play(K("Voice",family,suffix),volume,basePitch*variation,K("creature-",kind,action),gap,true,priority,at);lastSound["creature-global"]=soundClock;
    if(major)BossLayer(kind,action=="roar"?.16f:.1f,at);
   }
-  void BossLayer(string kind,float volume,Vector3 at){string layer=kind=="tornado"?"TornadoWind":kind=="zombie"?"ZombieGroan":kind=="eyeball"?"EyeballShriek":null;if(layer!=null)Play(layer,volume,1,"bosslayer-"+kind,1.2f,false,PBoss,at);}
+  void BossLayer(string kind,float volume,Vector3 at){string layer=kind=="tornado"?"TornadoWind":kind=="zombie"?"ZombieGroan":kind=="eyeball"?"EyeballShriek":null;if(layer!=null)Play(layer,volume,1,K("bosslayer-",kind),1.2f,false,PBoss,at);}
 
   // ---------------- events ----------------
   public void Handle(CarrotEvent e){eventPosition=e.position;if(e.type=="build"||e.type=="upgrade"||e.type=="bossEnter"||e.type=="victory")Unlock();float variant=bank!=null?bank.Pitch():1;
@@ -248,7 +250,7 @@ namespace CarrotTD {
     else if(e.kind=="gaze"){PlayBank("Glass",.22f,.9f,PBoss,"gaze",.4f);PlayBank("Slice",.1f,1.6f,PBoss,"gazeslice",.4f);BossLayer("eyeball",.12f,e.position);}
     else if(e.kind=="breath"||e.kind=="shatter"){PlayBank("Glass",.25f,.73f,PBoss,"iceability",.4f);PlayBank("Slice",.12f,.8f,PBoss,"iceslice",.3f);if(e.kind=="shatter")PlayBank("Mining",.14f,1.2f,PBoss,"shattermining",.4f);}
     else if(e.kind=="root"||e.kind=="bark"||e.kind=="rush"||e.kind=="heap"){PlayBank("Wood",.26f,.61f,PBoss,"rootability",.35f);Play("SubThump",.14f,1,"rootsub",.35f,priority:PBoss);}
-    else if(e.kind=="burrow"||e.kind=="emerge"){PlayBank("Grass",.08f,.6f,PKill,"burrow-"+e.kind,.4f);}
+    else if(e.kind=="burrow"||e.kind=="emerge"){PlayBank("Grass",.08f,.6f,PKill,K("burrow-",e.kind),.4f);}
     else{Play("Page",.2f,.6f,"spellability",.4f,priority:PSignature);PlayBank("SoftHeavy",.15f,.65f,PSignature,"spellsoft",.3f);}break;
    case "merge":SuperForged(e);break;
    case "mergeUndo":Play("Page",.16f,.7f,"mergeundo",.3f,priority:PSignature);PlayBank("Coin",.1f,1.1f,PSignature,"undocoin",.2f);break;
@@ -257,12 +259,16 @@ namespace CarrotTD {
   }eventPosition=null;}
   bool SignatureSound(CarrotEvent e){string clip=null,bankName=null;float pitch=1,volume=.08f;switch(e.kind){case "seedBurst":bankName="Grass";pitch=1.4f;break;case "crystallize":case "shieldBreak":bankName="GlassLight";pitch=1.3f;break;case "burn":bankName="Wood";pitch=.68f;break;case "prismFocus":bankName="Slice";pitch=1.7f;volume=.035f;break;case "conductive":bankName="Metal";pitch=1.7f;volume=.04f;break;case "blossomBuff":clip="Upgrade";pitch=.78f;volume=.055f;break;case "gravity":clip="SigGravity";pitch=.8f;volume=.1f;break;case "rewind":clip="Page";pitch=.65f;volume=.12f;break;}
    if(clip==null&&bankName==null)return false;
-   if(bankName!=null)PlayBank(bankName,volume,pitch,PSignature,"signature-"+e.kind,.23f,e.position);else Play(clip,volume,pitch,"signature-"+e.kind,.23f,false,PSignature,e.position);
+   if(bankName!=null)PlayBank(bankName,volume,pitch,PSignature,K("signature-",e.kind),.23f,e.position);else Play(clip,volume,pitch,K("signature-",e.kind),.23f,false,PSignature,e.position);
    if(e.kind=="shieldBreak")Play("SubThump",.08f,1.4f,"shieldsub",.3f,priority:PSignature);
    return true;}
   AudioClip Stinger(string name,float[] notes,float duration,int timbre){const int rate=24000;int samples=Mathf.CeilToInt(duration*rate);float[] pcm=new float[samples];for(int i=0;i<samples;i++){float t=i/(float)rate;float value=0;for(int n=0;n<notes.Length;n++){float start=n*(timbre==3?.105f:.045f),u=t-start;if(u<0)continue;float env=(1-Mathf.Exp(-u*90))*Mathf.Exp(-u*(timbre==0?2.8f:3.8f));float phase=u*notes[n]*Mathf.PI*2;float tone=Mathf.Sin(phase)+Mathf.Sin(phase*2.003f)*.27f+Mathf.Sin(phase*3.99f)*.12f;if(timbre==2||timbre==1)tone+=Mathf.Sin(phase*5.41f)*.13f;if(timbre==0)tone+=Mathf.Sin(phase*.5f)*.35f;value+=tone*env;}pcm[i]=(float)Math.Tanh(value*.24f)*Mathf.Clamp01((duration-t)*7);}var clip=AudioClip.Create(name,samples,1,rate,false);clip.SetData(pcm,0);authored.Add(clip);return clip;}
   int EnemiesAlive(){if(game==null||game.enemies==null)return 0;int n=0;foreach(var x in game.enemies)if(x!=null&&x.alive&&!x.hidden)n++;return n;}
   void Cue(string name,float value){Carrot_AudioCue(name,value);}
+  // Interned "prefix+kind" keys: combat events (shots, hits, voices) allocate no strings after the first of each kind.
+  readonly Dictionary<(string,string),string> keys=new Dictionary<(string,string),string>();
+  string K(string a,string b){var id=(a,b??"");if(!keys.TryGetValue(id,out var k)){k=a+(b??"");keys[id]=k;}return k;}
+  string K(string a,string b,string c){return K(K(a,b),c);}
   void OnDestroy(){for(int slot=0;slot<2;slot++)Carrot_MusicStop(slot);foreach(var clip in authored)if(clip!=null)Destroy(clip);if(ambience!=null)ambience.Dispose();}
  }
 }

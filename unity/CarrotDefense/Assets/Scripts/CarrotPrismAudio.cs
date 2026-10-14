@@ -47,7 +47,7 @@ namespace CarrotTD {
     LaterBank(.16f,"GlassLight",.045f,1.35f,PThreat,"prism-charge-glass",.65f);return true;
    }
    if(e.type!="ability")return false;
-   Play(clip,.16f,1,"prism-"+e.kind,.35f,priority:PBoss);
+   Play(clip,.16f,1,K("prism-",e.kind),.35f,priority:PBoss);
    if(e.kind=="prismDash")PlayBank("Slice",.11f,.72f,PBoss,"prism-air",.5f,e.position);
    if(e.kind=="prismLances"||e.kind=="spectrumRain"){LaterBank(.08f,"Metal",.055f,1.2f,PBoss,"prism-strike",.5f);Later(.08f,"SubThump",.07f,1.3f,"prism-strikesub",.5f,PBoss);}
    if(e.kind=="prismaticAegis")LaterBank(.1f,"Bell",.06f,1.5f,PBoss,"prism-aegisbell",1);

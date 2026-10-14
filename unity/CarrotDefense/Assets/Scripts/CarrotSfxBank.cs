@@ -15,11 +15,11 @@ namespace CarrotTD {
   public static readonly Dictionary<string,string[]> Banks=new Dictionary<string,string[]>{
    {"Metal",new[]{"ImpactMetal","Variants/Metal/Metal1","Variants/Metal/Metal2","Variants/Metal/Metal3","Variants/Metal/Metal4"}},
    {"Glass",new[]{"ImpactGlass","Variants/Glass/Glass1","Variants/Glass/Glass2","Variants/Glass/Glass3","Variants/Glass/Glass4"}},
-   {"GlassLight",new[]{"Variants/GlassLight/GlassLight1","Variants/GlassLight/GlassLight2","Variants/GlassLight/GlassLight3","Variants/GlassLight/GlassLight4"}},
+   {"GlassLight",new[]{"Variants/GlassLight/GlassLight1","Variants/GlassLight/GlassLight2","Variants/GlassLight/GlassLight3","Variants/GlassLight/GlassLight4","Variants/GlassLight/GlassLight5"}},
    {"Wood",new[]{"ImpactWood","Variants/Wood/Wood1","Variants/Wood/Wood2","Variants/Wood/Wood3","Variants/Wood/Wood4"}},
-   {"Plate",new[]{"Variants/Plate/Plate1","Variants/Plate/Plate2","Variants/Plate/Plate3","Variants/Plate/Plate4"}},
-   {"Mining",new[]{"Variants/Mining/Mining1","Variants/Mining/Mining2","Variants/Mining/Mining3","Variants/Mining/Mining4"}},
-   {"Punch",new[]{"Variants/Punch/Punch1","Variants/Punch/Punch2","Variants/Punch/Punch3","Variants/Punch/Punch4"}},
+   {"Plate",new[]{"Variants/Plate/Plate1","Variants/Plate/Plate2","Variants/Plate/Plate3","Variants/Plate/Plate4","Variants/Plate/Plate5"}},
+   {"Mining",new[]{"Variants/Mining/Mining1","Variants/Mining/Mining2","Variants/Mining/Mining3","Variants/Mining/Mining4","Variants/Mining/Mining5"}},
+   {"Punch",new[]{"Variants/Punch/Punch1","Variants/Punch/Punch2","Variants/Punch/Punch3","Variants/Punch/Punch4","Variants/Punch/Punch5"}},
    {"Bell",new[]{"Variants/Bell/Bell1","Variants/Bell/Bell2"}},
    {"Soft",new[]{"Variants/Soft/Soft1","Variants/Soft/Soft2","Variants/Soft/Soft3","Variants/Soft/Soft4","Variants/Soft/Soft5"}},
    {"SoftHeavy",new[]{"ImpactSoft","Variants/SoftHeavy/SoftHeavy1","Variants/SoftHeavy/SoftHeavy2","Variants/SoftHeavy/SoftHeavy3","Variants/SoftHeavy/SoftHeavy4"}},
@@ -27,7 +27,18 @@ namespace CarrotTD {
    {"Snow",new[]{"FootstepSnow","Variants/Snow/Snow1","Variants/Snow/Snow2","Variants/Snow/Snow3","Variants/Snow/Snow4"}},
    {"Slice",new[]{"Slice","Variants/Slice/Slice1","Variants/Slice/Slice2","Variants/Slice/Slice3","Variants/Slice/Slice4"}},
    {"Coin",new[]{"Coin","Variants/Coin/Coin1"}},
-   {"KillPop",new[]{"Synth/KillPop","Synth/KillPopB"}},
+   {"KillPop",new[]{"Synth/KillPop","Synth/KillPopB","Synth/KillPopC"}},
+   {"CoinTick",new[]{"Synth/CoinTick","Synth/CoinTickB"}},
+   // Plant bodies with a second take (synth_carrot_sfx.mjs TAKES).
+   {"SigSeed",new[]{"Synth/SigSeed","Synth/SigSeedB"}},
+   {"SigFrost",new[]{"Synth/SigFrost","Synth/SigFrostB"}},
+   {"SigPrism",new[]{"Synth/SigPrism","Synth/SigPrismB"}},
+   {"SigStorm",new[]{"Synth/SigStorm","Synth/SigStormB"}},
+   {"SigStarfruit",new[]{"Synth/SigStarfruit","Synth/SigStarfruitB"}},
+   {"SigBamboo",new[]{"Synth/SigBamboo","Synth/SigBambooB"}},
+   {"SigCactus",new[]{"Synth/SigCactus","Synth/SigCactusB"}},
+   {"SigMagnet",new[]{"Synth/SigMagnet","Synth/SigMagnetB"}},
+   {"SigMushroom",new[]{"Synth/SigMushroom","Synth/SigMushroomB"}},
   };
   sealed class Bag {public AudioClip[] clips;public int[] order;public int next;public int last=-1;}
   readonly Dictionary<string,Bag> bags=new Dictionary<string,Bag>();

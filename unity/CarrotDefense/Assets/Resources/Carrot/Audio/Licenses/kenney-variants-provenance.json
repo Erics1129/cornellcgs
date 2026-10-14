@@ -1,6 +1,6 @@
 {
  "note": "Round-robin variants for CarrotSfxBank; packs are the same CC0 archives recorded in kenney-impact-sounds-provenance.json and kenney-rpg-audio-provenance.json.",
- "totalBytes": 449292,
+ "totalBytes": 489561,
  "files": [
   {
    "resource": "Carrot/Audio/Variants/Metal/Metal1",
@@ -111,6 +111,15 @@
    "processing": "none (byte copy; Unity downmixes to mono and re-encodes at import)"
   },
   {
+   "resource": "Carrot/Audio/Variants/GlassLight/GlassLight5",
+   "source": "kenney-impact-sounds/Audio/impactGlass_light_004.ogg",
+   "pack": "Kenney Impact Sounds 1.0 (https://kenney.nl/assets/impact-sounds)",
+   "license": "CC0-1.0",
+   "sha256": "f535b7cb7835400d8d28bcf9e1cf047ce3c0eb7a6456bdb1a4a27acbec1ed2cb",
+   "bytes": 6641,
+   "processing": "none (byte copy; Unity downmixes to mono and re-encodes at import)"
+  },
+  {
    "resource": "Carrot/Audio/Variants/Wood/Wood1",
    "source": "kenney-impact-sounds/Audio/impactWood_medium_001.ogg",
    "pack": "Kenney Impact Sounds 1.0 (https://kenney.nl/assets/impact-sounds)",
@@ -183,6 +192,15 @@
    "processing": "none (byte copy; Unity downmixes to mono and re-encodes at import)"
   },
   {
+   "resource": "Carrot/Audio/Variants/Plate/Plate5",
+   "source": "kenney-impact-sounds/Audio/impactPlate_light_004.ogg",
+   "pack": "Kenney Impact Sounds 1.0 (https://kenney.nl/assets/impact-sounds)",
+   "license": "CC0-1.0",
+   "sha256": "9cb33b0c0cce948313f078b60769d2f8e4075472494fc8f8129aa4a23c951897",
+   "bytes": 11928,
+   "processing": "none (byte copy; Unity downmixes to mono and re-encodes at import)"
+  },
+  {
    "resource": "Carrot/Audio/Variants/Mining/Mining1",
    "source": "kenney-impact-sounds/Audio/impactMining_000.ogg",
    "pack": "Kenney Impact Sounds 1.0 (https://kenney.nl/assets/impact-sounds)",
@@ -219,6 +237,15 @@
    "processing": "none (byte copy; Unity downmixes to mono and re-encodes at import)"
   },
   {
+   "resource": "Carrot/Audio/Variants/Mining/Mining5",
+   "source": "kenney-impact-sounds/Audio/impactMining_004.ogg",
+   "pack": "Kenney Impact Sounds 1.0 (https://kenney.nl/assets/impact-sounds)",
+   "license": "CC0-1.0",
+   "sha256": "8ca3a99d85d845751ad8ce7b40509da58263a62e48cde70e5a30b5ccef4c9a3b",
+   "bytes": 11668,
+   "processing": "none (byte copy; Unity downmixes to mono and re-encodes at import)"
+  },
+  {
    "resource": "Carrot/Audio/Variants/Punch/Punch1",
    "source": "kenney-impact-sounds/Audio/impactPunch_medium_000.ogg",
    "pack": "Kenney Impact Sounds 1.0 (https://kenney.nl/assets/impact-sounds)",
@@ -252,6 +279,15 @@
    "license": "CC0-1.0",
    "sha256": "2d7c719c05999e0532f4384e1018e04cd916db715140bf16dee2dff3f820e908",
    "bytes": 9509,
+   "processing": "none (byte copy; Unity downmixes to mono and re-encodes at import)"
+  },
+  {
+   "resource": "Carrot/Audio/Variants/Punch/Punch5",
+   "source": "kenney-impact-sounds/Audio/impactPunch_medium_004.ogg",
+   "pack": "Kenney Impact Sounds 1.0 (https://kenney.nl/assets/impact-sounds)",
+   "license": "CC0-1.0",
+   "sha256": "4a256878a3afb994ec9a4399336687748e68c7c136872c08c9c797d8c4e2464a",
+   "bytes": 10032,
    "processing": "none (byte copy; Unity downmixes to mono and re-encodes at import)"
   },
   {

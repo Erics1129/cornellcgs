@@ -183,9 +183,37 @@ namespace CarrotTD {
     // Duck mirror (ambience) follows the bus envelope: -6 dB at the end of the attack, back to unity after the release.
     audio.ducks.Clear();audio.DuckMusic(-6,.08f,1,.6f);float start=audio.soundClock;
     audio.soundClock=start+.08f;AudioCheck(Mathf.Abs(audio.DuckGain()-.501f)<.01f,"duck depth after attack");audio.soundClock=start+1.7f;AudioCheck(audio.DuckGain()>.999f,"duck released");
+    // A boss decoy (clone) dies like an elite: no boss fall, no -9 dB duck, no coin shower.
+    var decoy=game.TestSpawn("nibble",clone:true);cues.Clear();audio.Handle(new CarrotEvent("death","asuna",Vector3.zero,id:decoy.id,value:0));
+    AudioCheck(!cues.Exists(c=>c.Key.StartsWith("bossDeath")),"a decoy is not a boss death");
+    var real=game.TestSpawn("garden",boss:true);cues.Clear();audio.Handle(new CarrotEvent("death",real.kind,Vector3.zero,id:real.id,value:100));
+    AudioCheck(cues.Exists(c=>c.Key.StartsWith("bossDeath")),"the real boss death plays its fall ("+real.kind+")");
     // Kill cascade: three kills inside 300 ms become one coin cascade.
     cues.Clear();for(int i=0;i<3;i++){audio.soundClock+=.05f;audio.Handle(new CarrotEvent("death","nibble",Vector3.zero,value:2));}
     AudioCheck(cues.FindAll(c=>c.Key=="coins:cascade").Count==1,"multi-kill coin cascade");
+    // Music direction per level: the biome's own track from the start, the boss theme after bossEnter (a campaign boss
+    // restarts it from the top), the guardian's theme from the first wave in challenges, MusicExplore after the result.
+    var played=new List<string>();musicTestPlay=(slot,name,gain)=>{played.Add(name);return 1;};musicTestStop=slot=>{};musicTestUnload=name=>{};
+    foreach(var level in CarrotData.Levels){
+     // Every track counts as decoded (the browser side is faked); releases between levels would otherwise unload them.
+     foreach(var t in seconds2.Keys)audio.musicReady.Add(t);
+     game.LoadLevel(level.id);audio.SetBiome(level.biome);var pool=Compact(LevelPool(level.biome,level.boss));
+     AudioCheck(audio.desired==pool[0]&&audio.playing==pool[0],"level "+level.id+" ("+level.biome+") opens on "+pool[0]+", got "+audio.playing);
+     if(level.biome=="garden")AudioCheck(audio.playing=="MusicGarden","garden plays MusicGarden");
+     if(level.biome=="marsh")AudioCheck(audio.playing=="MusicMarsh","marsh plays MusicMarsh");
+     if(level.biome=="frost")AudioCheck(audio.playing=="MusicFrost","frost plays MusicFrost");
+     if(level.biome=="orchard")AudioCheck(audio.playing=="MusicOrchard","orchard plays MusicOrchard");
+     if(level.biome=="arena")AudioCheck(audio.playing=="Music"+BossTheme(level.boss),"challenge "+level.id+" plays its guardian's theme from the start");
+     if(!string.IsNullOrEmpty(level.boss)){
+      foreach(var t in seconds2.Keys)audio.musicReady.Add(t);
+      int before=played.Count;audio.Handle(new CarrotEvent("bossEnter",level.boss,Vector3.zero,id:999));
+      string theme="Music"+BossTheme(level.boss);AudioCheck(audio.playing==theme,"level "+level.id+" switches to "+theme+" on bossEnter");
+      if(level.biome!="arena"&&level.biome!="prism")AudioCheck(played.Count>before&&played[played.Count-1]==theme,"a campaign boss starts its theme fresh");
+      audio.Handle(new CarrotEvent("victory",level.biome,Vector3.zero,value:10));
+      if(level.biome!="prism")AudioCheck(audio.desired=="MusicExplore","the result returns to MusicExplore");
+     }
+    }
+    musicTestPlay=null;musicTestStop=null;musicTestUnload=null;game.LoadLevel(8);
     // Music level never exceeds the hard max.
     AudioCheck(MusicLevel<=MusicMax&&MusicMax<=.8f,"music hard max");
     UnityEngine.Object.DestroyImmediate(probe);UnityEngine.Object.DestroyImmediate(other);
