@@ -77,7 +77,8 @@ export function WaveTrack({store,level,enemies,seen,reduced,compact}:{store:Snap
  },[notes,nextKeys,store,reduced,lanes])
  if(!s||!status)return null
  const asuna=s.level===29,label=asuna?`Encounter, ${formatSeconds(status.elapsed)}`:`Wave ${Math.max(0,s.wave)} of ${s.waves}`
- return <section className={`ct-track ct-panel ${compact?'is-compact':''}`} aria-label={`${s.name}. ${label}.`} data-lanes={lanes}>
+ const upcoming=(plan?.next.length?plan.next:plan?.current||[]).slice(0,4).map(n=>`${n.n} ${n.traits.name}${n.traits.air?' (flying)':''}${n.traits.boss?' (guardian)':''} on route ${routeLetters[n.route]||n.route+1}`).join(', ')
+ return <section className={`ct-track ct-panel ${compact?'is-compact':''}`} aria-label={`${s.name}. ${label}.${upcoming?` ${plan?.next.length?'Next':'Now'}: ${upcoming}.`:''}`} data-lanes={lanes}>
   <header className="ct-track__head">
    <span className="ct-track__no" aria-hidden="true">{String(s.level).padStart(2,'0')}</span>
    <strong className="ct-track__name">{s.name}</strong>

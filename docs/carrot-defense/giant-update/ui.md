@@ -66,11 +66,11 @@ carries `'1'` when either the OS setting or the page's Reduced effects toggle is
 
 ## HUD
 
-- **Wave track (top centre):** one lane per route (A, B, C, each with its own colour). A note is a creature head with a ×count, trait badges (wing for air, plate for armor, hex for shield, cross for heal, crown for miniboss, skull for guardian) and a tail that runs to the packet's last spawn. Notes reach the judgement line at the moment they spawn. Bar lines every 5 game seconds scroll with the clock. Creature kinds the player has not met carry a NEW tag. The progress bar shows guardian (pink) and miniboss (gold) flags at the work-weighted start of their waves, and grows from 4 px to 14 px on hover or focus. In phone landscape the lanes merge into one, with notes coloured by route. The 20 s window is in game time, so notes move twice as fast at 2×.
+- **Wave track (top centre):** one lane per route (A, B, C, each with its own colour). A note is a creature head with a ×count, trait badges (wing for air, plate for armor, hex for shield, cross for heal, crown for miniboss, skull for guardian) and a tail that runs to the packet's last spawn. Notes reach the judgement line at the moment they spawn. Bar lines every 5 game seconds scroll with the clock. Creature kinds the player has not met carry a gold NEW marker. When a packet's first creature spawns, a lane-coloured pulse lights the judgement mark. The stage's band sits beside its name, and screen readers get a summary of what is coming in the panel's label. The progress bar shows guardian (pink) and miniboss (gold) flags at the work-weighted start of their waves, and grows from 4 px to 14 px on hover or focus. In phone landscape the lanes merge into one, with notes coloured by route. The 20 s window is in game time, so notes move twice as fast at 2×.
 - **Status (desktop top left; phone portrait bottom):** a rolling coin counter with dim leading zeros, a +N/−N chip (changes within 600 ms add up into one chip), ten hearts (a bitten heart flashes `#FF9393` then `#FF5D5D` and empties after 500 ms) with an edge-only red vignette, and the defense chain.
 - **Defense chain:** consecutive leak-free waves and boss phases. It pulses only when it grows, and runs a 2 s break when a leak ends it. Kills are not counted here, because they need no player input.
 - **Judgement slot:** one word at a time, and a new word replaces the old one. Screen readers hear at most one judgement every 2 s.
-- **Controls:** speed (shows "1× HOLD" during a held telegraph), pause, sound, full screen, stage select and settings. Phones keep speed, pause and settings, and move the rest into settings. In landscape they form a right-hand rail.
+- **Controls:** speed (shows "1× HOLD" during a held telegraph), pause, sound, full screen, stage select and settings. Phones keep speed, pause and settings on screen; Settings holds the rest (sound, full screen, stage select, how to play, restart, focus guardian). In landscape the controls form a right-hand rail.
 - **Boss bar:** real phase ticks, a damage trail, a −45° hatch for shield, and a cast row. The cast row has a countdown ring, the ability name, the hint (or the two-word verb once seen), seconds, and an action chip: SELL NOW (+15%, or +10% on level 4), "Super drops to IV", SPEND or FOCUS. Challenges add a deadline row (contact rule, route bar with ticks at 75% and 90%, ETA) with warning states. All bars hide on won and lost.
 - **Miniboss bars:** positioned with translate3d in container-query units, with a 100 ms linear transition. Only the bar takes taps. **Monster bars:** an imperative element pool (no React render per publish), shown until the build reports `worldBars`.
 - **Toasts:** a WARNING band when a guardian enters, "Flying enemies next wave" (6 s; naming the unlocked air towers before the level's first air wave), Super forged with Undo, and the merge lesson. Snapshot notices that the HUD already shows are dropped: the load prompt "Choose a place", "Wave N", and "Defend the carrot". Toasts sit under the build panel and stay hidden during results.
@@ -112,6 +112,7 @@ The card shows hearts, time (against par), best chain, coins left, a hearts-lost
 
 ## Stage select and lobby
 
+- **Loading:** a stage-loading card over the level's jacket (stage number, band, pips, name), the byte-accurate download bar (MB of MB), a cycling tip and one tower card.
 - **Lobby:** the key art (WebP), PLAY or CONTINUE, stage select, boss challenges, the field guide, settings and help, plus an "Up next" card with the next stage's jacket, band and grade.
 - **Stage select:** a full-screen song-select dialog. It has chapter tabs (with cleared counts), a jacket card for the focused stage (band, difficulty pips, waves and routes, best grade, medals or stars, fastest time, chain, Play, and the Veteran toggle when it is advertised), and a track list with jacket thumbnails, bands, medals and grades. The focused jacket, blurred, is the backdrop. Arrow keys move through stages and chapters, and Enter plays.
 - **Difficulty bands:** NORMAL (levels 1-3 and the chapter openers 5, 9, 13, 17, 21), HARD (the mid-chapter and pre-boss stages, and level 4), EXPERT (the boss stages 8, 12, 16, 20, 24). Challenges keep their own words: EASY, HARD, INSANE, ????.
@@ -166,7 +167,7 @@ loader and `.unityweb` requests are routed to stubs, so nothing mock ships in `s
 | `parity` | Features of the pre-update page. |
 | `perf` | Snapshot cost per publish (dispatch through the React commit) and rAF callback cost, over 60 s with 50 moving monsters and a boss. |
 
-Other tools: `shots.mjs` (fixtures in every viewport), `menus.mjs` (menus), `webp.mjs` (WebP re-encoding), `jackets.mjs` (jacket captures from the real player).
+Other tools: `unit.mjs` (plain-node checks of `waves.ts` against BeginWave's formula for all 29 levels, the track plan, traits and flags, and the word limits on every ability card; no browser), `shots.mjs` (fixtures in every viewport), `menus.mjs` (menus), `webp.mjs` (WebP re-encoding), `jackets.mjs` (jacket captures from the real player).
 
 ## Measured results
 
@@ -174,15 +175,15 @@ Other tools: `shots.mjs` (fixtures in every viewport), `menus.mjs` (menus), `web
 
 - **Acceptance suites:** 329 of 329 checks pass in Chromium and WebKit (report: `output/carrot-ui-qa/qa-report.json`).
 - **Snapshot cost per publish** (dispatch through the React commit, 60 s with 50 moving monsters, a boss and a ticking cast):
-  - Chromium: p95 0.8 ms (limit 2 ms); with a 4× CPU throttle, p95 3.2 ms (limit 6 ms).
+  - Chromium: p95 0.9 ms (limit 2 ms); with a 4× CPU throttle, p95 3.8 ms (limit 6 ms).
   - WebKit: p95 1 ms (WebKit's timer resolution is 1 ms).
-- **rAF callbacks** (wave track, cast ring, counters): p95 0.2 ms in Chromium, and 1.0 ms with the 4× throttle.
+- **rAF callbacks** (wave track, cast ring, counters): p95 0.3 ms in Chromium, and 1.1 ms with the 4× throttle.
 - **Lobby images:** 0.32 MB (the garden key art WebP at 287 KB and the next stage's jacket at 35 KB), with no `ui-*.ogg` request. The old page loaded the 813 KB JPG, and about 18 MB of art once the campaign modal opened.
-- **Bundle:** the CarrotPage chunk is 129 KB of JS (44 KB gzip) and 59 KB of CSS (12.6 KB gzip).
+- **Bundle:** the CarrotPage chunk is 131 KB of JS (44.6 KB gzip) and 60 KB of CSS (12.8 KB gzip).
 
 ## Asset provenance
 
-- **Key art WebP** (`public/assets/minigames/carrot/*-keyart.webp`): re-encoded from the project's own JPGs by `scripts/carrot-ui-qa/webp.mjs` (Chromium's WebP encoder, q0.8, at most 1600 px wide). The JPGs stay for the site card, the social image and the docs.
+- **WebP art** (`public/assets/minigames/carrot/*.webp`): re-encoded from the project's own JPGs and PNGs by `scripts/carrot-ui-qa/webp.mjs` (Chromium's WebP encoder, q0.8). Key art is at most 1600 px wide; sheets keep their native size, and the PNG sheets keep their alpha. Together they cut 13.1 MB of sheets to 5.0 MB. The originals stay for the site card, the social image and the docs. Asuna's approved portrait stays PNG.
 - **Jackets** (`public/assets/minigames/carrot/jackets/NN.webp`): ready-phase captures of each level's own board from the game's web player (build `a9ccb2b1be8febe7`) with the HUD hidden, 640×360, WebP q0.8. They are self-made from the game itself; `jackets/provenance.json` records the build, viewport and sha256 per file. Regenerate them after the release build with `node scripts/carrot-ui-qa/jackets.mjs`.
 - **Glyphs** (`Icon.tsx` and the creature silhouettes in `art.tsx`): drawn for this page.
 - **Portraits:** `portraits/portraits.json` (from the characters stream) wins when present, and the existing sheets remain the fallback. No tier sheet was deleted (the owner approves portraits first).

@@ -201,7 +201,7 @@ export default function CarrotPage(){
   {(panel==='select'||panel==='challenges')&&definitions&&<LevelSelect definitions={definitions} save={save} challenges={challenges} records={records} current={page?.level||save.unlocked} preview={preview} veteranAvailable={veteranAvailable} veteran={veteran} onVeteran={setVeteran} onPlay={choose} onClose={closePanel} startChallenges={panel==='challenges'} reduced={reduced}/>}
   {panel==='guide'&&<FieldGuide definitions={definitions} superSave={superSave} onClose={closePanel}/>}
   {panel==='help'&&<HelpModal onClose={closePanel}/>}
-  {panel==='settings'&&<SettingsModal prefs={prefs} volumes={volumes} sound={save.sound} inGame={entered&&ready} canFocusBoss={v2&&!!page?.boss} onPrefs={p=>writePrefs(p)} onVolumes={v=>writeVolumes(v)} onSound={toggleSound} onFocusBoss={()=>{closePanel();engine.current?.focusBoss()}} onRestart={entered&&ready?()=>setPanel('restart'):undefined} onClose={closePanel}/>}
+  {panel==='settings'&&<SettingsModal prefs={prefs} volumes={volumes} sound={save.sound} inGame={entered&&ready} canFocusBoss={v2&&!!page?.boss} onPrefs={p=>writePrefs(p)} onVolumes={v=>writeVolumes(v)} onSound={toggleSound} onFocusBoss={()=>{closePanel();engine.current?.focusBoss()}} onRestart={entered&&ready?()=>setPanel('restart'):undefined} expanded={expanded} onStages={entered&&ready?()=>setPanel(challengeBoss?'challenges':'select'):undefined} onHelp={entered&&ready?()=>setPanel('help'):undefined} onFullscreen={entered&&ready?()=>void fullscreen():undefined} onClose={closePanel}/>}
   {panel==='restart'&&<ConfirmModal title="Restart this stage?" body="The current run ends and the stage starts again from wave 1." confirm="Restart" onConfirm={restart} onClose={closePanel}/>}
  </div>
 }

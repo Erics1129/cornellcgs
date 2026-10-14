@@ -1,4 +1,4 @@
-import { expansionAbilities, expansionHints } from './expansion'
+import { expansionAbilities, expansionHints } from './expansion.ts'
 
 /**
  * Words for every telegraphed ability: its name, the counterplay hint under the boss bar, the first-encounter card (at most 12 words,
@@ -8,7 +8,7 @@ import { expansionAbilities, expansionHints } from './expansion'
 export type AbilityText={name:string;hint:string;card:string;verb:string;action?:'sell'|'spend'|'focus'|'air';icon?:string}
 const base:Record<string,AbilityText>={
  blind:{name:'Blindness',hint:'Towers outside lantern light lose reach. Prism and Sun Blossom keep the dark lit.',card:'Darkness falls. Unlit towers lose reach; Prism and Sun Blossom stay lit.',verb:'Light up',icon:'eye'},
- uproot:{name:'Uproot',hint:'A tower is being pulled up. Sell it before the roots close to keep more of its coins.',card:'A marked tower will be torn out. Sell it first for more coins.',verb:'Sell it',action:'sell',icon:'sell'},
+ uproot:{name:'Uproot',hint:'A tower is being pulled up. Sell it before the roots close to keep more of its coins.',card:'The marked tower will be uprooted. Sell it first to save coins.',verb:'Sell it',action:'sell',icon:'sell'},
  tithe:{name:'Tithe',hint:'The guardian claims a fifth of your coins. Spend before it lands.',card:'The guardian takes a fifth of your coins. Spend them first.',verb:'Spend coins',action:'spend',icon:'coin'},
  whiteout:{name:'Whiteout',hint:'A frost gust freezes every shot in the air for a moment.',card:'Whiteout: shots freeze in the air and unlit towers lose reach.',verb:'Hold steady',icon:'bolt'},
  dusk:{name:'Dusk',hint:'Full dark, and crows. Clear the crows to win.',card:'Full dark, and crows join the path. Clear every crow to win.',verb:'Clear crows',action:'air',icon:'eye'},

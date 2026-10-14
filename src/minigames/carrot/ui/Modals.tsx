@@ -43,7 +43,7 @@ export function FieldGuide({definitions,superSave,onClose}:{definitions:GameDefi
  </Modal>
 }
 
-export function SettingsModal({prefs,volumes,sound,inGame,canFocusBoss,onPrefs,onVolumes,onSound,onFocusBoss,onRestart,onClose}:{prefs:Prefs;volumes:Volumes;sound:boolean;inGame:boolean;canFocusBoss:boolean;onPrefs:(p:Partial<Prefs>)=>void;onVolumes:(v:Partial<Volumes>)=>void;onSound:()=>void;onFocusBoss:()=>void;onRestart?:()=>void;onClose:()=>void}){
+export function SettingsModal({prefs,volumes,sound,inGame,canFocusBoss,expanded,onPrefs,onVolumes,onSound,onFocusBoss,onRestart,onStages,onHelp,onFullscreen,onClose}:{prefs:Prefs;volumes:Volumes;sound:boolean;inGame:boolean;canFocusBoss:boolean;expanded?:boolean;onPrefs:(p:Partial<Prefs>)=>void;onVolumes:(v:Partial<Volumes>)=>void;onSound:()=>void;onFocusBoss:()=>void;onRestart?:()=>void;onStages?:()=>void;onHelp?:()=>void;onFullscreen?:()=>void;onClose:()=>void}){
  const slider=(id:keyof Volumes,label:string)=><label className="ct-slider"><span>{label}</span><input type="range" min={0} max={100} step={5} value={Math.round(volumes[id]*100)} disabled={!sound} onChange={e=>onVolumes({[id]:Number(e.target.value)/100})} aria-valuetext={`${Math.round(volumes[id]*100)}%`}/><b>{Math.round(volumes[id]*100)}</b></label>
  return <Modal title="Settings" kicker="Carrot Defense" onClose={onClose} className="ct-settings">
   <section><h3>Sound</h3>
@@ -57,6 +57,9 @@ export function SettingsModal({prefs,volumes,sound,inGame,canFocusBoss,onPrefs,o
   {inGame&&<section><h3>Battle</h3><div className="ct-settings__row">
    {canFocusBoss&&<button className="ct-ghost" onClick={onFocusBoss}><Icon name="focus"/>Focus the guardian</button>}
    {onRestart&&<button className="ct-ghost" onClick={onRestart}><Icon name="restart"/>Restart stage</button>}
+   {onStages&&<button className="ct-ghost" onClick={onStages}><Icon name="levels"/>Stage select</button>}
+   {onHelp&&<button className="ct-ghost" onClick={onHelp}><Icon name="help"/>How to play</button>}
+   {onFullscreen&&<button className="ct-ghost" onClick={onFullscreen}><Icon name="full"/>{expanded?'Exit full screen':'Full screen'}</button>}
   </div></section>}
  </Modal>
 }
