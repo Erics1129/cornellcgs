@@ -1,0 +1,300 @@
+{
+ "generator": "CarrotTD.CarrotCharacterStudio.Portraits (Unity 6000.3.18f1, URP, Carrot/Storybook) + Tools/pack_carrot_portraits.py",
+ "source": "the shipped in-game prefabs under Assets/Resources/Carrot/Models (project's own models; CC0 Quaternius rigs for the original creatures)",
+ "render": {
+  "size": 512,
+  "cell": 256,
+  "downsample": 2,
+  "tonemap": "ACES fit",
+  "exposure": 0.82,
+  "webpQuality": 80,
+  "camera": "pitch 16, yaw -6, fov 24",
+  "lights": "key 2.4 (38,-42), fill .55 (-10,140), rim .85 (24,168), ambient trilight x.72"
+ },
+ "licence": "original renders of project models (project licence); asuna uses the existing approved portrait",
+ "sheets": {
+  "towers-seed.webp": {
+   "bytes": 23076,
+   "sha256": "4f3254d5699676bdbaa5849f43e881c8c839d16b3634ba75e905bd647e6aae3d",
+   "cells": [
+    "tower-seed-1",
+    "tower-seed-2",
+    "tower-seed-3",
+    "tower-seed-4",
+    "tower-seed-5"
+   ]
+  },
+  "towers-frost.webp": {
+   "bytes": 15034,
+   "sha256": "071ec46614effef85e5c1ed0c1f2a51e6fbd4060a970d21b15554fa63806fdff",
+   "cells": [
+    "tower-frost-1",
+    "tower-frost-2",
+    "tower-frost-3",
+    "tower-frost-4",
+    "tower-frost-5"
+   ]
+  },
+  "towers-mortar.webp": {
+   "bytes": 15628,
+   "sha256": "d3321ecca5bfff1b89d49fdf78aae42b2d6a53c632eef0b579dae0032db0323d",
+   "cells": [
+    "tower-mortar-1",
+    "tower-mortar-2",
+    "tower-mortar-3",
+    "tower-mortar-4",
+    "tower-mortar-5"
+   ]
+  },
+  "towers-prism.webp": {
+   "bytes": 16762,
+   "sha256": "54a8af551f5bb3c1df96c637fd65ceda8325f44eea730fc2cf2356933b5a621c",
+   "cells": [
+    "tower-prism-1",
+    "tower-prism-2",
+    "tower-prism-3",
+    "tower-prism-4",
+    "tower-prism-5"
+   ]
+  },
+  "towers-storm.webp": {
+   "bytes": 18850,
+   "sha256": "636cca53114996a05481af74c22d22f1a8e87c43eccb3b42e1acdfd53bc963a2",
+   "cells": [
+    "tower-storm-1",
+    "tower-storm-2",
+    "tower-storm-3",
+    "tower-storm-4",
+    "tower-storm-5"
+   ]
+  },
+  "towers-blossom.webp": {
+   "bytes": 18046,
+   "sha256": "76f04d07870f3c61a35b59d508a1897972665f9c8e377069cae34cd028a4c751",
+   "cells": [
+    "tower-blossom-1",
+    "tower-blossom-2",
+    "tower-blossom-3",
+    "tower-blossom-4",
+    "tower-blossom-5"
+   ]
+  },
+  "towers-starfruit.webp": {
+   "bytes": 17004,
+   "sha256": "b55967ee3feb2b2532fab740d6c1139085cc076c705d48b42a58b87e62a75ee7",
+   "cells": [
+    "tower-starfruit-1",
+    "tower-starfruit-2",
+    "tower-starfruit-3",
+    "tower-starfruit-4",
+    "tower-starfruit-5"
+   ]
+  },
+  "towers-gravity.webp": {
+   "bytes": 17684,
+   "sha256": "1d8eed119bf240b7b3d6c58b37fcdc74019c2cf2cebd8b423f57b27a341d8fbe",
+   "cells": [
+    "tower-gravity-1",
+    "tower-gravity-2",
+    "tower-gravity-3",
+    "tower-gravity-4",
+    "tower-gravity-5"
+   ]
+  },
+  "towers-book.webp": {
+   "bytes": 16760,
+   "sha256": "8309ccc96b417410ecaf1baaf881bc6d70eec9383f88a1a8a860af4edfd79eb6",
+   "cells": [
+    "tower-book-1",
+    "tower-book-2",
+    "tower-book-3",
+    "tower-book-4",
+    "tower-book-5"
+   ]
+  },
+  "towers-thunder.webp": {
+   "bytes": 17640,
+   "sha256": "8ea28fd0b51191d54e54356f2ad8a9d4563833d1b7ed34c83dac20a7da15a474",
+   "cells": [
+    "tower-thunder-1",
+    "tower-thunder-2",
+    "tower-thunder-3",
+    "tower-thunder-4",
+    "tower-thunder-5"
+   ]
+  },
+  "towers-bamboo.webp": {
+   "bytes": 20312,
+   "sha256": "385dc542b27563a4d214a734c08c88d1e2722ca4fb027d6b644596f671f98ef5",
+   "cells": [
+    "tower-bamboo-1",
+    "tower-bamboo-2",
+    "tower-bamboo-3",
+    "tower-bamboo-4",
+    "tower-bamboo-5"
+   ]
+  },
+  "towers-chili.webp": {
+   "bytes": 24154,
+   "sha256": "e6a05533fc812c826887e921def18c5733eb2c20dc2fdfc12aa8178cb069c61e",
+   "cells": [
+    "tower-chili-1",
+    "tower-chili-2",
+    "tower-chili-3",
+    "tower-chili-4",
+    "tower-chili-5"
+   ]
+  },
+  "towers-lotus.webp": {
+   "bytes": 24610,
+   "sha256": "81c4a416897cfe6cf83c34d6defe1e14ca3a793ec2a218ab8abd9633b8899c1d",
+   "cells": [
+    "tower-lotus-1",
+    "tower-lotus-2",
+    "tower-lotus-3",
+    "tower-lotus-4",
+    "tower-lotus-5"
+   ]
+  },
+  "towers-magnet.webp": {
+   "bytes": 25170,
+   "sha256": "6dc8def820a0479be15a4316fdc3074242de7957e460b1d1f1f8b0220145c2a4",
+   "cells": [
+    "tower-magnet-1",
+    "tower-magnet-2",
+    "tower-magnet-3",
+    "tower-magnet-4",
+    "tower-magnet-5"
+   ]
+  },
+  "towers-orchid.webp": {
+   "bytes": 21612,
+   "sha256": "4626ea88afb36418f71956690f0285cfe8982c93bc26bb1a18acb70b508f9c4b",
+   "cells": [
+    "tower-orchid-1",
+    "tower-orchid-2",
+    "tower-orchid-3",
+    "tower-orchid-4",
+    "tower-orchid-5"
+   ]
+  },
+  "towers-mushroom.webp": {
+   "bytes": 25120,
+   "sha256": "d3bb355cfdc605fda4e8eef94c5162ce1ed3017b42c1100635362d02a55cd631",
+   "cells": [
+    "tower-mushroom-1",
+    "tower-mushroom-2",
+    "tower-mushroom-3",
+    "tower-mushroom-4",
+    "tower-mushroom-5"
+   ]
+  },
+  "towers-cactus.webp": {
+   "bytes": 24492,
+   "sha256": "e744dd1e99f10df2cdedbed01b0a7a6bcf60d4587c87914bab79c69e7e5f895a",
+   "cells": [
+    "tower-cactus-1",
+    "tower-cactus-2",
+    "tower-cactus-3",
+    "tower-cactus-4",
+    "tower-cactus-5"
+   ]
+  },
+  "towers-clockflower.webp": {
+   "bytes": 29188,
+   "sha256": "719c94efd936a9f0c91fe46511c060b3a5c1dac28be7a6d65474f84ba6935ba4",
+   "cells": [
+    "tower-clockflower-1",
+    "tower-clockflower-2",
+    "tower-clockflower-3",
+    "tower-clockflower-4",
+    "tower-clockflower-5"
+   ]
+  },
+  "towers-dragonfruit.webp": {
+   "bytes": 29098,
+   "sha256": "6019990847ef94aec325ef19bbf43a2b82bca2c34edb615895d926eee33adbb8",
+   "cells": [
+    "tower-dragonfruit-1",
+    "tower-dragonfruit-2",
+    "tower-dragonfruit-3",
+    "tower-dragonfruit-4",
+    "tower-dragonfruit-5"
+   ]
+  },
+  "towers-moonflower.webp": {
+   "bytes": 22898,
+   "sha256": "e916f0c908cf65cc891d52310dffe199a96033a02fcc009f41ff1658c51b8cee",
+   "cells": [
+    "tower-moonflower-1",
+    "tower-moonflower-2",
+    "tower-moonflower-3",
+    "tower-moonflower-4",
+    "tower-moonflower-5"
+   ]
+  },
+  "creatures.webp": {
+   "bytes": 95668,
+   "sha256": "859a0036f4c1d544bbd3b7b19cc8b1ced506fc5c53b945adec7c7001db4665f5",
+   "cells": [
+    "creature-nibble",
+    "creature-dash",
+    "creature-shell",
+    "creature-swarm",
+    "creature-moth",
+    "creature-shaman",
+    "creature-burrow",
+    "creature-crystal",
+    "creature-mite",
+    "creature-beetle",
+    "creature-slug",
+    "creature-wisp",
+    "creature-bat",
+    "creature-scarab",
+    "creature-firefly",
+    "creature-sporeling",
+    "creature-tinyZombie",
+    "creature-riftling",
+    "creature-shardling",
+    "creature-mimic"
+   ]
+  },
+  "minibosses.webp": {
+   "bytes": 103294,
+   "sha256": "d4ee419b16b30c7a119f92057535e6e5ea8668c8c9b66d580aabf41edf574abb",
+   "cells": [
+    "miniboss-warDrummer",
+    "miniboss-frostHerald",
+    "miniboss-witherPriest",
+    "miniboss-stormWarden",
+    "miniboss-graveCaller",
+    "miniboss-mirrorKnight",
+    "miniboss-riftStalker",
+    "miniboss-mossGolem",
+    "miniboss-emberBoar",
+    "miniboss-venomQueen",
+    "miniboss-ironSnail",
+    "miniboss-lanternLeech",
+    "miniboss-chronoMoth",
+    "miniboss-thornBeast",
+    "miniboss-portalSentinel"
+   ]
+  },
+  "bosses.webp": {
+   "bytes": 59500,
+   "sha256": "753fea24be80db18ffb00273781e46747041b4bc9286dad7723cb156e692a407",
+   "cells": [
+    "boss-garden",
+    "boss-marsh",
+    "boss-frost",
+    "boss-orchard",
+    "boss-zombie",
+    "boss-tornado",
+    "boss-eyeball",
+    "boss-portal",
+    "hero-Carrot"
+   ]
+  }
+ },
+ "totalBytes": 681600
+}

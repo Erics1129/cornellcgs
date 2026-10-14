@@ -125,29 +125,50 @@ public static class CarrotCharacterStudio {
   Debug.Log("CARROT_STUDIO_MODELS_OK "+dir);
  }
 
- /// <summary>Portraits: transparent 512 px renders of every id the field guide and wave track need (sheets are packed by Tools/pack_carrot_portraits.py).</summary>
+ /// <summary>
+ /// Portraits: every id the field guide, build menu and wave track need, rendered with the real Storybook materials under one 3/4 key,
+ /// a cool fill and a rim light, on a transparent background. Frames are written as raw linear half floats (&lt;group&gt;-&lt;name&gt;.rgbah,
+ /// -studioSize square) so Tools/pack_carrot_portraits.py can tonemap (ACES), downsample and pack them into WebP sheets with exact alpha.
+ /// The five tiers of a tower share one camera so growth across tiers reads; every other actor fills its own cell.
+ /// </summary>
  public static void Portraits(){
   string dir=Path.Combine(OutDir(),"portraits-raw");Directory.CreateDirectory(dir);string only=Arg("-studioOnly","");int size=int.Parse(Arg("-studioSize","512"),CultureInfo.InvariantCulture);
-  var manifest=new StringBuilder("{\n");bool first=true;
+  var index=new StringBuilder("{\n");bool first=true;
   using(var s=NewStage(true)){
-   foreach(var item in Roster(true)){
-    if(only!=""&&!only.Split(',').Contains(item.name))continue;
-    var prefab=AssetDatabase.LoadAssetAtPath<GameObject>(item.path);if(prefab==null){Debug.LogWarning("STUDIO_MISSING "+item.path);continue;}
-    var go=UnityEngine.Object.Instantiate(prefab);
-    // Towers and the hero face the camera (front is -Z); creatures turn three-quarters toward camera-left, like the field guide cards.
-    go.transform.rotation=Quaternion.Euler(0,FrontYaw(item.group,item.name,item.name=="tornado"||item.name=="eyeball"||item.name=="portal"?18:26),0);PoseIdle(go,.4f);
-    var b=VisibleBounds(go);go.transform.position-=new Vector3(b.center.x,b.min.y,b.center.z);b=VisibleBounds(go);
-    var dirv=Quaternion.Euler(16,-6,0)*Vector3.forward;
-    // Fit the projected box (not the sphere) so tall and wide models both fill the cell.
-    float fit=0;float tan=Mathf.Tan(s.camera.fieldOfView*.5f*Mathf.Deg2Rad);var rot=Quaternion.Inverse(Quaternion.LookRotation(dirv));
-    for(int x=-1;x<=1;x+=2)for(int y=-1;y<=1;y+=2)for(int z=-1;z<=1;z+=2){var c=rot*(new Vector3(x*b.extents.x,y*b.extents.y,z*b.extents.z));fit=Mathf.Max(fit,Mathf.Max(Mathf.Abs(c.x),Mathf.Abs(c.y))/tan-c.z);}
-    s.camera.transform.position=b.center-dirv*fit*1.06f;s.camera.transform.rotation=Quaternion.LookRotation(dirv);
-    var tex=Render(s,size,size);File.WriteAllBytes(Path.Combine(dir,item.group+"-"+item.name+".png"),tex.EncodeToPNG());UnityEngine.Object.DestroyImmediate(tex);
-    UnityEngine.Object.DestroyImmediate(go);
-    manifest.Append((first?"":",\n")+" \""+item.group+"-"+item.name+"\": \""+item.path+"\"");first=false;
+   RenderSettings.ambientIntensity=.72f;
+   var rim=new GameObject("Rim").AddComponent<Light>();rim.type=LightType.Directional;rim.color=new Color(.80f,.88f,1f);rim.intensity=.85f;rim.shadows=LightShadows.None;rim.transform.rotation=Quaternion.Euler(24,168,0);
+   var dirv=Quaternion.Euler(16,-6,0)*Vector3.forward;var look=Quaternion.LookRotation(dirv);var inv=Quaternion.Inverse(look);float tan=Mathf.Tan(s.camera.fieldOfView*.5f*Mathf.Deg2Rad);
+   GameObject Place(string group,string name,string path){var prefab=AssetDatabase.LoadAssetAtPath<GameObject>(path);if(prefab==null){Debug.LogWarning("STUDIO_MISSING "+path);return null;}
+    var go=UnityEngine.Object.Instantiate(prefab);go.transform.rotation=Quaternion.Euler(0,FrontYaw(group,name,name=="tornado"||name=="eyeball"||name=="portal"?18:26),0);PoseIdle(go,.4f);
+    foreach(var lod in go.GetComponentsInChildren<CarrotTierLod>(true))lod.enabled=false;foreach(var r in go.GetComponentsInChildren<Renderer>(true))r.forceMeshLod=0;
+    // Wind shells are drawn over the board in game; on a transparent card they need more coverage to read as a funnel.
+    var block=new MaterialPropertyBlock();foreach(var r in go.GetComponentsInChildren<Renderer>(true))if(r.sharedMaterial!=null&&r.sharedMaterial.shader.name=="Carrot/FxAlpha"){block.Clear();block.SetColor("_Color",new Color(1,1,1,1.9f));r.SetPropertyBlock(block);}
+    var b=VisibleBounds(go);go.transform.position-=new Vector3(b.center.x,b.min.y,b.center.z);return go;}
+   float Fit(Bounds b){float fit=0;for(int x=-1;x<=1;x+=2)for(int y=-1;y<=1;y+=2)for(int z=-1;z<=1;z+=2){var c=inv*(b.center+new Vector3(x*b.extents.x,y*b.extents.y,z*b.extents.z)-b.center);fit=Mathf.Max(fit,Mathf.Max(Mathf.Abs(c.x),Mathf.Abs(c.y))/tan-c.z);}return fit;}
+   void Shoot(string group,string name,string path,GameObject go,Bounds frame){
+    s.camera.transform.position=frame.center-dirv*Fit(frame)*1.08f;s.camera.transform.rotation=look;
+    // Two passes, over black and over white: coverage = 1 - (white - black), so translucent wind shells keep their true alpha
+    // (FxAlpha blends its alpha channel with SrcAlpha, which would square the coverage on a transparent target).
+    foreach(bool white in new[]{false,true}){
+     s.camera.backgroundColor=white?new Color(1,1,1,1):new Color(0,0,0,0);
+     var rt=new RenderTexture(size,size,24,RenderTextureFormat.ARGBHalf,RenderTextureReadWrite.Linear){antiAliasing=1};rt.Create();s.camera.targetTexture=rt;s.camera.aspect=1;
+     RenderPipeline.SubmitRenderRequest(s.camera,new UniversalRenderPipeline.SingleCameraRequest{destination=rt});
+     var old=RenderTexture.active;RenderTexture.active=rt;var tex=new Texture2D(size,size,TextureFormat.RGBAHalf,false,true);tex.ReadPixels(new Rect(0,0,size,size),0,0);tex.Apply();RenderTexture.active=old;s.camera.targetTexture=null;
+     File.WriteAllBytes(Path.Combine(dir,group+"-"+name+(white?".w":"")+".rgbah"),tex.GetRawTextureData());UnityEngine.Object.DestroyImmediate(tex);rt.Release();UnityEngine.Object.DestroyImmediate(rt);
+    }
+    s.camera.backgroundColor=new Color(0,0,0,0);
+    index.Append((first?"":",\n")+" \""+group+"-"+name+"\": {\"path\": \""+path+"\", \"size\": "+size+"}");first=false;
    }
+   var items=Roster(true).Where(i=>only==""||only.Split(',').Contains(i.name)||only.Split(',').Contains(i.name.Split('-')[0])).ToList();
+   // Towers: tiers I-IV share one frame (the union) so growth reads; the Super, with its plinth and halo, gets its own.
+   foreach(var kind in items.Where(i=>i.group=="tower").GroupBy(i=>i.name.Substring(0,i.name.LastIndexOf('-')))){
+    Bounds frame=new Bounds();bool has=false;
+    foreach(var item in kind){if(item.name.EndsWith("-5",StringComparison.Ordinal))continue;var go=Place(item.group,item.name,item.path);if(go==null)continue;var b=VisibleBounds(go);if(!has){frame=b;has=true;}else frame.Encapsulate(b);UnityEngine.Object.DestroyImmediate(go);}
+    foreach(var item in kind){var go=Place(item.group,item.name,item.path);if(go==null)continue;Shoot(item.group,item.name,item.path,go,item.name.EndsWith("-5",StringComparison.Ordinal)||!has?VisibleBounds(go):frame);UnityEngine.Object.DestroyImmediate(go);}
+   }
+   foreach(var item in items.Where(i=>i.group!="tower")){var go=Place(item.group,item.name,item.path);if(go==null)continue;Shoot(item.group,item.name,item.path,go,VisibleBounds(go));UnityEngine.Object.DestroyImmediate(go);}
   }
-  File.WriteAllText(Path.Combine(dir,"index.json"),manifest+"\n}\n");
+  File.WriteAllText(Path.Combine(dir,"index.json"),index+"\n}\n");
   Debug.Log("CARROT_STUDIO_PORTRAITS_OK "+dir);
  }
 

@@ -139,6 +139,8 @@ Canonical source and license record: `unity/CarrotDefense/ASSET-CREDITS.md`; pub
 - `model-review-priority.png`, `model-review-creatures.png`: earlier modeling checkpoints, retained for comparison; they are not claims of the final runtime appearance.
 - `model-review-scanned-nature.png`: four-prop Blender asset review (fern, stump, two rocks). `model-review-shrub.png` covers the fifth scanned prop separately.
 - `model-relief-before.png` and `model-relief-after.png`: controlled Blender render of the same carrot, blossom, frost boss and marsh boss before/after biological normal/roughness maps. Geometry, camera and lighting are identical; the effect is deliberately subtle. This is not a live runtime comparison.
+- The six Blender plates above (`model-review-{bosses,towers,priority,creatures}.png`, `model-relief-{before,after}.png`) moved from `public/assets/minigames/carrot/` to `docs/carrot-defense/screenshots/legacy/` in the giant update: no page referenced them, and they shipped about 9 MB to GitHub Pages.
+- Giant-update review sheets (`docs/carrot-defense/screenshots/giant-update/`) are Unity frames of the real scene rendered by `CarrotCharacterStudio` (editor play mode, URP, the shipped materials), not Blender previews: `facing-before-after.jpg`, `models-before-after.jpg`, `portraits-vs-game.jpg`, `tornado-v2.jpg`, `walk-strips.jpg`, `mesh-lod-levels.jpg`, `detail-normals.jpg`. See `giant-update/characters.md`.
 - Only captures explicitly identified as Unity/WebGL runtime screenshots establish the rendered game state. Runtime screenshots are being reviewed separately; no reference art is relabeled as gameplay.
 
 ## 3D upgrade assets (branch carrot-3d-upgrade, all generated in-repo)
