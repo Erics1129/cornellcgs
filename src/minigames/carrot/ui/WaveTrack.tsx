@@ -7,6 +7,7 @@ import type { Note } from '../waves'
 import { CreaturePortrait } from '../art'
 import Icon from '../Icon'
 import { formatSeconds } from '../challenges'
+import { bandTone, levelBand } from './LevelSelect'
 
 /** Game seconds the track shows ahead of the judgement line. */
 export const TrackWindow=20
@@ -24,7 +25,7 @@ const NoteView=memo(function NoteView({n,unseen,register}:{n:Note;unseen:boolean
   <span className="ct-note__tail"/>
   <span className="ct-note__head">{t.boss?<Icon name="skull"/>:<CreaturePortrait kind={n.kind} fallback/>}</span>
   <span className="ct-note__label"><b>{n.n>1?`×${n.n}`:t.boss?'BOSS':t.mini?'MINI':'×1'}</b><Badges n={n}/></span>
-  {unseen&&<span className="ct-note__new">NEW</span>}
+  {unseen&&<span className="ct-note__new" title="New creature"/>}
  </div>
 })
 
@@ -36,7 +37,7 @@ export function WaveTrack({store,level,enemies,seen,reduced,compact}:{store:Snap
   [s?.phase,s?.wave,s?.waves,s?.breather,s?.incomingKey,level,enemies,s?.bossName,s?.hasWaveElapsed,store])
  const flags=useMemo(()=>level?waveFlags(level,enemies):[],[level,enemies])
  const routes=Math.max(1,level?.routes?.length||1),lanes=compact?1:routes
- const rail=useRef<HTMLDivElement>(null),beats=useRef<HTMLDivElement>(null),nodes=useRef(new Map<string,HTMLDivElement>()),shown=useRef(new Map<string,number>())
+ const rail=useRef<HTMLDivElement>(null),beats=useRef<HTMLDivElement>(null),hits=useRef<Array<HTMLElement|null>>([]),crossed=useRef(new Set<string>()),nodes=useRef(new Map<string,HTMLDivElement>()),shown=useRef(new Map<string,number>())
  const notes=useMemo(()=>plan?[...plan.current,...plan.next]:[],[plan])
  const nextKeys=useMemo(()=>new Set(plan?.next.map(n=>n.key)),[plan])
  const register=useMemo(()=>(key:string,el:HTMLDivElement|null)=>{if(el)nodes.current.set(key,el);else nodes.current.delete(key)},[])
@@ -67,17 +68,20 @@ export function WaveTrack({store,level,enemies,seen,reduced,compact}:{store:Snap
     const hidden=gone||ahead
     if(el.dataset.hidden!==(hidden?'1':'0')){el.dataset.hidden=hidden?'1':'0'}
     const live=x<=0&&!gone;if(el.dataset.live!==(live?'1':'0'))el.dataset.live=live?'1':'0'
+    // a short pulse on the lane's judgement mark when the packet's first creature spawns (opacity only under reduced motion)
+    if(x<=0&&!isNext&&!crossed.current.has(n.key)){crossed.current.add(n.key);if(x>-px*.5){const hit=hits.current[lanes>1?n.route%lanes:0];hit?.animate(reduced?[{opacity:.9},{opacity:0}]:[{opacity:1,transform:'scaleY(1.6)'},{opacity:0,transform:'scaleY(1)'}],{duration:reduced?200:320,easing:'ease-out'})}}
    }
   }
   raf=requestAnimationFrame(frame)
   return()=>{cancelAnimationFrame(raf);resize.disconnect()}
- },[notes,nextKeys,store,reduced])
+ },[notes,nextKeys,store,reduced,lanes])
  if(!s||!status)return null
  const asuna=s.level===29,label=asuna?`Encounter, ${formatSeconds(status.elapsed)}`:`Wave ${Math.max(0,s.wave)} of ${s.waves}`
  return <section className={`ct-track ct-panel ${compact?'is-compact':''}`} aria-label={`${s.name}. ${label}.`} data-lanes={lanes}>
   <header className="ct-track__head">
    <span className="ct-track__no" aria-hidden="true">{String(s.level).padStart(2,'0')}</span>
    <strong className="ct-track__name">{s.name}</strong>
+   {level&&<span className={`ct-band ct-track__band is-${bandTone(levelBand(level))}`}>{levelBand(level)}</span>}
    <span className="ct-track__wave" aria-hidden="true">{asuna?<><small>T+</small>{formatSeconds(status.elapsed)}</>:<><small>WAVE</small>{String(Math.max(1,s.wave)).padStart(2,'0')}<small>/{String(s.waves).padStart(2,'0')}</small></>}</span>
    <span className="ct-track__status" role="status">{s.phase==='ready'?'READY':status.next>0?<>NEXT <b>{status.next}s</b></>:s.phase==='playing'?<><b>{status.enemies}</b> ON PATH</>:''}</span>
   </header>
@@ -91,6 +95,7 @@ export function WaveTrack({store,level,enemies,seen,reduced,compact}:{store:Snap
     <div className="ct-track__beats" ref={beats}/>
     {notes.map(n=><div className="ct-note-row" key={n.key} style={{top:`${(compact?0:n.route%lanes)*100/lanes}%`,height:`${100/lanes}%`}}><NoteView n={n} unseen={!n.traits.boss&&!seen.includes(n.kind)} register={register}/></div>)}
     <i className="ct-track__judge"/>
+    {Array.from({length:lanes},(_,i)=><i key={i} className="ct-track__hit" data-route={i} ref={el=>{hits.current[i]=el}} style={{top:`${i*100/lanes}%`,height:`${100/lanes}%`}}/>)}
    </div>
   </div>
  </section>

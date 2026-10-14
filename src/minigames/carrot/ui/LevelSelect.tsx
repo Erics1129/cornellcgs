@@ -21,7 +21,7 @@ export function levelBand(l:LevelDefinition){
  if([8,12,16,20,24].includes(l.id))return 'EXPERT'
  return 'HARD'
 }
-const bandTone=(band:string)=>({NORMAL:'normal',EASY:'normal',HARD:'hard',EXPERT:'expert',INSANE:'insane','????':'unknown'}[band]||'normal')
+export const bandTone=(band:string)=>({NORMAL:'normal',EASY:'normal',HARD:'hard',EXPERT:'expert',INSANE:'insane','????':'unknown'}[band]||'normal')
 
 type Props={definitions:GameDefinitions;save:CampaignSave;challenges:ChallengeSave;records:RecordsSave;current:number;preview:boolean;veteranAvailable:boolean;veteran:boolean;onVeteran:(on:boolean)=>void;onPlay:(id:number)=>void;onClose:()=>void;startChallenges?:boolean;reduced:boolean}
 export function LevelSelect({definitions,save,challenges,records,current,preview,veteranAvailable,veteran,onVeteran,onPlay,onClose,startChallenges,reduced}:Props){

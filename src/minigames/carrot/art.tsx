@@ -6,12 +6,13 @@ const sheets:Record<string,string>={seed:'05-seed-tiers',frost:'06-frost-tiers',
 // The Super plates (26 forms, 27 emblems) are 5x2 grids in this kind order.
 const superOrder=['seed','frost','mortar','prism','storm','blossom','starfruit','gravity','book','thunder']
 const challengeBossRow:Record<string,number>={tornado:0,zombie:1,eyeball:2}
-// Key art ships as WebP (q80, at most 1600 px wide) next to the original JPGs, which stay for the site card and social image.
+// All menu art ships as WebP (q80; key art at most 1600 px wide, sheets at their native size) next to the original JPG/PNG files,
+// which stay in place (the site card, the social image and the docs reference them). Only Asuna's approved portrait stays PNG.
 export const chapterArt=(biome:string)=>base+({garden:'01-garden-keyart',marsh:'03-marsh-keyart',frost:'04-frost-keyart',orchard:'23-orchard-keyart',arena:'31-arena-keyart',portal:'40-portal-keyart',prism:'45-prism-keyart'}[biome]||'01-garden-keyart')+'.webp'
 export const challengeArt=(boss:string)=>{const name={tornado:'28-tornado-keyart',zombie:'29-zombie-keyart',eyeball:'30-eyeball-keyart',portal:'40-portal-keyart',asuna:'45-prism-keyart'}[boss];return name?base+name+'.webp':chapterArt('arena')}
 /** Per-level jacket art: a ready-frame capture of the level's own board (scripts/carrot-ui-qa/jackets.mjs, provenance in ui.md). */
 export const jacketArt=(id:number)=>`${base}jackets/${String(id).padStart(2,'0')}.webp`
-export const superForms=base+'26-super-forms.jpg',superEmblems=base+'27-super-emblems.png',abilityGlyphs=base+'33-ability-glyphs.png'
+export const superForms=base+'26-super-forms.webp',superEmblems=base+'27-super-emblems.webp',abilityGlyphs=base+'33-ability-glyphs.webp'
 
 // Optional plates: a sheet that 404s falls back to the painted tier-4 cell or a typographic mark, so the HUD never shows a blank square.
 const imageStatus=new Map<string,boolean>(),waiters=new Map<string,Set<(ok:boolean)=>void>>()
@@ -66,10 +67,10 @@ export function TowerPortrait({kind,tier=1,className=''}:{kind:string;tier?:numb
  const real=usePortraitCell(kind,tier)
  if(real)return <span aria-hidden="true" className={`ct-portrait ct-portrait--real ${tier>=5?'ct-portrait--super':''} ${className}`} style={real.style}/>
  const expanded=expansionTowers.indexOf(kind)
- if(expanded>=0)return <span aria-hidden="true" className={`ct-portrait ct-portrait--expansion ${tier>=5?'ct-portrait--super':''} ${className}`} style={{backgroundImage:`url(${base}${expanded<5?'43-expansion-tiers-a':'44-expansion-tiers-b'}.jpg)`,...plateCell(expanded%5*5+Math.max(0,Math.min(4,tier-1)),5,1254,1254,expanded<5?[0,252,506,741,980,1254]:[0,252,502,754,982,1254])}}/>
+ if(expanded>=0)return <span aria-hidden="true" className={`ct-portrait ct-portrait--expansion ${tier>=5?'ct-portrait--super':''} ${className}`} style={{backgroundImage:`url(${base}${expanded<5?'43-expansion-tiers-a':'44-expansion-tiers-b'}.webp)`,...plateCell(expanded%5*5+Math.max(0,Math.min(4,tier-1)),5,1254,1254,expanded<5?[0,252,506,741,980,1254]:[0,252,502,754,982,1254])}}/>
  const index=superOrder.indexOf(kind)
  if(tier>=5&&superOk&&index>=0)return <span aria-hidden="true" className={`ct-portrait ct-portrait--super ${className}`} style={{backgroundImage:`url(${superForms})`,...grid(index,5,2)}}/>
- return <span aria-hidden="true" className={`ct-portrait ${className}`} style={{backgroundImage:`url(${base}${sheets[kind]||sheets.seed}.jpg)`,backgroundPosition:`${(Math.max(1,Math.min(4,tier))-1)*100/3}% 0%`}} />
+ return <span aria-hidden="true" className={`ct-portrait ${className}`} style={{backgroundImage:`url(${base}${sheets[kind]||sheets.seed}.webp)`,backgroundPosition:`${(Math.max(1,Math.min(4,tier))-1)*100/3}% 0%`}} />
 }
 /** Round golden sigil of a kind's Super form; a typographic crown stands in when the sprite sheet is missing. */
 export function SuperEmblem({kind,className=''}:{kind:string;className?:string}){
@@ -83,12 +84,12 @@ export function BossPortrait({kind,className=''}:{kind:string;className?:string}
  const real=usePortraitCell(kind==='asuna'?'':kind)
  if(real)return <span aria-hidden="true" className={`ct-portrait ct-portrait--boss ct-portrait--real ${className}`} style={real.style}/>
  if(kind==='asuna')return <span aria-hidden="true" className={`ct-portrait ct-portrait--boss ct-portrait--asuna ${className}`} style={{backgroundImage:`url(${base}46-asuna-portrait.png)`}}/>
- if(kind==='portal')return <span aria-hidden="true" className={`ct-portrait ct-portrait--boss ct-portrait--portal ${className}`} style={{backgroundImage:`url(${base}40-portal-keyart.jpg)`}}/>
- if(kind==='orchard')return <span aria-hidden="true" className={`ct-portrait ct-portrait--boss ct-portrait--plate ${className}`} style={{backgroundImage:`url(${base}25-hollowhead-menacing.jpg)`}}/>
+ if(kind==='portal')return <span aria-hidden="true" className={`ct-portrait ct-portrait--boss ct-portrait--portal ${className}`} style={{backgroundImage:`url(${base}40-portal-keyart.webp)`}}/>
+ if(kind==='orchard')return <span aria-hidden="true" className={`ct-portrait ct-portrait--boss ct-portrait--plate ${className}`} style={{backgroundImage:`url(${base}25-hollowhead-menacing.webp)`}}/>
  const row=challengeBossRow[kind]
  // 32 is a vertical stack of three 4-pose sheets (1024x2049): the first panel of each row, cropped to the upper body.
- if(row!==undefined)return <span aria-hidden="true" className={`ct-portrait ct-portrait--boss ct-portrait--challenge ${className}`} style={{backgroundImage:`url(${base}32-challenge-bosses-menacing.jpg)`,backgroundSize:'400% 800.4%',backgroundPosition:`0% ${[7.9,45.9,84][row]}%`}}/>
- return <span aria-hidden="true" className={`ct-portrait ct-portrait--boss ${className}`} style={{backgroundImage:`url(${base}22-bosses-menacing.jpg)`,backgroundPosition:`0% ${kind==='marsh'?50:kind==='frost'?100:0}%`}}/>}
+ if(row!==undefined)return <span aria-hidden="true" className={`ct-portrait ct-portrait--boss ct-portrait--challenge ${className}`} style={{backgroundImage:`url(${base}32-challenge-bosses-menacing.webp)`,backgroundSize:'400% 800.4%',backgroundPosition:`0% ${[7.9,45.9,84][row]}%`}}/>
+ return <span aria-hidden="true" className={`ct-portrait ct-portrait--boss ${className}`} style={{backgroundImage:`url(${base}22-bosses-menacing.webp)`,backgroundPosition:`0% ${kind==='marsh'?50:kind==='frost'?100:0}%`}}/>}
 const glyphIndex:Record<string,number>={blind:0,uproot:1,thornwall:2,tithe:3,whiteout:4,crowcurse:5,dusk:5}
 /** Optional ability glyph (33 is a 3x2 grid); null when the ability has no glyph or the sheet is missing, so the caller falls back to text. */
 export function AbilityGlyph({ability,className=''}:{ability:string;className?:string}){
@@ -97,13 +98,13 @@ export function AbilityGlyph({ability,className=''}:{ability:string;className?:s
  if(!ok||index===undefined)return null
  return <span aria-hidden="true" className={`ct-glyph ${className}`} style={{backgroundImage:`url(${abilityGlyphs})`,...grid(index,3,2)}}/>
 }
-export function CarrotPortrait({pose=0,className=''}:{pose?:number;className?:string}){return <span aria-hidden="true" className={`ct-portrait ${className}`} style={{backgroundImage:`url(${base}02-carrot-animation.jpg)`,backgroundPosition:`${pose%4*100/3}% ${Math.floor(pose/4)*50}%`}}/>}
+export function CarrotPortrait({pose=0,className=''}:{pose?:number;className?:string}){return <span aria-hidden="true" className={`ct-portrait ${className}`} style={{backgroundImage:`url(${base}02-carrot-animation.webp)`,backgroundPosition:`${pose%4*100/3}% ${Math.floor(pose/4)*50}%`}}/>}
 export function CreaturePortrait({kind,className='',fallback=false}:{kind:string;className?:string;fallback?:boolean}){
  const real=usePortraitCell(kind)
  const mini=miniBosses.findIndex(m=>m.id===kind),mob=regularMobs.findIndex(m=>m.id===kind)
  if(real)return <span aria-hidden="true" className={`ct-portrait ct-portrait--creature ct-portrait--real ${className}`} style={real.style}/>
  if(mini<0&&mob<0)return fallback?<CreatureGlyph kind={kind} className={className}/>:null
- return <span aria-hidden="true" className={`ct-portrait ct-portrait--creature ${className}`} style={{backgroundImage:`url(${base}${mini>=0?'41-minibosses':'42-new-creatures'}.jpg)`,...(mini>=0?plateCell(mini,5,1536,1024,[0,1024/3,2048/3,1024]):plateCell(mob,4,1254,1254,[0,418,836,1254]))}}/>
+ return <span aria-hidden="true" className={`ct-portrait ct-portrait--creature ${className}`} style={{backgroundImage:`url(${base}${mini>=0?'41-minibosses':'42-new-creatures'}.webp)`,...(mini>=0?plateCell(mini,5,1536,1024,[0,1024/3,2048/3,1024]):plateCell(mob,4,1254,1254,[0,418,836,1254]))}}/>
 }
 export function RouteDrawing({routes}: {routes?:Array<Array<{x:number;y?:number;z:number}|number[]>>}) {
  if(!routes?.length)return null

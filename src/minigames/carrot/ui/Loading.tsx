@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import type { GameDefinitions, LevelDefinition } from '../types'
-import { TowerPortrait, chapterArt } from '../art'
+import { TowerPortrait, chapterArt, jacketArt, useImageAvailable } from '../art'
+import { Pips } from './kit'
+import { bandTone, levelBand, levelPips } from './LevelSelect'
 import { towerTraits } from '../expansion'
 
 const tips=['Flying creatures ignore ground-only towers: watch for the wing badge on the wave track.','Guardian casts hold the game at 1× while they wind up. Read the cast row under the boss bar.','Sell a tower marked by Uproot before the roots close: you keep more coins.','A FLAWLESS wave grows your chain. One leak breaks it.','Two Tier IV towers of one kind merge into a Super.','Clearing scenery pays coins and opens clearings.','Prism and Sun Blossom keep their reach in the dark.']
@@ -11,9 +13,11 @@ export function Loading({level,definitions,progress,bytes,error,onRetry}:{level:
  useEffect(()=>{const t=window.setInterval(()=>setTip(i=>(i+1)%tips.length),4500);return()=>clearInterval(t)},[])
  const towers=definitions?.towers.filter(t=>t.unlock<=(level?.id||1))||[],card=towers[(tip*7)%Math.max(1,towers.length)]
  const pct=Math.round(Math.max(0,Math.min(1,progress))*100)
- return <div className="ct-loading" style={{backgroundImage:`url(${chapterArt(level?.biome||'garden')})`}}>
+ const jacket=useImageAvailable(jacketArt(level?.id||1)),band=level?levelBand(level):''
+ return <div className="ct-loading" style={{backgroundImage:`url(${jacket&&level?jacketArt(level.id):chapterArt(level?.biome||'garden')})`}}>
   <div className="ct-loading__card ct-panel">
    <span className="ct-kicker">{error?'A moment, please':level?.challenge?'The arena is waking':'Your garden is waking'}</span>
+   {level&&!error&&<div className="ct-loading__stage"><b>{String(level.id).padStart(2,'0')}</b><span className={`ct-band is-${bandTone(band)}`}>{band}</span><Pips value={levelPips(level)}/></div>}
    <h2>{error?'Couldn’t open the garden':level?.name||'Carrot Defense'}</h2>
    {error?<><p role="alert">{error}</p><button className="ct-cta" onClick={onRetry}>Try again</button></>:<>
     <div className="ct-loading__bar" role="progressbar" aria-label="Loading the garden" aria-valuemin={0} aria-valuemax={100} aria-valuenow={pct}><i style={{transform:`scaleX(${pct/100})`}}/></div>
