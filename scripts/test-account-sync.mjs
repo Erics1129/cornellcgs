@@ -4,6 +4,8 @@ import assert from 'node:assert/strict'
 import {mergeCarrot,mergeCarrotSuper,mergeCarrotChallenges,CARROT_LEVEL_COUNT,mergeBests,localWins,laterWins,mergeForgeScores,mergeForgePlayer,higherVersion,MERGES,PRIVATE_RECORDS,KNOWN_KEYS} from '../src/lib/account/merges.ts'
 import {createSync,META_KEY,DEBOUNCE_MS,MAX_WAIT_MS,PUT_FLOOR_MS,FRESH_PULL_MS} from '../src/lib/account/sync.ts'
 import {SESSION_KEY,GZIP_FROM_BYTES} from '../src/lib/account/session.ts'
+import {mergeCarrotChallenges as mergePageChallenges} from '../src/minigames/carrot/challenges.ts'
+import {mergeCarrotChallenges as mergeOldChallenges,cleanChallenges as cleanOldChallenges} from './fixtures/carrot-challenges-v1.mjs'
 
 // ---- merge rules -----------------------------------------------------------
 const meta=(localUpdated=0,remoteUpdated=0)=>({localUpdated,remoteUpdated})
@@ -40,12 +42,12 @@ assert.deepEqual(mergeCarrotSuper({version:1,taught:'yes',merges:-3,kinds:{seed:
 // Carrot challenge record: per boss cleared OR, health max, the faster time keeps its tower count
 const chA={version:1,best:{tornado:{cleared:true,health:6,seconds:200,towers:9},zombie:{cleared:true,health:10,seconds:400,towers:12}}}
 const chB={version:1,best:{tornado:{cleared:true,health:9,seconds:180.26,towers:7},eyeball:{cleared:true,health:3,seconds:500,towers:14}}}
-assert.deepEqual(mergeCarrotChallenges(chA,chB,meta()),{version:1,best:{tornado:{cleared:true,health:9,seconds:180.3,towers:7},zombie:{cleared:true,health:10,seconds:400,towers:12},eyeball:{cleared:true,health:3,seconds:500,towers:14}}},'challenges: OR cleared, max health, min seconds with its towers, union of bosses')
+assert.deepEqual(mergeCarrotChallenges(chA,chB,meta()),{version:2,best:{tornado:{cleared:true,health:9,seconds:180.3,towers:7},zombie:{cleared:true,health:10,seconds:400,towers:12},eyeball:{cleared:true,health:3,seconds:500,towers:14}}},'challenges: OR cleared, max health, min seconds with its towers, union of bosses')
 assert.deepEqual(mergeCarrotChallenges(chB,chA,meta()),mergeCarrotChallenges(chA,chB,meta()),'challenges: symmetric')
 assert.deepEqual(mergeCarrotChallenges({version:1,best:{tornado:{cleared:true,health:2,seconds:150,towers:3}}},{version:1,best:{tornado:{cleared:true,health:8,seconds:150,towers:5}}},meta()).best.tornado,{cleared:true,health:8,seconds:150,towers:3},'challenges: a time tie keeps the left tower count')
-assert.deepEqual(mergeCarrotChallenges(null,chB,meta()),{version:1,best:{tornado:{cleared:true,health:9,seconds:180.3,towers:7},eyeball:{cleared:true,health:3,seconds:500,towers:14}}},'challenges: one side is returned cleaned (seconds rounded to a tenth)');assert.deepEqual(mergeCarrotChallenges(chA,null,meta()),chA);assert.equal(mergeCarrotChallenges(null,null,meta()),null)
-assert.deepEqual(mergeCarrotChallenges({version:1,best:{tornado:{cleared:false,health:9,seconds:1,towers:1},dragon:{cleared:true,health:9,seconds:1,towers:1},zombie:{cleared:true,health:11,seconds:1,towers:1}}},{version:1,best:{eyeball:{cleared:true,health:5,seconds:-1,towers:1}}},meta()),{version:1,best:{}},'challenges: uncleared, unknown-boss and out-of-range records are dropped')
-{const v2={version:2,best:{},runs:[]};assert.equal(mergeCarrotChallenges(chA,v2,meta()),v2,'challenges: a newer format wins whole');assert.equal(mergeCarrotChallenges(v2,chA,meta()),v2)}
+assert.deepEqual(mergeCarrotChallenges(null,chB,meta()),{version:2,best:{tornado:{cleared:true,health:9,seconds:180.3,towers:7},eyeball:{cleared:true,health:3,seconds:500,towers:14}}},'challenges: one side is returned cleaned (seconds rounded to a tenth)');assert.deepEqual(mergeCarrotChallenges(chA,null,meta()),{...chA,version:2});assert.equal(mergeCarrotChallenges(null,null,meta()),null)
+assert.deepEqual(mergeCarrotChallenges({version:1,best:{tornado:{cleared:false,health:9,seconds:1,towers:1},dragon:{cleared:true,health:9,seconds:1,towers:1},zombie:{cleared:true,health:11,seconds:1,towers:1}}},{version:1,best:{eyeball:{cleared:true,health:5,seconds:-1,towers:1}}},meta()),{version:2,best:{}},'challenges: uncleared, unknown-boss and out-of-range records are dropped')
+{const v3={version:3,best:{},runs:[]};assert.equal(mergeCarrotChallenges(chA,v3,meta()),v3,'challenges: a newer format wins whole');assert.equal(mergeCarrotChallenges(v3,chA,meta()),v3)}
 assert.equal(KNOWN_KEYS['carrot:super'].key,'cgs-carrot-super-v1');assert.equal(KNOWN_KEYS['carrot:challenges'].key,'cgs-carrot-challenges-v1')
 for(const id of ['carrot:campaign','carrot:super','carrot:challenges','inkmaze:best','inkmaze:sound','inkmaze:code','inkmaze:code-prefs','forge:run','forge:player','forge:scores'])assert.equal(typeof MERGES[id],'function',id)
 assert.ok(PRIVATE_RECORDS.has('forge:player'),'the Forge identity is account-private')
@@ -66,6 +68,33 @@ assert.ok(PRIVATE_RECORDS.has('forge:player'),'the Forge identity is account-pri
  assert.equal(laterWins(runA,{...runB},meta(100,200)).seed,2,'same version: later wins as before')
  assert.equal(higherVersion({version:1},{version:1}),undefined);assert.equal(higherVersion({version:'2'},{version:1}),undefined);assert.equal(higherVersion([1],{version:1}),undefined)
  const bestsV2={version:2,levels:{}};assert.equal(mergeBests({version:1,'1':{ink:1,moves:1}},bestsV2,meta()),bestsV2,'ink maze: when both carry a version the higher one is passed through');assert.deepEqual(mergeBests(bestsA,bestsV2,meta()),bestsA,'an unversioned side is merged as plain bests (the newer object has no level entries)')
+}
+
+// Portal is stored outside campaign medals. Both account entry points must retain it,
+// including when an older device has never seen the fourth challenge.
+const portalLocal={version:1,best:{eyeball:{cleared:true,health:4,seconds:460,towers:12},portal:{cleared:true,health:10,seconds:850,towers:18}}}
+const portalRemote={version:2,best:{tornado:{cleared:true,health:9,seconds:210,towers:7},portal:{cleared:true,health:6,seconds:612.26,towers:11}}}
+const portalMerged={version:2,best:{tornado:{cleared:true,health:9,seconds:210,towers:7},eyeball:{cleared:true,health:4,seconds:460,towers:12},portal:{cleared:true,health:10,seconds:612.3,towers:11}}}
+const challengeMergers=[['account registry',mergeCarrotChallenges],['game page',mergePageChallenges]]
+for(const [label,merge] of challengeMergers){
+ assert.deepEqual(merge(portalLocal,portalRemote,meta()),portalMerged,label+': Portal keeps best health and the faster run with its tower count')
+ assert.deepEqual(merge(portalRemote,portalLocal,meta()),portalMerged,label+': Portal union is symmetric')
+ assert.deepEqual(merge(portalLocal,chA,meta()).best.portal,portalLocal.best.portal,label+': an older save cannot erase Portal')
+ assert.deepEqual(merge(null,portalLocal,meta()),{...portalLocal,version:2},label+': Portal survives remote-only adoption')
+ assert.deepEqual(merge(portalLocal,null,meta()),{...portalLocal,version:2},label+': Portal survives local-only adoption')
+ assert.deepEqual(merge(portalMerged,portalMerged,meta()),portalMerged,label+': repeated Portal sync is idempotent')
+ const future={version:3,best:{portal:{cleared:true}},chapter:'beyond'}
+ assert.equal(merge(portalLocal,future,meta()),future,label+': future challenge formats pass through unchanged')
+}
+// Run the frozen pre-Portal implementation, not a mock with the new allowlist.
+// Keeping v1 would let an old tab upload the cleaned record without Portal.
+assert.equal(mergeOldChallenges(chA,portalLocal).best.portal,undefined,'the old v1 merger reproduces the Portal-loss bug')
+for(const [label,merge] of challengeMergers){
+ const migrated=merge(portalLocal,chA)
+ assert.equal(migrated.version,2,label+': a migrated record identifies the newer format')
+ assert.equal(mergeOldChallenges(chA,migrated),migrated,label+': an old remote-side merger preserves v2 whole')
+ assert.equal(mergeOldChallenges(migrated,chA),migrated,label+': an old local-side merger preserves v2 whole')
+ assert.equal(cleanOldChallenges(migrated),null,'the old page cannot read v2, allowing the sync freeze')
 }
 
 // ---- a fake browser ----------------------------------------------------------
@@ -127,6 +156,64 @@ const meOk=(progress={},id='ada-id')=>({status:200,body:{player:{id,name:'Ada',p
  assert.deepEqual(put.body.data.medals,{1:7,2:7,3:7,5:1});assert.ok(put.body.updated>=500);assert.equal(put.auth,'Bearer cgs1.fresh')
  assert.equal(h.metaOf('carrot:campaign').dirty,false,'stored: clean')
  assert.equal(h.metaOf('inkmaze:sound').dirty,false)
+}
+
+// Portal travels through the sync engine, not just the pure merger. Exercise both a
+// record present at login and the lazy game-page registration after the account pull.
+for(const [label,merge] of challengeMergers)for(const late of [false,true]){
+ const key=KNOWN_KEYS['carrot:challenges'].key,id='carrot:challenges'
+ const h=harness({seed:{[key]:JSON.stringify(portalLocal)}}),{sync}=h
+ const register=()=>sync.progress.register(id,{key,merge})
+ h.setResponder(c=>c.path==='/login'?loginOk({[id]:{data:portalRemote,updated:500,version:1}}):c.method==='PUT'?{status:200,body:{stored:true,updated:c.body.updated,version:2}}:{status:404,body:{}})
+ if(!late)register()
+ await sync.account.login('portal-test-token');await h.settle()
+ if(late){register();await h.settle()}
+ assert.deepEqual(JSON.parse(h.values.get(key)),portalMerged,label+': Portal survives '+(late?'late registration':'login'))
+ await h.tick(DEBOUNCE_MS+1)
+ assert.equal(h.puts().length,1,label+': merged Portal record is uploaded once')
+ assert.equal(h.puts()[0].path,'/progress/carrot:challenges')
+ assert.deepEqual(h.puts()[0].body.data,portalMerged,label+': uploaded challenge data retains Portal')
+ assert.equal(h.metaOf(id).dirty,false,label+': Portal save is clean after acknowledgement')
+}
+
+// An already-open OLD page must freeze rather than upload a Portal-stripped save.
+// Exercise both old devices with legacy wins and devices with no local record.
+for(const local of [chA,null]){
+ const key=KNOWN_KEYS['carrot:challenges'].key,id='carrot:challenges'
+ const seed={[SESSION_KEY]:session(),...(local?{[key]:JSON.stringify(local)}:{})}
+ const h=harness({seed}),{sync}=h
+ const read=()=>{try{return cleanOldChallenges(JSON.parse(h.storage.getItem(key)||'null'))}catch{return null}}
+ const remote=mergeCarrotChallenges(portalLocal,portalRemote)
+ h.setResponder(c=>c.path==='/me'||c.path==='/progress'?meOk({[id]:{data:remote,updated:500,version:4}}):c.method==='PUT'?{status:200,body:{stored:true,updated:c.body.updated,version:5}}:{status:404,body:{}})
+ let notified=0;sync.progress.subscribe(id,()=>notified++)
+ sync.progress.register(id,{key,read,merge:mergeOldChallenges})
+ sync.account.start();await h.settle()
+ assert.deepEqual(JSON.parse(h.values.get(key)||'null'),local,'old client retains its readable local record when v2 arrives')
+ assert.equal(notified,0,'old page is not asked to adopt an unreadable save')
+ assert.equal(h.metaOf(id).dirty,false);assert.equal(h.warnings.length,1);assert.match(h.warnings[0],/newer format/)
+ sync.progress.touch(id);await h.tick(DEBOUNCE_MS+MAX_WAIT_MS);await sync.progress.flush()
+ assert.equal(h.puts().length,0,'old client cannot upload over Portal after the version-2 freeze')
+ await h.tick(10*60_000);sync.account.pullIfStale();await h.settle();await h.tick(DEBOUNCE_MS+1)
+ assert.equal(h.puts().length,0,'repeated pulls keep an old page frozen');assert.equal(h.warnings.length,1,'the refresh warning is shown only once')
+}
+
+// A current page migrates old cloud records and keeps the same future-format
+// protection for a hypothetical v3. Campaign and Super continue using v1.
+for(const [label,merge] of challengeMergers){
+ const key=KNOWN_KEYS['carrot:challenges'].key,id='carrot:challenges',h=harness(),{sync}=h
+ const read=()=>{try{const raw=JSON.parse(h.storage.getItem(key)||'null');return raw&&(raw.version===1||raw.version===2)?merge(null,raw):null}catch{return null}}
+ sync.progress.register(id,{key,read,merge})
+ h.setResponder(c=>c.path==='/login'?loginOk({[id]:{data:chA,updated:500,version:1}}):c.method==='PUT'?{status:200,body:{stored:true,updated:c.body.updated,version:2}}:{status:404,body:{}})
+ await sync.account.login('migration-test-token');await h.settle();await h.tick(DEBOUNCE_MS+1)
+ assert.deepEqual(JSON.parse(h.values.get(key)),{...chA,version:2},label+': cloud-only v1 migrates without losing legacy wins')
+ assert.equal(h.puts().length,1);assert.deepEqual(h.puts()[0].body.data,{...chA,version:2},label+': migrated v2 is uploaded to the existing record')
+ const future={version:3,best:{portal:{custom:true}},seasons:[1]}
+ h.setResponder(c=>c.path==='/progress'?meOk({[id]:{data:future,updated:600,version:3}}):{status:404,body:{}})
+ await h.tick(10*60_000);sync.account.pullIfStale();await h.settle()
+ assert.deepEqual(JSON.parse(h.values.get(key)),{...chA,version:2},label+': unreadable v3 leaves the readable v2 copy intact')
+ assert.equal(h.metaOf(id).dirty,false);assert.match(h.warnings[0],/newer format/)
+ sync.progress.touch(id);await h.tick(DEBOUNCE_MS+MAX_WAIT_MS);await sync.progress.flush()
+ assert.equal(h.puts().length,1,label+': current clients freeze too when the format advances again')
 }
 
 // debounce, floor, and a touch during flight
@@ -365,12 +452,12 @@ assert.deepEqual(mergeCarrotSuper({version:1,taught:'yes',merges:-3,kinds:{seed:
 // Carrot challenge record: per boss cleared OR, health max, the faster time keeps its tower count
 const chA={version:1,best:{tornado:{cleared:true,health:6,seconds:200,towers:9},zombie:{cleared:true,health:10,seconds:400,towers:12}}}
 const chB={version:1,best:{tornado:{cleared:true,health:9,seconds:180.26,towers:7},eyeball:{cleared:true,health:3,seconds:500,towers:14}}}
-assert.deepEqual(mergeCarrotChallenges(chA,chB,meta()),{version:1,best:{tornado:{cleared:true,health:9,seconds:180.3,towers:7},zombie:{cleared:true,health:10,seconds:400,towers:12},eyeball:{cleared:true,health:3,seconds:500,towers:14}}},'challenges: OR cleared, max health, min seconds with its towers, union of bosses')
+assert.deepEqual(mergeCarrotChallenges(chA,chB,meta()),{version:2,best:{tornado:{cleared:true,health:9,seconds:180.3,towers:7},zombie:{cleared:true,health:10,seconds:400,towers:12},eyeball:{cleared:true,health:3,seconds:500,towers:14}}},'challenges: OR cleared, max health, min seconds with its towers, union of bosses')
 assert.deepEqual(mergeCarrotChallenges(chB,chA,meta()),mergeCarrotChallenges(chA,chB,meta()),'challenges: symmetric')
 assert.deepEqual(mergeCarrotChallenges({version:1,best:{tornado:{cleared:true,health:2,seconds:150,towers:3}}},{version:1,best:{tornado:{cleared:true,health:8,seconds:150,towers:5}}},meta()).best.tornado,{cleared:true,health:8,seconds:150,towers:3},'challenges: a time tie keeps the left tower count')
-assert.deepEqual(mergeCarrotChallenges(null,chB,meta()),{version:1,best:{tornado:{cleared:true,health:9,seconds:180.3,towers:7},eyeball:{cleared:true,health:3,seconds:500,towers:14}}},'challenges: one side is returned cleaned (seconds rounded to a tenth)');assert.deepEqual(mergeCarrotChallenges(chA,null,meta()),chA);assert.equal(mergeCarrotChallenges(null,null,meta()),null)
-assert.deepEqual(mergeCarrotChallenges({version:1,best:{tornado:{cleared:false,health:9,seconds:1,towers:1},dragon:{cleared:true,health:9,seconds:1,towers:1},zombie:{cleared:true,health:11,seconds:1,towers:1}}},{version:1,best:{eyeball:{cleared:true,health:5,seconds:-1,towers:1}}},meta()),{version:1,best:{}},'challenges: uncleared, unknown-boss and out-of-range records are dropped')
-{const v2={version:2,best:{},runs:[]};assert.equal(mergeCarrotChallenges(chA,v2,meta()),v2,'challenges: a newer format wins whole');assert.equal(mergeCarrotChallenges(v2,chA,meta()),v2)}
+assert.deepEqual(mergeCarrotChallenges(null,chB,meta()),{version:2,best:{tornado:{cleared:true,health:9,seconds:180.3,towers:7},eyeball:{cleared:true,health:3,seconds:500,towers:14}}},'challenges: one side is returned cleaned (seconds rounded to a tenth)');assert.deepEqual(mergeCarrotChallenges(chA,null,meta()),{...chA,version:2});assert.equal(mergeCarrotChallenges(null,null,meta()),null)
+assert.deepEqual(mergeCarrotChallenges({version:1,best:{tornado:{cleared:false,health:9,seconds:1,towers:1},dragon:{cleared:true,health:9,seconds:1,towers:1},zombie:{cleared:true,health:11,seconds:1,towers:1}}},{version:1,best:{eyeball:{cleared:true,health:5,seconds:-1,towers:1}}},meta()),{version:2,best:{}},'challenges: uncleared, unknown-boss and out-of-range records are dropped')
+{const v3={version:3,best:{},runs:[]};assert.equal(mergeCarrotChallenges(chA,v3,meta()),v3,'challenges: a newer format wins whole');assert.equal(mergeCarrotChallenges(v3,chA,meta()),v3)}
 assert.equal(KNOWN_KEYS['carrot:super'].key,'cgs-carrot-super-v1');assert.equal(KNOWN_KEYS['carrot:challenges'].key,'cgs-carrot-challenges-v1')
 for(const id of ['carrot:campaign','carrot:super','carrot:challenges','inkmaze:best','inkmaze:sound','forge:run','forge:player','forge:scores'])assert.equal(typeof KNOWN_KEYS[id]?.key,'string',id+' is a known key');assert.equal(KNOWN_KEYS['forge:player'].private,true)
  const h6=harness({seed:{[SESSION_KEY]:session(),'cgs-forge-player':JSON.stringify(forgeId),'cgs-forge-run-v1':JSON.stringify(runA),'cgs-inkmaze-best-v1':JSON.stringify(bestsA)}})
@@ -454,4 +541,4 @@ for(const id of ['carrot:campaign','carrot:super','carrot:challenges','inkmaze:b
  assert.equal(h.puts().length,1);assert.equal(h.puts()[0].body.updated,4_000,'the old stamp survives the format change');assert.deepEqual(h.metaFile().keys['carrot:campaign'],{key:'cgs-carrot-defense-v1',private:false})
 }
 
-console.log('PASS account sync: merge rules for Carrot, Ink Maze and Forge (junk keys, version bumps); signed-out stamps; login pull/merge/notify/push; debounce, floor, max wait and in-flight touches; stale re-PUT; 401/413/429 handling; backoff; flush with keepalive; late register against a fresh pull; shared-device owner check (replace, merge, private records, sign out and clear); unreadable newer formats frozen; gzip bodies; feature off; old meta format; sign-out, delete, expiry; stale re-pull.')
+console.log('PASS account sync: Portal records through both merge paths and early/late registration; merge rules for Carrot, Ink Maze and Forge (junk keys, version bumps); signed-out stamps; login pull/merge/notify/push; debounce, floor, max wait and in-flight touches; stale re-PUT; 401/413/429 handling; backoff; flush with keepalive; late register against a fresh pull; shared-device owner check (replace, merge, private records, sign out and clear); unreadable newer formats frozen; gzip bodies; feature off; old meta format; sign-out, delete, expiry; stale re-pull.')

@@ -2,12 +2,17 @@ import build from './unity-build.json'
 import type {Command,GameState} from './types'
 type Instance={SendMessage:(object:string,method:string,value:string)=>void;Quit:()=>Promise<void>}
 type Factory=(canvas:HTMLCanvasElement,config:Record<string,unknown>,progress:(value:number)=>void)=>Promise<Instance>
+// Local review builds never replace the published player. Production ignores this query.
+const reviewBuild=import.meta.env.DEV&&new URLSearchParams(location.search).has('carrot-qa')
+const playerRoot=reviewBuild?'/output/carrot-qa':'/unity/carrot'
+const playerName=reviewBuild?'carrot-qa':'carrot'
+const playerVersion=reviewBuild?'portal-review':build.version
 let factoryPromise:Promise<Factory>|undefined
 let lifetime:Promise<void>=Promise.resolve()
 function factory():Promise<Factory>{
  if(!factoryPromise)factoryPromise=new Promise((resolve,reject)=>{
   const script=document.createElement('script')
-  script.src=`/unity/carrot/Build/carrot.loader.js?v=${build.version}`
+  script.src=`${playerRoot}/Build/${playerName}.loader.js?v=${playerVersion}`
   script.onload=()=>{const f=window.createUnityInstance as Factory|undefined;if(f)resolve(f);else reject(new Error('The garden could not open.'))}
   script.onerror=()=>{factoryPromise=undefined;script.remove();reject(new Error('The garden could not download. Check your connection and retry.'))}
   // Always load this game's own factory; another Unity game may have set the global.
@@ -31,9 +36,9 @@ export class CarrotUnity {
    lightenFences(this.canvas)
    // Download progress is reported here (0 to 0.8); the loader's own 0-1 then only ever moves the bar forward.
    let best=0;const progress=(value:number)=>{if(value>best){best=value;hooks.progress(value)}}
-   const files=await Promise.all([['data','application/octet-stream'],['framework.js','text/javascript'],['wasm','application/wasm']].map(([ext,type])=>prepare(`/unity/carrot/Build/carrot.${ext}.unityweb?v=${build.version}`,type,(done,total)=>{files_[ext]=[done,total];let d=0,t=0;for(const [a,b] of Object.values(files_)){d+=a;t+=b}if(t>0)progress(.8*d/t)})))
+   const files=await Promise.all([['data','application/octet-stream'],['framework.js','text/javascript'],['wasm','application/wasm']].map(([ext,type])=>prepare(`${playerRoot}/Build/${playerName}.${ext}.unityweb?v=${playerVersion}`,type,(done,total)=>{files_[ext]=[done,total];let d=0,t=0;for(const [a,b] of Object.values(files_)){d+=a;t+=b}if(t>0)progress(.8*d/t)})))
    if(this.dead){files.forEach(revoke);this.release();return}
-   const instance=await create(this.canvas,{webglContextAttributes:{alpha:false,antialias:false,powerPreference:'high-performance',preserveDrawingBuffer:false},dataUrl:files[0],frameworkUrl:files[1],codeUrl:files[2],streamingAssetsUrl:'/unity/carrot/StreamingAssets',companyName:'Cornell Computational Game Society',productName:'Carrot Defense 3D',productVersion:'1.0',devicePixelRatio:Math.min(devicePixelRatio,innerWidth<700?1.25:1.75),showBanner:(message:string,type:string)=>{if(type==='error')hooks.error(message)}},value=>progress(.8+.2*value))
+   const instance=await create(this.canvas,{webglContextAttributes:{alpha:false,antialias:false,powerPreference:'high-performance',preserveDrawingBuffer:false},dataUrl:files[0],frameworkUrl:files[1],codeUrl:files[2],streamingAssetsUrl:`${playerRoot}/StreamingAssets`,companyName:'Cornell Computational Game Society',productName:'Carrot Defense 3D',productVersion:'1.0',devicePixelRatio:Math.min(devicePixelRatio,innerWidth<700?1.25:1.75),showBanner:(message:string,type:string)=>{if(type==='error')hooks.error(message)}},value=>progress(.8+.2*value))
    files.forEach(revoke)
    if(this.dead){await instance.Quit();this.release();return}this.instance=instance;this.loaded=true;this.send({type:'load',level});this.send({type:'mute',value:muted?1:0});hooks.ready()
   }catch(error){if(!this.dead)hooks.error(error instanceof Error?error.message:'The garden could not open.');this.release()}})()

@@ -14,6 +14,10 @@ const baseline=JSON.parse(readFileSync(resolve('scripts/carrot-waves.baseline.js
 const tuning={slotDrop:{},gapBonus:{9:0.1},challengeScale:{26:1,27:0.9}}
 
 const BaseHp={nibble:55,dash:38,shell:125,swarm:24,moth:65,shaman:130,burrow:80,crystal:180} // crystal counts its 70 shield
+// Expansion registry shares its health profiles with the runtime; minibosses count as pressure work.
+const dataSource=readFileSync(source,'utf8')
+const added=[...dataSource.matchAll(/new EnemyDef\{id="(\w+)",name="[^"]+",trait="[^"]+",intro=(\d+),hp=([\d.]+)f,speed=[\d.]+f,armor=[\d.]+f,shield=([\d.]+)f,reward=\d+,air=(?:true|false),mini=(true|false)/g)].map(m=>({id:m[1],intro:Number(m[2]),hp:Number(m[3])+Number(m[4]),mini:m[5]==='true'}))
+for(const e of added)BaseHp[e.id]=e.hp
 const Intro={3:'shell',5:'moth',7:'shaman',9:'crystal',11:'burrow'}
 const parse=wave=>wave.split(',').map(p=>{const [kind,n]=p.split(':');return {kind,n:Number(n)}})
 const format=packets=>packets.map(p=>`${p.kind}:${p.n}`).join(',')
@@ -59,8 +63,8 @@ const expectedHp=[1.05,1.23,1.35,1.65,1.67,1.93,2.18,2.62,2.67,3.01,3.36,4.03,4.
 if(hpScale.join()!==expectedHp.join())throw new Error('HPScale formula drifted from the frozen table: '+hpScale.join())
 const challengeHp=[hpScale[7],hpScale[19],round2(hpScale[23]*1.15)]
 const gapByChapter=[1,.95,.9,.85,.8,.78]
-const gapScale=L=>L>=25?[.95,.85,.8][L-25]:round2(gapByChapter[Math.floor((L-1)/4)]+(tuning.gapBonus[L]||0))
-const breather=L=>L>=25?[5,4,3][L-25]:(Math.floor((L-1)/4)<2?5:Math.floor((L-1)/4)===2?4:3)
+const gapScale=L=>L>=25?[.95,.85,.8,.82][L-25]:round2(gapByChapter[Math.floor((L-1)/4)]+(tuning.gapBonus[L]||0))
+const breather=L=>L>=25?[5,4,3,4][L-25]:(Math.floor((L-1)/4)<2?5:Math.floor((L-1)/4)===2?4:3)
 const overlap=L=>L>=25?1:((L-1)%4>=2&&L>=5?.85:1)
 
 // Challenge waves (25-27) are authored, not generated: the boss arrives mid-level and the remaining waves spawn as adds.
@@ -71,10 +75,33 @@ const challengeWaves=[
 ]
 // Challenge count scale (the plan's second challenge knob): waves 2+ of the authored arrays, boss packets untouched.
 const scaledChallenge=challengeWaves.map((lvl,k)=>{const f=tuning.challengeScale[25+k]||1;return lvl.map((w,i)=>i===0||f===1?w:format(parse(w).map(x=>x.kind==='boss'?x:{kind:x.kind,n:Math.max(1,Math.round(x.n*f))})))})
-const waves=[...Array.from({length:24},(_,i)=>generate(i+1)),...scaledChallenge]
-const allHp=[...hpScale,...challengeHp]
+// New creatures replace small pieces of existing packets; the first two waves remain an economy lesson.
+function expand(waves,L){
+ const out=waves.map(parse)
+ const pool=added.filter(e=>!e.mini&&e.intro<=L)
+ for(let w=2;w<out.length;w++){
+  const def=pool[(L+w-3)%pool.length],packet=out[w].find(p=>p.kind!=='boss'&&p.n>=5)
+  if(packet){const n=Math.min(L<5?2:3,packet.n-2);packet.n-=n;inject(out[w],def.id,n)}
+ }
+ // Teach the newest ordinary creature in a small, late opening packet; keep original first introductions untouched.
+ const introduced=added.find(e=>!e.mini&&e.intro===L)
+ if(introduced)inject(out[Math.min(2,out.length-1)],introduced.id,2)
+ const firstMini=added.find(e=>e.mini&&e.intro===L)
+ const minis=added.filter(e=>e.mini&&e.intro<L)
+ if(firstMini)inject(out[Math.max(2,out.length-3)],firstMini.id,1)
+ if(L>=17){inject(out[Math.max(3,out.length-4)],minis[(L-17)%minis.length].id,1);if(L>=21)inject(out[out.length-2],minis[(L-10)%minis.length].id,1)}
+ return out.map(format)
+}
+const portalWaves=[
+ 'shell:8,nibble:14','scarab:8,bat:10','crystal:8,riftling:10,firefly:4','boss:1,swarm:24,shaman:3,mite:10',
+ 'portalSentinel:1,beetle:10,wisp:10','scarab:10,riftling:12','mirrorKnight:1,bat:14,mimic:8',
+ 'tinyZombie:14,sporeling:10,crystal:12','stormWarden:1,riftling:14,shardling:12','chronoMoth:1,scarab:14,moth:16',
+ 'portalSentinel:1,graveCaller:1,bat:14,crystal:12','ironSnail:1,warDrummer:1,riftling:18,mimic:12,firefly:5'
+]
+const waves=[...Array.from({length:24},(_,i)=>expand(generate(i+1),i+1)),...scaledChallenge,portalWaves]
+const allHp=[...hpScale,...challengeHp,9.25]
 // Wave-1 health grace: 1 / (new HPScale / pre-pass HPScale) from chapter 1 on; the challenge anchors' pre-pass values are levels 8, 20 and 24 x 1.15 of the old table.
-const oldAnchors=[baseline.hpScale[7],baseline.hpScale[19],round2(baseline.hpScale[23]*1.15)]
+const oldAnchors=[baseline.hpScale[7],baseline.hpScale[19],round2(baseline.hpScale[23]*1.15),6.2]
 const opening=allHp.map((hp,i)=>i<4?1:Math.round(10000*(i<24?baseline.hpScale[i]:oldAnchors[i-24])/hp)/10000)
 
 // Pressure = HP-weighted spawn work per stream second (ordinary enemies only; the boss is a separate spike).

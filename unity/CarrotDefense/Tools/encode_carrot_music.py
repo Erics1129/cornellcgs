@@ -5,18 +5,22 @@ written as Ogg Vorbis and MP3 to Assets/StreamingAssets/Carrot, which the Web bu
 first time it is needed (after the HUD is up) and the browser decodes it: Ogg Vorbis everywhere except WebKit, which gets the MP3 (Safari's decodeAudioData has no Vorbis;
 headless Chromium has no MP3). 112 kb/s joint stereo lands near the 0.5-quality Vorbis the data file carried before.
 """
-import bpy,json
+import bpy,json,sys
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
 SOURCE=ROOT/'Assets/Resources/Carrot/Audio/Music~'
 DEST=ROOT/'Assets/StreamingAssets/Carrot'
 DEST.mkdir(parents=True,exist_ok=True)
-results=[]
+only_new='--only-new' in sys.argv
+manifest=DEST/'music-provenance.json'
+results=json.loads(manifest.read_text()) if only_new and manifest.exists() else []
 for file in sorted(SOURCE.iterdir()):
  if file.suffix.lower() not in ('.mp3','.wav','.ogg','.flac'):continue
+ if only_new and all((DEST/(file.stem+ext)).exists() for ext in ('.mp3','.ogg')):continue
  bpy.ops.wm.read_factory_settings(use_empty=True)
  scene=bpy.context.scene;scene.sequence_editor_create()
- strip=scene.sequence_editor.sequences.new_sound(file.stem,str(file),1,1)
+ strips=getattr(scene.sequence_editor,'strips',None) or scene.sequence_editor.sequences
+ strip=strips.new_sound(file.stem,str(file),1,1)
  scene.frame_start=1;scene.frame_end=max(2,int(strip.frame_final_duration))
  seconds=strip.frame_final_duration/scene.render.fps
  for container,codec,ext in (('MP3','MP3','.mp3'),('OGG','VORBIS','.ogg')):

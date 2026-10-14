@@ -42,7 +42,7 @@ namespace CarrotTD {
  }
 
  /// <summary>Pooled renderers for every non-particle effect primitive. Nothing here allocates after Awake.</summary>
- public sealed class FxPool {
+ public sealed partial class FxPool {
   public sealed class Slot{public GameObject go;public Transform t;public MeshRenderer mr;public MeshFilter mf;public LineRenderer line;public Light light;public LineRenderer trail;public Transform glow;public MeshRenderer glowRenderer;public MaterialPropertyBlock glowBlock;public bool busy;public MaterialPropertyBlock block;}
   public readonly Slot[] rings,bolts,shells,decals,lights,ghosts,tubes;public readonly Mesh[] tubeMeshes=new Mesh[4];public readonly Spline[] tubeSplines=new Spline[4];public readonly Material bark,mint;
   public readonly Mesh ringThin,ringThick,ringShock,glowDisc,husk,iron,star,sprite,glowQuad;readonly Mesh[] decalMeshes=new Mesh[8];
@@ -53,7 +53,7 @@ namespace CarrotTD {
   // after the blind overlay (render queue 4001) for the faint lantern glow at the carrot while the screen is dark.
   public readonly Slot[] emblems,superRings;public readonly Material emblem,additiveTop,overlayGlow;public readonly bool emblemTexture;readonly Mesh[] emblemMeshes=new Mesh[10];
   public static readonly string[] SuperOrder={"seed","frost","mortar","prism","storm","blossom","starfruit","gravity","book","thunder"};
-  public Mesh EmblemMesh(string kind){int i=System.Array.IndexOf(SuperOrder,kind);return emblemMeshes[Mathf.Clamp(i,0,9)];}
+  public Mesh EmblemMesh(string kind){int i=System.Array.IndexOf(SuperOrder,kind);return i>=0?emblemMeshes[i]:ExpansionEmblem(kind);}
   readonly List<Mesh> owned=new List<Mesh>();readonly List<Material> ownedMaterials=new List<Material>();
   public FxPool(Transform parent,Texture2D sheet,bool high){
    additiveSheet=Mat("Carrot/FxAdditive");additiveSheet.SetTexture("_MainTex",sheet);additiveSheet.SetFloat("_UseAtlas",1);additiveSheet.SetFloat("_Soft",0);
@@ -68,6 +68,7 @@ namespace CarrotTD {
    starShell=Mat("Carrot/Storybook");starShell.color=new Color(1,.8f,.3f);starShell.SetColor("_EmissionColor",new Color(1,.8f,.3f)*1.6f);starShell.SetFloat("_Cull",0);
    ringThin=Annulus(.88f);ringThick=Annulus(.62f);ringShock=Annulus(.76f);glowDisc=FlatQuad(FxSheet.Cell(FxSheet.GlowSoft),2);husk=Ellipsoid();iron=CarrotMeshes.Get(PrimitiveType.Sphere,true);star=StarMesh();sprite=Quad(FxSheet.Cell(FxSheet.Flake));glowQuad=Quad(FxSheet.Cell(FxSheet.GlowSoft));
    for(int i=0;i<8;i++)decalMeshes[i]=FlatQuad(FxSheet.Cell(FxSheet.Scorch+i));
+   BuildExpansionMeshes();
    var root=new GameObject("Effect pools").transform;root.SetParent(parent,false);
    rings=new Slot[16];for(int i=0;i<rings.Length;i++)rings[i]=MeshSlot(root,"Ring",ringThin,additiveSheet);
    bolts=new Slot[12];for(int i=0;i<bolts.Length;i++)bolts[i]=LineSlot(root,"Bolt",16);

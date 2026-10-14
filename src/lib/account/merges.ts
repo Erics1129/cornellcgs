@@ -56,10 +56,10 @@ export function mergeCarrot(a: CampaignSave | null, b: CampaignSave | null): Cam
 
 /** Carrot Super record (`cgs-carrot-super-v1`): whether the merge lesson was shown, how many Supers were forged and which kinds. */
 export type SuperSave = { version: 1; taught: boolean; merges: number; kinds: Record<string, number> }
-export type ChallengeBoss = 'tornado' | 'zombie' | 'eyeball'
+export type ChallengeBoss = 'tornado' | 'zombie' | 'eyeball' | 'portal'
 export type ChallengeRecord = { cleared: boolean; health: number; seconds: number; towers: number }
-/** Carrot challenge record (`cgs-carrot-challenges-v1`): the best run per boss fight. */
-export type ChallengeSave = { version: 1; best: Partial<Record<ChallengeBoss, ChallengeRecord>> }
+/** Challenge format v2 adds Portal; the legacy storage key stays unchanged for migration. */
+export type ChallengeSave = { version: 2; best: Partial<Record<ChallengeBoss, ChallengeRecord>> }
 
 // The two blocks below are copied verbatim from src/minigames/carrot/progress.ts and challenges.ts in the game repo
 // (the page package owns the originals); keep them identical so both repos merge a record the same way.
@@ -84,7 +84,10 @@ export function mergeCarrotSuper(a:SuperSave|null|undefined,b:SuperSave|null|und
  return {version:1,taught:x.taught||y.taught,merges:Math.max(x.merges,y.merges),kinds}
 }
 
-const challengeBosses:ChallengeBoss[]=['tornado','zombie','eyeball']
+// A v1 client strips Portal as an unknown boss. Version 2 triggers its newer-format
+// freeze; v1 data still migrates with a full per-boss union in current clients.
+const newerChallengeVersion=(a:unknown,b:unknown):unknown=>{const v=(r:unknown)=>r&&typeof r==='object'&&Number.isInteger((r as {version?:unknown}).version)?(r as {version:number}).version:0;const va=v(a),vb=v(b);return va<=2&&vb<=2?null:va>=vb?a:b}
+const challengeBosses:ChallengeBoss[]=['tornado','zombie','eyeball','portal']
 const isBoss=(v:unknown):v is ChallengeBoss=>typeof v==='string'&&(challengeBosses as string[]).includes(v)
 const cleanRecord=(raw:unknown):ChallengeRecord|null=>{
  if(!raw||typeof raw!=='object')return null
@@ -93,23 +96,25 @@ const cleanRecord=(raw:unknown):ChallengeRecord|null=>{
  return {cleared:true,health,seconds:Math.round(seconds*10)/10,towers:Number.isFinite(towers)&&towers>=0?towers:0}
 }
 function cleanChallenges(raw:unknown):ChallengeSave|null {
- if(!raw||typeof raw!=='object'||(raw as ChallengeSave).version!==1)return null
+ if(!raw||typeof raw!=='object')return null
+ const version=(raw as {version?:unknown}).version
+ if(version!==1&&version!==2)return null
  const best:ChallengeSave['best']={};const source=(raw as ChallengeSave).best
  if(source&&typeof source==='object')for(const [boss,record] of Object.entries(source)){const r=cleanRecord(record);if(isBoss(boss)&&r)best[boss]=r}
- return {version:1,best}
+ return {version:2,best}
 }
 function combine(a:ChallengeRecord,b:ChallengeRecord):ChallengeRecord {
  const faster=a.seconds<=b.seconds?a:b
  return {cleared:a.cleared||b.cleared,health:Math.max(a.health,b.health),seconds:faster.seconds,towers:faster.towers}
 }
-/** Pure merge for account sync: per boss, cleared OR, best health, the faster time (with its tower count); a higher version wins outright. */
-export function mergeCarrotChallenges(a:ChallengeSave|null|undefined,b:ChallengeSave|null|undefined):ChallengeSave|null {
- const newer=newerVersion(a,b);if(newer)return newer as ChallengeSave
+/** Pure merge for account sync: per boss, cleared OR, best health, the faster time (with its tower count); v1 migrates to v2 and formats above v2 pass through. */
+export function mergeCarrotChallenges(a:unknown,b:unknown):ChallengeSave|null {
+ const newer=newerChallengeVersion(a,b);if(newer)return newer as ChallengeSave
  const x=cleanChallenges(a),y=cleanChallenges(b)
  if(!x)return y;if(!y)return x
  const best:ChallengeSave['best']={}
  for(const boss of challengeBosses){const p=x.best[boss],q=y.best[boss];if(p&&q)best[boss]=combine(p,q);else if(p||q)best[boss]=(p||q) as ChallengeRecord}
- return {version:1,best}
+ return {version:2,best}
 }
 
 const beats = (run: Best, best?: Best) => !best || run.ink < best.ink || (run.ink === best.ink && run.moves < best.moves)

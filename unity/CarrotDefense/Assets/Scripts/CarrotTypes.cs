@@ -7,6 +7,9 @@ namespace CarrotTD {
   public string id,name,role; public int unlock; public bool air; public string superName,superTrait;
   public int[] cost; public float[] damage,interval,range;
  }
+ [Serializable] public class EnemyDef {
+  public string id,name,trait; public float hp,speed,armor,shield; public int reward,intro; public bool air,mini;
+ }
  [Serializable] public class LevelDef {
   public int id,startingGold,waves; public string name,biome,boss;
   public Vector3[][] routes; public Vector3[] pads; public BlockerSeed[] blockers;
@@ -14,10 +17,10 @@ namespace CarrotTD {
  [Serializable] public class BlockerSeed {public int pad; public string kind;}
  [Serializable] public class TowerState {
   public int id,pad,tier,spent,mergedSpent; public string kind; public Vector3 position;
-  public float cooldown,slowFor,disabledFor,stunnedFor,lastShot,buff,builtAt; public Vector3 aim;
+  public float cooldown,slowFor,disabledFor,stunnedFor,lastShot,buff,builtAt,weakenUntil,weakenFactor=1,cleanseAt; public Vector3 aim;
  }
  [Serializable] public class EnemyState {
-  public int id,route,phase; public string kind,boss,ability;
+  public int id,route,phase,stage=1; public string kind,boss,ability,miniboss=""; public bool clone;
   public Vector3 position,direction;
   public float hp,maxHp,shield,maxShield,distance,routeLength,speed,hitAt,slowUntil,slowFactor,rushUntil,age;
   public float castRemaining,abilityRemaining,biteRemaining,deadFor;
