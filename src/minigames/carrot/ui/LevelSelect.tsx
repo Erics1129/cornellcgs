@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { CampaignSave, ChallengeBoss, ChallengeSave, GameDefinitions, LevelDefinition, RecordsSave } from '../types'
-import { BossPortrait, RouteDrawing, chapterArt, challengeArt, jacketArt, useImageAvailable } from '../art'
+import { BossPortrait, CreaturePortrait, RouteDrawing, chapterArt, challengeArt, jacketArt, useImageAvailable } from '../art'
+import { levelKinds, parseComposition, traitsOf, workOf } from '../waves'
+import type { EnemyDefinition } from '../types'
 import { bossOfLevel, challengeDifficulty, challengeTitles, challengeUnlocked, formatSeconds, lockCaption, par as challengePar, stars } from '../challenges'
 import { LevelCount } from '../progress'
 import { Grade, Medals, Pips, difficultyLabel } from './kit'
@@ -21,6 +23,22 @@ export function levelBand(l:LevelDefinition){
  if([8,12,16,20,24].includes(l.id))return 'EXPERT'
  return 'HARD'
 }
+/**
+ * The stage's "chart": one bar per wave, its height the wave's work (a guardian counts 8, a miniboss 4), like a rhythm game's note
+ * density graph. Waves with flyers carry a wing tick, guardian and miniboss waves their colour; then the creatures the stage sends.
+ */
+function StageChart({level,enemies,seen}:{level:LevelDefinition;enemies:EnemyDefinition[]|undefined;seen:string[]}){
+ const waves=(level.waveCompositions||[]).map(c=>{const parts=parseComposition(c);const t=parts.map(p=>traitsOf(p.kind,enemies));return {work:parts.reduce((s,p)=>s+p.n*workOf(p.kind,enemies),0),air:t.some(x=>x.air),boss:t.some(x=>x.boss),mini:t.some(x=>x.mini)}})
+ const max=Math.max(1,...waves.map(w=>w.work)),kinds=levelKinds(level).slice(0,12)
+ if(!waves.length)return null
+ return <div className="ct-chart">
+  <div className="ct-chart__bars" role="img" aria-label={`${waves.length} waves; flyers in waves ${waves.map((w,i)=>w.air?i+1:0).filter(Boolean).join(', ')||'none'}${waves.some(w=>w.boss)?`; the guardian arrives in wave ${waves.findIndex(w=>w.boss)+1}`:''}`}>
+   {waves.map((w,i)=><i key={i} className={`${w.boss?'is-boss':w.mini?'is-mini':''} ${w.air?'is-air':''}`} style={{height:`${Math.max(8,w.work/max*100)}%`}}/>)}
+  </div>
+  <div className="ct-chart__kinds" aria-label={`Creatures: ${kinds.map(k=>traitsOf(k,enemies).name).join(', ')}`}>{kinds.map(k=><span key={k} className={`ct-chart__kind ${seen.includes(k)?'':'is-new'}`} title={traitsOf(k,enemies).name}><CreaturePortrait kind={k} fallback/></span>)}</div>
+ </div>
+}
+
 export const bandTone=(band:string)=>({NORMAL:'normal',EASY:'normal',HARD:'hard',EXPERT:'expert',INSANE:'insane','????':'unknown'}[band]||'normal')
 
 type Props={definitions:GameDefinitions;save:CampaignSave;challenges:ChallengeSave;records:RecordsSave;current:number;preview:boolean;veteranAvailable:boolean;veteran:boolean;onVeteran:(on:boolean)=>void;onPlay:(id:number)=>void;onClose:()=>void;startChallenges?:boolean;reduced:boolean}
@@ -75,6 +93,7 @@ export function LevelSelect({definitions,save,challenges,records,current,preview
      <div><dt>Fastest</dt><dd>{boss&&best?formatSeconds(best.seconds):rec?.bestSeconds?formatSeconds(rec.bestSeconds):'–'}</dd></div>
      <div><dt>Chain</dt><dd>{rec?.bestStreak?`×${rec.bestStreak}`:'–'}</dd></div>
     </dl>
+    <StageChart level={level} enemies={definitions.enemies} seen={records.seen.creatures}/>
     {veteranAvailable&&!boss&&<label className="ct-switch"><input type="checkbox" checked={veteran} onChange={e=>onVeteran(e.target.checked)}/><span>Veteran</span><small>Tougher creatures, 60% refunds</small></label>}
     {open?<button className="ct-cta ct-jacket__play" onClick={()=>onPlay(level.id)} autoFocus>Play<Icon name="play"/></button>:<p className="ct-jacket__lock"><Icon name="lock"/>{boss?lockCaption[boss]||'Locked':`Clear stage ${String(level.id-1).padStart(2,'0')} to open`}</p>}
    </article>}
