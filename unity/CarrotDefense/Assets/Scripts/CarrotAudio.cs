@@ -77,7 +77,7 @@ namespace CarrotTD {
   AudioSource interfaceVoice;readonly List<Voice> voices=new List<Voice>();readonly List<AudioClip> authored=new List<AudioClip>();
   struct Pending{public float at,volume,pitch,gap;public string name,throttle;public AudioClip clip;public int priority;public Vector3? position;}readonly List<Pending> pending=new List<Pending>();
   readonly HashSet<string> loading=new HashSet<string>();float pendingFade=1.7f;bool unlocked,muted,paused;string desired="MusicExplore",playing="";float blend=1,fadeSeconds=2.2f;bool targetA=true;float soundClock;Vector3? eventPosition;
-  float musicPref=1,sfxPref=1,uiPref=1;
+  float musicPref=1,sfxPref=1,uiPref=1,routineYieldUntil;
   CarrotGame game;CarrotSfxBank bank;CarrotAmbience ambience;bool busInstalled;
   [Serializable] class VolumeDTO {public float music=1,sfx=1,ui=1;}
 
@@ -97,6 +97,11 @@ namespace CarrotTD {
    // Difficulty pass cues (procedural, no new recordings): blindness, uproot, tithe, the Super merge and the three challenge-boss arrivals.
    clips["LanternSnuff"]=Stinger("Lantern snuff",new[]{392f,311.13f,233.08f},1.2f,1);clips["RootSnap"]=Stinger("Root snap",new[]{110f,82.41f},.5f,0);clips["TitheJingle"]=Stinger("Tithe jingle",new[]{783.99f,987.77f,1174.66f},.8f,3);
    clips["SuperForge"]=Stinger("Super forge",new[]{196f,293.66f,392f,587.33f},1.4f,2);clips["TornadoArrival"]=Stinger("Giant Tornado arrival",new[]{146.83f,220f,293.66f},1.8f,2);clips["ZombieArrival"]=Stinger("Zombie arrival",new[]{82.41f,123.47f,155.56f},2.2f,0);clips["EyeballArrival"]=Stinger("Unknown Eyeball arrival",new[]{233.08f,349.23f,466.16f,622.25f},2.4f,1);
+   // Interface chirps (match src/minigames/carrot/uiAudio.ts).
+   clips["UiClick"]=Chirp("UI click",new[]{new[]{1200f,1800f,.03f,.002f,.06f,.12f,0}});
+   clips["UiOpen"]=Chirp("UI open",new[]{new[]{880f,990f,.04f,.002f,.08f,.1f,0},new[]{1320f,1480f,.04f,.002f,.11f,.1f,.055f}});
+   clips["UiClose"]=Chirp("UI close",new[]{new[]{1320f,1180f,.04f,.002f,.07f,.09f,0},new[]{880f,780f,.04f,.002f,.09f,.08f,.05f}});
+   clips["UiHover"]=Chirp("UI hover",new[]{new[]{2400f,2300f,.01f,.001f,.015f,.035f,0}});
    PrepareExpansionAudio();PreparePrismAudio();
    ambience=new CarrotAmbience(Source("Ambience"));
    Carrot_MusicMetaLoad(Application.streamingAssetsPath+"/Carrot/music-provenance.json");
@@ -164,9 +169,15 @@ namespace CarrotTD {
    at=at??eventPosition;
    if(throttle!=null&&minGap>0&&lastSound.TryGetValue(throttle,out float last)&&soundClock-last<minGap)return null;
    var voice=Allocate(clip,priority,creature);if(voice==null)return null;
-   float aggregate=0;foreach(var v in voices)if(v!=voice&&Busy(v))aggregate+=v.volume*Remaining(v);
+   // Headroom: each class competes only with its own class and the classes above it, so a crowd of routine fire can
+   // never squeeze a telegraph, a bite or a boss beat; the limiter catches the sum.
+   int floor=priority>=PSignature?PSignature:priority>=PKill?PKill:0;
+   float aggregate=0;foreach(var v in voices)if(v!=voice&&Busy(v)&&v.priority>=floor)aggregate+=v.volume*Remaining(v);
    float budget=priority>=PSignature?FoleyBudget:priority>=PKill?FoleyBudget*.8f:RoutineBudget;
-   volume=Mathf.Min(volume*SfxGain*sfxPref,Mathf.Max(0,budget-aggregate));
+   volume*=SfxGain*sfxPref;
+   // Routine fire steps back (-4 dB) for 400 ms under every threat or boss cue, so the important sound reads.
+   if(priority>=PBoss)routineYieldUntil=soundClock+.4f;else if(priority<=PRoutine&&soundClock<routineYieldUntil)volume*=.63f;
+   volume=Mathf.Min(volume,Mathf.Max(0,budget-aggregate));
    if(volume<.006f)return null;
    if(throttle!=null)lastSound[throttle]=soundClock;
    var s=voice.source;s.Stop();s.clip=clip;s.volume=Mathf.Clamp(volume,0,.9f);s.pitch=Mathf.Clamp(pitch,.5f,2f);
@@ -197,7 +208,13 @@ namespace CarrotTD {
   }
   void StopVoice(Voice v){if(v.source!=null)v.source.Stop();v.clip=null;v.end=0;v.owner=0;v.fadeTo=-1;}
   void TickVoices(){foreach(var v in voices){if(v.fadeTo<0||v.source==null)continue;v.source.volume=Mathf.MoveTowards(v.source.volume,v.fadeTo,Time.unscaledDeltaTime*8);if(v.source.volume<=.001f){StopVoice(v);}}}
-  public void UiSound(string kind){eventPosition=null;Unlock();if(muted||uiPref<=0)return;if(lastSound.TryGetValue("ui",out var last)&&soundClock-last<.045f)return;string key=kind=="open"?"BookOpen":kind=="close"?"Page":"ImpactSoft";if(!clips.TryGetValue(key,out var clip))return;if(clip.loadState!=AudioDataLoadState.Loaded){if(clip.loadState==AudioDataLoadState.Unloaded)clip.LoadAudioData();return;}lastSound["ui"]=soundClock;interfaceVoice.Stop();interfaceVoice.clip=clip;interfaceVoice.volume=(kind=="click"?.08f:.095f)*uiPref;interfaceVoice.pitch=kind=="close"?.95f:1.4f;interfaceVoice.Play();}
+  /// <summary>In-game interface sounds: the same synthesised chirps as the page's menus (uiAudio.ts), so a click sounds
+  /// identical before and after Unity loads. Scaled by the interface preference; never part of the foley pool.</summary>
+  public void UiSound(string kind){eventPosition=null;Unlock();if(muted||uiPref<=0)return;if(lastSound.TryGetValue("ui",out var last)&&soundClock-last<.045f)return;string key=kind=="open"?"UiOpen":kind=="close"?"UiClose":kind=="hover"?"UiHover":"UiClick";if(!clips.TryGetValue(key,out var clip))return;lastSound["ui"]=soundClock;interfaceVoice.Stop();interfaceVoice.clip=clip;interfaceVoice.volume=uiPref;interfaceVoice.pitch=1;interfaceVoice.Play();}
+  /// <summary>Sine chirps: each voice is {from Hz, to Hz, glide s, attack s, decay s, peak, delay s}, exponential glide and decay (uiAudio.ts recipes).</summary>
+  AudioClip Chirp(string name,float[][] parts){const int rate=24000;float length=0;foreach(var p in parts)length=Mathf.Max(length,p[6]+p[3]+p[4]+.02f);int n=Mathf.CeilToInt(length*rate);var pcm=new float[n];
+   foreach(var p in parts){double ph=0;int start=Mathf.RoundToInt(p[6]*rate);for(int i=start;i<n;i++){float t=(i-start)/(float)rate;float f=t>=p[2]?p[1]:p[0]*Mathf.Pow(p[1]/p[0],t/p[2]);ph+=2*Math.PI*f/rate;float env=t<p[3]?t/p[3]:p[5]*Mathf.Pow(.0001f/p[5],(t-p[3])/p[4]);if(t<p[3])env*=p[5];if(t>p[3]+p[4])break;pcm[i]+=(float)Math.Sin(ph)*env;}}
+   var clip=AudioClip.Create(name,n,1,rate,false);clip.SetData(pcm,0);authored.Add(clip);return clip;}
 
   // ---------------- creatures ----------------
   public void Creature(string kind,string action,Vector3 at){

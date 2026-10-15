@@ -128,6 +128,7 @@ namespace CarrotTD {
    try{
     AudioCheck(audio.voices.Count==VoiceCount&&audio.bank!=null&&audio.bank.Loaded==bankClips&&audio.bank.Missing==0,"component loads 20 voices and every bank clip ("+audio.bank.Loaded+"/"+bankClips+")");
     foreach(var name in SynthLayers)AudioCheck(audio.clips.ContainsKey(name),"component loads synth layer "+name);
+    foreach(var name in new[]{"UiClick","UiOpen","UiClose","UiHover"})AudioCheck(audio.clips.TryGetValue(name,out var ui)&&ui.length>.01f&&ui.length<.3f,"interface chirp "+name);
     audio.unlocked=true;
     var probe=AudioClip.Create("voice-probe",24000,1,24000,false);var other=AudioClip.Create("voice-other",24000,1,24000,false);
     // Debounce: the same clip twice inside 20 ms plays once; per-clip concurrency is capped at six.
@@ -144,6 +145,15 @@ namespace CarrotTD {
     // Creature voices are capped at five.
     int creatures=0;for(int i=0;i<8;i++){var c=AudioClip.Create("creature-"+i,24000,1,24000,false);if(audio.PlayClip(c,.05f,1,PKill,null,true,null,0)!=null)creatures++;}
     AudioCheck(creatures==CreatureVoiceLimit,"creature voices capped at five ("+creatures+")");
+    foreach(var v in audio.voices)audio.StopVoice(v);
+    // Hierarchy: a crowd of routine fire cannot squeeze a boss beat, and routine fire yields -4 dB under it.
+    for(int i=0;i<12;i++){var c=AudioClip.Create("crowd-"+i,48000,1,24000,false);audio.soundClock+=.001f;audio.PlayClip(c,.3f,1,PRoutine,null,false,null,0);}
+    var beat=AudioClip.Create("beat",24000,1,24000,false);var big=audio.PlayClip(beat,.25f,1,PBoss,null,false,null,0);
+    AudioCheck(big!=null&&big.volume>=.25f*SfxGain*.99f,"a boss beat keeps its full level over routine fire ("+(big!=null?big.volume:0)+")");
+    var after=AudioClip.Create("after",24000,1,24000,false);audio.soundClock+=.05f;foreach(var v in audio.voices)if(v!=big)audio.StopVoice(v);
+    var small=audio.PlayClip(after,.05f,1,PRoutine,null,false,null,0);AudioCheck(small!=null&&Mathf.Abs(small.volume-.05f*SfxGain*.63f)<.002f,"routine fire yields -4 dB under the beat");
+    audio.soundClock+=.5f;var later=AudioClip.Create("later",24000,1,24000,false);var normal=audio.PlayClip(later,.05f,1,PRoutine,null,false,null,0);
+    AudioCheck(normal!=null&&Mathf.Abs(normal.volume-.05f*SfxGain)<.002f,"and returns 400 ms later");
     foreach(var v in audio.voices)audio.StopVoice(v);
     // Heartbeat: only after a bite that leaves three hearts or fewer, for eight seconds, faster as hearts fall.
     game.phase="playing";cues.Clear();

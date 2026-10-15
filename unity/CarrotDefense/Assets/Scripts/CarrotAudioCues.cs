@@ -5,7 +5,7 @@ using UnityEngine;
 namespace CarrotTD {
  // Cue design: layered plant signatures, kills, bites, risers, judgements, deadlines, coins, heartbeat and ducks.
  public sealed partial class CarrotAudio {
-  public static readonly string[] SynthLayers={"SigSeed","SigMortar","SigFrost","SigPrism","SigStorm","SigThunder","SigBook","SigGravity","SigBlossom","SigStarfruit","SigBamboo","SigChili","SigLotus","SigMagnet","SigOrchid","SigMushroom","SigCactus","SigClockflower","SigDragonfruit","SigMoonflower","SigSeedB","SigFrostB","SigPrismB","SigStormB","SigStarfruitB","SigBambooB","SigCactusB","SigMagnetB","SigMushroomB","SubThump","ImpactBoom","KillPop","KillPopB","KillPopC","EliteBurst","SuperForge","PhaseBreak","BossFall","AlarmDeadline75","AlarmDeadline90","WaveHorn","Heartbeat","HealChime","CoinTick","CoinTickB","TornadoWind","ZombieGroan","EyeballShriek","HoldDown","HoldUp","IncomingAir","IncomingGround"};
+  public static readonly string[] SynthLayers={"SigSeed","SigMortar","SigFrost","SigPrism","SigStorm","SigThunder","SigBook","SigGravity","SigBlossom","SigStarfruit","SigBamboo","SigChili","SigLotus","SigMagnet","SigOrchid","SigMushroom","SigCactus","SigClockflower","SigDragonfruit","SigMoonflower","SigSeedB","SigFrostB","SigPrismB","SigStormB","SigStarfruitB","SigBambooB","SigCactusB","SigMagnetB","SigMushroomB","SubThump","ImpactBoom","KillPop","KillPopB","KillPopC","EliteBurst","SuperForge","PhaseBreak","BossFall","AlarmDeadline75","AlarmDeadline90","Heartbeat","HealChime","CoinTick","CoinTickB","TornadoWind","ZombieGroan","EyeballShriek","HoldDown","HoldUp","IncomingAir","IncomingGround"};
   // Plant family signature: a recorded transient (bank or clip) under a synthesised body/tail.
   struct Sig {public string bank,clip,body;public float tp,tv,bp,bv,gap;}
   static Sig S(string bank,float tp,float tv,string body,float bv,float gap,string clip=null,float bp=1){return new Sig{bank=bank,clip=clip,tp=tp,tv=tv,body=body,bp=bp,bv=bv,gap=gap};}
@@ -283,11 +283,12 @@ namespace CarrotTD {
    if(health>0&&health<=3){heartbeatHealth=health;heartbeatBpm=health>=3?72:health==2?84:96;if(heartbeatUntil<=soundClock)nextBeat=soundClock+.35f;heartbeatUntil=soundClock+8;}
   }
   void WaveStart(CarrotEvent e){
-   // Horn and drum on the playing track's tonic when its key is known; otherwise the unpitched drum alone (a wrong-key
-   // horn over an orchestral score sounds worse than none). Either plays at once, in the frame of the wave event.
+   // A war drum and sub on every wave; over a track with a confident key, also an orchestral call (root, fifth, octave
+   // from the Stinger palette) on its tonic. A wrong-key call over the score would sound worse than none, so an
+   // unconfident key gets the drum alone. Everything plays at once, in the frame of the wave event.
+   Play("IncomingGround",.2f,.85f,"wavedrum",1,false,PBoss,null);Play("SubThump",.13f,.75f,"wavesub",1,false,PBoss,null);
    int key=Carrot_MusicKey();
-   if(key>=0)Play("WaveHorn",.22f,Mathf.Pow(2,KeyShift(key)/12f),"wavehorn",1,false,PBoss,null);
-   else{Play("IncomingGround",.2f,.85f,"wavehorn",1,false,PBoss,null);Play("SubThump",.13f,.75f,"wavesub",1,false,PBoss,null);}
+   if(key>=0){string id="wave:"+key;if(!judgementCache.TryGetValue(id,out var call)){var n=JudgementNotes("clear",key);call=Stinger("Wave call "+key,new[]{n[0]*.5f,n[0],n[1]},1.2f,0);judgementCache[id]=call;}PlayClip(call,.2f,1,PBoss,null,false,"wavecall",1);}
    Cue("wave",e.value);
   }
   void PhaseBreakSound(CarrotEvent e){

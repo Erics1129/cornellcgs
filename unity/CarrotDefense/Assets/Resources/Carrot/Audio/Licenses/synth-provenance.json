@@ -3,7 +3,7 @@
  "sampleRate": 24000,
  "format": "PCM 16-bit mono WAV, TPDF dither, peak -1 dBFS, 25 Hz one-pole high-pass",
  "license": "Self-made procedural audio (no samples, no third-party code); dedicated CC0 by the project",
- "totalBytes": 1182786,
+ "totalBytes": 1118312,
  "files": [
   {
    "resource": "Carrot/Audio/Synth/SigSeed",
@@ -437,20 +437,6 @@
    "rmsDbfs": -12,
    "bytes": 34228,
    "sha256": "03a133eb0fdf6a16c67f194ef412ad01279f81124345f2efe947e107539a14c9",
-   "license": "Self-made (procedural), CC0 dedication by the project"
-  },
-  {
-   "resource": "Carrot/Audio/Synth/WaveHorn",
-   "file": "Synth/WaveHorn.wav",
-   "generator": "synth_carrot_sfx.mjs v1",
-   "seed": 405,
-   "parameters": "wave start: brass horn A3->E4 (additive saw, formant LP 1.8 kHz) + low tom (110->70 Hz) + noise snare, room",
-   "sampleRate": 24000,
-   "seconds": 1.342,
-   "peakDbfs": -1,
-   "rmsDbfs": -8.7,
-   "bytes": 64474,
-   "sha256": "62cc6726b6d9955290d75f848d4126447e15ab74c2b3fe51e3075aa4f1746b64",
    "license": "Self-made (procedural), CC0 dedication by the project"
   },
   {
