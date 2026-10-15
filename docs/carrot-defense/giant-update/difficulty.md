@@ -37,12 +37,15 @@ the machine-readable record is [difficulty-bands.json](difficulty-bands.json) (c
 policy-0 replay digest over 22,421 ticks (`1566501f7e139bfe`, hashing the discrete state each tick). Raw float
 bits differ by an ulp (Unity's Mono JIT on ARM64 fuses multiply-add, .NET 6 rounds twice), which very rarely moves a
 discrete decision: the full Run differs by 57 assertions (4,435,962 Unity, 4,436,019 standalone) and two campaign
-replays end 0.2-0.7 s apart with identical outcomes. Bands are therefore statistical, which is how they are read.
+replays end 0.2-0.7 s apart with identical outcomes. Run by run, Unity's directional band fallback and the standalone
+build agree on 493 of 495 bot outcomes (489 identical in outcome, hearts and wave; the two flips are knife-edge Tornado
+runs). Bands are therefore statistical, which is how they are read.
 
 ## Pre-registration (bots-v1)
 
 Registered in commit 3f0debd (`CarrotBotTests.cs` sha256 prefix `36cc9b288c5d3419`) before any game value was retuned.
-Later commits only added job arguments to `BandJobs` (`dial=`, `mode=` and `mute=`); every
+Later commits only added job arguments to `BandJobs` (`dial=`, `mode=` and `mute=`) and print its lines through
+`Debug.Log`; every
 bot's decisions are unchanged (`git diff 3f0debd HEAD -- CarrotBotTests.cs`), current prefix `93131726869c4a1c`.
 
 | Bot | Model | Parameters |
