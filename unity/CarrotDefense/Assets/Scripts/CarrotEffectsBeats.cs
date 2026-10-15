@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.Rendering;
 
 namespace CarrotTD {
  /// <summary>
@@ -59,6 +60,8 @@ namespace CarrotTD {
    Sparks(top,N(34),1.8f,3.8f,.85f,new Color(1,.88f,.45f),Vector3.up,.9f,.13f);Debris(top,N(22),FxSheet.Petal,.09f,.15f,.8f,2.2f,1.3f,new Color(1,.8f,.9f),320);
    Motes(p+Vector3.up*.5f,N(24),.16f,1.3f,new Color(super.r,super.g,super.b,.85f),.6f,Vector3.up*.6f,FxSheet.GlowSoft,.5f);
    Disc(p,.4f,1.6f,.45f,new Color(super.r,super.g,super.b,.8f),2);LightFx(top,7f,3.4f,.5f,new Color(1,.85f,.75f),.02f);
+   // A pillar of light from the plinth to the sky: the moment reads from anywhere on the board.
+   BoltFx(p+Vector3.up*.1f,p+Vector3.up*7.5f,.55f,.6f,new Color(super.r,super.g,super.b,.75f),0,0,true,0,1.8f);BoltFx(p+Vector3.up*.1f,p+Vector3.up*7.5f,.16f,.45f,new Color(1,1,1,.95f),0,0,true,0,2.4f);
    Loop(1f,.25f,Op.PulseRing,p,Vector3.zero,Hot(new Color(super.r,super.g,super.b,.7f),1.5f),.95f);
    CameraImpulse?.Invoke(p,.25f,3);FovPunch?.Invoke(2);HitStop?.Invoke(.08f,1,0);
   }
@@ -102,6 +105,24 @@ namespace CarrotTD {
    return new Vector3(.2104542553f*l+.7936177850f*m-.0040720468f*s,1.9779984951f*l-2.4285922050f*m+.4505937099f*s,.0259040371f*l+.7827717662f*m-.8086757660f*s);}
   static Color FromOkLab(Vector3 lab,float alpha){float l=lab.x+.3963377774f*lab.y+.2158037573f*lab.z,m=lab.x-.1055613458f*lab.y-.0638541728f*lab.z,s=lab.x-.0894841775f*lab.y-1.2914855480f*lab.z;l*=l*l;m*=m*m;s*=s*s;
    return new Color(ToSrgb(4.0767416621f*l-3.3077115913f*m+.2309699292f*s),ToSrgb(-1.2684380046f*l+2.6097574011f*m-.3413193965f*s),ToSrgb(-.0041960863f*l-.7034186147f*m+1.7076147010f*s),alpha);}
+  // ---- atmosphere: drifting low fog cards (High and Medium) ----------------------------------------------------------------------
+  ParticleSystem fogCards;bool fogReady;
+  /// <summary>A few very large, very faint lit puffs drifting low over the board in the night and cold biomes (marsh mist, frost
+  /// drift, the zombie and eyeball arenas, the portal void): depth without a full-screen pass. Off on Low (overdraw on phones).</summary>
+  void FogCards(string biome){
+   if(fogCards==null){var go=new GameObject("Fog cards");go.transform.SetParent(transform,false);fogCards=go.AddComponent<ParticleSystem>();fogCards.Stop(true,ParticleSystemStopBehavior.StopEmittingAndClear);var r=go.GetComponent<ParticleSystemRenderer>();r.sharedMaterial=pool.alphaPuff;r.shadowCastingMode=ShadowCastingMode.Off;r.receiveShadows=false;r.sortMode=ParticleSystemSortMode.Distance;var m=fogCards.main;m.playOnAwake=false;m.loop=true;m.simulationSpace=ParticleSystemSimulationSpace.World;var sh=fogCards.shape;sh.enabled=true;sh.shapeType=ParticleSystemShapeType.Box;}
+   fogCards.Stop(true,ParticleSystemStopBehavior.StopEmittingAndClear);fogReady=false;
+   bool night=biome=="marsh"||biome=="portal"||biome=="arena"&&(EntranceBossHint=="zombie"||EntranceBossHint=="eyeball"),cold=biome=="frost";
+   if(!CarrotQuality.Rich||!(night||cold)){fogCards.gameObject.SetActive(false);return;}
+   fogCards.gameObject.SetActive(true);var main=fogCards.main;int count=CarrotQuality.High?12:8;main.maxParticles=count;main.startLifetime=26;main.startSize=new ParticleSystem.MinMaxCurve(4.5f,7.5f);main.startSpeed=0;main.startRotation=new ParticleSystem.MinMaxCurve(0,6.28f);
+   Color c=biome=="marsh"?new Color(.55f,.7f,.68f,.09f):cold?new Color(.9f,.94f,1,.08f):biome=="portal"?new Color(.45f,.55f,.85f,.08f):new Color(.5f,.62f,.55f,.08f);main.startColor=c;
+   var em=fogCards.emission;em.enabled=true;em.rateOverTime=count/26f;var shape=fogCards.shape;shape.position=new Vector3(0,.55f,0);shape.scale=new Vector3(20,.4f,15);
+   var vel=fogCards.velocityOverLifetime;vel.enabled=true;vel.space=ParticleSystemSimulationSpace.World;vel.x=.12f;vel.y=0;vel.z=.04f;
+   var col=fogCards.colorOverLifetime;col.enabled=true;var g=new Gradient();g.SetKeys(new[]{new GradientColorKey(Color.white,0),new GradientColorKey(Color.white,1)},new[]{new GradientAlphaKey(0,0),new GradientAlphaKey(1,.25f),new GradientAlphaKey(1,.75f),new GradientAlphaKey(0,1)});col.color=g;
+   fogCards.Simulate(20,true,true,false);fogReady=true;
+  }
+  /// <summary>Set by the view before Ambient: the level's boss id (picks the arena fog).</summary>
+  public string EntranceBossHint="";
   bool RunBeat(Op op,Vector3 a,Vector3 b,Color c,float f,int i,float t){
    switch(op){case Op.SuperCore:SuperCore(a,c);return true;default:return false;}
   }
