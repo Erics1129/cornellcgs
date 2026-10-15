@@ -46,7 +46,7 @@ runs). Bands are therefore statistical, which is how they are read.
 Registered in commit 3f0debd (`CarrotBotTests.cs` sha256 prefix `36cc9b288c5d3419`) before any game value was retuned.
 Later commits only added job arguments to `BandJobs` (`dial=`, `mode=` and `mute=`) and print its lines through
 `Debug.Log`; every
-bot's decisions are unchanged (`git diff 3f0debd HEAD -- CarrotBotTests.cs`), current prefix `93131726869c4a1c`.
+bot's decisions are unchanged (`git diff 3f0debd HEAD -- CarrotBotTests.cs`), current prefix `dd8d76478c15707c`.
 
 | Bot | Model | Parameters |
 |---|---|---|
