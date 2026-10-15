@@ -24,7 +24,14 @@ try {
     const m = /route=([0-9.,;-]+)/.exec(dump), g = /ground=([0-9.,;-]+)/.exec(dump), f = /fxIdleVisible=(\d+)/.exec(dump)
     if (m && g) { const pts = s => s.split(';').filter(Boolean).map(p => p.split(',').map(Number)).map(([x, y]) => [x * L.w, (1 - y) * L.h]).filter(([x, y]) => x > 4 && y > 4 && x < L.w - 4 && y < L.h - 4); const a = H.meanIn(L, pts(m[1]), 2), b = H.meanIn(L, pts(g[1]), 2); pathRatio = Math.max(a, b) > 0 ? (Math.max(a, b) + .05) / (Math.min(a, b) + .05) : null }
     if (f) fxIdle = Number(f[1])
-    const row = { level: id, mean: +L.mean.toFixed(4), pathRatio: pathRatio && +pathRatio.toFixed(2), fxIdle }
+    const dc = /decorClearance=([0-9.-]+)/.exec(dump)
+    // Water mask (marsh ponds): share of near-white pixels (relative luminance > 0.75) inside the projected pond outlines.
+    let waterWhite = null; const pm = /ponds=(\S+)/.exec(dump)
+    if (pm) { const polys = pm[1].split('|').filter(Boolean).map(poly => poly.split(';').filter(Boolean).map(q => q.split(',').map(Number)).map(([x, y]) => [x * L.w, (1 - y) * L.h]))
+      const inside = (pt, poly) => { let c = false; for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) { const [xi, yi] = poly[i], [xj, yj] = poly[j]; if ((yi > pt[1]) !== (yj > pt[1]) && pt[0] < (xj - xi) * (pt[1] - yi) / (yj - yi) + xi) c = !c } return c }
+      let n = 0, white = 0; for (const poly of polys) { const xs = poly.map(p => p[0]), ys = poly.map(p => p[1]); for (let y = Math.max(0, Math.floor(Math.min(...ys))); y < Math.min(L.h, Math.ceil(Math.max(...ys))); y += 2) for (let x = Math.max(0, Math.floor(Math.min(...xs))); x < Math.min(L.w, Math.ceil(Math.max(...xs))); x += 2) if (inside([x, y], poly)) { n++; if (L.Y[y * L.w + x] > .75) white++ } }
+      waterWhite = n ? +(white / n).toFixed(4) : null }
+    const row = { level: id, mean: +L.mean.toFixed(4), pathRatio: pathRatio && +pathRatio.toFixed(2), fxIdle, decorClearance: dc ? Number(dc[1]) : null, waterWhite }
     if (combat > 0) { await H.hideHud(page, false); const r = await H.playBot(ctx, id, { speed: 2, maxMinutes: combat / 60, until: s => s.wave >= 3 }); await H.hideHud(page, true); await H.shot(ctx, `L${String(id).padStart(2, '0')}-combat`, { canvas: true }); row.combat = r.phase + ' w' + r.wave }
     await H.hideHud(page, false)
     rows.push(row); console.log(JSON.stringify(row))

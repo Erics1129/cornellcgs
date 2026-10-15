@@ -47,7 +47,11 @@ namespace CarrotTD {
    var asset=GraphicsSettings.currentRenderPipeline as UniversalRenderPipelineAsset;if(asset!=null)asset.shadowDistance=Mathf.Clamp(fitDistance+(PrismStage?26:14),24,PrismStage?80:44);
    if(grade!=null&&grade.profile!=null&&grade.profile.TryGet<ColorAdjustments>(out var adjust)){
     var shared=grade.sharedProfile!=null&&grade.sharedProfile.TryGet<ColorAdjustments>(out var baseAdjust)?baseAdjust.postExposure.value:adjust.postExposure.value;
-    adjust.postExposure.value=shared+LevelExposure()+debugExposure;adjust.postExposure.overrideState=true;
+    // Tier parity: High's canopy cookie dapples about a third of the key away in garden, marsh and orchard; without it (Medium, Low)
+    // the same exposure read 1.3-1.5x brighter. The portal level loses its height fog on Low and needs the lift back.
+    float tierEv=0;string b=game.level.biome;bool cookieBiome=b=="garden"||b=="marsh"||b=="orchard";
+    if(cookieBiome&&sun.cookie==null)tierEv=b=="orchard"?-.25f:-.5f;if(!CarrotQuality.Rich&&game.level.boss=="portal")tierEv+=.65f;
+    adjust.postExposure.value=shared+LevelExposure()+tierEv+debugExposure;adjust.postExposure.overrideState=true;
    }
    if(grade!=null&&grade.profile!=null&&grade.profile.TryGet<Bloom>(out var bloom)){bloom.clamp.value=4;bloom.clamp.overrideState=true;if(biome=="marsh"){bloom.threshold.value=1.1f;bloom.threshold.overrideState=true;}}
   }
