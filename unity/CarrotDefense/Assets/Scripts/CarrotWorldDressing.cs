@@ -90,9 +90,9 @@ namespace CarrotTD {
   Material GateSurface(Color accent){string key=ColorUtility.ToHtmlStringRGB(accent);if(gateSurfaces.TryGetValue(key,out var m)&&m!=null)return m;var shader=Shader.Find("Carrot/PortalAperture");if(shader==null)shader=Shader.Find("Carrot/FxAdditive");m=new Material(shader){name="Spawn gate "+key};m.SetColor("_Color",new Color(accent.r,accent.g,accent.b,.78f));m.SetColor("_DepthColor",new Color(accent.r*.05f,accent.g*.05f,accent.b*.07f,1));gateSurfaces[key]=m;materials["gate-"+key]=m;return m;}
 
   // ---- route pulses ---------------------------------------------------------------------------------------------------------
-  sealed class RoutePulse {public LineRenderer line;public Vector3[] points;public float[] distance;public float length,age=-1;public bool air;}
+  sealed class RoutePulse {public LineRenderer line;public Vector3[] points;public float[] distance;public float length,age=-1;public bool air;public int frame=-1;}
   readonly List<RoutePulse> routePulses=new List<RoutePulse>();Material pulseSolid,pulseDashed;Texture2D dashTexture;bool sawWaveIncoming;
-  const float PulseTravel=1.6f,PulseFade=.4f,PulseTail=2.4f;
+  const float PulseTravel=1.6f,PulseFade=.4f,PulseTail=2.4f;readonly Gradient pulseGradient=new Gradient();readonly GradientColorKey[] pulseColors=new GradientColorKey[2];readonly GradientAlphaKey[] pulseAlphas=new GradientAlphaKey[3];
   void BuildRoutePulses(){
    foreach(var r in routePulses)if(r.line!=null)Destroy(r.line.gameObject);routePulses.Clear();sawWaveIncoming=false;
    if(pulseSolid==null){pulseSolid=new Material(Shader.Find("Carrot/FxAdditive"));pulseSolid.SetFloat("_UseAtlas",0);pulseSolid.SetFloat("_Soft",0);pulseSolid.SetFloat("_ZTest",8);materials["route-pulse"]=pulseSolid;
@@ -106,7 +106,7 @@ namespace CarrotTD {
   }
   /// <summary>Starts a pulse on one route (or every route when route &lt; 0): threat pink for both kinds, with a shape twin, dashed
   /// for air and solid for ground. Reduced motion shows the whole lane at once and fades it instead of travelling.</summary>
-  void StartRoutePulse(int route,bool air){for(int i=0;i<routePulses.Count;i++){if(route>=0&&i!=route%Mathf.Max(1,routePulses.Count))continue;var r=routePulses[i];r.age=0;r.air=air;r.line.sharedMaterial=air?pulseDashed:pulseSolid;r.line.enabled=true;CarrotQa.Count("routePulse",1);}}
+  void StartRoutePulse(int route,bool air){for(int i=0;i<routePulses.Count;i++){if(route>=0&&i!=route%Mathf.Max(1,routePulses.Count))continue;var r=routePulses[i];bool same=r.frame==Time.frameCount;r.air=air||same&&r.air;r.frame=Time.frameCount;r.age=0;r.line.sharedMaterial=r.air?pulseDashed:pulseSolid;r.line.enabled=true;if(!same)CarrotQa.Count("routePulse",1);}}
   void UpdateRoutePulses(float raw){
    foreach(var r in routePulses){if(r.age<0)continue;r.age+=raw;float life=reducedMotion?1.2f:PulseTravel+PulseFade;if(r.age>=life){r.age=-1;r.line.enabled=false;continue;}
     float head,tail,alpha;
@@ -115,7 +115,7 @@ namespace CarrotTD {
     int count=0;var line=r.line;int max=r.points.Length;if(line.positionCount<max)line.positionCount=max;
     for(int i=0;i<max;i++){float d=r.distance[i];if(d<tail||d>head)continue;line.SetPosition(count++,r.points[i]);}
     if(count<2){line.positionCount=0;continue;}line.positionCount=count;
-    Color c=CarrotEffects.Threat;var g=new Gradient();g.SetKeys(new[]{new GradientColorKey(c,0),new GradientColorKey(Color.Lerp(c,Color.white,.35f),1)},new[]{new GradientAlphaKey(0,0),new GradientAlphaKey(.85f*alpha,.75f),new GradientAlphaKey(alpha,1)});line.colorGradient=g;
+    Color c=CarrotEffects.Threat;pulseColors[0]=new GradientColorKey(c,0);pulseColors[1]=new GradientColorKey(Color.Lerp(c,Color.white,.35f),1);pulseAlphas[0]=new GradientAlphaKey(0,0);pulseAlphas[1]=new GradientAlphaKey(.85f*alpha,.75f);pulseAlphas[2]=new GradientAlphaKey(alpha,1);pulseGradient.SetKeys(pulseColors,pulseAlphas);line.colorGradient=pulseGradient;
     properties.Clear();properties.SetColor("_Color",new Color(1.6f,1.6f,1.6f,1));properties.SetVector("_MainTex_ST",new Vector4(1,1,-r.age*2,0));line.SetPropertyBlock(properties);}
   }
 

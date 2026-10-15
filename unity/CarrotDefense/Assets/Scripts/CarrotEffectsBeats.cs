@@ -85,8 +85,11 @@ namespace CarrotTD {
    if(allyLab==null){allyLab=new Vector3[AllyKinds.Length];for(int i=0;i<AllyKinds.Length;i++)allyLab[i]=OkLab(ToneRaw(AllyKinds[i]));}
    // Step directly away from the nearest tower colour (keeps the ability's own hue family); toward the threat pink only for an exact twin.
    Vector3 lab=OkLab(c);Color result=c;
-   for(int it=0;it<24&&MinAllyDistance(lab)<.095f;it++){Vector3 near=allyLab[0];float best=9;foreach(var a in allyLab){float d=Vector3.Distance(a,lab);if(d<best){best=d;near=a;}}Vector3 dir=lab-near;if(dir.sqrMagnitude<1e-6f)dir=OkLab(Threat)-lab;lab+=dir.normalized*.012f;lab.x=Mathf.Clamp(lab.x,.05f,.98f);}
-   if(lab!=OkLab(c))result=FromOkLab(lab,c.a);
+   // Repelled by every tower colour closer than the margin at once (so it cannot slide into a neighbour); if boxed in, toward the threat pink.
+   Vector3 start=lab,threat=OkLab(Threat);
+   for(int it=0;it<120&&MinAllyDistance(lab)<.095f;it++){Vector3 push=Vector3.zero;foreach(var a in allyLab){Vector3 d=lab-a;float m=d.magnitude;if(m<.095f)push+=(m>1e-5f?d/m:Vector3.up)*(.095f-m+.002f);}
+    Vector3 step=push.sqrMagnitude>1e-8f?push.normalized:(threat-lab).normalized;if(it>80)step=(step+(threat-lab).normalized).normalized;lab+=step*.006f;lab.x=Mathf.Clamp(lab.x,.08f,.96f);}
+   if(lab!=start)result=FromOkLab(lab,c.a);
    separated[kind]=result;return result;
   }
   static float MinAllyDistance(Vector3 lab){float m=9;foreach(var a in allyLab)m=Mathf.Min(m,Vector3.Distance(a,lab));return m;}

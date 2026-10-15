@@ -31,7 +31,7 @@ const INIT = `(() => {
  if (P) for (const name of ['drawElements', 'drawArrays', 'drawElementsInstanced', 'drawArraysInstanced', 'drawRangeElements']) { const f = P[name]; if (f) P[name] = function () { draws++; const c = name.startsWith('drawArrays') ? arguments[2] : name === 'drawRangeElements' ? arguments[3] : arguments[1]; tris += (c || 0) / 3 * (name.includes('Instanced') ? (arguments[name === 'drawArraysInstanced' ? 3 : 4] || 1) : 1); return f.apply(this, arguments); }; }
  const tick = now => { if (prev) { W.__frames.push([Math.round((now - prev) * 100) / 100, draws, Math.round(now), Math.round(tris)]); if (W.__frames.length > 60000) W.__frames.splice(0, 20000); } prev = now; draws = 0; tris = 0; requestAnimationFrame(tick); };
  requestAnimationFrame(tick);
- for (const k of ['log', 'warn', 'error']) { const o = console[k]; console[k] = function () { try { const m = Array.from(arguments).map(String).join(' '); if (/Carrot|CARROT|error|Error|WebGL|exception/i.test(m)) { W.__log.push([Math.round(performance.now()), k, /CARROT_QA_(DUMP|FX|CAMERA)/.test(m) ? m : m.slice(0, 600)]); if (W.__log.length > 4000) W.__log.splice(0, 1500); } } catch (e) {} return o.apply(this, arguments); }; }
+ for (const k of ['log', 'warn', 'error']) { const o = console[k]; console[k] = function () { try { const m = Array.from(arguments).map(String).join(' '); if (/Carrot|CARROT|error|Error|WebGL|exception/i.test(m)) { W.__log.push([Math.round(performance.now()), k, /CARROT_QA_(DUMP|FX|CAMERA|RENDER)/.test(m) ? m : m.slice(0, 600)]); if (W.__log.length > 4000) W.__log.splice(0, 1500); } } catch (e) {} return o.apply(this, arguments); }; }
  W.addEventListener('error', e => W.__log.push([Math.round(performance.now()), 'pageerror', String(e.message)]));
 })();`
 

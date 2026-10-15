@@ -4,6 +4,7 @@ using System.Text;
 using UnityEngine;
 using Unity.Mathematics;
 using UnityEngine.Splines;
+using UnityEngine.Rendering;
 
 namespace CarrotTD {
  /// <summary>
@@ -43,6 +44,20 @@ namespace CarrotTD {
    sb.Append(" zoom=").Append(zoom.ToString("F2",CultureInfo.InvariantCulture)).Append(" screen=").Append(Screen.width).Append('x').Append(Screen.height);
    Debug.Log(sb.ToString());
   }
+  /// <summary>CARROT_QA_RENDER: visible renderers by group (submesh draws, shadow casters), to attribute the draw budget.</summary>
+  public void QaRenderCensus(string unused){
+   var groups=new System.Collections.Generic.Dictionary<string,int[]>();
+   foreach(var r in FindObjectsByType<Renderer>(FindObjectsSortMode.None)){if(!r.enabled||!r.gameObject.activeInHierarchy||!r.isVisible)continue;
+    string g=r.name;var t=r.transform;while(t.parent!=null&&t.parent!=transform&&t.parent!=world){t=t.parent;}g=t.name;if(t.parent==world&&(g.EndsWith(" actor")))g="actor:"+g;
+    if(r is ParticleSystemRenderer psr){var ps=r.GetComponent<ParticleSystem>();if(ps!=null&&ps.particleCount==0)continue;g="particles:"+r.name;}
+    int subs=r is MeshRenderer mr&&r.GetComponent<MeshFilter>()!=null&&r.GetComponent<MeshFilter>().sharedMesh!=null?r.GetComponent<MeshFilter>().sharedMesh.subMeshCount:r is SkinnedMeshRenderer sk&&sk.sharedMesh!=null?sk.sharedMesh.subMeshCount:1;
+    if(!groups.TryGetValue(g,out var v)){v=new int[2];groups[g]=v;}v[0]+=subs;if(r.shadowCastingMode!=ShadowCastingMode.Off)v[1]+=subs;}
+   var sb=new StringBuilder(2048);sb.Append("CARROT_QA_RENDER level=").Append(game.level.id).Append(" tier=").Append(CarrotQuality.Name(CarrotQuality.Tier));int total=0,casters=0;
+   var keys=new System.Collections.Generic.List<string>(groups.Keys);keys.Sort((a,b)=>groups[b][0].CompareTo(groups[a][0]));
+   foreach(var k in keys){total+=groups[k][0];casters+=groups[k][1];}sb.Append(" draws=").Append(total).Append(" casters=").Append(casters).Append(" groups=");
+   foreach(var k in keys)sb.Append(k.Replace(' ','_')).Append(':').Append(groups[k][0]).Append('/').Append(groups[k][1]).Append(',');
+   Debug.Log(sb.ToString());
+  }
   public void QaDump(string what){
    if(what=="reset"){CarrotQa.Reset();CarrotFlashGovernor.Reset();}
    if(game==null||game.level==null||GameCamera==null)return;var inv=CultureInfo.InvariantCulture;var sb=new StringBuilder(4096);
@@ -58,6 +73,7 @@ namespace CarrotTD {
    if(game.level.biome=="marsh"){sb.Append(" ponds=");foreach(var p in PondCenters()){for(int i=0;i<16;i++){float a=i*Mathf.PI/8;Vector3 v=GameCamera.WorldToViewportPoint(p+new Vector3(Mathf.Cos(a)*1.35f,0,Mathf.Sin(a)*1.35f));sb.Append(v.x.ToString("F4",inv)).Append(',').Append(v.y.ToString("F4",inv)).Append(i==15?"|":";");}}}
    sb.Append(" fxIdleVisible=").Append(effects!=null?effects.IdleVisible(warmRoot):-1).Append(" decorClearance=").Append(DecorClearance().ToString("F2",inv));
    sb.Append(" flashGranted=").Append(CarrotFlashGovernor.Granted).Append(" flashCoalesced=").Append(CarrotFlashGovernor.Coalesced).Append(" timeScaleApi=").Append(SimulationTimeScaleAvailable?1:0);
+   sb.Append(" sections=");int frames=Mathf.Max(1,CarrotQa.SectionFrames);foreach(var kv in CarrotQa.sectionTotals)sb.Append(kv.Key).Append(':').Append((kv.Value/frames).ToString("F3",inv)).Append(',');
    sb.Append(" counts=");foreach(var kv in CarrotQa.Counts)sb.Append(kv.Key).Append(':').Append(kv.Value.ToString("0.##",inv)).Append(',');
    Debug.Log(sb.ToString());
   }

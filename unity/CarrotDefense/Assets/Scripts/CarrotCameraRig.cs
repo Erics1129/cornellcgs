@@ -33,6 +33,12 @@ namespace CarrotTD {
    try{timeScaleMethod.Invoke(game,new object[]{Mathf.Clamp01(scale),Mathf.Max(0,realSeconds),reason});CarrotQa.Count("timeScale."+reason,1);return true;}catch(Exception){return false;}
   }
 
+  // CarrotGame.SetCap(cap, on) (balance contract v2): the snapshot's caps[] tells the page what this build draws itself.
+  static MethodInfo setCapMethod;static bool setCapResolved;
+  void AdvertiseCap(string cap,bool on){
+   if(!setCapResolved){setCapResolved=true;try{setCapMethod=typeof(CarrotGame).GetMethod("SetCap",BindingFlags.Public|BindingFlags.Instance,null,new[]{typeof(string),typeof(bool)},null);}catch(Exception){setCapMethod=null;}}
+   if(setCapMethod==null||game==null)return;try{setCapMethod.Invoke(game,new object[]{cap,on});}catch(Exception){}
+  }
   /// <summary>Hit-stop and slow motion from the effects recipes. Only importance 8+ beats reach here (the Super forge, a boss phase
   /// break, a boss death, the boss entrance slow-motion); two stops are at least 2 s apart, and reduced motion removes them.</summary>
   void BeatTime(float stop,float scale,float slow){
@@ -161,6 +167,13 @@ namespace CarrotTD {
   [System.Diagnostics.Conditional("UNITY_EDITOR"),System.Diagnostics.Conditional("CARROT_QA")]
   public static void Sample(string key,float ms){if(!Samples.TryGetValue(key,out var list)){list=new System.Collections.Generic.List<float>(256);Samples[key]=list;}if(list.Count>=4096)list.RemoveAt(0);list.Add(ms);}
   [System.Diagnostics.Conditional("UNITY_EDITOR"),System.Diagnostics.Conditional("CARROT_QA")]
-  public static void Reset(){Counts.Clear();Samples.Clear();}
+  public static void Reset(){Counts.Clear();Samples.Clear();sectionTotals.Clear();sectionFrames=0;}
+  // Per-frame section timing: FrameStart() then Section(name) after each block; QaDump reports the mean ms per frame of each.
+  static long sectionMark;static int sectionFrames;public static readonly System.Collections.Generic.Dictionary<string,double> sectionTotals=new System.Collections.Generic.Dictionary<string,double>();
+  public static int SectionFrames=>sectionFrames;
+  [System.Diagnostics.Conditional("UNITY_EDITOR"),System.Diagnostics.Conditional("CARROT_QA")]
+  public static void FrameStart(){sectionMark=System.Diagnostics.Stopwatch.GetTimestamp();sectionFrames++;}
+  [System.Diagnostics.Conditional("UNITY_EDITOR"),System.Diagnostics.Conditional("CARROT_QA")]
+  public static void Section(string name){long now=System.Diagnostics.Stopwatch.GetTimestamp();double ms=(now-sectionMark)*1000.0/System.Diagnostics.Stopwatch.Frequency;sectionMark=now;sectionTotals.TryGetValue(name,out var t);sectionTotals[name]=t+ms;}
  }
 }
