@@ -241,9 +241,11 @@
   .ct-hint { font: 700 11px/1 var(--f-ui); letter-spacing: .14em; text-transform: uppercase; color: var(--ink-2); padding: 8px 12px; background: rgba(7, 11, 18, .82); border: 1px solid var(--hair); }
   .ct-start { min-width: 220px; min-height: 52px; font-size: 14px; }
   .ct-send b { font: 700 13px/1 var(--f-num); color: var(--coin); }
-  .ct-paused { position: absolute; z-index: 9; left: 50%; top: 50%; translate: -50% -50%; display: grid; justify-items: center; gap: 6px; padding: 22px 36px; color: var(--ink); }
-  .ct-paused svg { width: 30px; height: 30px; color: var(--accent); }
-  .ct-paused span { font: 800 28px/1 var(--f-disp); letter-spacing: .04em; text-transform: uppercase; }
+  /* A low pill, not a centred card: the board centre stays visible and keeps its wheel zoom and drag pan while paused.
+     An open build panel (z-index 14) draws over it. */
+  .ct-paused { position: absolute; z-index: 9; left: 50%; bottom: max(108px, 15%); translate: -50% 0; display: flex; align-items: center; gap: 12px; min-height: 48px; padding: 12px 22px; color: var(--ink); }
+  .ct-paused svg { width: 24px; height: 24px; color: var(--accent); }
+  .ct-paused span { font: 800 22px/1 var(--f-disp); letter-spacing: .04em; text-transform: uppercase; }
   .ct-paused small { font: 700 11px/1 var(--f-ui); letter-spacing: .16em; text-transform: uppercase; color: var(--ink-3); }
 
   /* ---- boss bar ---- */
@@ -496,6 +498,8 @@
   .ct-results__stats dt { font: 700 11px/1 var(--f-ui); letter-spacing: .14em; text-transform: uppercase; color: var(--ink-3); }
   .ct-results__stats dd { margin-top: 6px; font: 700 17px/1 var(--f-num); white-space: nowrap; }
   .ct-results__stats dd small { font-size: 12px; color: var(--ink-3); }
+  /* par sits under the time: a long run (13:03 / par 18:20) would otherwise run into the next cell */
+  .ct-results__stats dd .ct-results__par { display: block; margin-top: 4px; }
   .ct-spark { display: grid; gap: 6px; }
   .ct-spark__bars { display: flex; align-items: flex-end; gap: 3px; height: 30px; }
   .ct-spark__bars i { flex: 1; height: 3px; background: rgba(179, 217, 68, .5); }

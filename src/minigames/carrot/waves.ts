@@ -39,7 +39,8 @@ export type Note={key:string;wave:number;kind:string;n:number;route:number;at:nu
 /** The spawn schedule of wave `w` (1-based): game-data's wavePlan when published, otherwise rebuilt with BeginWave's formulas. */
 export function wavePackets(level:LevelDefinition,w:number):WavePacket[]{
  const plan=level.wavePlan?.[w-1]
- if(Array.isArray(plan)&&plan.length)return plan.filter(p=>p&&typeof p.kind==='string'&&Number.isFinite(p.at))
+ // The exported plan names the guardian by its boss id with boss:true (CarrotData.PlanWave); the track keys guardians as 'boss'.
+ if(Array.isArray(plan)&&plan.length)return plan.filter(p=>p&&typeof p.kind==='string'&&Number.isFinite(p.at)).map(p=>p.boss&&p.kind!=='boss'?{kind:'boss',n:p.n,route:p.route,at:p.at,span:p.span}:p)
  const packets=parseComposition(level.waveCompositions?.[w-1]),routes=Math.max(1,level.routes?.length||1)
  const gapScale=table(GapScaleTable,level.id),overlap=table(PacketOverlapTable,level.id)
  const out:WavePacket[]=[];let at=.65,packetIndex=0
@@ -62,7 +63,8 @@ export function waveNotes(level:LevelDefinition,w:number,enemies:EnemyDefinition
 }
 /** Notes from the snapshot's v2 `incoming` list; `at` there is on the current wave's clock (untilSpawn = at - waveElapsed). */
 export function incomingNotes(incoming:Incoming[],wave:number,enemies:EnemyDefinition[]|undefined,bossName=''):Note[]{
- return incoming.filter(p=>p&&typeof p.kind==='string'&&Number.isFinite(p.at)).map((p,i)=>{const t=traitsOf(p.kind,enemies,bossName);return {key:`i${p.wave??wave}:${i}:${p.kind}:${p.route}`,wave:p.wave??wave,kind:p.kind,n:Math.max(0,p.count|0),route:p.route|0,at:p.at,span:Math.max(0,p.span||0),traits:{...t,air:p.air??t.air,armor:p.armor??t.armor,shield:p.shield??t.shield,heal:p.heal??t.heal,mini:p.mini??t.mini}}})
+ // v2 names the guardian by its boss id with boss:true; the track keys guardians as 'boss'.
+ return incoming.filter(p=>p&&typeof p.kind==='string'&&Number.isFinite(p.at)).map((p,i)=>{const kind=p.boss===true?'boss':p.kind,t=traitsOf(kind,enemies,bossName);return {key:`i${p.wave??wave}:${i}:${kind}:${p.route}`,wave:p.wave??wave,kind,n:Math.max(0,p.count|0),route:p.route|0,at:p.at,span:Math.max(0,p.span||0),traits:{...t,air:p.air??t.air,armor:p.armor??t.armor,shield:p.shield??t.shield,heal:p.heal??t.heal,mini:p.mini??t.mini}}})
 }
 /** Where each wave starts and ends on the progress bar (0..1), from the work weights; the last entry is 1. */
 export function waveBounds(level:LevelDefinition,enemies:EnemyDefinition[]|undefined):number[]{

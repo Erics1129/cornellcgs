@@ -1,7 +1,7 @@
 // Tier arrays carry five entries once the Super tier ships (damage/interval/range); cost keeps four because a Super is merged, never bought.
 export type TowerDefinition = { id:string; name:string; role:string; unlock:number; air:boolean; cost:number[]; damage:number[]; interval:number[]; range:number[]; superName?:string; superTrait?:string }
 /** One spawn packet of a wave, as game-data.json `levels[].wavePlan[w]` publishes it: `at` and `span` are game seconds from the wave's start. */
-export type WavePacket = { kind:string; n:number; route:number; at:number; span:number }
+export type WavePacket = { kind:string; n:number; route:number; at:number; span:number; boss?:boolean }
 export type LevelDefinition = { id:number; name:string; biome:string; waves:number; startingGold:number; boss?:string; challenge?:'easy'|'hard'|'insane'|'????'; bossName?:string; routes?:Array<Array<{x:number;y?:number;z:number}|number[]>>; pads?:unknown[];
  /** "nibble:9,dash:4" per wave (always present in game-data.json). */
  waveCompositions?:string[]
@@ -26,7 +26,7 @@ export type Boss = { id:number;kind:string;name:string;hp:number;maxHp:number;sh
 export type MiniBoss = Boss & { x:number;y:number;visible:boolean;castTotal?:number }
 export type Monster = { id:number;kind:string;hp:number;maxHp:number;shield:number;maxShield:number;x:number;y:number;visible:boolean }
 /** v2: one packet of the current or next wave (at/span: game seconds relative to waveElapsed of the wave it belongs to). */
-export type Incoming = { kind:string;count:number;route:number;air:boolean;armor:boolean;shield:boolean;heal:boolean;mini:boolean;at:number;span:number;wave?:number }
+export type Incoming = { kind:string;count:number;route:number;air:boolean;armor:boolean;shield:boolean;heal:boolean;mini:boolean;boss?:boolean;at:number;span:number;wave?:number;eta?:number }
 /** v2: running counters; the parallel arrays stand in for dictionaries (JsonUtility cannot write them). */
 export type Stats = { kills:number;leaks:number;earned:number;streak:number;bestStreak:number;perfectWaves:number;waveLeaks:number[];leakKinds:string[];leakCounts:number[];dmgKinds:string[];dmgValues:number[] }
 export type JudgementKind = 'flawless'|'clear'|'leak'|'phaseBreak'|'superForged'|'saved'

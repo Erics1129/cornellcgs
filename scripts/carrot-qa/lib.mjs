@@ -35,8 +35,13 @@ const INIT = `(() => {
  W.addEventListener('error', e => W.__log.push([Math.round(performance.now()), 'pageerror', String(e.message)]));
 })();`
 
+// The integrated page pauses on the first sight of every ability (records.seen) and runs a guided first level; the scripted
+// scenarios here would stall behind those cards, so the seeded player has already met every ability and finished the tutorial.
+const { abilityIds } = await import('../../src/minigames/carrot/abilities.ts')
+const introduced = JSON.stringify({ version: 1, levels: {}, seen: { abilities: [...abilityIds].sort(), creatures: [] }, tutorial: true })
 export function seedSave({ unlocked = 24 } = {}) {
   return `(() => { try {
+   localStorage.setItem('cgs-carrot-records-v1', ${JSON.stringify(introduced)});
    localStorage.setItem('cgs-carrot-defense-v1', JSON.stringify({version:1, unlocked:${unlocked}, medals:{}, sound:false}));
    localStorage.setItem('cgs-carrot-challenges-v1', JSON.stringify({version:3, best:{tornado:{cleared:true,health:6,seconds:400,towers:8}, zombie:{cleared:true,health:5,seconds:500,towers:9}, eyeball:{cleared:true,health:4,seconds:700,towers:10}}}));
   } catch (e) {} })();`

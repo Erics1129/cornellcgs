@@ -238,3 +238,53 @@ Run on 2026-10-14 on QA build 17 (`CarrotBuild.WebQa`, release player settings p
 - Real displays other than 60 and 120 Hz; headed Safari (only headless WebKit was run).
 - Simulation-side time scale and caps: hit-stop and slow motion reach `CarrotGame.RequestTimeScale` and the `worldBars` cap reaches `CarrotGame.SetCap` only after the balance stream merges (reflection; checked on the integration worktree, not on this branch alone).
 - Owner review of the showcase bursts and a listening pass; the release artifact for the site is built from the integrated branch, not from this branch alone.
+
+## Giant update: integrated release (branch carrot-next, artifact `dba7ca4e745b2cb2`)
+
+All five stream branches (`carrot-s-balance`, `-world`, `-characters`, `-audio`, `-ui`) merged into `carrot-next` without textual
+conflicts, in that order. One Unity release build (`npm run carrot:unity`, `CARROT_BUILD_OK`) and one QA build (`--qa`, for the
+debug-command suites below) were made on the merged tree; no C# changed after them. Browser runs used `scripts/carrot-qa/serve.mjs`
+(GitHub Pages model, no Content-Encoding) over `npm run build` + `node scripts/stubs.mjs`, Playwright headless Chromium (ANGLE Metal,
+Apple M5 Max) and headless WebKit, on 2026-10-14.
+
+### Integration fixes
+
+- **Guardian notes on the wave track.** The published `wavePlan` and the v2 `incoming` list name a guardian by its boss id with
+  `boss: true` (`CarrotData.PlanWave`, `CarrotContract.WriteGroup`); the page keyed guardians only as `kind: 'boss'`, so the
+  Lantern Regent read as a plain creature called "marsh". `waves.ts` now maps both to the guardian note. `unit.mjs` checks the
+  published plan against the rebuild per route on all 29 levels and is part of `npm run carrot:test`.
+- **Results card.** The par time sits under the run time; "13:03 / par 18:20" ran into the chain cell.
+- **Paused card.** A low pill instead of a card at the centre of the board, which swallowed the wheel and drag there, so panning
+  while paused did not start at the screen centre (0 px; 250 px Chromium and 282 px WebKit after the move).
+- **Harnesses.** `scripts/carrot-qa/lib.mjs` seeds a player who has met every ability (the scripted suites otherwise stall behind
+  first-encounter cards); `carrot-audio-qa.mjs` finds the new "Stage select" button.
+- Site description no longer calls the HUD a rhythm game. Stage-select jackets re-captured from this build (provenance.json).
+
+### Automated evidence
+
+- `npm run carrot:test`: `CSC_OK`, progress/records, wave and game-data drift, UI units, challenges, music, then Unity
+  `CARROT_TESTS_OK 4435962 assertions; 57 campaign victories`, `CARROT_CONTRACT_OK`, `CARROT_AUDIO_OK 6916`,
+  `CARROT_MUSIC_TRANSITION_OK`. Standalone: 4,436,019 assertions, digest `1566501f7e139bfe` (both equal to the balance stream's).
+- `node scripts/carrot-sim.mjs --bands` on the merged tree reproduces `difficulty-bands.json` (de9f2df) exactly, ignoring run order.
+- `npm test`, `tsc --noEmit`, `npm run lint`, `npm run build`: pass. UI acceptance suite (mock player, production build):
+  331/331 in Chromium and WebKit.
+
+### Measured
+
+| Check | Result |
+|---|---|
+| Download | data 41.69 MB, wasm 7.14 MB, framework 0.09 MB (was 64.66 / 7.05 / 0.09 MB) |
+| Chromium desktop 1440x900 | L1 won 10 hp, L8 won 4 hp (Lantern Regent, casts and cards), L14 3 min, L24 lost wave 14/16, L25 Tornado lost wave 5/6, L29 Asuna lost (naive bot RN, as the bands predict); 120 fps, p95 9.3-10.2 ms, worst single frame 185 ms (L8 run) |
+| WebKit desktop | L1 won 10 hp, L8 won 4 hp, L24 3 min, L29; 52.1 fps p95 21 ms in the L8 boss fight, 59.5-59.8 fps p95 18 ms elsewhere |
+| Phones 390x844 and 844x390 | Chromium 120 fps p95 10.3 ms, WebKit 60 fps p95 18 ms (L1, L8, L29; landscape L1) |
+| Console errors, failed requests | 0 in every run above |
+| Old save (campaign v1 at stage 13, Super v1, challenges v1, no records) | Continue opens stage 13, stage select and challenges show the stored medals and the Tornado best; stored records unchanged; both engines |
+| WCAG 2.3.1 (QA build, `flash.mjs`) | 0 flashes in any second: L24 four Thunderheads, L8 casts and death, L29 six abilities, L12 Super forge |
+| Camera (`camera.mjs`) | zoom drift 1.4-4.4 px (the single safe-area nudge when the build panel opens); route starts reachable; Asuna 135 px; reduced motion 0 impulses, hit-stops, slow motion, FOV punches or camera moves |
+| Time scale | the boss-death slow motion reaches the simulation (`timeScale` 0.3) through `RequestTimeScale`; caps report `veteran` and `worldBars` |
+| Audio, release build, earned coins | combat median -19.9 to -20.5 dBFS, p90 -16.9 to -17.9, peak at most -2.72 dBFS, 0 clipped (L24, L8, Asuna; both engines); distinct buffers 76 on the six-tower L24 board (gate 80), 80 and 115-116 elsewhere |
+| Audio, QA build, dense L24 | 91-93 distinct buffers, top-7 23%; menu chirps play before Unity loads (2 then 4 oscillators, one context). One Chromium run logged a 645 ms wave-stinger lag; the rerun 0 ms |
+
+### Still unverified
+
+Physical phones and headed Safari; a listening pass and owner review of the effects; the 6x-throttled phone frame target.

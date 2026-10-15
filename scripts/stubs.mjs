@@ -85,7 +85,7 @@ const PAGES = {
   },
   'carrot-defense': {
     title: 'Carrot Defense 3D — Cornell CGS',
-    desc: 'Protect the carrot across 24 landscapes with 20 plant families and five guardian challenges, including Asuna. A rhythm-game HUD shows every wave before it arrives.',
+    desc: 'Protect the carrot across 24 landscapes with 20 plant families and five guardian challenges, including Asuna. A wave track shows every wave before it arrives.',
     image: '/assets/minigames/carrot/01-garden-keyart.jpg',
   },
   // the numbers must match src/minigames/inkmaze/levels.ts

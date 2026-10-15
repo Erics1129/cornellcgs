@@ -55,7 +55,7 @@ export function Results({state,level,definitions,summary,grade,previousGrade,cha
    <div className="ct-results__medals"><Medals value={medal} labels={challengeBoss?starLabels(challengeBoss):undefined} icons={challengeBoss?['check','heart','star']:undefined}/></div>
    <dl className="ct-results__stats">
     <div><dt>Hearts</dt><dd>{state.health}<small>/10</small></dd></div>
-    <div><dt>Time</dt><dd>{formatSeconds(seconds)}{parTime?<small> / par {formatSeconds(parTime)}</small>:null}</dd></div>
+    <div><dt>Time</dt><dd>{formatSeconds(seconds)}{parTime?<small className="ct-results__par">par {formatSeconds(parTime)}</small>:null}</dd></div>
     <div><dt>Chain</dt><dd>×{summary.bestChain}</dd></div>
     <div><dt>Coins left</dt><dd>{state.coins.toLocaleString()}</dd></div>
    </dl>

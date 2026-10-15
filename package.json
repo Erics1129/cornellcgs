@@ -16,7 +16,7 @@
     "lint": "eslint src/minigames/forge src/minigames/carrot backend/forge/worker.ts src/minigames/MinigamesPage.tsx backend/account/worker.ts src/lib/account",
     "forge:unity": "node scripts/forge-unity-build.mjs",
     "carrot:unity": "node scripts/carrot-unity-build.mjs",
-    "carrot:test": "node scripts/carrot-cs-check.mjs && node scripts/test-carrot-progress.mjs && node scripts/carrot-waves.mjs && node scripts/carrot-game-data.mjs && node scripts/test-carrot-challenges.mjs && node scripts/test-carrot-music.mjs && node scripts/carrot-unity-build.mjs --test",
+    "carrot:test": "node scripts/carrot-cs-check.mjs && node scripts/test-carrot-progress.mjs && node scripts/carrot-waves.mjs && node scripts/carrot-game-data.mjs && node scripts/carrot-ui-qa/unit.mjs && node scripts/test-carrot-challenges.mjs && node scripts/test-carrot-music.mjs && node scripts/carrot-unity-build.mjs --test",
     "carrot:check": "node scripts/carrot-cs-check.mjs",
     "carrot:sim": "node scripts/carrot-sim.mjs --run",
     "carrot:bands": "node scripts/carrot-sim.mjs --bands",

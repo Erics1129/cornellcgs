@@ -244,7 +244,7 @@ async function menuScenario(engine) {
     await help.click(); await sleep(600)
     const after = await page.evaluate(() => ({ osc: window.__menu.osc, contexts: window.__menu.contexts, states: window.__menu.states, unity: typeof window.createUnityInstance === 'function', now: window.__menu.list.map(c => [c.state, +c.currentTime.toFixed(3)]) }))
     await page.keyboard.press('Escape'); await sleep(200)
-    const choose = page.getByRole('button', { name: /Choose a level/ }); if (await choose.count()) { await choose.first().click(); await sleep(400) }
+    const choose = page.getByRole('button', { name: /Choose a level|Stage select/i }); if (await choose.count()) { await choose.first().click(); await sleep(400) }
     const after2 = await page.evaluate(() => ({ osc: window.__menu.osc, now: window.__menu.list.map(c => [c.state, +c.currentTime.toFixed(3)]) }))
     await browser.close()
     const oggs = requests.filter(u => /\.ogg(\?|$)/.test(u))

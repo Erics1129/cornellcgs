@@ -39,6 +39,16 @@ progress.touch('carrot:challenges')
 `rawCampaign` does, so an old build never pushes a fallback over a newer format.
 Neither record is private: a shared device keeps and merges them like the campaign.
 
+The giant update adds a fourth record, `carrot:records` (`cgs-carrot-records-v1`,
+version 1): grades, the longest defense chain and the fastest win per level (1-29),
+the abilities and creatures already introduced, and the tutorial flag. Its merge
+(`mergeCarrotRecords`: per-level max, fastest positive time, sorted union of seen ids
+capped at 128, tutorial OR, a newer `version` passes through) is copied verbatim into
+`merges.ts` with `KNOWN_KEYS` and `MERGES` entries; it is registered in
+`src/minigames/carrot/progress.ts` and touched after every records write. The
+campaign, Super and challenge records are unchanged. Format and rules:
+`docs/carrot-defense/giant-update/ui.md` and `challenge-save-migration.md`.
+
 ## The API
 
 ```ts
