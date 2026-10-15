@@ -4,6 +4,9 @@ The sources live in Assets/Resources/Carrot/Audio/Music~ (a folder Unity ignores
 written as Ogg Vorbis and MP3 to Assets/StreamingAssets/Carrot, which the Web build ships beside Build/. CarrotAudio downloads a track the
 first time it is needed (after the HUD is up) and the browser decodes it: Ogg Vorbis everywhere except WebKit, which gets the MP3 (Safari's decodeAudioData has no Vorbis;
 headless Chromium has no MP3). 112 kb/s joint stereo lands near the 0.5-quality Vorbis the data file carried before.
+
+A re-encoded row loses its tempo/key analysis (the encoder delay moves the beat phase): run
+`node Tools/analyze_carrot_music.mjs` afterwards; CarrotMusic.jslib quantises and transposes only from those fields.
 """
 import bpy,json,sys
 from pathlib import Path
@@ -34,4 +37,4 @@ for file in sorted(SOURCE.iterdir()):
   results.append({'source':file.name,'output':out.name,'seconds':round(seconds,1),'bytes':out.stat().st_size,'bitrateKbps':112})
   print('ENCODED',file.name,out.name,round(seconds,1),out.stat().st_size)
 (DEST/'music-provenance.json').write_text(json.dumps(results,indent=2)+'\n')
-print('CARROT_MUSIC_READY')
+print('CARROT_MUSIC_READY (now run Tools/analyze_carrot_music.mjs)')
