@@ -35,6 +35,12 @@ const clampLevel=(value:unknown,count:number)=>Math.max(1,Math.min(count,Number(
 type Panel='select'|'challenges'|'guide'|'help'|'settings'|'restart'|null
 const lossCounts=new Map<number,number>()
 
+/** The local review panel follows every publish (development preview only; the page itself re-renders only on slice changes). */
+function LiveReview({store,...rest}:{store:ReturnType<typeof createSnapshotStore>}&Omit<Parameters<typeof CarrotReview>[0],'state'>){
+ const state=useSlice(store,s=>s,(a,b)=>a===b)
+ return state?<CarrotReview state={state} {...rest}/>:null
+}
+
 export default function CarrotPage(){
  const root=useRef<HTMLDivElement>(null),mount=useRef<HTMLDivElement>(null),engine=useRef<CarrotUnity|null>(null),hud=useRef<HTMLDivElement>(null),trackBox=useRef<HTMLDivElement>(null)
  const store=useMemo(()=>createSnapshotStore(),[]),tracker=useMemo(()=>createRunTracker(store),[store])
@@ -170,7 +176,7 @@ export default function CarrotPage(){
    <div className="ct-scene" ref={mount}/>
    {(!ready||error)&&<Loading level={currentLevel} definitions={definitions} progress={loading} bytes={bytes} error={error} onRetry={()=>location.reload()}/>}
    {ready&&st&&<>
-    {import.meta.env.DEV&&preview&&<CarrotReview state={st} send={send} quality={value=>engine.current?.quality(value)} onEncounter={id=>{setLevel(id);setResult(false)}}/>}
+    {import.meta.env.DEV&&preview&&<LiveReview store={store} send={send} quality={value=>engine.current?.quality(value)} onEncounter={id=>{setLevel(id);setResult(false)}}/>}
     {page?.blackout&&<div className="ct-blackout" aria-hidden="true"/>}
     <MonsterBars store={store}/>
     <MiniBars store={store} send={send}/>

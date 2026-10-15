@@ -41,6 +41,8 @@ export function WaveTrack({store,level,enemies,seen,reduced,compact}:{store:Snap
  const notes=useMemo(()=>plan?[...plan.current,...plan.next]:[],[plan])
  const nextKeys=useMemo(()=>new Set(plan?.next.map(n=>n.key)),[plan])
  const register=useMemo(()=>(key:string,el:HTMLDivElement|null)=>{if(el)nodes.current.set(key,el);else nodes.current.delete(key)},[])
+ // a new run (the ready phase) replays its notes from scratch: forget which ones already pulsed the line and where they were drawn
+ useEffect(()=>{if(s?.phase==='ready'){crossed.current.clear();shown.current.clear()}},[s?.phase,s?.level])
  // rAF: notes slide right to left and reach the judgement line at the moment their first creature spawns
  useEffect(()=>{
   let raf=0,HeadSize=0
