@@ -93,3 +93,23 @@ Three independently reported cases were reproduced with failing real-tick tests 
 - Moss Shield, Lantern Flood, or Sentinel protection could make an existing innate shield expire. Temporary grants now record only their extra portion, consume that portion first on damage or stripping, and remove only the unspent remainder on expiry. Tests cover stronger innate shields, damaged innate shields, partial absorption, full absorption into the native layer, and Magnet stripping; expiry does not restore already absorbed native shield.
 
 The final full run above includes these fixes. `debugGarden` displays either group of ten plants at a chosen tier on the current map's valid pads, clears replaced tower references and projectiles, and uses fresh IDs. `debugBossDamage` goes through actual damage/rebirth rules and respects untargetable states. Both remain excluded from release compilation. These review tools do not form part of the earned-coin campaign tests.
+
+
+## Pass 2 (giant update, 14 October 2026)
+
+Measured with the reference bots of [giant-update/difficulty.md](giant-update/difficulty.md) at commit ef4ca7a.
+
+- **Targeting changed the fight.** Towers now shoot the enemy with the least route left (pass-2 step 3). With that
+  rule canonical policy 1 lost the Portal at every ordinary-health dial from 0.70 to 0.85 and at boss health 23,000 to
+  30,000 (1 of 10 seeds won), while policy 0 and the median bot kept winning: the old fraction rule had preferred the
+  boss on the long route.
+- **Resolution.** The Portal walks at 0.18 (was 0.21) with 31,000 HP (was 30,000); its phase-3 pace stays 0.28. At
+  0.18 both canonical policies win (policy 0: 10 HP in 12.05 min; policy 1: 10 HP in 11.15 min) and the expert wins all
+  20 seed variants; 32,000 HP already costs policy 1 its seed-0 win. Ordinary adds use dial 0.85 and the pass-2 ramp
+  (challenges: early waves 0.8x easing to 1, the rest climbing to 1.15x).
+- **Bands.** Median bot R1 60% (band 15-30%), novice R2 35%; the band is out of reach while the
+  expert must win every seed (at 34,000 HP R1 falls to 21% and the expert to 12 of 20 seeds).
+- **Telegraphs.** Portal Storm locks towers and is actionable: its windup is at least 2.5 s and holds 1x at 2x speed.
+  `bossDeadline` fires once at 50%, 75% and 90% of the route; the snapshot carries `remaining`, `eta`, `routeFraction`.
+- **Single-cast check.** Muting one cast on 200 R1 seeds flips Portal Blink 73%, Summon 38%, Shift 19% and Storm 18% of
+  R1's losses into wins: the guardian's kit is the fight (difficulty-single-cast.json).

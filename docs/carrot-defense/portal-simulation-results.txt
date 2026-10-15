@@ -1,161 +1,26 @@
-CARROT_SUPER_BUDGET kind=seed super=3182 pair=3265 ratio=0.974
-CARROT_SUPER_BUDGET kind=frost super=5913 pair=6142 ratio=0.963
-CARROT_SUPER_BUDGET kind=mortar super=19982 pair=21462 ratio=0.931
-CARROT_SUPER_BUDGET kind=prism super=4477 pair=4972 ratio=0.900
-CARROT_SUPER_BUDGET kind=storm super=6123 pair=6293 ratio=0.973
-CARROT_SUPER_BUDGET kind=blossom super=8625 pair=10644 ratio=0.810
-CARROT_SUPER_BUDGET kind=starfruit super=13049 pair=13505 ratio=0.966
-CARROT_SUPER_BUDGET kind=gravity super=7343 pair=8409 ratio=0.873
-CARROT_SUPER_BUDGET kind=book super=3184 pair=3385 ratio=0.941
-CARROT_SUPER_BUDGET kind=thunder super=7993 pair=8981 ratio=0.890
-CARROT_SUPER_BUDGET kind=bamboo super=8057 pair=9451 ratio=0.852
-CARROT_SUPER_BUDGET kind=chili super=29768 pair=29240 ratio=1.018
-CARROT_SUPER_BUDGET kind=lotus super=9377 pair=10489 ratio=0.894
-CARROT_SUPER_BUDGET kind=magnet super=5876 pair=5479 ratio=1.073
-CARROT_SUPER_BUDGET kind=orchid super=11188 pair=10620 ratio=1.054
-CARROT_SUPER_BUDGET kind=mushroom super=10899 pair=11743 ratio=0.928
-CARROT_SUPER_BUDGET kind=cactus super=6618 pair=6208 ratio=1.066
-CARROT_SUPER_BUDGET kind=clockflower super=12785 pair=15364 ratio=0.832
-CARROT_SUPER_BUDGET kind=dragonfruit super=38073 pair=37427 ratio=1.017
-CARROT_SUPER_BUDGET kind=moonflower super=4434 pair=4145 ratio=1.070
-REBIRTH_REGRESSION_OK
-FREEZE_REGRESSION_OK
-SHIELD_REGRESSION_OK
-CARROT_EXPANSION_OK 4989 assertions so far
-CARROT_CAMPAIGN strategy=0 level=1 result=won hearts=10 lowest=10 seconds=186.8 wave=5 towers=4 supers=0 earned=850 roster=seed/3,bamboo/2,seed/2,seed/2,
-CARROT_CAMPAIGN strategy=0 level=2 result=won hearts=10 lowest=10 seconds=262.2 wave=6 towers=4 supers=0 earned=1318 roster=cactus/4,starfruit/3,seed/2,seed/1,
-CARROT_CAMPAIGN strategy=0 level=3 result=won hearts=10 lowest=10 seconds=409.1 wave=7 towers=5 supers=0 earned=1705 roster=prism/4,cactus/4,seed/2,seed/2,frost/1,
-CARROT_CAMPAIGN strategy=0 level=4 result=won hearts=10 lowest=10 seconds=514.8 wave=8 towers=7 supers=0 earned=2381 roster=prism/4,seed/3,seed/3,frost/1,mortar/2,starfruit/3,cactus/2,
-CARROT_CAMPAIGN strategy=0 level=5 result=won hearts=10 lowest=10 seconds=410.4 wave=8 towers=7 supers=0 earned=2303 roster=cactus/4,prism/3,seed/2,seed/4,frost/1,mortar/3,lotus/1,
-CARROT_CAMPAIGN strategy=0 level=6 result=won hearts=10 lowest=10 seconds=529.5 wave=9 towers=8 supers=0 earned=3097 roster=prism/4,cactus/4,seed/4,seed/3,frost/1,mortar/2,lotus/2,cactus/4,
-CARROT_CAMPAIGN strategy=0 level=7 result=won hearts=10 lowest=10 seconds=599.5 wave=9 towers=8 supers=0 earned=2997 roster=cactus/4,prism/4,seed/3,bamboo/3,frost/1,lotus/1,mortar/2,starfruit/4,
-CARROT_CAMPAIGN strategy=0 level=8 result=won hearts=10 lowest=10 seconds=597.5 wave=10 towers=8 supers=0 earned=4192 roster=thunder/4,cactus/4,seed/3,seed/3,prism/4,clockflower/2,mortar/2,starfruit/4,
-CARROT_CAMPAIGN strategy=0 level=9 result=won hearts=10 lowest=10 seconds=688.6 wave=10 towers=7 supers=0 earned=3688 roster=thunder/4,prism/4,seed/4,cactus/4,frost/1,mortar/4,lotus/1,
-CARROT_CAMPAIGN strategy=0 level=10 result=won hearts=9 lowest=9 seconds=559.4 wave=10 towers=8 supers=0 earned=4423 roster=thunder/4,prism/4,seed/4,seed/4,cactus/4,clockflower/3,mortar/3,lotus/1,
-CARROT_CAMPAIGN strategy=0 level=11 result=won hearts=2 lowest=2 seconds=754.7 wave=11 towers=12 supers=1 earned=4676 roster=thunder/2,cactus/3,seed/4,seed/4,mortar/3,seed/4,seed/3,seed/3,seed/5,frost/3,bamboo/3,seed/1,
-CARROT_CAMPAIGN strategy=0 level=12 result=won hearts=10 lowest=10 seconds=766.7 wave=12 towers=9 supers=0 earned=6630 roster=thunder/4,cactus/4,seed/4,bamboo/4,prism/4,clockflower/4,mortar/4,thunder/4,dragonfruit/3,
-CARROT_CAMPAIGN strategy=0 level=13 result=won hearts=10 lowest=10 seconds=595.3 wave=11 towers=7 supers=0 earned=3816 roster=thunder/4,prism/4,cactus/4,frost/1,mortar/3,moonflower/3,thunder/2,
-CARROT_CAMPAIGN strategy=0 level=14 result=won hearts=10 lowest=10 seconds=580.0 wave=11 towers=7 supers=0 earned=4294 roster=thunder/4,prism/4,cactus/4,seed/4,clockflower/3,lotus/1,dragonfruit/3,
-CARROT_CAMPAIGN strategy=0 level=15 result=won hearts=10 lowest=10 seconds=717.1 wave=12 towers=9 supers=0 earned=5510 roster=thunder/4,prism/4,dragonfruit/4,seed/4,cactus/4,clockflower/2,cactus/4,prism/4,mortar/1,
-CARROT_CAMPAIGN strategy=0 level=16 result=won hearts=10 lowest=10 seconds=736.9 wave=12 towers=9 supers=1 earned=6259 roster=prism/5,cactus/4,seed/4,clockflower/4,mortar/4,starfruit/4,lotus/2,prism/2,thunder/3,
-CARROT_CAMPAIGN strategy=0 level=17 result=won hearts=10 lowest=10 seconds=709.7 wave=12 towers=8 supers=0 earned=5176 roster=thunder/4,prism/4,dragonfruit/4,cactus/4,mortar/4,clockflower/1,seed/3,prism/4,
-CARROT_CAMPAIGN strategy=0 level=18 result=won hearts=8 lowest=8 seconds=727.2 wave=13 towers=7 supers=2 earned=6064 roster=thunder/5,cactus/4,prism/5,seed/4,mortar/4,clockflower/1,prism/4,
-CARROT_CAMPAIGN strategy=0 level=19 result=won hearts=9 lowest=9 seconds=818.6 wave=13 towers=8 supers=1 earned=7125 roster=thunder/4,prism/5,cactus/4,clockflower/4,dragonfruit/4,mortar/3,thunder/4,prism/4,
-CARROT_CAMPAIGN strategy=0 level=20 result=won hearts=10 lowest=10 seconds=848.9 wave=14 towers=10 supers=1 earned=8663 roster=thunder/4,cactus/4,prism/5,mortar/4,prism/4,moonflower/4,thunder/4,lotus/1,dragonfruit/4,clockflower/3,
-CARROT_CAMPAIGN strategy=0 level=21 result=won hearts=10 lowest=10 seconds=744.4 wave=14 towers=9 supers=1 earned=7074 roster=thunder/4,prism/5,dragonfruit/4,seed/4,clockflower/4,cactus/4,mortar/4,prism/4,thunder/2,
-CARROT_CAMPAIGN strategy=0 level=22 result=won hearts=10 lowest=10 seconds=935.3 wave=15 towers=11 supers=0 earned=8426 roster=thunder/4,prism/4,cactus/4,clockflower/4,dragonfruit/4,mortar/4,prism/4,thunder/4,seed/4,lotus/3,moonflower/4,
-CARROT_CAMPAIGN strategy=0 level=23 result=won hearts=10 lowest=10 seconds=978.7 wave=15 towers=11 supers=1 earned=9373 roster=thunder/4,prism/5,cactus/4,clockflower/4,mortar/4,moonflower/4,dragonfruit/4,prism/4,thunder/4,bamboo/4,seed/4,
-CARROT_CAMPAIGN strategy=0 level=24 result=won hearts=10 lowest=10 seconds=1083.6 wave=16 towers=11 supers=3 earned=11100 roster=cactus/4,clockflower/4,seed/4,mortar/4,prism/4,moonflower/4,lotus/4,dragonfruit/4,thunder/5,thunder/4,prism/3,
-CARROT_CAMPAIGN strategy=0 level=25 result=won hearts=10 lowest=10 seconds=300.1 wave=6 towers=5 supers=0 earned=2622 roster=thunder/4,prism/3,thunder/3,frost/1,lotus/1,
-CARROT_CAMPAIGN strategy=0 level=26 result=won hearts=10 lowest=10 seconds=544.7 wave=9 towers=9 supers=0 earned=5663 roster=prism/4,frost/1,lotus/1,cactus/4,mortar/2,thunder/4,clockflower/1,dragonfruit/4,thunder/4,
-CARROT_CAMPAIGN strategy=0 level=27 result=won hearts=1 lowest=1 seconds=721.7 wave=11 towers=14 supers=0 earned=7758 roster=thunder/4,prism/4,thunder/4,frost/3,lotus/3,cactus/4,mortar/3,starfruit/4,seed/4,seed/4,seed/4,seed/4,bamboo/3,seed/4,
-CARROT_CAMPAIGN strategy=0 level=28 result=won hearts=10 lowest=10 seconds=757.9 wave=12 towers=11 supers=0 earned=7074 roster=thunder/4,prism/4,cactus/4,frost/1,lotus/4,clockflower/3,seed/4,mortar/4,starfruit/4,prism/4,thunder/4,
-CARROT_CAMPAIGN strategy=1 level=1 result=won hearts=10 lowest=10 seconds=223.2 wave=5 towers=5 supers=0 earned=850 roster=seed/3,frost/1,seed/2,seed/2,bamboo/2,
-CARROT_CAMPAIGN strategy=1 level=2 result=won hearts=10 lowest=10 seconds=265.9 wave=6 towers=5 supers=0 earned=1318 roster=starfruit/4,cactus/2,seed/2,seed/1,mortar/2,
-CARROT_CAMPAIGN strategy=1 level=3 result=won hearts=10 lowest=10 seconds=301.0 wave=7 towers=5 supers=0 earned=1705 roster=starfruit/4,cactus/2,seed/2,seed/1,starfruit/3,
-CARROT_CAMPAIGN strategy=1 level=4 result=won hearts=10 lowest=10 seconds=514.9 wave=8 towers=6 supers=0 earned=2381 roster=cactus/4,seed/2,seed/2,frost/1,starfruit/4,starfruit/3,
-CARROT_CAMPAIGN strategy=1 level=5 result=won hearts=10 lowest=10 seconds=429.5 wave=8 towers=6 supers=0 earned=2303 roster=starfruit/4,starfruit/4,seed/2,seed/2,frost/1,cactus/4,
-CARROT_CAMPAIGN strategy=1 level=6 result=won hearts=10 lowest=10 seconds=554.4 wave=9 towers=9 supers=0 earned=3097 roster=starfruit/4,starfruit/4,seed/3,seed/2,frost/1,cactus/4,mortar/2,prism/2,chili/2,
-CARROT_CAMPAIGN strategy=1 level=7 result=won hearts=10 lowest=10 seconds=526.6 wave=9 towers=8 supers=0 earned=2997 roster=starfruit/4,starfruit/4,seed/2,seed/2,mortar/4,chili/3,mushroom/1,lotus/1,
-CARROT_CAMPAIGN strategy=1 level=8 result=won hearts=9 lowest=9 seconds=586.3 wave=10 towers=8 supers=0 earned=4184 roster=starfruit/4,starfruit/4,seed/3,seed/2,mortar/4,clockflower/2,chili/2,thunder/4,
-CARROT_CAMPAIGN strategy=1 level=9 result=won hearts=10 lowest=10 seconds=585.8 wave=10 towers=8 supers=0 earned=3688 roster=starfruit/4,thunder/4,seed/3,bamboo/3,starfruit/4,clockflower/2,cactus/2,mortar/2,
-CARROT_CAMPAIGN strategy=1 level=10 result=won hearts=7 lowest=7 seconds=560.4 wave=10 towers=7 supers=0 earned=4389 roster=starfruit/4,dragonfruit/4,bamboo/3,seed/4,mortar/4,clockflower/3,cactus/4,
-CARROT_CAMPAIGN strategy=1 level=11 result=won hearts=3 lowest=3 seconds=808.2 wave=11 towers=12 supers=0 earned=4705 roster=starfruit/4,thunder/2,seed/4,seed/4,seed/4,seed/4,frost/3,bamboo/3,seed/3,bamboo/3,seed/3,seed/3,
-CARROT_CAMPAIGN strategy=1 level=12 result=won hearts=10 lowest=10 seconds=686.2 wave=12 towers=10 supers=0 earned=6630 roster=starfruit/4,starfruit/4,chili/4,seed/4,mortar/4,clockflower/4,cactus/4,thunder/4,prism/4,starfruit/3,
-CARROT_CAMPAIGN strategy=1 level=13 result=won hearts=10 lowest=10 seconds=548.7 wave=11 towers=6 supers=0 earned=3814 roster=starfruit/4,dragonfruit/4,mortar/4,seed/4,mushroom/3,thunder/2,
-CARROT_CAMPAIGN strategy=1 level=14 result=won hearts=10 lowest=10 seconds=548.5 wave=11 towers=6 supers=0 earned=4294 roster=dragonfruit/4,thunder/4,starfruit/4,seed/4,clockflower/4,mortar/2,
-CARROT_CAMPAIGN strategy=1 level=15 result=won hearts=10 lowest=10 seconds=727.6 wave=12 towers=8 supers=0 earned=5510 roster=starfruit/4,thunder/4,dragonfruit/4,seed/4,mortar/4,clockflower/2,cactus/4,starfruit/4,
-CARROT_CAMPAIGN strategy=1 level=16 result=won hearts=10 lowest=10 seconds=717.8 wave=12 towers=8 supers=0 earned=6259 roster=starfruit/4,thunder/4,seed/4,mortar/4,clockflower/3,cactus/4,prism/4,dragonfruit/4,
-CARROT_CAMPAIGN strategy=1 level=17 result=won hearts=7 lowest=7 seconds=734.6 wave=12 towers=8 supers=1 earned=5143 roster=starfruit/5,dragonfruit/4,mortar/4,seed/4,mushroom/3,cactus/3,starfruit/4,clockflower/1,
-CARROT_CAMPAIGN strategy=1 level=18 result=won hearts=6 lowest=6 seconds=703.8 wave=13 towers=12 supers=2 earned=6042 roster=starfruit/4,dragonfruit/2,mortar/3,seed/5,seed/5,seed/4,bamboo/3,seed/4,bamboo/3,seed/3,seed/4,seed/4,
-CARROT_CAMPAIGN strategy=1 level=19 result=won hearts=1 lowest=1 seconds=888.5 wave=13 towers=12 supers=0 earned=7002 roster=dragonfruit/3,starfruit/4,thunder/3,seed/4,clockflower/4,seed/4,seed/4,bamboo/4,cactus/4,seed/4,seed/4,seed/4,
-CARROT_CAMPAIGN strategy=1 level=20 result=won hearts=10 lowest=10 seconds=764.8 wave=14 towers=10 supers=2 earned=8663 roster=starfruit/4,starfruit/4,dragonfruit/4,mortar/5,clockflower/4,thunder/4,prism/4,moonflower/3,lotus/4,thunder/2,
-CARROT_CAMPAIGN strategy=1 level=21 result=won hearts=10 lowest=10 seconds=764.8 wave=14 towers=10 supers=1 earned=7064 roster=starfruit/4,dragonfruit/4,thunder/4,seed/5,clockflower/4,cactus/4,mortar/4,prism/3,starfruit/3,cactus/3,
-CARROT_CAMPAIGN strategy=1 level=22 result=won hearts=10 lowest=10 seconds=910.9 wave=15 towers=11 supers=1 earned=8426 roster=starfruit/4,starfruit/4,dragonfruit/4,mortar/5,mushroom/4,clockflower/4,chili/4,thunder/4,mushroom/3,mortar/4,prism/3,
-CARROT_CAMPAIGN strategy=1 level=23 result=won hearts=10 lowest=10 seconds=997.0 wave=15 towers=11 supers=2 earned=9373 roster=starfruit/4,dragonfruit/4,thunder/4,starfruit/4,mushroom/5,mortar/4,clockflower/4,mortar/4,prism/4,cactus/5,cactus/4,
-CARROT_CAMPAIGN strategy=1 level=24 result=won hearts=10 lowest=10 seconds=1091.6 wave=16 towers=11 supers=2 earned=11100 roster=dragonfruit/4,frost/4,thunder/5,mortar/4,prism/5,cactus/4,thunder/4,starfruit/4,clockflower/4,starfruit/4,orchid/3,
-CARROT_CAMPAIGN strategy=1 level=25 result=won hearts=10 lowest=10 seconds=299.1 wave=6 towers=5 supers=0 earned=2627 roster=thunder/4,prism/2,thunder/4,frost/1,lotus/1,
-CARROT_CAMPAIGN strategy=1 level=26 result=won hearts=10 lowest=10 seconds=556.6 wave=9 towers=10 supers=0 earned=5663 roster=prism/4,frost/1,starfruit/4,clockflower/2,thunder/4,thunder/4,lotus/1,mortar/2,prism/4,starfruit/2,
-CARROT_CAMPAIGN strategy=1 level=27 result=won hearts=6 lowest=6 seconds=692.7 wave=11 towers=14 supers=0 earned=7816 roster=thunder/4,prism/4,thunder/4,frost/3,lotus/3,starfruit/4,clockflower/3,mortar/4,seed/4,seed/4,seed/3,seed/3,bamboo/4,seed/4,
-CARROT_CAMPAIGN strategy=1 level=28 result=won hearts=10 lowest=10 seconds=726.9 wave=12 towers=11 supers=0 earned=7074 roster=thunder/4,starfruit/4,prism/4,frost/1,lotus/3,mortar/4,starfruit/4,prism/4,clockflower/2,moonflower/4,thunder/4,
-CARROT_CAMPAIGN merges=off strategy=0 level=4 result=won hearts=10 lowest=10 seconds=514.8 wave=8 towers=7
-CARROT_CAMPAIGN merges=off strategy=1 level=4 result=won hearts=10 lowest=10 seconds=514.9 wave=8 towers=6
-CARROT_CAMPAIGN merges=off strategy=0 level=8 result=won hearts=10 lowest=10 seconds=597.5 wave=10 towers=8
-CARROT_CAMPAIGN merges=off strategy=1 level=8 result=won hearts=9 lowest=9 seconds=586.3 wave=10 towers=8
-CARROT_CAMPAIGN merges=off strategy=0 level=12 result=won hearts=10 lowest=10 seconds=766.7 wave=12 towers=9
-CARROT_CAMPAIGN merges=off strategy=1 level=12 result=won hearts=10 lowest=10 seconds=686.2 wave=12 towers=10
-CARROT_CAMPAIGN merges=off strategy=0 level=16 result=won hearts=10 lowest=10 seconds=736.1 wave=12 towers=9
-CARROT_CAMPAIGN merges=off strategy=1 level=16 result=won hearts=10 lowest=10 seconds=717.8 wave=12 towers=8
-CARROT_CAMPAIGN merges=off strategy=0 level=20 result=won hearts=10 lowest=10 seconds=850.2 wave=14 towers=11
-CARROT_CAMPAIGN merges=off strategy=1 level=20 result=won hearts=10 lowest=10 seconds=764.2 wave=14 towers=11
-CARROT_CAMPAIGN merges=off strategy=0 level=24 result=won hearts=10 lowest=10 seconds=1087.9 wave=16 towers=11
-CARROT_CAMPAIGN merges=off strategy=1 level=24 result=won hearts=10 lowest=10 seconds=1108.2 wave=16 towers=11
-CARROT_POOR_COVERAGE level=1 result=lost hearts=0 invested=265
-CARROT_POOR_COVERAGE level=4 result=lost hearts=0 invested=145
-CARROT_POOR_COVERAGE level=8 result=lost hearts=0 invested=265
-CARROT_POOR_COVERAGE level=12 result=lost hearts=0 invested=265
-CARROT_POOR_COVERAGE level=16 result=lost hearts=0 invested=465
-CARROT_POOR_COVERAGE level=20 result=lost hearts=0 invested=465
-CARROT_POOR_COVERAGE level=24 result=lost hearts=0 invested=465
+# Portal and challenge result lines from the Unity run of commit f23b985 (pass 2, 14 October 2026); all lines in simulation-results.txt.
+PRISM_ROUTE_DEADLINE seconds=347.1
+PRISM_ENCOUNTER_OK
+PRISM_BOUNDARY_REGRESSION_OK
+PRISM_RELOCATIONS policy=0 count=10 coins=506
+PRISM_BALANCED policy=0 hearts=2 seconds=183.9 earned=5388 bossGap=16.8 roster=prism/4@12,thunder/4@13,frost/2@14,moonflower/4@15,lotus/2@16,
+PRISM_STATIC_LOSS seconds=139.4
+CARROT_CAMPAIGN strategy=0 level=25 result=won hearts=5 lowest=5 seconds=332.6 wave=6 towers=5 supers=0 earned=2690 roster=thunder/4,prism/3,thunder/3,frost/1,lotus/1,
+CARROT_CAMPAIGN strategy=0 level=26 result=won hearts=10 lowest=10 seconds=558.3 wave=9 towers=10 supers=0 earned=5711 roster=prism/4,frost/1,lotus/1,cactus/4,mortar/2,thunder/4,clockflower/1,dragonfruit/4,thunder/4,seed/1,
+CARROT_CAMPAIGN strategy=0 level=27 result=won hearts=4 lowest=4 seconds=698.0 wave=11 towers=13 supers=0 earned=7782 roster=thunder/4,prism/4,thunder/4,frost/1,lotus/2,cactus/4,mortar/2,prism/4,clockflower/2,moonflower/4,dragonfruit/4,seed/3,starfruit/4,
+CARROT_CAMPAIGN strategy=0 level=28 result=won hearts=10 lowest=10 seconds=722.9 wave=12 towers=11 supers=0 earned=7311 roster=thunder/4,prism/4,cactus/4,frost/1,lotus/4,clockflower/3,seed/4,mortar/4,starfruit/4,thunder/4,moonflower/4,
+PRISM_RELOCATIONS policy=0 count=10 coins=506
+CARROT_CAMPAIGN strategy=0 level=29 result=won hearts=2 lowest=2 seconds=183.9 wave=1 towers=5 supers=0 earned=5388 roster=prism/4@12,thunder/4@13,frost/2@14,moonflower/4@15,lotus/2@16,
+CARROT_CAMPAIGN strategy=1 level=25 result=won hearts=6 lowest=6 seconds=330.4 wave=6 towers=6 supers=0 earned=2684 roster=thunder/4,prism/2,thunder/4,frost/1,lotus/1,starfruit/1,
+CARROT_CAMPAIGN strategy=1 level=26 result=won hearts=10 lowest=10 seconds=551.3 wave=9 towers=10 supers=0 earned=5711 roster=prism/4,frost/1,starfruit/4,clockflower/2,thunder/4,thunder/4,lotus/1,mortar/2,prism/4,starfruit/2,
+CARROT_CAMPAIGN strategy=1 level=27 result=won hearts=10 lowest=10 seconds=667.6 wave=11 towers=12 supers=0 earned=7866 roster=thunder/4,prism/4,thunder/4,frost/1,lotus/2,starfruit/4,clockflower/3,prism/4,mortar/4,starfruit/4,prism/4,moonflower/4,
+CARROT_CAMPAIGN strategy=1 level=28 result=won hearts=10 lowest=10 seconds=669.1 wave=12 towers=11 supers=1 earned=7282 roster=thunder/4,prism/4,frost/1,lotus/2,starfruit/5,starfruit/4,prism/4,clockflower/3,mortar/3,chili/4,thunder/4,
 CARROT_POOR_COVERAGE level=25 result=lost hearts=0 invested=465
 CARROT_POOR_COVERAGE level=27 result=lost hearts=0 invested=465
 CARROT_POOR_COVERAGE level=28 result=lost hearts=0 invested=465
-CARROT_DETERMINISM ticks=25284 scripted=4500
-CARROT_TESTS_OK 213867 assertions; 56 campaign victories with earned coins (full); all twenty powers and Supers, eight bosses and fifteen minibosses, blindness, uproot, challenges and poor-coverage losses checked.
-
-FINAL ENCOUNTER MARGINS
-EXPANSION_TUNE level=19 policy=0 result=won hearts=9 wave=13 seconds=818.5521 bossHp=0 bossGap=-1 roster=thunder/4,prism/5,cactus/4,clockflower/4,dragonfruit/4,mortar/3,thunder/4,prism/4,
-EXPANSION_TUNE level=19 policy=1 result=won hearts=1 wave=13 seconds=888.5017 bossHp=0 bossGap=-1 roster=dragonfruit/3,starfruit/4,thunder/3,seed/4,clockflower/4,seed/4,seed/4,bamboo/4,cactus/4,seed/4,seed/4,seed/4,
-EXPANSION_TUNE level=25 policy=0 result=won hearts=10 wave=6 seconds=300.112 bossHp=0 bossGap=3.783022 roster=thunder/4,prism/3,thunder/3,frost/1,lotus/1,
-EXPANSION_TUNE level=25 policy=1 result=won hearts=10 wave=6 seconds=299.0789 bossHp=0 bossGap=7.118975 roster=thunder/4,prism/2,thunder/4,frost/1,lotus/1,
-EXPANSION_TUNE level=26 policy=0 result=won hearts=10 wave=9 seconds=544.6523 bossHp=0 bossGap=3.151722 roster=prism/4,frost/1,lotus/1,cactus/4,mortar/2,thunder/4,clockflower/1,dragonfruit/4,thunder/4,
-EXPANSION_TUNE level=26 policy=1 result=won hearts=10 wave=9 seconds=556.6494 bossHp=0 bossGap=2.86911 roster=prism/4,frost/1,starfruit/4,clockflower/2,thunder/4,thunder/4,lotus/1,mortar/2,prism/4,starfruit/2,
-EXPANSION_TUNE level=27 policy=0 result=won hearts=1 wave=11 seconds=721.7258 bossHp=0 bossGap=0.9233112 roster=thunder/4,prism/4,thunder/4,frost/3,lotus/3,cactus/4,mortar/3,starfruit/4,seed/4,seed/4,seed/4,seed/4,bamboo/3,seed/4,
-EXPANSION_TUNE level=27 policy=1 result=won hearts=6 wave=11 seconds=692.6662 bossHp=0 bossGap=1.620697 roster=thunder/4,prism/4,thunder/4,frost/3,lotus/3,starfruit/4,clockflower/3,mortar/4,seed/4,seed/4,seed/3,seed/3,bamboo/4,seed/4,
-EXPANSION_TUNE level=28 policy=0 result=won hearts=10 wave=12 seconds=757.8503 bossHp=0 bossGap=0.9967499 roster=thunder/4,prism/4,cactus/4,frost/1,lotus/4,clockflower/3,seed/4,mortar/4,starfruit/4,prism/4,thunder/4,
-EXPANSION_TUNE level=28 policy=1 result=won hearts=10 wave=12 seconds=726.9412 bossHp=0 bossGap=0.7964401 roster=thunder/4,starfruit/4,prism/4,frost/1,lotus/3,mortar/4,starfruit/4,prism/4,clockflower/2,moonflower/4,thunder/4,
-
-FINAL QUICK CHECK
-CARROT_SUPER_BUDGET kind=seed super=3182 pair=3265 ratio=0.974
-CARROT_SUPER_BUDGET kind=frost super=5913 pair=6142 ratio=0.963
-CARROT_SUPER_BUDGET kind=mortar super=19982 pair=21462 ratio=0.931
-CARROT_SUPER_BUDGET kind=prism super=4477 pair=4972 ratio=0.900
-CARROT_SUPER_BUDGET kind=storm super=6123 pair=6293 ratio=0.973
-CARROT_SUPER_BUDGET kind=blossom super=8625 pair=10644 ratio=0.810
-CARROT_SUPER_BUDGET kind=starfruit super=13049 pair=13505 ratio=0.966
-CARROT_SUPER_BUDGET kind=gravity super=7343 pair=8409 ratio=0.873
-CARROT_SUPER_BUDGET kind=book super=3184 pair=3385 ratio=0.941
-CARROT_SUPER_BUDGET kind=thunder super=7993 pair=8981 ratio=0.890
-CARROT_SUPER_BUDGET kind=bamboo super=8057 pair=9451 ratio=0.852
-CARROT_SUPER_BUDGET kind=chili super=29768 pair=29240 ratio=1.018
-CARROT_SUPER_BUDGET kind=lotus super=9377 pair=10489 ratio=0.894
-CARROT_SUPER_BUDGET kind=magnet super=5876 pair=5479 ratio=1.073
-CARROT_SUPER_BUDGET kind=orchid super=11188 pair=10620 ratio=1.054
-CARROT_SUPER_BUDGET kind=mushroom super=10899 pair=11743 ratio=0.928
-CARROT_SUPER_BUDGET kind=cactus super=6618 pair=6208 ratio=1.066
-CARROT_SUPER_BUDGET kind=clockflower super=12785 pair=15364 ratio=0.832
-CARROT_SUPER_BUDGET kind=dragonfruit super=38073 pair=37427 ratio=1.017
-CARROT_SUPER_BUDGET kind=moonflower super=4434 pair=4145 ratio=1.070
-REBIRTH_REGRESSION_OK
-FREEZE_REGRESSION_OK
-SHIELD_REGRESSION_OK
-CARROT_EXPANSION_OK 4989 assertions so far
-CARROT_QUICK_OK 4989 assertions
-
-EXPECTED PRE-FIX REGRESSION FAILURES
-System.Reflection.TargetInvocationException: Exception has been thrown by the target of an invocation. ---> System.Exception: CARROT TEST: DOT rebirth owns the rest of its tick and cannot restart a legacy cast orchid
-System.Reflection.TargetInvocationException: Exception has been thrown by the target of an invocation. ---> System.Exception: CARROT TEST: overlapping Herald windups share one committed freeze during recovery
-System.Reflection.TargetInvocationException: Exception has been thrown by the target of an invocation. ---> System.Exception: CARROT TEST: temporary mossShield expiry preserves a larger innate shield
-
-RELEASE_NO_QA_METHODS_OR_DISPATCH_OK
-DEVELOPMENT_QA_GATE_OK
-
-SOURCE SHA256
-053fa12a81ecb50792a418b820740e8b9151177f8e7102e2a182e344c22c3bc7 unity/CarrotDefense/Assets/Scripts/CarrotData.cs
-cb2872685e456f8ae25ca0a0f788b06639d49c535c3a1bc8ec40a71c87d1c5b8 unity/CarrotDefense/Assets/Scripts/CarrotTypes.cs
-fa82c8548419152213dfbcfcf88ee9cbee59968b939e108117c229ae026527b6 unity/CarrotDefense/Assets/Scripts/CarrotGame.cs
-d54dd1c51f37aa183a7ec6f28c6932dc286faf32b2a407a3d44eec33bf8d0aee unity/CarrotDefense/Assets/Scripts/CarrotExpansion.cs
-cdd42fb36f0a0a75d43088269b1d0110d32049797839ee3e7f637bf707828c6e unity/CarrotDefense/Assets/Scripts/CarrotSimulationTests.cs
-35df4d339f3787a2e88ac8579dcf769d3439fb0b67b41412e98f61489a3da1f6 unity/CarrotDefense/Assets/Scripts/CarrotExpansionTests.cs
-8338bbfab32552a44b032c6ee7299058717c35c9994fb77f03f07e93c956fb5c scripts/carrot-waves.mjs
-232638c238c56572f7192c487ccad96bc4573f450f22f2052e360074b2722e2c scripts/carrot-game-data.mjs
+CARROT_GATE RS seed=0 won=False health=0
+CARROT_GATE RS seed=1 won=False health=0
+CARROT_GATE RS seed=2 won=False health=0
+CARROT_GATE RS seed=3 won=False health=0
+CARROT_DIGEST level=20 policy=0 ticks=22421 phase=won health=10 coins=419 hash=1566501f7e139bfe floatBits=cf4f404dd9f430cf
+CARROT_TESTS_OK 4435962 assertions; 57 campaign victories with earned coins (full); all twenty powers and Supers, nine bosses and fifteen minibosses, blindness, uproot, challenges and poor-coverage losses checked.

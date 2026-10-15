@@ -74,3 +74,24 @@ The full Unity campaign replay initially found an old level-19 policy failure: s
 - Normal Unity test entrypoints also call `CarrotAudio.MusicTransitionRegression`; the standalone simulation build explicitly excludes that audio test with `CARROT_STANDALONE_TEST`. Audio, model, camera, render performance, and physical touch interaction require the separate Unity/browser checks.
 - Web integration checks passed: challenge unlock/award/v1-v2-to-v3 migration, account sync preservation/future-format protection, full-track music lifecycle, and data-export parity. Music onset is wired from `bossEnter` through the View to the Asuna theme; actual browser listening remains separate.
 - No Unity Editor or WebGL build was launched for these simulation results. No claim of final visuals, audio listening, or release artifact validation is made here.
+
+
+## Pass 2 (giant update, 14 October 2026)
+
+Measured with the reference bots of [giant-update/difficulty.md](giant-update/difficulty.md) at commit ef4ca7a.
+The plan expected a six-tower stack near her spawn to beat Asuna; it never did: the stack exploit (RS) lost every seed
+before any change and still loses 100 of 100. The changes therefore aim at the expert's margin and at readability.
+
+| Change | Before | Pass 2 | Why |
+|---|---|---|---|
+| Dash length (phase 1-2 / 3) | 1.4 / 1.6 u | 1.8 / 2.2 u | the duel is a race; longer dashes shorten it |
+| HP breaks | none | 66% and 33%: a guaranteed Prism Break (a dash plus a spectrum rain on 3-4 towers) behind a 2.5 s actionable warning held at 1x; marks crossed in one burst share one break; shown as `thresholds` on the boss bar | fixed, visible milestones instead of the plan's reaction to the player's damage rate (amendment) |
+| Lances / rain windups | 1.6 / 2.1 s | 2.5 / 2.5 s | actionable telegraph floor |
+| Health | 25,000 | 20,000 | with the longer dashes, 22,000 HP let the expert win only 11 of 20 seeds |
+| Opening coins | 4,500 | 4,500 (the planned 3,600 measured: the expert won 0 of 10) | |
+| Opening escorts from the lane's start | none | measured and left out: even three nibbles behind her let the expert leak (0 of 20) | |
+
+Result: the expert's moving policy wins all 20 seed variants with a median lowest of 5.5 hearts (goal 2-6); the canonical run
+wins with 2 hearts in 183.9 s; the stationary opening still loses (139.4 s); the ignored boss reaches the carrot at
+347.1 s. The median bot R1 never relocates and loses every seed (band 8-20% unreachable for that bot). `eta` stays
+finite between dashes (her dash clock), so no snapshot carries Infinity.

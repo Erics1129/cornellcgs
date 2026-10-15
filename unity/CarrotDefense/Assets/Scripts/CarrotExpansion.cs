@@ -50,7 +50,7 @@ namespace CarrotTD {
   float blackoutReady,freezeReady;
   ExtraEnemy Extra(EnemyState e){if(!extras.TryGetValue(e.id,out var x)){x=new ExtraEnemy{next=elapsed+6,regenAt=elapsed+3};extras[e.id]=x;}return x;}
   void ExpireGrantedShield(EnemyState e){var x=Extra(e);if(x.grantUntil<=0||elapsed<x.grantUntil)return;e.shield=Mathf.Max(0,e.shield-x.grantedShield);e.maxShield=Mathf.Max(x.shieldMaxBefore,e.shield);x.grantedShield=0;x.grantUntil=0;}
-  void GrantShield(EnemyState e,float amount,float duration){
+  void GrantShield(EnemyState e,float amount,float duration){if(muting)return;
    ExpireGrantedShield(e);var x=Extra(e);float increase=Mathf.Max(0,amount-e.shield);if(increase<=0&&x.grantedShield<=0)return;
    if(x.grantUntil<=0)x.shieldMaxBefore=e.maxShield;x.grantedShield+=increase;e.shield+=increase;e.maxShield=Mathf.Max(e.maxShield,e.shield);x.grantUntil=Mathf.Max(x.grantUntil,elapsed+duration);
   }
@@ -66,6 +66,7 @@ namespace CarrotTD {
    if(!string.IsNullOrEmpty(e.miniboss)){SetNotice(def.name,2);Emit("miniEnter",e.kind,e.position,id:e.id,value:e.hp,duration:1);}
   }
   void QueueExtra(string kind,EnemyState source,int count,float hpScale=1,bool clone=false,float life=35){
+   if(muting)return;
    // Every promised summon reserves completion work immediately; source death cannot orphan a reservation.
    int alive=0;foreach(var e in enemies)if(e.alive&&e.summoned)alive++;int available=Mathf.Max(0,22-alive-extraSpawns.Count);
    for(int i=0;i<Mathf.Min(count,available);i++){
@@ -117,10 +118,10 @@ namespace CarrotTD {
    }
    return true;
   }
-  void Rally(EnemyState e,float radius,float factor,float duration){foreach(var ally in enemies)if(ally.alive&&ally.id!=e.id&&FlatDistance(e.position,ally.position)<=radius){ally.rushUntil=Mathf.Max(ally.rushUntil,elapsed+duration);actors[ally.id].rushMult=factor;}}
+  void Rally(EnemyState e,float radius,float factor,float duration){if(muting)return;foreach(var ally in enemies)if(ally.alive&&ally.id!=e.id&&FlatDistance(e.position,ally.position)<=radius){ally.rushUntil=Mathf.Max(ally.rushUntil,elapsed+duration);actors[ally.id].rushMult=factor;}}
   bool Ward(TowerState t){return controlWard.TryGetValue(t.id,out float until)&&until>elapsed;}
-  void Weaken(TowerState t,float factor,float duration){if(Ward(t))return;t.weakenFactor=t.weakenUntil>elapsed?Mathf.Min(t.weakenFactor,factor):factor;t.weakenUntil=Mathf.Max(t.weakenUntil,elapsed+duration);}
-  void LockTower(TowerState t,float seconds){if(!Ward(t))t.stunnedFor=Mathf.Max(t.stunnedFor,seconds);}
+  void Weaken(TowerState t,float factor,float duration){if(Ward(t)||muting)return;t.weakenFactor=t.weakenUntil>elapsed?Mathf.Min(t.weakenFactor,factor):factor;t.weakenUntil=Mathf.Max(t.weakenUntil,elapsed+duration);}
+  void LockTower(TowerState t,float seconds){if(!Ward(t)&&!muting)t.stunnedFor=Mathf.Max(t.stunnedFor,seconds);}
   bool ScheduleExpansionBoss(EnemyState e,Actor a){
    var x=Extra(e);if(elapsed<x.next)return false;bool far=e.routeLength-e.distance>8;
    string kind="";float windup=1.6f;
@@ -140,7 +141,7 @@ namespace CarrotTD {
   void PrepareExpansionCast(EnemyState e,Actor a,string kind){
    if(kind=="stormLock"||kind=="thornBind"||kind=="glacierLance"||kind=="portalStorm"){
     candidates.Clear();foreach(var t in towers)if(FlatDistance(t.position,e.position)<=5.5f)candidates.Add(t);
-    candidates.Sort((t,u)=>FlatDistance(t.position,e.position).CompareTo(FlatDistance(u.position,e.position)));
+    candidates.Sort((t,u)=>Nearer(e.position,t,u));
     int cap=kind=="portalStorm"?3:2;foreach(var t in candidates)if(a.targets.Count<cap)a.targets.Add(t.id);
    }
   }
@@ -153,20 +154,20 @@ namespace CarrotTD {
     case "wither":duration=3.2f;foreach(var t in towers)Weaken(t,.78f,duration);break;
     case "stormLock":case "thornBind":case "glacierLance":case "portalStorm":
      duration=kind=="portalStorm"?2.1f:kind=="glacierLance"?1.7f:1.35f;
-     foreach(int id in a.targets){var t=towers.Find(p=>p.id==id);if(t==null)continue;if(kind=="thornBind"){if(!Ward(t))t.slowFor=Mathf.Max(t.slowFor,3.5f);}else LockTower(t,duration);
+     foreach(int id in a.targets){var t=towers.Find(p=>p.id==id);if(t==null)continue;if(kind=="thornBind"){if(!Ward(t)&&!muting)t.slowFor=Mathf.Max(t.slowFor,3.5f);}else LockTower(t,duration);
       if(targetId==0){targetId=t.id;target=t.position;}else Emit("abilityTarget",kind,e.position,t.position,e.id,t.id,duration:duration);}
      break;
     case "graveCall":QueueExtra("tinyZombie",e,3,.6f,false,26);duration=.7f;break;
     case "mirrorSplit":if(!e.clone)QueueExtra(e.kind,e,2,.23f,true,12);duration=.7f;break;
     case "riftBlink":Blink(e,1.2f,kind);duration=.6f;break;
     case "mossShield":duration=4;foreach(var ally in enemies)if(ally.alive&&FlatDistance(e.position,ally.position)<2.4f){float shield=Mathf.Min(ally.maxHp*.16f,130*CarrotData.HPScale(level.id));GrantShield(ally,shield,duration);}break;
-    case "emberCharge":duration=2.2f;e.rushUntil=elapsed+duration;a.rushMult=1.85f;foreach(var t in towers)if(FlatDistance(t.position,e.position)<2.7f&&!Ward(t))t.slowFor=Mathf.Max(t.slowFor,2.2f);break;
+    case "emberCharge":duration=2.2f;if(!muting){e.rushUntil=elapsed+duration;a.rushMult=1.85f;}foreach(var t in towers)if(!muting&&FlatDistance(t.position,e.position)<2.7f&&!Ward(t))t.slowFor=Mathf.Max(t.slowFor,2.2f);break;
     case "venomMist":duration=3.5f;foreach(var t in towers)if(FlatDistance(t.position,e.position)<3.1f)Weaken(t,.72f,duration);value=3.1f;break;
-    case "ironShell":duration=3.2f;a.armorUntil=elapsed+duration;x.exposedUntil=elapsed+duration+3;x.exposed=.25f;break;
-    case "coinLeech":value=Mathf.Min(coins,Mathf.Min(60,Mathf.Max(15,Mathf.FloorToInt(coins*.1f))));coins-=(int)value;x.stolen+=(int)value;duration=.7f;break;
-    case "chronoField":duration=3;foreach(var t in towers)if(FlatDistance(t.position,e.position)<3&&!Ward(t))t.slowFor=Mathf.Max(t.slowFor,duration);value=3;break;
+    case "ironShell":duration=3.2f;if(!muting)a.armorUntil=elapsed+duration;x.exposedUntil=elapsed+duration+3;x.exposed=.25f;break;
+    case "coinLeech":value=muting?0:Mathf.Min(coins,Mathf.Min(60,Mathf.Max(15,Mathf.FloorToInt(coins*.1f))));coins-=(int)value;x.stolen+=(int)value;duration=.7f;break;
+    case "chronoField":duration=3;foreach(var t in towers)if(!muting&&FlatDistance(t.position,e.position)<3&&!Ward(t))t.slowFor=Mathf.Max(t.slowFor,duration);value=3;break;
     case "sentinelRift":Blink(e,.9f,"riftBlink");GrantShield(e,e.maxHp*.12f,3);if(x.casts<2)QueueExtra("riftling",e,2,.55f,false,22);duration=1;break;
-    case "brambleSurge":duration=3.5f;Rally(e,3.5f,1.22f,duration);QueueExtra("beetle",e,2,.8f,false,28);foreach(var t in towers)if(FlatDistance(t.position,e.position)<3.2f&&!Ward(t))t.slowFor=Mathf.Max(t.slowFor,2);value=3.5f;break;
+    case "brambleSurge":duration=3.5f;Rally(e,3.5f,1.22f,duration);QueueExtra("beetle",e,2,.8f,false,28);foreach(var t in towers)if(!muting&&FlatDistance(t.position,e.position)<3.2f&&!Ward(t))t.slowFor=Mathf.Max(t.slowFor,2);value=3.5f;break;
     case "lanternFlood":duration=3;foreach(var ally in enemies)if(ally.alive&&FlatDistance(e.position,ally.position)<3)GrantShield(ally,ally.maxHp*.12f,duration);QueueExtra("wisp",e,2,.75f,false,25);value=3;break;
     case "harvestMoon":duration=3;Rally(e,4,1.3f,duration);QueueExtra("mimic",e,2,.65f,false,27);value=4;break;
     case "cycloneCall":if(ActiveMiniSummons(e.id)<2){var pool=Array.FindAll(CarrotData.AddedEnemies,p=>p.mini&&p.id!="portalSentinel");QueueExtra(pool[NextInt(pool.Length)].id,e,1,.58f,false,32);}duration=.8f;break;
@@ -182,7 +183,7 @@ namespace CarrotTD {
    if(handled){x.casts++;x.next=elapsed+(!string.IsNullOrEmpty(e.boss)?e.boss=="portal"?7:e.boss=="eyeball"?12:20:kind=="fieldFreeze"?15:12);a.activeUntil=elapsed+duration;}
    return handled;
   }
-  void Blink(EnemyState e,float amount,string kind){Vector3 before=e.position;float limit=Mathf.Max(0,e.routeLength-6);if(e.distance>=limit)return;e.distance=Mathf.Min(limit,e.distance+amount);e.position=CarrotData.RoutePoint(level.routes[e.route],e.distance,out e.direction);Emit("abilityTarget",kind,before,e.position,e.id,e.id,duration:.45f,value:amount);}
+  void Blink(EnemyState e,float amount,string kind){if(muting)return;Vector3 before=e.position;float limit=Mathf.Max(0,e.routeLength-6);if(e.distance>=limit)return;e.distance=Mathf.Min(limit,e.distance+amount);e.position=CarrotData.RoutePoint(level.routes[e.route],e.distance,out e.direction);Emit("abilityTarget",kind,before,e.position,e.id,e.id,duration:.45f,value:amount);}
   bool IsNewTower(string kind){return kind=="bamboo"||kind=="chili"||kind=="lotus"||kind=="magnet"||kind=="orchid"||kind=="mushroom"||kind=="cactus"||kind=="clockflower"||kind=="dragonfruit"||kind=="moonflower";}
   // Sanctuary has a wall-clock (game time) cooldown independent of being stunned: it can actually counter disables.
   void TickTowerExpansion(TowerState t){
