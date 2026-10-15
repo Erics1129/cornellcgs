@@ -113,11 +113,12 @@ export function evaluate(runs, { counts, quick, step, repo }) {
   inv.a = { name: 'R0 (best of its two policies) wins every level on every seed', pass: best.length > 0 && best.every(r => r.won), losses: best.filter(r => !r.won).map(r => `L${r.level} s${r.seed} w${r.wave}`), bothPolicyLosses: R0.filter(r => !r.won).length }
   const R3 = runs.filter(r => r.bot === 'R3')
   inv.b = { name: 'R3 loses every gated level', pass: R3.length > 0 && R3.every(r => !r.won), wins: R3.filter(r => r.won).map(r => r.level) }
+  // (c) is a statement about a level's wave curve, so it is judged on the campaign (L1-L24); the challenges (a guardian
+  // walking from mid-level, Asuna's single-wave duel) are reported alongside.
   const R1 = runs.filter(r => r.bot === 'R1')
-  let late = 0, total = 0
-  for (const r of R1) { const W = r.waves, cut = Math.ceil(W * 0.6); r.hearts.forEach((h, i) => { total += h; if (i >= cut) late += h }) }
-  const r1Losses = R1.filter(r => !r.won), early = r1Losses.filter(r => r.wave <= 2).length, w3 = r1Losses.filter(r => r.wave === 3).length
-  inv.c = { name: 'no early cliff (R1)', lateHeartShare: round(late / Math.max(1, total)), earlyLossShare: round(early / Math.max(1, r1Losses.length)), wave3LossShare: round(w3 / Math.max(1, r1Losses.length)), pass: late / Math.max(1, total) >= 0.7 && early / Math.max(1, r1Losses.length) <= 0.15 && w3 / Math.max(1, r1Losses.length) <= 0.15 }
+  const cliff = set => { let late = 0, total = 0; for (const r of set) { const cut = Math.ceil(r.waves * 0.6); r.hearts.forEach((h, i) => { total += h; if (i >= cut) late += h }) } const losses = set.filter(r => !r.won); return { lateHeartShare: round(late / Math.max(1, total)), earlyLossShare: round(losses.filter(r => r.wave <= 2).length / Math.max(1, losses.length)), wave3LossShare: round(losses.filter(r => r.wave === 3).length / Math.max(1, losses.length)) } }
+  const campaignCliff = cliff(R1.filter(r => r.level <= 24)), allCliff = cliff(R1)
+  inv.c = { name: 'no early cliff (R1, campaign L1-L24)', ...campaignCliff, allLevels: allCliff, pass: campaignCliff.lateHeartShare >= 0.7 && campaignCliff.earlyLossShare <= 0.15 && campaignCliff.wave3LossShare <= 0.15 }
   inv.e = { name: 'R0 lowest-HP sd <= 1.5 per level (best policy per seed)', worst: Math.max(0, ...levels.filter(l => l.r0).map(l => l.r0.sdLowestBest || 0)), worstLevels: levels.filter(l => l.r0 && l.r0.sdLowestBest > 1.5).map(l => l.level), perPolicyWorst: Math.max(0, ...levels.filter(l => l.r0).flatMap(l => [l.r0.sdLowestP0 || 0, l.r0.sdLowestP1 || 0])), pass: levels.filter(l => l.r0).every(l => (l.r0.sdLowestBest || 0) <= 1.5) }
   const fRows = levels.filter(l => l.r1 && l.r1f && l.r1.rate < 0.75).map(l => ({ level: l.level, gain: round(l.r1f.rate - l.r1.rate) }))
   inv.f = { name: 'preview knowledge helps where R1 < 75%: R1F - R1 >= 10 pts', rows: fRows, pass: fRows.length === 0 ? null : fRows.every(x => x.gain >= 0.1) }

@@ -402,6 +402,7 @@ namespace CarrotTD {
    foreach(int level in new[]{4,8,12,16,20,24})for(int strategy=0;strategy<2;strategy++){var r=RunCampaign(level,strategy);Debug.Log("CARROT_CAMPAIGN merges=off strategy="+strategy+" level="+level+" result="+r.phase+" hearts="+r.health+" lowest="+r.lowest+" seconds="+r.seconds.ToString("F1")+" wave="+r.wave+" towers="+r.towers);
     if(level<=12&&r.phase!="won")failures.Add("merges-off strategy "+strategy+" level "+level+" must still win ("+r.phase+", wave "+r.wave+")");}
    policyMerges=true;
+   Debug.Log("CARROT_SNAPSHOTS_PARSED "+strictParses+" published snapshots of the bot campaigns parsed as strict JSON");
   }
   class Result {public string phase;public int health,lowest,wave,towers,supers,earned;public float seconds,bossHp,bossGap;public string roster;public BotRun run;}
   static void CampaignRuns(string tag,int levels,bool merges,bool assertSupers){
@@ -420,10 +421,12 @@ namespace CarrotTD {
    if(level==29)return RunPrismCampaign(strategy,noise);
    scoreNoise=noise;
    var g=New(level);float bossGap=-1;g.Effect+=v=>{if(v.type=="death"){var fallen=g.enemies.Find(e=>e.id==v.id);if(fallen!=null&&!string.IsNullOrEmpty(fallen.boss))bossGap=fallen.routeLength-fallen.distance;}if((v.type=="telegraph"||v.type=="telegraphTarget")&&v.kind=="uproot"&&v.target>0){var t=g.towers.Find(x=>x.id==v.target);if(t!=null){g.Select("tower",t.id);g.Command("{\"type\":\"sell\"}");}}};if(strategy==1&&level==1){g.Select("pad",0);g.Command("{\"type\":\"buy\",\"kind\":\"seed\"}");g.Select("pad",1);g.Command("{\"type\":\"buy\",\"kind\":\"frost\"}");}BuyBest(g,strategy);BuyBest(g,strategy);g.Command("{\"type\":\"start\"}");float limit=0;int lowest=10,lastMergeWave=-1,merges=0;
-   float validateAt=0;
+   float validateAt=0;string lastChecked=null;
    while(g.phase=="playing"&&limit<1200){for(int i=0;i<4;i++)if(!BuyBest(g,strategy))break;if(policyMerges&&g.wave!=lastMergeWave&&MergeBest(g)){lastMergeWave=g.wave;merges++;}Focus(g);float step=noise==null?.25f:.25f+(float)noise.Unit()*.25f;g.StepSimulation(step);limit+=step;lowest=Mathf.Min(lowest,g.health);Check(g.coins>=0,"never spend nonexistent coins "+level);
-    // Every bot run doubles as a bridge-contract run: the published snapshot must always parse.
-    if(limit>=validateAt){validateAt+=15;ValidateSnapshot(g.LastSnapshot,"campaign "+level);}}
+    // Every bot run doubles as a bridge-contract run: every published snapshot parses as strict JSON (JSON.parse would
+    // accept it) and every 5 s of game time a fresh snapshot also carries every v2 key with its documented type.
+    if(!ReferenceEquals(g.LastSnapshot,lastChecked)){lastChecked=g.LastSnapshot;StrictJson(lastChecked,"campaign "+level);}
+    if(limit>=validateAt){validateAt+=5;ValidateSnapshot(g.Snapshot(),"campaign "+level);}}
    ValidateSnapshot(g.Snapshot(),"campaign end "+level);
    string roster="";int supers=0;foreach(var t in g.towers){roster+=t.kind+"/"+t.tier+",";if(t.tier==5)supers++;}
    var r=new Result{phase=g.phase,health=g.health,lowest=lowest,wave=g.wave,towers=g.towers.Count,supers=Mathf.Max(supers,merges),earned=g.TotalEarned,seconds=g.elapsed,bossHp=g.enemies.Find(e=>!string.IsNullOrEmpty(e.boss))?.hp??0,bossGap=bossGap,roster=roster};

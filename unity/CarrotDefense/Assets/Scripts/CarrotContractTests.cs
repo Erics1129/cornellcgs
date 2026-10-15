@@ -27,6 +27,9 @@ namespace CarrotTD {
    }
    static string Str(string s,ref int i){i++;var sb=new System.Text.StringBuilder();while(i<s.Length&&s[i]!='"'){if(s[i]<' ')throw new FormatException("control character in string");if(s[i]=='\\'){i++;char e=s[i];if(e=='u'){sb.Append((char)Convert.ToInt32(s.Substring(i+1,4),16));i+=4;}else sb.Append(e=='n'?'\n':e=='t'?'\t':e=='r'?'\r':e=='b'?'\b':e=='f'?'\f':e);}else sb.Append(s[i]);i++;}if(i>=s.Length)throw new FormatException("open string");i++;return sb.ToString();}
   }
+  static int strictParses;
+  /// <summary>Syntax only: the snapshot is something JSON.parse accepts (no NaN, Infinity or stray tokens).</summary>
+  static void StrictJson(string json,string where){strictParses++;try{MiniJson.Parse(json);}catch(Exception e){Check(false,where+" snapshot parses as strict JSON ("+e.Message+")");}}
   static Dictionary<string,object> Obj(object o,string what){var d=o as Dictionary<string,object>;Check(d!=null,what+" is an object");return d;}
   static void Has(Dictionary<string,object> d,string key,string type,string where){
    Check(d.ContainsKey(key),where+" carries "+key);var v=d[key];
