@@ -22,7 +22,7 @@ namespace CarrotTD {
    string biome=game.level.biome,boss=game.level.boss;
    switch(biome){
     case "garden":return .6f;case "marsh":return 1.95f;case "frost":return -1.75f;case "orchard":return 1.2f;case "prism":return -1.25f;
-    case "arena":return boss=="tornado"?1.45f:boss=="zombie"?2.35f:boss=="eyeball"?1.8f:boss=="portal"?1.55f:1.6f;
+    case "arena":return boss=="tornado"?1.55f:boss=="zombie"?2.6f:boss=="eyeball"?1.8f:boss=="portal"?1.55f:1.6f;
    }
    return 0;
   }

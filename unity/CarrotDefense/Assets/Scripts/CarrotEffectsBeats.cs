@@ -80,20 +80,29 @@ namespace CarrotTD {
   static readonly string[] AllyKinds={"seed","frost","mortar","prism","storm","blossom","starfruit","gravity","book","thunder","bamboo","chili","lotus","magnet","orchid","mushroom","cactus","clockflower","dragonfruit","moonflower"};
   static readonly System.Collections.Generic.Dictionary<string,Color> separated=new System.Collections.Generic.Dictionary<string,Color>();
   static Vector3[] allyLab;
-  /// <summary>Boss, miniboss and creature effect colours keep their element hue but are pushed (in OKLab, toward the threat pink) until
-  /// they sit at least 0.09 from every tower family's colour, so a boss's frost never reads as the player's Frost.</summary>
+  /// <summary>Boss, miniboss and creature effect colours keep their element hue family but move to the nearest in-gamut colour that
+  /// sits at least 0.095 (OKLab) from every tower family's colour, so a boss's frost never reads as the player's Frost. Searched over
+  /// the sRGB cube (coarse 12^3 grid, then a 9^3 refinement around the best) because pushing in OKLab alone leaves the gamut for the
+  /// vivid reds and cyans and the clamp pulls them straight back onto the tower colour. Lightness changes weigh 1.5x and lost chroma
+  /// 2x, so the answer is a hue shift (frost casts go teal, ember casts hot pink-red) rather than a washed-out pastel.</summary>
   static Color Separated(string kind,Color c){
    if(string.IsNullOrEmpty(kind)||System.Array.IndexOf(AllyKinds,kind)>=0||kind=="merge"||kind=="mergeUndo"||kind=="super")return c;
    if(separated.TryGetValue(kind,out var cached))return cached;
    if(allyLab==null){allyLab=new Vector3[AllyKinds.Length];for(int i=0;i<AllyKinds.Length;i++)allyLab[i]=OkLab(ToneRaw(AllyKinds[i]));}
-   // Step directly away from the nearest tower colour (keeps the ability's own hue family); toward the threat pink only for an exact twin.
-   Vector3 lab=OkLab(c);Color result=c;
-   // Repelled by every tower colour closer than the margin at once (so it cannot slide into a neighbour); if boxed in, toward the threat pink.
-   Vector3 start=lab,threat=OkLab(Threat);
-   for(int it=0;it<120&&MinAllyDistance(lab)<.095f;it++){Vector3 push=Vector3.zero;foreach(var a in allyLab){Vector3 d=lab-a;float m=d.magnitude;if(m<.095f)push+=(m>1e-5f?d/m:Vector3.up)*(.095f-m+.002f);}
-    Vector3 step=push.sqrMagnitude>1e-8f?push.normalized:(threat-lab).normalized;if(it>80)step=(step+(threat-lab).normalized).normalized;lab+=step*.006f;lab.x=Mathf.Clamp(lab.x,.08f,.96f);}
-   if(lab!=start)result=FromOkLab(lab,c.a);
+   Vector3 o=OkLab(c);Color result=c;
+   if(MinAllyDistance(o)<SeparationMargin){
+    float c0=Mathf.Sqrt(o.y*o.y+o.z*o.z),lMin=Mathf.Min(o.x,.45f),bestScore=9;Color best=c;bool found=false;
+    const int n=12;const float step=1f/(n-1);
+    for(int i=0;i<n;i++)for(int j=0;j<n;j++)for(int k=0;k<n;k++)Candidate(new Color(i*step,j*step,k*step,c.a),o,c0,lMin,ref best,ref bestScore,ref found);
+    if(found){Color b0=best;const int f=4;for(int i=-f;i<=f;i++)for(int j=-f;j<=f;j++)for(int k=-f;k<=f;k++){float r=b0.r+i*step/f,g=b0.g+j*step/f,b=b0.b+k*step/f;if(r<0||g<0||b<0||r>1||g>1||b>1)continue;Candidate(new Color(r,g,b,c.a),o,c0,lMin,ref best,ref bestScore,ref found);}result=best;}
+   }
    separated[kind]=result;return result;
+  }
+  const float SeparationMargin=.095f;
+  static void Candidate(Color rgb,Vector3 o,float c0,float lMin,ref Color best,ref float bestScore,ref bool found){
+   Vector3 p=OkLab(rgb);if(p.x<lMin||MinAllyDistance(p)<SeparationMargin)return;
+   float dl=1.5f*(p.x-o.x),da=p.y-o.y,db=p.z-o.z,score=Mathf.Sqrt(dl*dl+da*da+db*db)+2*Mathf.Max(0,c0-Mathf.Sqrt(p.y*p.y+p.z*p.z));
+   if(score<bestScore){bestScore=score;best=rgb;found=true;}
   }
   static float MinAllyDistance(Vector3 lab){float m=9;foreach(var a in allyLab)m=Mathf.Min(m,Vector3.Distance(a,lab));return m;}
   /// <summary>Smallest OKLab distance between a (separated) tone and the tower palette (tests and the QA probe).</summary>
@@ -108,14 +117,16 @@ namespace CarrotTD {
   // ---- atmosphere: drifting low fog cards (High and Medium) ----------------------------------------------------------------------
   ParticleSystem fogCards;bool fogReady;
   /// <summary>A few very large, very faint lit puffs drifting low over the board in the night and cold biomes (marsh mist, frost
-  /// drift, the zombie and eyeball arenas, the portal void): depth without a full-screen pass. Off on Low (overdraw on phones).</summary>
+  /// drift, the zombie and eyeball arenas): depth without a full-screen pass. Off on Low (overdraw on phones).</summary>
   void FogCards(string biome){
    if(fogCards==null){var go=new GameObject("Fog cards");go.transform.SetParent(transform,false);fogCards=go.AddComponent<ParticleSystem>();fogCards.Stop(true,ParticleSystemStopBehavior.StopEmittingAndClear);var r=go.GetComponent<ParticleSystemRenderer>();r.sharedMaterial=pool.alphaPuff;r.shadowCastingMode=ShadowCastingMode.Off;r.receiveShadows=false;r.sortMode=ParticleSystemSortMode.Distance;var m=fogCards.main;m.playOnAwake=false;m.loop=true;m.simulationSpace=ParticleSystemSimulationSpace.World;var sh=fogCards.shape;sh.enabled=true;sh.shapeType=ParticleSystemShapeType.Box;}
    fogCards.Stop(true,ParticleSystemStopBehavior.StopEmittingAndClear);fogReady=false;
-   bool night=biome=="marsh"||biome=="portal"||biome=="arena"&&(EntranceBossHint=="zombie"||EntranceBossHint=="eyeball"),cold=biome=="frost";
+   // Not the portal void: its dark floor lost a third of the path-to-ground contrast under the cards (QA 2.19 -> 1.84 on High).
+   bool night=biome=="marsh"||biome=="arena"&&(EntranceBossHint=="zombie"||EntranceBossHint=="eyeball"),cold=biome=="frost";
    if(!CarrotQuality.Rich||!(night||cold)){fogCards.gameObject.SetActive(false);return;}
-   fogCards.gameObject.SetActive(true);var main=fogCards.main;int count=CarrotQuality.High?12:8;main.maxParticles=count;main.startLifetime=26;main.startSize=new ParticleSystem.MinMaxCurve(4.5f,7.5f);main.startSpeed=0;main.startRotation=new ParticleSystem.MinMaxCurve(0,6.28f);
-   Color c=biome=="marsh"?new Color(.55f,.7f,.68f,.09f):cold?new Color(.9f,.94f,1,.08f):biome=="portal"?new Color(.45f,.55f,.85f,.08f):new Color(.5f,.62f,.55f,.08f);main.startColor=c;
+   fogCards.gameObject.SetActive(true);var main=fogCards.main;int count=CarrotQuality.High?10:7;main.maxParticles=count;main.startLifetime=26;main.startSize=new ParticleSystem.MinMaxCurve(4.5f,7.5f);main.startSpeed=0;main.startRotation=new ParticleSystem.MinMaxCurve(0,6.28f);
+   // Half the first pass's alpha: at .08-.09 the cards veiled the marsh paths to 1.92:1 (QA path-to-ground floor is 2:1).
+   Color c=biome=="marsh"?new Color(.55f,.7f,.68f,.045f):cold?new Color(.9f,.94f,1,.04f):new Color(.5f,.62f,.55f,.04f);main.startColor=c;
    var em=fogCards.emission;em.enabled=true;em.rateOverTime=count/26f;var shape=fogCards.shape;shape.position=new Vector3(0,.55f,0);shape.scale=new Vector3(20,.4f,15);
    var vel=fogCards.velocityOverLifetime;vel.enabled=true;vel.space=ParticleSystemSimulationSpace.World;vel.x=.12f;vel.y=0;vel.z=.04f;
    var col=fogCards.colorOverLifetime;col.enabled=true;var g=new Gradient();g.SetKeys(new[]{new GradientColorKey(Color.white,0),new GradientColorKey(Color.white,1)},new[]{new GradientAlphaKey(0,0),new GradientAlphaKey(1,.25f),new GradientAlphaKey(1,.75f),new GradientAlphaKey(0,1)});col.color=g;
