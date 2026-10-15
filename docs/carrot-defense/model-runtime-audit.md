@@ -100,3 +100,20 @@ The read-only `CarrotTD.CarrotColorAudit.Run` Editor method inspected Unity's im
 The previous shader treated the encoded vertex colors as linear, lifting dark surfaces. `CarrotModels.Surface` now marks imported actor and Kenney materials with `_VertexColorSRGB=1`; Storybook decodes these vertex RGB values before interpolation in linear projects. Texture sampling, procedural terrain colors and scanned scenery materials retain their existing handling. Export scripts explicitly retain `colors_type='SRGB'` to make the convention stable. This is a measured color-space correction, not a palette adjustment. The audit method writes its diagnostic report to `/tmp/carrot-unity-vertex-colors.json` without changing source assets or import settings.
 
 The same runtime review found that Frostglass terrain multiplied a dark lichen texture by a pale tint. Snow now uses a pale base, subtle grain relief and broad terrain variation; its paths use a cooler packed surface. Winter scatter omits summer ferns, marsh paths are brighter, and cached planting-pad material names include the biome to prevent color carryover when switching levels.
+
+
+## Giant update (October 2026, characters stream)
+
+Full record: `docs/carrot-defense/giant-update/characters.md`. The items below change earlier statements in this audit.
+
+- **Facing.** The original creatures and guardians had walked backwards: Blender -Y fronts imported as Unity -Z, while the view yaws enemy roots along +Z. Their prefab Geometry is now turned 180 degrees (`CarrotModels.PlusZFront`). Portal-era actors were already correct.
+- **Normals.** The spider's normals are recalculated at a 60 degree smoothing angle. The nibble's eyes are re-seated below the cap overhang, so they are visible from the 34 degree camera.
+- **Tornado.** The Giant Tornado was rebuilt as a dust core inside three translucent FxAlpha wind shells; the pivot names are unchanged.
+- **Albedo.** The tornado and zombie albedos are baked, replacing the view's per-frame tints (OKLab ΔE 0.004 and 0.001 against the old lerped colours).
+- **Animation.** Tower firing remains procedural. Creature clips are now stride-synced to ground speed (`CarrotGait`) and blended over 0.25 s, with idle variants. Damped secondary-motion springs ride on ears, antennae, wings, blob heads, jaws and arms (`CarrotSecondaryMotion`). Corrective shapes are still absent, and the clips are still the reused licensed ones.
+- **Budgets.**
+  - The crowd mobs, minibosses, guardians and hero carry importer Mesh LODs (index ranges only), selected per quality tier (`CarrotTierLod`).
+  - Tower tiers are decimated to a 12k-triangle budget (1.47M → 0.92M triangles for all 100 tiers).
+  - The scanned-nature Small levels are about 60% of their previous size.
+- **Surfaces.** Storybook adds wrap subsurface, Charlie sheen, whiteout detail normals, sky occlusion with ground bounce, a hit flash and a night rim, all off at default values. Per-category values are set by `CarrotModels.ApplyBlendedRealism`. The detail textures are original analytic heightfields (`detail-normal-provenance.json`).
+- **Visual review.** Visual claims in this section rest on Unity frames from `CarrotCharacterStudio` (`docs/carrot-defense/screenshots/giant-update/`). The browser build still has to be checked by the release QA pass.
