@@ -69,6 +69,7 @@ Heights are the `MODEL_BOUNDS` sizes logged by `CarrotBuild.Prepare` (metres, Un
 | Challenge boss | Build | Triangles (budget) | Named parts for the view | Clips |
 |---|---|---:|---|---|
 | `tornado` Giant Tornado (level 25) | Non-animated prop, `build_carrot_models.py -- challenge` | 9,064 (14,000) | `FunnelTier0..4` lathed hollow-mouthed frusta with a slate-to-pale vertex gradient, `DebrisRing0..2` with planks, pebbles, torn leaves and a gold pumpkin, two amber `StormEye` glows, a dark maw, 12 `LightningVein` tubes | none (spun and bobbed by the view) |
+| `tornado` v2 (giant update) | `build_carrot_models.py -- tornado` → `refine_carrot_characters.tornado_v2` | 12,570 | `FunnelTier0` opaque dust core, `FunnelTier1..3` nested translucent wind shells (`Carrot/FxAlpha`, original streak sheet), `FunnelTier4` rolled storm lip, `DebrisRing0..2`, storm face; slate baked into vertex colour (replaces the row above) |
 | `zombie` Gravewalker Zombie (level 26) | Mushroom King rig (CC0) with original sculpt `sculpt_challenge_bosses.py`, `build_carrot_characters.py -- zombie` | 18,292 (30,000) | `LivingTrunk`, two `TwistedArm`s with `GraspingRoot` fingers, one `HangingArm`, `LegMuscle`s, a fused and decimated pumpkin `SkullHead` with glowing green sockets, `RibPlate`s, `BurlapPanel` rags with straw tufts, a shoulder crow | 14 source clips incl. Walk, Punch, Death, HitReact |
 | `eyeball` The Unknown Eyeball (level 27) | Non-animated prop, `build_carrot_models.py -- challenge` | 7,016 (16,000) | `Sclera`, `Iris` (crimson Glow dish) and `Pupil` on their own pivots, 8 `IrisFold`s, 14 `Vein`s, `UpperLid`/`LowerLid` shells, `Tentacle0..5` thorned vines, 3 trailing `NerveStalk`s | none (hovered, blinked and swung by the view) |
 
@@ -109,6 +110,8 @@ The numbered plates contain **204 illustrated pose/sequence cells** when both th
 
 Kenney Nature Kit contributes ten selected CC0 meshes: TreeOak, TreeAutumn, TreePine, Rock, RockTall, Pebble, FlowerWhite, FlowerPurple, Bridge and Stump. Each has a finished `Carrot/Nature/{name}` prefab; original atlas colors were sampled into vertex colors. These are stylized supporting assets, separate from the scanned set below.
 
+Giant update: TreeAutumn, TreeOak and TreePine are no longer Kenney meshes. They are original procedural trees from `Tools/build_carrot_living_nature.py` (flared trunk and branches, opaque lumpy leaf clumps, Foliage material), under the same names. The script also makes `Pumpkin`, `HayBale` and `CrateStack` for the orchard props. The other seven Kenney meshes are unchanged.
+
 Five finished `Carrot/RealNature/{name}` props come from four Poly Haven model sources:
 
 | Resource | Source | Exported triangles | Small LOD | Shadow caster | Materials |
@@ -139,6 +142,8 @@ Canonical source and license record: `unity/CarrotDefense/ASSET-CREDITS.md`; pub
 - `model-review-priority.png`, `model-review-creatures.png`: earlier modeling checkpoints, retained for comparison; they are not claims of the final runtime appearance.
 - `model-review-scanned-nature.png`: four-prop Blender asset review (fern, stump, two rocks). `model-review-shrub.png` covers the fifth scanned prop separately.
 - `model-relief-before.png` and `model-relief-after.png`: controlled Blender render of the same carrot, blossom, frost boss and marsh boss before/after biological normal/roughness maps. Geometry, camera and lighting are identical; the effect is deliberately subtle. This is not a live runtime comparison.
+- The six Blender plates above (`model-review-{bosses,towers,priority,creatures}.png`, `model-relief-{before,after}.png`) moved from `public/assets/minigames/carrot/` to `docs/carrot-defense/screenshots/legacy/` in the giant update: no page referenced them, and they shipped about 9 MB to GitHub Pages.
+- Giant-update review sheets (`docs/carrot-defense/screenshots/giant-update/`) are Unity frames of the real scene rendered by `CarrotCharacterStudio` (editor play mode, URP, the shipped materials), not Blender previews: `facing-before-after.jpg`, `models-before-after.jpg`, `portraits-vs-game.jpg`, `tornado-v2.jpg`, `walk-strips.jpg`, `mesh-lod-levels.jpg`, `detail-normals.jpg`. See `giant-update/characters.md`.
 - Only captures explicitly identified as Unity/WebGL runtime screenshots establish the rendered game state. Runtime screenshots are being reviewed separately; no reference art is relabeled as gameplay.
 
 ## 3D upgrade assets (branch carrot-3d-upgrade, all generated in-repo)

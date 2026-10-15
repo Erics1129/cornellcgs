@@ -57,7 +57,7 @@ SkinnedMeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 4f787cffbe78b490daefbfc5f0f71e72, type: 2}
+  - {fileID: 2100000, guid: caff0622463924314a392ba3e91c27a0, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -232,6 +232,9 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 3990297324356361670}
+  - component: {fileID: 6541066513432569961}
+  - component: {fileID: 3710291167799623880}
+  - component: {fileID: 4744771485828246480}
   m_Layer: 0
   m_Name: swarm
   m_TagString: Untagged
@@ -255,6 +258,70 @@ Transform:
   - {fileID: 3939016993748710059}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &6541066513432569961
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4466276561809047537}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 11c1d08773a784edd81bba79354e7321, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CarrotTD.CarrotGait
+  walkClip: Walk
+  walkCycle: 0.4166667
+  walkSpeed: 0
+  runSpeed: 0
+  strideBone: 
+  idleA: Idle
+  idleB: Dance
+--- !u!114 &3710291167799623880
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4466276561809047537}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ac4502c74ef6f4b59a71bbd49630780c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CarrotTD.CarrotSecondaryMotion
+  links:
+  - bone: {fileID: 1890011540934259507}
+    maxDegrees: 5
+    lean: 0.9
+    mode: 0
+    trackSelf: 1
+  - bone: {fileID: 3590577032556116011}
+    maxDegrees: 6
+    lean: 1.2
+    mode: 0
+    trackSelf: 1
+  - bone: {fileID: 6998003520094702500}
+    maxDegrees: 4
+    lean: 0.5
+    mode: 0
+    trackSelf: 0
+  stiffness: 120
+  damping: 12
+--- !u!114 &4744771485828246480
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4466276561809047537}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c5516e686a18e4193a7f832bac89b28a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CarrotTD.CarrotTierLod
+  high: 0
+  medium: 1
+  low: 2
 --- !u!1 &5562572616406244283
 GameObject:
   m_ObjectHideFlags: 0
@@ -280,8 +347,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 5562572616406244283}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.7071068, y: 0, z: 0, w: 0.7071067}
-  m_LocalPosition: {x: -0.020869177, y: 0.0032431358, z: 0.01058585}
+  m_LocalRotation: {x: -0.00000003090862, y: 0.7071067, z: -0.7071068, w: -0.000000030908616}
+  m_LocalPosition: {x: 0.020869177, y: 0.0032431358, z: -0.010585852}
   m_LocalScale: {x: 27.361301, y: 27.361301, z: 27.361301}
   m_ConstrainProportionsScale: 0
   m_Children:

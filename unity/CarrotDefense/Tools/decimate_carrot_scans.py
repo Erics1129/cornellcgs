@@ -10,7 +10,9 @@ from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
 SOURCE=ROOT/'Assets/Resources/Carrot/RealNature/Source'
 # name: (small triangles, caster triangles)
-targets={'Fern':(1500,500),'Shrub':(4000,800),'MossRockA':(1500,500),'MossRockB':(1500,500),'Stump':(2500,500)}
+# Giant update: the Small placements are 18-40 px on screen, so they drop to roughly 60 % (rocks 55 %) and casters to 300, which keeps
+# the Low-tier board inside its triangle budget with a hundred mobs on the paths (characters.md, triangle budget).
+targets={'Fern':(1000,300),'Shrub':(2400,500),'MossRockA':(820,300),'MossRockB':(820,300),'Stump':(1400,300)}
 results=[]
 for name,(small,caster) in targets.items():
  for suffix,budget in (('Small',small),('Caster',caster)):

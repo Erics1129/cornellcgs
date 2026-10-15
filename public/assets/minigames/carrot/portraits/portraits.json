@@ -1,0 +1,1138 @@
+{
+ "asuna": {
+  "1": [
+   "../46-asuna-portrait.png",
+   0,
+   0,
+   1024,
+   1024
+  ]
+ },
+ "bamboo": {
+  "1": [
+   "towers-bamboo.webp",
+   0,
+   0,
+   256,
+   256
+  ],
+  "2": [
+   "towers-bamboo.webp",
+   256,
+   0,
+   256,
+   256
+  ],
+  "3": [
+   "towers-bamboo.webp",
+   512,
+   0,
+   256,
+   256
+  ],
+  "4": [
+   "towers-bamboo.webp",
+   768,
+   0,
+   256,
+   256
+  ],
+  "5": [
+   "towers-bamboo.webp",
+   1024,
+   0,
+   256,
+   256
+  ]
+ },
+ "bat": {
+  "1": [
+   "creatures.webp",
+   512,
+   512,
+   256,
+   256
+  ]
+ },
+ "beetle": {
+  "1": [
+   "creatures.webp",
+   1024,
+   256,
+   256,
+   256
+  ]
+ },
+ "blossom": {
+  "1": [
+   "towers-blossom.webp",
+   0,
+   0,
+   256,
+   256
+  ],
+  "2": [
+   "towers-blossom.webp",
+   256,
+   0,
+   256,
+   256
+  ],
+  "3": [
+   "towers-blossom.webp",
+   512,
+   0,
+   256,
+   256
+  ],
+  "4": [
+   "towers-blossom.webp",
+   768,
+   0,
+   256,
+   256
+  ],
+  "5": [
+   "towers-blossom.webp",
+   1024,
+   0,
+   256,
+   256
+  ]
+ },
+ "book": {
+  "1": [
+   "towers-book.webp",
+   0,
+   0,
+   256,
+   256
+  ],
+  "2": [
+   "towers-book.webp",
+   256,
+   0,
+   256,
+   256
+  ],
+  "3": [
+   "towers-book.webp",
+   512,
+   0,
+   256,
+   256
+  ],
+  "4": [
+   "towers-book.webp",
+   768,
+   0,
+   256,
+   256
+  ],
+  "5": [
+   "towers-book.webp",
+   1024,
+   0,
+   256,
+   256
+  ]
+ },
+ "burrow": {
+  "1": [
+   "creatures.webp",
+   256,
+   256,
+   256,
+   256
+  ]
+ },
+ "cactus": {
+  "1": [
+   "towers-cactus.webp",
+   0,
+   0,
+   256,
+   256
+  ],
+  "2": [
+   "towers-cactus.webp",
+   256,
+   0,
+   256,
+   256
+  ],
+  "3": [
+   "towers-cactus.webp",
+   512,
+   0,
+   256,
+   256
+  ],
+  "4": [
+   "towers-cactus.webp",
+   768,
+   0,
+   256,
+   256
+  ],
+  "5": [
+   "towers-cactus.webp",
+   1024,
+   0,
+   256,
+   256
+  ]
+ },
+ "carrot": {
+  "1": [
+   "bosses.webp",
+   768,
+   256,
+   256,
+   256
+  ]
+ },
+ "chili": {
+  "1": [
+   "towers-chili.webp",
+   0,
+   0,
+   256,
+   256
+  ],
+  "2": [
+   "towers-chili.webp",
+   256,
+   0,
+   256,
+   256
+  ],
+  "3": [
+   "towers-chili.webp",
+   512,
+   0,
+   256,
+   256
+  ],
+  "4": [
+   "towers-chili.webp",
+   768,
+   0,
+   256,
+   256
+  ],
+  "5": [
+   "towers-chili.webp",
+   1024,
+   0,
+   256,
+   256
+  ]
+ },
+ "chronoMoth": {
+  "1": [
+   "minibosses.webp",
+   512,
+   512,
+   256,
+   256
+  ]
+ },
+ "clockflower": {
+  "1": [
+   "towers-clockflower.webp",
+   0,
+   0,
+   256,
+   256
+  ],
+  "2": [
+   "towers-clockflower.webp",
+   256,
+   0,
+   256,
+   256
+  ],
+  "3": [
+   "towers-clockflower.webp",
+   512,
+   0,
+   256,
+   256
+  ],
+  "4": [
+   "towers-clockflower.webp",
+   768,
+   0,
+   256,
+   256
+  ],
+  "5": [
+   "towers-clockflower.webp",
+   1024,
+   0,
+   256,
+   256
+  ]
+ },
+ "crystal": {
+  "1": [
+   "creatures.webp",
+   512,
+   256,
+   256,
+   256
+  ]
+ },
+ "dash": {
+  "1": [
+   "creatures.webp",
+   256,
+   0,
+   256,
+   256
+  ]
+ },
+ "dragonfruit": {
+  "1": [
+   "towers-dragonfruit.webp",
+   0,
+   0,
+   256,
+   256
+  ],
+  "2": [
+   "towers-dragonfruit.webp",
+   256,
+   0,
+   256,
+   256
+  ],
+  "3": [
+   "towers-dragonfruit.webp",
+   512,
+   0,
+   256,
+   256
+  ],
+  "4": [
+   "towers-dragonfruit.webp",
+   768,
+   0,
+   256,
+   256
+  ],
+  "5": [
+   "towers-dragonfruit.webp",
+   1024,
+   0,
+   256,
+   256
+  ]
+ },
+ "emberBoar": {
+  "1": [
+   "minibosses.webp",
+   768,
+   256,
+   256,
+   256
+  ]
+ },
+ "eyeball": {
+  "1": [
+   "bosses.webp",
+   256,
+   256,
+   256,
+   256
+  ]
+ },
+ "firefly": {
+  "1": [
+   "creatures.webp",
+   1024,
+   512,
+   256,
+   256
+  ]
+ },
+ "frost": {
+  "1": [
+   "bosses.webp",
+   512,
+   0,
+   256,
+   256
+  ],
+  "2": [
+   "towers-frost.webp",
+   256,
+   0,
+   256,
+   256
+  ],
+  "3": [
+   "towers-frost.webp",
+   512,
+   0,
+   256,
+   256
+  ],
+  "4": [
+   "towers-frost.webp",
+   768,
+   0,
+   256,
+   256
+  ],
+  "5": [
+   "towers-frost.webp",
+   1024,
+   0,
+   256,
+   256
+  ]
+ },
+ "frostHerald": {
+  "1": [
+   "minibosses.webp",
+   256,
+   0,
+   256,
+   256
+  ]
+ },
+ "garden": {
+  "1": [
+   "bosses.webp",
+   0,
+   0,
+   256,
+   256
+  ]
+ },
+ "graveCaller": {
+  "1": [
+   "minibosses.webp",
+   1024,
+   0,
+   256,
+   256
+  ]
+ },
+ "gravity": {
+  "1": [
+   "towers-gravity.webp",
+   0,
+   0,
+   256,
+   256
+  ],
+  "2": [
+   "towers-gravity.webp",
+   256,
+   0,
+   256,
+   256
+  ],
+  "3": [
+   "towers-gravity.webp",
+   512,
+   0,
+   256,
+   256
+  ],
+  "4": [
+   "towers-gravity.webp",
+   768,
+   0,
+   256,
+   256
+  ],
+  "5": [
+   "towers-gravity.webp",
+   1024,
+   0,
+   256,
+   256
+  ]
+ },
+ "ironSnail": {
+  "1": [
+   "minibosses.webp",
+   0,
+   512,
+   256,
+   256
+  ]
+ },
+ "lanternLeech": {
+  "1": [
+   "minibosses.webp",
+   256,
+   512,
+   256,
+   256
+  ]
+ },
+ "lotus": {
+  "1": [
+   "towers-lotus.webp",
+   0,
+   0,
+   256,
+   256
+  ],
+  "2": [
+   "towers-lotus.webp",
+   256,
+   0,
+   256,
+   256
+  ],
+  "3": [
+   "towers-lotus.webp",
+   512,
+   0,
+   256,
+   256
+  ],
+  "4": [
+   "towers-lotus.webp",
+   768,
+   0,
+   256,
+   256
+  ],
+  "5": [
+   "towers-lotus.webp",
+   1024,
+   0,
+   256,
+   256
+  ]
+ },
+ "magnet": {
+  "1": [
+   "towers-magnet.webp",
+   0,
+   0,
+   256,
+   256
+  ],
+  "2": [
+   "towers-magnet.webp",
+   256,
+   0,
+   256,
+   256
+  ],
+  "3": [
+   "towers-magnet.webp",
+   512,
+   0,
+   256,
+   256
+  ],
+  "4": [
+   "towers-magnet.webp",
+   768,
+   0,
+   256,
+   256
+  ],
+  "5": [
+   "towers-magnet.webp",
+   1024,
+   0,
+   256,
+   256
+  ]
+ },
+ "marsh": {
+  "1": [
+   "bosses.webp",
+   256,
+   0,
+   256,
+   256
+  ]
+ },
+ "mimic": {
+  "1": [
+   "creatures.webp",
+   1024,
+   768,
+   256,
+   256
+  ]
+ },
+ "mirrorKnight": {
+  "1": [
+   "minibosses.webp",
+   0,
+   256,
+   256,
+   256
+  ]
+ },
+ "mite": {
+  "1": [
+   "creatures.webp",
+   768,
+   256,
+   256,
+   256
+  ]
+ },
+ "moonflower": {
+  "1": [
+   "towers-moonflower.webp",
+   0,
+   0,
+   256,
+   256
+  ],
+  "2": [
+   "towers-moonflower.webp",
+   256,
+   0,
+   256,
+   256
+  ],
+  "3": [
+   "towers-moonflower.webp",
+   512,
+   0,
+   256,
+   256
+  ],
+  "4": [
+   "towers-moonflower.webp",
+   768,
+   0,
+   256,
+   256
+  ],
+  "5": [
+   "towers-moonflower.webp",
+   1024,
+   0,
+   256,
+   256
+  ]
+ },
+ "mortar": {
+  "1": [
+   "towers-mortar.webp",
+   0,
+   0,
+   256,
+   256
+  ],
+  "2": [
+   "towers-mortar.webp",
+   256,
+   0,
+   256,
+   256
+  ],
+  "3": [
+   "towers-mortar.webp",
+   512,
+   0,
+   256,
+   256
+  ],
+  "4": [
+   "towers-mortar.webp",
+   768,
+   0,
+   256,
+   256
+  ],
+  "5": [
+   "towers-mortar.webp",
+   1024,
+   0,
+   256,
+   256
+  ]
+ },
+ "mossGolem": {
+  "1": [
+   "minibosses.webp",
+   512,
+   256,
+   256,
+   256
+  ]
+ },
+ "moth": {
+  "1": [
+   "creatures.webp",
+   1024,
+   0,
+   256,
+   256
+  ]
+ },
+ "mushroom": {
+  "1": [
+   "towers-mushroom.webp",
+   0,
+   0,
+   256,
+   256
+  ],
+  "2": [
+   "towers-mushroom.webp",
+   256,
+   0,
+   256,
+   256
+  ],
+  "3": [
+   "towers-mushroom.webp",
+   512,
+   0,
+   256,
+   256
+  ],
+  "4": [
+   "towers-mushroom.webp",
+   768,
+   0,
+   256,
+   256
+  ],
+  "5": [
+   "towers-mushroom.webp",
+   1024,
+   0,
+   256,
+   256
+  ]
+ },
+ "nibble": {
+  "1": [
+   "creatures.webp",
+   0,
+   0,
+   256,
+   256
+  ]
+ },
+ "orchard": {
+  "1": [
+   "bosses.webp",
+   768,
+   0,
+   256,
+   256
+  ]
+ },
+ "orchid": {
+  "1": [
+   "towers-orchid.webp",
+   0,
+   0,
+   256,
+   256
+  ],
+  "2": [
+   "towers-orchid.webp",
+   256,
+   0,
+   256,
+   256
+  ],
+  "3": [
+   "towers-orchid.webp",
+   512,
+   0,
+   256,
+   256
+  ],
+  "4": [
+   "towers-orchid.webp",
+   768,
+   0,
+   256,
+   256
+  ],
+  "5": [
+   "towers-orchid.webp",
+   1024,
+   0,
+   256,
+   256
+  ]
+ },
+ "portal": {
+  "1": [
+   "bosses.webp",
+   512,
+   256,
+   256,
+   256
+  ]
+ },
+ "portalSentinel": {
+  "1": [
+   "minibosses.webp",
+   1024,
+   512,
+   256,
+   256
+  ]
+ },
+ "prism": {
+  "1": [
+   "towers-prism.webp",
+   0,
+   0,
+   256,
+   256
+  ],
+  "2": [
+   "towers-prism.webp",
+   256,
+   0,
+   256,
+   256
+  ],
+  "3": [
+   "towers-prism.webp",
+   512,
+   0,
+   256,
+   256
+  ],
+  "4": [
+   "towers-prism.webp",
+   768,
+   0,
+   256,
+   256
+  ],
+  "5": [
+   "towers-prism.webp",
+   1024,
+   0,
+   256,
+   256
+  ]
+ },
+ "riftStalker": {
+  "1": [
+   "minibosses.webp",
+   256,
+   256,
+   256,
+   256
+  ]
+ },
+ "riftling": {
+  "1": [
+   "creatures.webp",
+   512,
+   768,
+   256,
+   256
+  ]
+ },
+ "scarab": {
+  "1": [
+   "creatures.webp",
+   768,
+   512,
+   256,
+   256
+  ]
+ },
+ "seed": {
+  "1": [
+   "towers-seed.webp",
+   0,
+   0,
+   256,
+   256
+  ],
+  "2": [
+   "towers-seed.webp",
+   256,
+   0,
+   256,
+   256
+  ],
+  "3": [
+   "towers-seed.webp",
+   512,
+   0,
+   256,
+   256
+  ],
+  "4": [
+   "towers-seed.webp",
+   768,
+   0,
+   256,
+   256
+  ],
+  "5": [
+   "towers-seed.webp",
+   1024,
+   0,
+   256,
+   256
+  ]
+ },
+ "shaman": {
+  "1": [
+   "creatures.webp",
+   0,
+   256,
+   256,
+   256
+  ]
+ },
+ "shardling": {
+  "1": [
+   "creatures.webp",
+   768,
+   768,
+   256,
+   256
+  ]
+ },
+ "shell": {
+  "1": [
+   "creatures.webp",
+   512,
+   0,
+   256,
+   256
+  ]
+ },
+ "slug": {
+  "1": [
+   "creatures.webp",
+   0,
+   512,
+   256,
+   256
+  ]
+ },
+ "sporeling": {
+  "1": [
+   "creatures.webp",
+   0,
+   768,
+   256,
+   256
+  ]
+ },
+ "starfruit": {
+  "1": [
+   "towers-starfruit.webp",
+   0,
+   0,
+   256,
+   256
+  ],
+  "2": [
+   "towers-starfruit.webp",
+   256,
+   0,
+   256,
+   256
+  ],
+  "3": [
+   "towers-starfruit.webp",
+   512,
+   0,
+   256,
+   256
+  ],
+  "4": [
+   "towers-starfruit.webp",
+   768,
+   0,
+   256,
+   256
+  ],
+  "5": [
+   "towers-starfruit.webp",
+   1024,
+   0,
+   256,
+   256
+  ]
+ },
+ "storm": {
+  "1": [
+   "towers-storm.webp",
+   0,
+   0,
+   256,
+   256
+  ],
+  "2": [
+   "towers-storm.webp",
+   256,
+   0,
+   256,
+   256
+  ],
+  "3": [
+   "towers-storm.webp",
+   512,
+   0,
+   256,
+   256
+  ],
+  "4": [
+   "towers-storm.webp",
+   768,
+   0,
+   256,
+   256
+  ],
+  "5": [
+   "towers-storm.webp",
+   1024,
+   0,
+   256,
+   256
+  ]
+ },
+ "stormWarden": {
+  "1": [
+   "minibosses.webp",
+   768,
+   0,
+   256,
+   256
+  ]
+ },
+ "swarm": {
+  "1": [
+   "creatures.webp",
+   768,
+   0,
+   256,
+   256
+  ]
+ },
+ "thornBeast": {
+  "1": [
+   "minibosses.webp",
+   768,
+   512,
+   256,
+   256
+  ]
+ },
+ "thunder": {
+  "1": [
+   "towers-thunder.webp",
+   0,
+   0,
+   256,
+   256
+  ],
+  "2": [
+   "towers-thunder.webp",
+   256,
+   0,
+   256,
+   256
+  ],
+  "3": [
+   "towers-thunder.webp",
+   512,
+   0,
+   256,
+   256
+  ],
+  "4": [
+   "towers-thunder.webp",
+   768,
+   0,
+   256,
+   256
+  ],
+  "5": [
+   "towers-thunder.webp",
+   1024,
+   0,
+   256,
+   256
+  ]
+ },
+ "tinyZombie": {
+  "1": [
+   "creatures.webp",
+   256,
+   768,
+   256,
+   256
+  ]
+ },
+ "tornado": {
+  "1": [
+   "bosses.webp",
+   0,
+   256,
+   256,
+   256
+  ]
+ },
+ "venomQueen": {
+  "1": [
+   "minibosses.webp",
+   1024,
+   256,
+   256,
+   256
+  ]
+ },
+ "warDrummer": {
+  "1": [
+   "minibosses.webp",
+   0,
+   0,
+   256,
+   256
+  ]
+ },
+ "wisp": {
+  "1": [
+   "creatures.webp",
+   256,
+   512,
+   256,
+   256
+  ]
+ },
+ "witherPriest": {
+  "1": [
+   "minibosses.webp",
+   512,
+   0,
+   256,
+   256
+  ]
+ },
+ "zombie": {
+  "1": [
+   "bosses.webp",
+   1024,
+   0,
+   256,
+   256
+  ]
+ }
+}

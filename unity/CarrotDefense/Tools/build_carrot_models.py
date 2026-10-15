@@ -415,7 +415,9 @@ def eyeball():
  export(root,'eyeball')
 
 def challenge_props():
- tornado();eyeball()
+ # The Giant Tornado is built by refine_carrot_characters.tornado_v2 (giant update); tornado() is the previous build.
+ from refine_carrot_characters import tornado_v2
+ tornado_v2(sys.modules[__name__]);eyeball()
 
 def merge_manifest(path,built):
  names={m['name'] for m in built}
@@ -509,4 +511,8 @@ if __name__=='__main__':
   merge_manifest(ROOT/'Tools/original-model-manifest.json',manifest)
  elif mode=='challenge':
   challenge_props()
+  merge_manifest(ROOT/'Tools/challenge-prop-manifest.json',manifest)
+ elif mode=='tornado':
+  from refine_carrot_characters import tornado_v2
+  tornado_v2(sys.modules[__name__])
   merge_manifest(ROOT/'Tools/challenge-prop-manifest.json',manifest)

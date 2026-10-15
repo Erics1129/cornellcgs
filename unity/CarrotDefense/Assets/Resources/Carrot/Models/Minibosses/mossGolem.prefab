@@ -721,6 +721,9 @@ GameObject:
   m_Component:
   - component: {fileID: 885932886653652814}
   - component: {fileID: 8612177018175844855}
+  - component: {fileID: 6269543752201128723}
+  - component: {fileID: 9124752444490173144}
+  - component: {fileID: 8085196010185803683}
   m_Layer: 0
   m_Name: mossGolem
   m_TagString: Untagged
@@ -754,9 +757,73 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 949cee01497784e64b45e46cc30bef04, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CarrotTD.CarrotModelMetrics
   healthAnchor: {x: 0, y: 1.4799998, z: 0}
+--- !u!114 &6269543752201128723
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6252268149654734771}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 11c1d08773a784edd81bba79354e7321, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CarrotTD.CarrotGait
+  walkClip: Walk
+  walkCycle: 1
+  walkSpeed: 0.8454629
+  runSpeed: 0
+  strideBone: Leg1
+  idleA: Idle
+  idleB: 
+--- !u!114 &9124752444490173144
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6252268149654734771}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ac4502c74ef6f4b59a71bbd49630780c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CarrotTD.CarrotSecondaryMotion
+  links:
+  - bone: {fileID: 7767459969238540019}
+    maxDegrees: 5
+    lean: 0.7
+    mode: 0
+    trackSelf: 0
+  - bone: {fileID: 8794413217405297037}
+    maxDegrees: 5
+    lean: 0.7
+    mode: 0
+    trackSelf: 0
+  - bone: {fileID: 9063285929166645684}
+    maxDegrees: 4
+    lean: 0.5
+    mode: 0
+    trackSelf: 0
+  stiffness: 120
+  damping: 12
+--- !u!114 &8085196010185803683
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6252268149654734771}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c5516e686a18e4193a7f832bac89b28a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CarrotTD.CarrotTierLod
+  high: 0
+  medium: 1
+  low: 1
 --- !u!1 &6910064811496256517
 GameObject:
   m_ObjectHideFlags: 0

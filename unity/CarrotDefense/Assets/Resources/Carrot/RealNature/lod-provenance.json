@@ -3,60 +3,60 @@
     "name": "FernSmall",
     "source": "Fern.fbx",
     "sourceTriangles": 2384,
-    "triangles": 1479
+    "triangles": 980
   },
   {
     "name": "FernCaster",
     "source": "Fern.fbx",
     "sourceTriangles": 2384,
-    "triangles": 480
+    "triangles": 280
   },
   {
     "name": "ShrubSmall",
     "source": "Shrub.fbx",
     "sourceTriangles": 18020,
-    "triangles": 3979
+    "triangles": 2380
   },
   {
     "name": "ShrubCaster",
     "source": "Shrub.fbx",
     "sourceTriangles": 18020,
-    "triangles": 780
+    "triangles": 480
   },
   {
     "name": "MossRockASmall",
     "source": "MossRockA.fbx",
     "sourceTriangles": 6970,
-    "triangles": 1479
+    "triangles": 800
   },
   {
     "name": "MossRockACaster",
     "source": "MossRockA.fbx",
     "sourceTriangles": 6970,
-    "triangles": 479
+    "triangles": 280
   },
   {
     "name": "MossRockBSmall",
     "source": "MossRockB.fbx",
     "sourceTriangles": 5000,
-    "triangles": 1480
+    "triangles": 800
   },
   {
     "name": "MossRockBCaster",
     "source": "MossRockB.fbx",
     "sourceTriangles": 5000,
-    "triangles": 480
+    "triangles": 279
   },
   {
     "name": "StumpSmall",
     "source": "Stump.fbx",
     "sourceTriangles": 7970,
-    "triangles": 2480
+    "triangles": 1380
   },
   {
     "name": "StumpCaster",
     "source": "Stump.fbx",
     "sourceTriangles": 7970,
-    "triangles": 480
+    "triangles": 280
   }
 ]

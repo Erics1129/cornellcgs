@@ -27,6 +27,10 @@ Material:
         m_Texture: {fileID: 2800000, guid: 8fdfb967b0085454c819df8452dbd5a4, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
+    - _DetailNormal:
+        m_Texture: {fileID: 2800000, guid: 1d61ba34c89854c06b1a79f93deed033, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
     - _MainTex:
         m_Texture: {fileID: 2800000, guid: 3d1325d7061e941749e0973ddeb01161, type: 3}
         m_Scale: {x: 1, y: 1}
@@ -47,12 +51,18 @@ Material:
     - _BumpScale: 0.8
     - _Cull: 2
     - _Cutoff: 0
+    - _DetailScale: 3
+    - _DetailStrength: 0.4
     - _Dissolve: 0
     - _Glossiness: 0.3
+    - _HitFlash: 0
     - _Metallic: 0
     - _OcclusionStrength: 0.7
     - _ReflectionStrength: 0.6
+    - _RimBoost: 0
+    - _Sheen: 0
     - _SnowStrength: 0.5
+    - _Subsurface: 0
     - _SuperPulse: 0
     - _TextureScale: 1
     - _Translucency: 0
@@ -65,5 +75,7 @@ Material:
     - _Color: {r: 1, g: 1, b: 1, a: 1}
     - _DissolveEdge: {r: 1, g: 0.6, b: 0.19999996, a: 1}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
+    - _SheenTint: {r: 1, g: 1, b: 1, a: 1}
+    - _SubsurfaceTint: {r: 0.62, g: 1, b: 0.3, a: 1}
   m_BuildTextureStacks: []
   m_AllowLocking: 1

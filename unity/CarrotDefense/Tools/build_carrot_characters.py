@@ -66,6 +66,10 @@ def make(kind,source,height):
  main=max(meshes,key=lambda o:len(o.data.polygons))
  for o in list(meshes):
   if o!=main and len(o.data.polygons)<len(main.data.polygons)*.22:bpy.data.objects.remove(o,do_unlink=True);meshes.remove(o)
+ if kind=='nibble':
+  # Giant update: re-seat the eyes below the cap overhang so the game camera sees the face (refine_carrot_characters).
+  from refine_carrot_characters import refine_nibble_face
+  refine_nibble_face(meshes)
  idle=next((a for a in bpy.data.actions if a.name.endswith('|Idle') or 'Flying_Idle' in a.name),bpy.data.actions[0])
  arm.animation_data_create()
  for track in arm.animation_data.nla_tracks:track.mute=True
