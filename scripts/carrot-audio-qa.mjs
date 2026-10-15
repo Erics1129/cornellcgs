@@ -99,12 +99,32 @@ async function setupBoard(page, levelId, { towers = 12, tier = 3, coins = seedCo
   const unlocked = DATA.towers.filter(t => t.unlock <= Math.min(levelId, 24) || levelId > 24).map(t => t.id)
   const order = ['seed', 'frost', 'mortar', 'thunder', 'starfruit', 'storm', 'prism', 'bamboo', 'chili', 'magnet', 'dragonfruit', 'moonflower', 'clockflower', 'cactus', 'lotus', 'orchid', 'mushroom', 'book', 'gravity', 'blossom'].filter(k => unlocked.includes(k))
   const pads = padScores(L).slice(0, towers); let built = 0
+  if (!hasDebug) {
+    // Earned coins only: a cost-aware player that keeps spending during the level (see spend()).
+    const plan = { pads, order: order.slice(0, 5), board: new Map() }
+    await spend(page, plan)
+    return { hasDebug, built: plan.board.size, families: [...new Set([...plan.board.values()].map(t => t.kind))], plan }
+  }
   for (let i = 0; i < pads.length; i++) {
     await send(page, { type: 'select', selectionType: 'pad', id: pads[i].pad }); await send(page, { type: 'buy', kind: order[i % order.length] }); built++
     for (let t = 1; t < tier; t++) await send(page, { type: 'upgrade' })
   }
   await send(page, { type: 'clear' })
   return { hasDebug, built, families: [...new Set(pads.map((_, i) => order[i % order.length]))] }
+}
+// Builds on the best open pad while affordable (families in rotation), otherwise upgrades the lowest tier, best pad first.
+async function spend(page, plan) {
+  for (let guard = 0; guard < 6; guard++) {
+    const s = await state(page); if (!s || (s.phase !== 'ready' && s.phase !== 'playing')) return
+    const n = plan.board.size, open = plan.pads.find(p => !plan.board.has(p.pad))
+    const kind = plan.order[n % plan.order.length], cost = DATA.towers.find(t => t.id === kind).cost[0]
+    const ups = [...plan.board.entries()].filter(([, t]) => t.tier < 4).map(([pad, t]) => ({ pad, t, cost: DATA.towers.find(x => x.id === t.kind).cost[t.tier] })).sort((a, b) => a.t.tier - b.t.tier)
+    const wantBuild = open && (n < 3 || ups.length === 0 || n < 2 + Math.floor(plan.board.size * .6) + 1)
+    if (wantBuild && s.coins >= cost) { await send(page, { type: 'select', selectionType: 'pad', id: open.pad }); await send(page, { type: 'buy', kind }); const a = await state(page); if (a && a.coins < s.coins) { plan.board.set(open.pad, { kind, tier: 1 }); continue } break }
+    const u = ups[0]; if (u && s.coins >= u.cost) { await send(page, { type: 'select', selectionType: 'pad', id: u.pad }); await send(page, { type: 'upgrade' }); const a = await state(page); if (a && a.coins < s.coins) { u.t.tier++; continue } }
+    break
+  }
+  await send(page, { type: 'clear' })
 }
 
 async function scenario(ctx, kind) {
@@ -127,12 +147,14 @@ async function scenario(ctx, kind) {
   for (;;) {
     await sleep(500); const [now, st] = await page.evaluate(() => [performance.now(), window.__state || null]); s = st; if (!s) continue
     hist.push([now, s.wave, s.health, s.enemyCount, s.phase, s.boss ? Math.round(s.boss.hp) : -1])
+    if (board.plan && hist.length % 2 === 0) await spend(page, board.plan)
     if (s.phase === 'won' || s.phase === 'lost') break
     if (Date.now() - t0 > limit) break
     // L24: keep the combat continuous by calling waves early (the measurement is about dense combat audio).
     // Boss scenarios: hurry to the boss (early calls, 2x), then fight it at the requested speed.
     const bossUp = !!(s.boss && s.boss.hp > 0)
-    if ((kind === 'l24' || !bossUp) && s.nextWave > 0) await send(page, { type: 'next' })
+    // (Only with seeded coins: an earned-coins board cannot survive early calls.)
+    if ((kind === 'l24' || !bossUp) && seedCoins > 0 && s.nextWave > 0) await send(page, { type: 'next' })
     const want = kind !== 'l24' && !bossUp ? 2 : speed
     if (s.speed !== want && s.phase === 'playing') await send(page, { type: 'speed', value: want })
   }
@@ -145,6 +167,7 @@ async function scenario(ctx, kind) {
     for (;;) { const c = await page.evaluate(() => window.__qaTakeChunk()); if (!c) break; parts.push(Buffer.from(c, 'base64')) }
     wav = writeWav(join(out, `${ctx.engine}-${kind}.wav`), drained.rate || 48000, Buffer.concat(parts))
   }
+  if (board.plan) { board.built = board.plan.board.size; board.families = [...new Set([...board.plan.board.values()].map(t => t.kind))]; board.tiers = [...board.plan.board.values()].map(t => t.kind[0] + t.tier).join(','); delete board.plan }
   return { kind, level: levelId, board, readyRmsDb, result: { phase: s && s.phase, health: s && s.health, wave: s && s.wave, seconds: Math.round((Date.now() - t0) / 1000) }, hist, ...analyse(drained, cues, hist), wav }
 }
 
