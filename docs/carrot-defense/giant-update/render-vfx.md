@@ -3,8 +3,8 @@
 Branch `carrot-s-world`. This document records what the world stream changed, why, and what was measured. Measurements come from
 local QA builds (`CarrotBuild.WebQa`, release player settings plus `CARROT_QA`) served by `scripts/carrot-qa/serve.mjs`, a plain
 static server in the GitHub Pages model (no Content-Encoding, `.unityweb` as octet-stream). The harness is Playwright with headless
-Chromium (ANGLE Metal on an Apple M5 Max) and headless WebKit 2336. The machine ran on battery for part of the session; where macOS
-throttled requestAnimationFrame to 30 Hz the row says so.
+Chromium (ANGLE Metal on an Apple M5 Max) and headless WebKit 2336. The machine ran on battery for part of the session (macOS then
+throttles requestAnimationFrame to 30 Hz); the final numbers below were taken on AC power, on QA build 17 (commit `7f5f796`).
 
 Licensed and private inputs: everything here uses assets already on the machine. The four Asset Store effect packs and the Asuna
 character are the owner's acquired packages from the local Unity cache, restored into the git-ignored private folders (see
@@ -38,10 +38,12 @@ or the Asuna prefab; `git status --ignored` shows them ignored.
 
 ## Load size
 
-| | Shipped build | World QA build |
-|---|---|---|
-| `carrot.data.unityweb` (gzip) | 64.66 MB | 42.61 MB |
-| `carrot.wasm.unityweb` | 7.0 MB | 7.05 MB |
+| | Shipped build | World QA build | Integrated release build (all five streams merged, `CarrotBuild.Web`) |
+|---|---|---|---|
+| `carrot.data.unityweb` (gzip) | 64.66 MB | 42.61 MB | 41.69 MB |
+| `carrot.wasm.unityweb` | 7.0 MB | 7.10 MB | 7.14 MB |
+| Cold load at 10 Mbps, 40 ms (`load.mjs`): bytes / Continue to playable | | 52.1 MB / 41.5 s | 51.4 MB / 40.6 s |
+| Cold load at 50 Mbps | | 8.9 s | |
 
 The saving is the texture compression of the private layer: Asuna's body, head and hair maps are capped at 1024 px and her armor,
 eyes, teeth and the removed demo equipment at 512 px, all crunched (quality 75, normals 80; they were uncompressed 2048/1024); every
@@ -73,17 +75,20 @@ importers (characters stream: `CarrotModels.cs`), not textures.
   the night biomes (marsh, the zombie, eyeball and portal arenas), frost terrain albedo capped at 0.72 (the snow read as a glare),
   fill at most a third of the key (key-to-fill at least 3:1), a dedicated `prism` grade (level 29 used the garden grade), bloom
   clamp 4 on every grade and a marsh bloom threshold of 1.1.
+* **Atmosphere.** A few very large, very faint lit fog cards drift low over the marsh, frost, zombie and eyeball maps on High (10)
+  and Medium (7), alpha 0.04-0.045. A first pass at twice that alpha (and over the portal void) veiled the paths to 1.84-1.92:1, so
+  it was halved and the portal dropped. Off on Low.
 * **Ground bounce and shadows.** `_CarrotGroundColor` (soil albedo lit by the key) and `_CarrotBounce` per biome for the characters
   stream's Storybook surface; shadow distance tied to the fitted camera distance (`fitDistance + 14`, prism `+26`).
 
-Ready-frame mean relative luminance (HUD hidden, `scripts/carrot-qa/capture.mjs`, Chromium High, 1440x900):
+Ready-frame mean relative luminance (HUD hidden, `scripts/carrot-qa/capture.mjs`, Chromium, 1440x900, tier forced):
 
-| | Shipped build | World build |
-|---|---|---|
-| Darkest level | 0.0086 (L26 zombie) | 0.0854 (L26) |
-| Brightest level | 0.595 (L9 frost) | 0.158 (L21 frost) |
-| Brightest / darkest | 69x | 1.85x |
-| Levels inside 0.08-0.25 | 6 of 16 sampled | 29 of 29 |
+| | Shipped build (High) | World build High | Medium | Low |
+|---|---|---|---|---|
+| Darkest level | 0.0086 (L26 zombie) | 0.090 | 0.091 | 0.088 |
+| Brightest level | 0.595 (L9 frost) | 0.158 | 0.159 | 0.169 |
+| Brightest / darkest | 69x | 1.76x | 1.75x | 1.93x |
+| Levels inside 0.08-0.25 | 6 of 16 sampled | 29 of 29 | 29 of 29 | 29 of 29 |
 
 (The shipped column was captured after loading level 1 first, so it includes the grade bug above.)
 
@@ -127,9 +132,14 @@ Ready-frame mean relative luminance (HUD hidden, `scripts/carrot-qa/capture.mjs`
 | Boss phase break | Shard shockwave, 100 ms pause, 0.35 trauma. |
 | Boss death | Radial burst, shockwave, coin shower, 0.6 s at 0.3 speed, 0.5 trauma (campaign guardians had only the generic death). |
 
-Colour separation: boss, miniboss and creature effect colours are stepped away in OKLab from the nearest of the 20 tower colours
-until at least 0.095 from all of them (`CarrotEffects.Separated`); the probe's minimum over 48 boss and miniboss abilities is 0.094
-(OKLab distance; the target is 0.08).
+Super forged also raises a 7.5 u light pillar over the new tower and keeps a slow aura ring while the beat plays.
+
+Colour separation: boss, miniboss and creature effect colours take the nearest in-gamut colour that is at least 0.095 (OKLab) from
+all 20 tower colours (`CarrotEffects.Separated`: a 12^3 sRGB grid then a 9^3 refinement, lightness changes weighted 1.5x and lost
+chroma 2x, cached per kind). The first version pushed the colour in OKLab and clamped back to sRGB, which for vivid reds and cyans put
+it straight back on the tower colour: the in-build probe read 0.039 (Ember Charge, the Chili tower's red). Now the probe's minimum
+over the 48 boss and miniboss abilities is 0.095 (Mist); frost casts read teal, ember casts hot pink-red, chrono casts lemon. The
+offline port of both algorithms (scratchpad `world/tools/tone-sep.mjs`) reproduces the in-build 0.039 and checks 83 kinds.
 
 ## Governors
 
@@ -190,4 +200,5 @@ No image model, no external texture.
 | `perf.mjs` | rAF cadence, rendered fps, draws and triangles over scripted combat; the governor log |
 | `camera.mjs` | zoom-to-cursor drift, paused pan, route-start reach, Asuna follow-cam size, reduced-motion counters |
 | `showcase.mjs` | deterministic frame bursts of the signature moments |
+| `load.mjs` | cold-cache load over an emulated link: bytes and Continue-to-playable time |
 | `unity.mjs`, `cs-check.mjs` | serialized Unity runs on this checkout and a 1-2 s Roslyn compile check |
