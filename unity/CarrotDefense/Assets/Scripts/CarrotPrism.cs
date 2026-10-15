@@ -68,7 +68,8 @@ namespace CarrotTD {
     case "prismBreak":{
      // The dash and the rain of a break land together; the regular dash clock restarts from it.
      prism.dashFrom=e.distance;prism.dashTo=muting?e.distance:Mathf.Max(e.distance,prism.warnedDashTo);prism.dashStart=elapsed;prism.dashEnd=elapsed+PrismDashSeconds;prism.nextDash=elapsed+(e.phase==3?11:13);
-     Vector3 direction;var arrive=CarrotData.RoutePoint(level.routes[e.route],prism.dashTo,out direction);Emit("abilityTarget","prismBreak",e.position,arrive,e.id,e.id,value:prism.dashTo-prism.dashFrom,duration:PrismDashSeconds);
+     Vector3 direction;var arrive=CarrotData.RoutePoint(level.routes[e.route],prism.dashTo,out direction);// The break's dash reuses the dash event (the view animates it the same way); tier 2 marks it as part of a break.
+     Emit("abilityTarget","prismDash",e.position,arrive,e.id,e.id,2,prism.dashTo-prism.dashFrom,PrismDashSeconds);
      int index=0;foreach(int id in a.targets){if(muting||!prism.locked.TryGetValue(id,out Vector3 at))continue;prismImpacts.Add(new PrismImpact{source=e.id,target=id,kind="spectrumRain",from=e.position,to=at,at=elapsed+.2f+index*.22f});if(index++==0){target=at;targetId=id;}}
      value=index;duration=1.1f;return true;
     }

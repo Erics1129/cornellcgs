@@ -32,7 +32,8 @@ This section supersedes any number below that it contradicts; the measurement re
   starting gold -10% on L13-L24; calling a wave early pays two coins per breather second left (cap 10).
 - **Bosses.** Tornado 4,500 HP, lift-off at most twice; Unknown Eyeball 16,000; Portal 31,000 walking 0.18; Asuna
   20,000 with 1.8 / 2.2-unit dashes and HP breaks at 66% / 33% (Prism Break: a dash plus a spectrum rain on 3-4 towers,
-  2.5 s actionable warning; crossings in one burst share a break; the dash event kind is `prismBreak`).
+  2.5 s actionable warning; crossings in one burst share a break; the telegraph and ability kind is `prismBreak`, its
+  dash arrives as `abilityTarget` `prismDash` with tier 2).
 - **Pressure dial.** Fitted per level within [0.65, 1.60] (balance-results.md lists every entry).
 - **Veteran.** `{"type":"load","level":L,"mode":"veteran"}` on L1-L24: +10% ordinary health, 60% sell refund. Shipped
   because the expert wins all 24 levels on 20 of 20 seeds in it; the snapshot carries `mode` and `caps: ["veteran"]`.
