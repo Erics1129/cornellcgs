@@ -96,9 +96,11 @@ public static class CarrotModels {
         importer.optimizeMeshPolygons=true; importer.optimizeMeshVertices=true;
         // Mesh LOD (index ranges inside the same mesh, no extra vertices) for the actors that crowd the board; CarrotTierLod picks the level per quality tier.
         bool crowd=Enemies.Contains(modelName)||ExpansionEnemies.Contains(modelName)||Minibosses.Contains(modelName);
-        // Heavy statics (tower tiers III-V, guardians, the hero) get one reduced level for the Low tier only.
-        bool heavy=modelName=="Carrot"||Bosses.Contains(modelName)||Props.Contains(modelName)||modelName=="portal"||(!path.Contains("/Nature/")&&modelName.Length>2&&modelName[modelName.Length-2]=='-'&&modelName[modelName.Length-1]>='3');
-        importer.generateMeshLods=crowd||heavy;if(crowd)importer.maximumMeshLod=2;else if(heavy)importer.maximumMeshLod=1;
+        // Guardians and the hero (one each on the board) get one reduced level for the Low tier only. Tower tiers are left whole:
+        // nine to twenty towers saved under 40k triangles on Low, not worth their index data in the download.
+        bool heavy=modelName=="Carrot"||Bosses.Contains(modelName)||Props.Contains(modelName)||modelName=="portal";
+        // Minibosses (three or four on the board at most) keep one reduced level: two levels cost 0.4 MB more index data for ~10k triangles.
+        importer.generateMeshLods=crowd||heavy;if(crowd&&!Minibosses.Contains(modelName))importer.maximumMeshLod=2;else if(crowd||heavy)importer.maximumMeshLod=1;
         importer.materialImportMode=ModelImporterMaterialImportMode.ImportStandard;
         importer.animationType=animate ? ModelImporterAnimationType.Legacy : ModelImporterAnimationType.None;
         importer.importAnimation=animate;
@@ -317,7 +319,7 @@ public static class CarrotModels {
     static void ApplyBlendedRealism(Material m,string category) {
         float sss=0,sheen=0,detailStrength=0,detailScale=6;Color sssTint=Color.white,sheenTint=Color.white;string detail=null;
         switch(category) {
-            case "Carrot": sss=.30f;sssTint=new Color(1f,.42f,.16f);detail="SkinPore";detailScale=5;detailStrength=.35f;break;
+            case "Carrot": sss=.34f;sssTint=new Color(1f,.42f,.16f);detail="SkinPore";detailScale=5;detailStrength=.35f;break;
             case "Leaf": sss=.45f;sssTint=new Color(.62f,1f,.30f);break;
             case "Petal": sss=.40f;sssTint=new Color(1f,.78f,.80f);break;
             case "Fur": case "Pelt": sss=.20f;sssTint=new Color(1f,.70f,.55f);sheen=.40f;sheenTint=new Color(1f,.96f,.90f);detail="FurStrand";detailScale=4;detailStrength=.45f;break;
@@ -339,7 +341,8 @@ public static class CarrotModels {
         }
         // Category-specific base response for the new surfaces.
         if(category=="Mushroom"){m.SetFloat("_Glossiness",.45f);m.SetFloat("_Translucency",.20f);m.SetFloat("_ReflectionStrength",.55f);}
-        else if(category=="Chitin"){m.SetFloat("_Glossiness",.65f);m.SetFloat("_ReflectionStrength",1.0f);m.SetFloat("_Translucency",0f);}
+        // Chitin stays dark: a tight highlight, little environment (bright sky reflections turned the thin legs grey).
+        else if(category=="Chitin"){m.SetFloat("_Glossiness",.58f);m.SetFloat("_ReflectionStrength",.5f);m.SetFloat("_Translucency",0f);}
         else if(category=="Gel"){m.SetFloat("_Glossiness",.78f);m.SetFloat("_ReflectionStrength",1.0f);m.SetFloat("_Translucency",.35f);}
         else if(category=="Ice"){
             // Ice reads through its highlights and the blue light scattered inside, not a bright albedo: the painted ICE blue is

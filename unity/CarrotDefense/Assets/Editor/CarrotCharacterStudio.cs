@@ -206,6 +206,21 @@ public static class CarrotCharacterStudio {
   if(errors>0||ShaderUtil.ShaderHasError(shader))EditorApplication.Exit(4);
  }
 
+ /// <summary>Download-size ledger for this stream: Mesh LOD index overhead per group and the storage size of every texture the stream added.</summary>
+ public static void SizeLedger(){
+  long lodBytes=0,meshBytes=0;var seen=new HashSet<Mesh>();var byGroup=new Dictionary<string,long>();
+  foreach(var item in Roster(true)){var prefab=AssetDatabase.LoadAssetAtPath<GameObject>(item.path);if(prefab==null)continue;
+   foreach(var r in prefab.GetComponentsInChildren<Renderer>(true)){Mesh m=r is SkinnedMeshRenderer sk?sk.sharedMesh:r.GetComponent<MeshFilter>()?.sharedMesh;if(m==null||!seen.Add(m))continue;
+    meshBytes+=UnityEngine.Profiling.Profiler.GetRuntimeMemorySizeLong(m);int bytes=m.indexFormat==IndexFormat.UInt16?2:4;long extra=0;
+    for(int s=0;s<m.subMeshCount;s++)for(int l=1;l<m.lodCount;l++)extra+=m.GetLod(s,l).indexCount*(long)bytes;
+    lodBytes+=extra;byGroup[item.group]=(byGroup.TryGetValue(item.group,out var g)?g:0)+extra;}}
+  var getSize=Type.GetType("UnityEditor.TextureUtil, UnityEditor")?.GetMethod("GetStorageMemorySizeLong",System.Reflection.BindingFlags.Static|System.Reflection.BindingFlags.Public|System.Reflection.BindingFlags.NonPublic);
+  long texBytes=0;var lines=new List<string>();
+  foreach(var name in new[]{"MushroomPoreDetail","ChitinPlateDetail","GelRippleDetail","IceFacetDetail","SkinPoreDetail","FurStrandDetail","LeafClusterDetail","FoliageDetail","TornadoStreaks","ZombieHideTint"}){
+   var tex=AssetDatabase.LoadAssetAtPath<Texture2D>(Root+"Models/Materials/"+name+".png");if(tex==null)continue;long b=getSize!=null?(long)getSize.Invoke(null,new object[]{tex}):0;texBytes+=b;
+   var file=new FileInfo(Root+"Models/Materials/"+name+".png");lines.Add(name+" "+tex.width+"x"+tex.height+" "+tex.format+" storage="+b+" png="+file.Length);}
+  Debug.Log("SIZE_LEDGER lodIndexBytes="+lodBytes+" ("+string.Join(", ",byGroup.Select(kv=>kv.Key+"="+kv.Value))+") meshRuntimeBytes="+meshBytes+" newTextureStorageBytes="+texBytes+"\n"+string.Join("\n",lines));
+ }
  /// <summary>Lists the Mesh LOD API surface of this editor (reflection), for characters.md.</summary>
  public static void LodProbe(){
   foreach(var t in new[]{typeof(ModelImporter),typeof(Mesh),typeof(Renderer),typeof(SkinnedMeshRenderer),typeof(MeshRenderer),typeof(QualitySettings)})

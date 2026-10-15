@@ -719,7 +719,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1341035629180991134}
-  - component: {fileID: 2516206054793552559}
   m_Layer: 0
   m_Name: thunder-3
   m_TagString: Untagged
@@ -743,21 +742,6 @@ Transform:
   - {fileID: 3859671257528037626}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &2516206054793552559
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6840462126806916913}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c5516e686a18e4193a7f832bac89b28a, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CarrotTD.CarrotTierLod
-  high: 0
-  medium: 0
-  low: 1
 --- !u!1 &7397418295709717794
 GameObject:
   m_ObjectHideFlags: 0

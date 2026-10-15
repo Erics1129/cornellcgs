@@ -577,7 +577,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::CarrotTD.CarrotTierLod
   high: 0
   medium: 1
-  low: 2
+  low: 1
 --- !u!1 &7692673335582576082
 GameObject:
   m_ObjectHideFlags: 0

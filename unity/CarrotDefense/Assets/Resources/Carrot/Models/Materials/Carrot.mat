@@ -62,7 +62,7 @@ Material:
     - _RimBoost: 0
     - _Sheen: 0
     - _SnowStrength: 0.35
-    - _Subsurface: 0.3
+    - _Subsurface: 0.34
     - _SuperPulse: 0
     - _TextureScale: 1
     - _Translucency: 0.15
