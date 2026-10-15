@@ -42,7 +42,8 @@ const coachCopy:Record<Exclude<TutorialStep,null>,{title:string;body:string}>={
  watch:{title:'Towers fire on their own',body:'Tap a creature to focus every tower on it. Protect the carrot!'},
 }
 export function Coach({step,towers,onSkip,onDone}:{step:TutorialStep;towers:number;onSkip:()=>void;onDone:()=>void}){
- useEffect(()=>{if(step!=='watch')return;const t=window.setTimeout(onDone,7000);return()=>clearTimeout(t)},[step,onDone])
+ const done=useRef(onDone);done.current=onDone
+ useEffect(()=>{if(step!=='watch')return;const t=window.setTimeout(()=>done.current(),7000);return()=>clearTimeout(t)},[step])
  if(!step)return null
  const c=coachCopy[step]
  return <aside className="ct-coach ct-panel" role="status" aria-label="Tutorial">
@@ -59,11 +60,11 @@ export function useEncounters(store:SnapshotStore,seen:string[],send:(c:Command)
  const [card,setCard]=useState<Card|null>(null),queued=useRef(new Set<string>()),pause=usePauseFor(store,send)
  const seenRef=useRef(seen);seenRef.current=seen
  useEffect(()=>{if(!enabled)return;return store.subscribe(()=>{const st=store.get();if(!st||st.phase!=='playing')return
-  const offer=(id:string,source:Card['source'],kind:string)=>{if(!id||seenRef.current.includes(id)||queued.current.has(id)||!abilityText(id).card)return;queued.current.add(id);setCard(c=>c||{id,source,kind})}
+  const offer=(id:string,source:Card['source'],kind:string)=>{if(!id||seenRef.current.includes(id)||queued.current.has(id)||!abilityText(id).card)return;setCard(c=>{if(c)return c;queued.current.add(id);return {id,source,kind}})}
   if(st.boss&&st.boss.ability&&st.boss.castRemaining>0)offer(st.boss.ability,'boss',st.boss.kind)
   for(const m of st.minibosses||[])if(m.ability&&m.castRemaining>0&&m.visible)offer(m.ability,'mini',m.kind)})},[store,enabled])
  useEffect(()=>{if(card)pause.hold()},[card,pause])
- const dismiss=useCallback(()=>{if(!card)return;onSeen(card.id);pause.release();setCard(null)},[card,onSeen,pause])
+ const dismiss=useCallback(()=>{if(!card)return;onSeen(card.id);queued.current.delete(card.id);pause.release();setCard(null)},[card,onSeen,pause])
  return {card,dismiss}
 }
 export function EncounterCard({card,onDismiss}:{card:Card;onDismiss:()=>void}){
@@ -101,11 +102,11 @@ export function AirToast({store,level,enemies,definitions}:{store:SnapshotStore;
  const s=useSlice(store,st=>st?{phase:st.phase,wave:st.wave,breather:st.nextWave>0,lvl:st.level}:null)
  const [dismissed,setDismissed]=useState('')
  const next=s?(s.phase==='ready'?1:s.wave+1):0,key=s?`${s.lvl}:${next}`:''
- // shown for six seconds (the breathers are 3-5 s), then out of the way of the board
- useEffect(()=>{if(!key)return;const t=window.setTimeout(()=>setDismissed(key),6000);return()=>clearTimeout(t)},[key])
+ const visible=!!s&&!!level&&(s.phase==='ready'||(s.phase==='playing'&&s.breather))&&next<=level.waves&&waveHasAir(level,next,enemies)&&dismissed!==key
+ // shown for six seconds from the moment it appears (the breathers are 3-5 s), then out of the way of the board
+ useEffect(()=>{if(!visible)return;const t=window.setTimeout(()=>setDismissed(key),6000);return()=>clearTimeout(t)},[visible,key])
  if(!s||!level)return null
- const show=(s.phase==='ready'||(s.phase==='playing'&&s.breather))&&next<=level.waves&&waveHasAir(level,next,enemies)&&dismissed!==key
- if(!show)return null
+ if(!visible)return null
  const firstAir=!Array.from({length:next-1},(_,i)=>i+1).some(w=>waveHasAir(level,w,enemies))
  const air=(definitions?.towers||[]).filter(t=>t.air&&t.unlock<=s.lvl).slice(0,3).map(t=>t.name)
  return <div className="ct-air-toast ct-panel" role="status"><Icon name="wing"/><div><b>Flying enemies next wave</b>{firstAir&&<span>Ground-only towers can’t reach them. Try {air.join(', ')}.</span>}</div><button className="ct-icon-btn" aria-label="Dismiss" onClick={()=>setDismissed(key)}><Icon name="close"/></button></div>

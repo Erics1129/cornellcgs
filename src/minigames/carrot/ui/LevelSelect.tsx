@@ -99,7 +99,7 @@ export function LevelSelect({definitions,save,challenges,records,current,preview
    </article>}
    <ol className="ct-tracklist" ref={list} aria-label={`${ch.name} stages`}>
     {rows.map(l=>{const b=bossOfLevel(l.id),r=records.levels[String(l.id)],m=b?stars(challenges.best[b],b):save.medals[l.id]||0,o=isOpen(l.id),bd=levelBand(l)
-     return <li key={l.id}><button data-id={l.id} className={`ct-trackrow ${l.id===focus?'is-focus':''} ${o?'':'is-locked'}`} aria-current={l.id===focus} onClick={()=>{if(l.id===focus&&o)onPlay(l.id);else setFocus(l.id)}} onFocus={()=>setFocus(l.id)} onDoubleClick={()=>o&&onPlay(l.id)}
+     return <li key={l.id}><button data-id={l.id} className={`ct-trackrow ${l.id===focus?'is-focus':''} ${o?'':'is-locked'}`} aria-current={l.id===focus} onClick={()=>{if(l.id===focus&&o)onPlay(l.id);else setFocus(l.id)}} onKeyUp={e=>{if(e.key==='Tab')setFocus(l.id)}} onDoubleClick={()=>o&&onPlay(l.id)}
       aria-label={`${l.id}. ${b?challengeTitles[b]:l.name}. ${bd}${o?'':'. Locked'}${r?.grade?`. Grade ${['','D','C','B','A','S'][r.grade]}`:''}`}>
       <span className="ct-trackrow__no">{String(l.id).padStart(2,'0')}</span>
       <span className="ct-trackrow__thumb" aria-hidden="true"><img src={jacketArt(l.id)} alt="" loading="lazy" decoding="async" onError={e=>{(e.target as HTMLImageElement).style.visibility='hidden'}}/></span>
