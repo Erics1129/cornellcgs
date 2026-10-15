@@ -198,3 +198,43 @@ The wasm heap read 160 MB in every row (captured through `WebAssembly.Memory`). 
 - Phone cadence p95 under 16.7 ms on L4/L8/L12/L24/L27 and with Supers (contaminated first pass; isolated rerun pending); desktop L12/L27/Supers rows; the Eyeball iris-through-dark frame, the Whiteout vignette, the six-Super draw delta, the uproot toast Sell on the real engine and the teach-toast reload check (runs in flight).
 - Physical phone drag and multitouch; listening pass on the new stingers, voices and boss themes.
 - Mutation checks and Blender exports (taken from the simulation and models reports).
+
+## Giant update: world, camera, effects (branch carrot-s-world)
+
+Run on 2026-10-14 on QA build 17 (`CarrotBuild.WebQa`, release player settings plus `CARROT_QA` telemetry, commit `7f5f796`), served by `scripts/carrot-qa/serve.mjs` in the GitHub Pages model (no Content-Encoding; the page inflates the gzip build). Playwright headless Chromium (ANGLE Metal, Apple M5 Max) and headless WebKit, 1440x900 unless noted, machine on AC power. Evidence: session scratchpad `carrot/world/qa/` (`final2-{high,medium,low}`, `final/perf-*`, `final/camera-chromium`, `final/reduced-chromium`, `flash-chromium`, `show-qa17`). What changed and why: [giant-update/render-vfx.md](giant-update/render-vfx.md).
+
+### Automated evidence
+
+- `CarrotBuild.PreparePrivate` after the private restore: `ASUNA_PREPARED ... height=2.100 forward=+Z` and `CARROT_LICENSED_FX_REQUIRED_OK effects=8`; `git ls-files` lists no licensed or private path.
+- `node scripts/carrot-qa/cs-check.mjs`: `CSC_OK` for the player (`UNITY_WEBGL`), the editor-define runtime and the 14 editor files. `CarrotBuild.WebQa` and, on an integration worktree with all five giant-update branches merged, `CarrotBuild.Web` (`CARROT_BUILD_OK`, 0 `error CS`).
+- FX probe (`QaFxProbe`, level 13): at least 4 layers on every one of the 20 plant impacts and 27 creature deaths; peak 7 decals and 2 lights; smallest OKLab distance between any boss or miniboss ability colour and a tower colour **0.095** (it was 0.039 for Ember Charge before the gamut-aware separation).
+
+### Measured
+
+| Check | Target | Result |
+|---|---|---|
+| Ready-frame mean luminance, 29 levels | inside 0.08-0.25 | High 0.090-0.158, Medium 0.091-0.159, Low 0.088-0.169 (shipped: 0.0086-0.595, 69x) |
+| Path-to-ground contrast at projected route samples, 29 levels | at least 2:1 | High 2.04, Medium 2.03, Low 2.12 (lowest level on each tier) |
+| Visible idle effect renderers on a ready frame | 0 | 0 on 29 levels x 3 tiers |
+| Decor clearance from route centrelines | at least 1.0 u | 1.0 u (was -1.17 on the arenas) |
+| Near-white share of the marsh pond masks | low | at most 0.70% |
+| WCAG 2.3.1 flashes in any rolling second (8x5 cells, 11% of the frame) | at most 3 | 0 in all four: L24 four Thunderheads (5,026 frames; 76 flash slots granted, 103 coalesced; the shipped build read 4), L8 boss casts and death, L29 Asuna's six abilities, L12 Super forge |
+| Reduced motion, scripted L8 boss fight | none | 0 impulses, hit-stops, slow motion, FOV punches, cinematic or reveal moves |
+| Zoom toward the cursor | under 1 px drift | 0.2-0.5 px on three pads |
+| Pan while paused | works | 250 px, `paused: true` |
+| Route starts reachable at maximum zoom | all | 10 levels, every start |
+| Focus boss (Asuna, L29) | readable | 135 px tall, following, zoom 1.9 |
+| Chromium desktop High, L24 combat, 3 min | 120 Hz panel | 120 fps, p95 10.0 ms, draws 403 (max 507), 0.81 M triangles, no tier change |
+| WebKit desktop, L24 combat, 3 min | 60 Hz | 59.9 fps, p95 18 ms, Medium tier held (render scale 0.95-1.0), draws 391 |
+| Phone Low 390x844 DPR 2 (Chromium), L24, 2 min | | 120 fps, p95 10.3 ms, draws 227, 0.32 M triangles |
+| Phone Low with 6x CPU throttle, L24 | p95 under 20 ms | **p95 about 26 ms: not met** (earlier build; view update sections total about 2.8 ms, the rest is simulation, render submission and the page) |
+| Data file (gzip) | smaller | 42.61 MB QA, 41.69 MB integrated release (shipped 64.66 MB); wasm 7.1 MB |
+| Cold load, 10 Mbps / 40 ms | | integrated release: 51.4 MB, Continue to playable 40.6 s; world QA 52.1 MB / 41.5 s; 50 Mbps 8.9 s |
+| Release build on the integrated tree, Pages-model server | loads | Chromium levels 1, 8, 14, 24, 29 and WebKit 1, 14, 29: ready frames, 0 console errors |
+
+### Still unverified
+
+- Physical phones and tablets (touch pinch, safe areas, frame time, thermal); the 6x-throttled phone p95 target is not met.
+- Real displays other than 60 and 120 Hz; headed Safari (only headless WebKit was run).
+- Simulation-side time scale and caps: hit-stop and slow motion reach `CarrotGame.RequestTimeScale` and the `worldBars` cap reaches `CarrotGame.SetCap` only after the balance stream merges (reflection; checked on the integration worktree, not on this branch alone).
+- Owner review of the showcase bursts and a listening pass; the release artifact for the site is built from the integrated branch, not from this branch alone.

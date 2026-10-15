@@ -68,8 +68,9 @@ namespace CarrotTD {
    Apply(tier);
   }
   public static void Force(int tier){forced=true;chosen=true;RenderScale=1;Reason="forced";Apply(Mathf.Clamp(tier,LowTier,HighTier));}
-  /// <summary>One tier down (High to Medium to Low). Returns false when already Low or when a debug command pinned the tier.</summary>
-  public static bool Demote(string why){if(forced||Tier<=LowTier)return false;Reason=why;Apply(Tier-1);Remember();return true;}
+  /// <summary>One tier down (High to Medium to Low). Returns false when already Low or when a debug command pinned the tier. Desktop
+  /// WebKit stops at Medium: its Low path (MSAA 2) measured slower than Medium there; the render scale carries the rest.</summary>
+  public static bool Demote(string why){if(forced||Tier<=LowTier)return false;if(WebKit&&!Phone&&Tier<=MediumTier)return false;Reason=why;Apply(Tier-1);Remember();return true;}
   /// <summary>One tier up, never above the device rule's choice.</summary>
   public static bool Promote(string why){if(forced||Tier>=ChosenTier)return false;Reason=why;Apply(Tier+1);Remember();return true;}
   /// <summary>Render scale only (the DOM HUD stays crisp); URP reallocates its targets, nothing else changes.</summary>

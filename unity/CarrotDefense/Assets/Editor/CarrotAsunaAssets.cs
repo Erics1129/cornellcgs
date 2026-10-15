@@ -223,7 +223,9 @@ public static class CarrotAsunaAssets {
    if(binding.maxSize!=512&&binding.maxSize!=1024&&binding.maxSize!=2048)throw new InvalidOperationException("Texture cap must be 512, 1024 or 2048: "+binding.path);
    importer.textureType=binding.kind=="normal"?TextureImporterType.NormalMap:TextureImporterType.Default;importer.sRGBTexture=binding.kind=="color";
    importer.maxTextureSize=binding.maxSize;importer.convertToNormalmap=false;importer.isReadable=false;importer.mipmapEnabled=true;importer.anisoLevel=2;
-   CarrotBuild.WebTexture(importer,binding.maxSize,binding.kind=="normal"?90:85,false);importer.SaveAndReimport();
+   // Crunched for the web player (the uncompressed 2048/1024 set was the largest single block of the data file): the character is at most
+   // ~400 px tall on screen in the hero shot, so 1024 body/head/hair and 512 armor/eyes/teeth are never magnified at gameplay zoom.
+   CarrotBuild.WebTexture(importer,binding.maxSize,binding.kind=="normal"?80:75,true);importer.SaveAndReimport();
   }
  }
  static Transform Attachment(GameObject geometry,string path,string name,Transform humanoidBone) {

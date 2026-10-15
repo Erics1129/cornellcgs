@@ -83,7 +83,7 @@ namespace CarrotTD {
   void ExpansionEvent(CarrotEvent e){
    if(e.type=="ability"&&e.kind=="blackout"){expansionBlackoutUntil=game.blindUntil;expansionBlackoutFading=true;}
    if(e.type=="abilityTarget"&&(e.kind=="riftBlink"||e.kind=="portalBlink"||e.kind=="portalShift"||e.kind=="reincarnate")){if(enemies.TryGetValue(e.id,out var actor))effects.Echo(actor.root,e.position,e.to,.45f);}
-   if(e.type=="ability"&&e.kind=="reincarnate"&&e.value>=2){fovPunch=1.3f;}
+   if(e.type=="ability"&&e.kind=="reincarnate"&&e.value>=2&&!reducedMotion){fovPunch=1.3f;CarrotQa.Count("fovPunch",1);}
   }
   Material PortalSurface(){if(portalSurface!=null)return portalSurface;var shader=Shader.Find("Carrot/PortalAperture");if(shader==null)shader=Shader.Find("Carrot/FxAdditive");portalSurface=new Material(shader);portalSurface.name="Observatory aperture";portalSurface.SetColor("_Color",new Color(.12f,.65f,.92f,1));materials["portal-aperture"]=portalSurface;return portalSurface;}
   void UpdateExpansionScene(float dt){

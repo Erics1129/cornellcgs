@@ -15,6 +15,12 @@ node scripts/stubs.mjs
 
 Set `UNITY_EDITOR` when Unity is installed elsewhere. The build script prepares model/material imports and the scene, creates `public/unity/carrot/`, and updates the content hash consumed by the website loader. Commit the Unity source and rebuilt web output together. Imported Library/Temp caches are not source.
 
+The build gate needs the private licensed inputs (Asuna and the four effect packs, git-ignored); see `docs/carrot-defense/asuna-integration.md` and `docs/carrot-defense/design/prism-presentation.md`. Every build writes its packed-asset breakdown to `output/carrot-build-report-{qa|release}.txt`.
+
+### Browser QA (`scripts/carrot-qa`)
+
+`CarrotTD.CarrotBuild.WebQa` builds a release-settings player with the `CARROT_QA` telemetry into `output/carrot-qa/`. `node scripts/carrot-qa/unity.mjs --method <method>` runs one serialized Unity process on this checkout; `cs-check.mjs` is a 1-2 s compile check. `serve.mjs` serves `dist/` plus a chosen Unity build in the GitHub Pages model (no Content-Encoding). Then `capture.mjs` (ready frames, luminance, path contrast, idle effects), `flash.mjs` (WCAG 2.3.1 sampler), `perf.mjs` (frame pacing, draws, governor log), `camera.mjs` (zoom, pan, reach, reduced motion), `showcase.mjs` (signature-moment bursts) and `load.mjs` (cold load over an emulated link). Playwright comes from the Codex runtime; set `CARROT_QA_PORT` / `CARROT_QA_OUT` to change the server port and evidence folder. Results: `docs/carrot-defense/giant-update/render-vfx.md` and `docs/carrot-defense/validation.md`.
+
 Development-only `?carrot-preview=1` through `12` selects a campaign map without granting saved progress. It is excluded from production builds. Normal play uses earned coins, authored waves and persistent unlocks.
 
 ## Assets and scope
