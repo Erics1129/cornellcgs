@@ -1,4 +1,4 @@
-# Portal and challenge result lines from the Unity run of commit ef4ca7a (pass 2, 14 October 2026); all lines in simulation-results.txt.
+# Portal and challenge result lines from the Unity run of commit f23b985 (pass 2, 14 October 2026); all lines in simulation-results.txt.
 PRISM_ROUTE_DEADLINE seconds=347.1
 PRISM_ENCOUNTER_OK
 PRISM_BOUNDARY_REGRESSION_OK
@@ -23,4 +23,4 @@ CARROT_GATE RS seed=1 won=False health=0
 CARROT_GATE RS seed=2 won=False health=0
 CARROT_GATE RS seed=3 won=False health=0
 CARROT_DIGEST level=20 policy=0 ticks=22421 phase=won health=10 coins=419 hash=1566501f7e139bfe floatBits=cf4f404dd9f430cf
-CARROT_TESTS_OK 1886517 assertions; 57 campaign victories with earned coins (full); all twenty powers and Supers, nine bosses and fifteen minibosses, blindness, uproot, challenges and poor-coverage losses checked.
+CARROT_TESTS_OK 4435962 assertions; 57 campaign victories with earned coins (full); all twenty powers and Supers, nine bosses and fifteen minibosses, blindness, uproot, challenges and poor-coverage losses checked.

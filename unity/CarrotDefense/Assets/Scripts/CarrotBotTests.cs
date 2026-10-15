@@ -213,7 +213,7 @@ namespace CarrotTD {
       case "R3":{var p=PoorRun(level);r=p;break;}
       default:throw new ArgumentException("unknown bot "+bot);
      }
-     Console.WriteLine("CARROT_BAND "+r.Json());}
+     Debug.Log("CARROT_BAND "+r.Json());}
    }
   }
   static List<int> Range(string spec){var list=new List<int>();foreach(var part in spec.Split(',')){var b=part.Split('-');int a=int.Parse(b[0]),z=b.Length>1?int.Parse(b[1]):a;for(int i=a;i<=z;i++)list.Add(i);}return list;}

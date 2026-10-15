@@ -1,4 +1,4 @@
-# Raw result lines of the Unity run CarrotTD.CarrotSimulationTests.Run (npm run carrot:test), commit ef4ca7a, pass 2 (14 October 2026).
+# Raw result lines of the Unity run CarrotTD.CarrotSimulationTests.Run (npm run carrot:test), commit f23b985, pass 2 (14 October 2026).
 # Filtered from output/carrot-unity-test.log: every CARROT_*, PRISM_* and *_REGRESSION_OK marker line.
 CARROT_SUPER_BUDGET kind=seed super=3182 pair=3265 ratio=0.974
 CARROT_SUPER_BUDGET kind=frost super=5913 pair=6142 ratio=0.963
@@ -106,6 +106,7 @@ CARROT_CAMPAIGN merges=off strategy=0 level=20 result=won hearts=10 lowest=10 se
 CARROT_CAMPAIGN merges=off strategy=1 level=20 result=won hearts=10 lowest=10 seconds=741.6 wave=14 towers=11
 CARROT_CAMPAIGN merges=off strategy=0 level=24 result=won hearts=10 lowest=10 seconds=1011.6 wave=16 towers=11
 CARROT_CAMPAIGN merges=off strategy=1 level=24 result=won hearts=10 lowest=10 seconds=1003.1 wave=16 towers=11
+CARROT_SNAPSHOTS_PARSED 4146 published snapshots of the bot campaigns parsed as strict JSON
 CARROT_POOR_COVERAGE level=1 result=lost hearts=0 invested=265
 CARROT_POOR_COVERAGE level=4 result=lost hearts=0 invested=145
 CARROT_POOR_COVERAGE level=8 result=lost hearts=0 invested=265
@@ -163,4 +164,4 @@ CARROT_GATE R1 level=24 seed=2 won=True health=4 wave=16
 CARROT_GATE R1 level=24 seed=3 won=False health=0 wave=14
 CARROT_DETERMINISM ticks=22421 scripted=4500
 CARROT_DIGEST level=20 policy=0 ticks=22421 phase=won health=10 coins=419 hash=1566501f7e139bfe floatBits=cf4f404dd9f430cf
-CARROT_TESTS_OK 1886517 assertions; 57 campaign victories with earned coins (full); all twenty powers and Supers, nine bosses and fifteen minibosses, blindness, uproot, challenges and poor-coverage losses checked.
+CARROT_TESTS_OK 4435962 assertions; 57 campaign victories with earned coins (full); all twenty powers and Supers, nine bosses and fifteen minibosses, blindness, uproot, challenges and poor-coverage losses checked.

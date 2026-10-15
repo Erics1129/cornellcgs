@@ -10,9 +10,9 @@ How difficulty is measured, the reference bots and every invariant are in
 
 | Run | Result | Scope |
 |---|---|---|
-| Unity Editor, `CarrotTD.CarrotSimulationTests.Run` (`npm run carrot:test`) | **1,886,517 assertions passed** | 29 levels; both canonical policies win all 57 runs with earned coins; six merges-off controls; poor coverage loses on 10 levels; the naive bot wins L1-L8; the Asuna stack loses 4 of 4; bridge contract v2, wave-plan parity (2,796 groups), telegraph floors at 2x, snapshot size, determinism and the level-20 digest |
-| Standalone `node scripts/carrot-sim.mjs --run` | 1,886,493 assertions, same 57 victories | the same tests on .NET 6; 24 fewer assertions because two long replays end 0.2-0.7 s apart (an ulp of fused multiply-add on Mono ARM64), outcomes identical |
-| Unity and standalone `Quick` | **33,955 assertions each** | unit suites without the long campaigns |
+| Unity Editor, `CarrotTD.CarrotSimulationTests.Run` (`npm run carrot:test`) | **4,435,962 assertions passed** | 29 levels; both canonical policies win all 57 runs with earned coins; six merges-off controls; poor coverage loses on 10 levels; the naive bot wins L1-L8; the Asuna stack loses 4 of 4; bridge contract v2 (4,146 published campaign snapshots parsed as strict JSON, a fresh snapshot schema-checked every 5 s of every run), wave-plan parity (2,796 groups), telegraph floors at 2x, snapshot size, determinism and the level-20 digest |
+| Standalone `node scripts/carrot-sim.mjs --run` | 4,436,019 assertions, same 57 victories | the same tests on .NET 6; 57 more assertions because two long replays end 0.2-0.7 s apart (an ulp of fused multiply-add on Mono ARM64), outcomes identical |
+| Unity and standalone `Quick` | **37,074 assertions each** | unit suites without the long campaigns |
 | Level-20 policy-0 discrete digest | `1566501f7e139bfe` in both, 22,421 ticks | `carrot-sim.mjs --digest` vs the Unity log |
 | `node scripts/carrot-sim.mjs --bands` | 13130 runs in 49.4 s | 200 R1, 100 R1F, 100 R2, 2 x 20 R0, 10 RN and 100 RS seeds a level |
 | `node scripts/carrot-sim.mjs --mute` | campaign pass (worst 9%) | each boss cast muted in turn on 200 R1 seeds |
