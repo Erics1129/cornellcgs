@@ -13,3 +13,32 @@ Old clients pass the higher-format record through untouched. Their strict reader
 The frozen `scripts/fixtures/carrot-challenges-v1.mjs` reproduces the old Portal-loss behavior. `scripts/fixtures/carrot-challenges-v2.mjs` preserves the production merger from commit `7522e5638`, with only TypeScript annotations removed and its cleaner exported. Tests execute both older implementations and verify preservation of higher-format records.
 
 Current tests cover v1/v2 migrations, mixed-device unions, all older wins, Asuna unlock and awards, Portal's existing gate, corrupt/blocked storage and future-format freezing. Both account and page mergers are exercised. The pre-existing sync harness also covers early/late page registration, cloud-only adoption, repeated pulls, zero uploads after freezing, and independent campaign/Super progress.
+
+## Records format 1 (giant update)
+
+The giant update adds no field to the campaign, Super or challenge records. Its new progression data lives in a separate synced record,
+`carrot:records` under the localStorage key `cgs-carrot-records-v1`:
+
+```
+{ version: 1,
+  levels: { '1'..'29': { grade: 0-5, bestStreak, bestSeconds, vgrade } },
+  seen: { abilities: string[], creatures: string[] },
+  tutorial: boolean }
+```
+
+Grades run 0 (none), then D, C, B, A, S. `bestStreak` is the longest defense chain and `bestSeconds` the fastest win (0 means none). `vgrade` is the
+grade in Veteran mode, and challenge levels 25-29 have entries too. Merging takes the maximum of every numeric field and the fastest positive
+time. `seen` is a sorted union capped at 128 ids per list, and `tutorial` is an OR. A record with a version above 1 passes through untouched, and the current
+reader rejects it, so the sync freeze protects it from older rules. The page owns the original rules in `src/minigames/carrot/progress.ts`; a
+verbatim copy sits in `src/lib/account/merges.ts`, with `KNOWN_KEYS` and `MERGES` entries.
+
+An old save loads unchanged: a device with only the three earlier records simply has no records entry yet. Its first finished run or
+first-encounter card writes one.
+
+### Regression evidence
+
+`scripts/fixtures/carrot-saves-golden.json` holds the outputs of the campaign, Super and challenge code paths at 48d1336: reads of corrupt,
+odd and future records, award sequences, and both merge directions. `scripts/fixtures/carrot-saves-cases.mjs` regenerates the outputs from
+any source tree, and `test-carrot-progress` asserts that the current code reproduces the golden file byte for byte. The same test runs the
+records merge over 200 random triples for commutativity, associativity and idempotence, checks the 8 KB budget for a full 29-level record,
+and confirms that the copy in `merges.ts` matches the page's.

@@ -8,7 +8,7 @@
  * to both places. A side that does not exist is `null`, and the rules never
  * throw on it.
  */
-import type { CampaignSave } from '../../minigames/carrot/types'
+import type { CampaignSave, LevelRecord, RecordsSave } from '../../minigames/carrot/types'
 
 export type Best = { ink: number; moves: number }
 export type Bests = Record<string, Best>
@@ -117,6 +117,43 @@ export function mergeCarrotChallenges(a:unknown,b:unknown):ChallengeSave|null {
  return {version:3,best}
 }
 
+// Carrot records (`cgs-carrot-records-v1`): grades, defense chains, fastest wins, first encounters and the tutorial. The block is copied
+// verbatim from src/minigames/carrot/progress.ts (the page owns the original); keep both identical.
+// >>> carrot records (shared with merges.ts)
+const RECORD_LEVEL=/^([1-9]|1[0-9]|2[0-9])$/,SEEN_ID=/^[A-Za-z][A-Za-z0-9]{1,31}$/,SEEN_CAP=128
+const recordNumber=(v:unknown,max:number)=>{const n=Number(v);return Number.isFinite(n)&&n>0?Math.min(max,n):0}
+function cleanLevelRecord(raw:unknown):LevelRecord|null{
+ if(!raw||typeof raw!=='object')return null
+ const r=raw as Partial<LevelRecord>
+ const out:LevelRecord={grade:Math.floor(recordNumber(r.grade,5)),bestStreak:Math.floor(recordNumber(r.bestStreak,9999)),bestSeconds:Math.round(recordNumber(r.bestSeconds,86400)*10)/10,vgrade:Math.floor(recordNumber(r.vgrade,5))}
+ return out.grade||out.bestStreak||out.bestSeconds||out.vgrade?out:null
+}
+const cleanSeen=(raw:unknown)=>Array.isArray(raw)?[...new Set(raw.filter((v):v is string=>typeof v==='string'&&SEEN_ID.test(v)))].sort().slice(0,SEEN_CAP):[]
+function cleanRecords(raw:unknown):RecordsSave|null{
+ if(!raw||typeof raw!=='object'||(raw as {version?:unknown}).version!==1)return null
+ const r=raw as Partial<RecordsSave>,levels:Record<string,LevelRecord>={}
+ if(r.levels&&typeof r.levels==='object')for(const [id,value] of Object.entries(r.levels)){const v=RECORD_LEVEL.test(id)?cleanLevelRecord(value):null;if(v)levels[id]=v}
+ const seen=r.seen&&typeof r.seen==='object'?r.seen:{abilities:[],creatures:[]}
+ return {version:1,levels,seen:{abilities:cleanSeen((seen as {abilities?:unknown}).abilities),creatures:cleanSeen((seen as {creatures?:unknown}).creatures)},tutorial:r.tutorial===true}
+}
+/** A record from a newer client (version above 1) is passed through untouched rather than merged by rules it may have outgrown. */
+const newerRecordsVersion=(a:unknown,b:unknown):unknown=>{const v=(r:unknown)=>r&&typeof r==='object'&&Number.isInteger((r as {version?:unknown}).version)?(r as {version:number}).version:0;const va=v(a),vb=v(b);return va<=1&&vb<=1?null:va>=vb?a:b}
+const minPositive=(a:number,b:number)=>a>0&&b>0?Math.min(a,b):a>0?a:b
+/** Pure merge for account sync: per level grade, chain and Veteran grade max, the fastest positive time; seen is a sorted union (128 each); tutorial OR. */
+export function mergeCarrotRecords(a:unknown,b:unknown):RecordsSave|null{
+ const newer=newerRecordsVersion(a,b);if(newer)return newer as RecordsSave
+ const x=cleanRecords(a),y=cleanRecords(b)
+ if(!x)return y;if(!y)return x
+ const levels:Record<string,LevelRecord>={}
+ for(const id of [...new Set([...Object.keys(x.levels),...Object.keys(y.levels)])].sort((p,q)=>Number(p)-Number(q))){
+  const p=x.levels[id],q=y.levels[id]
+  levels[id]=p&&q?{grade:Math.max(p.grade,q.grade),bestStreak:Math.max(p.bestStreak,q.bestStreak),bestSeconds:minPositive(p.bestSeconds,q.bestSeconds),vgrade:Math.max(p.vgrade,q.vgrade)}:{...(p||q) as LevelRecord}
+ }
+ const union=(p:string[],q:string[])=>[...new Set([...p,...q])].sort().slice(0,SEEN_CAP)
+ return {version:1,levels,seen:{abilities:union(x.seen.abilities,y.seen.abilities),creatures:union(x.seen.creatures,y.seen.creatures)},tutorial:x.tutorial||y.tutorial}
+}
+// <<< carrot records
+
 const beats = (run: Best, best?: Best) => !best || run.ink < best.ink || (run.ink === best.ink && run.moves < best.moves)
 
 /** Ink Maze: per level, the win that used less ink, then fewer moves; every level either side cleared. */
@@ -176,6 +213,7 @@ export const KNOWN_KEYS: Readonly<Record<string, { key: string; private?: boolea
   'carrot:campaign': { key: 'cgs-carrot-defense-v1' },
   'carrot:super': { key: 'cgs-carrot-super-v1' },
   'carrot:challenges': { key: 'cgs-carrot-challenges-v1' },
+  'carrot:records': { key: 'cgs-carrot-records-v1' },
   'inkmaze:best': { key: 'cgs-inkmaze-best-v1' },
   'inkmaze:sound': { key: 'cgs-inkmaze-sound-v1' },
   'inkmaze:code': { key: 'cgs-inkmaze-code-v1' },
@@ -190,6 +228,7 @@ export const MERGES = {
   'carrot:campaign': mergeCarrot,
   'carrot:super': mergeCarrotSuper as Merge<SuperSave>,
   'carrot:challenges': mergeCarrotChallenges as Merge<ChallengeSave>,
+  'carrot:records': mergeCarrotRecords as Merge<RecordsSave>,
   'inkmaze:best': mergeBests,
   'inkmaze:sound': localWins as Merge<string>,
   'inkmaze:code': laterWins as Merge<unknown>,
