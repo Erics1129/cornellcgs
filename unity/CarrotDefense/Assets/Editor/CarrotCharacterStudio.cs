@@ -182,7 +182,9 @@ public static class CarrotCharacterStudio {
    var bones=new SortedSet<string>();foreach(var sk in prefab.GetComponentsInChildren<SkinnedMeshRenderer>(true))if(sk.bones!=null)foreach(var bn in sk.bones)if(bn!=null)bones.Add(bn.name);
    var clips=new List<string>();var anim=prefab.GetComponentInChildren<Animation>(true);if(anim!=null)foreach(AnimationState st in anim)clips.Add(st.name+":"+st.length.ToString("F2",CultureInfo.InvariantCulture));
    string Q(IEnumerable<string> xs)=>"["+string.Join(",",xs.Select(x=>"\""+x.Replace("\"","'")+"\""))+"]";
-   lines.Add("{\"group\":\""+item.group+"\",\"name\":\""+item.name+"\",\"triangles\":"+tris+",\"materials\":"+Q(materials)+",\"meshes\":"+Q(meshNames)+",\"bones\":"+Q(bones)+",\"clips\":"+Q(clips)+"}");
+   var inst=UnityEngine.Object.Instantiate(prefab);var vb=VisibleBounds(inst);UnityEngine.Object.DestroyImmediate(inst);
+   string B(Vector3 v)=>"["+v.x.ToString("F4",CultureInfo.InvariantCulture)+","+v.y.ToString("F4",CultureInfo.InvariantCulture)+","+v.z.ToString("F4",CultureInfo.InvariantCulture)+"]";
+   lines.Add("{\"group\":\""+item.group+"\",\"name\":\""+item.name+"\",\"min\":"+B(vb.min)+",\"max\":"+B(vb.max)+",\"triangles\":"+tris+",\"materials\":"+Q(materials)+",\"meshes\":"+Q(meshNames)+",\"bones\":"+Q(bones)+",\"clips\":"+Q(clips)+"}");
   }
   File.WriteAllLines(path,lines);Debug.Log("CARROT_STUDIO_INVENTORY_OK "+path+" "+lines.Count);
  }
@@ -219,6 +221,14 @@ public static class CarrotCharacterStudio {
   foreach(var name in new[]{"MushroomPoreDetail","ChitinPlateDetail","GelRippleDetail","IceFacetDetail","SkinPoreDetail","FurStrandDetail","LeafClusterDetail","FoliageDetail","TornadoStreaks","ZombieHideTint"}){
    var tex=AssetDatabase.LoadAssetAtPath<Texture2D>(Root+"Models/Materials/"+name+".png");if(tex==null)continue;long b=getSize!=null?(long)getSize.Invoke(null,new object[]{tex}):0;texBytes+=b;
    var file=new FileInfo(Root+"Models/Materials/"+name+".png");lines.Add(name+" "+tex.width+"x"+tex.height+" "+tex.format+" storage="+b+" png="+file.Length);}
+  // Per-prefab vertex data (stride x vertices, before build-time compression) for the mesh budget.
+  var rows=new List<(string,long,int,int)>();var counted=new HashSet<Mesh>();
+  foreach(var item in Roster(true)){var prefab=AssetDatabase.LoadAssetAtPath<GameObject>(item.path);if(prefab==null)continue;long bytes=0;int verts=0,tris=0;
+   foreach(var r in prefab.GetComponentsInChildren<Renderer>(true)){Mesh m=r is SkinnedMeshRenderer sk?sk.sharedMesh:r.GetComponent<MeshFilter>()?.sharedMesh;if(m==null||!counted.Add(m))continue;int stride=0;for(int st=0;st<4;st++)stride+=m.GetVertexBufferStride(st);bytes+=(long)stride*m.vertexCount;verts+=m.vertexCount;for(int sm=0;sm<m.subMeshCount;sm++)tris+=(int)(m.GetIndexCount(sm)/3);}
+   rows.Add((item.group+"-"+item.name,bytes,verts,tris));}
+  var mesh0=AssetDatabase.LoadAssetAtPath<GameObject>(Root+"Models/Towers/lotus-4.prefab").GetComponentInChildren<MeshFilter>().sharedMesh;
+  Debug.Log("SIZE_VERTEX_LAYOUT lotus-4 "+string.Join(",",mesh0.GetVertexAttributes().Select(a=>a.attribute+":"+a.format+"x"+a.dimension)));
+  Debug.Log("SIZE_VERTICES total="+rows.Sum(r=>r.Item2)+" byGroup "+string.Join(" ",rows.GroupBy(r=>r.Item1.Split('-')[0]).Select(g=>g.Key+"="+g.Sum(r=>r.Item2)))+"\nTOP "+string.Join("\n",rows.OrderByDescending(r=>r.Item2).Take(25).Select(r=>r.Item1+" bytes="+r.Item2+" verts="+r.Item3+" tris="+r.Item4)));
   Debug.Log("SIZE_LEDGER lodIndexBytes="+lodBytes+" ("+string.Join(", ",byGroup.Select(kv=>kv.Key+"="+kv.Value))+") meshRuntimeBytes="+meshBytes+" newTextureStorageBytes="+texBytes+"\n"+string.Join("\n",lines));
  }
  /// <summary>Lists the Mesh LOD API surface of this editor (reflection), for characters.md.</summary>

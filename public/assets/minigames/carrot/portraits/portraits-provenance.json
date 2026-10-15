@@ -14,8 +14,8 @@
  "licence": "original renders of project models (project licence); asuna uses the existing approved portrait",
  "sheets": {
   "towers-seed.webp": {
-   "bytes": 23076,
-   "sha256": "4f3254d5699676bdbaa5849f43e881c8c839d16b3634ba75e905bd647e6aae3d",
+   "bytes": 23228,
+   "sha256": "933cd15bba1b2a538257035f09ab64f2daae3299e6426bc38dff52f1040afee0",
    "cells": [
     "tower-seed-1",
     "tower-seed-2",
@@ -25,8 +25,8 @@
    ]
   },
   "towers-frost.webp": {
-   "bytes": 15034,
-   "sha256": "071ec46614effef85e5c1ed0c1f2a51e6fbd4060a970d21b15554fa63806fdff",
+   "bytes": 16676,
+   "sha256": "b223c1c187ea343cb4adae6aa601e9f8c903db030070f61f37995bf4535b6b9f",
    "cells": [
     "tower-frost-1",
     "tower-frost-2",
@@ -36,8 +36,8 @@
    ]
   },
   "towers-mortar.webp": {
-   "bytes": 15628,
-   "sha256": "d3321ecca5bfff1b89d49fdf78aae42b2d6a53c632eef0b579dae0032db0323d",
+   "bytes": 15620,
+   "sha256": "26e32f419bc9e72631a14765a612ef6e27e9aecf52dfc5715c650f93b5062e66",
    "cells": [
     "tower-mortar-1",
     "tower-mortar-2",
@@ -47,8 +47,8 @@
    ]
   },
   "towers-prism.webp": {
-   "bytes": 16762,
-   "sha256": "54a8af551f5bb3c1df96c637fd65ceda8325f44eea730fc2cf2356933b5a621c",
+   "bytes": 16760,
+   "sha256": "5a1bf16dbc842d4dc9d5b0ab8ea91c4e3ae73a38075e145da95d588716801a26",
    "cells": [
     "tower-prism-1",
     "tower-prism-2",
@@ -69,8 +69,8 @@
    ]
   },
   "towers-blossom.webp": {
-   "bytes": 18046,
-   "sha256": "76f04d07870f3c61a35b59d508a1897972665f9c8e377069cae34cd028a4c751",
+   "bytes": 18278,
+   "sha256": "4b97ad44e31c4ba43c152d9acc7f88a1347b447df785fa4f8de624d64287b921",
    "cells": [
     "tower-blossom-1",
     "tower-blossom-2",
@@ -80,8 +80,8 @@
    ]
   },
   "towers-starfruit.webp": {
-   "bytes": 17004,
-   "sha256": "b55967ee3feb2b2532fab740d6c1139085cc076c705d48b42a58b87e62a75ee7",
+   "bytes": 17008,
+   "sha256": "ed87cb6304d381f5111bf98b949378523947c89b66d7ca957cd33bfedb96d9d7",
    "cells": [
     "tower-starfruit-1",
     "tower-starfruit-2",
@@ -102,8 +102,8 @@
    ]
   },
   "towers-book.webp": {
-   "bytes": 16760,
-   "sha256": "8309ccc96b417410ecaf1baaf881bc6d70eec9383f88a1a8a860af4edfd79eb6",
+   "bytes": 16774,
+   "sha256": "fac9c74136bf84b0df7f83f3ef4b8bb0ab9c7cc2c5d93ffd9aff972fca78535f",
    "cells": [
     "tower-book-1",
     "tower-book-2",
@@ -113,8 +113,8 @@
    ]
   },
   "towers-thunder.webp": {
-   "bytes": 17640,
-   "sha256": "8ea28fd0b51191d54e54356f2ad8a9d4563833d1b7ed34c83dac20a7da15a474",
+   "bytes": 17638,
+   "sha256": "542c89255748156375085cfaa702e57c97fcaab04fbdb8c242b82017b16488a4",
    "cells": [
     "tower-thunder-1",
     "tower-thunder-2",
@@ -124,8 +124,8 @@
    ]
   },
   "towers-bamboo.webp": {
-   "bytes": 20312,
-   "sha256": "385dc542b27563a4d214a734c08c88d1e2722ca4fb027d6b644596f671f98ef5",
+   "bytes": 20330,
+   "sha256": "207813af1a9b35622ce02e64483f629ada27f58bce241cc55e69d4260d5c7c58",
    "cells": [
     "tower-bamboo-1",
     "tower-bamboo-2",
@@ -135,8 +135,8 @@
    ]
   },
   "towers-chili.webp": {
-   "bytes": 24154,
-   "sha256": "e6a05533fc812c826887e921def18c5733eb2c20dc2fdfc12aa8178cb069c61e",
+   "bytes": 24200,
+   "sha256": "bfaa42a05583df100188f76a8de6898cc645f735c2b3753f7e8e25363b6637cd",
    "cells": [
     "tower-chili-1",
     "tower-chili-2",
@@ -146,8 +146,8 @@
    ]
   },
   "towers-lotus.webp": {
-   "bytes": 24610,
-   "sha256": "81c4a416897cfe6cf83c34d6defe1e14ca3a793ec2a218ab8abd9633b8899c1d",
+   "bytes": 24392,
+   "sha256": "12ec7187e8c2eb4812f405aa9088d134430eb96d7627e03b01314f976cd65c68",
    "cells": [
     "tower-lotus-1",
     "tower-lotus-2",
@@ -157,8 +157,8 @@
    ]
   },
   "towers-magnet.webp": {
-   "bytes": 25170,
-   "sha256": "6dc8def820a0479be15a4316fdc3074242de7957e460b1d1f1f8b0220145c2a4",
+   "bytes": 25412,
+   "sha256": "b12ab701acbaea6853bb95f31e3c174e1de8caed3084010dbf2d8fdf7dad6bd6",
    "cells": [
     "tower-magnet-1",
     "tower-magnet-2",
@@ -168,8 +168,8 @@
    ]
   },
   "towers-orchid.webp": {
-   "bytes": 21612,
-   "sha256": "4626ea88afb36418f71956690f0285cfe8982c93bc26bb1a18acb70b508f9c4b",
+   "bytes": 21892,
+   "sha256": "3ccc0223a7c525024f0c19862a9f458f0fc9211efbb8bc66a99cdc2e25342695",
    "cells": [
     "tower-orchid-1",
     "tower-orchid-2",
@@ -179,8 +179,8 @@
    ]
   },
   "towers-mushroom.webp": {
-   "bytes": 25120,
-   "sha256": "d3bb355cfdc605fda4e8eef94c5162ce1ed3017b42c1100635362d02a55cd631",
+   "bytes": 24670,
+   "sha256": "0ba73ddfdb1aa2a17d1b343fec218640050e38eaf901b1828be2e38bca5baf54",
    "cells": [
     "tower-mushroom-1",
     "tower-mushroom-2",
@@ -190,8 +190,8 @@
    ]
   },
   "towers-cactus.webp": {
-   "bytes": 24492,
-   "sha256": "e744dd1e99f10df2cdedbed01b0a7a6bcf60d4587c87914bab79c69e7e5f895a",
+   "bytes": 24462,
+   "sha256": "f5609b6b9bf5c1bf5d3c63e5023d5c7929eea9a66d3b6ae15c17a946f6d93597",
    "cells": [
     "tower-cactus-1",
     "tower-cactus-2",
@@ -201,8 +201,8 @@
    ]
   },
   "towers-clockflower.webp": {
-   "bytes": 29188,
-   "sha256": "719c94efd936a9f0c91fe46511c060b3a5c1dac28be7a6d65474f84ba6935ba4",
+   "bytes": 29046,
+   "sha256": "929b58238418b1ba31636e732947512645f412b13f020f7eeaa12d7aaa75df8a",
    "cells": [
     "tower-clockflower-1",
     "tower-clockflower-2",
@@ -212,8 +212,8 @@
    ]
   },
   "towers-dragonfruit.webp": {
-   "bytes": 29098,
-   "sha256": "6019990847ef94aec325ef19bbf43a2b82bca2c34edb615895d926eee33adbb8",
+   "bytes": 29244,
+   "sha256": "75bfb33c4288caf61438867d7665e6d033d36af77b8ca30e210f197ebbcbbd28",
    "cells": [
     "tower-dragonfruit-1",
     "tower-dragonfruit-2",
@@ -223,8 +223,8 @@
    ]
   },
   "towers-moonflower.webp": {
-   "bytes": 22898,
-   "sha256": "e916f0c908cf65cc891d52310dffe199a96033a02fcc009f41ff1658c51b8cee",
+   "bytes": 22918,
+   "sha256": "2a6ae9b6f801e34044df80b89a49e92c972239ba7c8d830f68e7433d5c67dfbd",
    "cells": [
     "tower-moonflower-1",
     "tower-moonflower-2",
@@ -234,8 +234,8 @@
    ]
   },
   "creatures.webp": {
-   "bytes": 95668,
-   "sha256": "859a0036f4c1d544bbd3b7b19cc8b1ced506fc5c53b945adec7c7001db4665f5",
+   "bytes": 95800,
+   "sha256": "37463881ed1ca0ab15610483fb2a724f4b7be2be876b172ee0af07abba249c85",
    "cells": [
     "creature-nibble",
     "creature-dash",
@@ -281,8 +281,8 @@
    ]
   },
   "bosses.webp": {
-   "bytes": 59500,
-   "sha256": "753fea24be80db18ffb00273781e46747041b4bc9286dad7723cb156e692a407",
+   "bytes": 59508,
+   "sha256": "089c520ae097d9a6c19de48471444079b0e35cf8cc39daf54ebe4122aff5b0a3",
    "cells": [
     "boss-garden",
     "boss-marsh",
@@ -296,5 +296,5 @@
    ]
   }
  },
- "totalBytes": 681600
+ "totalBytes": 683684
 }

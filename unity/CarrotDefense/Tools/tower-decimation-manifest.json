@@ -1,0 +1,326 @@
+[
+ {
+  "name": "bamboo-1",
+  "trianglesBefore": 16608,
+  "trianglesAfter": 11993,
+  "ratio": 0.716
+ },
+ {
+  "name": "bamboo-2",
+  "trianglesBefore": 20382,
+  "trianglesAfter": 11992,
+  "ratio": 0.581
+ },
+ {
+  "name": "bamboo-3",
+  "trianglesBefore": 23798,
+  "trianglesAfter": 11994,
+  "ratio": 0.496
+ },
+ {
+  "name": "bamboo-4",
+  "trianglesBefore": 27572,
+  "trianglesAfter": 11992,
+  "ratio": 0.427
+ },
+ {
+  "name": "bamboo-5",
+  "trianglesBefore": 36340,
+  "trianglesAfter": 11994,
+  "ratio": 0.321
+ },
+ {
+  "name": "blossom-4",
+  "trianglesBefore": 14478,
+  "trianglesAfter": 11993,
+  "ratio": 0.825
+ },
+ {
+  "name": "blossom-5",
+  "trianglesBefore": 18592,
+  "trianglesAfter": 12464,
+  "ratio": 0.635
+ },
+ {
+  "name": "cactus-1",
+  "trianglesBefore": 16958,
+  "trianglesAfter": 11994,
+  "ratio": 0.691
+ },
+ {
+  "name": "cactus-2",
+  "trianglesBefore": 19800,
+  "trianglesAfter": 11991,
+  "ratio": 0.587
+ },
+ {
+  "name": "cactus-3",
+  "trianglesBefore": 23016,
+  "trianglesAfter": 11993,
+  "ratio": 0.502
+ },
+ {
+  "name": "cactus-4",
+  "trianglesBefore": 24046,
+  "trianglesAfter": 11993,
+  "ratio": 0.479
+ },
+ {
+  "name": "cactus-5",
+  "trianglesBefore": 29842,
+  "trianglesAfter": 11990,
+  "ratio": 0.381
+ },
+ {
+  "name": "chili-1",
+  "trianglesBefore": 13758,
+  "trianglesAfter": 11992,
+  "ratio": 0.87
+ },
+ {
+  "name": "chili-2",
+  "trianglesBefore": 15576,
+  "trianglesAfter": 11993,
+  "ratio": 0.767
+ },
+ {
+  "name": "chili-3",
+  "trianglesBefore": 17212,
+  "trianglesAfter": 11994,
+  "ratio": 0.693
+ },
+ {
+  "name": "chili-4",
+  "trianglesBefore": 19030,
+  "trianglesAfter": 11993,
+  "ratio": 0.626
+ },
+ {
+  "name": "chili-5",
+  "trianglesBefore": 23694,
+  "trianglesAfter": 11992,
+  "ratio": 0.499
+ },
+ {
+  "name": "clockflower-1",
+  "trianglesBefore": 25126,
+  "trianglesAfter": 11993,
+  "ratio": 0.461
+ },
+ {
+  "name": "clockflower-2",
+  "trianglesBefore": 27954,
+  "trianglesAfter": 11994,
+  "ratio": 0.413
+ },
+ {
+  "name": "clockflower-3",
+  "trianglesBefore": 29992,
+  "trianglesAfter": 11995,
+  "ratio": 0.384
+ },
+ {
+  "name": "clockflower-4",
+  "trianglesBefore": 32820,
+  "trianglesAfter": 11992,
+  "ratio": 0.35
+ },
+ {
+  "name": "clockflower-5",
+  "trianglesBefore": 37946,
+  "trianglesAfter": 12018,
+  "ratio": 0.3
+ },
+ {
+  "name": "dragonfruit-1",
+  "trianglesBefore": 18096,
+  "trianglesAfter": 11994,
+  "ratio": 0.658
+ },
+ {
+  "name": "dragonfruit-2",
+  "trianglesBefore": 20406,
+  "trianglesAfter": 11995,
+  "ratio": 0.583
+ },
+ {
+  "name": "dragonfruit-3",
+  "trianglesBefore": 21926,
+  "trianglesAfter": 11993,
+  "ratio": 0.542
+ },
+ {
+  "name": "dragonfruit-4",
+  "trianglesBefore": 24236,
+  "trianglesAfter": 11988,
+  "ratio": 0.49
+ },
+ {
+  "name": "dragonfruit-5",
+  "trianglesBefore": 29824,
+  "trianglesAfter": 11991,
+  "ratio": 0.393
+ },
+ {
+  "name": "lotus-1",
+  "trianglesBefore": 18780,
+  "trianglesAfter": 12017,
+  "ratio": 0.63
+ },
+ {
+  "name": "lotus-2",
+  "trianglesBefore": 21334,
+  "trianglesAfter": 12128,
+  "ratio": 0.553
+ },
+ {
+  "name": "lotus-3",
+  "trianglesBefore": 27594,
+  "trianglesAfter": 12345,
+  "ratio": 0.426
+ },
+ {
+  "name": "lotus-4",
+  "trianglesBefore": 12422,
+  "trianglesAfter": 11877,
+  "ratio": 0.963
+ },
+ {
+  "name": "lotus-5",
+  "trianglesBefore": 14032,
+  "trianglesAfter": 12191,
+  "ratio": 0.835
+ },
+ {
+  "name": "magnet-1",
+  "trianglesBefore": 16772,
+  "trianglesAfter": 11994,
+  "ratio": 0.709
+ },
+ {
+  "name": "magnet-2",
+  "trianglesBefore": 18594,
+  "trianglesAfter": 11991,
+  "ratio": 0.638
+ },
+ {
+  "name": "magnet-3",
+  "trianglesBefore": 22034,
+  "trianglesAfter": 11992,
+  "ratio": 0.537
+ },
+ {
+  "name": "magnet-4",
+  "trianglesBefore": 23856,
+  "trianglesAfter": 11993,
+  "ratio": 0.495
+ },
+ {
+  "name": "magnet-5",
+  "trianglesBefore": 26348,
+  "trianglesAfter": 11987,
+  "ratio": 0.444
+ },
+ {
+  "name": "moonflower-2",
+  "trianglesBefore": 13032,
+  "trianglesAfter": 11992,
+  "ratio": 0.918
+ },
+ {
+  "name": "moonflower-3",
+  "trianglesBefore": 14650,
+  "trianglesAfter": 11989,
+  "ratio": 0.814
+ },
+ {
+  "name": "moonflower-4",
+  "trianglesBefore": 16278,
+  "trianglesAfter": 11992,
+  "ratio": 0.729
+ },
+ {
+  "name": "moonflower-5",
+  "trianglesBefore": 19128,
+  "trianglesAfter": 11994,
+  "ratio": 0.615
+ },
+ {
+  "name": "mushroom-1",
+  "trianglesBefore": 14468,
+  "trianglesAfter": 11994,
+  "ratio": 0.825
+ },
+ {
+  "name": "mushroom-2",
+  "trianglesBefore": 20196,
+  "trianglesAfter": 11989,
+  "ratio": 0.586
+ },
+ {
+  "name": "mushroom-3",
+  "trianglesBefore": 25134,
+  "trianglesAfter": 11991,
+  "ratio": 0.469
+ },
+ {
+  "name": "mushroom-4",
+  "trianglesBefore": 30862,
+  "trianglesAfter": 11986,
+  "ratio": 0.381
+ },
+ {
+  "name": "mushroom-5",
+  "trianglesBefore": 41206,
+  "trianglesAfter": 12706,
+  "ratio": 0.3
+ },
+ {
+  "name": "orchid-1",
+  "trianglesBefore": 13762,
+  "trianglesAfter": 12009,
+  "ratio": 0.862
+ },
+ {
+  "name": "orchid-2",
+  "trianglesBefore": 15200,
+  "trianglesAfter": 12120,
+  "ratio": 0.771
+ },
+ {
+  "name": "orchid-3",
+  "trianglesBefore": 20298,
+  "trianglesAfter": 12707,
+  "ratio": 0.577
+ },
+ {
+  "name": "orchid-4",
+  "trianglesBefore": 21736,
+  "trianglesAfter": 12801,
+  "ratio": 0.538
+ },
+ {
+  "name": "orchid-5",
+  "trianglesBefore": 25350,
+  "trianglesAfter": 12994,
+  "ratio": 0.457
+ },
+ {
+  "name": "seed-4",
+  "trianglesBefore": 12976,
+  "trianglesAfter": 11993,
+  "ratio": 0.922
+ },
+ {
+  "name": "seed-5",
+  "trianglesBefore": 16220,
+  "trianglesAfter": 11992,
+  "ratio": 0.729
+ },
+ {
+  "name": "thunder-5",
+  "trianglesBefore": 12404,
+  "trianglesAfter": 11992,
+  "ratio": 0.967
+ }
+]
