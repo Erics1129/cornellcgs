@@ -202,3 +202,15 @@ No image model, no external texture.
 | `showcase.mjs` | deterministic frame bursts of the signature moments |
 | `load.mjs` | cold-cache load over an emulated link: bytes and Continue-to-playable time |
 | `unity.mjs`, `cs-check.mjs` | serialized Unity runs on this checkout and a 1-2 s Roslyn compile check |
+
+## Polish pass after review (15 October 2026)
+
+- **Guardian death.** The burst no longer opens with a 3.2 u near-white star over a 2.4 u glow (under bloom they merged into one
+  flat opaque disc). A tinted core lives 70 ms and stays smaller than the first ring; two spinning streak stars, shard debris, an
+  elevated ring and a tinted ground disc at .42 alpha carry the moment (`CarrotEffectsBeats.BossDeathBeat`).
+- **Prismatic Causeway (L29).** World-space glazed ceramic tiles (a procedural 64 px tile albedo and bevel normal, self-made) on the
+  deck, the cantilever edges and the runway; violet (#AA88FF) emissive expansion joints and two long seams; the rainbow rim is back
+  as vertical additive spectrum bands on all four chassis faces; a pale, lavender-lifted sky and closer fog; fourteen floating
+  prism shards below and beyond the garden for depth; a near-level camera (47, -7) instead of the diagonal (44, -24).
+- **Victory shot.** The orbit backs off and tilts down by the results card's height (the page reports it through `SetSafeArea`;
+  42% is assumed until it lands), so the carrot sits in the free band above the card.

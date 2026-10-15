@@ -230,6 +230,8 @@
   .ct-note__badges i.is-air { color: var(--ally-hi); }
   .ct-note__badges i.is-mini { color: var(--coin); }
   .ct-note__badges i.is-boss { color: var(--threat); }
+  .ct-track__more { position: absolute; right: 0; width: 34px; display: grid; place-items: center end; padding-right: 4px; font: 700 11px/1 var(--f-num); color: var(--ink-2); background: linear-gradient(90deg, transparent, rgba(7, 11, 18, .92) 45%); pointer-events: none; transition: opacity .2s; }
+  .ct-track__more[data-n='0'] { opacity: 0; }
   .ct-note__new { position: absolute; top: -3px; left: calc(var(--head) - 6px); width: 9px; height: 9px; font-size: 0; background: var(--coin); transform: rotate(45deg); box-shadow: 0 0 0 1.5px #0b111b; }
 
   /* ---- controls, bottom bar ---- */
@@ -344,9 +346,13 @@
   .ct-air-toast div { display: grid; gap: 2px; flex: 1; }
   .ct-air-toast b { font: 800 13px/1.2 var(--f-ui); letter-spacing: .08em; text-transform: uppercase; color: var(--ally-hi); }
   .ct-air-toast span { font-size: 12px; color: var(--ink-2); }
-  .ct-forge .ct-emblem { width: 36px; height: 36px; }
-  .ct-forge > span { flex: 1; font: 800 13px/1.2 var(--f-ui); letter-spacing: .06em; text-transform: uppercase; color: var(--super); }
-  .ct-forge small { font-family: var(--f-num); }
+  .ct-forge { min-width: min(340px, calc(100vw - 24px)); }
+  .ct-forge .ct-emblem { flex: none; width: 36px; height: 36px; }
+  /* the text block only: the emblem is a span too, and flex: 1 used to stretch it into a flat gold oval */
+  .ct-forge__text { flex: 1; min-width: 0; display: grid; gap: 2px; }
+  .ct-forge__text small { font: 700 11px/1 var(--f-ui); letter-spacing: .18em; text-transform: uppercase; color: var(--ink-2); }
+  .ct-forge__text b { font: 800 15px/1.1 var(--f-disp); letter-spacing: .02em; color: var(--super); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ct-forge .ct-ghost small { font-family: var(--f-num); }
   .ct-teach > svg { color: var(--super); width: 24px; height: 24px; }
   .ct-teach p { flex: 1; font-size: 13px; }
   .ct-coach { position: absolute; z-index: 13; left: var(--safe-l); bottom: calc(var(--safe-b) + 76px); width: min(360px, calc(100% - 24px)); display: grid; grid-template-columns: auto 1fr; gap: 6px 12px; padding: 12px 14px; border-color: rgba(179, 217, 68, .5); animation: ct-in .3s var(--ease-out); }
@@ -356,6 +362,10 @@
   .ct-coach b small { font: 700 12px var(--f-num); color: var(--accent); }
   .ct-coach p { margin-top: 4px; font-size: 13px; color: var(--ink-2); }
   .ct-coach__skip { grid-column: 1 / 3; justify-self: start; }
+  .ct-briefing { width: min(400px, calc(100% - 24px)); border-color: rgba(170, 136, 255, .55); }
+  .ct-briefing .ct-coach__step { color: var(--super); }
+  .ct-briefing .ct-coach__step svg { width: 26px; height: 26px; }
+  .ct-briefing ul { display: grid; gap: 4px; margin-top: 6px; padding-left: 16px; list-style: disc; font-size: 13px; line-height: 1.35; color: var(--ink-2); }
   .is-spotlight { position: relative; z-index: 2; animation: ct-spot 1.6s ease-in-out infinite; }
   @keyframes ct-spot { 0%, 100% { box-shadow: inset 0 0 0 2px var(--accent); } 50% { box-shadow: inset 0 0 0 4px #fff; } }
   .ct-encounter { position: absolute; inset: 0; z-index: 20; display: grid; place-items: center; padding: 16px; background: rgba(4, 6, 10, .55); }
@@ -388,6 +398,9 @@
   .ct-build__name { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-width: 0; }
   .ct-build__name b { font: 800 14px/1.1 var(--f-disp); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .ct-build__info p { font-size: 12px; line-height: 1.3; color: var(--ink-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ct-build__info .ct-build__crowd { display: flex; align-items: center; gap: 5px; color: var(--coin); }
+  .ct-build__crowd svg { flex: none; width: 13px; height: 13px; }
+  .ct-tag.is-crowd { color: var(--coin); border-color: rgba(255, 204, 34, .45); margin-left: 4px; }
   .ct-dps { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 8px; }
   .ct-dps__bar { position: relative; height: 4px; background: rgba(255, 255, 255, .12); overflow: hidden; }
   .ct-dps__bar i { position: absolute; inset: 0; transform-origin: left; background: var(--accent); }
@@ -424,6 +437,15 @@
   .ct-sell { display: inline-flex; align-items: center; gap: 4px; min-width: 64px; min-height: 44px; justify-content: center; padding: 0 10px; color: var(--coin); font: 700 13px/1 var(--f-num); border: 1px solid rgba(255, 204, 34, .4) !important; clip-path: var(--chamfer); }
   .ct-sell svg { width: 17px; height: 17px; }
   .ct-build--anchored { max-width: calc(100% - 24px); }
+  /* desktop: every open tower in one grid (6-7 columns of 46 px), so nothing hides behind a sideways scroller; at most three rows show */
+  .ct-build--anchored.ct-build--pad:not(.is-compact) { width: calc(var(--tile-cols, 6) * 51px + 19px); max-height: none; }
+  .ct-build--anchored.ct-build--pad:not(.is-compact) .ct-build__tiles { display: grid; grid-template-columns: repeat(auto-fill, 46px); grid-auto-rows: 46px; gap: 5px; overflow-x: hidden; overflow-y: auto; max-height: calc(3 * 46px + 2 * 5px); scroll-snap-type: y proximity; scrollbar-width: thin; scrollbar-color: rgba(255, 255, 255, .28) transparent; }
+  .ct-build--anchored.ct-build--pad:not(.is-compact) .ct-build__tiles::-webkit-scrollbar { display: block; width: 6px; }
+  .ct-build--anchored.ct-build--pad:not(.is-compact) .ct-build__tiles::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, .28); }
+  .ct-build--anchored.ct-build--pad:not(.is-compact) .ct-tile { width: 46px; height: 46px; }
+  .ct-build--anchored.ct-build--pad:not(.is-compact) .ct-tile__cost { font-size: 11px; line-height: 14px; }
+  /* a single row (phone sheet, compact fallback) fades at the far edge so a cut tile reads as "more this way" */
+  .ct-build--sheet .ct-build__tiles, .ct-build--anchored.is-compact .ct-build__tiles { -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 28px), transparent); mask-image: linear-gradient(90deg, #000 calc(100% - 28px), transparent); padding-right: 22px; }
   .ct-build--sheet { left: var(--safe-l); right: var(--safe-r); bottom: calc(var(--safe-b) + 56px); width: auto; max-height: 200px; }
   .ct-build--sheet.is-flipped { bottom: auto; }
   .ct-build--side { top: var(--side-top, var(--safe-t)); bottom: var(--safe-b); right: calc(var(--safe-r) + 52px); width: 236px; max-height: none; grid-template-rows: minmax(0, 1fr) auto auto; }
@@ -483,7 +505,7 @@
   .ct-loading__tower span { font-size: 12px; color: var(--ink-2); }
 
   /* ---- results: docked at the bottom, after the victory beat ---- */
-  .ct-results { position: absolute; z-index: 11; left: 50%; bottom: var(--safe-b); translate: -50% 0; width: min(760px, calc(100% - 24px)); max-height: calc(100% - 24px); overflow: auto; display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 18px 22px; padding: 18px 20px; animation: ct-in .4s var(--ease-out); }
+  .ct-results { position: absolute; z-index: 11; left: 50%; bottom: var(--safe-b); translate: -50% 0; width: min(760px, calc(100% - 24px)); max-height: calc(100% - 24px); overflow: auto; display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 18px 22px; padding: 18px 20px; animation: ct-in .4s var(--ease-out); background: linear-gradient(180deg, #101826, var(--panel-solid)); }
   .ct-results::before { content: ""; position: absolute; left: var(--c); right: 0; top: 0; height: 2px; background: var(--accent); }
   .ct-results.is-lost::before { background: var(--leak); }
   .ct-results__grade { display: grid; justify-items: center; align-content: start; gap: 10px; min-width: 110px; }
@@ -705,7 +727,10 @@
     .ct-hint { display: none; }
     .ct-coach { bottom: auto; top: 108px; left: 50%; translate: -50% 0; }
     .ct-delta { display: none; }
-    .ct-results { grid-template-columns: 1fr; gap: 10px; padding: 14px; max-height: 40%; bottom: var(--safe-b); }
+    .ct-results { grid-template-columns: 1fr; gap: 10px; padding: 14px 14px 0; max-height: min(62%, calc(100% - 96px)); bottom: var(--safe-b); }
+    /* the three actions stay on screen: they stick to the card's bottom edge while the stats scroll under them */
+    .ct-results__actions { position: sticky; bottom: 0; z-index: 1; margin: 4px -14px 0; padding: 10px 14px; background: var(--panel-solid); border-top: 1px solid var(--hair); }
+    .ct-results__actions > * { flex: 1 1 auto; }
     .has-result .ct-hud__status, .has-result .ct-controls { opacity: 0; pointer-events: none; }
     .ct-results__grade { grid-template-columns: auto auto; justify-content: start; align-items: center; min-width: 0; }
     .ct-grade--xl { font-size: 64px; }
@@ -801,6 +826,16 @@
     .ct-chapter__name { font-size: 12px; }
     .ct-chapter__done { display: none; }
     .ct-select__main { grid-column: 1 / 3; }
+    /* short landscape: the jacket is a compact card (a 16:9-cropped strip of art, one meta row, the title) with PLAY pinned to its
+       bottom edge, so Back, the chapter tabs and PLAY all fit in 390 px */
+    .ct-select__top .ct-icon-btn { flex: none; }
+    .ct-chapters { min-width: 0; }
+    .ct-jacket { max-height: 100%; overflow-y: auto; gap: 6px; padding: 8px; scrollbar-width: none; }
+    .ct-jacket__art { aspect-ratio: auto; height: min(112px, 28vh); }
+    .ct-jacket__no { font-size: 26px; }
+    .ct-jacket__boss { width: 36px; height: 36px; }
+    .ct-switch { min-height: 44px; }
+    .ct-jacket__play, .ct-jacket__lock { position: sticky; bottom: 0; min-height: 46px; }
   }
   @media (min-width: 1700px) { .ct-hud { grid-template-columns: minmax(0, 1fr) minmax(420px, 720px) minmax(0, 1fr); } }
 

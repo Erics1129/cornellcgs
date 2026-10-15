@@ -36,6 +36,7 @@ function plateCell(index:number,columns:number,width:number,height:number,bounds
 }
 // ---- portraits.json (rendered from the real in-game models by the characters stream) -------------------------------------------
 // {kind:{tier:[sheet,x,y,w,h]}} in sheet pixels; when present it wins over the painted sheets below, which remain the fallback.
+// Towers and creatures are keyed by their id, guardians (and the carrot hero) by "boss:<id>".
 type Cell=[string,number,number,number,number]
 type PortraitMap=Record<string,Record<string,Cell>>
 let portraitMap:PortraitMap|null|undefined,portraitWaiters:Array<(m:PortraitMap|null)=>void>|null=null
@@ -81,7 +82,8 @@ export function SuperEmblem({kind,className=''}:{kind:string;className?:string})
  return <span aria-hidden="true" className={`ct-emblem ct-emblem--text ${className}`}><b>S</b></span>
 }
 export function BossPortrait({kind,className=''}:{kind:string;className?:string}){
- const real=usePortraitCell(kind==='asuna'?'':kind)
+ // Guardians live under "boss:<kind>" in portraits.json: boss ids collide with tower ids (the Frost guardian vs the Frost tower).
+ const real=usePortraitCell(kind==='asuna'||!kind?'':'boss:'+kind)
  if(real)return <span aria-hidden="true" className={`ct-portrait ct-portrait--boss ct-portrait--real ${className}`} style={real.style}/>
  if(kind==='asuna')return <span aria-hidden="true" className={`ct-portrait ct-portrait--boss ct-portrait--asuna ${className}`} style={{backgroundImage:`url(${base}46-asuna-portrait.png)`}}/>
  if(kind==='portal')return <span aria-hidden="true" className={`ct-portrait ct-portrait--boss ct-portrait--portal ${className}`} style={{backgroundImage:`url(${base}40-portal-keyart.webp)`}}/>

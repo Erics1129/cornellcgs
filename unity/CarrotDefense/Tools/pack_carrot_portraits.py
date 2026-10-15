@@ -7,7 +7,8 @@ minibosses.webp and bosses.webp (the guardians and the carrot hero). Asuna keeps
 
   python3 Tools/pack_carrot_portraits.py <raw dir> <out dir>   (Python 3, numpy, Pillow with WebP)
 
-portraits.json is {kind: {tier: [sheet, x, y, w, h]}} with sheet paths relative to the json, as the page reads it.
+portraits.json is {kind: {tier: [sheet, x, y, w, h]}} with sheet paths relative to the json, as the page reads it. Guardians and the
+carrot hero live in their own namespace, "boss:<kind>", because boss ids collide with tower ids (the Frost guardian vs the Frost tower).
 """
 import json, sys, hashlib
 from pathlib import Path
@@ -63,7 +64,7 @@ def main():
     size = next(iter(index.values()))["size"]
     mapping, sheets = {}, {}
 
-    def sheet(name, keys, columns):
+    def sheet(name, keys, columns, prefix=""):
         rows = (len(keys) + columns - 1) // columns
         canvas = Image.new("RGBA", (columns * CELL, rows * CELL), (0, 0, 0, 0))
         placed = []
@@ -72,7 +73,7 @@ def main():
                 raise SystemExit("missing render: " + key)
             x, y = (i % columns) * CELL, (i // columns) * CELL
             canvas.alpha_composite(load(raw_dir, key, size), (x, y))
-            mapping.setdefault(kind, {})[str(tier)] = [name, x, y, CELL, CELL]
+            mapping.setdefault(prefix + kind, {})[str(tier)] = [name, x, y, CELL, CELL]
             placed.append(key)
         path = out / name
         canvas.save(path, "WEBP", quality=QUALITY, method=6)
@@ -82,12 +83,12 @@ def main():
         sheet("towers-%s.webp" % kind, [(kind, t, "tower-%s-%d" % (kind, t)) for t in range(1, 6)], 5)
     sheet("creatures.webp", [(k, 1, "creature-" + k) for k in CREATURES], 5)
     sheet("minibosses.webp", [(k, 1, "miniboss-" + k) for k in MINIBOSSES], 5)
-    sheet("bosses.webp", [(k, 1, key) for k, key in BOSSES], 5)
+    sheet("bosses.webp", [(k, 1, key) for k, key in BOSSES], 5, prefix="boss:")
     # Asuna keeps the approved portrait rendered from the private pose (licensed art is never re-rendered or used as input).
     asuna = out.parent / "46-asuna-portrait.png"
     if asuna.exists():
         w, h = Image.open(asuna).size
-        mapping["asuna"] = {"1": ["../46-asuna-portrait.png", 0, 0, w, h]}
+        mapping["boss:asuna"] = {"1": ["../46-asuna-portrait.png", 0, 0, w, h]}
     (out / "portraits.json").write_text(json.dumps(mapping, indent=1, sort_keys=True) + "\n")
     total = sum(v["bytes"] for v in sheets.values())
     (out / "portraits-provenance.json").write_text(json.dumps({

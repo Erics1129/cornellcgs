@@ -53,6 +53,23 @@ export function Coach({step,towers,onSkip,onDone}:{step:TutorialStep;towers:numb
  </aside>
 }
 
+// ---- Pre-fight briefing (Asuna, level 29) --------------------------------------------------------------------------------------------
+/**
+ * Asuna outruns any fixed line; the winning play is to move the defense with her. The card says so before the encounter starts
+ * (the ready phase), and again for the first 25 s of the fight until it is dismissed.
+ */
+export function PrismBriefing({store,run}:{store:SnapshotStore;run:number}){
+ const s=useSlice(store,st=>st&&st.level===29&&(st.phase==='ready'||(st.phase==='playing'&&(st.elapsed||0)<25))?st.phase:null)
+ const [closed,setClosed]=useState(-1)
+ if(!s||closed===run)return null
+ return <aside className="ct-coach ct-briefing ct-panel" role="note" aria-labelledby="ct-briefing-title">
+  <span className="ct-coach__step"><Icon name="warning"/></span>
+  <div><span className="ct-kicker">Briefing · Prism Vanguard</span><b id="ct-briefing-title">She outruns any fixed line</b>
+   <ul><li>She dashes forward every few seconds: plants behind her stop helping.</li><li>Sell the plants she has passed and replant on the pads ahead of her.</li><li>Pause (Space) to do it calmly: selling and building work while paused.</li></ul></div>
+  <button className="ct-ghost ct-coach__skip" onClick={()=>setClosed(run)}>Got it</button>
+ </aside>
+}
+
 // ---- First-encounter cards ---------------------------------------------------------------------------------------------------------
 type Card={id:string;source:'boss'|'mini';kind:string}
 /** The first time a telegraph appears, the game pauses for one card (glyph + at most 12 words); afterwards only glyph + verb show. */
@@ -90,10 +107,12 @@ export function BossWarning({store,run}:{store:SnapshotStore;run:number}){
 }
 /** The snapshot's notices, minus the ones the HUD already shows (wave numbers are on the track; the load prompt is gone). */
 const quiet=/^(Choose a place|Wave \d+|Defend the carrot)$/
-export function NoticeToast({store}:{store:SnapshotStore}){
- const notice=useSlice(store,st=>st?.notice||'')
+export function NoticeToast({store,forged=''}:{store:SnapshotStore;forged?:string}){
+ // once the stage is won the results card speaks; a notice chip there only sat on top of the guardian's death burst
+ const notice=useSlice(store,st=>st&&st.phase!=='won'?st.notice||'':'')
  const [text,setText]=useState('')
- useEffect(()=>{if(!notice||quiet.test(notice))return;setText(notice);const t=window.setTimeout(()=>setText(''),2600);return()=>clearTimeout(t)},[notice])
+ // the forged toast already names the new Super: its notice would be a second label on the same spot
+ useEffect(()=>{if(!notice||quiet.test(notice))return;if(forged&&(store.get()?.mergeUndo||0)>0&&notice.toLowerCase().includes(forged.toLowerCase())){setText('');return}setText(notice);const t=window.setTimeout(()=>setText(''),2600);return()=>clearTimeout(t)},[notice,forged,store])
  if(!text)return null
  return <div className="ct-toast" role="status">{text}</div>
 }
@@ -115,5 +134,5 @@ export function AirToast({store,level,enemies,definitions}:{store:SnapshotStore;
 export function ForgeToast({store,name,kind,send}:{store:SnapshotStore;name:string;kind:string;send:(c:Command)=>void}){
  const undo=useSlice(store,st=>st&&st.phase!=='won'&&st.phase!=='lost'?Math.ceil(st.mergeUndo||0):0)
  if(undo<=0)return null
- return <div className="ct-forge ct-panel" role="status"><SuperEmblem kind={kind||'seed'}/><span>{name||'Super tower'} forged</span><button className="ct-ghost" onClick={()=>send({type:'mergeUndo'})}><Icon name="undo"/>Undo <small>{undo}s</small></button></div>
+ return <div className="ct-forge ct-panel" role="status"><SuperEmblem kind={kind||'seed'}/><span className="ct-forge__text"><small>Super forged</small><b>{name||'Super tower'}</b></span><button className="ct-ghost" onClick={()=>send({type:'mergeUndo'})}><Icon name="undo"/>Undo <small>{undo}s</small></button></div>
 }

@@ -63,15 +63,19 @@ const judgementWords:Record<string,{word:string;tone:string;sub:(j:JudgementEven
  saved:{word:'Saved',tone:'saved',sub:()=>'Sold before the roots closed'},
 }
 /** One judgement slot: a new word replaces the old. osu! Argon timing (1.6 to 1 in 100 ms, then a slow grow and fade). */
-export function Judgement({tracker,reduced}:{tracker:RunTracker;reduced:boolean}){
+export function Judgement({tracker,reduced,waves=0}:{tracker:RunTracker;reduced:boolean;waves?:number}){
  const j=useSyncExternalStore(tracker.subscribe,()=>tracker.judgement())
  const word=useRef<HTMLSpanElement>(null),sub=useRef<HTMLSpanElement>(null),[spoken,setSpoken]=useState(""),lastSpoken=useRef(-Infinity)
- const shownId=useRef(j?.id||0),fadeTimer=useRef(0)
- useEffect(()=>()=>clearTimeout(fadeTimer.current),[])
+ const shownId=useRef(j?.id||0),fadeTimer=useRef(0),holdTimer=useRef(0)
+ useEffect(()=>()=>{clearTimeout(fadeTimer.current);clearTimeout(holdTimer.current)},[])
  useEffect(()=>{if(!j||j.id===shownId.current)return;shownId.current=j.id
   const w=word.current,s=sub.current;if(!w||!s)return
   for(const a of [...w.getAnimations(),...s.getAnimations()])a.cancel()
-  clearTimeout(fadeTimer.current)
+  clearTimeout(fadeTimer.current);clearTimeout(holdTimer.current)
+  // The last wave's word waits 400 ms: the guardian's death burst (or the final clear) is read first, then the verdict.
+  const finale=!reduced&&waves>0&&j.wave>=waves&&(j.kind==='flawless'||j.kind==='clear')
+  if(finale){w.style.opacity='0';s.style.opacity='0';holdTimer.current=window.setTimeout(()=>{w.style.opacity='';s.style.opacity='';play()},400)}else play()
+  function play(){if(!w||!s)return
   if(reduced){
    // reduced motion: opacity only, each change 250 ms or less
    for(const n of [w,s])n.animate([{opacity:0},{opacity:1}],{duration:200,fill:'forwards'})
@@ -82,9 +86,10 @@ export function Judgement({tracker,reduced}:{tracker:RunTracker;reduced:boolean}
    if(requestFlash('judgement-split',140)==='start')w.animate([{'--split':'2px'},{'--split':'0px'}] as unknown as Keyframe[],{duration:140,easing:'ease-out'})
    s.animate([{opacity:0,letterSpacing:'.42em'},{opacity:1,letterSpacing:'.22em',offset:.15},{opacity:1,offset:.6},{opacity:0}],{duration:1600,easing:'cubic-bezier(.22,1,.36,1)',fill:'forwards'})
   }
+  }
   // screen readers hear at most one judgement every 2 s
   const now=performance.now();if(now-lastSpoken.current>=2000){lastSpoken.current=now;setSpoken(judgementWords[j.kind]?.word||'')}
- },[j,reduced])
+ },[j,reduced,waves])
  const meta=j?judgementWords[j.kind]:null
  return <div className="ct-judge" aria-hidden={false}>
   <span className={`ct-judge__word is-${meta?.tone||'clear'}`} ref={word} data-word={meta?.word||''} aria-hidden="true">{meta?.word||''}</span>
@@ -93,18 +98,23 @@ export function Judgement({tracker,reduced}:{tracker:RunTracker;reduced:boolean}
  </div>
 }
 
-/** Edge-only red vignette on a bite (never full screen): 600 ms, and a retrigger while lit extends it instead of strobing. */
+/**
+ * Edge-only red vignette on a bite (never full screen): 600 ms, and a retrigger while lit extends it instead of strobing. A request the
+ * governor caps (three large flashes already started this second) never plays. Reduced motion: a steady low tint (35%, no rise) held
+ * at least 900 ms, so a run of bites reads as one lasting glow, never as more flashes than full motion.
+ */
 export function Vignette({store,reduced}:{store:SnapshotStore;reduced:boolean}){
  const health=useSlice(store,st=>st?.health??10),prev=useRef(health),el=useRef<HTMLDivElement>(null),raf=useRef(0)
  useEffect(()=>{const before=prev.current;prev.current=health;if(health>=before)return
   const node=el.current;if(!node)return
-  const mode=requestFlash('vignette',reduced?250:600,true)
-  if(mode==='extend'&&raf.current)return
+  const mode=requestFlash('vignette',reduced?900:600,true)
+  // 'extend': either the running glow reads the later end on its next frame, or the governor capped this one; neither starts a flash
+  if(mode==='extend')return
   cancelAnimationFrame(raf.current)
-  const t0=performance.now(),rise=reduced?0:90
-  const step=(now:number)=>{const until=flashActiveUntil('vignette'),fade=reduced?250:420
+  const t0=performance.now(),rise=reduced?0:90,peak=reduced?.35:.9,fade=reduced?250:420
+  const step=(now:number)=>{const until=flashActiveUntil('vignette')
    const a=now-t0<rise?(now-t0)/rise:now<until-fade?1:Math.max(0,(until-now)/fade)
-   node.style.opacity=String(a*.9);if(now<until)raf.current=requestAnimationFrame(step);else{node.style.opacity='0';raf.current=0}}
+   node.style.opacity=String(a*peak);if(now<until)raf.current=requestAnimationFrame(step);else{node.style.opacity='0';raf.current=0}}
   raf.current=requestAnimationFrame(step)
  },[health,reduced])
  useEffect(()=>()=>cancelAnimationFrame(raf.current),[])

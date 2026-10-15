@@ -21,6 +21,20 @@ namespace CarrotTD {
   static float Carrot_DisplayPeriodMs(){return 0;}
   #endif
   float inputPixelScale=1;
+  // ---- view-only crowd separation (polish) --------------------------------------------------------------------------------------
+  // Ground creatures closer than their two bodies push apart (half the overlap each, at most .16 u, eased by the lane spring), so a
+  // nibble packet, a moth and a spider stop merging into one mass at play distance. O(n^2) over at most ~110 bodies per frame.
+  readonly Dictionary<int,Vector3> separation=new Dictionary<int,Vector3>();readonly List<EnemyState> sepBodies=new List<EnemyState>();
+  static float BodyRadius(string kind){switch(kind){case "shell":case "shaman":case "crystal":case "burrow":case "beetle":case "slug":case "mimic":case "scarab":case "tinyZombie":return .26f;case "swarm":case "mite":case "sporeling":case "firefly":case "fragment":return .12f;}return .18f;}
+  static float LaneSpread(string kind){float r=BodyRadius(kind);return r>.2f?.22f:r<.15f?.12f:.15f;}
+  void ComputeSeparation(){
+   separation.Clear();sepBodies.Clear();if(game==null)return;
+   foreach(var e in game.enemies)if(e.alive&&!e.air&&!e.hidden&&string.IsNullOrEmpty(e.boss)&&string.IsNullOrEmpty(e.miniboss))sepBodies.Add(e);
+   for(int i=0;i<sepBodies.Count;i++){var a=sepBodies[i];Vector3 push=Vector3.zero;float ra=BodyRadius(a.kind);
+    for(int j=0;j<sepBodies.Count;j++){if(i==j)continue;var b=sepBodies[j];float dx=a.position.x-b.position.x,dz=a.position.z-b.position.z,d2=dx*dx+dz*dz,min=ra+BodyRadius(b.kind);if(d2>=min*min)continue;
+     float d=Mathf.Sqrt(d2);if(d<1e-4f){dx=a.id<b.id?.01f:-.01f;dz=0;d=.01f;}push+=new Vector3(dx/d,0,dz/d)*((min-d)*.5f);}
+    if(push.sqrMagnitude>1e-6f){if(push.sqrMagnitude>.0256f)push=push.normalized*.16f;separation[a.id]=push;}}
+  }
   sealed class Actor {
    public GameObject root;public Transform model,turret,core,barrel,petals,pages,muzzle,shadow;public Animation animation;public string currentClip;public string kind;public int tier;
    public Vector3 modelScale,barrelRest;public Quaternion modelRotation;public Renderer[] renderers;public float lastHitFlash=-1,lastRim=-1,flash=-1,hitRemaining,deadClock,lastShotClock=-9,spawnClock=-9,spin,spinRing,baseSpeed,shadowSize,lastDissolve=-1;public Bounds bounds;
@@ -169,7 +183,13 @@ namespace CarrotTD {
    {float env=0;if(dipClock>=0){dipClock+=viewDt;float t=dipClock;env=t<.4f?t/.4f:t<1.6f?1:t<2f?(2-t)/.4f:0;if(t>=2f)dipClock=-1;}float dim=Mathf.Max(.6f*env,blindDim);if(dim>0||lastDim>0){sun.intensity=sunBase*(1-dim);RenderSettings.fogEndDistance=fogEndBase*(1-.5f*dim);}lastDim=dim;}
    if(revealClock>=0){revealClock+=dt;revealBody.m_FollowOffset=-(vcamReveal.transform.rotation*Vector3.forward)*(fitDistance*1.14f/zoom);if(revealClock>1.3f){revealClock=-1;vcamReveal.Priority=0;}}
    if(game.phase=="won"&&orbitClock<0&&carrot!=null&&!reducedMotion){orbitClock=0;CarrotQa.Count("camera.cinematic",1);vcamOrbit.Follow=carrot.root.transform;vcamOrbit.Priority=15;}
-   if(orbitClock>=0){orbitClock+=viewDt;float yaw=cameraAngle.eulerAngles.y+Mathf.Lerp(0,84,Mathf.Clamp01(orbitClock/3));Vector3 offset=Quaternion.Euler(0,yaw,0)*new Vector3(0,2.6f,-5.5f);orbitBody.m_FollowOffset=offset;vcamOrbit.transform.rotation=Quaternion.LookRotation((carrotPosition+Vector3.up*.9f)-(carrotPosition+offset));if(sun!=null&&dipClock<0)sun.intensity=Mathf.Lerp(sun.intensity,sunBase*1.1f,viewDt*2);}
+   if(orbitClock>=0){orbitClock+=viewDt;float yaw=cameraAngle.eulerAngles.y+Mathf.Lerp(0,84,Mathf.Clamp01(orbitClock/3));
+    // Victory framing (polish): the results card docks at the bottom of the page, which reports its top edge through SetSafeArea
+    // (until it lands, 42% is assumed). The shot backs off and tilts down so the carrot sits in the middle of the free band above it.
+    float low=Mathf.Clamp(Mathf.Max(safeArea.y,.42f),0,.62f),high=Mathf.Clamp(safeArea.x,0,.3f),centre=Mathf.Clamp(low+(1-low-high)*.5f,.5f,.8f);
+    Vector3 offset=Quaternion.Euler(0,yaw,0)*new Vector3(0,2.6f,-5.5f)*(1+low*.8f);orbitBody.m_FollowOffset=offset;
+    float tilt=Mathf.Atan(Mathf.Tan(vcamOrbit.m_Lens.FieldOfView*.5f*Mathf.Deg2Rad)*(2*centre-1))*Mathf.Rad2Deg;
+    vcamOrbit.transform.rotation=Quaternion.LookRotation((carrotPosition+Vector3.up*.9f)-(carrotPosition+offset))*Quaternion.Euler(tilt,0,0);if(sun!=null&&dipClock<0)sun.intensity=Mathf.Lerp(sun.intensity,sunBase*1.1f,viewDt*2);}
    if(game.phase=="lost"&&defeatClock<0)defeatClock=0;if(defeatClock>=0&&defeatClock<1.5f){defeatClock+=dt;float t=Mathf.Clamp01(defeatClock/1.4f);sun.intensity=sunBase*(1-.3f*t);sun.color=Color.Lerp(sun.color,new Color(.8f,.85f,.95f),dt*2);RenderSettings.fogEndDistance=fogEndBase*(1-.28f*Mathf.Clamp01(defeatClock/1.2f));}
   }
   void UpdatePushers(){int n=0;if(carrot!=null)pushers[n++]=new Vector4(carrotPosition.x,carrotPosition.z,.55f,.28f);foreach(var e in game.enemies){if(n>=12)break;if(!e.alive||e.air||e.hidden)continue;bool boss=!string.IsNullOrEmpty(e.boss);pushers[n++]=new Vector4(e.position.x,e.position.z,boss?.95f:.4f,.28f);}Shader.SetGlobalVectorArray("_CarrotPushers",pushers);Shader.SetGlobalFloat("_CarrotPusherCount",n);}
@@ -574,13 +594,15 @@ namespace CarrotTD {
     if(pads.TryGetValue(t.pad,out var pad))pad.GetComponent<SphereCollider>().enabled=false;}
    for(int s=superSlot;s<6;s++)effects.SuperMark(s,Vector3.zero,"",Color.white,0,false);
    RemoveMissing(towers,seen);
+   ComputeSeparation();
    seen.Clear();foreach(var e in game.enemies){seen.Add(e.id);if(!enemies.TryGetValue(e.id,out var a)){string path=ExpansionEnemyPath(e);a=Spawn(path,world,e.kind,1);if(e.kind=="fragment"){a.modelScale*=.45f;a.model.localScale=a.modelScale;}Clickable(a,"enemy",e.id,!string.IsNullOrEmpty(e.boss)?2.1f:!string.IsNullOrEmpty(e.miniboss)?1.35f:.85f);enemies[e.id]=a;a.tone=e.kind=="crystal"||e.kind=="fragment"?CarrotEffects.Tone("frost"):e.kind=="shaman"||e.kind=="swarm"?CarrotEffects.Tone("marsh"):new Color(1,.6f,.2f);}
     bool boss=!string.IsNullOrEmpty(e.boss);if(e.alive&&e.castRemaining>0&&(boss||!string.IsNullOrEmpty(e.miniboss)))windupLive=true;if(e.alive&&e.speed>a.baseSpeed&&game.elapsed>=e.slowUntil&&game.elapsed>=e.rushUntil)a.baseSpeed=e.speed;
     bool tornado=e.boss=="tornado",eyeball=e.boss=="eyeball",zombie=e.boss=="zombie";
     // Jolt is a damped spring on a presentation offset; EnemyState is never written.
     a.joltVel+=(-a.jolt*90-a.joltVel*12)*dt;a.jolt+=a.joltVel*dt;
     // View-only lane spread: up to 0.15 u to either side of the lane (hashed from the id, eased through corners) so a packet reads as a crowd, not a queue. Range rings still match the simulation within that margin.
-    if(!boss&&string.IsNullOrEmpty(e.miniboss)&&e.alive&&dt>0){Vector3 fwd=e.direction;fwd.y=0;if(fwd.sqrMagnitude>1e-4f){uint h=(uint)e.id*2654435761u;float k=((h>>8)&1023)/1023f*2-1;Vector3 want=Vector3.Cross(Vector3.up,fwd.normalized)*(k*.15f);a.lane=Vector3.Lerp(a.lane,want,1-Mathf.Exp(-dt*5));}}
+    // Polish: bulky kinds spread wider (.22 u) and tiny ones less (.12 u), and the separation pass pushes overlapping bodies apart.
+    if(!boss&&string.IsNullOrEmpty(e.miniboss)&&e.alive&&dt>0){Vector3 fwd=e.direction;fwd.y=0;if(fwd.sqrMagnitude>1e-4f){uint h=(uint)e.id*2654435761u;float k=((h>>8)&1023)/1023f*2-1;Vector3 want=Vector3.Cross(Vector3.up,fwd.normalized)*(k*LaneSpread(e.kind));if(separation.TryGetValue(e.id,out var sep))want+=sep;a.lane=Vector3.Lerp(a.lane,want,1-Mathf.Exp(-dt*5));}}
     Vector3 position=e.position+a.jolt+a.lane;float bob=0;if(tornado)bob=e.air?.6f+Mathf.Sin(e.age*4)*.05f:Mathf.Sin(e.age*2.2f)*.04f;else if(eyeball)bob=.45f+Mathf.Sin(e.age*3)*.08f;else if(e.air)bob=.7f+Mathf.Sin(e.age*6)*.07f;else if(e.kind=="nibble")bob=Mathf.Abs(Mathf.Sin(e.age*6))*.075f;else if(e.kind=="swarm")bob=Mathf.Abs(Mathf.Sin(e.age*7))*.04f;position.y+=bob+.07f;if(e.hidden&&e.boss!="orchard")position.y-=.4f;
     if(tornado){if(e.alive&&dt>0){a.dustClock+=dt;if(a.dustClock>=.35f){a.dustClock=0;effects.TornadoDust(e.position);}}}
     else if(e.alive&&!e.air&&!e.hidden&&e.speed>0&&!eyeball){float strideRate=a.baseSpeed>0?e.speed/a.baseSpeed:1;float period=boss?.9f:e.kind=="dash"?.28f:e.kind=="shell"?.36f:e.kind=="swarm"?.3f:e.kind=="shaman"?.5f:e.kind=="burrow"?.45f:e.kind=="crystal"||e.kind=="fragment"?.4f:.42f;a.stride+=dt*strideRate;if(a.stride>=period){a.stride=0;effects.FootDust(e.position,boss?6:2,boss?.35f:.17f,boss);}}

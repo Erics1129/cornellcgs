@@ -169,3 +169,13 @@ The detail normals are original work, baked by `Tools/bake_detail_normals.py` (`
 - `LodProbe()` lists the Mesh LOD API.
 
 `CarrotPortalModelChecks.GiantUpdate()` runs the model acceptance checks.
+
+## Polish pass after review (15 October 2026)
+
+- **Surface detail at play distance.** Mushroom (nibble, shaman) pores: tiling 4 to 2, strength .6 to 1.8, albedo gain .86 (a
+  cheap cavity stand-in). Chitin (shell spider, moth) plates: tiling 3 to 2, strength .7 to 1.35, reflection .45 and a dark horn
+  tint (.58, .52, .5) that brings the light-grey legs down under the glossy body (`CarrotModels.ApplyBlendedRealism`; the two
+  `.mat` assets carry the same values).
+- **Crowds stay distinct.** View-only separation: ground creatures closer than their two body radii push apart (half the overlap
+  each, at most .16 u, eased by the lane spring), and the lane spread is .22 u for bulky kinds, .12 u for tiny ones, .15 u
+  otherwise (`CarrotView.ComputeSeparation`). The simulation is untouched.

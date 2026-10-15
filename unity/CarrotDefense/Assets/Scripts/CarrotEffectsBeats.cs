@@ -34,13 +34,19 @@ namespace CarrotTD {
    if(e.value>0){int coins=elite?5:Mathf.Clamp(Mathf.RoundToInt(e.value/6f),1,3);for(int i=0;i<N(coins);i++)Glyph(p+Vector3.up*.15f,FxSheet.Coin,.24f,.8f,new Color(1,.85f,.35f),new Vector3(R(-.6f,.6f),R(1.1f,1.9f),R(-.4f,.4f)),R(-200,200));}
    if(elite){RingFx(e.position,.25f,1.7f,.45f,Hot(new Color(1,.86f,.55f,.85f),1.5f),2,1.5f);Disc(e.position,.3f,1.1f,.3f,new Color(1,.8f,.45f,.7f),1.6f);LightFx(p,5,3,.18f,warm,.02f);CameraImpulse?.Invoke(e.position,.1f,2);}
   }
-  /// <summary>Boss death: a radial burst, a shockwave, a coin shower and 0.6 s at 0.3 speed (presentation and simulation). The
+  /// <summary>Boss death: streaks, shards and rings around a brief tinted core, a shockwave, a coin shower and 0.6 s at 0.3 speed. The
   /// challenge bosses, the Portal and Asuna add their own recipes on top; the campaign guardians had only the generic death before.</summary>
   void BossDeathBeat(CarrotEvent e){
    Vector3 p=e.position;Color tone=Tone(e.kind);Vector3 core=p+Vector3.up*1.1f;
-   Flash(core,3.2f,.22f,new Color(1,.97f,.9f,.95f),FxSheet.Star6,R(0,360));Flash(core,2.4f,.6f,new Color(tone.r,tone.g,tone.b,.6f),FxSheet.GlowSoft);
-   RingFx(p,.3f,4.6f,.9f,Hot(new Color(1,.9f,.65f,.9f),1.8f),2,1.4f);RingFx(p,.2f,3.2f,.7f,Hot(new Color(tone.r,tone.g,tone.b,.8f),1.6f),1,1.5f,false,.12f);Disc(p,.6f,3f,.7f,new Color(1,.85f,.5f,.8f),1.8f);
-   Sparks(core,N(36),2.2f,4.6f,1.1f,new Color(1,.85f,.45f),Vector3.zero,1,.13f);Debris(core,N(26),FxSheet.Shard,.09f,.17f,1.6f,3.6f,1.4f,new Color(1,.86f,.5f),500);
+   // Polish: the burst used to open with a 3.2 u near-white star over a 2.4 u glow, which bloom saturated into one flat opaque disc.
+   // Now a tinted core lives under 80 ms and stays smaller than the first ring; spinning streaks, shards and rings carry the moment.
+   Color hot=Color.Lerp(tone,new Color(1,.95f,.85f),.35f);
+   Flash(core,1.25f,.07f,new Color(hot.r,hot.g,hot.b,.6f),FxSheet.GlowHard);
+   Flash(core,2.6f,.34f,new Color(hot.r,hot.g,hot.b,.7f),FxSheet.Star6,R(0,360),R(-50,50));Flash(core,1.9f,.46f,new Color(tone.r,tone.g,tone.b,.55f),FxSheet.Star4,R(0,360),R(-80,80));
+   Flash(core,1.5f,.5f,new Color(tone.r,tone.g,tone.b,.28f),FxSheet.GlowSoft);
+   RingFx(p,.3f,4.6f,.9f,Hot(new Color(1,.9f,.65f,.85f),1.6f),2,1.4f);RingFx(p,.2f,3.2f,.7f,Hot(new Color(tone.r,tone.g,tone.b,.8f),1.6f),1,1.5f,false,.12f);RingFx(p,.4f,2.3f,.55f,Hot(new Color(hot.r,hot.g,hot.b,.6f),1.4f),0,2,false,1.1f);
+   Disc(p,.6f,2.4f,.6f,new Color(tone.r,tone.g,tone.b,.42f),1.3f);
+   Sparks(core,N(44),2.2f,4.8f,1.1f,new Color(1,.85f,.45f),Vector3.zero,1,.13f);Debris(core,N(34),FxSheet.Shard,.09f,.18f,1.8f,4f,1.5f,Color.Lerp(new Color(1,.86f,.5f),tone,.3f),560);
    int coins=N(18);for(int i=0;i<coins;i++){float a=i/(float)coins*Mathf.PI*2;Glyph(core,FxSheet.Coin,.28f,1.3f,new Color(1,.86f,.36f),new Vector3(Mathf.Cos(a)*R(.8f,1.6f),R(2,3.2f),Mathf.Sin(a)*R(.8f,1.6f)),R(-260,260));}
    LightFx(core,10,6,.7f,new Color(1,.85f,.55f),.03f);
    if(e.kind=="garden"||e.kind=="marsh"||e.kind=="frost"||e.kind=="orchard"){CameraImpulse?.Invoke(p,.5f,3);HitStop?.Invoke(0,.3f,.6f);}

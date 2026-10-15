@@ -20,7 +20,7 @@ const source=resolve('unity/CarrotDefense/Assets/Scripts/CarrotData.cs')
 const baseline=JSON.parse(readFileSync(resolve('scripts/carrot-waves.baseline.json'),'utf8'))
 
 // Sanctioned fallback knobs (recorded in balance-results.md): drop a level's count-multiplier slot, or add to its gap scale.
-const tuning={slotDrop:{},gapBonus:{9:0.1},challengeScale:{26:1,27:0.9}}
+const tuning={slotDrop:{24:1},gapBonus:{9:0.1,24:0.15},challengeScale:{26:1,27:0.9}}
 
 const BaseHp={nibble:55,dash:38,shell:125,swarm:24,moth:65,shaman:130,burrow:80,crystal:180} // crystal counts its 70 shield
 // Expansion registry shares its health profiles with the runtime; minibosses count as pressure work.
@@ -120,7 +120,13 @@ const pass1=[...Array.from({length:24},(_,i)=>expand(generate(i+1),i+1)),...scal
 //  step 4  late pressure: the last three ordinary waves of L5-L24 carry 1.10x counts (cap 110, excess as health), and
 //          WaveRampTable multiplies ordinary health from wave 3: 1 + a min(1, (w-2)/(E-2)), E the last ordinary wave,
 //          a = .10 (L1-4), .18 (L5-8), .22 (L9-12), .26 (L13-24), .12 (L25-28), 0 (Asuna); minibosses take half the rise.
-const PASS2=STEP>=2,LATE=STEP>=4
+//  polish (shipped with step 6; CARROT_NO_POLISH=1 reproduces the block before it): the early cliffs and the late walls go.
+//          Wave 1 of L5-L24 is at most its own wave 2 and 1.15x the largest wave 1 met before it (in pre-pass health, which is what
+//          waves 1-2 are played at), wave-1 air packets on L6-L12 are at most 5, and wave 2 is at most 1.4x wave 1; the removed
+//          units move to waves 3..E-1 like every other opening cap. Then, after the late ramp, no campaign wave from 3 on carries
+//          more than 1.4x the threat of the wave before it: the excess moves forward toward the finale (the guardian's wave),
+//          and what the last wave cannot hold moves back (never into waves 1-2), so the level's total stays and a wall becomes a climb.
+const PASS2=STEP>=2,LATE=STEP>=4,POLISH=STEP>=6&&!process.env.CARROT_NO_POLISH,WallCap=1.4
 const AIR=new Set(['moth',...added.filter(e=>e.air&&!e.mini).map(e=>e.id)])
 const MINI=new Set(added.filter(e=>e.mini).map(e=>e.id))
 const units=wave=>wave.reduce((s,p)=>s+(p.kind==='boss'?0:p.n),0)
@@ -139,7 +145,21 @@ function spread(lvl,lo,hi,kind,n,overflow,asHealth=false){
  const order=raw.map((x,i)=>[x-take[i],i]).sort((a,b)=>b[0]-a[0]||b[1]-a[1]);for(let k=0;k<left;k++)take[order[k%order.length][1]]++
  idx.forEach((w,i)=>{const room=Math.max(0,110-units(lvl[w])),put=Math.min(room,take[i]);if(put>0)addUnits(lvl[w],kind,put);if(take[i]>put)overflow[w]+=(take[i]-put)*BaseHp[kind]})
 }
-const overflowWork=[]
+const overflowWork=[],firstWave=[]
+// Pre-pass health of a wave's ordinary units (base HP x the pre-pass HPScale): waves 1-2 are played at it (the opening grace).
+const prePassWork=(L,wave,w)=>workOf(wave)*(L<=24?baseline.hpScale[L-1]:1)*(w===1&&L>=5?Math.sqrt(hpScale[L-1]/baseline.hpScale[L-1]):1)
+// Moves units of the unlocked packets of a wave out (proportionally, then single units from the heaviest packet) until its pre-pass
+// work is at most `allowed`; the moved units go to waves 3..E-1.
+function shed(lvl,L,w,allowed,later){
+ const now=prePassWork(L,lvl[w],w);if(now<=allowed)return
+ const locked=lvl[w].filter(p=>p.locked).reduce((s,p)=>s+(p.kind==='boss'?0:BaseHp[p.kind]*p.n),0)*(now/Math.max(1,workOf(lvl[w]))),free=now-locked;if(free<=0)return
+ const keep=Math.max(0,allowed-locked)/free
+ for(const p of lvl[w]){if(p.locked||p.kind==='boss')continue;const n=Math.max(1,Math.round(p.n*keep));if(n<p.n){later(p.kind,p.n-n);p.n=n}}
+ for(let guard=0;guard<200&&prePassWork(L,lvl[w],w)>allowed;guard++){let best=null;for(const p of lvl[w])if(!p.locked&&p.kind!=='boss'&&p.n>1&&(!best||BaseHp[p.kind]*p.n>BaseHp[best.kind]*best.n))best=p;if(!best)break;best.n--;later(best.kind,1)}
+}
+// CarrotData.PlanWave's clock: the stream length of a wave and the time of its first flyer (game seconds from the wave start).
+function planTimes(L,wave){let at=.65;const out=[];for(const p of wave){if(p.n<=0)continue;const gap=p.kind==='swarm'?.24*gapScale(L):p.kind==='boss'?1.8:.78*gapScale(L);for(let i=0;i<p.n;i++)out.push({at:at+i*gap,kind:p.kind});at+=Math.max(2,p.n*(p.kind==='swarm'?.24:p.kind==='boss'?1.8:.78)*(p.kind==='boss'?1:gapScale(L)*overlap(L)))+.8}return out}
+function airLead(L,lvl,fa){const prev=planTimes(L,lvl[fa-1]),air=planTimes(L,lvl[fa]).find(x=>AIR.has(x.kind));return (prev.length?prev[prev.length-1].at:0)+breather(L)+(air?air.at:99)}
 function pass2(L){
  const lvl=pass1[L-1].map(w=>parse(w)),W=lvl.length,overflow=new Array(W).fill(0);overflowWork[L-1]=overflow
  if(L===29||!PASS2)return lvl
@@ -154,8 +174,20 @@ function pass2(L){
   for(let w=0;w<2;w++)for(const p of lvl[w]){const target=ramped[w].find(x=>x.kind===p.kind);if(target&&target.n<p.n&&!p.locked){const moved=(p.n-target.n)*BaseHp[p.kind];for(const [v,work] of lateWork)overflow[v]+=moved*work/Math.max(1,lateTotal);p.n=target.n}}
  }
  for(let w=0;w<2;w++)for(const p of lvl[w]){if(p.locked)continue
-  const cap=p.kind==='swarm'?(L<=4?8:12):AIR.has(p.kind)?(L>=13&&L<=24?5:10):Infinity
+  const cap=p.kind==='swarm'?(L<=4?8:12):AIR.has(p.kind)?(L>=13&&L<=24?5:POLISH&&w===0&&L>=6&&L<=12?5:10):Infinity
   if(p.n>cap){later(p.kind,p.n-cap);p.n=cap}}
+ if(POLISH&&L>=5&&L<=24&&W>=3){ // early cliffs: wave 1 <= wave 2 and 1.15x the largest earlier wave 1; wave 2 <= 1.4x wave 1
+  const seen=Math.max(0,...firstWave.slice(4,L-1).filter(Boolean)) // the largest wave 1 met so far (from L5)
+  const before=[workOf(lvl[0]),workOf(lvl[1])]
+  shed(lvl,L,0,Math.min(prePassWork(L,lvl[1],1),seen>0?1.15*seen:Infinity),later)
+  shed(lvl,L,1,WallCap*prePassWork(L,lvl[0],0),later)
+  // A shorter wave before the level's first flyers shortens their preview (the contract wants 16 game s from the start of the wave
+  // before them): that air wave sends its ground packets first, and if that is still short its flyers move to the later waves.
+  if(workOf(lvl[0])<before[0]||workOf(lvl[1])<before[1])for(let guard=0;guard<4;guard++){
+   const fa=lvl.findIndex(wave=>wave.some(p=>p.n>0&&AIR.has(p.kind)));if(fa<1||airLead(L,lvl,fa)>=16)break
+   const wave=lvl[fa];if(AIR.has(wave[0].kind)&&!wave[0].locked){const air=wave.filter(p=>AIR.has(p.kind)),ground=wave.filter(p=>!AIR.has(p.kind));wave.splice(0,wave.length,...ground,...air);if(airLead(L,lvl,fa)>=16)break}
+   for(const p of wave.filter(p=>AIR.has(p.kind)&&!p.locked)){later(p.kind,p.n);p.n=0}lvl[fa]=wave.filter(p=>p.n>0)}
+ }
  if(L<=24){ // smoothing of the first 60% (campaign only; the challenge arenas are authored around their guardian)
   const S=Math.min(E,Math.ceil(.6*W))
   for(let w=2;w<S;w++){const allowed=1.35*workOf(lvl[w-1]),now=workOf(lvl[w]);if(now<=allowed)continue
@@ -168,6 +200,7 @@ function pass2(L){
  if(LATE&&L>=5&&L<=24)for(let w=Math.max(2,E-3);w<E;w++){ // the last three ordinary waves: 1.10x counts (stream budget below)
   for(const p of lvl[w]){if(p.locked||p.kind==='boss')continue;const want=Math.round(p.n*1.1),room=Math.max(0,110-units(lvl[w])),add=Math.min(room,want-p.n);if(want-p.n>add)overflow[w]+=(want-p.n-add)*BaseHp[p.kind];p.n+=add}}
  // Stream budget: the whole level streams within 1.32x its frozen baseline; any excess leaves the biggest late packets as health.
+ if(L<=24)firstWave[L-1]=prePassWork(L,lvl[0],0)
  if(L<=24){const budget=1.32*stream(baseline.waves[L-1],0,1,1,5)-.05,sec=()=>stream(lvl.map(format),L,gapScale(L),overlap(L),breather(L))
   for(let guard=0;guard<400&&sec()>budget;guard++){let best=null,bw=-1;for(let w=Math.ceil(.6*W)-1;w<E;w++)for(const p of lvl[w]){if(p.locked||p.kind==='boss'||p.n<=2)continue;if(!best||p.n>best.n){best=p;bw=w}}if(!best)break;best.n--;overflow[bw]+=BaseHp[best.kind]}}
  return lvl
@@ -199,7 +232,28 @@ function relief(L){
  const out=lvl.map((wave,w)=>{if(w>=E)return c*(1+a);if(w<S-1)return c*(m0+(1-m0)*(S<=1?1:w/(S-1)));return c*(E-S<=0?1+a:1+a*(w-(S-1))/(E-S))})
  // Waves 1-2 teach: with the level's Pressure dial they never exceed the pass-1 health.
  const dial=pressureDials[L-1]||1
- return out.map((x,w)=>{const extra=overflowWork[L-1][w],work=workOf(lvl[w]);if(extra>0&&work>0)x*=(work+extra)/work;if(w<2)x=Math.min(x,1/dial);return Math.round(x*1000)/1000})
+ const x=out.map((x,w)=>{const extra=overflowWork[L-1][w],work=workOf(lvl[w]);if(extra>0&&work>0)x*=(work+extra)/work;if(w<2)x=Math.min(x,1/dial);return x})
+ if(POLISH&&L<=24)smoothWalls(L,lvl,x)
+ return x.map(v=>Math.round(v*1000)/1000)
+}
+// The wall cap: no wave from 3 on carries more than WallCap x the ordinary threat of the wave before it (the boss wave counts its
+// escort). A wall's excess first moves forward into the next wave (so the late peak lands on the finale, the guardian's wave on boss
+// levels, and the early game is untouched); whatever still sits on the last wave above the cap moves back into the waves before it.
+// The level's total health stays; waves 1-2 are never raised (they teach).
+function smoothWalls(L,lvl,x){
+ const grace=L<=4?1:baseline.hpScale[L-1]/hpScale[L-1],g=w=>w===0?grace:w===1?Math.sqrt(grace):1
+ // measured in threat, not raw health: armour, shields, healers, speed and flight make a wave of shells and shamans a wall at the
+ // same health as a wave of nibbles (threatOf below, the late ramp's own model)
+ const base=lvl.map(wave=>Math.max(1,wave.reduce((s,p)=>s+(p.kind==='boss'?0:threatOf(p.kind)*p.n),0))),eff=w=>base[w]*x[w]*g(w),last=lvl.length-1
+ // (a wave's ramp never rises above the level's own highest ramp, and stays within 2.6 of the shipped [0.4, 2.7] range: the late peak
+ // keeps its height and a thin escort cannot absorb a whole wall)
+ const peak=Math.min(2.6,Math.max(...x.slice(2)))
+ for(let w=2;w<last;w++){const over=eff(w)-WallCap*eff(w-1);if(over<=base[w]*.001)continue;const move=Math.min(over,Math.max(0,(peak-x[w+1])*base[w+1]));x[w]-=move/base[w];x[w+1]+=move/base[w+1]}
+ for(let guard=0;guard<400;guard++){let moved=false
+  for(let w=last;w>=2;w--){const over=eff(w)-WallCap*eff(w-1);if(over<=base[w]*.001)continue
+   if(w-1>=2){const m=over/(1+WallCap);x[w]-=m/base[w];x[w-1]+=m/base[w-1]}else x[w]-=over/base[w]
+   moved=true}
+  if(!moved)break}
 }
 const pressureDials=(dataSource.match(/float\[\] Pressure=\{([^}]*)\}/)||[,''])[1].split(',').map(x=>Number(x.replace('f','')))
 function curve(L){

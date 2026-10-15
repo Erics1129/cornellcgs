@@ -1,4 +1,4 @@
-import { memo, useEffect, useMemo, useRef } from 'react'
+import { memo, useEffect, useMemo, useRef, useState } from 'react'
 import type { EnemyDefinition, LevelDefinition } from '../types'
 import type { SnapshotStore } from '../hooks/useSnapshot'
 import { useSlice } from '../hooks/useSnapshot'
@@ -13,6 +13,8 @@ import { bandTone, levelBand } from './LevelSelect'
 export const TrackWindow=20
 /** The judgement line's distance from the rail's left edge, and a note head's size (px; the CSS uses the same numbers). */
 const JudgeOffset=18
+/** Room kept at a lane's right end for its "+N" chip (px), and the clear gap between one note's label and the next note's head. */
+const MoreWidth=34,NoteGap=4
 const routeLetters='ABCDE'
 /** The badges on a note: every colour on the track has an icon twin. */
 function Badges({n}:{n:Note}){
@@ -37,7 +39,11 @@ export function WaveTrack({store,level,enemies,seen,reduced,compact}:{store:Snap
   [s?.phase,s?.wave,s?.waves,s?.breather,s?.incomingKey,level,enemies,s?.bossName,s?.hasWaveElapsed,store])
  const flags=useMemo(()=>level?waveFlags(level,enemies):[],[level,enemies])
  const routes=Math.max(1,level?.routes?.length||1),lanes=compact?1:routes
- const rail=useRef<HTMLDivElement>(null),beats=useRef<HTMLDivElement>(null),hits=useRef<Array<HTMLElement|null>>([]),crossed=useRef(new Set<string>()),nodes=useRef(new Map<string,HTMLDivElement>()),shown=useRef(new Map<string,number>())
+ // Phone landscape draws every route on one merged lane (CSS): the layout pass and the "+N" chip then work on that single lane.
+ const mergedQuery='(max-height: 500px) and (orientation: landscape)',[merged,setMerged]=useState(()=>typeof matchMedia==='function'&&matchMedia(mergedQuery).matches)
+ useEffect(()=>{const m=matchMedia(mergedQuery);const f=()=>setMerged(m.matches);m.addEventListener('change',f);return()=>m.removeEventListener('change',f)},[])
+ const layoutLanes=merged?1:lanes
+ const rail=useRef<HTMLDivElement>(null),beats=useRef<HTMLDivElement>(null),hits=useRef<Array<HTMLElement|null>>([]),more=useRef<Array<HTMLElement|null>>([]),crossed=useRef(new Set<string>()),nodes=useRef(new Map<string,HTMLDivElement>()),shown=useRef(new Map<string,number>())
  const notes=useMemo(()=>plan?[...plan.current,...plan.next]:[],[plan])
  const nextKeys=useMemo(()=>new Set(plan?.next.map(n=>n.key)),[plan])
  const register=useMemo(()=>(key:string,el:HTMLDivElement|null)=>{if(el)nodes.current.set(key,el);else nodes.current.delete(key)},[])
@@ -46,7 +52,10 @@ export function WaveTrack({store,level,enemies,seen,reduced,compact}:{store:Snap
  // rAF: notes slide right to left and reach the judgement line at the moment their first creature spawns
  useEffect(()=>{
   let raf=0,HeadSize=0
-  const resize=new ResizeObserver(()=>{HeadSize=0});if(rail.current)resize.observe(rail.current)
+  // each note's drawn width (head plus label), measured once per note and again after a resize
+  const widths=new Map<string,number>()
+  const resize=new ResizeObserver(()=>{HeadSize=0;widths.clear()});if(rail.current)resize.observe(rail.current)
+  const laid:Array<{n:Note;el:HTMLDivElement;target:number;lane:number;w:number;x:number;folded:boolean;gone:boolean}>=[]
   const frame=()=>{
    raf=requestAnimationFrame(frame)
    const box=rail.current;if(!box)return
@@ -55,28 +64,47 @@ export function WaveTrack({store,level,enemies,seen,reduced,compact}:{store:Snap
    const judge=JudgeOffset,px=(width-judge)/TrackWindow,breather=st.nextWave>0
    // bar lines every 5 game seconds scroll with the clock (a static line under reduced motion)
    if(beats.current){const measure=5*px;beats.current.style.setProperty('--measure',`${measure.toFixed(1)}px`);beats.current.style.transform=reduced?'none':`translate3d(${(-((clock.elapsed%5)*px)+judge%measure).toFixed(1)}px,0,0)`}
+   laid.length=0
    for(const n of notes){
     const el=nodes.current.get(n.key);if(!el)continue
     const isNext=nextKeys.has(n.key)
     // until the note's first spawn, in game seconds; queued notes (the ready phase, or a wave still in flight) park in view, unmoving
-    const until=isNext?(breather?clock.nextWave+n.at:st.phase==='ready'?2.5+n.at:TrackWindow*.7+Math.min(n.at,16)*.32):n.at-clock.waveElapsed
-    const target=until*px
+    const until=isNext?(breather?clock.nextWave+n.at:st.phase==='ready'?2.5+n.at:TrackWindow*.62+Math.min(n.at,16)*.32):n.at-clock.waveElapsed
+    let w=widths.get(n.key);if(w===undefined){w=el.offsetWidth||HeadSize;widths.set(n.key,w)}
+    laid.push({n,el,target:until*px,lane:layoutLanes>1?n.route%layoutLanes:0,w,x:0,folded:false,gone:false})
+   }
+   // Layout pass, per lane, in time order: a note never starts before the previous one's label ends (it is pushed right instead), and
+   // whatever no longer fits left of the lane's "+N" chip folds into that chip, so heads and counts never cover each other.
+   laid.sort((a,b)=>a.target-b.target)
+   const edge=new Array<number>(layoutLanes).fill(-Infinity),folded=new Array<number>(layoutLanes).fill(0)
+   for(const it of laid){
+    const tail=it.n.span*px
+    it.gone=judge+it.target+tail<-HeadSize
+    if(it.gone){it.x=it.target;continue}
+    const x=Math.max(it.target,edge[it.lane]+NoteGap-judge+HeadSize/2),left=judge+x-HeadSize/2
+    it.x=x;it.folded=left+it.w>width-MoreWidth
+    if(it.folded)folded[it.lane]++;else edge[it.lane]=left+it.w
+   }
+   for(const it of laid){
+    const {n,el}=it,isNext=nextKeys.has(n.key)
     let x=shown.current.get(n.key)
-    if(x===undefined||reduced||Math.abs(target-x)<1.5)x=target;else x+=(target-x)*.22
+    if(x===undefined||reduced||Math.abs(it.x-x)<1.5)x=it.x;else x+=(it.x-x)*.22
     shown.current.set(n.key,x)
-    const tail=n.span*px,gone=judge+x+tail<-HeadSize,ahead=judge+x-HeadSize/2>width+4
+    const tail=n.span*px
     el.style.transform=`translate3d(${(judge+x-HeadSize/2).toFixed(1)}px,0,0)`
     el.style.setProperty('--tail',`${Math.max(0,tail).toFixed(1)}px`)
-    const hidden=gone||ahead
+    const hidden=it.gone||it.folded
     if(el.dataset.hidden!==(hidden?'1':'0')){el.dataset.hidden=hidden?'1':'0'}
-    const live=x<=0&&!gone;if(el.dataset.live!==(live?'1':'0'))el.dataset.live=live?'1':'0'
+    // live and the judgement pulse follow the packet's real spawn time, not the pushed drawing position
+    const live=it.target<=0&&!it.gone;if(el.dataset.live!==(live?'1':'0'))el.dataset.live=live?'1':'0'
     // a short pulse on the lane's judgement mark when the packet's first creature spawns (opacity only under reduced motion)
-    if(x<=0&&!isNext&&!crossed.current.has(n.key)){crossed.current.add(n.key);if(x>-px*.5){const hit=hits.current[lanes>1?n.route%lanes:0];hit?.animate(reduced?[{opacity:.9},{opacity:0}]:[{opacity:1,transform:'scaleY(1.6)'},{opacity:0,transform:'scaleY(1)'}],{duration:reduced?200:320,easing:'ease-out'})}}
+    if(it.target<=0&&!isNext&&!crossed.current.has(n.key)){crossed.current.add(n.key);if(it.target>-px*.5){const hit=hits.current[lanes>1?n.route%lanes:0];hit?.animate(reduced?[{opacity:.9},{opacity:0}]:[{opacity:1,transform:'scaleY(1.6)'},{opacity:0,transform:'scaleY(1)'}],{duration:reduced?200:320,easing:'ease-out'})}}
    }
+   for(let i=0;i<layoutLanes;i++){const chip=more.current[i];if(!chip)continue;const text=folded[i]?`+${folded[i]}`:'';if(chip.textContent!==text){chip.textContent=text;chip.dataset.n=String(folded[i])}}
   }
   raf=requestAnimationFrame(frame)
   return()=>{cancelAnimationFrame(raf);resize.disconnect()}
- },[notes,nextKeys,store,reduced,lanes])
+ },[notes,nextKeys,store,reduced,lanes,layoutLanes])
  if(!s||!status)return null
  const asuna=s.level===29,label=asuna?`Encounter, ${formatSeconds(status.elapsed)}`:`Wave ${Math.max(0,s.wave)} of ${s.waves}`
  const upcoming=(plan?.next.length?plan.next:plan?.current||[]).slice(0,4).map(n=>`${n.n} ${n.traits.name}${n.traits.air?' (flying)':''}${n.traits.boss?' (guardian)':''} on route ${routeLetters[n.route]||n.route+1}`).join(', ')
@@ -99,6 +127,7 @@ export function WaveTrack({store,level,enemies,seen,reduced,compact}:{store:Snap
     {notes.map(n=><div className="ct-note-row" key={n.key} style={{top:`${(compact?0:n.route%lanes)*100/lanes}%`,height:`${100/lanes}%`}}><NoteView n={n} unseen={!n.traits.boss&&!seen.includes(n.kind)} register={register}/></div>)}
     <i className="ct-track__judge"/>
     {Array.from({length:lanes},(_,i)=><i key={i} className="ct-track__hit" data-route={i} ref={el=>{hits.current[i]=el}} style={{top:`${i*100/lanes}%`,height:`${100/lanes}%`}}/>)}
+    {Array.from({length:layoutLanes},(_,i)=><b key={'more'+i+'/'+layoutLanes} className="ct-track__more" data-route={i} data-n="0" title="More packets queued" ref={el=>{more.current[i]=el}} style={{top:`${i*100/layoutLanes}%`,height:`${100/layoutLanes}%`}}/>)}
    </div>
   </div>
  </section>

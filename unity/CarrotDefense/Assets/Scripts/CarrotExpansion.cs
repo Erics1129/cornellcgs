@@ -210,8 +210,14 @@ namespace CarrotTD {
     radius=1.0f+k*.12f;foreach(var e in enemies)if(Eligible(e,false)&&FlatDistance(e.position,p.to)<=radius)Damage(e,p.damage*(FlatDistance(e.position,p.to)<radius*.5f?1:.65f),false,p.kind,p.source);
     Emit("ability","meteor",p.to,p.to,p.source,p.target,p.tier,radius,.85f);
    }else if(p.kind=="lotus"||p.kind=="clockflower"){
-    float range=CarrotData.Tower(p.kind).range[k];foreach(var e in enemies)if(Eligible(e,true)&&FlatDistance(e.position,p.position)<=range){Damage(e,p.damage,true,p.kind,p.source);if(p.kind=="clockflower")ApplySlow(e,.15f+k*.035f,1.8f);}
-    if(p.kind=="clockflower"){float strength=p.tier==5?.3f:.12f+k*.035f,hold=p.tier==5?4.5f:3;foreach(var t in towers)if(FlatDistance(t.position,p.position)<=range){if(!auras.TryGetValue(t.id,out var aura)){aura=new Aura();auras[t.id]=aura;}if(aura.until<elapsed||strength>=aura.strength){aura.strength=Mathf.Min(.3f,strength);aura.until=elapsed+hold;}}Emit("ability","clockAura",p.position,p.position,p.source,tier:p.tier,value:strength,duration:hold);}
+    // Crowded soil (polish) also thins Clockwork Bloom's slow and its tempo aura: a bloom-only garden kept every creature slowed and
+    // every bloom hasted, which cleared the campaign on its own.
+    float crowd=p.kind=="clockflower"?Crowding("clockflower"):1;
+    // Crowded blooms (four or more) also pulse at only the first 4-7 creatures in line (the Super nine); three or fewer reach all.
+    float range=CarrotData.Tower(p.kind).range[k];var pulse=new List<EnemyState>();foreach(var e in enemies)if(Eligible(e,true)&&FlatDistance(e.position,p.position)<=range)pulse.Add(e);
+    int reach=p.kind=="clockflower"&&crowd<1?(p.tier==5?9:4+k):pulse.Count;if(reach<pulse.Count)SortTargets(pulse,-1);
+    for(int i=0;i<Mathf.Min(reach,pulse.Count);i++){var e=pulse[i];Damage(e,p.damage,true,p.kind,p.source);if(p.kind=="clockflower")ApplySlow(e,(.15f+k*.035f)*crowd,1.8f);}
+    if(p.kind=="clockflower"){float strength=(p.tier==5?.3f:.12f+k*.035f)*crowd,hold=p.tier==5?4.5f:3;foreach(var t in towers)if(FlatDistance(t.position,p.position)<=range){if(!auras.TryGetValue(t.id,out var aura)){aura=new Aura();auras[t.id]=aura;}if(aura.until<elapsed||strength>=aura.strength){aura.strength=Mathf.Min(.3f,strength);aura.until=elapsed+hold;}}Emit("ability","clockAura",p.position,p.position,p.source,tier:p.tier,value:strength,duration:hold);}
    }else {
     if(!Eligible(target,CarrotData.Tower(p.kind).air))return true;
     if(p.kind=="bamboo"){

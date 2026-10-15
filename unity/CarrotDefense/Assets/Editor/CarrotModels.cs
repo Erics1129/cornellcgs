@@ -324,8 +324,10 @@ public static class CarrotModels {
             case "Petal": sss=.40f;sssTint=new Color(1f,.78f,.80f);break;
             case "Fur": case "Pelt": sss=.20f;sssTint=new Color(1f,.70f,.55f);sheen=.40f;sheenTint=new Color(1f,.96f,.90f);detail="FurStrand";detailScale=4;detailStrength=.45f;break;
             case "Scale": sss=.22f;sssTint=new Color(1f,.55f,.55f);break;
-            case "Mushroom": sss=.20f;sssTint=new Color(1f,.82f,.66f);sheen=.20f;sheenTint=new Color(1f,.95f,.88f);detail="MushroomPore";detailScale=4;detailStrength=.60f;break;
-            case "Chitin": detail="ChitinPlate";detailScale=3;detailStrength=.70f;break;
+            // Polish: at the 34-degree play camera a creature is 40-80 px tall, so the pores and plates need coarser tiling and twice the
+            // strength to read (the close-up studio still holds: the shader blends them through the whiteout pass, never flat black).
+            case "Mushroom": sss=.20f;sssTint=new Color(1f,.82f,.66f);sheen=.20f;sheenTint=new Color(1f,.95f,.88f);detail="MushroomPore";detailScale=2f;detailStrength=1.8f;break;
+            case "Chitin": detail="ChitinPlate";detailScale=2;detailStrength=1.35f;break;
             case "Gel": sss=.50f;sssTint=new Color(.62f,1f,.52f);detail="GelRipple";detailScale=2;detailStrength=.80f;break;
             case "Ice": sss=.50f;sssTint=new Color(.45f,.75f,1f);detail="IceFacet";detailScale=2;detailStrength=.75f;break;
             case "Eye": break;
@@ -340,9 +342,11 @@ public static class CarrotModels {
             case "Straw": sss=.15f;sssTint=new Color(1f,.85f,.5f);sheen=.25f;sheenTint=new Color(1f,.95f,.8f);detail="FurStrand";detailScale=2;detailStrength=.6f;break;
         }
         // Category-specific base response for the new surfaces.
-        if(category=="Mushroom"){m.SetFloat("_Glossiness",.45f);m.SetFloat("_Translucency",.20f);m.SetFloat("_ReflectionStrength",.55f);}
-        // Chitin stays dark: a tight highlight, little environment (bright sky reflections turned the thin legs grey).
-        else if(category=="Chitin"){m.SetFloat("_Glossiness",.58f);m.SetFloat("_ReflectionStrength",.5f);m.SetFloat("_Translucency",0f);}
+        // Mushroom caps take a slightly darker albedo (a cheap stand-in for baked cavity) so the stronger pore normals have shadow to work in.
+        if(category=="Mushroom"){m.SetFloat("_Glossiness",.45f);m.SetFloat("_Translucency",.20f);m.SetFloat("_ReflectionStrength",.55f);m.SetFloat("_AlbedoGain",.86f);}
+        // Chitin stays dark: a tight highlight, little environment (bright sky reflections turned the thin legs grey). Polish: a cool dark
+        // tint brings the light-grey vertex-coloured legs down to a horn-brown chitin under the glossy black body.
+        else if(category=="Chitin"){m.SetFloat("_Glossiness",.58f);m.SetFloat("_ReflectionStrength",.45f);m.SetFloat("_Translucency",0f);m.SetColor("_Color",new Color(.58f,.52f,.5f,1));}
         else if(category=="Gel"){m.SetFloat("_Glossiness",.78f);m.SetFloat("_ReflectionStrength",1.0f);m.SetFloat("_Translucency",.35f);}
         else if(category=="Ice"){
             // Ice reads through its highlights and the blue light scattered inside, not a bright albedo: the painted ICE blue is

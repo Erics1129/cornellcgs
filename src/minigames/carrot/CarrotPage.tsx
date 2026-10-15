@@ -26,7 +26,7 @@ import { hudEdges } from './ui/BuildMenu'
 import type { PanelMode } from './ui/BuildMenu'
 import { Results } from './ui/Results'
 import { ConfirmModal, FieldGuide, HelpModal, SettingsModal } from './ui/Modals'
-import { AirToast, BossWarning, Coach, EncounterCard, ForgeToast, NoticeToast, useEncounters, useTutorialStep } from './ui/Onboarding'
+import { AirToast, BossWarning, Coach, EncounterCard, ForgeToast, NoticeToast, PrismBriefing, useEncounters, useTutorialStep } from './ui/Onboarding'
 import Icon from './Icon'
 import './carrot.css'
 
@@ -52,7 +52,7 @@ export default function CarrotPage(){
  const [level,setLevel]=useState(1),[veteran,setVeteran]=useState(false)
  const [panel,setPanel]=useState<Panel>(null),[expanded,setExpanded]=useState(false),[result,setResult]=useState(false),[teach,setTeach]=useState(false)
  const [osReduced,setOsReduced]=useState(()=>matchMedia('(prefers-reduced-motion: reduce)').matches)
- const [forged,setForged]=useState({kind:'',name:''}),[resultInfo,setResultInfo]=useState({grade:0,previous:0,losses:0})
+ const [forged,setForged]=useState({kind:'',name:''}),[forgeBeat,setForgeBeat]=useState(false),forgeTimer=useRef(0),[resultInfo,setResultInfo]=useState({grade:0,previous:0,losses:0})
  const saved=useRef(save),challengesRef=useRef(challenges),superRef=useRef(superSave),recordsRef=useRef(records),definitionsRef=useRef(definitions),wasPlaying=useRef(false),award=useRef(''),teachPending=useRef(0),teachTimer=useRef(0),lastUndo=useRef(0),knownSupers=useRef(new Set<number>()),superTargets=useRef(new Set<number>())
  saved.current=save;challengesRef.current=challenges;superRef.current=superSave;recordsRef.current=records;definitionsRef.current=definitions
  const reduced=osReduced||prefs.reducedEffects
@@ -112,7 +112,9 @@ export default function CarrotPage(){
   // Supers: the merge-undo window opening, or a Super the page has not seen becoming the selection
   const undo=st.mergeUndo||0,sel=st.selection,superSel=sel?.type==='tower'&&sel.tier>=SuperTier?sel:null
   const newSuper=!!superSel&&!knownSupers.current.has(superSel.id);if(superSel)knownSupers.current.add(superSel.id)
-  if(!preview&&undo>0&&(lastUndo.current<=0||undo>lastUndo.current+.3||newSuper)){const kind=sel?.type==='tower'?sel.kind:'';const t=d?.towers.find(x=>x.id===kind);setForged({kind,name:sel?.superName||t?.superName||'Super tower'});if(kind)setSuperSave(p=>recordSuper(p,kind))}
+  if(!preview&&undo>0&&(lastUndo.current<=0||undo>lastUndo.current+.3||newSuper)){const kind=sel?.type==='tower'?sel.kind:'';const t=d?.towers.find(x=>x.id===kind);setForged({kind,name:sel?.superName||t?.superName||'Super tower'});if(kind)setSuperSave(p=>recordSuper(p,kind))
+   // the forge beat: the judgement word is read first; the new Super's panel and the other toasts wait 1.3 s
+   setForgeBeat(true);clearTimeout(forgeTimer.current);forgeTimer.current=window.setTimeout(()=>setForgeBeat(false),1300)}
   lastUndo.current=undo
   if(!preview&&superSel&&!superRef.current.kinds[superSel.kind])setSuperSave(p=>p.kinds[superSel.kind]?p:recordSuper(p,superSel.kind))
   // the merge lesson: once per device, on the first fully grown tower, in the ready phase or a breather (8 s at most)
@@ -135,7 +137,7 @@ export default function CarrotPage(){
   if(e.key.toLowerCase()==='m'&&selection?.type==='tower'&&selection.tier===TopTier&&(selection.partners||0)>0)send({type:'mergeArm',id:selection.id})}
   window.addEventListener('keydown',key);return()=>window.removeEventListener('keydown',key)},[entered,ready,panel,send,store,encounters.card])
  useEffect(()=>{const f=()=>setExpanded(!!document.fullscreenElement);document.addEventListener('fullscreenchange',f);return()=>document.removeEventListener('fullscreenchange',f)},[])
- useEffect(()=>()=>{clearTimeout(teachTimer.current);stopMenuSound()},[])
+ useEffect(()=>()=>{clearTimeout(teachTimer.current);clearTimeout(forgeTimer.current);stopMenuSound()},[])
  // Signing in (or another device playing) can change the stored records: adopt them, or the next award overwrites them.
  useEffect(()=>progress.subscribe(RECORD,()=>setSave(readCampaign())),[])
  useEffect(()=>progress.subscribe('carrot:challenges',()=>setChallenges(readChallenges())),[])
@@ -152,6 +154,14 @@ export default function CarrotPage(){
   const round=(n:number)=>Math.round(Math.max(0,Math.min(.9,n))*1000)/1000,next={top:round(area.top),bottom:round(area.bottom),left:round(area.left),right:round(area.right)},key=JSON.stringify(next)
   if(key!==sentArea.current){sentArea.current=key;engine.current.setSafeArea(next)}
  },[v2])
+ // The results card docks at the bottom: the camera keeps the carrot above it (the victory orbit reads the safe area's bottom).
+ const onResultsDock=useCallback((rect:DOMRect|null)=>{
+  if(!rect){onSafeArea({rect:null,mode:'anchored'});return}
+  if(!v2||!engine.current)return
+  const vh=innerHeight,edges=hudEdges(),round=(n:number)=>Math.round(Math.max(0,Math.min(.6,n))*1000)/1000
+  const next={top:round(edges.top/vh),bottom:round((vh-rect.top)/vh),left:0,right:0},key=JSON.stringify(next)
+  if(key!==sentArea.current){sentArea.current=key;engine.current.setSafeArea(next)}
+ },[v2,onSafeArea])
  useEffect(()=>{if(!v2||!ready)return;const f=()=>onSafeArea({rect:null,mode:'anchored'});const t=window.setTimeout(f,400);addEventListener('resize',f);return()=>{clearTimeout(t);removeEventListener('resize',f)}},[v2,ready,onSafeArea,page?.boss])
 
  const isOpen=(id:number)=>preview||(id>LevelCount?challengeUnlocked(id,saved.current,challengesRef.current):id<=saved.current.unlocked)
@@ -188,20 +198,21 @@ export default function CarrotPage(){
      <div className="ct-hud__boss" data-top><BossBar store={store} send={send} seenAbilities={records.seen.abilities} superTargets={superTargets.current} onSaved={onSaved}/><Reinforcements store={store}/></div>
      <BottomBar store={store} send={send} onHelp={()=>openPanel('help')} startSpotlight={step==='start'}/>
     </div>
-    <Judgement tracker={tracker} reduced={reduced}/>
+    <Judgement tracker={tracker} reduced={reduced} waves={currentLevel?.waves||0}/>
     <div className="ct-toasts">
      {!result&&<BossWarning store={store} run={run}/>}
      {!result&&<ForgeToast store={store} name={forged.name} kind={forged.kind} send={send}/>}
-     {!result&&<AirToast store={store} level={currentLevel} enemies={definitions?.enemies} definitions={definitions}/>}
-     {!result&&<NoticeToast store={store}/>}
-     {teach&&!result&&<div className="ct-teach ct-panel" role="status"><Icon name="merge"/><p>Two fully grown towers of the same kind can merge into one Super tower. Drag one onto the other.</p><button className="ct-icon-btn" aria-label="Dismiss merge tip" onClick={()=>setTeach(false)}><Icon name="close"/></button></div>}
+     {!result&&!forgeBeat&&<AirToast store={store} level={currentLevel} enemies={definitions?.enemies} definitions={definitions}/>}
+     {!result&&<NoticeToast store={store} forged={forged.name}/>}
+     {teach&&!result&&!forgeBeat&&<div className="ct-teach ct-panel" role="status"><Icon name="merge"/><p>Two fully grown towers of the same kind can merge into one Super tower. Drag one onto the other.</p><button className="ct-icon-btn" aria-label="Dismiss merge tip" onClick={()=>setTeach(false)}><Icon name="close"/></button></div>}
     </div>
-    {!result&&!panel&&<BuildMenu store={store} definitions={definitions} send={send} reduced={reduced} onSafeArea={onSafeArea} tutorialFocus={step==='build'?'seed':undefined}/>}
+    {!result&&!panel&&!forgeBeat&&<BuildMenu store={store} definitions={definitions} send={send} reduced={reduced} onSafeArea={onSafeArea} tutorialFocus={step==='build'?'seed':undefined}/>}
     {!result&&!panel&&!encounters.card&&<PausedCard store={store} send={send}/>}
+    {!result&&!step&&<PrismBriefing store={store} run={run}/>}
     {step&&!result&&<Coach step={step} towers={page?.towers||0} onSkip={()=>setRecords(r=>finishTutorial(r))} onDone={()=>setRecords(r=>finishTutorial(r))}/>}
     {encounters.card&&!result&&<EncounterCard card={encounters.card} onDismiss={encounters.dismiss}/>}
     {result&&st&&(st.phase==='won'||st.phase==='lost')&&<Results state={st} level={currentLevel} definitions={definitions} summary={tracker.summary()} grade={resultInfo.grade} previousGrade={resultInfo.previous} challengeBoss={challengeBoss} losses={resultInfo.losses}
-     onNext={()=>choose(Math.min(LevelCount,st.level+1))} onRetry={()=>choose(st.level)} onSelect={()=>openPanel('select')} onChallenges={()=>openPanel('challenges')}/>}
+     onNext={()=>choose(Math.min(LevelCount,st.level+1))} onRetry={()=>choose(st.level)} onSelect={()=>openPanel('select')} onChallenges={()=>openPanel('challenges')} onDock={onResultsDock}/>}
    </>}
   </main>}
   {(panel==='select'||panel==='challenges')&&definitions&&<LevelSelect definitions={definitions} save={save} challenges={challenges} records={records} current={page?.level||save.unlocked} preview={preview} veteranAvailable={veteranAvailable} veteran={veteran} onVeteran={setVeteran} onPlay={choose} onClose={closePanel} startChallenges={panel==='challenges'} reduced={reduced}/>}

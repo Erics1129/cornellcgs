@@ -51,15 +51,19 @@ export function stars(record:ChallengeRecord|undefined,boss:ChallengeBoss):numbe
  if(!record?.cleared)return 0
  return 1|(record.health>=10?2:0)|(record.seconds<=par[boss]?4:0)
 }
-/** Asuna is open from the start. Existing gates, including Portal, are unchanged. */
+/**
+ * Asuna opens after Last Harvest (12) or the Portal, the same point the Zombie does: her fight asks for the moving defense that the
+ * campaign's guardians teach. A save that already cleared her keeps her open. Every other gate is unchanged.
+ */
 export function challengeUnlocked(id:number,campaign:CampaignSave,challenges:ChallengeSave):boolean {
  const boss=bossOfLevel(id);if(!boss)return false
- if(boss==='tornado'||boss==='asuna')return true
+ if(boss==='tornado')return true
+ if(boss==='asuna')return campaign.unlocked>=13||!!challenges.best.portal?.cleared||!!challenges.best.asuna?.cleared
  if(boss==='zombie')return campaign.unlocked>=13||!!challenges.best.tornado?.cleared
  if(boss==='portal')return !!challenges.best.eyeball?.cleared
  return ((campaign.medals['24']||0)&1)===1||!!challenges.best.zombie?.cleared
 }
-export const lockCaption:Record<ChallengeBoss,string>={tornado:'',asuna:'',zombie:'Clear Last Harvest (12) or the Giant Tornado to unlock',eyeball:'Clear The Last Light (24) or the Zombie to unlock',portal:'Defeat the Unknown Eyeball to open the rift'}
+export const lockCaption:Record<ChallengeBoss,string>={tornado:'',asuna:'Clear Last Harvest (12) or the Portal to unlock',zombie:'Clear Last Harvest (12) or the Giant Tornado to unlock',eyeball:'Clear The Last Light (24) or the Zombie to unlock',portal:'Defeat the Unknown Eyeball to open the rift'}
 /** Pure merge for account sync: v1/v2 migrate to v3, formats above v3 pass through; per boss cleared OR, health max, seconds min over cleared sides, towers follow the faster run. */
 export function mergeCarrotChallenges(a:unknown,b:unknown):ChallengeSave|null {
  const newer=newerChallengeVersion(a,b);if(newer)return newer as ChallengeSave

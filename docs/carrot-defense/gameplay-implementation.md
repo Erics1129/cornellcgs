@@ -114,10 +114,12 @@ Each family has a base purchase and three paid upgrades (`cost` has four entries
 | Prism | Consecutive shots at one enemy ramp to +50% damage; a live shield permits an additional 25% health bypass. | Changing targets resets the ramp. Elemental damage avoids kinetic armor. The Prism is the light tower: it keeps full sight in the dark. |
 | Storm Bell | Lightning chains across 3 / 3 / 4 / 5 distinct nearby enemies; applies conductivity. | Each hop retains 80% damage; conductivity gives Storm and Thunder +15% damage for 2.5–4s. |
 | Sun Blossom | A radial heat pulse also gives nearby other towers a 10–20% cadence aura. | Ground damage and half damage to nearby scenery; three-second aura; strongest aura wins. A tower under a live aura counts as lit in the dark. |
-| Starfruit | Fires at 3–6 distinct enemies, with a returning star dealing 50% extra damage to each surviving target. | Real ground/air targets within range; separate projectiles, not a decorative star field. |
+| Starfruit | Fires at 3 / 3 / 4 / 5 distinct enemies (100 / 90 / 75% damage past the first two), with a returning star dealing 40% extra damage to each surviving target (polish pass; it was 3–6 targets at full damage and a 50% star). | Real ground/air targets within range; separate projectiles, not a decorative star field. |
 | Black Hole | Damages/slows nearby enemies, pulls their route position backward and visibly attracts them toward the well. | Pull is 0.35–0.80 units with a per-enemy four-second cooldown. Attraction lasts 0.65s; enemies recover to their route. Bosses cannot be pulled. |
 | Spellbook | A rune reverses an enemy's actual movement along its route for one second. | Per-enemy six-second cooldown; bosses receive a brief 10% slow instead. |
 | Thunderhead | Charges for 0.7s, then heavily strikes up to three distinct enemies. | 70–245 damage each, 3.2–2.6s cadence, 0.2s normal-enemy stun. Different from Storm's lighter chain. |
+
+**Crowded soil (polish pass).** Plants of one kind share their soil: the first three of a family fight at full strength, and each plant of that family past the third costs every plant of that family 12% of its damage, down to 40% (`CarrotGame.CrowdingFor`; a Super counts as one plant). Crowded Clockwork Blooms also thin their slow and tempo aura by the same factor and pulse at only the first 4-7 creatures in line (nine for Eternal Bloom). The snapshot's `crowd` list (`"kind:count"`) lets the build panel warn before the fourth plant and the tower panel show the penalty. Before it, one family alone at a human cadence (Starfruit, Thunderhead, Bamboo, Sanctuary Lotus, Thorn Cactus, Clockwork Bloom) cleared most of L9-L24; afterwards every family alone loses at least half of those levels (difficulty.md, invariant i). Clockwork Bloom also costs 215 / 140 / 220 / 340 and deals 6% less.
 
 Explicit enemy focus is honored by all families, including one guaranteed slot among Starfruit/Thunderhead's distinct targets. There are no extra ability buttons. Slow effects use the strongest active slow and cap at 50% for ordinary enemies and 20% for bosses. Freeze, rewind and pull have per-enemy cooldowns. Projectiles normally cancel against dead, hidden or biting targets; Mortar's committed ground impact and Blossom's local pulse still resolve at their actual positions.
 
@@ -133,7 +135,7 @@ Explicit enemy focus is honored by all families, including one guaranteed slot a
 | Sunfocus Crystal (Prism) | Focus ramp cap +80% in +20% steps; shield bypass unchanged. |
 | Tempest Bell (Storm Bell) | Six hops at 85% falloff, conductivity 4.5 s. |
 | Solar Blossom (Sun Blossom) | Aura 30% for 4 s within range + 1.2; stays ground-only. |
-| Constellation (Starfruit) | Seven targets. |
+| Constellation (Starfruit) | Six targets (polish pass; seven made one Super out-damage two tier IVs). |
 | Event Horizon (Black Hole) | Radius 1.9, slow 50%, pull 1.0 u on ordinary enemies; bosses never pulled. |
 | Grimoire (Spellbook) | The rewind also catches the nearest other ordinary enemy within 0.8 u (its own cooldown applies). |
 | Stormcrown (Thunderhead) | Four targets; ordinary stun 0.35 s. |

@@ -13,6 +13,13 @@ namespace CarrotTD {
   }
   sealed class PrismImpact {public int source,target;public string kind;public Vector3 from,to;public float at;}
   PrismState prism;
+  /// <summary>A plant Asuna has already passed: its reach ends half a unit behind her (the page's briefing calls these "plants she
+  /// has passed"; the reference bots relocate exactly these).</summary>
+  public bool PrismPassed(TowerState t){
+   if(level==null||level.id!=29||t==null)return false;
+   foreach(var e in enemies)if(e.alive&&e.boss=="asuna"&&!e.clone){var d=CarrotData.Tower(t.kind);return t.position.x+d.range[Mathf.Clamp(t.tier-1,0,d.range.Length-1)]<e.position.x-.5f;}
+   return false;
+  }
   readonly List<PrismImpact> prismImpacts=new List<PrismImpact>();
   readonly Dictionary<int,float> prismRecovery=new Dictionary<int,float>();
   static readonly string[] PrismSkills={"prismLances","prismaticAegis","spectrumRain","mirrorRush","prismOverdrive"};
@@ -61,13 +68,13 @@ namespace CarrotTD {
    switch(kind){
     case "prismDash":{
      prism.dashFrom=e.distance;prism.dashTo=muting?e.distance:Mathf.Max(e.distance,prism.warnedDashTo);prism.dashStart=elapsed;prism.dashEnd=elapsed+PrismDashSeconds;
-     prism.nextDash=elapsed+(e.phase==3?11:13);duration=PrismDashSeconds;value=prism.dashTo-prism.dashFrom;
+     prism.nextDash=elapsed+(e.phase==3?8:10);duration=PrismDashSeconds;value=prism.dashTo-prism.dashFrom;
      Vector3 direction;target=CarrotData.RoutePoint(level.routes[e.route],prism.dashTo,out direction);
      Emit("abilityTarget",kind,e.position,target,e.id,e.id,value:value,duration:duration);return true;
     }
     case "prismBreak":{
      // The dash and the rain of a break land together; the regular dash clock restarts from it.
-     prism.dashFrom=e.distance;prism.dashTo=muting?e.distance:Mathf.Max(e.distance,prism.warnedDashTo);prism.dashStart=elapsed;prism.dashEnd=elapsed+PrismDashSeconds;prism.nextDash=elapsed+(e.phase==3?11:13);
+     prism.dashFrom=e.distance;prism.dashTo=muting?e.distance:Mathf.Max(e.distance,prism.warnedDashTo);prism.dashStart=elapsed;prism.dashEnd=elapsed+PrismDashSeconds;prism.nextDash=elapsed+(e.phase==3?8:10);
      Vector3 direction;var arrive=CarrotData.RoutePoint(level.routes[e.route],prism.dashTo,out direction);// The break's dash reuses the dash event (the view animates it the same way); tier 2 marks it as part of a break.
      Emit("abilityTarget","prismDash",e.position,arrive,e.id,e.id,2,prism.dashTo-prism.dashFrom,PrismDashSeconds);
      int index=0;foreach(int id in a.targets){if(muting||!prism.locked.TryGetValue(id,out Vector3 at))continue;prismImpacts.Add(new PrismImpact{source=e.id,target=id,kind="spectrumRain",from=e.position,to=at,at=elapsed+.2f+index*.22f});if(index++==0){target=at;targetId=id;}}

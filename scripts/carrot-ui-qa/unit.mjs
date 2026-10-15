@@ -47,4 +47,17 @@ assert.equal(t.next[0].kind, 'boss'); assert.equal(t.next[0].traits.boss, true);
 assert.equal(wavePackets(L(8), 10).filter(p => p.kind === 'boss').length, 1, 'the published plan keys the guardian as boss')
 // first-encounter cards: at most 12 words, every verb two words
 for (const id of abilityIds) { const a = abilityText(id); assert.ok(words(a.card) <= 12, `${id} card is ${words(a.card)} words`); assert.equal(words(a.verb), 2, `${id} verb "${a.verb}"`); assert.ok(a.name) }
-console.log(`Carrot UI units: wave plans for ${data.levels.length} levels, traits, flags, track plan, ${abilityIds.length} ability cards pass.`)
+// portraits.json: every tower tier and every creature resolves to its own sheet, never to a guardian cell; guardians sit under
+// "boss:<id>" because boss ids collide with tower ids (the Frost guardian once replaced the Frost tower's tier I).
+const portraits = JSON.parse(readFileSync(new URL('../../public/assets/minigames/carrot/portraits/portraits.json', import.meta.url), 'utf8'))
+const towerIds = data.towers.map(t => t.id || t.kind)
+for (const id of towerIds) for (let tier = 1; tier <= 5; tier++) { const cell = portraits[id]?.[String(tier)]; assert.ok(cell, `portrait for tower ${id} tier ${tier}`); assert.equal(cell[0], `towers-${id}.webp`, `tower ${id} tier ${tier} uses its own sheet, not ${cell[0]}`) }
+const creatureIds = ['nibble', 'dash', 'shell', 'swarm', 'moth', 'shaman', 'burrow', 'crystal', ...data.enemies.map(e => e.id || e.kind)]
+for (const id of creatureIds) { const cell = portraits[id]?.['1']; assert.ok(cell, `portrait for creature ${id}`); assert.ok(/^(creatures|minibosses)\.webp$/.test(cell[0]), `creature ${id} uses ${cell[0]}`) }
+for (const [key, entry] of Object.entries(portraits)) if (!key.startsWith('boss:')) for (const cell of Object.values(entry)) assert.notEqual(cell[0], 'bosses.webp', `${key} must not point into bosses.webp`)
+for (const boss of new Set(data.levels.map(l => l.boss).filter(Boolean))) assert.ok(portraits['boss:' + boss]?.['1'], `guardian portrait boss:${boss}`)
+// campaign labels come from the measured novice rates: the page's row matches difficulty-bands.json
+const { measuredR2 } = await import('../../src/minigames/carrot/difficulty.ts')
+const bandsFile = JSON.parse(readFileSync(new URL('../../docs/carrot-defense/giant-update/difficulty-bands.json', import.meta.url), 'utf8'))
+measuredR2.forEach((r, i) => assert.ok(Math.abs(r - bandsFile.levels[i].r2.rate) <= .011, `measured R2 of level ${i + 1} (${r}) matches the bands file (${bandsFile.levels[i].r2.rate})`))
+console.log(`Carrot UI units: wave plans for ${data.levels.length} levels, traits, flags, track plan, ${abilityIds.length} ability cards, ${towerIds.length * 5 + creatureIds.length} portrait cells pass.`)

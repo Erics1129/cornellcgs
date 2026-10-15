@@ -19,7 +19,7 @@ export function Modal({title,children,onClose,className='',kicker}:{title:string
 export function HelpModal({onClose}:{onClose:()=>void}){
  return <Modal title="Protect the carrot" kicker="How to play" onClose={onClose} className="ct-help">
   <div className="ct-help-steps">
-   <article><Icon name="leaf"/><h3>Plant</h3><p>Tap a clearing beside the path. Pick a tower, then Build.</p></article>
+   <article><Icon name="leaf"/><h3>Plant</h3><p>Tap a clearing beside the path. Pick a tower, then Build. Mix kinds: four of one kind crowd the soil.</p></article>
    <article><Icon name="upgrade"/><h3>Grow</h3><p>Upgrade three times. Clear scenery for coins and space.</p></article>
    <article><Icon name="target"/><h3>Defend</h3><p>Cover every route. Tap a creature to focus your towers.</p></article>
    <article><Icon name="merge"/><h3>Merge</h3><p>Drag a Tier IV onto its twin to forge one Super tower.</p></article>

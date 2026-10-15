@@ -272,7 +272,7 @@ namespace CarrotTD {
    velocity*=CarrotData.MovementScale*(boss?1:CarrotData.Pace(level.id));
    if(!boss&&id!="fragment"){float scale=CarrotData.HPScale(level.id)*CarrotData.PressureScale(level.id)*CarrotData.OpeningScale(level.id,fromWave)*(summoned?1:CarrotData.WaveRamp(level.id,fromWave,added!=null&&added.mini))*(Veteran?1.1f:1);hp*=scale;shield*=scale;}
    // Bosses start from the authored base table; returning and new bosses past level 12 keep pace with the ordinary curve (BossScale is 1 on levels 1-12 and on a boss's home level).
-   if(boss)hp=CarrotData.BossBaseHp(id)*CarrotData.BossScale(level.id,id);
+   if(boss)hp=CarrotData.BossBaseHp(id)*CarrotData.BossScale(level.id,id)*CarrotData.BossPressure(level.id);
    // On challenge levels summons belong to the wave that is current when they appear, so the next wave waits for them but not for the boss.
    if(summoned&&CarrotData.IsChallenge(level.id)&&wave>0)fromWave=wave;
    route=Mathf.Clamp(route,0,level.routes.Length-1);
@@ -579,12 +579,14 @@ namespace CarrotTD {
    }
    if(target==null&&obstacle==null)return;
    Vector3 point=target!=null?target.position:obstacle.position;t.aim=point;t.lastShot=elapsed;t.cooldown=d.interval[tier];
-   float output=t.weakenUntil>elapsed?t.weakenFactor:1;
+   float output=(t.weakenUntil>elapsed?t.weakenFactor:1)*Crowding(t.kind);
    if(FireExpansion(t,target,range,d.damage[tier]*output))return;
    if(t.kind=="starfruit"&&target!=null){
     var hits=new List<EnemyState>();foreach(var e in enemies)if(Eligible(e,true)&&FlatDistance(t.position,e.position)<=range)hits.Add(e);
     SortTargets(hits,selectionType=="enemy"?target.id:-1);
-    int cap=3+tier;for(int i=0;i<Mathf.Min(cap,hits.Count);i++)Launch(t,hits[i].id,hits[i].position,d.damage[tier]*output,false);
+    // Fairness pass (polish): 3/3/4/5 stars (Constellation six) with a little falloff past the first two targets (100/90/75%)
+    // and a 40% returning star: Starfruit stays the crowd answer, without being the whole plan (see Crowding below).
+    int cap=StarfruitTargets[tier];for(int i=0;i<Mathf.Min(cap,hits.Count);i++)Launch(t,hits[i].id,hits[i].position,d.damage[tier]*output*(i==0?1:i==1?.9f:.75f),false);
    }else if(t.kind=="thunder"&&target!=null){
     var targets=new List<EnemyState>();foreach(var e in enemies)if(Eligible(e,true)&&FlatDistance(t.position,e.position)<=range)targets.Add(e);SortTargets(targets,selectionType=="enemy"?target.id:-1);
     int cap=tier>=4?4:3;for(int i=0;i<Mathf.Min(cap,targets.Count);i++)Launch(t,targets[i].id,targets[i].position,d.damage[tier]*output,false);
@@ -610,6 +612,13 @@ namespace CarrotTD {
    projectiles.Add(new Projectile{kind=t.kind,source=t.id,target=target,tier=t.tier,damage=damage,remaining=travel,position=t.position,to=to,returning=returning});
    Emit("shot",t.kind,t.position,to,t.id,target,t.tier,damage,travel);
   }
+  /// <summary>Crowded soil (polish fairness pass): plants of one kind share their soil. The first three of a family fight at full
+  /// strength; each one past the third costs every plant of that family 10% of its damage, down to 60% (a Super counts as one plant).
+  /// One family alone no longer clears the campaign, while any mixed garden (every reference bot's) is untouched.</summary>
+  public static float CrowdingFor(int count){return count<=3?1f:Mathf.Max(.4f,1f-.12f*(count-3));}
+  public int FamilyCount(string kind){int n=0;for(int i=0;i<towers.Count;i++)if(towers[i].kind==kind)n++;return n;}
+  float Crowding(string kind){return CrowdingFor(FamilyCount(kind));}
+  static readonly int[] StarfruitTargets={3,3,4,5,6};const float StarReturn=.4f;
   static readonly float[] MortarRadius={.75f,.9f,1.05f,1.2f,1.5f},FrostRadius={0,.45f,.6f,.8f,1.05f},FrostSlow={.3f,.36f,.42f,.48f,.5f};
   void ResolveProjectile(Projectile p){
    var target=p.target>0?enemies.Find(x=>x.id==p.target):null;
@@ -662,8 +671,8 @@ namespace CarrotTD {
       if(tier>=4){EnemyState other=null;float best=.8f;foreach(var e in enemies)if(e.id!=target.id&&Eligible(e,true)&&string.IsNullOrEmpty(e.boss)){float d=FlatDistance(hit,e.position);if(d<best){best=d;other=e;}}if(other!=null&&elapsed>=actors[other.id].rewindReady)Rewind(other,actors[other.id],p);}
      }else if(!string.IsNullOrEmpty(target.boss))ApplySlow(target,.1f,.8f);}
     if(p.kind=="starfruit"&&!p.returning&&target.alive){
-     projectiles.Add(new Projectile{kind=p.kind,source=p.source,target=p.target,tier=p.tier,damage=p.damage*.5f,remaining=.3f,position=p.position,to=hit,returning=true});
-     Emit("shot",p.kind,hit,p.position,p.source,p.target,p.tier,p.damage*.5f,.3f);
+     projectiles.Add(new Projectile{kind=p.kind,source=p.source,target=p.target,tier=p.tier,damage=p.damage*StarReturn,remaining=.3f,position=p.position,to=hit,returning=true});
+     Emit("shot",p.kind,hit,p.position,p.source,p.target,p.tier,p.damage*StarReturn,.3f);
     }
    }
    Emit("impact",p.kind,hit,hit,p.source,p.target,p.tier,p.damage,.45f);

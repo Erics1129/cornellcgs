@@ -23,6 +23,38 @@ the machine-readable record is [difficulty-bands.json](difficulty-bands.json) (c
 - **Smarter towers.** Towers shoot the enemy with the least route left to the carrot (not the largest route
   fraction), so lanes of different lengths are judged by what actually arrives first.
 
+## Polish pass (15 October 2026): fairness after review
+
+The review measured what the bands above could not see: a naive plan or one tower family won almost everything, a few late
+waves were walls, guardians never cost a run, Asuna was 0% for every human model, and the novice met cliffs on L6-L10. What
+changed, in the order it landed, with the certified run in [difficulty-bands.json](difficulty-bands.json) (bots-v2):
+
+| Change | Where | Effect (R1 200 / R2 100 / RM 10 / RNH 20 seeds per level) |
+|---|---|---|
+| Starfruit 3/3/4/5 targets (Super 6) with 100/90/75% falloff and a 40% star; Clockwork Bloom 215 coins and 6% less damage | `CarrotGame.cs`, `CarrotData.cs` | The two strongest single families lose their solo dominance without retuning mixed play. |
+| Crowded soil: from the fourth plant of a kind, every plant of that kind deals 12% less per extra plant (floor 40%); crowded blooms also thin slow, aura and pulse reach | `CarrotGame.CrowdingFor`, `CarrotExpansion.cs`, build-panel warning | (i) every family alone: L9-L24 win rate at most 14% (Thunderhead 14%, Sanctuary Lotus 6%, every other family 0%; before: 81-94% for six families). |
+| Early cliffs: wave 1 of L5-L24 at most its own wave 2 and 1.15x the largest earlier wave 1; wave-1 air packets on L6-L12 at most 5; wave 2 at most 1.4x wave 1 | `scripts/carrot-waves.mjs` | (c2) 0.1% of R2's campaign losses on waves 1-3 (L6 wave 1 was 14% of R2's L6 runs). |
+| Wall cap: no wave from 3 on above 1.4x the threat of the wave before; the excess moves forward toward the finale, what the last wave cannot hold moves back | `scripts/carrot-waves.mjs` (`smoothWalls`) | (k) R1 losses that start their final wave at 9-10 hearts: 21% (was 45%); the worst wave-on-wave step is now about 1.5x (was 3.9x). |
+| Guardian pressure: guardian health x1.3 (L4), 2.0 (L8), 1.85 (L12), 1.75 (L16), 1.3 (L20), 1.0 (L24) | `CarrotData.BossPressure` | (l) 36% of boss-level R1 losses happen on the guardian's wave (was 0 of 900 runs on L4-L16). |
+| Viability: a level is viable when either campaign policy or, where both lose, the naive rotation RN wins with earned coins | `CarrotSimulationTests.CampaignRuns`, `tune.mjs` | R0's heuristics lose to the plain rotation on several levels; the gate now asks for a legal solution, which is what invariant (a) says. |
+| Ceilings in the dial fit: RNH (RN's rotation at R1's cadence) may win at most 90% of a mid-chapter, pre-boss or boss level from L9 (97% of an opener) | `scripts/carrot-sim/tune.mjs` | The novice floor (R2 >= 40%) binds first on most levels: the dials stop there and RNH stays near 100% (reported as invariant j, "floorBound"). |
+| Asuna: dashes every 10 s (8 s in phase 3, were 13/11); the page briefs her counter (sell plants she has passed, replant ahead, works while paused); the challenge opens after Last Harvest or the Portal | `CarrotPrism.cs`, `ui/Onboarding.tsx`, `challenges.ts` | R1 (which, as bots-v2, relocates with p .6) wins 34%, R2 0%, R0 20/20 with lowest 6; RS still loses every seed. Without the faster dashes the briefed R1 won 90%. |
+| Labels: NORMAL / HARD / EXPERT and the 1-5 pips come from the measured R2 rate, not from a stage's slot | `src/minigames/carrot/difficulty.ts` | L8 Moonwell is HARD now (R2 43%); L16, L19, L23 and L24 are EXPERT. |
+
+**bots-v2.** RNH and RM-<kind> are new ceilings; on L29 R1 and R2 act on the briefing (sell each passed plant with p .6 / .25
+per decision and, with the same p, build only ahead of Asuna). Every other decision is bots-v1 unchanged, including the
+towers' estimated power (the bots still overrate the nerfed families, which keeps the measurement conservative).
+
+**What did not move, and why.** The median-player R1 sits at 60-97% on L5-L23 and 54% on L24, above several of its bands,
+because the novice floor binds first: raising a dial further takes R2 under 40% per attempt. RNH, the plain rotation at a
+human cadence, still wins nearly every campaign level from L9, so a player who spends steadily on the best-covering pads will
+find the campaign easier than the R1 numbers say; those levels are flagged floor-bound in (j). Overall-difficulty invariant (h)
+still fails (R0 ends 84% of runs flawless). L24's three-attempt progression is 58% (R2 31%) at the lowest legal dial.
+
+**Reproduce.** `node scripts/carrot-sim.mjs --tune-dials --levels 1-28 --iters 8`, copy the FITTED dials into
+`CarrotData.Pressure`, `node scripts/carrot-waves.mjs --write && node scripts/carrot-game-data.mjs --write`, then
+`node scripts/carrot-sim.mjs --run` and `node scripts/carrot-sim.mjs --bands`; copy the R2 rates into `difficulty.ts`.
+
 ## Measurement
 
 | Tool | What it is |

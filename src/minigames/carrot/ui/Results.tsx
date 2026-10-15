@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react'
 import type { ChallengeBoss, GameDefinitions, GameState, LevelDefinition } from '../types'
 import type { RunSummary } from '../hooks/runTracker'
 import { BossPortrait, TowerPortrait } from '../art'
@@ -36,7 +37,11 @@ export function lossAdvice(state:GameState,level:LevelDefinition|undefined,d:Gam
 }
 const adaptiveTips=['Upgrades usually beat new Tier I towers: a Tier III covers more path for the coins.','Build where two paths meet: one tower covers both routes.','Clear scenery early: it pays coins and opens new clearings.','Call waves early only when the last one died far from the carrot.']
 
-export function Results({state,level,definitions,summary,grade,previousGrade,challengeBoss,losses,onNext,onRetry,onSelect,onChallenges}:{state:GameState;level:LevelDefinition|undefined;definitions:GameDefinitions|null;summary:RunSummary;grade:number;previousGrade:number;challengeBoss:ChallengeBoss|null;losses:number;onNext:()=>void;onRetry:()=>void;onSelect:()=>void;onChallenges:()=>void}){
+export function Results({state,level,definitions,summary,grade,previousGrade,challengeBoss,losses,onNext,onRetry,onSelect,onChallenges,onDock}:{state:GameState;level:LevelDefinition|undefined;definitions:GameDefinitions|null;summary:RunSummary;grade:number;previousGrade:number;challengeBoss:ChallengeBoss|null;losses:number;onNext:()=>void;onRetry:()=>void;onSelect:()=>void;onChallenges:()=>void;onDock?:(rect:DOMRect|null)=>void}){
+ const card=useRef<HTMLElement>(null)
+ // On open: the primary action takes focus (the card is a dialog), and the camera learns the card's rectangle so the victory shot
+ // frames the carrot in the free space above it.
+ useEffect(()=>{const node=card.current;if(!node)return;node.querySelector<HTMLButtonElement>('.ct-results__actions .ct-cta')?.focus({preventScroll:true});onDock?.(node.getBoundingClientRect());return()=>onDock?.(null)},[onDock])
  const won=state.phase==='won',seconds=typeof state.elapsed==='number'?state.elapsed:0
  const parTime=challengeBoss?challengePar[challengeBoss]:level?.par
  const medal=challengeBoss?stars({cleared:won,health:state.health,seconds:won?seconds:Infinity,towers:0},challengeBoss):won?1|(state.health===10?2:0)|(state.blockersRemaining===0?4:0):0
@@ -47,7 +52,7 @@ export function Results({state,level,definitions,summary,grade,previousGrade,cha
  const tip=!won&&losses>=2?adaptiveTips[(state.level+losses)%adaptiveTips.length]:''
  const newBest=grade>previousGrade&&grade>0
  const title=challengeBoss?won?'Guardian down':'The guardian wins':won?state.level===24?'Every garden saved':'Stage clear':'Stage failed'
- return <section className={`ct-results ct-panel ${won?'is-won':'is-lost'}`} role="dialog" aria-modal="false" aria-labelledby="ct-results-title">
+ return <section ref={card} className={`ct-results ct-panel ${won?'is-won':'is-lost'}`} role="dialog" aria-modal="false" aria-labelledby="ct-results-title">
   <div className="ct-results__grade">{challengeBoss?<span className={`ct-results__boss ${won?'is-beaten':''}`}><BossPortrait kind={challengeBoss}/></span>:null}<Grade value={grade} size="xl" label={grade?`Grade ${gradeLetters[grade]}`:'No grade'}/>{newBest&&<span className="ct-tag is-best">New best</span>}</div>
   <div className="ct-results__body">
    <span className="ct-kicker">{String(state.level).padStart(2,'0')} · {state.name}</span>

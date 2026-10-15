@@ -20,11 +20,14 @@ namespace CarrotTD {
  //  RS  Asuna stack exploit: six strong towers on the pads nearest her spawn, upgraded to IV, refocused every 3 s.
  //  R3  poor coverage: one Seed on the worst pad (PoorCoverage).
  public static partial class CarrotSimulationTests {
-  public const string BotsVersion="bots-v1";
-  sealed class Human {public string id;public float telegraphP,airP,mergeP,focusP,reserve,q,stopP;public bool preview;public int maxActions;}
-  static readonly Human R1Profile=new Human{id="R1",telegraphP=.6f,airP=.7f,mergeP=.5f,focusP=.5f,reserve=0,q=.5f,stopP=.35f,preview=true,maxActions=3};
-  static readonly Human R1FullProfile=new Human{id="R1F",telegraphP=.6f,airP=1f,mergeP=.5f,focusP=.5f,reserve=0,q=.5f,stopP=.35f,preview=true,maxActions=3};
-  static readonly Human R2Profile=new Human{id="R2",telegraphP=.2f,airP=0,mergeP=0,focusP=.25f,reserve=.25f,q=.7f,stopP=.5f,preview=false,maxActions=2};
+  // bots-v2 (polish): the page now briefs Asuna's counter (sell plants she has passed; replant ahead), so on L29 the humans act on
+  // it: R1 sells each passed plant with p .6 per decision and R2 with p .25, and with the same p a decision builds only ahead of her.
+  // RNH and RM-<kind> join as difficulty ceilings. Every other decision is bots-v1 unchanged.
+  public const string BotsVersion="bots-v2";
+  sealed class Human {public string id;public float telegraphP,airP,mergeP,focusP,reserve,q,stopP,relocateP;public bool preview;public int maxActions;}
+  static readonly Human R1Profile=new Human{id="R1",telegraphP=.6f,airP=.7f,mergeP=.5f,focusP=.5f,reserve=0,q=.5f,stopP=.35f,relocateP=.6f,preview=true,maxActions=3};
+  static readonly Human R1FullProfile=new Human{id="R1F",telegraphP=.6f,airP=1f,mergeP=.5f,focusP=.5f,reserve=0,q=.5f,stopP=.35f,relocateP=.6f,preview=true,maxActions=3};
+  static readonly Human R2Profile=new Human{id="R2",telegraphP=.2f,airP=0,mergeP=0,focusP=.25f,reserve=.25f,q=.7f,stopP=.5f,relocateP=.25f,preview=false,maxActions=2};
 
   /// <summary>xorshift64 seeded from (level, seed, bot); identical on Mono and .NET (System.Random is not used).</summary>
   sealed class BotRng {
@@ -96,6 +99,7 @@ namespace CarrotTD {
      if(uncovered){st.lastAirWave=nw;if(rng.Unit()<h.airP)st.airWanted=nw;}}
     if(st.airWanted>0&&(st.airWanted==g.wave+1||st.airWanted==g.wave)){if(BuyAirCounter(g,AirRoutes(g,st.airWanted),g.coins*(1-h.reserve)))st.airWanted=-1;}else st.airWanted=-1;
    }
+   if(level==29&&h.relocateP>0)foreach(var t in g.towers.ToArray())if(g.PrismPassed(t)&&rng.Unit()<h.relocateP){g.Select("tower",t.id);g.Command("{\"type\":\"sell\"}");}
    HumanSpend(g,h,rng,strategy,h.maxActions);
    if(rng.Unit()<h.focusP)Focus(g);
   }
@@ -107,7 +111,10 @@ namespace CarrotTD {
    foreach(var t in g.towers)if(t.tier<4){var d=CarrotData.Tower(t.kind);int cost=d.cost[t.tier];if(cost>budget)continue;
     float score=(Power(d,t.tier)-Power(d,t.tier-1))*Preference(d.id,strategy,level)*Coverage(g,t.position,d.range[t.tier])/cost*(count<5?.75f:1.1f);if(score>0)upCands.Add(new Cand{up=true,id=t.id,pad=t.pad,kind=t.kind,score=score,cost=cost});}
    bool control=false,aura=false,cleanse=false;foreach(var t in g.towers){if(t.kind=="frost"||t.kind=="gravity"||t.kind=="book"||t.kind=="clockflower"||t.kind=="mushroom")control=true;if(t.kind=="blossom"||t.kind=="clockflower")aura=true;if(t.kind=="lotus")cleanse=true;}
+   float asunaX=float.NaN;if(level==29&&h.relocateP>0&&rng.Unit()<h.relocateP){var asuna=g.enemies.Find(e=>e.alive&&e.boss=="asuna"&&!e.clone);if(asuna!=null)asunaX=asuna.position.x;}
    for(int p=0;p<g.level.pads.Length;p++){if(PadTaken(g,p))continue;Vector3 at=g.level.pads[p];
+    // L29 (bots-v2): only ahead of Asuna, the nearer stretch first.
+    float ahead=1;if(!float.IsNaN(asunaX)){if(at.x<asunaX+.5f)continue;ahead=1+Mathf.Max(0,1-(at.x-asunaX)/10f);}
     foreach(var d in CarrotData.Towers){if(d.unlock>level||d.cost[0]>budget)continue;
      float overlap=0;foreach(var t in g.towers)if(Vector3.Distance(t.position,at)<3.2f)overlap+=.16f;
      float score=Power(d,0)*Preference(d.id,strategy,level)*Coverage(g,at,d.range[0])/d.cost[0]/(1+overlap+count*.05f);
@@ -116,6 +123,7 @@ namespace CarrotTD {
      if(count>=5&&!aura&&(d.id=="blossom"||d.id=="clockflower"))score*=1.65f;
      if(count>=5&&d.id=="lotus"&&!cleanse)score*=1.65f;
      if(d.id=="frost"&&count<2)score*=.2f;
+     score*=ahead;
      if(score>0)buildCands.Add(new Cand{up=false,id=0,pad=p,kind=d.id,score=score,cost=d.cost[0]});}}
    bool upgradeFirst=count>=2&&rng.Unit()<.5;var list=upgradeFirst?(upCands.Count>0?upCands:buildCands):(buildCands.Count>0?buildCands:upCands);
    if(list.Count==0)return false;list.Sort(CandOrder);
@@ -141,9 +149,11 @@ namespace CarrotTD {
   // ---- RN: the live playtest bot.
   static readonly string[] NaiveMix={"seed","frost","mortar","starfruit","prism","storm","thunder","book"};
   sealed class NaiveTower {public int pad,id,tier;public string kind;}
-  static BotRun RunNaive(int level,int seed){
-   var g=New(level);var rng=new BotRng(level,seed,BotCode("RN"));
-   var mix=new List<string>();foreach(var k in NaiveMix)if(CarrotData.IsChallenge(level)||CarrotData.Tower(k).unlock<=level)mix.Add(k);
+  static BotRun RunNaive(int level,int seed){var mix=new List<string>();foreach(var k in NaiveMix)if(CarrotData.IsChallenge(level)||CarrotData.Tower(k).unlock<=level)mix.Add(k);return RunNaiveMix(level,seed,mix,"RN",false);}
+  // RNH: RN's rotation at R1's human cadence (lognormal, median 4 s). RM-<kind>: the same spender restricted to one tower family
+  // (the dominant-strategy gate). Both are upper limits on difficulty: a naive or one-family plan must not clear the campaign.
+  static BotRun RunNaiveMix(int level,int seed,List<string> mix,string bot,bool human){
+   var g=New(level);var rng=new BotRng(level,seed,BotCode(bot));
    // Pads by route samples (0.25 u along every segment of every route) within 3.2 u, best first; scenery pads stay "blocked".
    var score=new float[g.level.pads.Length];var order=new List<int>();var blocked=new HashSet<int>();foreach(var b in g.level.blockers)blocked.Add(b.pad);
    for(int p=0;p<g.level.pads.Length;p++){var at=g.level.pads[p];int n=0;foreach(var lane in g.level.routes)for(int i=0;i+1<lane.Length;i++){float ax=lane[i].x,az=lane[i].z,bx=lane[i+1].x,bz=lane[i+1].z;float len=Mathf.Sqrt((bx-ax)*(bx-ax)+(bz-az)*(bz-az));int m=Mathf.Max(1,Mathf.RoundToInt(len/.25f));for(int k=0;k<m;k++){float x=ax+(bx-ax)*k/m,z=az+(bz-az)*k/m;if(Mathf.Sqrt((x-at.x)*(x-at.x)+(z-at.z)*(z-at.z))<=3.2f)n++;}}score[p]=n*.25f;order.Add(p);}
@@ -151,11 +161,11 @@ namespace CarrotTD {
    var mine=new List<NaiveTower>();int builds=0;
    NaiveSpend(g,mix,order,score,blocked,mine,ref builds);g.Command("{\"type\":\"start\"}");int lowest=10;
    while(g.phase=="playing"&&g.elapsed<1500){
-    float step=seed==0?1f:.75f+(float)rng.Unit()*.5f;g.StepSimulation(step);lowest=Mathf.Min(lowest,g.health);if(g.phase!="playing")break;
+    float step=human?HumanGap(rng):seed==0?1f:.75f+(float)rng.Unit()*.5f;g.StepSimulation(step);lowest=Mathf.Min(lowest,g.health);if(g.phase!="playing")break;
     mine.RemoveAll(m=>!g.towers.Exists(t=>t.id==m.id));foreach(var m in mine){var t=g.towers.Find(x=>x.id==m.id);m.tier=t.tier;}
     NaiveSpend(g,mix,order,score,blocked,mine,ref builds);
    }
-   var r=Collect(g,"RN",seed,0,lowest);Done(g);return r;
+   var r=Collect(g,bot,seed,0,lowest);Done(g);return r;
   }
   static void NaiveSpend(CarrotGame g,List<string> mix,List<int> order,float[] score,HashSet<int> blocked,List<NaiveTower> mine,ref int builds){
    if(g.phase!="ready"&&g.phase!="playing")return;
@@ -211,7 +221,10 @@ namespace CarrotTD {
       case "R1":r=RunHuman(level,seed,R1Profile);break;case "R1F":r=RunHuman(level,seed,R1FullProfile);break;case "R2":r=RunHuman(level,seed,R2Profile);break;
       case "RN":r=RunNaive(level,seed);break;case "RS":if(level!=29)continue;r=RunStack(seed);break;
       case "R3":{var p=PoorRun(level);r=p;break;}
-      default:throw new ArgumentException("unknown bot "+bot);
+      case "RNH":{if(level>28)continue;var mix=new List<string>();foreach(var k in NaiveMix)if(CarrotData.IsChallenge(level)||CarrotData.Tower(k).unlock<=level)mix.Add(k);r=RunNaiveMix(level,seed,mix,"RNH",true);break;}
+      default:
+       if(bot.StartsWith("RM-",StringComparison.Ordinal)){string kind=bot.Substring(3);if(CarrotData.Tower(kind)==null)throw new ArgumentException("unknown family "+kind);if(level>28||(!CarrotData.IsChallenge(level)&&CarrotData.Tower(kind).unlock>level))continue;r=RunNaiveMix(level,seed,new List<string>{kind},bot,true);break;}
+       throw new ArgumentException("unknown bot "+bot);
      }
      Debug.Log("CARROT_BAND "+r.Json());}
    }

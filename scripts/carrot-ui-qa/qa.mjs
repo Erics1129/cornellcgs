@@ -27,6 +27,12 @@ for (const engine of engines) {
       if (name === 'won' || name === 'lost') await page.waitForTimeout(1700)
       const o = await overflow(page)
       check(E(`${vp} ${name}: no horizontal overflow`), o.scroll <= 0 && !o.bad.length, o.bad.length ? o : '')
+      if (name === 'won' || name === 'lost') {
+        // every results action is on screen without scrolling the card (portrait used to hide them under an internal scroll)
+        const a = await page.evaluate(() => { const card = document.querySelector('.ct-results')?.getBoundingClientRect(); return { card: card && { top: card.top, bottom: card.bottom }, vh: innerHeight, buttons: [...document.querySelectorAll('.ct-results__actions button')].map(b => { const r = b.getBoundingClientRect(); return { text: b.textContent.trim(), top: r.top, bottom: r.bottom } }), focus: document.activeElement?.className || '' } })
+        check(E(`${vp} ${name}: every results action inside the card and the viewport`), a.card && a.buttons.length > 0 && a.buttons.every(b => b.top >= a.card.top - .5 && b.bottom <= a.card.bottom + .5 && b.top >= 0 && b.bottom <= a.vh + .5), a)
+        check(E(`${vp} ${name}: the primary results action has focus`), /ct-cta/.test(String(a.focus)), a.focus)
+      }
       if (!['won', 'lost', 'tower'].includes(name)) { const t = await topStack(page); worst = Math.max(worst, t) }
       await page.screenshot({ path: join(outDir, `qa-${engine}-${vp}-${name}.png`) })
     }
@@ -47,7 +53,11 @@ for (const engine of engines) {
       check(E(`${vp} pad ${i}: panel clear of pad and carrot`), clear, clear ? '' : m)
       if (vp === 'portrait') check(E(`${vp} pad ${i}: sheet <= 200 px tall (${Math.round(m.panel.h)})`), m.panel.h <= 200.5)
       if (vp === 'landscape') check(E(`${vp} pad ${i}: Build CTA fully on screen`), m.cta && m.cta.x >= 0 && m.cta.y >= 0 && m.cta.x + m.cta.w <= m.vw && m.cta.y + m.cta.h <= m.vh, m.cta)
-      if (vp === 'desktop') check(E(`${vp} pad ${i}: panel <= 280x190 (${Math.round(m.panel.w)}x${Math.round(m.panel.h)})`), m.panel.w <= 280.5 && m.panel.h <= 190.5)
+      if (vp === 'desktop') {
+        // every open tower shows at once in the desktop grid (the one-row scroller hid 16 of 20)
+        const tiles = await page.evaluate(() => { const box = document.querySelector('.ct-build__tiles').getBoundingClientRect(); const all = [...document.querySelectorAll('.ct-build__tiles .ct-tile')]; return { n: all.length, visible: all.filter(t => { const r = t.getBoundingClientRect(); return r.left >= box.left - .5 && r.right <= box.right + .5 && r.top >= box.top - .5 && r.bottom <= box.bottom + .5 }).length } })
+        check(E(`${vp} pad ${i}: every tower tile visible (${tiles.visible}/${tiles.n}), panel ${Math.round(m.panel.w)}x${Math.round(m.panel.h)} <= 440x480`), tiles.visible === tiles.n && m.panel.w <= 440.5 && m.panel.h <= 480.5, tiles)
+      }
       if (i === 4) await page.screenshot({ path: join(outDir, `qa-${engine}-${vp}-panel.png`) })
     }
     await context.close()
@@ -122,6 +132,22 @@ for (const engine of engines) {
     })
     check(E(`flash: bites light the vignette at most 3 times per second (worst ${r.worst}, ${r.rises} rises)`), r.rises >= 1 && r.worst <= 3, r)
     await context.close()
+    // Reduced motion: bites 300 and 400 ms apart hold one steady low tint (never more rises than full motion, never above 40%)
+    for (const gap of [300, 400]) {
+      const rm = await open(browser, { viewport: 'desktop', storage: seed(8), base, reduced: true })
+      await enter(rm.page); await fixture(rm.page, 'waveAir')
+      const q = await rm.page.evaluate(async gap => {
+        const el = document.querySelector('.ct-vignette'), samples = [], qa = window.__qa
+        let stop = false; const tick = () => { samples.push([performance.now(), Number(getComputedStyle(el).opacity)]); if (!stop) requestAnimationFrame(tick) }; requestAnimationFrame(tick)
+        for (let i = 0; i < 9; i++) { qa.patch({ health: 9 - i }); await new Promise(r => setTimeout(r, gap)) }
+        await new Promise(r => setTimeout(r, 1200)); stop = true
+        const rises = []; let lit = false; for (const [t, o] of samples) { if (!lit && o > .2) { lit = true; rises.push(t) } else if (lit && o < .05) lit = false }
+        let worst = 0; for (const t of rises) worst = Math.max(worst, rises.filter(x => x >= t && x < t + 1000).length)
+        return { rises: rises.length, worst, peak: Math.max(...samples.map(x => x[1])) }
+      }, gap)
+      check(E(`flash (reduced motion, bites ${gap} ms apart): one steady tint (worst ${q.worst}/s, ${q.rises} rises, peak ${q.peak.toFixed(2)})`), q.rises >= 1 && q.worst <= 1 && q.peak <= .4, q)
+      await rm.context.close()
+    }
   }
   // ---------------------------------------------------------------- commands from the HUD
   if (suites.includes('commands')) {
@@ -179,7 +205,21 @@ for (const engine of engines) {
     await page.waitForTimeout(8300)
     const cross = await page.evaluate(() => window.__qaCross)
     for (const [kind, , , at] of plan) { const t = cross[kind]; check(E(`track: ${kind} reaches the line at ${at}s (${t ? (t / 1000).toFixed(3) : 'never'}s)`), t && Math.abs(t - at * 1000) <= 100) }
-    const lanes = await page.evaluate(() => [...document.querySelectorAll('.ct-track .ct-lane')].length)
+    // a crowded queue: 10 packets on one route never overlap heads or counts (they push right, then fold into a "+N" chip)
+    await page.evaluate(() => { const qa = window.__qa; const kinds = ['nibble', 'dash', 'shell', 'moth', 'swarm', 'crystal', 'shaman', 'burrow', 'nibble', 'dash']; qa.set(qa.base(20, { v: 2, runId: 11, phase: 'playing', wave: 4, elapsed: 90, waveElapsed: 0, incoming: kinds.map((kind, i) => ({ kind, count: 10 + i, route: 0, at: 3 + i * .4, span: 1, air: kind === 'moth', armor: kind === 'shell', shield: kind === 'crystal', heal: kind === 'shaman', mini: false })) })) })
+    await page.waitForTimeout(900)
+    const crowd = await page.evaluate(() => { const vis = [...document.querySelectorAll('.ct-note')].filter(n => n.dataset.hidden !== '1' && Number(getComputedStyle(n).opacity) > .5).map(n => { const r = n.getBoundingClientRect(); return { l: r.left, r: r.right, t: r.top, b: r.bottom } }); let pairs = 0; for (let i = 0; i < vis.length; i++) for (let j = i + 1; j < vis.length; j++) { const a = vis[i], b = vis[j]; const ox = Math.min(a.r, b.r) - Math.max(a.l, b.l), oy = Math.min(a.b, b.b) - Math.max(a.t, b.t); if (ox > 3 && oy > 3) pairs++ } return { visible: vis.length, pairs, more: [...document.querySelectorAll('.ct-track__more')].map(m => m.textContent).join(' ') } })
+    check(E(`track: crowded queue shows no overlapping notes (${crowd.pairs} pairs, ${crowd.visible} visible, chips "${crowd.more}")`), crowd.pairs === 0 && crowd.visible >= 2, crowd)
+    {
+      // phone landscape merges every route into one lane: the same queue, alternating routes, still never overlaps
+      const ls = await open(browser, { viewport: 'landscape', storage: seed(8), base }); await enter(ls.page)
+      await ls.page.evaluate(() => { const qa = window.__qa; const kinds = ['nibble', 'dash', 'shell', 'moth', 'swarm', 'crystal', 'shaman', 'burrow', 'nibble', 'dash']; qa.set(qa.base(20, { v: 2, runId: 13, phase: 'playing', wave: 4, elapsed: 90, waveElapsed: 0, incoming: kinds.map((kind, i) => ({ kind, count: 10 + i, route: i % 2, at: 3 + i * .4, span: 1, air: kind === 'moth', armor: kind === 'shell', shield: kind === 'crystal', heal: kind === 'shaman', mini: false })) })) })
+      await ls.page.waitForTimeout(900)
+      const merged = await ls.page.evaluate(() => { const vis = [...document.querySelectorAll('.ct-note')].filter(n => n.dataset.hidden !== '1' && Number(getComputedStyle(n).opacity) > .5).map(n => { const r = n.getBoundingClientRect(); return { l: r.left, r: r.right, t: r.top, b: r.bottom } }); let pairs = 0; for (let i = 0; i < vis.length; i++) for (let j = i + 1; j < vis.length; j++) { const a = vis[i], b = vis[j]; if (Math.min(a.r, b.r) - Math.max(a.l, b.l) > 3 && Math.min(a.b, b.b) - Math.max(a.t, b.t) > 3) pairs++ } return { visible: vis.length, pairs } })
+      check(E(`track (landscape, merged lane): no overlapping notes (${merged.pairs} pairs, ${merged.visible} visible)`), merged.pairs === 0 && merged.visible >= 2, merged)
+      await ls.context.close()
+    }
+    const lanes = await page.evaluate(() => { const qa = window.__qa; qa.set(qa.base(6, { v: 2, runId: 12, phase: 'playing', wave: 3, elapsed: 60, waveElapsed: 0 })); return 0 }).then(() => page.waitForTimeout(300)).then(() => page.evaluate(() => [...document.querySelectorAll('.ct-track .ct-lane')].length))
     check(E(`track: one lane per route (${lanes})`), lanes === 2)
     await fixture(page, 'bossUproot')
     const badges = await page.evaluate(() => ({ boss: !!document.querySelector('.ct-note.is-boss .ct-note__badges .is-boss'), lanes: document.querySelectorAll('.ct-track .ct-lane').length }))

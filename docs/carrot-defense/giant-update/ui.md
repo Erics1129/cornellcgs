@@ -205,3 +205,31 @@ Other tools: `unit.mjs` (plain-node checks of `waves.ts` against BeginWave's for
   - `FocusBoss` comes from Settings.
   - `caps: ['worldBars']` hides the DOM monster bars.
 - **characters:** `portraits.json` cells are `[sheet, x, y, w, h]` in sheet pixels, with sheets under `portraits/`.
+
+## Polish pass after review (15 October 2026)
+
+- **Portraits.** `portraits.json` keys guardians (and the carrot hero) as `boss:<kind>`: the Frost guardian's cell had replaced the
+  Frost tower's tier I. `BossPortrait` reads the namespace; `scripts/carrot-ui-qa/unit.mjs` asserts that every tower tier and every
+  creature resolves to its own sheet and never into `bosses.webp`. `Tools/pack_carrot_portraits.py` writes the same layout.
+- **Build panel (desktop).** Every open tower shows at once: a 6-7 column grid of 46 px tiles (at most three rows), roving arrow-key
+  focus inside the listbox (Home/End too; selection follows focus) and a vertical mouse wheel mapped onto any single-row scroller
+  (phone sheet, compact fallback), which also fades at its far edge. The diagonal placement candidates now clear the pad's own
+  footprint. A crowded-soil line warns before a fourth plant of one kind, and the tower panel tags a crowded family.
+- **Wave track.** A per-lane layout pass in time order: a note never starts before the previous note's label ends (it is pushed
+  right), and what no longer fits folds into a "+N" chip at the lane's end. Phone landscape (one merged lane) uses the same pass,
+  so heads and counts never cover each other. Live state and the judgement pulse still follow the real spawn time.
+- **Super forge.** The tower panel waits 1.3 s after a forge so the judgement word is read first; the forged toast is one emblem
+  (no longer stretched by `flex: 1`) and a two-line "Super forged / name"; the duplicate name notice is dropped while it shows.
+- **Finale.** The last wave's judgement waits 400 ms behind the guardian's death burst, and notices stop once the stage is won.
+- **Results.** The card is opaque (`--panel-solid`), sends its top edge to the camera (the victory shot frames the carrot above it),
+  focuses its primary action, and on phones keeps Next / Retry / Stages in a sticky footer (QA: every action inside the card and
+  the viewport, both engines, won and lost).
+- **Stage select.** Only the track list scrolls (no `scrollIntoView`, which also scrolled the dialog and pushed Back and the tabs
+  off a 390 px screen); PLAY takes first focus without scrolling; short landscape uses a compact jacket with PLAY pinned.
+- **Vignette (WCAG 2.3.1).** A request the flash governor caps never plays; reduced motion holds one steady 35% tint for at least
+  900 ms instead of shorter, more frequent glows (QA: bites 300 and 400 ms apart give one rise per second at most).
+- **Asuna.** A briefing card in the ready phase (and the first 25 s) says how to beat her: plants behind her stop helping, sell
+  them and replant ahead, which also works while paused. The first-encounter card and hint say the same. The challenge opens after
+  Last Harvest (12) or the Portal; a save that already cleared her keeps her open.
+- **Labels.** NORMAL / HARD / EXPERT and the pips come from the measured novice rate (`difficulty.ts`, checked against
+  `difficulty-bands.json` by `unit.mjs`).

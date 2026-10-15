@@ -22,7 +22,11 @@ assert.equal(challengeUnlocked(27,campaign(24,{24:1}),fresh),true,'a level-24 me
 assert.equal(challengeUnlocked(27,campaign(24,{24:6}),fresh),false,'only the cleared bit of the level-24 medal counts')
 assert.equal(challengeUnlocked(24,campaign(24,{24:7}),fresh),false,'campaign levels are not challenges')
 
-assert.equal(challengeUnlocked(29,campaign(1),fresh),true,'Asuna is open without prerequisites')
+assert.equal(challengeUnlocked(29,campaign(1),fresh),false,'Asuna waits on a fresh save')
+assert.equal(challengeUnlocked(29,campaign(12),fresh),false,'reaching level 12 is not clearing it (Asuna)')
+assert.equal(challengeUnlocked(29,campaign(13),fresh),true,'clearing Last Harvest (12) opens Asuna')
+assert.equal(challengeUnlocked(29,campaign(1),{version:3,best:{portal:{cleared:true,health:5,seconds:600,towers:8}}}),true,'clearing the Portal opens Asuna')
+assert.equal(challengeUnlocked(29,campaign(1),{version:3,best:{asuna:{cleared:true,health:5,seconds:300,towers:8}}}),true,'a save that already cleared Asuna keeps her open')
 assert.equal(bossOfLevel(29),'asuna')
 
 // Awards: only a won fight records; a slower replay keeps the faster time; better health replaces health.

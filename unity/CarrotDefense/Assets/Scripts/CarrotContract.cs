@@ -185,7 +185,7 @@ namespace CarrotTD {
   /// <summary>Game seconds until the boss reaches the carrot at its present pace; -1 while it is not moving.</summary>
   float BossEta(EnemyState e,Actor a){
    float remaining=Mathf.Max(0,e.routeLength-e.distance);
-   if(e.boss=="asuna"&&prism!=null&&prism.id==e.id){float len=PrismDashLength(e),interval=e.phase==3?11:13;int dashes=Mathf.CeilToInt(remaining/Mathf.Max(.01f,len));if(dashes<=0)return 0;return Finite(Mathf.Max(0,prism.nextDash-elapsed)+1.25f+PrismDashSeconds+(dashes-1)*(interval+PrismDashSeconds),-1);}
+   if(e.boss=="asuna"&&prism!=null&&prism.id==e.id){float len=PrismDashLength(e),interval=e.phase==3?8:10;int dashes=Mathf.CeilToInt(remaining/Mathf.Max(.01f,len));if(dashes<=0)return 0;return Finite(Mathf.Max(0,prism.nextDash-elapsed)+1.25f+PrismDashSeconds+(dashes-1)*(interval+PrismDashSeconds),-1);}
    float pace=a.baseSpeed;if(pace<.01f)return -1;return Finite(remaining/pace,-1);
   }
   static float Finite(float v,float fallback){return float.IsNaN(v)||float.IsInfinity(v)?fallback:v;}
@@ -254,6 +254,8 @@ namespace CarrotTD {
    else for(int i=0;i<ordinary.Count;i++){var e=ordinary[i];bool hurt=e.hp<e.maxHp||e.shield>0;if(!hurt){if(near>=24)continue;near++;}WriteMonster(j,view,e);}
    j.ArrayEnd();
    j.Int("enemyCount",alive);j.Str("notice",notice);j.Bool("muted",muted);j.Int("towerCount",towers.Count);
+   // Crowded soil (polish): "kind:count" for every family on the board, so the page can show the penalty before the 4th plant.
+   j.ArrayStart("crowd");foreach(var d in CarrotData.Towers){int n=FamilyCount(d.id);if(n>0)j.StrItem(d.id+":"+n);}j.ArrayEnd();
    int standing=0;for(int i=0;i<blockers.Count;i++)if(blockers[i].ownerEnemy==0)standing++;
    j.Int("cleared",level.blockers.Length-standing);j.Int("blockersRemaining",standing);
    j.Num("elapsed",elapsed,3);j.Num("blind",Mathf.Max(0,blindUntil-elapsed),3);j.Num("blindTint",blindTint,3);j.Num("blindAlpha",elapsed<blindUntil?blindAlpha:0,3);

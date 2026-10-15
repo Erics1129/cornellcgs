@@ -1,6 +1,8 @@
 // Difficulty bands: runs the reference bots in parallel slices, merges their CARROT_BAND lines, evaluates the bands
 // and fairness invariants of docs/carrot-defense/giant-update/difficulty.md, and writes difficulty-bands.json.
-// Options (after --bands): --r1 N --r2 N --r0 N --rn N --rs N --levels 1-29 --step K --jobs J --out path --raw path
+// Options (after --bands): --r1 N --r2 N --r0 N --rn N --rs N --rnh N --rm N --levels 1-29 --step K --jobs J --out path --raw path
+// Polish gates: RNH (RN's rotation at R1's human cadence) and RM-<kind> (one tower family only, same cadence) are difficulty
+// ceilings, reported next to R1: (i) every family alone, (j) the naive ceiling, (k) no late wall, (l) the guardian carries pressure.
 //   --quick        small seed counts (directional only; never certifies a band)
 //   --bots R1,R2   only these bots
 import { mkdirSync, writeFileSync, readFileSync, existsSync } from 'node:fs'
@@ -25,6 +27,8 @@ export const BANDS = {
     { name: 'Asuna (Insane)', levels: [29], r1: [0.08, 0.2], r2: null },
   ],
 }
+export const FAMILIES = ['seed', 'frost', 'mortar', 'prism', 'storm', 'blossom', 'starfruit', 'gravity', 'book', 'thunder', 'bamboo', 'chili', 'lotus', 'magnet', 'orchid', 'mushroom', 'cactus', 'clockflower', 'dragonfruit', 'moonflower']
+const OPENERS = [5, 9, 13, 17, 21], BOSS_LEVELS = [4, 8, 12, 16, 20, 24]
 const Z90 = 1.6448536269514722
 export function wilson(k, n, z = Z90) {
   if (!n) return [0, 1]
@@ -38,7 +42,7 @@ const round = (x, d = 3) => x == null ? null : Math.round(x * 10 ** d) / 10 ** d
 
 export async function runBands({ exe, run, value, flag, range, repo, jobs }) {
   const quick = flag('quick')
-  const counts = { R1: Number(value('r1', quick ? 16 : 200)), R1F: Number(value('r1f', quick ? 0 : 100)), R2: Number(value('r2', quick ? 8 : 100)), R0: Number(value('r0', quick ? 3 : 20)), RN: Number(value('rn', quick ? 1 : 10)), RS: Number(value('rs', quick ? 4 : 100)) }
+  const counts = { R1: Number(value('r1', quick ? 16 : 200)), R1F: Number(value('r1f', quick ? 0 : 100)), R2: Number(value('r2', quick ? 8 : 100)), R0: Number(value('r0', quick ? 3 : 20)), RN: Number(value('rn', quick ? 1 : 10)), RS: Number(value('rs', quick ? 4 : 100)), RNH: Number(value('rnh', quick ? 4 : 20)), RM: Number(value('rm', quick ? 2 : 10)) }
   const levels = range(value('levels', '1-29'), 29)
   const only = value('bots') ? new Set(value('bots').split(',')) : null
   const step = value('step')
@@ -52,6 +56,8 @@ export async function runBands({ exe, run, value, flag, range, repo, jobs }) {
     if ((!only || only.has('RN')) && level <= 28) slice('RN', level, counts.RN, 10)
     if ((!only || only.has('R3')) && [1, 4, 8, 12, 16, 20, 24, 25, 27, 28].includes(level)) specs.push(`R3:${level}:0`)
     if ((!only || only.has('RS')) && level === 29) slice('RS', 29, counts.RS, 25)
+    if ((!only || only.has('RNH')) && level <= 28 && counts.RNH > 0) slice('RNH', level, counts.RNH, 20)
+    if ((!only || only.has('RM')) && level <= 24 && counts.RM > 0) for (const kind of FAMILIES) specs.push(`RM-${kind}:${level}:0-${counts.RM - 1}`)
   }
   const started = Date.now(), runs = []
   let next = 0, failed = 0
@@ -93,7 +99,7 @@ export function evaluate(runs, { counts, quick, step, repo }) {
     const r0runs = [...by('R0', level)]
     const seeds = [...new Set(r0runs.map(r => r.seed))], bestRuns = seeds.map(sd => { const xs = r0runs.filter(r => r.seed === sd); return xs.find(r => r.won && r.lowest === Math.max(...xs.filter(x => x.won).map(x => x.lowest))) || xs[0] })
     const r0 = r0runs.length ? { n: r0runs.length, wins: r0runs.filter(r => r.won).length, bestWins: bestRuns.filter(r => r.won).length, bestN: bestRuns.length, sdLowestBest: round(sd(bestRuns.map(r => r.lowest)), 2), medianSeconds: round(median(r0runs.filter(r => r.won).map(r => r.seconds)), 1), lowestMedian: median(r0runs.map(r => r.lowest)), sdLowestP0: round(sd(r0runs.filter(r => r.policy === 0).map(r => r.lowest)), 2), sdLowestP1: round(sd(r0runs.filter(r => r.policy === 1).map(r => r.lowest)), 2), fullHearts: r0runs.filter(r => r.won && r.health === 10).length, minLowest: Math.min(...r0runs.map(r => r.lowest)) } : null
-    levels.push({ level, r0, r1: stat('R1'), r1f: stat('R1F'), r2: stat('R2'), rn: stat('RN'), rs: stat('RS'), r3: stat('R3') })
+    levels.push({ level, r0, r1: stat('R1'), r1f: stat('R1F'), r2: stat('R2'), rn: stat('RN'), rnh: stat('RNH'), rs: stat('RS'), r3: stat('R3') })
   }
   // Rows: a row passes when the 90% Wilson interval of every member level lies inside the band.
   const certifying = !quick && counts.R1 >= 200 && counts.R2 >= 100
@@ -135,20 +141,49 @@ export function evaluate(runs, { counts, quick, step, repo }) {
   // Progression fairness: R2 wins within three independent attempts on >= 75% of seed triples, every campaign level.
   const prog = levels.filter(l => l.level <= 24 && l.r2).map(l => { const rs = by('R2', l.level).sort((a, b) => a.seed - b.seed); let triples = 0, ok = 0; for (let i = 0; i + 2 < rs.length; i += 3) { triples++; if (rs[i].won || rs[i + 1].won || rs[i + 2].won) ok++ } return { level: l.level, share: round(ok / Math.max(1, triples)) } })
   inv.progression = { name: 'R2 wins within 3 attempts on >= 75% of seeds; RN wins L1-L8', rows: prog, pass: prog.every(x => x.share >= 0.75) && rnEarlyLevels.every(r => r.won) }
-  return { meta: { generated: new Date().toISOString(), commit, dirty, botsVersion: 'bots-v1', botsHash, counts, step: step ? Number(step) : (runs[0] ? runs[0].step : null), certifying, rule: certifying ? 'row passes when every member level\'s 90% Wilson interval lies inside its band' : 'DIRECTIONAL ONLY: seed counts below 200 R1 / 100 R2 cannot certify a band' }, rows, invariants: inv, levels }
+  // (i) Dominant strategies: every tower family alone (RM-<kind>, human cadence) loses at least half of its L9-L24 runs and is
+  // flawless on at most 25% of the seeds of any mid-chapter, pre-boss or boss level from L9.
+  const RM = runs.filter(r => r.bot.startsWith('RM-'))
+  if (RM.length) {
+    const fam = FAMILIES.map(kind => { const rs = RM.filter(r => r.bot === 'RM-' + kind), late = rs.filter(r => r.level >= 9 && r.level <= 24), perLevel = {}
+      for (const r of rs) { const k = r.level; perLevel[k] = perLevel[k] || { n: 0, wins: 0, flawless: 0 }; perLevel[k].n++; if (r.won) perLevel[k].wins++; if (r.won && r.health === 10) perLevel[k].flawless++ }
+      const flawlessLevels = Object.entries(perLevel).filter(([l, v]) => +l >= 9 && !OPENERS.includes(+l) && v.flawless / v.n > 0.25).map(([l]) => +l)
+      return { kind, lateWinRate: late.length ? round(late.filter(r => r.won).length / late.length) : null, flawlessLevels, wins: Object.fromEntries(Object.entries(perLevel).map(([l, v]) => [l, v.wins])) } })
+    inv.i = { name: 'each tower family alone loses >= 50% of L9-L24 and is flawless on <= 25% of seeds (L9+, non-openers)', worst: fam.reduce((a, b) => (b.lateWinRate || 0) > (a.lateWinRate || 0) ? b : a, fam[0]).kind, families: fam.map(f => ({ kind: f.kind, lateWinRate: f.lateWinRate, flawlessLevels: f.flawlessLevels })), pass: fam.every(f => (f.lateWinRate || 0) <= 0.5 && !f.flawlessLevels.length) }
+  }
+  // (j) The naive ceiling: RN's rotation at a human cadence wins at most 90% of a mid-chapter, pre-boss or boss level from L9 (97%
+  // of an opener). Reported with R1 and R2: where the novice progression floor (R2 >= 40%) blocks a higher dial, the row says so.
+  const RNH = runs.filter(r => r.bot === 'RNH')
+  if (RNH.length) {
+    const rows9 = levels.filter(l => l.level >= 9 && l.level <= 24 && l.rnh).map(l => ({ level: l.level, rnh: l.rnh.rate, r1: l.r1 ? l.r1.rate : null, r2: l.r2 ? l.r2.rate : null, limit: OPENERS.includes(l.level) ? 0.97 : 0.9 }))
+    const over = rows9.filter(x => x.rnh > x.limit + 1e-9)
+    inv.j = { name: 'RNH (naive rotation, human cadence) <= 90% on L9-L24 (97% on openers); reported next to R1', over: over.map(x => ({ level: x.level, rnh: x.rnh, r1: x.r1, r2: x.r2, floorBound: x.r2 != null && x.r2 < 0.45 })), lateWinRate: round(RNH.filter(r => r.level >= 9 && r.level <= 24 && r.won).length / Math.max(1, RNH.filter(r => r.level >= 9 && r.level <= 24).length)), pass: over.length === 0 }
+  }
+  // (k) No late wall: at most 20% of R1's campaign losses (L6-L24) start their final wave with 9 or more hearts.
+  const wallLosses = R1.filter(r => r.level >= 6 && r.level <= 24 && !r.won), atWall = wallLosses.filter(r => 10 - r.hearts.slice(0, Math.max(0, r.wave - 1)).reduce((a, b) => a + b, 0) >= 9)
+  inv.k = { name: 'no late wall: <= 20% of R1 losses (L6-L24) start their final wave with >= 9 hearts', share: round(atWall.length / Math.max(1, wallLosses.length)), losses: wallLosses.length, pass: atWall.length / Math.max(1, wallLosses.length) <= 0.2 }
+  // (l) The guardian carries pressure: on the boss levels 30-50% of R1's losses happen on the guardian's wave (reported per level).
+  const bossRows = BOSS_LEVELS.map(level => { const ls = R1.filter(r => r.level === level && !r.won); return { level, losses: ls.length, onBossWave: ls.filter(r => r.wave === r.waves).length, share: round(ls.filter(r => r.wave === r.waves).length / Math.max(1, ls.length)) } })
+  const bossAll = bossRows.reduce((a, b) => ({ losses: a.losses + b.losses, on: a.on + b.onBossWave }), { losses: 0, on: 0 })
+  inv.l = { name: 'guardian pressure: 30-50% of boss-level R1 losses happen on the guardian wave', share: round(bossAll.on / Math.max(1, bossAll.losses)), perLevel: bossRows, pass: bossAll.on / Math.max(1, bossAll.losses) >= 0.3 && bossAll.on / Math.max(1, bossAll.losses) <= 0.5 }
+  // (c2) No early cliff for novices and the naive plan either: at most 5% of R2's and RNH's campaign losses on waves 1-3.
+  const early = set => round(set.filter(r => r.wave <= 3).length / Math.max(1, set.length))
+  const r2Loss = runs.filter(r => r.bot === 'R2' && r.level <= 24 && !r.won), rnhLoss = RNH.filter(r => r.level <= 24 && !r.won)
+  inv.c2 = { name: 'no early cliff (R2 and RNH, campaign): <= 5% of losses on waves 1-3', r2: early(r2Loss), rnh: RNH.length ? early(rnhLoss) : null, r2Losses: r2Loss.length, pass: early(r2Loss) <= 0.05 && (!RNH.length || early(rnhLoss) <= 0.05) }
+  return { meta: { generated: new Date().toISOString(), commit, dirty, botsVersion: 'bots-v2', botsHash, counts, step: step ? Number(step) : (runs[0] ? runs[0].step : null), certifying, rule: certifying ? 'row passes when every member level\'s 90% Wilson interval lies inside its band' : 'DIRECTIONAL ONLY: seed counts below 200 R1 / 100 R2 cannot certify a band' }, rows, invariants: inv, levels }
 }
 
 export function printSummary(result) {
   const pct = x => x == null ? '  -  ' : (100 * x).toFixed(0).padStart(3) + '%'
   console.log(`commit ${result.meta.commit}${result.meta.dirty ? '+dirty' : ''} step ${result.meta.step} bots ${result.meta.botsHash} ${result.meta.certifying ? 'CERTIFYING' : 'directional'}`)
-  console.log('lvl   R0 win  R0 low  R1 rate [ci90]        R2 rate [ci90]        R1F   RN   R1 idle')
+  console.log('lvl   R0 win  R0 low  R1 rate [ci90]        R2 rate [ci90]        R1F   RN   RNH  R1 idle')
   for (const l of result.levels) {
     const r1 = l.r1 ? `${pct(l.r1.rate)} [${pct(l.r1.ci90[0])},${pct(l.r1.ci90[1])}]` : '        -          '
     const r2 = l.r2 ? `${pct(l.r2.rate)} [${pct(l.r2.ci90[0])},${pct(l.r2.ci90[1])}]` : '        -          '
-    console.log(`${String(l.level).padStart(3)}  ${l.r0 ? `${l.r0.wins}/${l.r0.n}`.padStart(6) : '     -'}  ${l.r0 ? String(l.r0.lowestMedian).padStart(5) : '    -'}   ${r1}  ${r2}  ${l.r1f ? pct(l.r1f.rate) : '  -  '} ${l.rn ? pct(l.rn.rate) : '  -  '} ${l.r1 ? String(l.r1.medianIdle).padStart(6) : ''}`)
+    console.log(`${String(l.level).padStart(3)}  ${l.r0 ? `${l.r0.wins}/${l.r0.n}`.padStart(6) : '     -'}  ${l.r0 ? String(l.r0.lowestMedian).padStart(5) : '    -'}   ${r1}  ${r2}  ${l.r1f ? pct(l.r1f.rate) : '  -  '} ${l.rn ? pct(l.rn.rate) : '  -  '} ${l.rnh ? pct(l.rnh.rate) : '  -  '} ${l.r1 ? String(l.r1.medianIdle).padStart(6) : ''}`)
   }
   for (const row of result.rows) console.log(`${row.pass ? 'PASS' : row.pointPass ? 'near' : 'FAIL'} ${row.name}: R1 ${row.r1.map(x => `L${x.level} ${pct(x.rate)}`).join(', ')}${row.r2.length ? ' | R2 ' + row.r2.map(x => `L${x.level} ${pct(x.rate)}`).join(', ') : ''}`)
-  for (const [k, v] of Object.entries(result.invariants)) console.log(`${v.pass === true ? 'PASS' : v.pass === false ? 'FAIL' : 'n/a '} (${k}) ${v.name} ${JSON.stringify(Object.fromEntries(Object.entries(v).filter(([kk]) => !['name', 'pass', 'rows'].includes(kk))))}${v.rows ? ' ' + JSON.stringify(v.rows.filter(x => (x.share != null && x.share < 0.75) || (x.gain != null && x.gain < 0.1))) : ''}`)
+  for (const [k, v] of Object.entries(result.invariants)) console.log(`${v.pass === true ? 'PASS' : v.pass === false ? 'FAIL' : 'n/a '} (${k}) ${v.name} ${JSON.stringify(Object.fromEntries(Object.entries(v).filter(([kk]) => !['name', 'pass', 'rows', 'families'].includes(kk))))}${v.families ? ' ' + JSON.stringify(v.families.filter(f => f.lateWinRate > 0.5 || f.flawlessLevels.length)) : ''}${v.rows ? ' ' + JSON.stringify(v.rows.filter(x => (x.share != null && x.share < 0.75) || (x.gain != null && x.gain < 0.1))) : ''}`)
 }
 
 // Invariant (d): disabling any one boss cast flips at most 10% of R1's losses into wins. Each boss level's kit is muted

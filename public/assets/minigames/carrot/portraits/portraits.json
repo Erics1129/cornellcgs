@@ -1,13 +1,4 @@
 {
- "asuna": {
-  "1": [
-   "../46-asuna-portrait.png",
-   0,
-   0,
-   1024,
-   1024
-  ]
- },
  "bamboo": {
   "1": [
    "towers-bamboo.webp",
@@ -137,6 +128,96 @@
    256
   ]
  },
+ "boss:asuna": {
+  "1": [
+   "../46-asuna-portrait.png",
+   0,
+   0,
+   1024,
+   1024
+  ]
+ },
+ "boss:carrot": {
+  "1": [
+   "bosses.webp",
+   768,
+   256,
+   256,
+   256
+  ]
+ },
+ "boss:eyeball": {
+  "1": [
+   "bosses.webp",
+   256,
+   256,
+   256,
+   256
+  ]
+ },
+ "boss:frost": {
+  "1": [
+   "bosses.webp",
+   512,
+   0,
+   256,
+   256
+  ]
+ },
+ "boss:garden": {
+  "1": [
+   "bosses.webp",
+   0,
+   0,
+   256,
+   256
+  ]
+ },
+ "boss:marsh": {
+  "1": [
+   "bosses.webp",
+   256,
+   0,
+   256,
+   256
+  ]
+ },
+ "boss:orchard": {
+  "1": [
+   "bosses.webp",
+   768,
+   0,
+   256,
+   256
+  ]
+ },
+ "boss:portal": {
+  "1": [
+   "bosses.webp",
+   512,
+   256,
+   256,
+   256
+  ]
+ },
+ "boss:tornado": {
+  "1": [
+   "bosses.webp",
+   0,
+   256,
+   256,
+   256
+  ]
+ },
+ "boss:zombie": {
+  "1": [
+   "bosses.webp",
+   1024,
+   0,
+   256,
+   256
+  ]
+ },
  "burrow": {
   "1": [
    "creatures.webp",
@@ -179,15 +260,6 @@
    "towers-cactus.webp",
    1024,
    0,
-   256,
-   256
-  ]
- },
- "carrot": {
-  "1": [
-   "bosses.webp",
-   768,
-   256,
    256,
    256
   ]
@@ -339,15 +411,6 @@
    256
   ]
  },
- "eyeball": {
-  "1": [
-   "bosses.webp",
-   256,
-   256,
-   256,
-   256
-  ]
- },
  "firefly": {
   "1": [
    "creatures.webp",
@@ -359,8 +422,8 @@
  },
  "frost": {
   "1": [
-   "bosses.webp",
-   512,
+   "towers-frost.webp",
+   0,
    0,
    256,
    256
@@ -398,15 +461,6 @@
   "1": [
    "minibosses.webp",
    256,
-   0,
-   256,
-   256
-  ]
- },
- "garden": {
-  "1": [
-   "bosses.webp",
-   0,
    0,
    256,
    256
@@ -545,15 +599,6 @@
   "5": [
    "towers-magnet.webp",
    1024,
-   0,
-   256,
-   256
-  ]
- },
- "marsh": {
-  "1": [
-   "bosses.webp",
-   256,
    0,
    256,
    256
@@ -724,15 +769,6 @@
    256
   ]
  },
- "orchard": {
-  "1": [
-   "bosses.webp",
-   768,
-   0,
-   256,
-   256
-  ]
- },
  "orchid": {
   "1": [
    "towers-orchid.webp",
@@ -766,15 +802,6 @@
    "towers-orchid.webp",
    1024,
    0,
-   256,
-   256
-  ]
- },
- "portal": {
-  "1": [
-   "bosses.webp",
-   512,
-   256,
    256,
    256
   ]
@@ -1081,15 +1108,6 @@
    256
   ]
  },
- "tornado": {
-  "1": [
-   "bosses.webp",
-   0,
-   256,
-   256,
-   256
-  ]
- },
  "venomQueen": {
   "1": [
    "minibosses.webp",
@@ -1121,15 +1139,6 @@
   "1": [
    "minibosses.webp",
    512,
-   0,
-   256,
-   256
-  ]
- },
- "zombie": {
-  "1": [
-   "bosses.webp",
-   1024,
    0,
    256,
    256

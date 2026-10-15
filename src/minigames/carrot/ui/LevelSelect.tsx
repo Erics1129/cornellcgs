@@ -5,6 +5,7 @@ import { levelKinds, parseComposition, traitsOf, workOf } from '../waves'
 import type { EnemyDefinition } from '../types'
 import { bossOfLevel, challengeDifficulty, challengeTitles, challengeUnlocked, formatSeconds, lockCaption, par as challengePar, stars } from '../challenges'
 import { LevelCount } from '../progress'
+import { measuredR2 } from '../difficulty'
 import { Grade, Medals, Pips, difficultyLabel } from './kit'
 import Icon from '../Icon'
 
@@ -12,16 +13,12 @@ export type Chapter={index:number;name:string;number:string;from:number;to:numbe
 // Four chapters by level id (the harvest road reprises earlier lands with Ember Orchard), then the arena challenges.
 export const chapters:Chapter[]=[{index:1,name:'Sunlit Garden',number:'01',from:1,to:4,biome:'garden'},{index:2,name:'Moonlit Marsh',number:'02',from:5,to:8,biome:'marsh'},{index:3,name:'Frostglass Highlands',number:'03',from:9,to:12,biome:'frost'},{index:4,name:'Harvest Road',number:'04',from:13,to:24,road:'Ember Orchard',biome:'orchard'},{index:5,name:'Challenges',number:'05',from:LevelCount+1,to:Infinity,challenges:true,biome:'arena'}]
 export const biomeNames:Record<string,string>={garden:'Sunlit Garden',marsh:'Moonlit Marsh',frost:'Frostglass Highlands',orchard:'Ember Orchard',arena:'The Arena',portal:'Shattered Observatory',prism:'Prismatic Causeway'}
-/** Difficulty pips 1-5 per campaign level (the bands in docs/carrot-defense/giant-update/difficulty.md), and per challenge. */
-const campaignPips=[1,1,2,2,2,2,3,3,3,3,3,4,3,3,4,4,4,4,4,5,4,5,5,5]
 const challengePips:Record<ChallengeBoss,number>={tornado:3,zombie:4,eyeball:5,portal:5,asuna:5}
-export function levelPips(l:LevelDefinition){const b=bossOfLevel(l.id);return b?challengePips[b]:campaignPips[l.id-1]||3}
-/** Campaign band labels: NORMAL for the openers, HARD for mid-chapter and pre-boss stages, EXPERT on the boss stages. */
+const r2Of=(id:number)=>measuredR2[id-1]??.5
+export function levelPips(l:LevelDefinition){const b=bossOfLevel(l.id);if(b)return challengePips[b];const r=r2Of(l.id);return r>=.9?1:r>=.75?2:r>=.55?3:r>=.4?4:5}
 export function levelBand(l:LevelDefinition){
  const b=bossOfLevel(l.id);if(b)return difficultyLabel(0,l.challenge||challengeDifficulty[b])
- if(l.id<=3||[5,9,13,17,21].includes(l.id))return 'NORMAL'
- if([8,12,16,20,24].includes(l.id))return 'EXPERT'
- return 'HARD'
+ const r=r2Of(l.id);return r>=.6?'NORMAL':r>=.4?'HARD':'EXPERT'
 }
 /**
  * The stage's "chart": one bar per wave, its height the wave's work (a guardian counts 8, a miniboss 4), like a rhythm game's note
@@ -53,12 +50,17 @@ export function LevelSelect({definitions,save,challenges,records,current,preview
  const ch=chapters.find(c=>c.index===chapter)||chapters[0]
  const rows=useMemo(()=>levels.filter(l=>l.id>=ch.from&&l.id<=ch.to),[levels,ch])
  const level=levels.find(l=>l.id===focus)||rows[0]
- useEffect(()=>{const el=ref.current;el?.showModal();return()=>el?.close()},[])
- useEffect(()=>{list.current?.querySelector<HTMLElement>(`[data-id="${focus}"]`)?.scrollIntoView({block:'nearest'})},[focus,chapter])
+ // PLAY takes the first focus without scrolling the dialog (autoFocus scrolled it on short WebKit screens)
+ useEffect(()=>{const el=ref.current;el?.showModal();el?.querySelector<HTMLElement>('.ct-jacket__play')?.focus({preventScroll:true});if(el)el.scrollTop=0;return()=>el?.close()},[])
+ // Scroll only the track list: scrollIntoView also scrolls the dialog itself, which pushed Back and the chapters off a short screen.
+ useEffect(()=>{const box=list.current,row=box?.querySelector<HTMLElement>(`[data-id="${focus}"]`);if(!box||!row)return
+  const r=row.getBoundingClientRect(),b=box.getBoundingClientRect()
+  if(r.top<b.top)box.scrollTop-=b.top-r.top+4;else if(r.bottom>b.bottom)box.scrollTop+=r.bottom-b.bottom+4
+  if(ref.current&&ref.current.scrollTop)ref.current.scrollTop=0},[focus,chapter])
  const pickChapter=(i:number)=>{const c=chapters.find(x=>x.index===i);if(!c)return;setChapter(i);const ls=levels.filter(l=>l.id>=c.from&&l.id<=c.to);const open=ls.filter(l=>isOpen(l.id));setFocus((open[open.length-1]||ls[0])?.id||c.from)}
  const keys=(e:React.KeyboardEvent)=>{
   const i=rows.findIndex(r=>r.id===focus)
-  if(e.key==='ArrowDown'||e.key==='ArrowUp'){e.preventDefault();const n=rows[Math.max(0,Math.min(rows.length-1,i+(e.key==='ArrowDown'?1:-1)))];if(n){setFocus(n.id);list.current?.querySelector<HTMLElement>(`[data-id="${n.id}"]`)?.focus()}}
+  if(e.key==='ArrowDown'||e.key==='ArrowUp'){e.preventDefault();const n=rows[Math.max(0,Math.min(rows.length-1,i+(e.key==='ArrowDown'?1:-1)))];if(n){setFocus(n.id);list.current?.querySelector<HTMLElement>(`[data-id="${n.id}"]`)?.focus({preventScroll:true})}}
   if(e.key==='ArrowRight'||e.key==='ArrowLeft'){if((e.target as HTMLElement).closest('input'))return;e.preventDefault();pickChapter(Math.max(1,Math.min(chapters.length,chapter+(e.key==='ArrowRight'?1:-1))))}
  }
  const totalMedals=Object.values(save.medals).reduce((s,m)=>s+((m&1)+((m>>1)&1)+((m>>2)&1)),0),cleared=Object.values(save.medals).filter(m=>m&1).length
@@ -95,7 +97,7 @@ export function LevelSelect({definitions,save,challenges,records,current,preview
     </dl>
     <StageChart level={level} enemies={definitions.enemies} seen={records.seen.creatures}/>
     {veteranAvailable&&!boss&&<label className="ct-switch"><input type="checkbox" checked={veteran} onChange={e=>onVeteran(e.target.checked)}/><span>Veteran</span><small>Tougher creatures, 60% refunds</small></label>}
-    {open?<button className="ct-cta ct-jacket__play" onClick={()=>onPlay(level.id)} autoFocus>Play<Icon name="play"/></button>:<p className="ct-jacket__lock"><Icon name="lock"/>{boss?lockCaption[boss]||'Locked':`Clear stage ${String(level.id-1).padStart(2,'0')} to open`}</p>}
+    {open?<button className="ct-cta ct-jacket__play" onClick={()=>onPlay(level.id)} >Play<Icon name="play"/></button>:<p className="ct-jacket__lock"><Icon name="lock"/>{boss?lockCaption[boss]||'Locked':`Clear stage ${String(level.id-1).padStart(2,'0')} to open`}</p>}
    </article>}
    <ol className="ct-tracklist" ref={list} aria-label={`${ch.name} stages`}>
     {rows.map(l=>{const b=bossOfLevel(l.id),r=records.levels[String(l.id)],m=b?stars(challenges.best[b],b):save.medals[l.id]||0,o=isOpen(l.id),bd=levelBand(l)
