@@ -139,8 +139,11 @@ export function createDuoSession(opts: CreateSessionOptions & SessionDeps): DuoS
 
   // ---------------------------------------------------------------- reconnect record (localStorage, guarded, 3 h TTL)
   const recordKey = (c: string) => STORAGE_KEYS.reconnect + c
+  // With Web Locks the record lives in localStorage (it survives a discarded tab; the lock keeps a second tab off the seat).
+  // Without them (an insecure context) it stays in this tab's sessionStorage, so two tabs can never share a seat.
+  const recordStore = () => (locks ? local ?? sess : sess)
   function readRecord(c: string): Record_ | null {
-    for (const store of [local, sess]) {
+    for (const store of locks ? [local, sess] : [sess]) {
       try {
         const raw = store?.getItem(recordKey(c))
         if (!raw) continue
@@ -157,7 +160,7 @@ export function createDuoSession(opts: CreateSessionOptions & SessionDeps): DuoS
     lastRecordWrite = t
     const r: Record_ = { code, pid, seat, match: info?.match ?? 0, ops: match?.duo ? match.duo.ownLog : [], lastExec: match?.duo ? match.duo.ownExec : match?.ls ? match.ls.E : 0, at: t }
     const text = JSON.stringify(r)
-    try { (local ?? sess)?.setItem(recordKey(code), text) } catch { try { sess?.setItem(recordKey(code), text) } catch { /* storage blocked */ } }
+    try { recordStore()?.setItem(recordKey(code), text) } catch { try { sess?.setItem(recordKey(code), text) } catch { /* storage blocked */ } }
     // stale records of other rooms
     try { for (let i = (local?.length ?? 0) - 1; i >= 0; i--) { const k = local!.key(i); if (k && k.startsWith(STORAGE_KEYS.reconnect) && k !== recordKey(code)) { const o = JSON.parse(local!.getItem(k) || 'null'); if (!o || t - (o.at || 0) > ROOM_TTL_MS) local!.removeItem(k) } } } catch { /* ignore */ }
   }

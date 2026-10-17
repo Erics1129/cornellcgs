@@ -130,7 +130,7 @@ export class NetMatch {
         this.o.stats.rtt(rtt)
         // skew = partner's server estimate at reply minus ours at the same instant (sent + rtt/2)
         this.skews.push(f.reply - (f.time + rtt / 2))
-        if (this.skews.length >= 8) { const s = [...this.skews].sort((a, b) => a - b); this.o.clock.skew(s[s.length >> 1]); this.skews = [] }
+        if (this.skews.length >= 4) { const s = [...this.skews].sort((a, b) => a - b); this.o.clock.skew(s[s.length >> 1]); this.skews = [] }
         return
       }
       case 6:
@@ -148,7 +148,8 @@ export class NetMatch {
   pump() {
     if (this.disposed) return
     const t = this.o.now()
-    if (t - this.lastPing >= 1000) {
+    // RTT and clock skew: a ping every 2 s is plenty (each one costs a packet and an SCTP ack both ways)
+    if (t - this.lastPing >= (this.o.stats.rttSamples.length < 4 ? 500 : 2000)) {
       this.lastPing = t
       const id = (++this.pingId) >>> 0
       this.pings.set(id, t)

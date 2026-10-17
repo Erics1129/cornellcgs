@@ -9,7 +9,7 @@
  * Our replica's digests are compared with the partner's own digests (a pending queue, the replica can be 60+ ticks behind); a
  * mismatch asks the partner for a state blob (the session runs the transfer). The own half never changes because of the partner.
  */
-import { DUO_BUFFER_TICKS, DUO_HEARTBEAT_HZ, MAX_OP_BYTES } from './protocol.ts'
+import { DIGEST_REPEAT, DUO_BUFFER_TICKS, DUO_HEARTBEAT_HZ, MAX_OP_BYTES } from './protocol.ts'
 import type { DeepDigest, Digest, NetIn, NetOut, Op, PathKind, Seat } from './protocol.ts'
 import { fitOps, normalizeOp, validOp } from './frames.ts'
 import type { DuoFrame } from './frames.ts'
@@ -38,6 +38,8 @@ export class DuoController {
   partnerAck = 0
   private ownDigest?: Digest
   private ownDeep?: DeepDigest
+  private digestLeft = 0
+  private deepLeft = 0
   /** Partner ops by seq, and the highest contiguous seq received. */
   partnerOps = new Map<number, Op>()
   partnerContig = 0
@@ -74,8 +76,8 @@ export class DuoController {
       this.dirty = true
     } else if (msg.t === 'tick') {
       if (msg.exec > this.ownExec) this.ownExec = msg.exec
-      if (msg.d) this.ownDigest = [msg.d[0], msg.d[1] >>> 0, msg.d[2] >>> 0]
-      if (msg.dd) this.ownDeep = [msg.dd[0], msg.dd[1] >>> 0]
+      if (msg.d) { this.ownDigest = [msg.d[0], msg.d[1] >>> 0, msg.d[2] >>> 0]; this.digestLeft = DIGEST_REPEAT }
+      if (msg.dd) { this.ownDeep = [msg.dd[0], msg.dd[1] >>> 0]; this.deepLeft = DIGEST_REPEAT }
       if (typeof msg.rexec === 'number') this.replicaExec = Math.max(this.replicaExec, msg.rexec)
       if (msg.rd) { this.replicaExec = Math.max(this.replicaExec, msg.rd[0]); this.report(this.digests.addLocal(msg.rd[0], [msg.rd[1] >>> 0, msg.rd[2] >>> 0]), false) }
       if (msg.rdd) this.report(this.deep.addLocal(msg.rdd[0], [msg.rdd[1] >>> 0]), true)
@@ -129,6 +131,13 @@ export class DuoController {
     if (!this.dirty && t - this.lastSent < 1000 / hz) return
     this.sendFrame()
   }
+  /** The latest digests, each repeated in DIGEST_REPEAT consecutive frames (every frame would cost ~18 B at 20-30 Hz). */
+  private digestFields(): { digest?: Digest; deep?: DeepDigest } {
+    const out: { digest?: Digest; deep?: DeepDigest } = {}
+    if (this.ownDigest && this.digestLeft > 0) { this.digestLeft--; out.digest = this.ownDigest }
+    if (this.ownDeep && this.deepLeft > 0) { this.deepLeft--; out.deep = this.ownDeep }
+    return out
+  }
   sendFrame() {
     this.lastSent = this.o.now()
     this.dirty = false
@@ -136,7 +145,7 @@ export class DuoController {
     const n = fitOps(unacked, MAX_OP_BYTES)
     let exec = this.ownExec
     if (n < unacked.length) exec = Math.min(exec, unacked[n].k - 1)
-    this.o.send({ kind: 1, exec: Math.max(0, exec), ack: this.partnerContig, cmds: unacked.slice(0, n), ...(this.ownDigest ? { digest: this.ownDigest } : {}), ...(this.ownDeep ? { deep: this.ownDeep } : {}) })
+    this.o.send({ kind: 1, exec: Math.max(0, exec), ack: this.partnerContig, cmds: unacked.slice(0, n), ...this.digestFields() })
   }
   /** The partner restarted (a reload): it holds our ops only up to `seq` (inside the state it imported), so resend the rest. */
   resetAckTo(seq: number) { this.partnerAck = Math.max(0, Math.min(seq, this.ownLog.length)); this.dirty = true }

@@ -88,6 +88,8 @@ export const DIGEST_EVERY = 30
 /** Deep reflective state hash cadence (and at each wave start). */
 export const DEEP_DIGEST_EVERY = 300
 export const DIGEST_RING = 16
+/** A new digest rides this many consecutive frames (redundancy against loss), then frames go without it. */
+export const DIGEST_REPEAT = 6
 export const RESYNC_WINDOW_MS = 60_000
 /** This many resyncs inside RESYNC_WINDOW_MS end the match (duo: unfinished; endless: score to the last verified wave). */
 export const RESYNC_LIMIT = 2

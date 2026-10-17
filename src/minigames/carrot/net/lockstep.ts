@@ -13,7 +13,7 @@
  *  - Pause freezes the commit: both peers stop at min(commits), the same tick, and resume at the room-stamped time.
  *  - Ops of one tick are delivered in canonical order (seat 0 first on even ticks, seat 1 on odd, then by seq).
  */
-import { DIGEST_EVERY, LOCKSTEP_D_MAX, LOCKSTEP_D_MIN, LOCKSTEP_D_WINDOW_MS, LOCKSTEP_SLEW, MAX_OP_BYTES, SLOW_PEER_MS, SLOW_PEER_RATE, STALL_NOTICE_MS, TICK_MS, canonicalOrder } from './protocol.ts'
+import { DIGEST_EVERY, DIGEST_REPEAT, LOCKSTEP_D_MAX, LOCKSTEP_D_MIN, LOCKSTEP_D_WINDOW_MS, LOCKSTEP_SLEW, MAX_OP_BYTES, SLOW_PEER_MS, SLOW_PEER_RATE, STALL_NOTICE_MS, TICK_MS, canonicalOrder } from './protocol.ts'
 import type { DeepDigest, Digest, Intent, NetIn, NetOut, Op, PathKind, Seat } from './protocol.ts'
 import { FLAG } from './protocol.ts'
 import { fitOps, normalizeOp, validOp } from './frames.ts'
@@ -79,6 +79,8 @@ export class LockstepController {
   readonly deep = new DigestBook(16)
   private ownDigest?: Digest
   private ownDeep?: DeepDigest
+  private digestLeft = 0
+  private deepLeft = 0
   // clock
   running = false
   private anchorTick = 0
@@ -153,8 +155,8 @@ export class LockstepController {
       if (msg.exec > this.E) this.E = msg.exec
       if (msg.hold !== undefined && !!msg.hold !== this.hold) this.setRate(() => { this.hold = !!msg.hold })
       while (this.pendingSpeed.length && this.pendingSpeed[0].k <= this.E) { const v = this.pendingSpeed.shift()!.v; if (v !== this.speed) this.setRate(() => { this.speed = v }) }
-      if (msg.d) { this.ownDigest = [msg.d[0], msg.d[1] >>> 0, msg.d[2] >>> 0]; this.report(this.digests.addLocal(msg.d[0], [msg.d[1] >>> 0, msg.d[2] >>> 0]), false) }
-      if (msg.dd) { this.ownDeep = [msg.dd[0], msg.dd[1] >>> 0]; this.report(this.deep.addLocal(msg.dd[0], [msg.dd[1] >>> 0]), true) }
+      if (msg.d) { this.ownDigest = [msg.d[0], msg.d[1] >>> 0, msg.d[2] >>> 0]; this.digestLeft = DIGEST_REPEAT; this.report(this.digests.addLocal(msg.d[0], [msg.d[1] >>> 0, msg.d[2] >>> 0]), false) }
+      if (msg.dd) { this.ownDeep = [msg.dd[0], msg.dd[1] >>> 0]; this.deepLeft = DIGEST_REPEAT; this.report(this.deep.addLocal(msg.dd[0], [msg.dd[1] >>> 0]), true) }
     }
   }
   /** Stamps a local intent: k = max(E + D, committed + 1); solo: the next tick Unity has not been told about. */
@@ -258,6 +260,13 @@ export class LockstepController {
     this.stepTo = limit
     this.o.engine({ t: 'step', to: limit, ops })
   }
+  /** The latest digests, each repeated in DIGEST_REPEAT consecutive frames (every frame would cost ~18 B at 20-30 Hz). */
+  private digestFields(): { digest?: Digest; deep?: DeepDigest } {
+    const out: { digest?: Digest; deep?: DeepDigest } = {}
+    if (this.ownDigest && this.digestLeft > 0) { this.digestLeft--; out.digest = this.ownDigest }
+    if (this.ownDeep && this.deepLeft > 0) { this.deepLeft--; out.deep = this.ownDeep }
+    return out
+  }
   sendFrame() {
     this.lastSent = this.o.now()
     this.dirty = false
@@ -265,7 +274,7 @@ export class LockstepController {
     const n = fitOps(unacked, MAX_OP_BYTES)
     let commit = this.myCommit
     if (n < unacked.length) commit = Math.min(commit, unacked[n].k - 1)
-    this.o.send({ kind: 2, commit, exec: this.stepTo, ack: this.partnerContig, cmds: unacked.slice(0, n), flags: this.frozen ? FLAG.paused : 0, ...(this.ownDigest ? { digest: this.ownDigest } : {}), ...(this.ownDeep ? { deep: this.ownDeep } : {}) })
+    this.o.send({ kind: 2, commit, exec: this.stepTo, ack: this.partnerContig, cmds: unacked.slice(0, n), flags: this.frozen ? FLAG.paused : 0, ...this.digestFields() })
   }
 
   private adapt(now: number) {
@@ -286,13 +295,13 @@ export class LockstepController {
       if (this.stallsRecent.length >= 2) { this.bump += 1; this.stallsRecent = []; this.bumpAt = now }
       if (this.bump && now - this.bumpAt >= LOCKSTEP_D_WINDOW_MS) { this.bump -= 1; this.bumpAt = now }
       const request = this.clampD(Math.max(this.measured, LOCKSTEP_D_MIN) + this.bump)
-      if (request !== this.requested || now - this.requestedAt > 2000) { this.requested = request; this.requestedAt = now; this.o.onEvent?.({ type: 'delay', ms: Math.round(request * tick) }) }
+      if (request !== this.requested || now - this.requestedAt > 10_000) { this.requested = request; this.requestedAt = now; this.o.onEvent?.({ type: 'delay', ms: Math.round(request * tick) }) }
       const want = this.clampD(Math.max(this.measured, this.partnerRequest ? Math.ceil(this.partnerRequest / tick - 1e-6) : 0))
       if (want > this.D) this.D = want
       else if (want < this.D && now - this.lastLower >= LOCKSTEP_D_WINDOW_MS) { this.D -= 1; this.lastLower = now }
     }
     // slew toward the partner's tick (estimated from its last report)
-    if (now - this.partnerExecAt < 500 && this.partnerExecAt) {
+    if (now - this.partnerExecAt < 500 && this.partnerExecAt && this.o.stats.rttSamples.length >= 2) {
       const partnerEst = this.partnerExec + (now - this.partnerExecAt + this.o.rtt() / 2) * 0.03 * this.rate
       const adv = this.targetF(now) - partnerEst
       this.advEma = this.advEma * 0.8 + adv * 0.2

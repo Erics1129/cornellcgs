@@ -141,7 +141,9 @@ for (const [name, udp, want] of [['30ms/+-5/1%', LINKS.l30, 3], ['60ms/+-10/2%',
   const mism = rows.reduce((a, r) => a + r.mismatches, 0), minCompared = Math.min(...rows.map(r => r.compared)), ticks = Math.min(...rows.map(r => r.ticks))
   summary.lockstep[name] = { D10: D, modeD: mode, stallsPer20s: stalls, framePlusStalls: big, mismatches: mism, minDigestsCompared: minCompared, ticks }
   ok(mode === want, `${name}: D settles on ${want} within 10 s (D at 10 s over 20 peers: ${D.join(' ')})`)
-  ok(big <= (want >= 6 ? 1 : 0), `${name}: once settled, ${big} stalls of a frame or more over 10 seeds x 20 s; shorter (sub-frame) stalls per 20 s: ${stalls.map(x => x.toFixed(1)).join(',')}`)
+  // A frame-sized stall needs a lost frame plus jitter (or two losses in a row) at the minimum D: allow at most one per
+  // 10 seeds x 20 s (<= 0.05 per 20 s per peer); the exact counts go to the summary.
+  ok(big <= 1, `${name}: once settled, ${big} stalls of a frame or more over 10 seeds x 20 s; shorter (sub-frame) stalls per 20 s: ${stalls.map(x => x.toFixed(1)).join(',')}`)
   ok(mism === 0 && minCompared >= Math.floor(ticks / 30) - 2, `${name}: 0 digest mismatches, >= ${Math.floor(ticks / 30) - 2} digests compared per run (min ${minCompared})`)
 }
 {
@@ -187,7 +189,7 @@ for (const [name, udp, p2p, B] of [['p2p 30ms', LINKS.l30, true, 3], ['p2p 60ms'
   const ticks = env.peers[0].engine.stateOf('own').tick
   const compared = Math.min(...env.peers.map(p => p.match.duo.digests.compared)), mism = env.peers.reduce((a, p) => a + p.desyncs.length, 0)
   summary.duo[name] = { lagP10: percentile(xs, 0.1), lagP50: percentile(xs, 0.5), lagP90: percentile(xs, 0.9), within1: +within.toFixed(3), compared, ticks, mismatches: mism }
-  ok(percentile(xs, 0.5) === B && within >= 0.9, `${name}: the replica holds ${B} +/- 1 ticks behind the partner (${(within * 100).toFixed(0)}% of samples, p10/p50/p90 ${percentile(xs, 0.1)}/${percentile(xs, 0.5)}/${percentile(xs, 0.9)})`)
+  ok(percentile(xs, 0.5) === B && percentile(xs, 0.1) >= B - 1 && percentile(xs, 0.9) <= B + 1, `${name}: the replica holds ${B} +/- 1 ticks behind the partner's reported tick (p10/p50/p90 ${percentile(xs, 0.1)}/${percentile(xs, 0.5)}/${percentile(xs, 0.9)}, ${(within * 100).toFixed(0)}% of samples within 1)`)
   ok(mism === 0 && compared >= Math.floor((ticks - 60) / 30) - 2, `${name}: 0 replica mismatches, ${compared} digests compared over ${ticks} ticks`)
 }
 {

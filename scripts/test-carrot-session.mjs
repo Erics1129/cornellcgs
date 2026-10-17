@@ -16,13 +16,17 @@ let passed = 0
 const ok = (cond, msg) => { assert.ok(cond, msg); passed++; console.log('  ok', msg) }
 const sleep = ms => new Promise(r => setTimeout(r, ms))
 async function until(pred, ms, label) { const t0 = Date.now(); while (!pred()) { if (Date.now() - t0 > ms) throw new Error('timeout: ' + label); await sleep(20) } return Date.now() - t0 }
+/** navigator.locks with ifAvailable, shared by the tabs of one browser profile. */
+class MemLocks { constructor() { this.held = new Set() } async request(name, _opts, cb) { if (this.held.has(name)) return cb(null); this.held.add(name); try { return await cb({ name }) } finally { this.held.delete(name) } } }
 class MemStorage { constructor() { this.m = new Map() } get length() { return this.m.size } key(i) { return [...this.m.keys()][i] ?? null } getItem(k) { return this.m.has(k) ? this.m.get(k) : null } setItem(k, v) { this.m.set(k, String(v)) } removeItem(k) { this.m.delete(k) } clear() { this.m.clear() } }
 
 /** A browser tab: a FakeEngine (60 Hz frames), a session, and the page's command path (session first, then Unity). */
+const lockManagers = new WeakMap()
+const locksOf = local => { if (!lockManagers.has(local)) lockManagers.set(local, new MemLocks()); return lockManagers.get(local) }
 function tab(name, browserLocal, opts = {}) {
   const engine = new FakeEngine({ now: () => Date.now(), waves: opts.waves ?? (() => 1), health: opts.health })
   const frames = setInterval(() => engine.frame(), 16)
-  const session = createDuoSession({ engine, roomsUrl: 'https://rooms.test', ver: VER, WebSocket: rooms.WebSocket, RTCPeerConnection: null, fetch: (u, i) => rooms.fetch(u, i), local: browserLocal, session: new MemStorage(), document: null, window: null, locks: null })
+  const session = createDuoSession({ engine, roomsUrl: 'https://rooms.test', ver: VER, WebSocket: rooms.WebSocket, RTCPeerConnection: null, fetch: (u, i) => rooms.fetch(u, i), local: browserLocal, session: new MemStorage(), document: null, window: null, locks: locksOf(browserLocal) })
   const events = []
   session.onEvent(e => events.push(e))
   const page = cmd => { if (!session.send(cmd)) engine.send(cmd) }
@@ -172,6 +176,41 @@ console.log('duo: reload mid-match, restored by the reconnect record and state b
   const dbg = setInterval(() => { if (process.env.DEBUG) console.log('   ', ['A', A], ['B2', B2].map ? [A, B2].map(t => `${t.name} ${t.s.phase} own ${t.engine.stateOf('own')?.tick}/${t.engine.stateOf('own')?.phase}/${t.engine.stateOf('own')?.hold} rep ${t.engine.stateOf('replica')?.tick}/${t.engine.stateOf('replica')?.phase} run ${t.engine.run} paused ${t.engine.matchPaused} hold ${t.s.hold}/${t.s.partnerHold}`).join(' | ') : '') }, 2000)
   await until(() => A.s.phase === 'results' && B2.s.phase === 'results', 30000, 'results after restore').finally(() => clearInterval(dbg))
   ok(A.s.result.kind === 'duoWin' && B2.s.result.kind === 'duoWin', 'the restored match still ends in a duo win for both')
+  A.close(); B2.close()
+}
+
+console.log('two tabs, one seat')
+{
+  const { A, B, code, localB } = await lobbyPair(25)
+  const B2 = tab('B2', localB)
+  let refused = null
+  await B2.session.resume(code, profile('Bob')).catch(e => { refused = e })
+  ok(refused && /another tab/.test(refused.message) && B.s.phase === 'lobby', 'a second tab of the same browser cannot take the seat the first tab holds (Web Locks guard)')
+  A.close(); B.close(); B2.close()
+}
+
+console.log('endless: reload mid-match, restored from the survivor state')
+{
+  const { A, B, code, localB } = await lobbyPair(90, 'endless2p')
+  await startAndGo(A, B)
+  await until(() => A.engine.stateOf('shared').phase === 'playing', 3000, 'shared start')
+  A.page({ type: 'buy', pad: 1, kind: 'seed' }); B.page({ type: 'buy', pad: 2, kind: 'seed' })
+  await sleep(1500)
+  const ws = [...rooms.objects.get(code).state.sockets].find(s => s.tags.includes('s' + B.s.seat))
+  ws.peer.readyState = 2
+  B.close()
+  await until(() => A.s.phase === 'paused', 8000, 'survivor waits')
+  const frozenAt = A.engine.stateOf('shared').tick
+  const B2 = tab('B2', localB)
+  await B2.session.resume(code, profile('Bob'))
+  await until(() => A.s.phase === 'playing' && B2.s.phase === 'playing', 20000, 'restored')
+  const imported = B2.engine.stateOf('shared')
+  ok(imported.towers.length === 2 && imported.tick >= frozenAt, `the rejoiner imported the survivor's shared state (${imported.towers.length} towers, tick ${imported.tick} >= ${frozenAt})`)
+  B2.page({ type: 'buy', pad: 3, kind: 'seed' })
+  await sleep(2500)
+  const sa = A.engine.stateOf('shared'), sb = B2.engine.stateOf('shared')
+  ok(sa.towers.length === 3 && sb.towers.length === 3 && A.s.stats.resyncs === 0 && B2.s.stats.resyncs === 0, 'lockstep continues after the restore: a new build lands on both, no desync')
+  ok(A.s.stats.digestsCompared > 0 && B2.s.stats.digestsCompared > 0, 'digests compared again after the restore')
   A.close(); B2.close()
 }
 

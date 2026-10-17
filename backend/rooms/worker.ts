@@ -127,6 +127,8 @@ async function turn(env: Env): Promise<{ iceServers: unknown[] }> {
 export class Room extends DurableObject<Env> {
   core: RoomCore
   rates = new Map<WebSocket, RateWindow>()
+  /** Changes every time the object is constructed: a different value after idle time means it hibernated and woke. */
+  readonly instance = Math.random().toString(36).slice(2, 10)
   constructor(ctx: DurableObjectState, env: Env) {
     super(ctx, env)
     // Keep-alive answered by the runtime: never wakes the object, never billed.
@@ -143,6 +145,7 @@ export class Room extends DurableObject<Env> {
   async peek(q: { ver: string | null; pid: string | null; stats: boolean }) {
     const r = this.core.peek(Date.now(), q)
     if (this.core.state) await this.ctx.storage.put('room', this.core.state)
+    if (r.body.stats) (r.body.stats as typeof r.body.stats & { instance?: string }).instance = this.instance
     return r
   }
 
