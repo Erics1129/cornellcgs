@@ -1,5 +1,6 @@
 import build from './unity-build.json'
 import type {Command,GameState} from './types'
+import { errors } from './copy'
 type Instance={SendMessage:(object:string,method:string,value:string)=>void;Quit:()=>Promise<void>}
 type Factory=(canvas:HTMLCanvasElement,config:Record<string,unknown>,progress:(value:number)=>void)=>Promise<Instance>
 // Local review builds never replace the published player. Production ignores this query.
@@ -13,8 +14,8 @@ function factory():Promise<Factory>{
  if(!factoryPromise)factoryPromise=new Promise((resolve,reject)=>{
   const script=document.createElement('script')
   script.src=`${playerRoot}/Build/${playerName}.loader.js?v=${playerVersion}`
-  script.onload=()=>{const f=window.createUnityInstance as Factory|undefined;if(f)resolve(f);else reject(new Error('The garden could not open.'))}
-  script.onerror=()=>{factoryPromise=undefined;script.remove();reject(new Error('The garden could not download. Check your connection and retry.'))}
+  script.onload=()=>{const f=window.createUnityInstance as Factory|undefined;if(f)resolve(f);else reject(new Error(errors.start))}
+  script.onerror=()=>{factoryPromise=undefined;script.remove();reject(new Error(errors.download))}
   // Always load this game's own factory; another Unity game may have set the global.
   document.head.append(script)
  });return factoryPromise
@@ -47,7 +48,7 @@ export class CarrotUnity {
    const instance=await create(this.canvas,{webglContextAttributes:{alpha:false,antialias:false,powerPreference:'high-performance',preserveDrawingBuffer:false},dataUrl:files[0],frameworkUrl:files[1],codeUrl:files[2],streamingAssetsUrl:`${playerRoot}/StreamingAssets`,companyName:'Cornell Computational Game Society',productName:'Carrot Defense 3D',productVersion:'1.0',devicePixelRatio:Math.min(devicePixelRatio,innerWidth<700?1.25:1.75),showBanner:(message:string,type:string)=>{if(type==='error')hooks.error(message)}},value=>progress(.8+.2*value))
    files.forEach(revoke)
    if(this.dead){await instance.Quit();this.release();return}this.instance=instance;this.loaded=true;this.syncMotion();this.send(options.mode&&options.mode!=='normal'?{type:'load',level,mode:options.mode}:{type:'load',level});this.send({type:'mute',value:muted?1:0});hooks.ready()
-  }catch(error){if(!this.dead)hooks.error(error instanceof Error?error.message:'The garden could not open.');this.release()}})()
+  }catch(error){if(!this.dead)hooks.error(error instanceof Error?error.message:errors.start);this.release()}})()
  }
  private receive=(event:Event)=>{if(this.dead||!this.loaded)return;const s=(event as CustomEvent<GameState>).detail;if(s&&typeof s.level==='number')this.onState(s)}
  send(command:Command){this.instance?.SendMessage('CarrotGame','Command',JSON.stringify(command))}
@@ -75,7 +76,7 @@ export class CarrotUnity {
 async function prepare(url:string,type:string,report:(done:number,total:number)=>void):Promise<string>{
  if(typeof DecompressionStream!=='function'||typeof Blob.prototype.stream!=='function')return url
  const response=await fetch(url)
- if(!response.ok)throw new Error('The garden could not download. Check your connection and retry.')
+ if(!response.ok)throw new Error(errors.download)
  const total=Number(response.headers.get('Content-Length'))||0;let done=0
  const chunks:Uint8Array[]=[];const reader=response.body?.getReader()
  if(reader){for(;;){const {value,done:end}=await reader.read();if(end)break;if(value){chunks.push(value);done+=value.length;report(done,Math.max(total,done))}}}

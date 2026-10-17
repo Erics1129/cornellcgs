@@ -1,0 +1,545 @@
+/*
+ * Carrot Defense: shared tokens, the base, the glass material and the shared controls (owner: foundation).
+ *
+ * Files, imported by CarrotPage in this order (each owner styles only its own classes):
+ *   ui/glass.css  tokens, base, glass material, shared controls, tiers (this file)
+ *   ui/entry.css  entry page, loading screen, How to play, Settings, Field guide
+ *   ui/hud.css    the in-game HUD: status, wave track, controls, boss bar, toasts, tutorial, build menu, paused pill
+ *   ui/menus.css  stage select and challenges, results, the dialog shell, the restart confirm
+ * Cascade layers, one order for every file (each file repeats the statement, so import order can never reshuffle it):
+ *   tokens < base < glass < hud < entry < menus < themes < prefs
+ * Surface layers come after the glass layer, so a surface class always wins over a primitive's defaults. Tier and accessibility
+ * rules sit in the last layer (prefs), so they win over everything.
+ *
+ * The material (see ui/Glass.tsx for the React side and docs/carrot-defense/glass-ui.md for the full API):
+ *   .gl                 a glass surface (depth 2 by default)
+ *   .gl--1/2/3          thin (HUD chips, controls; tint .66), panel (.72), sheet (.72, deeper shadow, bigger radius)
+ *   .gl--clear          clear glass (tint .50) for icon-only controls; never put text on it
+ *   .gl--pill           fully round ends (anything 56 px tall or less)
+ *   .gl--press          pressable: scale .97 on press, light that follows the pointer, a bloom under the finger
+ *   .gl--on             selected: a ring and a soft glow in the tone colour
+ *   .gl--blur           asks for real backdrop blur; honoured only when the page tier is 'real' (never during live play)
+ *   .gl--wash           a faint tone-coloured wash in the tint (warnings, guardian cards)
+ *   .gl--accent/ally/coin/grow/threat/leak/super   tone: colour of the rim bounce, inner light, wash, rings and jelly
+ *   .gl-jelly           primary action (tinted, opaque enough for dark text); --sm 44 px, default 48 px, --lg 60 px; .is-idle shine
+ *   .gl-btn  .gl-icon   layout for glass text buttons and 44 px icon buttons (combine with .gl .gl--1 .gl--pill .gl--press)
+ *   .gl-tag  .gl-chip   solid colour pill (bands, "New best") and soft pill (Tier II, Air, Phase 1)
+ *   .gl-fill .gl-well   raised and recessed areas inside glass (never put glass on glass: a .gl inside a .gl renders as a fill)
+ *   .gl-meter > i       rounded progress bar; set --v (0..1) on the <i>
+ *   .gl-seg  .gl-switch .gl-range   segmented control, switch (on <input type=checkbox>), slider (on <input type=range>, set --v %)
+ *   .gl-thumb .gl-label .gl-num .gl-text .gl-scroll .gl-pop   image corners, overline, tabular numbers, text shadow, scroll-edge fade,
+ *                       materialize on mount (.is-leaving for the exit)
+ * Legacy names render the same recipes, so old markup upgrades in place: .ct-icon-btn = thin clear-ish glass circle, .ct-ghost = thin
+ * glass pill button, .ct-cta = jelly, .ct-tag/.ct-badge = soft pill, .ct-band = solid pill, plus the switch, segment, slider, pips,
+ * medals and the focus ring. .ct-panel is unchanged (chamfered, opaque) until each surface replaces it with .gl.
+ *
+ * Budget (measured, see the foundation report): no backdrop-filter while a wave runs, on any device (the page sets data-glass='lite'
+ * during live play); at most three blurred surfaces on screen, one on phones; never animate blur, fade the blurred surface itself (a
+ * wrapper with opacity < 1, filter, mask or clip-path cuts its blur off from the page); animate transform, scale and opacity only.
+ */
+@layer carrot.tokens, carrot.base, carrot.glass, carrot.hud, carrot.entry, carrot.menus, carrot.themes, carrot.prefs;
+
+@property --split { syntax: '<length>'; inherits: true; initial-value: 0px; }
+@property --p { syntax: '<number>'; inherits: true; initial-value: 1; }
+/* Not inherited, on purpose: the focus ring reads the focused element's own radius (0 for anything that is not a glass primitive),
+   and the pointer position is restyled on one element per frame without touching its descendants. */
+@property --gl-radius { syntax: '<length-percentage>'; inherits: false; initial-value: 0px; }
+@property --gl-mx { syntax: '<length-percentage>'; inherits: false; initial-value: -999px; }
+@property --gl-my { syntax: '<length-percentage>'; inherits: false; initial-value: -999px; }
+
+@layer carrot.tokens {
+  .ct-page {
+    --ink: #f2f6ff; --ink-2: #c3cddd; --ink-3: #93a1b8; --ink-dim: #6f7c92;
+    --panel-hi: rgba(16, 24, 38, .9); --panel-lo: rgba(7, 11, 18, .84); --panel-solid: #0b111b; --hair: rgba(255, 255, 255, .14); --hair-hi: rgba(153, 238, 255, .5);
+    /* semantic channels (hex from osu! OsuColour, MIT); only threat and leak may pulse */
+    --ally: #66ccff; --ally-hi: #99eeff; --coin: #ffcc22; --grow: #b3d944; --threat: #ff66aa; --leak: #ff5d5d; --core: #ed1121; --super: #aa88ff;
+    --route-a: #66ccff; --route-b: #7cf2b0; --route-c: #f7a6ff; --route-d: #ffd37a;
+    --accent: #b3d944; --accent-ink: #10180a;
+    --f-num: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+    --f-ui: 'Hanken Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --f-disp: 'Bricolage Grotesque', 'Hanken Grotesk', -apple-system, sans-serif;
+    --c: 8px; /* chamfer (legacy .ct-panel only) */
+    --chamfer: polygon(var(--c) 0, 100% 0, 100% calc(100% - var(--c)), calc(100% - var(--c)) 100%, 0 100%, 0 var(--c));
+    --ease-out: cubic-bezier(.22, 1, .36, 1); --ease-in: cubic-bezier(.42, 0, 1, 1);
+    --t-judge: 100ms; --t-roll: 250ms; --t-hud: 300ms; --t-bar: 500ms; --t-trail-delay: 500ms; --t-trail: 300ms;
+    --gutter: 12px;
+    --safe-t: max(var(--gutter), env(safe-area-inset-top)); --safe-r: max(var(--gutter), env(safe-area-inset-right));
+    --safe-b: max(var(--gutter), env(safe-area-inset-bottom)); --safe-l: max(var(--gutter), env(safe-area-inset-left));
+    --beat: 0;
+
+    /* ---- glass: shape (one scale; a nested radius is the outer radius minus the padding) ---- */
+    --r-1: 8px; --r-2: 12px; --r-3: 16px; --r-4: 22px; --r-5: 28px; --r-6: 36px; --r-pill: 999px;
+    --gl-sq: 1; /* 1.3 where corner-shape: superellipse() exists (Chromium 139+): a squircle looks tighter at the same radius */
+    /* ---- glass: material. The tint carries the contrast; the blur does not (measured over the brightest key art and boards) ---- */
+    --gl-tint: 12 18 32;          /* #0c1220 as channels, for rgb(var(--gl-tint) / a) */
+    --gl-a-1: .66;                /* thin: HUD chips and controls with text */
+    --gl-a-2: .72;                /* panel: cards, build menu, toasts with secondary text */
+    --gl-a-3: .72;                /* sheet: dialogs, results, stage select */
+    --gl-a-clear: .5;             /* icon-only controls (3:1 for glyphs) */
+    --gl-a-solid: .94;            /* reduced transparency, more contrast, Reduced effects */
+    --gl-light: 255 255 255;      /* key light */
+    /* ---- text on glass, measured (rendered probe over 5 key arts and 2 boards, every tier, desktop and phone): the worst background
+       behind text is luminance .143 on depth 1 and .125 on depth 2/3, so small text needs Y >= .82 on depth 1 and Y >= .76 on depth 2/3,
+       and icons and large text (19 px bold, 24 px) need Y >= .56. Inside .gl, --ink-2 and --ink-3 are remapped to these automatically. */
+    --ink-glass-2: #dde3ed;       /* Y .764: secondary text on depth 2/3 */
+    --ink-on-1: #e9eef6;          /* Y .851: secondary text on depth 1 */
+    /* semantic colour on glass: -text for small text on depth 2/3 (Y >= .77), -mark for icons, large text and small text-free marks on
+       any depth (Y >= .565). On depth 1, small text stays --ink or --ink-2; colour goes to icons, large numbers, meters and tags. */
+    --coin-text: #ffe18f; --coin-mark: #ffcc22;
+    --ally-text: #a3f0ff; --ally-mark: #99eeff;
+    --grow-text: #d6eca7; --grow-mark: #b3d944;
+    --threat-text: #ffdae8; --threat-mark: #ffb1d0;
+    --leak-text: #ffddd9; --leak-mark: #ffb3ad;
+    --super-text: #e7e0ff; --super-mark: #cdbdff;
+    --accent-text: #d6eca7; --accent-mark: #b3d944; /* per biome and guardian below (themes layer) */
+    --gl-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n' x='0' y='0'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='.33 .33 .33 0 0  .33 .33 .33 0 0  .33 .33 .33 0 0  0 0 0 0 .34'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+    /* ---- glass: depth. Small things float low, big things float high (bigger, softer, darker) ---- */
+    --sh-1: 0 1px 2px rgb(0 0 0 / .22), 0 8px 18px -10px rgb(0 0 0 / .55);
+    --sh-2: 0 2px 6px rgb(0 0 0 / .20), 0 18px 40px -16px rgb(0 0 0 / .62);
+    --sh-3: 0 4px 12px rgb(0 0 0 / .22), 0 40px 90px -24px rgb(0 0 0 / .72);
+    --focus: var(--ally-hi);
+    /* ---- motion. Springs as linear(): response .35 s damping 1 (430 ms, no overshoot) and damping .8 (415 ms, 1.5% overshoot) ---- */
+    --e-out: cubic-bezier(.23, 1, .32, 1);
+    --e-inout: cubic-bezier(.77, 0, .175, 1);
+    --e-sheet: cubic-bezier(.32, .72, 0, 1);
+    --e-settle: linear(0, .085, .251, .424, .575, .694, .785, .851, .898, .931, .953, .969, .979, .986, .991, .994, 1);
+    --e-spring: linear(0, .041, .138, .262, .393, .519, .631, .728, .807, .869, .917, .953, .978, .995, 1.006, 1.012, 1.015, 1.015, 1.014, 1.013, 1.011, 1.009, 1.007, 1.005, 1);
+    --t-press: 90ms; --t-release: 420ms; --t-hover: 180ms; --t-pop: 240ms; --t-sheet: 360ms; --t-exit: 180ms;
+  }
+}
+
+@layer carrot.base {
+  .ct-document { background: #05080d !important; color-scheme: dark; }
+  .ct-document body { margin: 0; overflow: hidden; }
+  .ct-page { position: fixed; inset: 0; z-index: 500; background: #05080d; color: var(--ink); font: 500 14px/1.35 var(--f-ui); isolation: isolate; -webkit-font-smoothing: antialiased; }
+  /* resets carry no specificity (:where), so every component class below wins over them */
+  :where(.ct-page) *, :where(.ct-page) *::before, :where(.ct-page) *::after { box-sizing: border-box; }
+  :where(.ct-page) :where(button, a) { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+  :where(.ct-page) :where(button) { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; margin: 0; padding: 0; text-transform: none; letter-spacing: normal; text-align: inherit; }
+  :where(.ct-page) :where(button:disabled) { cursor: default; }
+  :where(.ct-page) :where(a) { color: inherit; text-decoration: none; }
+  :where(.ct-page) :where(h1, h2, h3, p, dl, dd, ol, ul) { margin: 0; padding: 0; }
+  :where(.ct-page) :where(ol, ul) { list-style: none; }
+  :where(.ct-page) :where(svg) { width: 20px; height: 20px; flex: none; }
+  /* The site's unlayered :focus-visible (4 px radius) outranks every layer; !important here is the only override. The ring follows the
+     focused element's own shape: --gl-radius is set by every glass primitive and is 0 (square) for everything else. To round a custom
+     focusable element, set --gl-radius on it rather than border-radius. */
+  .ct-page :focus-visible { outline: 2px solid var(--focus) !important; outline-offset: 3px !important; border-radius: var(--gl-radius) !important; }
+  .ct-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+  /* legacy panel: chamfered and opaque. Each surface replaces it with .gl; adding .gl to a .ct-panel element is enough (.gl clears the
+     border and the clip-path). */
+  .ct-panel { position: relative; background: linear-gradient(180deg, var(--panel-hi), var(--panel-lo)); border: 1px solid var(--hair); clip-path: var(--chamfer); }
+  .ct-label { font: 700 11px/1 var(--f-ui); letter-spacing: .16em; text-transform: uppercase; color: var(--ink-3); }
+  .ct-kicker { display: block; font: 700 11px/1.2 var(--f-ui); letter-spacing: .18em; text-transform: uppercase; color: var(--ink-3); }
+  /* chamfered legacy controls ring focus inside (a clip-path would cut an outline); glass controls use the round outline above */
+  .ct-chip:focus-visible, .ct-tile:focus-visible, .ct-trackrow:focus-visible, .ct-chapter:focus-visible, .ct-sell:focus-visible, .ct-lobby__next:focus-visible { outline: none !important; box-shadow: inset 0 0 0 2px var(--ally-hi); }
+  .ct-cta b { font-family: var(--f-num); }
+  .ct-cta__cost { display: inline-flex; align-items: center; gap: 4px; font: 700 13px/1 var(--f-num); letter-spacing: 0; }
+  .ct-cta__cost svg { width: 16px; height: 16px; }
+  .ct-badges { display: inline-flex; flex-wrap: wrap; gap: 4px; }
+  .ct-grade { display: inline-grid; place-items: center; font: 800 18px/1 var(--f-disp); transform: skewX(-10deg); color: var(--ink-3); min-width: 1.4em; }
+  .ct-grade--sm { font-size: 17px; width: 30px; }
+  .ct-grade--md { font-size: 26px; }
+  .ct-grade--xl { font-size: clamp(76px, 12vw, 128px); line-height: .9; }
+  .ct-grade--s { color: var(--coin); }
+  .ct-grade--a { color: var(--ally-hi); }
+  .ct-grade--b { color: var(--grow); }
+  .ct-grade--c { color: var(--ink); }
+  .ct-grade--d { color: var(--leak); }
+  /* no grade yet: a small dot (the accessible name says "Not graded yet") */
+  .ct-grade.is-empty { transform: none; color: var(--ink-dim); }
+  .ct-grade.is-empty::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+  .ct-switch { position: relative; display: grid; grid-template-columns: auto 1fr; grid-template-rows: auto auto; column-gap: 12px; align-items: center; min-height: 44px; cursor: pointer; }
+  .ct-switch input { grid-row: 1 / 3; }
+  .ct-switch span { font-weight: 700; }
+  .ct-switch small { color: var(--ink-3); font-size: 12px; }
+
+  .ct-portrait { display: block; aspect-ratio: 1; background-size: 400% 300%; background-repeat: no-repeat; flex: none; overflow: hidden; }
+  .ct-portrait--asuna, .ct-portrait--portal, .ct-portrait--plate { background-size: cover; background-position: center 20%; }
+  .ct-emblem { display: block; aspect-ratio: 1; flex: none; background-repeat: no-repeat; }
+  .ct-emblem--text { display: grid; place-items: center; color: var(--super); font: 800 13px var(--f-disp); }
+  .ct-glyph { display: block; aspect-ratio: 1; background-repeat: no-repeat; }
+  .ct-creature-glyph { display: grid; place-items: center; color: #dfe7f4; }
+  .ct-creature-glyph svg { width: 70%; height: 70%; }
+  .ct-route-drawing { position: absolute; inset: 14% 10%; width: 80%; height: 72%; color: rgba(255, 255, 255, .8); }
+  /* shared keyframes (entrances used by more than one surface) */
+  @keyframes ct-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+  @keyframes ct-rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+  @keyframes ct-fade { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes gl-shine { 0%, 86% { transform: translateX(-130%) skewX(-14deg); } 100% { transform: translateX(260%) skewX(-14deg); } }
+}
+
+@layer carrot.glass {
+  /* ================================================================ 1. the material ================================================
+     Back to front: outer shadow (two parts) / backdrop blur (real tier only) / tint (the only layer that guarantees contrast) /
+     scene light from below in the tone colour / lens hot spot / light entering the top / frost grain / inner lips and thickness /
+     the specular rim (::before) / hover and press light (::after, pressables only) / content. */
+  .gl, .ct-icon-btn, .ct-ghost {
+    --gl-a: var(--gl-a-2);
+    --gl-r: var(--r-5);
+    --gl-sh: var(--sh-2);
+    --gl-sheen: .05; --gl-hot: .05; --gl-spill: 22%;
+    --gl-tone: var(--tone, var(--accent));
+    --gl-ring: 0 0 #0000;
+    --gl-radius: calc(var(--gl-r) * var(--gl-sq));
+    --gl-body: color-mix(in srgb, rgb(var(--gl-tint) / var(--gl-a)), var(--gl-tone) var(--gl-wash, 0%));
+    --gl-rim: linear-gradient(var(--gl-rim-angle, 160deg), rgb(var(--gl-light) / .66) 0%, rgb(var(--gl-light) / .18) 20%, rgb(var(--gl-light) / .04) 46%,
+      rgb(var(--gl-light) / .07) 72%, color-mix(in oklab, var(--gl-tone) 50%, rgb(var(--gl-light) / .36)) 100%);
+    --ink-2: var(--ink-glass-2); --ink-3: var(--ink-glass-2); /* measured greys; the tertiary grey never sits on glass */
+    --gl-hover: .06; /* hover light: 6% white keeps --ink at 4.5:1 over the worst backdrop (12% only on icon-only buttons) */
+    position: relative;
+    isolation: isolate;
+    border: 0;
+    clip-path: none;
+    border-radius: var(--gl-radius);
+    color: var(--ink);
+    background:
+      var(--gl-grain) 0 0 / 160px 160px,
+      linear-gradient(180deg, rgb(var(--gl-light) / var(--gl-sheen)), rgb(var(--gl-light) / .02) 38%, rgb(var(--gl-light) / 0) 62%),
+      radial-gradient(130% 90% at 12% -10%, rgb(var(--gl-light) / var(--gl-hot)), transparent 60%),
+      radial-gradient(90% 70% at 50% 135%, color-mix(in oklab, var(--gl-tone) var(--gl-spill), transparent), transparent 70%),
+      linear-gradient(var(--gl-body), var(--gl-body));
+    background-blend-mode: soft-light, normal, normal, normal, normal;
+    box-shadow:
+      var(--gl-ring),
+      inset 0 1px 0 rgb(var(--gl-light) / .24),
+      inset 0 -1px 0 rgb(0 0 0 / .28),
+      inset 0 12px 20px -14px rgb(var(--gl-light) / .12),
+      inset 0 -14px 24px -16px rgb(0 0 0 / .38),
+      inset 0 0 16px rgb(var(--gl-light) / .045),
+      var(--gl-sh);
+  }
+  /* the specular rim: a 1 px ring of light (bright at the top left, gone along the sides, a tone-coloured bounce bottom right). A mask,
+     not a border: a gradient border bleeds through a translucent tint, and border-image drops the radius. */
+  .gl::before, .ct-icon-btn::before, .ct-ghost::before {
+    content: "";
+    position: absolute; inset: 0; z-index: 1;
+    padding: 1px;
+    border-radius: inherit; corner-shape: inherit;
+    pointer-events: none;
+    background: var(--gl-rim);
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+  }
+
+  /* depth */
+  .gl--1, .ct-icon-btn, .ct-ghost { --gl-a: var(--gl-a-1); --gl-r: var(--r-4); --gl-sh: var(--sh-1); --gl-sheen: .04; --gl-hot: 0; --gl-spill: 16%; --ink-2: var(--ink-on-1); --ink-3: var(--ink-on-1); }
+  .gl--2 { --gl-a: var(--gl-a-2); --gl-r: var(--r-5); --gl-sh: var(--sh-2); --gl-rim-angle: 165deg; }
+  .gl--3 { --gl-a: var(--gl-a-3); --gl-r: var(--r-6); --gl-sh: var(--sh-3); --gl-rim-angle: 170deg; --gl-spill: 18%; }
+  .gl--clear { --gl-a: var(--gl-a-clear); --ink-2: var(--ink); --ink-3: var(--ink); }
+  .gl--pill, .ct-icon-btn, .ct-ghost { --gl-r: var(--r-pill); }
+  .gl--wash { --gl-wash: 6%; }
+  .gl--on { --gl-ring: inset 0 0 0 1.5px color-mix(in oklab, var(--gl-tone) 85%, transparent), 0 0 22px -6px color-mix(in oklab, var(--gl-tone) 70%, transparent); }
+
+  /* tones: set the light colour for any primitive (and --tone-ink for text on a solid tone fill) */
+  .gl--accent { --tone: var(--accent); --tone-ink: var(--accent-ink); }
+  .gl--ally { --tone: var(--ally); --tone-ink: #06111b; }
+  .gl--coin { --tone: var(--coin); --tone-ink: #1a1300; }
+  .gl--grow { --tone: var(--grow); --tone-ink: #10180a; }
+  .gl--threat { --tone: var(--threat); --tone-ink: #1b0710; }
+  .gl--leak { --tone: var(--leak); --tone-ink: #1f0606; }
+  .gl--super { --tone: var(--super); --tone-ink: #0f0820; }
+
+  /* real blur: only in the real tier, never during live play (the page sets 'lite' then). Literal values in the -webkit- line (var()
+     works there in WebKit 26.5, kept literal for older Safari). Bigger radius cost the same in the bench, so the size follows the look. */
+  [data-glass='real'] .gl--blur { -webkit-backdrop-filter: blur(24px) saturate(170%); backdrop-filter: blur(24px) saturate(170%); }
+  [data-glass='real'] .gl--blur:is(.gl--1, .ct-icon-btn, .ct-ghost) { -webkit-backdrop-filter: blur(16px) saturate(170%); backdrop-filter: blur(16px) saturate(170%); }
+  [data-glass='real'] .gl--blur.gl--3 { -webkit-backdrop-filter: blur(32px) saturate(180%); backdrop-filter: blur(32px) saturate(180%); }
+
+  /* no glass on glass: anything glass inside a glass surface renders as a fill (one material layer, the rest is light and fills) */
+  .gl :is(.gl, .ct-icon-btn, .ct-ghost) {
+    background: rgb(var(--gl-light) / .07);
+    box-shadow: var(--gl-ring), inset 0 1px 0 rgb(var(--gl-light) / .1);
+    -webkit-backdrop-filter: none; backdrop-filter: none;
+  }
+  .gl :is(.gl, .ct-icon-btn, .ct-ghost)::before { display: none; }
+
+  /* squircle corners where supported (Chromium 139+); WebKit and Firefox keep round corners, which are already soft. Pills stay pills. */
+  @supports (corner-shape: superellipse(1.6)) {
+    .ct-page { --gl-sq: 1.3; }
+    .gl:not(.gl--pill), .gl-fill, .gl-well, .gl-thumb { corner-shape: superellipse(1.6); }
+  }
+
+  /* ================================================================ 2. light and press =============================================
+     The pointer position (--gl-mx/--gl-my, written by usePointerLight on the hovered or pressed element only) moves a hot spot along
+     the rim and a soft light inside. Press: scale .97 in 90 ms, spring back over 420 ms. Hover light is capped (see --gl-hover), so text
+     on it keeps 4.5:1 (6% on text-bearing glass, 12% on icon-only buttons; it composites in sRGB). */
+  .gl--press, .ct-icon-btn, .ct-ghost, .gl-jelly, .ct-cta {
+    position: relative;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition: scale var(--t-release) var(--e-spring), filter var(--t-hover) ease, color var(--t-hover) ease;
+  }
+  :is(.gl--press, .ct-icon-btn, .ct-ghost, .gl-jelly, .ct-cta):active:not(:disabled, [aria-disabled='true']) { scale: .97; transition-duration: var(--t-press); transition-timing-function: var(--e-out); }
+  :is(.gl--press, .ct-icon-btn, .ct-ghost)::before {
+    --gl-mx: inherit; --gl-my: inherit;
+    background: radial-gradient(110px circle at var(--gl-mx) var(--gl-my), rgb(var(--gl-light) / .95), rgb(var(--gl-light) / .3) 40%, transparent 72%), var(--gl-rim);
+  }
+  :is(.gl--press, .ct-icon-btn, .ct-ghost, .gl-jelly, .ct-cta)::after {
+    content: "";
+    position: absolute; inset: 0; z-index: 1;
+    border-radius: inherit; corner-shape: inherit;
+    pointer-events: none;
+    --gl-mx: inherit; --gl-my: inherit;
+    background: radial-gradient(160px circle at var(--gl-mx) var(--gl-my), rgb(var(--gl-light) / var(--gl-hover, .06)), transparent 70%);
+    opacity: 0;
+    transition: opacity var(--t-hover) ease;
+  }
+  @media (hover: hover) and (pointer: fine) {
+    :is(.gl--press, .ct-icon-btn, .ct-ghost, .gl-jelly, .ct-cta):hover:not(:disabled, [aria-disabled='true'])::after { opacity: 1; }
+  }
+  :is(.gl--press, .ct-icon-btn, .ct-ghost, .gl-jelly, .ct-cta):active:not(:disabled, [aria-disabled='true'])::after {
+    opacity: 1; transition-duration: 60ms;
+    background: radial-gradient(120px circle at var(--gl-mx) var(--gl-my), rgb(var(--gl-light) / .26), transparent 70%);
+  }
+  /* disabled: 62% white keeps 3:1 for the glyph over the worst measured backdrop (inactive controls are exempt, but stay readable) */
+  :is(.gl--press, .ct-icon-btn, .ct-ghost):disabled, :is(.gl--press, .ct-icon-btn, .ct-ghost)[aria-disabled='true'] { color: rgb(var(--gl-light) / .62); cursor: default; }
+
+  /* ================================================================ 3. controls ======================================================*/
+  /* glass text button and icon button (layout only; the material comes from .gl .gl--1 .gl--pill .gl--press) */
+  .gl-btn, .ct-ghost { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; padding: 0 18px; font: 650 14px/1 var(--f-ui); letter-spacing: .005em; text-transform: none; white-space: nowrap; color: var(--ink); text-shadow: 0 1px 1px rgb(0 0 0 / .3); }
+  .gl-btn svg, .ct-ghost svg { width: 18px; height: 18px; }
+  .gl-btn--lg { min-height: 52px; padding: 0 22px; font-size: 15px; }
+  .gl-icon, .ct-icon-btn { --gl-hover: .12; flex: none; display: inline-grid; place-items: center; width: 44px; height: 44px; padding: 0; color: var(--ink); }
+
+  /* jelly: the primary action, tinted with the tone (biome accent by default). Opaque enough to carry dark text (about 10:1). The shine
+     is a skewed band moved by transform only: a background-position sweep repainted every frame (119 -> 65 fps in the bench). */
+  .gl-jelly, .ct-cta {
+    --cta-c: var(--cta, var(--tone, var(--accent)));
+    --gl-radius: 999px;
+    isolation: isolate;
+    overflow: hidden;
+    display: inline-flex; align-items: center; justify-content: center; gap: 10px;
+    min-height: 48px; padding: 0 24px;
+    border: 0; clip-path: none; border-radius: 999px;
+    font: 800 15px/1 var(--f-ui); letter-spacing: .01em; text-transform: none; white-space: nowrap;
+    color: var(--cta-ink, var(--tone-ink, var(--accent-ink)));
+    background:
+      radial-gradient(120% 130% at 50% -45%, rgb(255 255 255 / .5), transparent 56%),
+      linear-gradient(180deg, color-mix(in oklab, var(--cta-c), white 18%), var(--cta-c) 55%, color-mix(in oklab, var(--cta-c), black 14%));
+    box-shadow:
+      var(--gl-ring, 0 0 #0000),
+      inset 0 1px 0 rgb(255 255 255 / .7), inset 0 -2px 6px rgb(0 0 0 / .18), inset 0 0 0 1px rgb(255 255 255 / .14),
+      0 1px 2px rgb(0 0 0 / .3), 0 12px 28px -12px color-mix(in oklab, var(--cta-c) 70%, transparent), 0 20px 40px -22px rgb(0 0 0 / .7);
+  }
+  .gl-jelly::before, .ct-cta::before {
+    content: "";
+    position: absolute; z-index: -1; top: 0; bottom: 0; left: 0; width: 55%;
+    pointer-events: none;
+    background: linear-gradient(100deg, transparent 15%, rgb(255 255 255 / .42) 50%, transparent 85%);
+    transform: translateX(-130%) skewX(-14deg);
+  }
+  .gl-jelly::after, .ct-cta::after { z-index: -1; }
+  @media (hover: hover) and (pointer: fine) {
+    :is(.gl-jelly, .ct-cta):hover:not(:disabled)::before { transform: translateX(260%) skewX(-14deg); transition: transform 800ms var(--e-inout); }
+    :is(.gl-jelly, .ct-cta):hover:not(:disabled) { filter: brightness(1.05); }
+  }
+  .gl-jelly.is-idle::before, .ct-cta.is-idle::before { animation: gl-shine 7s var(--e-inout) 1.6s infinite; }
+  :is(.gl-jelly, .ct-cta):disabled {
+    color: #cdd5e2; filter: none;
+    background: linear-gradient(180deg, #3a4559, #2b3445);
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / .14), 0 1px 2px rgb(0 0 0 / .3);
+  }
+  :is(.gl-jelly, .ct-cta):disabled::before { display: none; }
+  .gl-jelly--sm { min-height: 44px; padding: 0 16px; font-size: 14px; }
+  .gl-jelly--lg, .ct-cta--hero { min-height: 60px; padding: 0 32px; gap: 12px; font-size: 18px; }
+  .gl-jelly svg, .ct-cta svg { width: 20px; height: 20px; }
+
+  /* solid pill (bands, "New best"): no glass, so 11 px text keeps its contrast */
+  .gl-tag, .ct-band {
+    --gl-radius: 999px;
+    display: inline-flex; align-items: center; gap: 4px; height: 22px; padding: 0 9px;
+    border-radius: 999px; clip-path: none; white-space: nowrap;
+    font: 750 11px/1 var(--f-ui); letter-spacing: .06em; text-transform: uppercase;
+    color: var(--tone-ink, #0a0d12);
+    background: linear-gradient(180deg, color-mix(in oklab, var(--tone, var(--grow)), white 16%), var(--tone, var(--grow)));
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / .45), inset 0 -1px 0 rgb(0 0 0 / .15);
+  }
+  .ct-band { --tone: var(--grow); --tone-ink: #0a0d12; }
+  .ct-band.is-hard { --tone: var(--coin); }
+  .ct-band.is-expert { --tone: var(--threat); }
+  .ct-band.is-insane { --tone: var(--super); }
+  .ct-band.is-unknown { --tone: #e8edf5; }
+  /* soft pill (Tier II, Phase 1, Air, Lv 4): a light fill, no hairline */
+  .gl-chip, .ct-tag, .ct-badge {
+    --gl-radius: 999px;
+    display: inline-flex; align-items: center; gap: 4px; min-height: 20px; padding: 3px 8px;
+    border: 0; border-radius: 999px; white-space: nowrap;
+    font: 700 11px/1.1 var(--f-ui); letter-spacing: .05em; text-transform: uppercase;
+    color: var(--ink);
+    background: rgb(var(--gl-light) / .1);
+    box-shadow: inset 0 1px 0 rgb(var(--gl-light) / .1);
+  }
+  .ct-badge svg, .gl-chip svg { width: 13px; height: 13px; }
+  .ct-tag.is-best { color: #1a1300; background: linear-gradient(180deg, #ffe066, var(--coin)); box-shadow: inset 0 1px 0 rgb(255 255 255 / .5); }
+  .ct-badge.is-air { color: var(--ally-text); background: color-mix(in oklab, var(--ally-hi) 12%, transparent); }
+  .ct-badge.is-super { color: var(--super-text); background: color-mix(in oklab, var(--super) 16%, transparent); }
+
+  /* difficulty pips and medals */
+  .ct-pips { display: inline-flex; align-items: center; gap: 4px; }
+  .ct-pips i { width: 7px; height: 7px; border-radius: 50%; background: rgb(var(--gl-light) / .2); }
+  .ct-pips i.is-on { background: var(--accent); box-shadow: inset 0 1px 0 rgb(255 255 255 / .35); }
+  .ct-medals { display: inline-flex; gap: 4px; }
+  .ct-medals i { display: inline-grid; place-items: center; width: 22px; height: 22px; border: 0; border-radius: 50%; color: rgb(var(--gl-light) / .45); background: rgb(var(--gl-light) / .08); box-shadow: inset 0 1px 0 rgb(var(--gl-light) / .12), inset 0 -1px 1px rgb(0 0 0 / .25); }
+  .ct-medals i svg { width: 13px; height: 13px; }
+  .ct-medals i.is-earned { color: #1a1300; background: radial-gradient(circle at 35% 28%, #fff3b8, var(--coin) 55%, #d9a400); box-shadow: inset 0 1px 0 rgb(255 255 255 / .6), 0 1px 2px rgb(0 0 0 / .35); }
+
+  /* switch: 52x32 track, a white knob that stretches while pressed and springs across */
+  .gl-switch, .ct-switch input {
+    --gl-radius: 999px;
+    appearance: none; -webkit-appearance: none;
+    position: relative; flex: none; width: 52px; height: 32px; margin: 0;
+    border: 0; clip-path: none; border-radius: 999px; cursor: pointer;
+    background: rgb(var(--gl-light) / .16);
+    box-shadow: inset 0 1px 3px rgb(0 0 0 / .45), inset 0 0 0 1px rgb(var(--gl-light) / .06);
+    transition: background-color var(--t-hover) ease;
+  }
+  .gl-switch::after, .ct-switch input::after {
+    content: ""; position: absolute; top: 2px; left: 2px; width: 28px; height: 28px; border-radius: 50%;
+    background: radial-gradient(circle at 35% 25%, #fff, #e9eef6 60%, #cfd8e6);
+    box-shadow: 0 1px 2px rgb(0 0 0 / .35), 0 4px 10px rgb(0 0 0 / .3), inset 0 -1px 1px rgb(0 0 0 / .12);
+    transform-origin: left center;
+    transition: transform var(--t-release) var(--e-spring);
+  }
+  :is(.gl-switch, .ct-switch input):checked { background: var(--accent); }
+  :is(.gl-switch, .ct-switch input):checked::after { transform: translateX(20px); transform-origin: right center; }
+  :is(.gl-switch, .ct-switch input):active::after { transform: scaleX(1.18); }
+  :is(.gl-switch, .ct-switch input):checked:active::after { transform: translateX(20px) scaleX(1.18); }
+
+  /* segmented control: a recessed track, the pressed option is a lifted fill (not more glass) */
+  .gl-seg, .ct-segment {
+    --gl-radius: 999px;
+    display: inline-flex; justify-self: start; align-self: start; gap: 2px; padding: 3px;
+    border: 0; border-radius: 999px;
+    background: rgb(0 0 0 / .28);
+    box-shadow: inset 0 1px 2px rgb(0 0 0 / .4), inset 0 -1px 0 rgb(var(--gl-light) / .06);
+  }
+  :is(.gl-seg, .ct-segment) button {
+    --gl-radius: 999px;
+    position: relative; min-height: 40px; min-width: 64px; padding: 0 16px;
+    border-radius: 999px;
+    font: 650 14px/1 var(--f-ui); letter-spacing: 0; text-transform: none; color: var(--ink);
+    transition: background-color var(--t-hover) ease, scale var(--t-release) var(--e-spring);
+  }
+  :is(.gl-seg, .ct-segment) button:active { scale: .97; transition-duration: var(--t-press); }
+  @media (hover: hover) and (pointer: fine) { :is(.gl-seg, .ct-segment) button:hover:not([aria-pressed='true']) { background: rgb(var(--gl-light) / .06); } }
+  :is(.gl-seg, .ct-segment) button:is([aria-pressed='true'], [aria-selected='true']) {
+    color: #fff;
+    background: linear-gradient(180deg, rgb(255 255 255 / .2), rgb(255 255 255 / .1));
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / .4), 0 2px 8px rgb(0 0 0 / .35);
+  }
+
+  /* slider: a thin well, the accent fill drawn by a gradient stop at --v (set it inline: style={{'--v': '60%'}}), a white knob */
+  .gl-range, .ct-slider input {
+    --gl-radius: 999px;
+    appearance: none; -webkit-appearance: none;
+    width: 100%; height: 44px; margin: 0; background: none; cursor: pointer;
+  }
+  :is(.gl-range, .ct-slider input)::-webkit-slider-runnable-track { height: 6px; border-radius: 3px; background: linear-gradient(90deg, var(--accent) var(--v, 50%), rgb(255 255 255 / .16) 0); box-shadow: inset 0 1px 2px rgb(0 0 0 / .4); }
+  :is(.gl-range, .ct-slider input)::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 24px; height: 24px; margin-top: -9px; border: 0; border-radius: 50%; background: radial-gradient(circle at 35% 25%, #fff, #e6ecf5 60%, #c9d3e2); box-shadow: 0 1px 2px rgb(0 0 0 / .35), 0 4px 10px rgb(0 0 0 / .3); transition: scale var(--t-release) var(--e-spring); }
+  :is(.gl-range, .ct-slider input):active::-webkit-slider-thumb { scale: 1.12; transition-duration: var(--t-press); }
+  :is(.gl-range, .ct-slider input)::-moz-range-track { height: 6px; border-radius: 3px; background: rgb(255 255 255 / .16); }
+  :is(.gl-range, .ct-slider input)::-moz-range-progress { height: 6px; border-radius: 3px; background: var(--accent); }
+  :is(.gl-range, .ct-slider input)::-moz-range-thumb { width: 24px; height: 24px; border: 0; border-radius: 50%; background: radial-gradient(circle at 35% 25%, #fff, #e6ecf5 60%, #c9d3e2); }
+  :is(.gl-range, .ct-slider input):disabled { opacity: .45; cursor: default; }
+
+  /* ================================================================ 4. pieces inside glass =========================================*/
+  /* concentric: the inner radius is the outer radius minus the padding (set --gl-pad to the parent's padding) */
+  .gl-fill, .gl-well, .gl-thumb { --gl-radius: max(4px, calc(var(--gl-r, var(--r-4)) * var(--gl-sq) - var(--gl-pad, 8px))); border-radius: var(--gl-radius); }
+  .gl-fill { background: rgb(var(--gl-light) / .07); box-shadow: var(--gl-ring, 0 0 #0000), inset 0 1px 0 rgb(var(--gl-light) / .1); }
+  .gl-fill.gl--on { background: rgb(var(--gl-light) / .1); }
+  .gl-well { background: rgb(0 0 0 / .24); box-shadow: inset 0 1px 2px rgb(0 0 0 / .38), inset 0 -1px 0 rgb(var(--gl-light) / .06); }
+  .gl-thumb { overflow: hidden; box-shadow: 0 6px 14px -8px rgb(0 0 0 / .6); }
+  .gl-thumb > img { display: block; width: 100%; height: 100%; object-fit: cover; }
+  /* rounded meter: the fill slides (translateX) inside a rounded well, so its leading edge stays round. --v 0..1 on the <i>. */
+  .gl-meter { position: relative; display: block; height: 6px; border-radius: 999px; overflow: hidden; background: rgb(0 0 0 / .3); box-shadow: inset 0 1px 1px rgb(0 0 0 / .4); }
+  .gl-meter > i { position: absolute; inset: 0; border-radius: inherit; background: linear-gradient(180deg, color-mix(in oklab, var(--tone, var(--accent)), white 22%), var(--tone, var(--accent))); transform: translateX(calc((var(--v, 1) - 1) * 100%)); transition: transform var(--t-bar) var(--e-out); }
+  .gl-label { display: block; font: 700 11px/1.2 var(--f-ui); letter-spacing: .06em; text-transform: uppercase; color: var(--ink-2); }
+  .gl-num { font-family: var(--f-num); font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -.02em; }
+  .gl-text { text-shadow: 0 1px 1px rgb(0 0 0 / .35); }
+  /* scroll edge: content fades where it meets floating chrome, instead of a divider line */
+  .gl-scroll { overflow: auto; overscroll-behavior: contain; -webkit-mask: linear-gradient(transparent, #000 var(--gl-fade, 20px), #000 calc(100% - var(--gl-fade, 20px)), transparent); mask: linear-gradient(transparent, #000 var(--gl-fade, 20px), #000 calc(100% - var(--gl-fade, 20px)), transparent); }
+  .gl-scroll--x { -webkit-mask: linear-gradient(90deg, transparent, #000 var(--gl-fade, 20px), #000 calc(100% - var(--gl-fade, 20px)), transparent); mask: linear-gradient(90deg, transparent, #000 var(--gl-fade, 20px), #000 calc(100% - var(--gl-fade, 20px)), transparent); }
+
+  /* ================================================================ 5. materialize ==================================================
+     Enter: scale .96 -> 1 and a fade, 240 ms (sheets 360 ms). Exit (.is-leaving, see useExit): scale .98 and a fade, 180 ms. Popovers set
+     transform-origin at their trigger; sheets and dialogs stay centred. .gl-pop uses opacity and scale only, so it never fights an
+     element positioned with translate or transform; .gl-pop--rise adds a 8 px rise through translate (only on elements that do not use
+     translate themselves). */
+  .gl-pop { transition: opacity var(--t-pop) var(--e-out), scale var(--t-pop) var(--e-spring); }
+  .gl-pop--rise { transition: opacity var(--t-pop) var(--e-out), scale var(--t-pop) var(--e-spring), translate var(--t-pop) var(--e-out); }
+  .gl-pop--sheet { transition: opacity var(--t-sheet) var(--e-sheet), scale var(--t-sheet) var(--e-sheet); }
+  @starting-style {
+    .gl-pop, .gl-pop--sheet { opacity: 0; scale: .96; }
+    .gl-pop--rise { opacity: 0; scale: .96; translate: 0 8px; }
+  }
+  :is(.gl-pop, .gl-pop--rise, .gl-pop--sheet).is-leaving { opacity: 0; scale: .98; pointer-events: none; transition-duration: var(--t-exit); transition-timing-function: var(--e-out); }
+  /* Reduced motion keeps short fades (an !important in this earlier layer outranks the themes layer's blanket 0 s transitions) */
+  .ct-page[data-motion='reduce'] :is(.gl-pop, .gl-pop--rise, .gl-pop--sheet) { transition: opacity 140ms ease-out !important; }
+  .ct-page[data-motion='reduce'] :is(.gl--press, .ct-icon-btn, .ct-ghost, .gl-jelly, .ct-cta)::after { transition: opacity 120ms ease-out !important; }
+}
+
+@layer carrot.themes {
+  /* biome accents */
+  .ct-page[data-biome='garden'] { --accent: #b3d944; --accent-ink: #10180a; --accent-text: #d6eca7; --accent-mark: #b3d944; }
+  .ct-page[data-biome='marsh'] { --accent: #66e0c8; --accent-ink: #04140f; --accent-text: #b6efe2; --accent-mark: #66e0c8; }
+  .ct-page[data-biome='frost'] { --accent: #99eeff; --accent-ink: #04121a; --accent-text: #a3f0ff; --accent-mark: #99eeff; }
+  .ct-page[data-biome='orchard'] { --accent: #ffb347; --accent-ink: #1c1003; --accent-text: #ffdfb6; --accent-mark: #ffb959; }
+  .ct-page[data-biome='arena'] { --accent: #ff66aa; --accent-ink: #1b0710; --accent-text: #ffdae8; --accent-mark: #ffb1d0; }
+  .ct-page[data-biome='portal'] { --accent: #aa88ff; --accent-ink: #0f0820; --accent-text: #e7e0ff; --accent-mark: #cdbdff; }
+  .ct-page[data-biome='prism'], .ct-page.is-prism { --accent: #aa88ff; --accent-ink: #0f0820; --accent-text: #e7e0ff; --accent-mark: #cdbdff; }
+  .ct-select[data-biome='garden'] { --accent: #b3d944; --accent-ink: #10180a; --accent-text: #d6eca7; --accent-mark: #b3d944; }
+  .ct-select[data-biome='marsh'] { --accent: #66e0c8; --accent-ink: #04140f; --accent-text: #b6efe2; --accent-mark: #66e0c8; }
+  .ct-select[data-biome='frost'] { --accent: #99eeff; --accent-ink: #04121a; --accent-text: #a3f0ff; --accent-mark: #99eeff; }
+  .ct-select[data-biome='orchard'] { --accent: #ffb347; --accent-ink: #1c1003; --accent-text: #ffdfb6; --accent-mark: #ffb959; }
+  .ct-select[data-biome='arena'] { --accent: #ff66aa; --accent-ink: #1b0710; --accent-text: #ffdae8; --accent-mark: #ffb1d0; }
+  .ct-select[data-biome='prism'] { --accent: #aa88ff; --accent-ink: #0f0820; --accent-text: #e7e0ff; --accent-mark: #cdbdff; }
+  .ct-chapter[data-biome='garden'] { --accent: #b3d944; --accent-text: #d6eca7; --accent-mark: #b3d944; }
+  .ct-chapter[data-biome='marsh'] { --accent: #66e0c8; --accent-text: #b6efe2; --accent-mark: #66e0c8; }
+  .ct-chapter[data-biome='frost'] { --accent: #99eeff; --accent-text: #a3f0ff; --accent-mark: #99eeff; }
+  .ct-chapter[data-biome='orchard'] { --accent: #ffb347; --accent-text: #ffdfb6; --accent-mark: #ffb959; }
+  .ct-chapter[data-biome='arena'] { --accent: #ff66aa; --accent-text: #ffdae8; --accent-mark: #ffb1d0; }
+  /* guardian palettes in their challenges (token overrides only) */
+  .ct-page[data-boss='tornado'] { --threat: #7fd6ff; --accent: #9fe3ff; --accent-ink: #04121a; --accent-text: #baebff; --accent-mark: #9fe3ff; }
+  .ct-page[data-boss='zombie'] { --accent: #9ee05a; --accent-ink: #0b1504; --accent-text: #c9efa9; --accent-mark: #9ee05a; }
+  .ct-page[data-boss='eyeball'] { --accent: #ff6b6b; --accent-ink: #1b0606; --accent-text: #ffdcd9; --accent-mark: #ffb3ae; }
+  .ct-page[data-boss='portal'] { --accent: #b99bff; --accent-ink: #0f0820; --accent-text: #e8dfff; --accent-mark: #cfbdff; }
+  .ct-page[data-boss='asuna'] { --accent: #ffd38a; --accent-ink: #1a1203; --accent-text: #ffe0ad; --accent-mark: #ffd38a; }
+  @media (max-width: 640px) {
+    .ct-page { --gutter: 8px; }
+  }
+  @media (max-height: 500px) and (orientation: landscape) {
+    .ct-page { --gutter: 8px; }
+  }
+  /* ---- reduced motion (the OS setting or the page's Reduced effects): opacity only, 250 ms or less ---- */
+  .ct-page[data-motion='reduce'] *, .ct-page[data-motion='reduce'] *::before, .ct-page[data-motion='reduce'] *::after { transition-duration: 0s !important; }
+  .ct-page[data-motion='reduce'] :is(.gl-jelly, .ct-cta)::before { animation: none !important; }
+  @media (prefers-contrast: more) {
+    .ct-page { --hair: rgba(255, 255, 255, .45); --ink-3: #c3cddd; --panel-hi: #0b111b; --panel-lo: #05080d; }
+  }
+  @media (prefers-reduced-transparency: reduce) {
+    .ct-page { --panel-hi: #0e1522; --panel-lo: #0b111b; }
+  }
+}
+
+@layer carrot.prefs {
+  /* solid tier: the page's Reduced effects toggle (the only route in Safari, which has no prefers-reduced-transparency),
+     prefers-reduced-transparency and prefers-contrast: more. Near-opaque, no blur, an even rim, no pointer hot spot. */
+  [data-glass='solid'] :is(.gl, .ct-icon-btn, .ct-ghost) { --gl-a: var(--gl-a-solid); --gl-sheen: .04; --gl-hot: 0; --gl-wash: 0%; -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
+  [data-glass='solid'] :is(.gl, .ct-icon-btn, .ct-ghost)::before { background: linear-gradient(rgb(var(--gl-light) / .3), rgb(var(--gl-light) / .3)); }
+  @media (prefers-reduced-transparency: reduce) {
+    :is(.gl, .ct-icon-btn, .ct-ghost) { --gl-a: var(--gl-a-solid); --gl-wash: 0%; -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
+    :is(.gl, .ct-icon-btn, .ct-ghost)::before { background: linear-gradient(rgb(var(--gl-light) / .3), rgb(var(--gl-light) / .3)); }
+  }
+  @media (prefers-contrast: more) {
+    :is(.gl, .ct-icon-btn, .ct-ghost) { --gl-a: var(--gl-a-solid); --gl-wash: 0%; --ink-2: var(--ink); --ink-3: var(--ink); }
+    :is(.gl, .ct-icon-btn, .ct-ghost)::before { padding: 2px; background: linear-gradient(rgb(255 255 255 / .8), rgb(255 255 255 / .8)); }
+    :is(.gl-jelly, .ct-cta) { box-shadow: inset 0 0 0 2px rgb(0 0 0 / .55), 0 1px 2px rgb(0 0 0 / .3); }
+  }
+  @media (forced-colors: active) {
+    :is(.gl, .ct-icon-btn, .ct-ghost, .gl-jelly, .ct-cta, .gl-tag, .ct-band, .gl-chip, .ct-tag, .ct-badge) { background: Canvas; color: CanvasText; border: 1px solid CanvasText; }
+    :is(.gl, .ct-icon-btn, .ct-ghost, .gl-jelly, .ct-cta)::before, :is(.gl--press, .ct-icon-btn, .ct-ghost, .gl-jelly, .ct-cta)::after { display: none; }
+  }
+}

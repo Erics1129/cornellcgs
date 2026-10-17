@@ -136,3 +136,7 @@ export function ForgeToast({store,name,kind,send}:{store:SnapshotStore;name:stri
  if(undo<=0)return null
  return <div className="ct-forge ct-panel" role="status"><SuperEmblem kind={kind||'seed'}/><span className="ct-forge__text"><small>Super forged</small><b>{name||'Super tower'}</b></span><button className="ct-ghost" onClick={()=>send({type:'mergeUndo'})}><Icon name="undo"/>Undo <small>{undo}s</small></button></div>
 }
+/** The merge lesson (once per device, on the first fully grown tower; CarrotPage decides when). */
+export function MergeTip({onDismiss}:{onDismiss:()=>void}){
+ return <div className="ct-teach ct-panel" role="status"><Icon name="merge"/><p>Two fully grown towers of the same kind can merge into one Super tower. Drag one onto the other.</p><button className="ct-icon-btn" aria-label="Dismiss merge tip" onClick={onDismiss}><Icon name="close"/></button></div>
+}

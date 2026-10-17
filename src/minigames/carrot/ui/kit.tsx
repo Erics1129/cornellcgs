@@ -11,8 +11,8 @@ export function Medals({value=0,labels=['Completed.','Carrot unharmed.','Scenery
 /** A grade letter on the medal scale (S = every medal). */
 export function Grade({value,size='md',label}:{value:number;size?:'sm'|'md'|'xl';label?:string}){
  const letter=gradeLetters[value]||''
- if(!letter)return <span className={`ct-grade ct-grade--${size} is-empty`} aria-label={label||'Not graded yet'}>–</span>
- return <span className={`ct-grade ct-grade--${size} ct-grade--${letter.toLowerCase()}`} aria-label={label||`Grade ${letter}`}>{letter}</span>
+ if(!letter)return <span className={`ct-grade ct-grade--${size} is-empty`} role="img" aria-label={label||'Not graded yet'}/>
+ return <span className={`ct-grade ct-grade--${size} ct-grade--${letter.toLowerCase()}`} role="img" aria-label={label||`Grade ${letter}`}>{letter}</span>
 }
 export const difficultyLabel=(pips:number,challenge?:string)=>challenge?{easy:'EASY',hard:'HARD',insane:'INSANE','????':'????'}[challenge]||challenge.toUpperCase():pips>=5?'EXPERT':pips>=3?'HARD':'NORMAL'
 export function Pips({value,max=5}:{value:number;max?:number}){return <span className="ct-pips" role="img" aria-label={`Difficulty ${value} of ${max}`}>{Array.from({length:max},(_,i)=><i key={i} className={i<value?'is-on':''}/>)}</span>}

@@ -10,7 +10,7 @@ const key='cgs-carrot-challenges-v1'
 export const challengeBosses:ChallengeBoss[]=['tornado','zombie','eyeball','portal','asuna']
 export const challengeLevels:Record<ChallengeBoss,number>={tornado:25,zombie:26,eyeball:27,portal:28,asuna:29}
 export const challengeDifficulty:Record<ChallengeBoss,'easy'|'hard'|'insane'|'????'>={tornado:'easy',zombie:'hard',eyeball:'insane',portal:'????',asuna:'insane'}
-export const challengeTitles:Record<ChallengeBoss,string>={tornado:'BossFight - Giant Tornado',zombie:'BossFight - Zombie',eyeball:'BossFight - Unknown Eyeball',portal:'BossFight - Portal',asuna:'BossFight - Asuna'}
+export const challengeTitles:Record<ChallengeBoss,string>={tornado:'Giant Tornado',zombie:'Zombie',eyeball:'Unknown Eyeball',portal:'Portal',asuna:'Asuna'}
 /** Par times in seconds for the third star. */
 export const par:Record<ChallengeBoss,number>={tornado:240,zombie:360,eyeball:480,portal:720,asuna:360}
 export const bossOfLevel=(id:number):ChallengeBoss|null=>(Object.keys(challengeLevels) as ChallengeBoss[]).find(b=>challengeLevels[b]===id)||null
@@ -63,7 +63,7 @@ export function challengeUnlocked(id:number,campaign:CampaignSave,challenges:Cha
  if(boss==='portal')return !!challenges.best.eyeball?.cleared
  return ((campaign.medals['24']||0)&1)===1||!!challenges.best.zombie?.cleared
 }
-export const lockCaption:Record<ChallengeBoss,string>={tornado:'',asuna:'Clear Last Harvest (12) or the Portal to unlock',zombie:'Clear Last Harvest (12) or the Giant Tornado to unlock',eyeball:'Clear The Last Light (24) or the Zombie to unlock',portal:'Defeat the Unknown Eyeball to open the rift'}
+export const lockCaption:Record<ChallengeBoss,string>={tornado:'',asuna:'Clear Last Harvest (12) or the Portal to unlock',zombie:'Clear Last Harvest (12) or the Giant Tornado to unlock',eyeball:'Clear The Last Light (24) or the Zombie to unlock',portal:'Beat the Unknown Eyeball to unlock'}
 /** Pure merge for account sync: v1/v2 migrate to v3, formats above v3 pass through; per boss cleared OR, health max, seconds min over cleared sides, towers follow the faster run. */
 export function mergeCarrotChallenges(a:unknown,b:unknown):ChallengeSave|null {
  const newer=newerChallengeVersion(a,b);if(newer)return newer as ChallengeSave

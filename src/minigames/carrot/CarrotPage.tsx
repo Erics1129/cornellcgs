@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { CSSProperties } from 'react'
 import { CarrotUnity } from './unity'
 import build from './unity-build.json'
@@ -25,10 +25,15 @@ import { BuildMenu } from './ui/BuildMenu'
 import { hudEdges } from './ui/BuildMenu'
 import type { PanelMode } from './ui/BuildMenu'
 import { Results } from './ui/Results'
-import { ConfirmModal, FieldGuide, HelpModal, SettingsModal } from './ui/Modals'
-import { AirToast, BossWarning, Coach, EncounterCard, ForgeToast, NoticeToast, PrismBriefing, useEncounters, useTutorialStep } from './ui/Onboarding'
-import Icon from './Icon'
-import './carrot.css'
+import { FieldGuide, HelpModal, SettingsModal } from './ui/Modals'
+import { ConfirmModal } from './ui/Dialog'
+import { useGlassTier, usePointerLight } from './ui/Glass'
+import { errors } from './copy'
+import { AirToast, BossWarning, Coach, EncounterCard, ForgeToast, MergeTip, NoticeToast, PrismBriefing, useEncounters, useTutorialStep } from './ui/Onboarding'
+import './ui/glass.css'
+import './ui/entry.css'
+import './ui/hud.css'
+import './ui/menus.css'
 
 const SuperTier=5,TopTier=4
 const clampLevel=(value:unknown,count:number)=>Math.max(1,Math.min(count,Number(value)||1))
@@ -41,7 +46,14 @@ function LiveReview({store,...rest}:{store:ReturnType<typeof createSnapshotStore
  return state?<CarrotReview state={state} {...rest}/>:null
 }
 
-export default function CarrotPage(){
+// Development only (tree-shaken from production): ?carrot-glass-lab renders every glass primitive over chosen backdrops for QA.
+const GlassLab=import.meta.env.DEV?lazy(()=>import('./ui/GlassLab')):null
+export default function CarrotRoute(){
+ if(GlassLab&&new URLSearchParams(location.search).has('carrot-glass-lab'))return <Suspense fallback={null}><GlassLab/></Suspense>
+ return <CarrotPage/>
+}
+
+function CarrotPage(){
  const root=useRef<HTMLDivElement>(null),mount=useRef<HTMLDivElement>(null),engine=useRef<CarrotUnity|null>(null),hud=useRef<HTMLDivElement>(null),trackBox=useRef<HTMLDivElement>(null)
  const store=useMemo(()=>createSnapshotStore(),[]),tracker=useMemo(()=>createRunTracker(store),[store])
  useEffect(()=>tracker.attach(),[tracker])
@@ -62,6 +74,10 @@ export default function CarrotPage(){
  const send=useCallback((command:Command)=>engine.current?.send(command),[])
  const page=useSlice(store,st=>st?{level:st.level,biome:st.biome,phase:st.phase,v:st.v||1,blind:(st.blind||0)>0,blackout:(st.blind||0)>0&&(st.blindAlpha||0)>=.995&&(st.blindTint||0)<.5,white:(st.blind||0)>0&&(st.blindTint||0)>=.5,boss:!!st.boss&&st.boss.hp>0,caps:(st.caps||[]).join(','),veteranCap:(st.caps||[]).includes('veteran'),towers:st.towerCount||0}:null)
  const run=useSlice(store,()=>store.run())
+ // Glass tier (ui/Glass.tsx): no backdrop blur while a wave runs; solid under Reduced effects and the transparency/contrast preferences.
+ const live=useSlice(store,st=>!!st&&st.phase==='playing'&&!st.paused)
+ const glassTier=useGlassTier({reducedEffects:prefs.reducedEffects,live:entered&&ready&&live,still:!entered})
+ usePointerLight(root)
  const v2=!!page&&page.v>=2
  const currentLevel=definitions?.levels.find(l=>l.id===(page?.level||level))
  const challengeBoss=page?bossOfLevel(page.level):null
@@ -72,7 +88,7 @@ export default function CarrotPage(){
 
  // Development preview only (tree-shaken from production): a QA harness can drive the level, read the live state, or inject a snapshot.
  useEffect(()=>{if(!preview)return;const w=window as unknown as {__carrot?:{send:(c:Command)=>void;state:()=>GameState|null;inject:(s:GameState|null)=>void;ready:()=>void}};w.__carrot={send:c=>engine.current?.send(c),state:()=>store.get(),inject:s=>store.set(s),ready:()=>{setError('');setReady(true)}};return()=>{delete w.__carrot}},[preview,store])
- useEffect(()=>{let active=true;fetch(`/assets/minigames/carrot/game-data.json?v=${build.version}`).then(r=>{if(!r.ok)throw new Error('The garden guide could not download. Please retry.');return r.json()}).then((d:GameDefinitions)=>{if(active&&Array.isArray(d.towers)&&Array.isArray(d.levels))setDefinitions(d)}).catch(e=>{if(active)setError(e.message)});return()=>{active=false}},[])
+ useEffect(()=>{let active=true;fetch(`/assets/minigames/carrot/game-data.json?v=${build.version}`).then(r=>{if(!r.ok)throw new Error(errors.gameData);return r.json()}).then((d:GameDefinitions)=>{if(active&&Array.isArray(d.towers)&&Array.isArray(d.levels))setDefinitions(d)}).catch(e=>{if(active)setError(e.message)});return()=>{active=false}},[])
  useEffect(()=>{const oldTitle=document.title;document.title='Carrot Defense 3D · Cornell CGS';document.documentElement.classList.add('ct-document');return()=>{document.title=oldTitle;document.documentElement.classList.remove('ct-document')}},[])
  useEffect(()=>{const m=matchMedia('(prefers-reduced-motion: reduce)');const f=()=>setOsReduced(m.matches);m.addEventListener('change',f);return()=>m.removeEventListener('change',f)},[])
  useEffect(()=>subscribePrefs(setPrefs),[])
@@ -175,10 +191,10 @@ export default function CarrotPage(){
 
  const st=store.get()
  const pageClass=['ct-page',page?.biome==='prism'?'is-prism':'',expanded?'is-expanded':'',page?.blind?'is-blind':'',page?.blackout?'is-blackout':'',page?.white?'is-blind-white':'',result?'has-result':''].filter(Boolean).join(' ')
- return <div className={pageClass} ref={root} data-biome={page?.biome||currentLevel?.biome||'garden'} data-boss={challengeBoss||undefined} data-motion={reduced?'reduce':'full'} style={{'--hud-scale':prefs.hudScale/100} as CSSProperties} onClickCapture={e=>{
+ return <div className={pageClass} ref={root} data-biome={page?.biome||currentLevel?.biome||'garden'} data-boss={challengeBoss||undefined} data-motion={reduced?'reduce':'full'} data-glass={glassTier} style={{'--hud-scale':prefs.hudScale/100} as CSSProperties} onClickCapture={e=>{
   const button=(e.target as Element).closest('button:not(:disabled),a');if(!saved.current.sound||!button)return
   const label=button.getAttribute('aria-label')||button.textContent||''
-  const kind=/^Close|^Back/.test(label)?'close':/Stage select|Choose|How to|challenges|Settings|Field guide/.test(label)?'open':'click'
+  const kind=/^Close|^Back/.test(label)?'close':/Stage select|^Stages|Choose|How to|[Cc]hallenges|Settings|Field guide/.test(label)?'open':'click'
   if(ready&&entered)engine.current?.uiSound(kind);else menuSound(kind)
  }}>
   {!entered?<Lobby definitions={definitions} save={save} records={records} error={error} preview={preview} qaLevel={qaLevel} reduced={reduced} onPlay={choose} onSelect={()=>openPanel('select')} onChallenges={()=>openPanel('challenges')} onGuide={()=>openPanel('guide')} onHelp={()=>openPanel('help')} onSettings={()=>openPanel('settings')}/>
@@ -204,7 +220,7 @@ export default function CarrotPage(){
      {!result&&<ForgeToast store={store} name={forged.name} kind={forged.kind} send={send}/>}
      {!result&&!forgeBeat&&<AirToast store={store} level={currentLevel} enemies={definitions?.enemies} definitions={definitions}/>}
      {!result&&<NoticeToast store={store} forged={forged.name}/>}
-     {teach&&!result&&!forgeBeat&&<div className="ct-teach ct-panel" role="status"><Icon name="merge"/><p>Two fully grown towers of the same kind can merge into one Super tower. Drag one onto the other.</p><button className="ct-icon-btn" aria-label="Dismiss merge tip" onClick={()=>setTeach(false)}><Icon name="close"/></button></div>}
+     {teach&&!result&&!forgeBeat&&<MergeTip onDismiss={()=>setTeach(false)}/>}
     </div>
     {!result&&!panel&&!forgeBeat&&<BuildMenu store={store} definitions={definitions} send={send} reduced={reduced} onSafeArea={onSafeArea} tutorialFocus={step==='build'?'seed':undefined}/>}
     {!result&&!panel&&!encounters.card&&<PausedCard store={store} send={send}/>}

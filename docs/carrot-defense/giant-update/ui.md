@@ -23,7 +23,7 @@ Everything works against today's shipped player (bridge v1), and gets more exact
 | `abilities.ts` | Name, hint, first-encounter card (12 words at most) and two-word verb for every telegraphed ability. |
 | `flash.ts` | Page flash governor. |
 | `prefs.ts`, `volume.ts` | Device preferences, and the volume sliders' adapter to the audio stream's `audioPrefs.ts`. |
-| `carrot.css` | Layers `carrot.tokens`, `carrot.base`, `carrot.hud`, `carrot.menus`, `carrot.themes`. They are namespaced because the site's Tailwind already owns a layer called `base`. |
+| `ui/glass.css`, `ui/entry.css`, `ui/hud.css`, `ui/menus.css` | Replaced `carrot.css` in the glass pass: layers `carrot.tokens`, `carrot.base`, `carrot.glass`, `carrot.hud`, `carrot.entry`, `carrot.menus`, `carrot.themes`, `carrot.prefs`, namespaced because the site's Tailwind already owns a layer called `base`. See `docs/carrot-defense/glass-ui.md`. |
 | `scripts/carrot-ui-qa/` | The QA harness: mock player, fixtures, acceptance suite, screenshots, WebP and jacket tools. |
 
 ## Bridge contract v2, as the page reads it

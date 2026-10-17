@@ -73,8 +73,17 @@ for (const engine of engines) {
         const parse = c => { const m = c.match(/rgba?\(([^)]+)\)/); if (!m) return null; const p = m[1].split(/[ ,/]+/).filter(Boolean).map(Number); return { r: p[0], g: p[1], b: p[2], a: p.length > 3 ? p[3] : 1 } }
         const lum = c => { const f = v => { v /= 255; return v <= .03928 ? v / 12.92 : Math.pow((v + .055) / 1.055, 2.4) }; return .2126 * f(c.r) + .7152 * f(c.g) + .0722 * f(c.b) }
         const ratio = (a, b) => { const x = lum(a), y = lum(b); return (Math.max(x, y) + .05) / (Math.min(x, y) + .05) }
-        // the colour behind an element: its nearest painted ancestor (panel gradients resolve to their darker stop, #070b12)
-        const bgOf = n => { for (let e = n; e && e !== document.documentElement; e = e.parentElement) { const s = getComputedStyle(e); const c = parse(s.backgroundColor); if (c && c.a > .5) return c; if (s.backgroundImage.includes('gradient')) { const stops = [...s.backgroundImage.matchAll(/rgba?\([^)]+\)/g)].map(m => parse(m[0])).filter(Boolean); if (stops.length) return stops.reduce((a, b) => lum(a) > lum(b) ? a : b) } } return null }
+        // Glass (ui/glass.css) is translucent and the board behind it changes, so its colours say nothing about the pixels behind the
+        // text. The rendered probe (scripts/carrot-ui-qa/glass-contrast.mjs, docs/carrot-defense/glass-ui.md) measured the worst
+        // background luminance behind text per tint over the brightest key art and boards: .143 at .66, .125 at .72, .063 solid (.94);
+        // clear glass (.50) is for icons only, .24 estimated. A fill inside glass adds 7% white.
+        const grey = L => { const v = L <= .0031308 ? 12.92 * L : 1.055 * L ** (1 / 2.4) - .055; const c = Math.round(Math.min(1, v) * 255); return { r: c, g: c, b: c, a: 1 } }
+        const worstBehind = a => a >= .9 ? .063 : a >= .7 ? .125 : a >= .6 ? .143 : .24
+        const glassBg = e => { const outer = [...(function* () { for (let p = e; p; p = p.parentElement) if (p.matches?.('.gl, .ct-icon-btn, .ct-ghost')) yield p })()].pop(); const a = parseFloat(getComputedStyle(outer).getPropertyValue('--gl-a')) || .72; let c = grey(worstBehind(a)); if (outer !== e) c = { r: c.r * .93 + 255 * .07, g: c.g * .93 + 255 * .07, b: c.b * .93 + 255 * .07, a: 1 }; return c }
+        // the colour behind an element: its nearest painted ancestor (an opaque gradient resolves to the stop with the least contrast)
+        const bgOf = (n, fg) => { for (let e = n; e && e !== document.documentElement; e = e.parentElement) { if (e.matches('.gl, .ct-icon-btn, .ct-ghost')) return glassBg(e); const s = getComputedStyle(e); const c = parse(s.backgroundColor); if (c && c.a > .5) return c; if (s.backgroundImage.includes('gradient')) { const stops = [...s.backgroundImage.matchAll(/rgba?\([^)]+\)/g)].map(m => parse(m[0])).filter(x => x && x.a > .5); if (stops.length) return fg ? stops.reduce((a, b) => ratio(fg, a) < ratio(fg, b) ? a : b) : stops.reduce((a, b) => lum(a) > lum(b) ? a : b) } } return null }
+        // a translucent foreground blends with what is behind it
+        const over = (fg, bg) => fg.a >= 1 ? fg : { r: fg.r * fg.a + bg.r * (1 - fg.a), g: fg.g * fg.a + bg.g * (1 - fg.a), b: fg.b * fg.a + bg.b * (1 - fg.a), a: 1 }
         const visible = n => { const r = n.getBoundingClientRect(); if (!r.width || !r.height || r.bottom < 0 || r.top > innerHeight) return false; for (let e = n; e; e = e.parentElement) { const s = getComputedStyle(e); if (s.visibility === 'hidden' || s.display === 'none' || Number(s.opacity) < .05) return false } return true }
         for (const n of document.querySelectorAll('.ct-page *')) {
           const s = getComputedStyle(n)
@@ -82,9 +91,10 @@ for (const engine of engines) {
           if (!visible(n) || n.closest('.ct-sr,.ct-review,.ct-counter__ghost,[aria-hidden="true"] .ct-route-drawing')) continue
           const own = [...n.childNodes].some(c => c.nodeType === 3 && c.textContent.trim())
           if (own && parseFloat(s.fontSize) < 11) out.small.push(`${String(n.className).slice(0, 30)} ${s.fontSize} "${n.textContent.trim().slice(0, 16)}"`)
-          if (own && !n.closest('.ct-minibars,.ct-monster-bars,.ct-judge')) { const fg = parse(s.color), bg = bgOf(n); if (fg && bg && fg.a > .6) { const k = ratio(fg, bg); if (k < 4.5) out.contrast.push(`${String(n.className || n.tagName).slice(0, 26)} "${n.textContent.trim().slice(0, 12)}" ${k.toFixed(2)}`) } }
+          // text in a disabled control has no contrast requirement (WCAG 1.4.3, inactive components); its glyphs still need 3:1 below
+          if (own && !n.closest('.ct-minibars,.ct-monster-bars,.ct-judge,:disabled,[aria-disabled="true"]')) { const fg = parse(s.color), bg = fg && bgOf(n, fg); if (fg && bg && fg.a > .6) { const k = ratio(over(fg, bg), bg); if (k < 4.5) out.contrast.push(`${String(n.className || n.tagName).slice(0, 26)} "${n.textContent.trim().slice(0, 12)}" ${k.toFixed(2)}`) } }
           if (n.matches('button,a[href],input,select,[role=option]') && !n.closest('.ct-review')) { const r = n.getBoundingClientRect(); const target = n.matches('input[type=checkbox]') ? n.closest('label').getBoundingClientRect() : n.matches('input[type=range]') ? n.getBoundingClientRect() : r; if ((target.width < 43.5 || target.height < 43.5) && !n.closest('.ct-minibars')) out.targets.push(`${String(n.className).slice(0, 30)} ${Math.round(target.width)}x${Math.round(target.height)}`) }
-          if (n.matches('.ct-medals i,.ct-note__badges i,.ct-badge svg,.ct-icon-btn svg')) { const fg = parse(s.color), bg = bgOf(n); if (fg && bg) { const k = ratio(fg, bg); if (k < 3) out.icons.push(`${String(n.className?.baseVal ?? n.className).slice(0, 20)} ${k.toFixed(2)}`) } }
+          if (n.matches('.ct-medals i,.ct-note__badges i,.ct-badge svg,.ct-icon-btn svg')) { const fg = parse(s.color), bg = fg && bgOf(n, fg); if (fg && bg) { const k = ratio(over(fg, bg), bg); if (k < 3) out.icons.push(`${String(n.className?.baseVal ?? n.className).slice(0, 20)} ${k.toFixed(2)}`) } }
         }
         return out })
       check(E(`${vp} ${name}: text >= 11 px`), !r.small.length, r.small.slice(0, 5))

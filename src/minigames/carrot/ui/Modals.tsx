@@ -1,20 +1,13 @@
-import { useEffect, useRef, useState } from 'react'
-import type { ReactNode } from 'react'
+import { useState } from 'react'
+import type { CSSProperties } from 'react'
 import type { GameDefinitions, SuperSave } from '../types'
 import { CreaturePortrait, TowerPortrait } from '../art'
 import { miniBosses, regularMobs, towerTraits } from '../expansion'
 import { towerReach } from './BuildMenu'
 import Icon from '../Icon'
+import { Modal } from './Dialog'
 import type { Prefs } from '../prefs'
 import type { Volumes } from '../volume'
-
-export function Modal({title,children,onClose,className='',kicker}:{title:string;children:ReactNode;onClose:()=>void;className?:string;kicker?:string}){
- const ref=useRef<HTMLDialogElement>(null)
- useEffect(()=>{const el=ref.current;el?.showModal();return()=>el?.close()},[])
- return <dialog ref={ref} className={`ct-dialog ${className}`} onCancel={e=>{e.preventDefault();onClose()}} onClick={e=>{if(e.target===e.currentTarget)onClose()}} aria-label={title}>
-  <div className="ct-dialog__inner ct-panel"><header>{kicker&&<span className="ct-kicker">{kicker}</span>}<h2>{title}</h2><button className="ct-icon-btn" onClick={onClose} aria-label={`Close ${title}`}><Icon name="close"/></button></header>{children}</div>
- </dialog>
-}
 
 export function HelpModal({onClose}:{onClose:()=>void}){
  return <Modal title="Protect the carrot" kicker="How to play" onClose={onClose} className="ct-help">
@@ -44,7 +37,7 @@ export function FieldGuide({definitions,superSave,onClose}:{definitions:GameDefi
 }
 
 export function SettingsModal({prefs,volumes,sound,inGame,canFocusBoss,expanded,onPrefs,onVolumes,onSound,onFocusBoss,onRestart,onStages,onHelp,onFullscreen,onClose}:{prefs:Prefs;volumes:Volumes;sound:boolean;inGame:boolean;canFocusBoss:boolean;expanded?:boolean;onPrefs:(p:Partial<Prefs>)=>void;onVolumes:(v:Partial<Volumes>)=>void;onSound:()=>void;onFocusBoss:()=>void;onRestart?:()=>void;onStages?:()=>void;onHelp?:()=>void;onFullscreen?:()=>void;onClose:()=>void}){
- const slider=(id:keyof Volumes,label:string)=><label className="ct-slider"><span>{label}</span><input type="range" min={0} max={100} step={5} value={Math.round(volumes[id]*100)} disabled={!sound} onChange={e=>onVolumes({[id]:Number(e.target.value)/100})} aria-valuetext={`${Math.round(volumes[id]*100)}%`}/><b>{Math.round(volumes[id]*100)}</b></label>
+ const slider=(id:keyof Volumes,label:string)=><label className="ct-slider"><span>{label}</span><input type="range" min={0} max={100} step={5} value={Math.round(volumes[id]*100)} style={{'--v':`${Math.round(volumes[id]*100)}%`} as CSSProperties} disabled={!sound} onChange={e=>onVolumes({[id]:Number(e.target.value)/100})} aria-valuetext={`${Math.round(volumes[id]*100)}%`}/><b>{Math.round(volumes[id]*100)}</b></label>
  return <Modal title="Settings" kicker="Carrot Defense" onClose={onClose} className="ct-settings">
   <section><h3>Sound</h3>
    <label className="ct-switch"><input type="checkbox" checked={sound} onChange={onSound}/><span>Sound</span><small>{sound?'On':'Muted on this device'}</small></label>
@@ -62,9 +55,4 @@ export function SettingsModal({prefs,volumes,sound,inGame,canFocusBoss,expanded,
    {onFullscreen&&<button className="ct-ghost" onClick={onFullscreen}><Icon name="full"/>{expanded?'Exit full screen':'Full screen'}</button>}
   </div></section>}
  </Modal>
-}
-
-/** A small confirm step for Restart (it throws away the run). */
-export function ConfirmModal({title,body,confirm,onConfirm,onClose}:{title:string;body:string;confirm:string;onConfirm:()=>void;onClose:()=>void}){
- return <Modal title={title} onClose={onClose} className="ct-confirm"><p>{body}</p><div className="ct-settings__row"><button className="ct-cta" onClick={onConfirm}>{confirm}</button><button className="ct-ghost" onClick={onClose}>Keep playing</button></div></Modal>
 }
