@@ -58,6 +58,15 @@ namespace UnityEngine {
   public override int GetHashCode()=>x.GetHashCode()^(y.GetHashCode()<<2)^(z.GetHashCode()>>2);
   public override string ToString()=>"("+x.ToString("F2",CultureInfo.InvariantCulture)+", "+y.ToString("F2",CultureInfo.InvariantCulture)+", "+z.ToString("F2",CultureInfo.InvariantCulture)+")";
  }
+ public struct Rect {
+  public float x,y,width,height;
+  public Rect(float x,float y,float width,float height){this.x=x;this.y=y;this.width=width;this.height=height;}
+  public static Rect MinMaxRect(float xmin,float ymin,float xmax,float ymax)=>new Rect(xmin,ymin,xmax-xmin,ymax-ymin);
+  public float xMin=>x;public float yMin=>y;public float xMax=>x+width;public float yMax=>y+height;
+  public Vector2 center=>new Vector2(x+width/2f,y+height/2f);
+  public bool Contains(Vector2 p)=>p.x>=xMin&&p.x<xMax&&p.y>=yMin&&p.y<yMax;
+  public bool Contains(Vector3 p)=>p.x>=xMin&&p.x<xMax&&p.y>=yMin&&p.y<yMax;
+ }
  public struct Quaternion {public float x,y,z,w;public static Quaternion identity=>new Quaternion{w=1};}
  public struct Color {public float r,g,b,a;public Color(float r,float g,float b,float a=1){this.r=r;this.g=g;this.b=b;this.a=a;}}
  public static class Mathf {

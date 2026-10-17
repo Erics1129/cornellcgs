@@ -17,6 +17,8 @@ namespace CarrotTD {
  [Serializable] public class BlockerSeed {public int pad; public string kind;}
  [Serializable] public class TowerState {
   public int id,pad,tier,spent,mergedSpent; public string kind; public Vector3 position;
+  /// <summary>Two-player endless: the seat (0|1) that built it, -1 in every other mode (UI tint and label only).</summary>
+  public int builder=-1;
   public float cooldown,slowFor,disabledFor,stunnedFor,lastShot,buff,builtAt,weakenUntil,weakenFactor=1,cleanseAt; public Vector3 aim;
  }
  [Serializable] public class EnemyState {
