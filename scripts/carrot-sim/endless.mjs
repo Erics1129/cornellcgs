@@ -28,34 +28,36 @@ export const ENDLESS_TARGETS = {
   seedIqr: 10,                // E-R1 interquartile range of waves survived
   gateShare: [0.43, 0.57],    // each gate takes 50% +-7% of the leaks
   peakLive: 110,
-  minReached: 30,             // a wave's hazard is judged only once at least this many runs reached it
+  // A wave's hazard is judged only where it is a reliable estimate: at least max(30, a quarter of the bot's runs) reached it (with
+  // 200 runs that is 50, a standard error of about .05 on one wave). The tail beyond is reported, never judged.
+  minReached: 30, minReachedShare: 0.25,
 }
 
 export function evaluateEndless(runs, meta) {
   const T = ENDLESS_TARGETS, bots = [...new Set(runs.map(r => r.bot))].sort(), out = { meta, targets: T, bots: {}, checks: [] }
   const check = (name, pass, detail) => out.checks.push({ name, pass: !!pass, detail })
   for (const bot of bots) {
-    const rs = runs.filter(r => r.bot === bot), scores = rs.map(r => r.score)
+    const rs = runs.filter(r => r.bot === bot), scores = rs.map(r => r.score), judged = Math.max(T.minReached, Math.ceil(T.minReachedShare * rs.length))
     const maxW = Math.max(...rs.map(r => r.score + 1)), hazard = [], reached = [], died = []
     for (let w = 1; w <= maxW; w++) { const n = rs.filter(r => r.score >= w - 1).length, d = rs.filter(r => r.score === w - 1 && !r.capped).length; reached.push(n); died.push(d); hazard.push(n ? d / n : null) }
-    const smooth = hazard.map((h, i) => { const xs = [hazard[i - 1], h, hazard[i + 1]].filter((x, j) => x != null && reached[i - 1 + j] >= T.minReached); return xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : null })
+    const smooth = hazard.map((h, i) => { const xs = [hazard[i - 1], h, hazard[i + 1]].filter((x, j) => x != null && reached[i - 1 + j] >= judged); return xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : null })
     const leaks = rs.reduce((a, r) => [a[0] + r.gateLeaks[0], a[1] + r.gateLeaks[1]], [0, 0])
     out.bots[bot] = {
       n: rs.length, median: median(scores), q1: quantile(scores, .25), q3: quantile(scores, .75), iqr: round(quantile(scores, .75) - quantile(scores, .25), 2), min: Math.min(...scores), max: Math.max(...scores),
       first4: round(rs.filter(r => r.score >= 4).length / rs.length), medianSeconds: round(median(rs.map(r => r.seconds)), 1), peakLive: Math.max(...rs.map(r => r.peakLive)), folded: rs.reduce((a, r) => a + r.folded, 0),
       gateShare: round(leaks[0] / Math.max(1, leaks[0] + leaks[1])), leaks, capped: rs.filter(r => r.capped).length,
-      hazard: hazard.map(round), smoothed: smooth.map(round), reached,
+      hazard: hazard.map(round), smoothed: smooth.map(round), reached, judgedFrom: judged,
     }
   }
   const b = out.bots
   for (const [bot, [lo, hi]] of Object.entries(T.medians)) if (b[bot]) check(`${bot} median waves in [${lo}, ${hi}]`, b[bot].median >= lo && b[bot].median <= hi, b[bot].median)
   if (b['E-R2']) check(`E-R2 survives the first 4 waves >= ${T.r2EarlySurvival}`, b['E-R2'].first4 >= T.r2EarlySurvival, b['E-R2'].first4)
   for (const bot of bots) {
-    const s = b[bot].smoothed, h = b[bot].hazard, reached = b[bot].reached; let worstDrop = 0, at = 0, spikes = []
-    for (let w = 7; w <= s.length; w++) { const a = s[w - 2], c = s[w - 1]; if (a != null && c != null && reached[w - 1] >= T.minReached && a - c > worstDrop) { worstDrop = a - c; at = w } }
+    const s = b[bot].smoothed, h = b[bot].hazard, reached = b[bot].reached, judged = b[bot].judgedFrom; let worstDrop = 0, at = 0, spikes = []
+    for (let w = 7; w <= s.length; w++) { const a = s[w - 2], c = s[w - 1]; if (a != null && c != null && reached[w - 1] >= judged && a - c > worstDrop) { worstDrop = a - c; at = w } }
     check(`${bot}: from wave 6 the smoothed hazard never falls by more than ${T.hazardDrop}`, worstDrop <= T.hazardDrop + 1e-9, `${round(worstDrop)} at wave ${at}`)
     for (let w = 3; w <= h.length; w++) {
-      if (reached[w - 1] < T.minReached || h[w - 1] == null) continue
+      if (reached[w - 1] < judged || h[w - 1] == null) continue
       const before = [h[w - 2], h[w - 3]].filter(x => x != null), base = before.length ? before.reduce((a, c) => a + c, 0) / before.length : 0
       const limit = w % 10 === 0 ? T.bossSpike : w % 10 === 5 ? T.miniSpike : null
       // With a near-zero base the ratio is meaningless: the spike is judged against max(base, 0.02).
@@ -67,7 +69,7 @@ export function evaluateEndless(runs, meta) {
   }
   if (b['E-R1']) {
     const m = b['E-R1'].median, h = b['E-R1'].hazard, reached = b['E-R1'].reached; let worst = 0, at = 0
-    for (let w = 1; w < m && w <= h.length; w++) if (reached[w - 1] >= T.minReached && h[w - 1] > worst) { worst = h[w - 1]; at = w }
+    for (let w = 1; w < m && w <= h.length; w++) if (reached[w - 1] >= b['E-R1'].judgedFrom && h[w - 1] > worst) { worst = h[w - 1]; at = w }
     check(`E-R1: no wave below its median has hazard > ${T.hazardCapBelowR1Median}`, worst <= T.hazardCapBelowR1Median, `${round(worst)} at wave ${at}`)
     check(`E-R1 seed IQR <= ${T.seedIqr} waves`, b['E-R1'].iqr <= T.seedIqr, b['E-R1'].iqr)
   }
@@ -77,7 +79,7 @@ export function evaluateEndless(runs, meta) {
 
 export async function runEndlessBands({ exe, run, value, repo, jobs }) {
   const counts = { 'E-R0': Number(value('r0', 50)), 'E-R1': Number(value('r1', 200)), 'E-R2': Number(value('r2', 200)), 'E-solo': Number(value('solo', 50)) }
-  const extra = []; if (value('dial')) extra.push('dial=' + value('dial')); if (value('d')) extra.push('d=' + value('d')); extra.push('wave=' + value('wave', 150))
+  const extra = []; if (value('dial')) extra.push('dial=' + value('dial')); if (value('gen')) extra.push('gen=' + value('gen')); if (value('gold')) extra.push('gold=' + value('gold')); if (value('d')) extra.push('d=' + value('d')); extra.push('wave=' + value('wave', 150))
   const specs = []
   for (const [bot, n] of Object.entries(counts)) for (let a = 0; a < n; a += 10) specs.push(`${bot}:${a}-${Math.min(n, a + 10) - 1}`)
   const started = Date.now(), runs = []

@@ -12,14 +12,14 @@ namespace CarrotTD {
  ///  Cycle of 10: waves ending 1-4 and 6-9 ordinary, 5 a miniboss wave (1 before wave 30, then 2, one per gate; escorts at
  ///  0.6 of the budget), 0 a boss wave (one boss, adds at 0.4). Budget B(w)=70+16w+floor(w^2/4) cost units over k=min(4,1+w/6)
  ///  kinds of the unlocked tiers; at most 70 ordinary units (the cap folds the rest into hpBonus, at most x2.5).
- ///  HP: ordinary base*H(w)*hpBonus, H(w)=1.05(1+.115(w-1))1.02^(w-1); minibosses base*Hm(w), Hm(w)=1.0423(1+.095(w-1))
- ///  1.0145^(w-1) (an integer recurrence within 1.7% of H^0.85 up to wave 80); bosses BossBaseHp*H(w)/HPScale(home)*dial.
+ ///  HP: ordinary base*H(w)*hpBonus, minibosses base*Hm(w), bosses BossBaseHp*H(w)/HPScale(home)*dial; H and Hm are integer
+ ///  recurrences (constants below; t0 began at H(w)=1.05(1+.115(w-1))1.02^(w-1) with Hm within 1.7% of H^0.85).
  /// </summary>
  public static class CarrotEndlessGen {
   public const int OrdinaryCap=70,LiveCap=120,ScaleCap=300;
   public const float GapScale=.9f,Overlap=.9f;
   /// <summary>ebots-v1 tuning record: every constant below changes only through `carrot-sim --endless-bands` (docs/carrot-defense/duo/sim.md).</summary>
-  public const string TuningVersion="endless-t0";
+  public const string TuningVersion="endless-t1";
   public static readonly string[][] Tiers={
    new[]{"nibble","dash","swarm","mite"},new[]{"shell","beetle","moth","slug"},new[]{"shaman","wisp","bat","burrow"},
    new[]{"crystal","scarab","firefly","sporeling"},new[]{"tinyZombie","riftling","shardling","mimic"}};
@@ -34,11 +34,17 @@ namespace CarrotTD {
   /// <summary>HPScale of each boss's home level in per mille (L4, L25, L8, L12, L26, L20, L27, L28): the campaign's boss-to-wave ratio.</summary>
   static readonly int[] HomePermille={1650,2620,2620,4030,6280,6280,8680,9250};
   /// <summary>Per-boss HP dials in per mille, tunable only within 600-1400 by the endless bands.</summary>
-  public static readonly int[] BossDial={1000,1000,1000,1000,1000,1000,1000,1000};
+  /// <summary>endless-t1: garden 900, tornado 700, marsh 600, frost 600, zombie 900, orchard 600, eyeball 900, portal 900 (the kits that
+  /// uproot, tithe or lock towers left the garden too weak for the next wave at 1000).</summary>
+  public static readonly int[] BossDial={900,700,600,600,900,600,900,900};
   /// <summary>The curve's tunable constants (integers): H(w)=HLead/1000 (1+HLinear/1000 (w-1)) (HGrowth/1000)^(w-1), its miniboss twin,
   /// budget B(w)=BBase+BLinear w+w^2/BQuadDiv, the reward multiplier min(RewardCap, 1000+RewardSlope (w-1)) per mille and the
-  /// stipend StipendBase+StipendSlope min(w, StipendCap). Only the bands change them (docs/carrot-defense/duo/sim.md).</summary>
-  public static int HLead=1050,HLinear=115,HGrowth=1020,MLead=1042,MLinear=95,MGrowth=10145,BBase=70,BLinear=16,BQuadDiv=4,RewardSlope=15,RewardCap=1600,StipendBase=20,StipendSlope=2,StipendCap=40;
+  /// stipend StipendBase+StipendSlope min(w, StipendCap); a boss wave's adds and a miniboss wave's escorts take BossAdds and
+  /// MiniEscorts per mille of the budget. Only the bands change them (docs/carrot-defense/duo/sim.md).</summary>
+  // endless-t1 (docs/carrot-defense/duo/sim.md): from t0 the late curve was flattened (HLinear 115 -> 240, HGrowth 1020 -> 1010: a
+  // saturated garden no longer caps every bot near wave 42), boss and miniboss waves were put back on the pressure trend (adds
+  // 400 -> 800, escorts 600 -> 850 per mille: their dips made the next wave the deadliest) and the miniboss lead fell 1042 -> 850.
+  public static int HLead=1050,HLinear=240,HGrowth=1010,MLead=850,MLinear=95,MGrowth=10145,BBase=70,BLinear=16,BQuadDiv=4,RewardSlope=15,RewardCap=1600,StipendBase=20,StipendSlope=2,StipendCap=40,BossAdds=800,MiniEscorts=850;
   static long[] growH,growM;static int grownH,grownM;
   static void Grow(){
    if(growH!=null&&grownH==HGrowth&&grownM==MGrowth)return;var h=new long[ScaleCap+1];var m=new long[ScaleCap+1];h[1]=m[1]=1000000000L;
@@ -88,7 +94,7 @@ namespace CarrotTD {
    public Wave Get(int w){if(w<1)return null;while(waves.Count<=w)waves.Add(Generate(waves.Count));return waves[w];}
    Wave Generate(int w){
     uint r=WaveRng(seed,w);var ew=new Wave{wave=w,budget=Budget(w)};
-    bool bossWave=BossWave(w),miniWave=MiniWave(w);int ordinaryBudget=bossWave?ew.budget*4/10:miniWave?ew.budget*6/10:ew.budget;
+    bool bossWave=BossWave(w),miniWave=MiniWave(w);int ordinaryBudget=bossWave?ew.budget*BossAdds/1000:miniWave?ew.budget*MiniEscorts/1000:ew.budget;
     if(bossWave){int k=w/10;ew.boss=PickBoss(k,ref r);ew.bossGate=(k+(int)(seed&1))%2;}
     if(miniWave)ew.minis=PickMinis(w,ref r);
     PickKinds(w,ordinaryBudget,ew,ref r);
