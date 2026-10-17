@@ -201,10 +201,10 @@ All runs were on the owner's M5 Max on 2026-10-17. Raw results are in
 
 | Link (RTT / jitter / loss) | Path | D at 10 s | Input delay | Stalls ≥ 1 frame per 20 s, settled | Sub-frame stalls per 20 s | Digest mismatches |
 |---|---|---|---|---|---|---|
-| 30 ms / ±5 / 1% | P2P | 3 (20 of 20) | 83 ms | 0 | 0 to 0.5 | 0 |
-| 60 ms / ±10 / 2% | P2P | 4 (16 of 20; 5 or 6 after an early stall bump) | 117 ms | 0 | 0 to 1.0 | 0 |
-| 150 ms / ±30 / 5% | P2P | 6 (14 of 20; 7 in the rest) | 183 ms | ≤ 1 over 200 s | 0 to 1.0 | 0 |
-| 60 ms / ±10 / 2%, TCP fast recovery | relay (10 Hz) | 9 to 12 | 250 to 317 ms | 0 | 0 to 1.0 | 0 |
+| 30 ms / ±5 / 1% | P2P | 3 (16 of 20; 4 in the rest) | 83 ms | 1 over 200 s | 0 to 1.5 | 0 |
+| 60 ms / ±10 / 2% | P2P | 4 (18 of 20; 5 in the rest) | 117 ms | 1 over 200 s | 0 to 1.0 | 0 |
+| 150 ms / ±30 / 5% | P2P | 6 (20 of 20) | 183 ms | 0 | 0 | 0 |
+| 60 ms / ±10 / 2%, TCP fast recovery | relay (10 Hz) | 8 or 9 | 217 to 283 ms | 1 over 100 s | 0 to 1.5 | 0 |
 | same, 2x speed, 30 ms | P2P | 5 (wall-time D) | 83 ms | 0 | | 0 |
 
 Relay at a fixed D (stalls per 20 s, 3 seeds): D=6: 2.7, D=8: 0.5, D=10: 0.
@@ -214,23 +214,26 @@ The plan's "stall-free at D=6 on the relay" was measured with 15 Hz relay frames
 when the owner adds a key.
 
 A frame-sized stall needs a lost frame plus jitter at the minimum D; the rate measured was 0 to 1 per 200 s. A sub-frame
-stall only moves a tick within one rendered frame.
+stall only moves a tick within one rendered frame. D is never lowered before both sides have a measurement, and the first
+2 s after a start or resume are left out of the measurement.
+Real browsers (7.2) settled at D=4 at 60 ms / 2% in each of three runs.
 
 ### 7.2 Real browsers (Playwright: fake-engine pages, real WebRTC, wrangler dev rooms)
 
 | Scenario | Result |
 |---|---|
-| LAN duo, Chromium↔Chromium | P2P open 600 ms after the join (host/host); 1.7 KB/s per direction (RTCStats bytesSent, 20 Hz frames + pings); duo win on both; 9/9 replica digests verified |
-| LAN duo, Chromium↔WebKit | P2P open 545 ms; 1.8 to 1.9 KB/s per direction; duo win on both |
-| LAN endless, Chromium↔WebKit | D=3 (83 ms); 2.6 KB/s per direction; same towers on both; pause froze both on the same tick; 0 resyncs |
+| LAN duo, Chromium↔Chromium | P2P open 637 ms after the join (host/host); 1.6 to 1.75 KB/s per direction (RTCStats bytesSent: 20 Hz frames + pings + SCTP); duo win on both; 9/9 replica digests verified, 0 unverified |
+| LAN duo, Chromium↔WebKit | P2P open 554 ms; 1.55 to 1.6 KB/s per direction; duo win on both |
+| LAN endless, Chromium↔WebKit | D=3 (83 ms); 2.6 to 2.7 KB/s per direction; same towers on both; pause froze both on the same tick (525); 0 resyncs |
 | srflx-only (Cornell NAT does not hairpin) | P2P never comes up (ICE still `checking`); play on the relay at once; replica verified over the relay |
-| Mid-match UDP blackhole, Chromium↔WebKit via UDP proxies | relay after 744 / 747 ms; no op lost (the replica has every build); P2P back 2.0 to 2.1 s after the restore; 0 resyncs |
-| Reload and rejoin, Chromium↔WebKit | back in the seat 5.1 s after `reload()`; own half rebuilt by silent replay (same towers); 0 resyncs; the match still ended in a duo win |
-| Explicit leave | partner sees it 4 ms later; duo result unfinished |
-| Lockstep at 60 ms / ±10 / 2%, Chromium↔WebKit via UDP proxies | measured RTT 65 ms; D=4 on both (117 ms); 0 stalls in 20 s; 34 digests verified |
-| Relay budget (forced relay, 30 s windows) | duo 1x 66, endless 1x 66, endless 2x 68 billed DO requests per relayed match-minute (limit 70) |
-| Error copy, Chromium and WebKit | room-not-found, bad-code, room-full, version-mismatch ("you" detail) and origin (Chromium, mapped host) show the protocol's copy |
-| Positive control | duo resynced 617 ms after a one-coin divergence; endless 647 ms |
+| Mid-match UDP blackhole, Chromium↔WebKit via UDP proxies | relay after 724 / 732 ms; no op lost (the replica has every build); P2P back 2.04 s after the restore; 0 resyncs |
+| Reload and rejoin, Chromium↔WebKit | back in the seat 5.2 s after `reload()`; own half rebuilt by silent replay (same towers); 0 resyncs; the match still ended in a duo win |
+| Explicit leave | partner sees it 3 to 4 ms later; duo result unfinished |
+| Lockstep at 60 ms / ±10 / 2%, Chromium↔WebKit via UDP proxies | measured RTT 65 to 73 ms; D=4 on both at 10 s and 30 s (117 ms) in 3 of 3 runs; 0 to 1 stall in 20 s; 34 digests verified |
+| Relay budget (forced relay, 30 s windows) | duo 1x 64 to 66, endless 1x 66, endless 2x 66 to 68 billed DO requests per relayed match-minute (limit 70) |
+| Error copy, Chromium and WebKit | room-not-found, bad-code, room-full (also for a stranger mid-match), version-mismatch ("you" detail) and origin (Chromium, mapped host) show the protocol's copy |
+| Positive control | duo resynced 540 to 617 ms after a one-coin divergence; endless 599 to 647 ms |
+| Re-entrancy | 0 `net()` calls made inside a Unity dispatch, in every scenario |
 
 ### 7.3 Duo replica buffer (Node link models)
 
@@ -244,7 +247,10 @@ stall only moves a tick within one rendered frame.
 
 - UDP blackhole: the relay takes over in 730 ms and P2P returns in about 2.03 s (2 s of clean frames).
 - A 30 s outage on both paths with 300 ops queued: all of them arrived after the outage, oldest first in bounded frames;
-  the largest frame was 1,116 to 1,122 B.
+  the largest frame was 1,116 to 1,122 B. The critique asked for any backlog beyond one frame to go as an op-log chunk over
+  `r` or the relay. Instead, each frame carries the oldest unacknowledged ops up to 1,100 B and caps its exec or commit
+  below the first op it left out. The cumulative ack advances as they land, so the backlog drains at about 1,100 B per round
+  trip on whichever path is up. That is reliable without a second channel, and the outage test passes.
 - A 37 KB incompressible state blob over the relay at 60 ms / ±10 / 2% took 1.4 to 1.6 s (1,100 B chunks, acks, retry,
   sent under the room's 32 KB/s chunk budget).
 
