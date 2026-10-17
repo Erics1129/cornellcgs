@@ -3,7 +3,7 @@ using UnityEngine.Rendering;
 
 namespace CarrotTD {
  /// <summary>
- /// Twin Gates (two-player endless, id 90): the art the shared map adds on top of the two mirrored orchard wings the decoration
+ /// Twin Gates (two-player endless, id 90; this file is not named CarrotEndless*.cs because carrot-sim picks those as simulation sources): the art the shared map adds on top of the two mirrored orchard wings the decoration
  /// passes already dress. Both gates sit in the back corners as stone portals with a pennant in the colour of the seat whose home
  /// wing they open; the two lanes meet at a paved junction plaza at the front centre and walk the curbed boulevard back to the carrot;
  /// lantern posts stand on the four lit pads (13, 30, 14, 31: towers there keep full sight in Blindness); and an orchard meadow grows
