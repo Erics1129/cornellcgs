@@ -50,10 +50,14 @@ namespace CarrotTD {
   float ViewGameSpeed=>ClockGame.speed;
   bool ViewGamePaused=>ClockGame.paused;
   static readonly Color DefaultTeam=new Color(1f,.78f,.3f),DefaultPartnerTeam=new Color(.32f,.86f,.8f);
-  /// <summary>The colour of the half this view draws: the local player's (warm gold) on the host, the partner's (teal) on a spectator.</summary>
-  Color HalfColour=>Spectator?PartnerColour:LocalColour;
-  Color LocalColour=>duoCfg.team.a>.01f?duoCfg.team:DefaultTeam;
-  Color PartnerColour=>duoCfg.partnerTeam.a>.01f?duoCfg.partnerTeam:DefaultPartnerTeam;
+  // The bridge's convention: `team` is the colour of the half this view draws (gold on the host, teal on the spectator) and
+  // `partnerTeam` the other half's. Local-player cues (the shimmer, builder rings of the own seat) use the host's own colour.
+  /// <summary>The colour of the half this view draws.</summary>
+  Color HalfColour=>duoCfg.team.a>.01f?duoCfg.team:Spectator?DefaultPartnerTeam:DefaultTeam;
+  Color OtherColour=>duoCfg.partnerTeam.a>.01f?duoCfg.partnerTeam:Spectator?DefaultTeam:DefaultPartnerTeam;
+  /// <summary>The local player's colour (warm gold by default) and the partner's (teal).</summary>
+  Color LocalColour=>Spectator?OtherColour:HalfColour;
+  Color PartnerColour=>Spectator?HalfColour:OtherColour;
 
   [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)] static void ResetDuoStatics(){hostView=null;}
   /// <summary>Registers the view side of CarrotNetHooks (the bridge calls them; every hook is optional).</summary>
@@ -77,9 +81,9 @@ namespace CarrotTD {
   /// The next frame rebuilds the level. The host keeps its own camera rig; a spectator must be configured before its Awake.</summary>
   public void ConfigureDuo(DuoViewConfig cfg){
    bool on=!string.IsNullOrEmpty(cfg.layout);
-   if(!on){if(duoOn&&!duoCfg.spectator)LeaveDuo();duoOn=false;duoCfg=default(DuoViewConfig);levelId=-1;return;}
+   if(!on){if(duoOn&&!duoCfg.spectator)LeaveDuo();duoOn=false;duoCfg=default(DuoViewConfig);duoBuilt=false;levelId=-1;return;}
    if(cfg.spectator&&cfg.host==null)cfg.host=FindHost();
-   duoCfg=cfg;duoOn=true;levelId=-1;netCameraMode="own";bothZoom=1;
+   duoCfg=cfg;duoOn=true;duoBuilt=false;levelId=-1;netCameraMode="own";bothZoom=1;
    if(!cfg.spectator){targetZoom=1;targetPan=Vector3.zero;followBoss=-1;}
    CarrotQa.Count(cfg.spectator?"duo.configure.spectator":"duo.configure.host",1);
   }
@@ -107,9 +111,13 @@ namespace CarrotTD {
   /// <summary>World to solo-grid coordinates of this view's own (first) frame, outside a framed pass (ponds, prism bounds).</summary>
   Vector3 OwnLocal(Vector3 w){if(!duoOn||duoFrames.Count==0)return w;var f=duoFrames[0];return new Vector3((w.x-f.origin.x)*f.sx,w.y-f.origin.y,(w.z-f.origin.z)*f.sz);}
   Vector3 OwnWorld(Vector3 l){if(!duoOn||duoFrames.Count==0)return l;var f=duoFrames[0];return new Vector3(f.origin.x+f.sx*l.x,f.origin.y+l.y,f.origin.z+f.sz*l.z);}
+  bool duoBuilt;
   void PrepareDuoFrames(){
+   // Safety net for the end of a match: once a duo build happened, a solo LevelDef loaded with NetMode back to None means the
+   // session is over (the bridge configures the host view at the start only), so the view returns to single player by itself.
+   if(duoOn&&!Spectator&&duoBuilt&&game!=null&&game.level!=null&&game.NetMode==NetMode.None&&game.level.id!=CarrotDuoMaps.EndlessId&&game.level==CarrotData.Level(game.level.id)&&!QaHoldsDuo()){CarrotQa.Count("duo.autoClear",1);LeaveDuo();duoOn=false;duoCfg=default(DuoViewConfig);duoBuilt=false;}
    duoFrames.Clear();duoOther=null;terrainHalfX=7.8f;terrainMinX=-24;terrainMaxX=24;netCameraMode="own";
-   if(!duoOn||game==null||game.level==null)return;int id=game.level.id;
+   if(!duoOn||game==null||game.level==null)return;int id=game.level.id;duoBuilt=true;
    if(Spectator&&HostOf!=null){skyZenith=HostOf.skyZenith;skyHorizon=HostOf.skyHorizon;}
    if(DuoHalves&&CarrotDuoMaps.IsDuoLevel(id)){
     bool z=CarrotDuoMaps.SideLayout(id)==DuoAxis.Z;int side=duoCfg.side==1?1:0;
@@ -159,9 +167,11 @@ namespace CarrotTD {
    CarrotQa.Count("spectator.awake",1);return true;
   }
   float dormantClock;bool dormant;public bool SpectatorDormant=>dormant;
+  /// <summary>QA only (perf experiments): the spectator skips its whole frame.</summary>
+  [NonSerialized] internal bool qaFreeze;
   /// <summary>The spectator's frame: no clocks shared with the page, no globals, the partner's actors and a filtered effect set.</summary>
   void SpectatorUpdate(){
-   CarrotQa.Section("spectator.gap");
+   CarrotQa.Section("spectator.gap");if(qaFreeze)return;
    var h=HostOf;if(h!=null){if(GameCamera==null)GameCamera=h.GameCamera;portraitCamera=h.portraitCamera;if(reducedMotion!=h.reducedMotion){reducedMotion=h.reducedMotion;effects.ReducedMotion=reducedMotion;}}
    if(levelId!=game.level.id)BuildLevel();
    float raw=Mathf.Min(Time.deltaTime,.05f);bool frozen=ViewGamePaused;float dt=frozen?0:raw*(game.phase=="playing"?Mathf.Clamp(ViewGameSpeed,1,2):1);
@@ -171,9 +181,26 @@ namespace CarrotTD {
    else if(!sleep&&dormant){dormant=false;dormantClock=0;CarrotQa.Count("spectator.wake",1);}
    if(!dormant){effects.Tick(dt);UpdateExpansionScene(dt);CarrotQa.Section("spectator.effects");UpdateActors(dt);CarrotQa.Section("spectator.actors");UpdateYanks();UpdateFlight();UpdateRoutePulses(raw);}
    else{dormantClock+=raw;if(dormantClock>=.25f){dormantClock=0;UpdateActors(0);}CarrotQa.Section("spectator.dormant");}
-   UpdateCarrot(dt);if(carrot!=null&&GameCamera!=null){Vector3 face=GameCamera.transform.position-carrotPosition;face.y=0;if(face.sqrMagnitude>.01f)carrot.root.transform.rotation=Quaternion.Slerp(carrot.root.transform.rotation,Quaternion.LookRotation(face)*Quaternion.Euler(0,180,0),1-Mathf.Exp(-raw*10));}
-   DrawContactShadows();CarrotQa.Section("spectator.post");
+   if(!dormant){UpdateCarrot(dt);if(carrot!=null&&GameCamera!=null){Vector3 face=GameCamera.transform.position-carrotPosition;face.y=0;if(face.sqrMagnitude>.01f)carrot.root.transform.rotation=Quaternion.Slerp(carrot.root.transform.rotation,Quaternion.LookRotation(face)*Quaternion.Euler(0,180,0),1-Mathf.Exp(-raw*10));}DrawContactShadows();}
+   else if(dormantClock==0)DrawContactShadows();
+   CarrotQa.Section("spectator.post");
    int actors=enemies.Count+towers.Count,expect=game.enemies.Count+game.towers.Count;CarrotQa.Max("spectator.actorMismatch",dormant?0:Mathf.Abs(actors-expect));
+  }
+  /// <summary>The partner's actors are watched, not played: no shadow casting (the contact blob stays), no secondary-motion springs,
+  /// animation only while a renderer is visible, two bone influences and one mesh LOD coarser than the tier picks. Bosses keep their
+  /// shadow and full skinning (they are the partner's headline).</summary>
+  void SpectatorDiet(Actor a,bool boss){
+   if(a==null||a.model==null)return;
+   foreach(var m in a.model.GetComponentsInChildren<CarrotSecondaryMotion>(true))m.enabled=false;
+   if(a.animation!=null)a.animation.cullingType=AnimationCullingType.BasedOnRenderers;
+   if(!boss){foreach(var r in a.renderers)if(r!=null)r.shadowCastingMode=ShadowCastingMode.Off;foreach(var s in a.model.GetComponentsInChildren<SkinnedMeshRenderer>(true))s.quality=SkinQuality.Bone2;
+    foreach(var lod in a.model.GetComponentsInChildren<CarrotTierLod>(true)){lod.high=Mathf.Min(2,lod.high+1);lod.medium=Mathf.Min(2,lod.medium+1);lod.low=Mathf.Min(2,lod.low+1);if(lod.enabled){lod.enabled=false;lod.enabled=true;}}}
+   CarrotQa.Count("spectator.diet",1);
+  }
+  /// <summary>Nothing on the partner's half casts into the shadow map (the host's key light draws its shadow pass once per caster): the
+  /// combined batches are made shadowless in CombineDecoration, and the scanned props and trees the batcher cannot combine here.</summary>
+  void SpectatorDecorationShadows(List<GameObject> combined){
+   foreach(var r in decoration.GetComponentsInChildren<Renderer>(true)){if(r==null||!r.enabled||combined.Contains(r.gameObject))continue;if(r.shadowCastingMode==ShadowCastingMode.ShadowsOnly)r.enabled=false;else r.shadowCastingMode=ShadowCastingMode.Off;}
   }
   /// <summary>Under 10% of the screen (the half's rectangle projected through the host camera and clipped to the viewport) sleeps.</summary>
   bool SpectatorShouldSleep(){
@@ -211,8 +238,8 @@ namespace CarrotTD {
   void UpdateDuoHost(float raw){
    if(!DuoHost||GameCamera==null)return;
    float distance=fitDistance/Mathf.Max(.05f,zoom),scale=Mathf.Max(1,distance/Mathf.Max(1,soloFitReference));
-   if(defeatClock<0&&lastDim<=0){RenderSettings.fogStartDistance=fogStartBase*scale;RenderSettings.fogEndDistance=fogEndBase*scale;}
-   var asset=GraphicsSettings.currentRenderPipeline as UnityEngine.Rendering.Universal.UniversalRenderPipelineAsset;if(asset!=null)asset.shadowDistance=Mathf.Clamp(distance+(PrismStage?26:14),24,PrismStage?96:80);
+   if(defeatClock<0&&lastDim<=0&&Mathf.Abs(RenderSettings.fogEndDistance-fogEndBase*scale)>.05f){RenderSettings.fogStartDistance=fogStartBase*scale;RenderSettings.fogEndDistance=fogEndBase*scale;}
+   var asset=GraphicsSettings.currentRenderPipeline as UnityEngine.Rendering.Universal.UniversalRenderPipelineAsset;float shadow=Mathf.Clamp(distance+(PrismStage?26:14),24,PrismStage?96:80);if(asset!=null&&Mathf.Abs(asset.shadowDistance-shadow)>.25f)asset.shadowDistance=shadow;
    if(sound!=null)sound.ListenerX=(cameraTarget+pan).x;
    ClampHeightFog();UpdateShimmer(raw);UpdatePresence();UpdatePendingGhosts(raw);
   }
@@ -250,7 +277,10 @@ namespace CarrotTD {
    if(DuoHalves&&!CarrotDuoMaps.IsDuoLevel(game.level.id))return false;
    if(!FitDuoFrame(portrait,tangent,aspect))return false;
    // Fog and shadow reach scale with how far the view is beyond what solo frames: the own half's fit in duo, a solo map's in endless.
-   if(DuoHalves)soloFitReference=fitDistance;return true;
+   if(DuoHalves)soloFitReference=fitDistance;
+   // A resize or rotation refits: "Both" and "Watch" keep their framing for the new aspect (a glide, never a jump to the own half).
+   if(netCameraMode!="own"){var mode=netCameraMode;bool keep=reducedMotion;reducedMotion=false;NetCamera(mode);reducedMotion=keep;}
+   return true;
   }
   bool FitDuoFrame(bool portrait,float tangent,float aspect){
    var points=new List<Vector3>();var all=new List<Vector3>();
@@ -404,9 +434,10 @@ namespace CarrotTD {
   /// <summary>Each carrot's banner in its half's colour (warm gold for the local player, teal for the partner) beside the nest.</summary>
   void BuildTeamBanner(){
    if(!DuoHalves)return;Color team=HalfColour;bool z=AxisZ;Vector3 foot=z?carrotPosition+new Vector3(-.95f,0,Mathf.Sign(carrotPosition.z)*.7f):OwnWorld(OwnLocal(carrotPosition)+new Vector3(-.75f,0,.75f));
-   float y=TerrainHeight(foot);if(z)y=-.025f;var pole=Material("banner-pole",new Color(.42f,.31f,.2f),2,.3f);Primitive("Team banner pole",PrimitiveType.Cylinder,foot+Vector3.up*(y+.62f),new Vector3(.045f,.62f,.045f),pole,decoration,true);
-   var cloth=Material("banner-"+ColorUtility.ToHtmlStringRGB(team),team*.8f,-1,.2f);cloth.SetColor("_EmissionColor",team*.35f);cloth.SetFloat("_Cull",0);cloth.SetFloat("_SnowStrength",0);
-   var flag=Primitive("Team banner",PrimitiveType.Cube,foot+Vector3.up*(y+1.04f)+(z?new Vector3(.22f,0,0):new Vector3(0,0,.22f)),z?new Vector3(.42f,.3f,.02f):new Vector3(.02f,.3f,.42f),cloth,decoration);flag.GetComponent<Renderer>().shadowCastingMode=ShadowCastingMode.Off;
+   float y=TerrainHeight(foot);if(z)y=-.025f;var pole=Material("banner-pole-light",new Color(.86f,.8f,.68f),2,.3f);Primitive("Team banner pole",PrimitiveType.Cylinder,foot+Vector3.up*(y+.8f),new Vector3(.055f,.8f,.055f),pole,decoration,true);
+   Primitive("Team banner finial",PrimitiveType.Sphere,foot+Vector3.up*(y+1.64f),Vector3.one*.11f,pole,decoration,true);
+   var cloth=Material("banner-"+ColorUtility.ToHtmlStringRGB(team),team*.85f,-1,.2f);cloth.SetColor("_EmissionColor",team*.75f);cloth.SetFloat("_Cull",0);cloth.SetFloat("_SnowStrength",0);
+   var flag=Primitive("Team banner",PrimitiveType.Cube,foot+Vector3.up*(y+1.3f)+(z?new Vector3(.31f,0,0):new Vector3(0,0,.31f)),z?new Vector3(.6f,.42f,.02f):new Vector3(.02f,.42f,.6f),cloth,decoration);flag.GetComponent<Renderer>().shadowCastingMode=ShadowCastingMode.Off;
   }
 
   // ---- endless: presence, pending ghosts, builder tint ------------------------------------------------------------------------
@@ -454,6 +485,9 @@ namespace CarrotTD {
   // ---- roster warm-up ---------------------------------------------------------------------------------------------------------
   readonly HashSet<string> qaFirstSeen=new HashSet<string>();
   /// <summary>QA builds: logs each creature model's first appearance in this level (perf.mjs reads the frame around it).</summary>
+  /// <summary>True while the QA loopback scaffold (CarrotDuoViewQa) owns the duo configuration.</summary>
+  bool QaHoldsDuo(){bool held=false;QaHolds(ref held);return held;}
+  partial void QaHolds(ref bool held);
   [System.Diagnostics.Conditional("CARROT_QA")] void QaFirstSpawn(string path){if(levelId!=qaFirstLevel){qaFirstSeen.Clear();qaFirstLevel=levelId;}if(qaFirstSeen.Add(path))Debug.Log("CARROT_DUO_QA first {\"path\":\""+path+"\",\"spectator\":"+(Spectator?1:0)+",\"level\":"+levelId+"}");}
   int qaFirstLevel=-1;
   readonly Queue<string> rosterQueue=new Queue<string>();readonly List<GameObject> rosterLive=new List<GameObject>();GameObject rosterRig;int rosterFrames;

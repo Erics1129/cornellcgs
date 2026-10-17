@@ -19,13 +19,14 @@ namespace CarrotTD {
  /// Every probe logs one line: CARROT_DUO_QA <what> {json}.
  /// </summary>
  public sealed partial class CarrotView {
-  [Serializable] class DuoQaCommand {public string t="",what="",mode="";public int level,side,seat,on=-1,pad=-1,tower=-1,ticks,wave,demo,count=200,reset;public float coins,value;}
+  [Serializable] class DuoQaCommand {public string t="",what="",mode="";public int level,side,seat,on=-1,pad=-1,tower=-1,ticks,wave,demo,count=200,reset;public float coins,value,x,z,zoom;}
   sealed class DuoQaLoop {
    public string layout="";public int levelId,side,seat;public GameObject partner;public CarrotGame replica;public CarrotView view;
    public readonly List<KeyValuePair<int,string>> mirror=new List<KeyValuePair<int,string>>();public int mirrorRead,delay=3;
-   public bool bot,warping;public int botNext,warpLeft,warpWave,kindCursor,lastWave,waveCoins;public int[] padOrder;public float coins;
+   public bool bot,warping;public int botNext,warpLeft,warpWave,warpPeak=-1,kindCursor,lastWave,waveCoins;public int[] padOrder;public float coins;
   }
   DuoQaLoop duoQa;
+  partial void QaHolds(ref bool held){held=duoQa!=null;}
   static readonly CultureInfo Inv=CultureInfo.InvariantCulture;
   #if CARROT_QA && !UNITY_EDITOR
   [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)] static void DuoQaBoot(){
@@ -41,7 +42,9 @@ namespace CarrotTD {
     case "endless":DuoQaEndless(c.seat==1?1:0);break;
     case "solo":DuoQaTeardown();if(c.level>0){game.LoadLevel(c.level);duoQa=new DuoQaLoop{layout="solo",levelId=c.level,padOrder=QaPadOrder(game.level)};}else game.LoadLevel(1);break;
     case "bot":if(duoQa!=null){duoQa.bot=c.on!=0;if(duoQa.bot&&c.coins>0){duoQa.coins=c.coins;duoQa.waveCoins=Mathf.RoundToInt(c.coins/8);QaIssue("{\"type\":\"debugCoins\",\"value\":"+c.coins.ToString(Inv)+"}");}}break;
-    case "warp":if(duoQa!=null&&!duoQa.warping){duoQa.warping=true;duoQa.warpLeft=c.ticks>0?c.ticks:200000;duoQa.warpWave=c.wave;game.AutoTick=false;game.Effect-=OnEffect;if(duoQa.view!=null&&duoQa.replica!=null)duoQa.replica.Effect-=duoQa.view.OnEffect;}break;
+    case "warp":if(duoQa!=null&&!duoQa.warping){duoQa.warping=true;duoQa.warpLeft=c.ticks>0?c.ticks:200000;duoQa.warpWave=c.wave;duoQa.warpPeak=-1;game.AutoTick=false;game.Effect-=OnEffect;if(duoQa.view!=null&&duoQa.replica!=null)duoQa.replica.Effect-=duoQa.view.OnEffect;}break;
+    case "partnerRender":if(duoQa!=null&&duoQa.partner!=null){foreach(var r in duoQa.partner.GetComponentsInChildren<Renderer>(true)){if(c.on==0)r.enabled=false;else if(c.on==1)r.enabled=true;if(c.demo==1)r.shadowCastingMode=UnityEngine.Rendering.ShadowCastingMode.Off;}if(c.wave>0&&duoQa.view!=null)duoQa.view.qaFreeze=c.wave==2;}break;
+    case "look":{targetPan=new Vector3(c.x-cameraTarget.x,0,c.z-cameraTarget.z);if(c.zoom>0)targetZoom=Mathf.Clamp(c.zoom,MinZoom,portraitCamera?2.5f:2.1f);followBoss=-1;zoom=targetZoom;pan=targetPan;SnapCamera();break;}
     case "zoom":targetZoom=Mathf.Clamp(c.value,MinZoom,portraitCamera?2.5f:2.1f);followBoss=-1;ClampPan();break;
     case "camera":if(CarrotNetHooks.Camera!=null)CarrotNetHooks.Camera(c.mode);else NetCamera(c.mode);break;
     case "presence":if(CarrotNetHooks.Presence!=null)CarrotNetHooks.Presence(c.seat,c.pad,c.tower);else NetPresence(c.seat,c.pad,c.tower);break;
@@ -52,7 +55,7 @@ namespace CarrotTD {
   }
   void QaLoadDef(CarrotGame g,int id,LevelDef def){var keep=CarrotData.Levels[id-1];CarrotData.Levels[id-1]=def;try{g.LoadLevel(id);}finally{CarrotData.Levels[id-1]=keep;}}
   DuoViewConfig QaConfig(int level,int side,bool spectator){
-   var cfg=new DuoViewConfig{spectator=spectator,layout="duo",arena=CarrotDuoMaps.ArenaRect(level),own=CarrotDuoMaps.HalfRect(level,side),partner=CarrotDuoMaps.HalfRect(level,1-side),side=side,seat=0,team=new Color(1,.78f,.3f),partnerTeam=new Color(.32f,.86f,.8f),host=this};
+   var cfg=new DuoViewConfig{spectator=spectator,layout="duo",arena=CarrotDuoMaps.ArenaRect(level),own=CarrotDuoMaps.HalfRect(level,side),partner=CarrotDuoMaps.HalfRect(level,1-side),side=side,seat=0,team=spectator?new Color(.28f,.82f,.78f):new Color(1,.78f,.32f),partnerTeam=spectator?new Color(1,.78f,.32f):new Color(.28f,.82f,.78f),host=this};
    CarrotDuoMaps.Wall(level,out cfg.wallA,out cfg.wallB);return cfg;
   }
   void DuoQaSetup(int level,int side){
@@ -63,6 +66,9 @@ namespace CarrotTD {
    var go=new GameObject("CarrotPartner");go.SetActive(false);var rep=go.AddComponent<CarrotGame>();rep.AutoTick=false;rep.EnableBridge=false;
    var partnerCfg=QaConfig(level,1-side,true);if(CarrotNetHooks.AttachPartnerView!=null)CarrotNetHooks.AttachPartnerView(go,partnerCfg);else AttachPartnerView(go,partnerCfg);
    go.SetActive(true);QaLoadDef(rep,level,other);
+   // The real bridge's replica has SnapshotEnabled=false; here the component simply never updates (the driver steps it), so the
+   // loopback measures no snapshot JSON the shipped replica never builds.
+   rep.enabled=false;
    q.partner=go;q.replica=rep;q.view=go.GetComponent<CarrotView>();
    var hostCfg=QaConfig(level,side,false);if(CarrotNetHooks.ConfigureHostView!=null)CarrotNetHooks.ConfigureHostView(hostCfg);else ConfigureDuo(hostCfg);
    q.padOrder=QaPadOrder(own);Debug.Log("CARROT_DUO_QA setup {\"layout\":\"duo\",\"level\":"+level+",\"side\":"+side+"}");
@@ -91,7 +97,7 @@ namespace CarrotTD {
   public void DuoQaTick(){
    var q=duoQa;if(q==null)return;
    if(q.warping){var sw=System.Diagnostics.Stopwatch.StartNew();
-    while(sw.ElapsedMilliseconds<120&&q.warpLeft>0){if(q.bot)QaBot(true);if(game.phase!="playing"){if(game.phase=="ready"){QaIssue("{\"type\":\"start\"}");continue;}q.warpLeft=0;break;}game.StepSimulation(1f/30);QaReplica();q.warpLeft--;if(q.warpWave>0&&game.wave>=q.warpWave&&game.enemies.Count>=8){q.warpLeft=0;}}
+    while(sw.ElapsedMilliseconds<120&&q.warpLeft>0){if(q.bot)QaBot(true);if(game.phase!="playing"){if(game.phase=="ready"){QaIssue("{\"type\":\"start\"}");continue;}q.warpLeft=0;break;}game.StepSimulation(1f/30);QaReplica();q.warpLeft--;if(q.warpWave>0&&game.wave>=q.warpWave){if(q.warpPeak<0)q.warpPeak=QaOwnTicks;int alive=0;foreach(var en in game.enemies)if(en.alive)alive++;if(alive>=18||QaOwnTicks-q.warpPeak>=450)q.warpLeft=0;}}
     if(q.warpLeft<=0){q.warping=false;game.AutoTick=true;game.Effect+=OnEffect;if(q.view!=null&&q.replica!=null)q.replica.Effect+=q.view.OnEffect;Debug.Log("CARROT_DUO_QA warp {\"tick\":"+QaOwnTicks+",\"wave\":"+game.wave+",\"phase\":\""+game.phase+"\",\"alive\":"+game.enemies.Count+",\"towers\":"+game.towers.Count+"}");}
     return;}
    if(q.bot)QaBot(false);QaReplica();
@@ -140,6 +146,10 @@ namespace CarrotTD {
     var r=duoCfg.partner;var rng=new System.Random(c.seat*7+31);int made=0;sb.Append("{\"points\":[");float w=Screen.width/inputPixelScale,h=Screen.height/inputPixelScale;
     for(int i=0;i<c.count*20&&made<c.count&&r.width>0;i++){Vector3 g=new Vector3(Mathf.Lerp(r.xMin+.8f,r.xMax-.8f,(float)rng.NextDouble()),0,Mathf.Lerp(r.yMin+.8f,r.yMax-.8f,(float)rng.NextDouble()));var a=CssPoint(g,out bool front);if(!front||a.x<30||a.y<30||a.x>w-30||a.y>h-30)continue;Vector3 sp=GameCamera.WorldToScreenPoint(g);if(ClickableAt(new Vector2(sp.x,sp.y))!=null)continue;if(made++>0)sb.Append(',');sb.Append('[').Append(F(a.x)).Append(',').Append(F(a.y)).Append(']');}
     sb.Append("]}");}
+   else if(what=="visible"){
+    // Renderers drawn last frame under each top-level object, by the name of their actor or decoration parent (perf triage).
+    var groups=new Dictionary<string,int>();foreach(var root in new[]{gameObject,duoQa!=null?duoQa.partner:null}){if(root==null)continue;foreach(var r in root.GetComponentsInChildren<Renderer>(false)){if(!r.enabled||!r.isVisible)continue;var t=r.transform;string key=root.name+"/";var p=t;while(p.parent!=null&&p.parent!=root.transform&&p.parent.parent!=root.transform)p=p.parent;key+=p.name.Length>28?p.name.Substring(0,28):p.name;if(r.shadowCastingMode!=UnityEngine.Rendering.ShadowCastingMode.Off)key+=" [cast]";groups.TryGetValue(key,out var n);groups[key]=n+1;}}
+    sb.Append('{');bool first=true;foreach(var kv in groups){if(!first)sb.Append(',');first=false;sb.Append('"').Append(kv.Key.Replace("\"","'")).Append("\":").Append(kv.Value);}sb.Append('}');}
    else if(what=="counts"){sb.Append('{');bool first=true;foreach(var kv in CarrotQa.Counts){if(!first)sb.Append(',');first=false;sb.Append('"').Append(kv.Key).Append("\":").Append(kv.Value.ToString("R",Inv));}sb.Append('}');}
    else ProbeView(sb);
    Debug.Log(sb.ToString());

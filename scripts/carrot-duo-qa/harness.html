@@ -11,7 +11,9 @@ addEventListener('carrot-state', e => { qa.states++; qa.state = e.detail; if (!q
 addEventListener('carrot-net', e => { const d = e.detail; qa.net.push([Math.round(performance.now()), typeof d === 'string' ? d : JSON.stringify(d)]); if (qa.net.length > 5000) qa.net.splice(0, 2000); });
 for (const k of ['log', 'warn', 'error']) { const o = console[k]; console[k] = function () { try { const m = Array.from(arguments).map(String).join(' '); if (/CARROT_DUO|CARROT_QA_PERF|CARROT_BUILD_MS|CARROT_WARMUP|Exception|error/i.test(m)) { qa.lines.push([Math.round(performance.now()), m.slice(0, 20000)]); if (qa.lines.length > 4000) qa.lines.splice(0, 1500); } } catch (e) {} return o.apply(this, arguments); }; }
 addEventListener('error', e => qa.lines.push([Math.round(performance.now()), 'PAGEERROR ' + e.message]));
-(() => { let prev = 0, lastHeap = 0; const tick = now => { if (prev) { qa.frames.push([Math.round((now - prev) * 100) / 100, Math.round(now)]); if (qa.frames.length > 80000) qa.frames.splice(0, 20000); } prev = now;
+// WebGL draw calls per animation frame (third column of qa.frames), counted on the context prototype before Unity creates it.
+let draws = 0; { const P = window.WebGL2RenderingContext && WebGL2RenderingContext.prototype; if (P) for (const n of ['drawElements', 'drawArrays', 'drawElementsInstanced', 'drawArraysInstanced', 'drawRangeElements']) { const f = P[n]; if (f) P[n] = function () { draws++; return f.apply(this, arguments); }; } }
+(() => { let prev = 0, lastHeap = 0; const tick = now => { if (prev) { qa.frames.push([Math.round((now - prev) * 100) / 100, Math.round(now), draws]); if (qa.frames.length > 80000) qa.frames.splice(0, 20000); } prev = now; draws = 0;
   try { const m = qa.unity && qa.unity.Module; const b = m && m.HEAPU8 && m.HEAPU8.buffer ? m.HEAPU8.buffer.byteLength : 0; if (b) { if (lastHeap && b > lastHeap) qa.heapGrowths++; lastHeap = b; if (b > qa.heapPeak) qa.heapPeak = b; } } catch (e) {}
   requestAnimationFrame(tick); }; requestAnimationFrame(tick); })();
 (async () => {

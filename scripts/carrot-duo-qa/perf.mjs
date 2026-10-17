@@ -17,44 +17,56 @@ mkdirSync(OUT, { recursive: true })
 const report = { at: new Date().toISOString(), level, results: {} }
 const save = () => writeFileSync(join(OUT, 'perf.json'), JSON.stringify(report, null, 1))
 const { server, url } = await serve(build)
-const waves = { 4: 8, 8: 10, 12: 12, 16: 12, 20: 14, 24: 16, 25: 6, 26: 9, 27: 11, 28: 12 }
+// The reference bot survives to these waves on every level (L24 falls to its wave-15 boss pair), so they are the peaks measured.
+const waves = { 4: 8, 8: 10, 12: 12, 16: 12, 20: 13, 24: 14, 25: 6, 26: 8, 27: 10, 28: 11 }
 const rafFrames = page => page.evaluate(() => window.qa.frames.length)
 async function frames(page, n) { const a = await rafFrames(page); await waitFor(page, ([a, n]) => window.qa.frames.length - a >= n, [a, n], 600000, 250); return page.evaluate(([a, n]) => window.qa.frames.slice(a, a + n), [a, n]) }
 async function warpTo(page, wave) { const since = await page.evaluate(() => performance.now()); await duo(page, { t: 'warp', wave }); return waitFor(page, s => window.qa.probe('warp', s), since, 900000, 500) }
 async function prepare(page, mode, lv = level, side = 0) {
   if (mode === 'solo') { await duo(page, { t: 'solo', level: lv }); await waitFor(page, l => window.qa.state && window.qa.state.level === l, lv) }
   else { await duo(page, { t: 'duo', level: lv, side }); await waitFor(page, l => window.qa.state && window.qa.state.level === l, lv) }
-  await sleep(3000); await duo(page, { t: 'bot', on: 1, coins: 7000 }); const w = await warpTo(page, waves[lv] || 12); await sleep(800); return w
+  await sleep(3000); await duo(page, { t: 'bot', on: 1, coins: 20000 }); const w = await warpTo(page, waves[lv] || 12); await sleep(800); return w
 }
 async function sections(page, n = 600) { await duo(page, { t: 'probe', what: 'sections', reset: 1 }); const f = await frames(page, n); const s = await probe(page, 'sections'); return { ...s, frames: frameStats(f) } }
 
 try {
   if (only.includes('cpu')) {
-    const ctx = await open({ url, name, size: [1440, 900] }); const { page } = ctx; await send(page, 'Quality', 'high')
-    const r = {}
-    r.soloWarp = await prepare(page, 'solo'); r.solo = await sections(page)
-    r.duoWarp = await prepare(page, 'duo'); await duo(page, { t: 'camera', mode: 'both' }); await sleep(2500); r.duoBoth = await sections(page); r.duoBothView = await probe(page, 'view')
-    await duo(page, { t: 'camera', mode: 'own' }); await sleep(2500); let v = await probe(page, 'view')
-    if (!v.partner.dormant) { await duo(page, { t: 'zoom', value: 1.6 }); await sleep(2500); v = await probe(page, 'view') }
-    r.duoOwn = await sections(page); r.duoOwnView = v
-    const solo = r.solo.viewMs + r.solo.spectatorMs
-    r.ratioBoth = (r.duoBoth.viewMs + r.duoBoth.spectatorMs) / solo; r.ratioOwnPartnerOff = (r.duoOwn.viewMs + r.duoOwn.spectatorMs) / solo
-    r.pass = { both: r.ratioBoth <= 1.5, partnerOff: r.ratioOwnPartnerOff <= 1.15 }
-    console.log('cpu', JSON.stringify({ soloMs: solo, bothMs: r.duoBoth.viewMs + r.duoBoth.spectatorMs, ownMs: r.duoOwn.viewMs + r.duoOwn.spectatorMs, ratioBoth: r.ratioBoth, ratioOwn: r.ratioOwnPartnerOff, alive: [r.solo.alive, r.duoBoth.alive, r.duoBoth.partnerAlive], dormantOwn: r.duoOwn.partnerDormant }))
-    report.results.cpu = r; save(); await ctx.browser.close()
+    // Each condition runs in a fresh page, three times, interleaved (solo, Both, own; then again): one page's heap history and the
+    // OS's core scheduling move a lightly loaded main thread's sections by 20-60% between runs, so medians of fresh runs are compared.
+    const reps = Number(arg('reps', 3)), throttle = Number(arg('throttle', 1)), runs = { solo: [], duoBoth: [], duoOwn: [] }
+    for (let rep = 0; rep < reps; rep++) for (const cond of rep % 2 ? ['duoOwn', 'duoBoth', 'solo'] : ['solo', 'duoBoth', 'duoOwn']) {
+      const ctx = await open({ url, name, size: [1440, 900], throttle }); const { page } = ctx; await send(page, 'Quality', 'high')
+      const warp = await prepare(page, cond === 'solo' ? 'solo' : 'duo'); let view = null
+      if (cond === 'duoBoth') { await duo(page, { t: 'camera', mode: 'both' }); await sleep(2500) }
+      if (cond === 'duoOwn') { await sleep(2500); view = await probe(page, 'view'); if (!view.partner.dormant) { await duo(page, { t: 'zoom', value: 1.6 }); await sleep(2500); view = await probe(page, 'view') } }
+      const s = await sections(page, 900); runs[cond].push({ ms: s.viewMs + s.spectatorMs, viewMs: s.viewMs, spectatorMs: s.spectatorMs, alive: s.alive, partnerAlive: s.partnerAlive, dormant: s.partnerDormant, warp, sections: s.sections, frames: s.frames, coverage: view && view.partnerCoverage })
+      console.log('cpu run', rep, cond, JSON.stringify({ ms: s.viewMs + s.spectatorMs, spectatorMs: s.spectatorMs, alive: s.alive, partnerAlive: s.partnerAlive, dormant: s.partnerDormant }))
+      await ctx.browser.close()
+    }
+    const med = a => { const v = a.map(x => x.ms).sort((x, y) => x - y); return v[v.length >> 1] }
+    const r = { throttle, runs, solo: med(runs.solo), duoBoth: med(runs.duoBoth), duoOwn: med(runs.duoOwn) }
+    r.ratioBoth = r.duoBoth / r.solo; r.ratioOwnPartnerOff = r.duoOwn / r.solo; r.pass = { both: r.ratioBoth <= 1.5, partnerOff: r.ratioOwnPartnerOff <= 1.15 }
+    console.log('cpu', JSON.stringify({ throttle, soloMs: r.solo, bothMs: r.duoBoth, ownMs: r.duoOwn, ratioBoth: r.ratioBoth, ratioOwn: r.ratioOwnPartnerOff }))
+    report.results['cpu' + (throttle > 1 ? 'x' + throttle : '')] = r; save()
   }
   if (only.includes('phone')) {
-    const ctx = await open({ url, name, size: [844, 390], phone: true }); const { page } = ctx; await send(page, 'Quality', 'high')
-    const cdp = await ctx.context.newCDPSession(page); const r = {}
-    for (const mode of ['solo', 'duo']) {
-      await cdp.send('Emulation.setCPUThrottlingRate', { rate: 1 }); await prepare(page, mode)
-      await cdp.send('Emulation.setCPUThrottlingRate', { rate: 4 }); await sleep(3000)
-      r[mode] = frameStats(await frames(page, 600)); r[mode + 'Sections'] = await probe(page, 'sections')
-      if (mode === 'duo') { await duo(page, { t: 'camera', mode: 'both' }); await sleep(3000); r.duoBoth = frameStats(await frames(page, 600)) }
+    // Fresh page per run, interleaved, three repetitions; frames are counted from the warp's wave peak (a live final-wave crowd).
+    const reps = Number(arg('reps', 3)), runs = { solo: [], duo: [], duoBoth: [] }
+    for (let rep = 0; rep < reps; rep++) for (const cond of rep % 2 ? ['duoBoth', 'duo', 'solo'] : ['solo', 'duo', 'duoBoth']) {
+      const ctx = await open({ url, name, size: [844, 390], phone: true }); const { page } = ctx; await send(page, 'Quality', 'high')
+      const cdp = await ctx.context.newCDPSession(page)
+      const warp = await prepare(page, cond === 'solo' ? 'solo' : 'duo'); if (cond === 'duoBoth') { await duo(page, { t: 'camera', mode: 'both' }); await sleep(2000) }
+      await cdp.send('Emulation.setCPUThrottlingRate', { rate: 4 }); await sleep(1500)
+      await duo(page, { t: 'probe', what: 'sections', reset: 1 }); const f = frameStats(await frames(page, 600)); const sec = await probe(page, 'sections'); const view = await probe(page, 'view')
+      runs[cond].push({ ...f, warp, viewMs: sec.viewMs, spectatorMs: sec.spectatorMs, replicaMs: sec.sections['qa.replica'] || 0, alive: sec.alive, partnerAlive: sec.partnerAlive, coverage: view.partnerCoverage, dormant: view.partner && view.partner.dormant })
+      console.log('phone run', rep, cond, JSON.stringify({ p95: f.p95, mean: f.mean, draws: f.drawsMedian, alive: sec.alive, partnerAlive: sec.partnerAlive, viewMs: sec.viewMs, spectatorMs: sec.spectatorMs }))
+      await ctx.browser.close()
     }
+    const med = (a, k) => { const v = a.map(x => x[k]).sort((x, y) => x - y); return v[v.length >> 1] }
+    const r = { runs, solo: { p95: med(runs.solo, 'p95'), mean: med(runs.solo, 'mean') }, duo: { p95: med(runs.duo, 'p95'), mean: med(runs.duo, 'mean') }, duoBoth: { p95: med(runs.duoBoth, 'p95'), mean: med(runs.duoBoth, 'mean') } }
     r.ratioP95 = r.duo.p95 / r.solo.p95; r.ratioP95Both = r.duoBoth.p95 / r.solo.p95; r.pass = r.ratioP95 <= 1.25
     console.log('phone', JSON.stringify({ solo: r.solo, duo: r.duo, duoBoth: r.duoBoth, ratioP95: r.ratioP95, ratioP95Both: r.ratioP95Both }))
-    report.results.phone = r; save(); await ctx.browser.close()
+    report.results.phone = r; save()
   }
   if (only.includes('first')) {
     const ctx = await open({ url, name, size: [844, 390], phone: true }); const { page } = ctx; await send(page, 'Quality', 'high')
