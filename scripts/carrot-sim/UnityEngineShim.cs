@@ -150,6 +150,8 @@ namespace UnityEngine {
   static object Read(JsonElement e,Type t){
    if(t==typeof(string))return e.ValueKind==JsonValueKind.String?e.GetString():e.ValueKind==JsonValueKind.Null?null:e.ToString();
    if(t==typeof(int))return e.ValueKind==JsonValueKind.Number?(e.TryGetInt32(out int i)?i:(int)e.GetDouble()):0;
+   if(t==typeof(long))return e.ValueKind==JsonValueKind.Number?(e.TryGetInt64(out long l)?l:(long)e.GetDouble()):0L;
+   if(t==typeof(uint))return e.ValueKind==JsonValueKind.Number?(e.TryGetUInt32(out uint u)?u:(uint)e.GetDouble()):0u;
    if(t==typeof(float))return e.ValueKind==JsonValueKind.Number?(float)e.GetDouble():0f;
    if(t==typeof(double))return e.ValueKind==JsonValueKind.Number?e.GetDouble():0d;
    if(t==typeof(bool))return e.ValueKind==JsonValueKind.True||(e.ValueKind==JsonValueKind.Number&&e.GetDouble()!=0);

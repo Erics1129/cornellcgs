@@ -31,7 +31,7 @@ const scripts = join(repo, 'unity/CarrotDefense/Assets/Scripts')
 function simulationSources() {
   const files = readdirSync(scripts).filter(f => f.endsWith('.cs')).sort()
   // Duo maps and endless generators are simulation data too (static classes); CarrotNetBridge.cs is Unity glue and never picked.
-  const picked = files.filter(f => f === 'CarrotData.cs' || f === 'CarrotTypes.cs' || f === 'CarrotDuoMaps.cs' || (/^CarrotEndless.*\.cs$/.test(f)) || /partial class (CarrotGame|CarrotSimulationTests)\b/.test(readFileSync(join(scripts, f), 'utf8')))
+  const picked = files.filter(f => f === 'CarrotData.cs' || f === 'CarrotTypes.cs' || f === 'CarrotDuoMaps.cs' || f === 'CarrotNetSession.cs' || (/^CarrotEndless.*\.cs$/.test(f)) || /partial class (CarrotGame|CarrotSimulationTests)\b/.test(readFileSync(join(scripts, f), 'utf8')))
   const extra = (process.env.CARROT_SIM_EXTRA || '').split(':').filter(Boolean).map(f => resolve(f))
   return [...picked.map(f => join(scripts, f)), join(repo, 'scripts/carrot-sim/UnityEngineShim.cs'), join(repo, 'scripts/carrot-sim/Runner.cs'), ...extra]
 }

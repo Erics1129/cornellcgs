@@ -48,6 +48,8 @@ namespace CarrotTD {
   /// <summary>Slow (0..1) the real-time accumulator for realSeconds (at most 2 s) of unscaled time. Requests expire on
   /// their own, the minimum live one wins, and all are cleared on load, pause and outcome. StepSimulation is unaffected.</summary>
   public bool RequestTimeScale(float scale,float realSeconds,string reason){
+   // Multiplayer: hit-stop and slow motion are view-only; the match clock never changes rate for a presentation beat.
+   if(NetMode!=NetMode.None)return false;
    if(phase!="playing"||paused||float.IsNaN(scale)||float.IsNaN(realSeconds)||realSeconds<=0)return false;
    scale=Mathf.Clamp01(scale);realSeconds=Mathf.Min(realSeconds,2);
    timeScaleRequests.Add(new TimeScaleRequest{scale=scale,until=realClock+realSeconds,reason=reason??""});
@@ -76,7 +78,9 @@ namespace CarrotTD {
   public void AdvanceReal(float real){
    if(float.IsNaN(real)||real<0)real=0;
    realClock+=real;for(int i=timeScaleRequests.Count-1;i>=0;i--)if(timeScaleRequests[i].until<=realClock)timeScaleRequests.RemoveAt(i);
-   if(AutoTick&&!backgrounded&&!paused&&phase=="playing"){
+   // Multiplayer halves and lockstep run on the match clock (CarrotNetRules); window focus never freezes them.
+   if(NetMode!=NetMode.None){if(AutoTick)NetAdvance(real);}
+   else if(AutoTick&&!backgrounded&&!paused&&phase=="playing"){
     accumulator+=real*EffectiveRate();
     while(accumulator>=Step){
      bool held=SpeedHold;Tick(Step);accumulator-=Step;if(phase!="playing")break;
@@ -94,9 +98,9 @@ namespace CarrotTD {
   // ---- Wave plans (the exact BeginWave schedule) and the incoming preview.
   List<CarrotData.PlannedSpawn>[] wavePlans;
   float waveStartedAt;
-  void BuildPlans(){wavePlans=new List<CarrotData.PlannedSpawn>[level.waves+1];for(int w=1;w<=level.waves;w++)wavePlans[w]=CarrotData.PlanWave(level.id,w,new List<CarrotData.PlannedSpawn>());}
+  void BuildPlans(){wavePlans=new List<CarrotData.PlannedSpawn>[level.waves+1];if(isEndless){EnsurePlan(1);EnsurePlan(2);return;}for(int w=1;w<=level.waves;w++)wavePlans[w]=CarrotData.PlanWave(level.id,w,new List<CarrotData.PlannedSpawn>());}
   void EmitIncoming(int w){
-   if(wavePlans==null||w<1||w>level.waves)return;var plan=wavePlans[w];
+   if(wavePlans==null||w<1||w>level.waves)return;var plan=wavePlans[w];if(plan==null)return;
    // One cue per (category, route): air, ground, mini or boss.
    for(int c=0;c<4;c++)for(int r=0;r<level.routes.Length;r++){
     int n=0;foreach(var p in plan){if(p.route!=r)continue;string category=Category(p.kind);if(category==Categories[c])n++;}
@@ -228,13 +232,13 @@ namespace CarrotTD {
    float rate=phase=="playing"&&!paused&&!backgrounded?EffectiveRate():0;j.Num("timeScale",rate,3);j.Bool("speedHold",SpeedHold);j.Str("speedHoldReason",SpeedHoldReason);
    j.Num("waveElapsed",WaveElapsed,3);
    // Selection.
-   Vector3 at=Vector3.zero;string selKind="",superName="";int tier=0,refund=0,partners=0,spent=0;float hp=0,maxHp=0;
+   Vector3 at=Vector3.zero;string selKind="",superName="";int tier=0,refund=0,partners=0,spent=0,builder=-1;float hp=0,maxHp=0;
    if(selectionType=="pad"&&selectionId>=0&&selectionId<level.pads.Length){at=level.pads[selectionId];selKind="pad";}
-   else if(selectionType=="tower"){var t=TowerById(selectionId);if(t!=null){at=t.position;selKind=t.kind;tier=t.tier;refund=Mathf.FloorToInt(t.spent*SellRate);spent=t.spent;partners=Partners(t);superName=t.tier==5?CarrotData.Tower(t.kind).superName:"";}}
+   else if(selectionType=="tower"){var t=TowerById(selectionId);if(t!=null){at=t.position;selKind=t.kind;tier=t.tier;refund=Mathf.FloorToInt(t.spent*SellRate);spent=t.spent;partners=Partners(t);superName=t.tier==5?CarrotData.Tower(t.kind).superName:"";builder=t.builder;}}
    else if(selectionType=="enemy"){var e=EnemyById(selectionId);if(e!=null){at=e.position;selKind=e.kind;hp=e.hp;maxHp=e.maxHp;}}
    else if(selectionType=="blocker"){var b=BlockerById(selectionId);if(b!=null){at=b.position;selKind=b.kind;hp=b.hp;maxHp=b.maxHp;}}
    var sp=ScreenPoint(view,at+Vector3.up*.4f);
-   j.ObjectStart("selection");j.Str("type",selectionType);j.Str("kind",selKind);j.Str("superName",superName);j.Int("id",selectionId);j.Int("tier",tier);j.Int("refund",refund);j.Int("partners",partners);j.Int("spent",spent);j.Num("hp",hp,2);j.Num("maxHp",maxHp,2);j.Num("x",sp.x,3);j.Num("y",sp.y,3);j.ObjectEnd();
+   j.ObjectStart("selection");j.Str("type",selectionType);j.Str("kind",selKind);j.Str("superName",superName);j.Int("id",selectionId);j.Int("tier",tier);j.Int("refund",refund);j.Int("partners",partners);j.Int("spent",spent);j.Num("hp",hp,2);j.Num("maxHp",maxHp,2);j.Num("x",sp.x,3);j.Num("y",sp.y,3);if(NetMode!=NetMode.None)j.Int("builder",builder);j.ObjectEnd();
    // Monsters, minibosses and the boss.
    EnemyState boss=null;int alive=0;ordinary.Clear();hurtBars.Clear();
    j.ArrayStart("minibosses");
@@ -253,7 +257,7 @@ namespace CarrotTD {
     for(int i=0;i<ordinary.Count&&written<WorldBarCap;i++){var e=ordinary[i];if(!(e.hp<e.maxHp||e.shield>0)){WriteMonster(j,view,e);written++;}}}
    else for(int i=0;i<ordinary.Count;i++){var e=ordinary[i];bool hurt=e.hp<e.maxHp||e.shield>0;if(!hurt){if(near>=24)continue;near++;}WriteMonster(j,view,e);}
    j.ArrayEnd();
-   j.Int("enemyCount",alive);j.Str("notice",notice);j.Bool("muted",muted);j.Int("towerCount",towers.Count);
+   j.Int("enemyCount",alive);j.Str("notice",VisibleNotice());j.Bool("muted",muted);j.Int("towerCount",towers.Count);
    // Crowded soil (polish): "kind:count" for every family on the board, so the page can show the penalty before the 4th plant.
    j.ArrayStart("crowd");foreach(var d in CarrotData.Towers){int n=FamilyCount(d.id);if(n>0)j.StrItem(d.id+":"+n);}j.ArrayEnd();
    int standing=0;for(int i=0;i<blockers.Count;i++)if(blockers[i].ownerEnemy==0)standing++;
@@ -267,6 +271,7 @@ namespace CarrotTD {
    Vector3 goal=level.routes[0][level.routes[0].Length-1];var carrot=ScreenPoint(view,goal+Vector3.up*.6f);j.Num("carrotX",carrot.x,3);j.Num("carrotY",carrot.y,3);
    j.ArrayStart("spawnPoints");for(int r=0;r<level.routes.Length;r++){var p=ScreenPoint(view,level.routes[r][0]);j.ItemStart();j.Num("x",p.x,3);j.Num("y",p.y,3);j.ItemEnd();}j.ArrayEnd();
    if(boss==null)j.Null("boss");else WriteBoss(j,view,boss);
+   if(NetMode!=NetMode.None||Mode=="duo"||Mode=="endless")WriteNet(j);
    return j.End();
   }
   void WriteMonster(JsonOut j,CarrotView view,EnemyState e){
@@ -290,20 +295,20 @@ namespace CarrotTD {
    j.ArrayStart("incoming");
    if(wavePlans!=null){
     // The current wave's units still to spawn (actual schedule), then the whole next wave.
-    if(wave>=1){string kind=null;int route=-1,n=0;float first=0,last=0;
+    if(wave>=1){string kind=null,bossId=null;int route=-1,n=0;float first=0,last=0;
      for(int i=0;i<spawns.Count;i++){var s=spawns[i];if(s.wave!=wave)continue;
-      if(n>0&&(s.kind!=kind||s.route!=route)){WriteGroup(j,kind,n,route,first-waveStartedAt,last-first,wave,first-elapsed);n=0;}
-      if(n==0){kind=s.kind;route=s.route;first=s.at;}last=s.at;n++;}
-     if(n>0)WriteGroup(j,kind,n,route,first-waveStartedAt,last-first,wave,first-elapsed);}
-    int next=wave+1;if(next<=level.waves){float start=phase=="playing"&&CurrentWaveResolved()&&nextWave>0?nextWave:-1;var plan=wavePlans[next];
-     string kind=null;int route=-1,n=0;float first=0,last=0;
-     for(int i=0;i<plan.Count;i++){var s=plan[i];if(n>0&&(s.kind!=kind||s.route!=route)){WriteGroup(j,kind,n,route,first,last-first,next,start<0?-1:start+first);n=0;}if(n==0){kind=s.kind;route=s.route;first=s.at;}last=s.at;n++;}
-     if(n>0)WriteGroup(j,kind,n,route,first,last-first,next,start<0?-1:start+first);}
+      if(n>0&&(s.kind!=kind||s.route!=route)){WriteGroup(j,kind,n,route,first-waveStartedAt,last-first,wave,first-elapsed,bossId);n=0;}
+      if(n==0){kind=s.kind;bossId=s.boss;route=s.route;first=s.at;}last=s.at;n++;}
+     if(n>0)WriteGroup(j,kind,n,route,first-waveStartedAt,last-first,wave,first-elapsed,bossId);}
+    int next=wave+1;var plan=next<=level.waves?wavePlans[next]:null;if(plan!=null){float start=phase=="playing"&&CurrentWaveResolved()&&nextWave>0?nextWave:-1;
+     string kind=null,bossId=null;int route=-1,n=0;float first=0,last=0;
+     for(int i=0;i<plan.Count;i++){var s=plan[i];if(n>0&&(s.kind!=kind||s.route!=route)){WriteGroup(j,kind,n,route,first,last-first,next,start<0?-1:start+first,bossId);n=0;}if(n==0){kind=s.kind;bossId=s.boss;route=s.route;first=s.at;}last=s.at;n++;}
+     if(n>0)WriteGroup(j,kind,n,route,first,last-first,next,start<0?-1:start+first,bossId);}
    }
    j.ArrayEnd();
   }
-  void WriteGroup(JsonOut j,string packetKind,int count,int route,float at,float span,int w,float eta){
-   string kind=packetKind=="boss"?level.boss:packetKind;var t=CarrotData.Traits(kind);
+  void WriteGroup(JsonOut j,string packetKind,int count,int route,float at,float span,int w,float eta,string bossId=null){
+   string kind=packetKind=="boss"?(string.IsNullOrEmpty(bossId)?level.boss:bossId):packetKind;var t=CarrotData.Traits(kind);
    j.ItemStart();j.Str("kind",kind);j.Int("count",count);j.Int("route",route);j.Bool("air",t.air);j.Bool("armor",t.armor);j.Bool("shield",t.shield);j.Bool("heal",t.heal);j.Bool("mini",t.mini);j.Bool("boss",packetKind=="boss");
    j.Num("at",at,2);j.Num("span",span,2);j.Int("wave",w);j.Num("eta",eta<0?-1:eta,2);j.ItemEnd();
   }
