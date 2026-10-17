@@ -180,6 +180,8 @@ export function createDuoSession(opts: CreateSessionOptions & SessionDeps): DuoS
   async function connect(c: string, p: Profile, _rejoin: boolean): Promise<void> {
     const n = normalizeCode(c)
     if (!n.ok) throw sessionError(n.ambiguous ? 'bad-code' : 'room-not-found')
+    // a retry after an error, or a different room: start clean
+    if (room || match) { endMatch(!!match); room?.close(false); room = null; peer?.close(); peer = null; transport = null; view = null; seat = null; lockRelease?.(); lockRelease = null }
     profile = p
     code = n.code
     const rec = readRecord(code)
@@ -328,6 +330,7 @@ export function createDuoSession(opts: CreateSessionOptions & SessionDeps): DuoS
     else if (f.kind === 5) { const sent = lobbyPings.get(f.id); if (sent !== undefined) { lobbyPings.delete(f.id); stats.rtt(now() - sent) } }
   }
   let answeredRestore = 0
+  let qualityDropped = false
   /** The partner reloaded and is rebuilding: its frames are back, but the match must not resume until it says so. */
   let partnerRestoring = false
   const lobbyPings = new Map<number, number>()
@@ -389,6 +392,9 @@ export function createDuoSession(opts: CreateSessionOptions & SessionDeps): DuoS
       case 'resyncFailed': connectionEnded(); return
       case 'lockstep':
         if (e.event.type === 'stall') set({ waiting: e.event.on })
+        // slow-peer policy: the engine that cannot keep the rate also drops its view quality tier (once; the tier stays low
+        // for the match, since forcing it back up could undo the player's own automatic tier)
+        if (e.event.type === 'slowed' && e.event.seat === seat && e.event.factor < 1 && !qualityDropped) { qualityDropped = true; engine.quality?.('low') }
         if (e.event.type === 'protocol') onDesync(match?.ls?.E ?? 0)
         return
       case 'blob': void onBlob(e.purpose, e.body); return

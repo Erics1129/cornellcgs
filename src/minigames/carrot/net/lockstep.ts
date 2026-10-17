@@ -49,6 +49,7 @@ export type LockstepOptions = {
  * Starting delay from the lobby RTT p95: 2 + ceil((rtt/2 + 15 ms + frame interval) / tick), and one more tick on the relay for
  * TCP loss recovery. P2P frames go out when the commit moves (no interval); the relay coalesces to 10 Hz (100 ms).
  */
+const WARMUP_MS = 2000
 export function initialDelay(rttP95: number, path: PathKind): number {
   const relay = path === 'relay'
   const d = 2 + Math.ceil((Math.max(0, rttP95) / 2 + 15 + (relay ? 100 : 0)) / TICK_MS) + (relay ? 1 : 0)
@@ -98,6 +99,8 @@ export class LockstepController {
   private stallSince = 0
   private stallsRecent: number[] = []
   private lastLower = 0
+  /** Lateness and stall bumps are ignored until this local time (after begin or resume). */
+  private warmUntil = 0
   /** D we measured for the partner (from its commits' delivery), the stall bump, and what we last asked it to use. */
   private measured = 0
   private bump = 0
@@ -130,9 +133,9 @@ export class LockstepController {
   target(now = this.o.now()) { return Math.floor(this.targetF(now)) }
   private reanchor(now: number) { if (this.running && now > this.anchorTime) { this.anchorTick = this.targetF(now); this.anchorTime = now } }
   /** The clock starts (tick 0) at the room's startAt, in local ms. */
-  begin(startAtLocal: number) { this.running = true; this.anchorTick = 0; this.anchorTime = startAtLocal; this.lastAdapt = startAtLocal }
+  begin(startAtLocal: number) { this.running = true; this.anchorTick = 0; this.anchorTime = startAtLocal; this.lastAdapt = startAtLocal; this.warmUntil = startAtLocal + WARMUP_MS; this.lastLower = startAtLocal }
   /** Resume after a pause: the clock re-anchors at the executed tick and the room-stamped resume time. */
-  resume(atLocal: number) { this.frozen = false; this.anchorTick = this.E; this.anchorTime = atLocal; this.stallSince = 0; this.lateness = []; this.advEma = 0 }
+  resume(atLocal: number) { this.frozen = false; this.anchorTick = this.E; this.anchorTime = atLocal; this.stallSince = 0; this.lateness = []; this.advEma = 0; this.warmUntil = atLocal + WARMUP_MS }
   freeze() { this.frozen = true; this.stallSince = 0; this.setWaiting(false) }
   private setRate(change: () => void) {
     const now = this.o.now(), before = this.nominalRate
@@ -189,7 +192,8 @@ export class LockstepController {
     }
     while (this.partnerOps.has(this.partnerContig + 1)) this.partnerContig++
     if (f.commit > this.partnerCommit) {
-      if (this.running && !this.frozen && now > this.anchorTime) {
+      // the first moments after a (re)start carry one-off delays (the partner's clock and path settling): not a path measure
+      if (this.running && !this.frozen && now > this.warmUntil) {
         // delivery(T) = arrival of the commit covering T minus the moment the partner could first commit it (its exec reached
         // T - Dp + 1, Dp = commit - exec + 1 as this frame shows): one-way delay, frame cadence and lost frames, in ms.
         const tickMs = 1000 / (30 * this.rate), dp = Math.max(1, f.commit - f.exec + 1)
@@ -233,7 +237,7 @@ export class LockstepController {
       const d = now - this.stallSince
       this.stallSince = 0
       // Every stall is counted; only one that costs a rendered frame's worth (>= 8 ms) pushes D up.
-      if (d >= 1) { this.o.stats.stall(d); if (d >= 8) this.stallsRecent.push(now) }
+      if (d >= 1) { this.o.stats.stall(d); if (d >= 8 && now > this.warmUntil) this.stallsRecent.push(now) }
     }
     this.setWaiting(!!this.stallSince && now - this.stallSince >= STALL_NOTICE_MS)
     const p2p = this.o.path() === 'p2p'
@@ -295,10 +299,12 @@ export class LockstepController {
       if (this.stallsRecent.length >= 2) { this.bump += 1; this.stallsRecent = []; this.bumpAt = now }
       if (this.bump && now - this.bumpAt >= LOCKSTEP_D_WINDOW_MS) { this.bump -= 1; this.bumpAt = now }
       const request = this.clampD(Math.max(this.measured, LOCKSTEP_D_MIN) + this.bump)
-      if (request !== this.requested || now - this.requestedAt > 10_000) { this.requested = request; this.requestedAt = now; this.o.onEvent?.({ type: 'delay', ms: Math.round(request * tick) }) }
-      const want = this.clampD(Math.max(this.measured, this.partnerRequest ? Math.ceil(this.partnerRequest / tick - 1e-6) : 0))
+      if (this.measured && (request !== this.requested || now - this.requestedAt > 10_000)) { this.requested = request; this.requestedAt = now; this.o.onEvent?.({ type: 'delay', ms: Math.round(request * tick) }) }
+      // nothing is lowered before both sides have a measurement (the starting D comes from the lobby RTT)
+      const asked = this.partnerRequest ? Math.ceil(this.partnerRequest / tick - 1e-6) : 0
+      const want = this.clampD(Math.max(this.measured, asked))
       if (want > this.D) this.D = want
-      else if (want < this.D && now - this.lastLower >= LOCKSTEP_D_WINDOW_MS) { this.D -= 1; this.lastLower = now }
+      else if (this.measured && asked && want < this.D && now - this.lastLower >= LOCKSTEP_D_WINDOW_MS) { this.D -= 1; this.lastLower = now }
     }
     // slew toward the partner's tick (estimated from its last report)
     if (now - this.partnerExecAt < 500 && this.partnerExecAt && this.o.stats.rttSamples.length >= 2) {
