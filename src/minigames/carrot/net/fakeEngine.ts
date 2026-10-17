@@ -7,7 +7,7 @@
  * net layer must never call net() synchronously from an event handler (reentry is counted and must stay 0).
  */
 import { DIGEST_EVERY, DEEP_DIGEST_EVERY, OP_CODE, PARTNER_VIEW_HZ, TOWER_KINDS } from './protocol.ts'
-import type { EngineLink, NetIn, NetModeName, NetOut, Op, PageCommand, Seat } from './protocol.ts'
+import type { EngineLink, NetIn, NetModeName, NetOut, Op, PageCommand, Seat, SnapshotNet } from './protocol.ts'
 
 type Tower = { id: number; pad: number; kind: number; tier: number; builder: number }
 type SimState = {
@@ -118,6 +118,8 @@ export type FakeEngineOptions = {
   maxLive?: number
   /** Simulated cost per tick (ms of busy time), to emulate a slow phone. */
   tickCostMs?: number
+  /** Starting hearts (default 10). */
+  health?: number
 }
 
 export class FakeEngine implements EngineLink {
@@ -144,6 +146,8 @@ export class FakeEngine implements EngineLink {
   private ownOut: Op[] = []
   private unitySeq = 0
   private reported = new Set<string>()
+  /** The partner's half cleared before ours did (C# keeps the same memory). */
+  private partnerCleared = false
   private o: FakeEngineOptions
   constructor(o: FakeEngineOptions) { this.o = o }
 
@@ -192,7 +196,8 @@ export class FakeEngine implements EngineLink {
           this.replica = { sim: new ToySim(m.level, waves, false), queue: [], acc: 0 }
           this.shared = null
         } else { this.shared = { sim: new ToySim(m.seed, 999, true), queue: [], acc: 0 }; this.own = this.replica = null }
-        this.run = false; this.replicaExec = 0; this.stepTo = 0; this.unitySeq = 0; this.ownOut = []; this.reported.clear()
+        if (this.o.health) for (const inst of [this.own, this.replica, this.shared]) if (inst) inst.sim.st.health = this.o.health
+        this.run = false; this.replicaExec = 0; this.stepTo = 0; this.unitySeq = 0; this.ownOut = []; this.reported.clear(); this.partnerCleared = false
         this.emit({ t: 'loaded', exec: 0 })
         return
       }
@@ -203,7 +208,8 @@ export class FakeEngine implements EngineLink {
         const own = this.own?.sim.st
         if (!own) return
         if (m.outcome === 'lost' && own.phase !== 'won' && own.phase !== 'lost') { own.phase = 'lost'; this.result('lost') }
-        if (m.outcome === 'cleared' && own.hold && own.phase === 'playing') { own.phase = 'won'; this.result('won') }
+        if (m.outcome === 'cleared') this.partnerCleared = true
+        if (this.partnerCleared && own.hold && own.phase === 'playing') { own.phase = 'won'; this.result('won') }
         return
       }
       case 'step': if (this.shared) { for (const op of m.ops) this.shared.queue.push(op); this.stepTo = Math.max(this.stepTo, m.to) } return
@@ -280,7 +286,7 @@ export class FakeEngine implements EngineLink {
             if (own.sim.st.tick % DEEP_DIGEST_EVERY === 0) dd = own.sim.deepDigest()
           }
           if (own.acc > live) own.acc = 0
-          if (own.sim.st.hold && own.sim.st.phase === 'playing') this.result('cleared')
+          if (own.sim.st.hold && own.sim.st.phase === 'playing') { this.result('cleared'); if (this.partnerCleared) { own.sim.st.phase = 'won'; this.result('won') } }
           if (own.sim.st.phase === 'lost') this.result('lost')
         }
         // replica: B ticks behind the partner's report, never past it; silent catch-up when far behind
@@ -321,6 +327,12 @@ export class FakeEngine implements EngineLink {
         this.emit({ t: 'tick', exec: inst.sim.st.tick, ...(d ? { d } : {}), ...(dd ? { dd } : {}), hold: false })
       }
     } finally { this.inFrame = false }
+  }
+  snapshotNet(): SnapshotNet | null {
+    const inst = this.mode === 'duo' ? this.own : this.shared
+    if (!inst || !this.mode) return null
+    const st = inst.sim.st
+    return { mode: this.mode, seat: this.seat, side: this.seat, hold: st.hold, netTick: st.tick, matchPaused: this.matchPaused, pausedBy: -1, pending: [], ...(st.endless ? { score: Math.max(0, st.wave - 1) } : {}) }
   }
   /** QA: the local state (for asserting both peers agree). */
   stateOf(which: 'own' | 'replica' | 'shared') { const inst = which === 'own' ? this.own : which === 'replica' ? this.replica : this.shared; return inst ? inst.sim.st : null }

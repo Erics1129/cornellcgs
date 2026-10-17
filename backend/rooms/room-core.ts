@@ -271,7 +271,8 @@ export class RoomCore {
           out.push({ a: 'save' }, ...this.broadcast({ t: 'pause', on: true, by: me.seat, reason, at: now, now }))
           return out
         }
-        if (!s.pause) { if (s.resumeAt > now) out.push({ a: 'reply', msg: { t: 'pause', on: false, by: me.seat, reason, at: s.resumeAt, now } }); return out }
+        // Already running (or counting down): tell the asker when play (re)starts, so a late resume never leaves it waiting.
+        if (!s.pause) { out.push({ a: 'reply', msg: { t: 'pause', on: false, by: me.seat, reason, at: Math.max(s.resumeAt, now), now } }); return out }
         const was = s.pause.reason
         s.pause = null
         s.resumeAt = now + RESUME_DELAY_MS

@@ -107,7 +107,7 @@ export function createDuoSession(opts: CreateSessionOptions & SessionDeps): DuoS
   let partnerAwaySince = 0
   let partnerHidden = false
   let fell: Seat | -1 = -1
-  let restoring: { started: number; needOwn: boolean; needPartner: boolean; replayTarget: number; ops: Op[] | null; replaying: boolean } | null = null
+  let restoring: { started: number; needOwn: boolean; needPartner: boolean; replayTarget: number; ops: Op[] | null; replaying: boolean; infoSeen: boolean } | null = null
   let disposed = false
   let lockRelease: (() => void) | null = null
   let joinWaiter: { resolve: () => void; reject: (e: SessionError) => void } | null = null
@@ -274,7 +274,11 @@ export function createDuoSession(opts: CreateSessionOptions & SessionDeps): DuoS
         emit({ type: 'partnerResult', outcome: m.outcome })
         if (snap.mode === 'duo') {
           if (m.outcome === 'cleared') { set({ partnerHold: true }); net({ t: 'partner', outcome: 'cleared', tick: m.tick }) }
-          if (m.outcome === 'lost') { if (fell < 0) fell = m.seat; net({ t: 'partner', outcome: 'lost', tick: m.tick }) }
+          if (m.outcome === 'lost') {
+            if (snap.result?.kind === 'duoLoss' && snap.result.fell === seat && Math.abs(m.tick - snap.result.tick) <= 3) set({ result: { ...snap.result, fell: -1, fellName: '' } })
+            if (fell < 0 && snap.phase !== 'results') fell = m.seat
+            net({ t: 'partner', outcome: 'lost', tick: m.tick })
+          }
           if (m.outcome === 'unfinished') { finish({ kind: 'unfinished', level: snap.level, reason: 'desync', by: m.seat }); set({ error: sessionError('desync') }) }
         } else if (m.outcome === 'ended' || m.outcome === 'unfinished') finish({ kind: 'endless', waves: m.score ?? currentScore(), tick: m.tick, solo: snap.solo, endedBy: m.outcome === 'ended' ? 'player' : 'connection' })
         return
@@ -321,16 +325,18 @@ export function createDuoSession(opts: CreateSessionOptions & SessionDeps): DuoS
     else if (f.kind === 5) { const sent = lobbyPings.get(f.id); if (sent !== undefined) { lobbyPings.delete(f.id); stats.rtt(now() - sent) } }
   }
   let answeredRestore = 0
+  /** The partner reloaded and is rebuilding: its frames are back, but the match must not resume until it says so. */
+  let partnerRestoring = false
   const lobbyPings = new Map<number, number>()
   let lobbyPingAt = 0, lobbyPingId = 0
   function onControl(f: Extract<Frame, { kind: 6 }>) {
     switch (f.code) {
       case CONTROL.away: partnerHidden = true; if (!partnerAwaySince) partnerAwaySince = now(); set({ partnerAway: { since: partnerAwaySince, graceMs: GRACE_MS } }); emit({ type: 'partnerAway' }); if (view) applyView(view); return
       case CONTROL.back: partnerHidden = false; partnerAwaySince = 0; set({ partnerAway: null }); emit({ type: 'partnerBack' }); if (view) applyView(view); return
-      case CONTROL.restoreRequest: if ((f.a ?? 0) !== answeredRestore) { answeredRestore = f.a ?? 0; void survivorRestore() } return
+      case CONTROL.restoreRequest: partnerRestoring = true; if ((f.a ?? 0) !== answeredRestore) { answeredRestore = f.a ?? 0; void survivorRestore() } return
       case CONTROL.presence: if (snap.mode === 'endless') net({ t: 'presence', seat: partnerSeat(), pad: f.a ?? -1, tower: f.b ?? -1 }); return
       case CONTROL.restoring: set({ restoring: { seat: partnerSeat(), progress: Math.max(0, Math.min(1, (f.a ?? 0) / 100)) } }); return
-      case CONTROL.restoreInfo: if (restoring) { restoring.replayTarget = Math.max(restoring.replayTarget, f.a ?? 0) } return
+      case CONTROL.restoreInfo: if (restoring) { restoring.replayTarget = Math.max(restoring.replayTarget, f.a ?? 0); restoring.infoSeen = true } return
       case CONTROL.leave: return
     }
   }
@@ -353,7 +359,7 @@ export function createDuoSession(opts: CreateSessionOptions & SessionDeps): DuoS
     })
     const names: [string, string] = [view?.players.find(p => p.seat === 0)?.name || 'Player', view?.players.find(p => p.seat === 1)?.name || 'Player']
     net({ t: 'session', mode, level: mi.level, seat: seat ?? 0, side, seed: mi.seed, names, netVersion: NET_VERSION })
-    if (mode === 'duo') net({ t: 'clock', run: false, speed: 1 })
+    if (mode === 'duo') { net({ t: 'clock', run: false, speed: 1 }); if (rejoin) match.duo!.holdReplica = true }
     else { match.ls!.begin(local2(mi.startAt)); if (rejoin) match.ls!.freeze() }
     set({
       phase: rejoin ? 'paused' : 'starting', mode, level: mi.level, side, sides: mi.sides, countdownAt: rejoin ? null : local2(mi.startAt), countdownKind: rejoin ? null : 'start',
@@ -391,7 +397,13 @@ export function createDuoSession(opts: CreateSessionOptions & SessionDeps): DuoS
   function onResult(e: Extract<MatchEvent, { type: 'result' }>) {
     if (snap.phase === 'results') return
     if (snap.mode === 'duo') {
-      if (e.outcome === 'cleared') { set({ hold: true }); room?.send({ t: 'result', outcome: 'cleared', tick: e.tick, health: e.health }); return }
+      if (e.outcome === 'cleared') {
+        set({ hold: true })
+        room?.send({ t: 'result', outcome: 'cleared', tick: e.tick, health: e.health })
+        // the partner may have cleared first: tell our half again now that it holds
+        if (snap.partnerHold) net({ t: 'partner', outcome: 'cleared', tick: e.tick })
+        return
+      }
       room?.send({ t: 'result', outcome: e.outcome, tick: e.tick, health: e.health })
       if (e.outcome === 'won') finish({ kind: 'duoWin', level: snap.level, tick: e.tick, health: e.health, partnerHealth: snap.partner?.health ?? 0 })
       else {
@@ -447,7 +459,8 @@ export function createDuoSession(opts: CreateSessionOptions & SessionDeps): DuoS
       if (by !== seat && by !== -1 && reason === 'manual') emit({ type: 'partnerPaused', by })
       return
     }
-    resumeAt = local2(at)
+    resumeAt = Math.max(now(), local2(at))
+    partnerRestoring = false
     if (by === seat) lastOwnResume = now()
     if (restoring && reason === 'restore') restoring = null
     set({ countdownAt: resumeAt, countdownKind: 'resume', pauseReason: reason, restoring: null })
@@ -467,16 +480,16 @@ export function createDuoSession(opts: CreateSessionOptions & SessionDeps): DuoS
   async function rejoinerRestore(rec: Record_ | null) {
     if (!match) return
     room?.send({ t: 'pause', on: true, reason: 'restore' })
-    restoring = { started: now(), needOwn: snap.mode === 'duo', needPartner: true, replayTarget: rec?.lastExec ?? 0, ops: rec && rec.ops.length ? rec.ops : null, replaying: false }
+    restoring = { started: now(), needOwn: snap.mode === 'duo', needPartner: true, replayTarget: rec?.lastExec ?? 0, ops: rec && rec.ops.length ? rec.ops : null, replaying: false, infoSeen: false }
     startFired = true
     // ask the survivor for its state (and our own log), repeating until it arrives
     const requestId = (now() % 1e9) | 0 || 1
     const ask = () => { if (restoring && match && restoring.needPartner) { match.control(CONTROL.restoreRequest, { a: requestId }); setTimeout(ask, 1500) } }
     ask()
     if (snap.mode === 'duo') {
-      // wait (briefly) for the survivor's copy of our log and its view of our tick
+      // wait (briefly) for the survivor's view of our tick and, if our record has no log, its copy of our log
       const t0 = now()
-      while (restoring && !restoring.ops && now() - t0 < 4000) await sleep(50)
+      while (restoring && (!restoring.ops || !restoring.infoSeen) && now() - t0 < 4000) await sleep(50)
       if (!restoring || !match) return
       const ops = restoring.ops ?? []
       match.duo!.restoreOwn(ops, restoring.replayTarget)
@@ -617,7 +630,7 @@ export function createDuoSession(opts: CreateSessionOptions & SessionDeps): DuoS
       set({ partnerAway: { since: partnerAwaySince, graceMs: GRACE_MS } })
       room?.send({ t: 'pause', on: true, reason: 'silence' })
       room?.send({ t: 'peer-silent' })
-    } else if (silencePaused && silence < 500 && transport.lastHeard && snap.phase === 'paused' && snap.pauseReason === 'silence') {
+    } else if (silencePaused && !partnerRestoring && silence < 500 && transport.lastHeard && snap.phase === 'paused' && snap.pauseReason === 'silence') {
       silencePaused = false
       partnerAwaySince = 0
       set({ partnerAway: null })

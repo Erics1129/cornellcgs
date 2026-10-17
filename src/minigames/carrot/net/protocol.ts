@@ -480,8 +480,8 @@ export type SessionError = { code: ErrorCode; message: string; retry: boolean }
 export type DuoResult =
   /** Both halves cleared: each device records its own half's win through the page's award path. */
   | { kind: 'duoWin'; level: number; tick: number; health: number; partnerHealth: number }
-  /** A carrot fell (fell = the seat whose carrot it was). */
-  | { kind: 'duoLoss'; level: number; tick: number; fell: Seat; fellName: string; wave: number }
+  /** A carrot fell (fell = the seat whose carrot it was; -1 when both fell within the same few ticks). */
+  | { kind: 'duoLoss'; level: number; tick: number; fell: Seat | -1; fellName: string; wave: number }
   /** Nothing recorded: a player left, the grace ran out, or the connection could not keep the halves in step. */
   | { kind: 'unfinished'; level: number; reason: 'left' | 'grace' | 'desync' | 'error'; by: Seat | -1 }
   /** Two-player endless ended: waves survived (the highest fully cleared wave). */

@@ -53,6 +53,8 @@ export class DuoController {
   private dirty = false
   private o: DuoOptions
   private lastUnityS = 0
+  /** A reloaded player's replica waits for the partner's state blob (frames before it carry only the unacked tail of the log). */
+  holdReplica = false
   /** Duo frames stop while the own half is being restored (a reload): the partner keeps its view of us frozen. */
   muted = false
   constructor(o: DuoOptions) { this.o = o; this.seat = o.seat; this.partner = o.seat === 0 ? 1 : 0 }
@@ -91,7 +93,7 @@ export class DuoController {
     this.feed()
   }
   private report(check: DigestCheck | null, deep: boolean) {
-    if (!check) return
+    if (!check || this.holdReplica) return
     this.o.stats.digestsCompared = this.digests.compared + this.deep.compared
     this.o.stats.unverified = this.digests.unverified + this.deep.unverified
     if (!check.ok) this.o.onDesync?.(check, deep)
@@ -99,6 +101,7 @@ export class DuoController {
 
   /** Hands the replica every new contiguous partner op and the partner's tick (its ceiling). */
   feed(force = false) {
+    if (this.holdReplica) return
     const ops: Op[] = []
     for (let s = this.fedSeq + 1; s <= this.partnerContig; s++) { const op = this.partnerOps.get(s); if (op) ops.push(op) }
     if (!ops.length && this.partnerExec === this.fedExec && !force) return
@@ -139,6 +142,7 @@ export class DuoController {
   resetAckTo(seq: number) { this.partnerAck = Math.max(0, Math.min(seq, this.ownLog.length)); this.dirty = true }
   /** We restarted: the partner's half arrives as a state blob holding its ops up to `seq`; later ones come by frames. */
   adoptPartnerSeq(seq: number, tick: number) {
+    this.holdReplica = false
     this.partnerOps.clear(); this.partnerContig = seq; this.fedSeq = seq; this.fedExec = -1
     this.digests.reset(tick + 1); this.deep.reset(tick + 1); this.replicaExec = tick
   }
