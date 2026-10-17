@@ -81,7 +81,7 @@ namespace CarrotTD {
    Color accent=BiomeAccent();
    var aperture=Primitive("Spawn gate aperture",PrimitiveType.Quad,p+Vector3.up*(.62f+TerrainHeight(p))-dir*.2f,new Vector3(1.05f,1.05f,1),GateSurface(accent),world);aperture.transform.rotation=Quaternion.LookRotation(dir);var ar=aperture.GetComponent<Renderer>();ar.shadowCastingMode=ShadowCastingMode.Off;ar.receiveShadows=false;portalApertures.Add(ar);
    var lamp=Primitive("Gate keystone lantern",PrimitiveType.Sphere,p+Vector3.up*(1.08f+TerrainHeight(p))-dir*.18f,Vector3.one*.14f,Material("lantern",new Color(1,.76f,.22f),5,.65f,.3f),decoration);lamp.GetComponent<Renderer>().sharedMaterial.SetColor("_EmissionColor",LanternGlow);
-   if((game.level.biome=="marsh"||game.level.biome=="arena")&&lanterns.Count<2){var lightGo=new GameObject("Lantern light");lightGo.transform.SetParent(decoration,false);lightGo.transform.localPosition=p+Vector3.up*(1.1f+TerrainHeight(p))-dir*.18f;var light=lightGo.AddComponent<Light>();light.type=LightType.Point;light.range=2.6f;light.intensity=6;light.color=new Color(1,.7f,.28f);light.shadows=LightShadows.None;lanterns.Add(light);}
+   if(!Spectator&&(game.level.biome=="marsh"||game.level.biome=="arena")&&lanterns.Count<2){var lightGo=new GameObject("Lantern light");lightGo.transform.SetParent(decoration,false);lightGo.transform.localPosition=p+Vector3.up*(1.1f+TerrainHeight(p))-dir*.18f;var light=lightGo.AddComponent<Light>();light.type=LightType.Point;light.range=2.6f;light.intensity=6;light.color=new Color(1,.7f,.28f);light.shadows=LightShadows.None;lanterns.Add(light);}
    LogDecor(p-dir*.18f,0,false);
   }
   /// <summary>Lantern glass emission, capped at 4 (HDR) so the Lantern Flood never blows out under bloom.</summary>

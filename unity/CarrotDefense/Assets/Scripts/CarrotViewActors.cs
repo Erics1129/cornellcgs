@@ -52,7 +52,7 @@ namespace CarrotTD {
   /// clips every 4-7 s. Hit flinches stay on layer 1 at the view clock.
   /// </summary>
   void Animate(Actor a,string action,float speed,bool run){
-   var c=Clips(a);float viewRate=game.speed*viewScale;bool halted=game.paused||viewRate<=0;
+   var c=Clips(a);float viewRate=ViewGameSpeed*viewScale;bool halted=ViewGamePaused||viewRate<=0;
    string requested=null;float rate=speed;
    if(action=="death")requested=c.death;
    else if(action=="attack")requested=c.attack;
