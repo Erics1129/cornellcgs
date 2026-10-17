@@ -1,0 +1,15 @@
+[
+ {"id":"l01","level":1,"coins":0},
+ {"id":"l04","level":4,"coins":0},
+ {"id":"l08r","level":8,"coins":20000},
+ {"id":"l12","level":12,"coins":0},
+ {"id":"l16r","level":16,"coins":20000},
+ {"id":"l20","level":20,"coins":0},
+ {"id":"l24r","level":24,"coins":30000},
+ {"id":"l25r","level":25,"coins":20000},
+ {"id":"l26","level":26,"coins":0},
+ {"id":"l27r","level":27,"coins":30000},
+ {"id":"l28r","level":28,"coins":30000},
+ {"id":"l29","level":29,"coins":0},
+ {"id":"l29r","level":29,"coins":40000}
+]

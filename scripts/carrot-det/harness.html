@@ -1,0 +1,45 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Carrot determinism harness</title>
+<style>html,body{margin:0;background:#111;color:#ddd;font:12px monospace}canvas{width:640px;height:400px;display:block}</style></head>
+<body><canvas id="unity" width="640" height="400"></canvas><div id="status">loading</div>
+<script>
+// Exposes window.det: ready flag, the Unity instance, and helpers the Playwright runner calls.
+window.det = { ready: false, states: 0, error: null };
+addEventListener('carrot-state', () => { det.states++; if (!det.ready) { det.ready = true; document.getElementById('status').textContent = 'ready'; } });
+(async () => {
+  const base = new URLSearchParams(location.search).get('name') || 'carrot-det';
+  const s = document.createElement('script'); s.src = `/Build/${base}.loader.js`;
+  s.onload = async () => {
+    try {
+      det.unity = await createUnityInstance(document.getElementById('unity'), {
+        dataUrl: `/Build/${base}.data.unityweb`, frameworkUrl: `/Build/${base}.framework.js.unityweb`, codeUrl: `/Build/${base}.wasm.unityweb`,
+        streamingAssetsUrl: '/StreamingAssets', companyName: 'CGS', productName: 'Carrot determinism', productVersion: '1',
+      });
+      det.loaded = true;
+    } catch (e) { det.error = String(e); document.getElementById('status').textContent = 'error ' + e; }
+  };
+  s.onerror = () => { det.error = 'loader missing'; };
+  document.body.appendChild(s);
+})();
+det.send = (method, arg) => det.unity.SendMessage('CarrotDet', method, String(arg));
+// Steps `chunk` ticks per animation frame until the probe logs DONE (the runner watches the console) or `frames` elapse.
+det.pump = async (chunk, frames) => { for (let i = 0; i < frames && !det.done; i++) { det.send('Step', chunk); await new Promise(r => requestAnimationFrame(r)); } };
+// JS Math fingerprint over the same inputs as CarrotDetRunner.MathProbe (shows what host-provided math would do).
+det.jsMath = () => {
+  let s = 0x9E3779B9 >>> 0; const next = () => { s ^= s << 13; s >>>= 0; s ^= s >>> 17; s ^= s << 5; s >>>= 0; return s; };
+  const f32 = new Float32Array(1), u32 = new Uint32Array(f32.buffer), f64 = new Float64Array(1), u64 = new BigUint64Array(f64.buffer);
+  const P = 1099511628211n, M = (1n << 64n) - 1n; const mk = () => ({ h: 1469598103934665603n });
+  const mix = (o, v) => { o.h = ((o.h ^ v) * P) & M; };
+  const d = x => { f64[0] = x; return u64[0]; };
+  const sinD = mk(), powD = mk(), expD = mk(), logD = mk(), atanD = mk(), sqrtD = mk();
+  for (let i = 0; i < 200000; i++) {
+    const a = Math.fround(Math.fround((next() % 2000000) / 1000) - 1000), b = Math.fround(Math.fround((next() % 200000) / 10000) - 10), c = Math.fround(Math.fround((next() % 2000000) / 997) - 1000);
+    const x = a * 0.01;
+    mix(sinD, d(Math.sin(x))); mix(powD, d(Math.pow(0.78, (i % 7) + b * 0.1)));
+    mix(expD, d(Math.exp(b))); mix(logD, d(Math.log(Math.fround(Math.abs(a) + 1)))); mix(atanD, d(Math.atan2(b, a + 0.5))); mix(sqrtD, d(Math.sqrt(Math.abs(x))));
+    void c;
+  }
+  const hx = o => o.h.toString(16).padStart(16, '0');
+  return { sinD: hx(sinD), powD: hx(powD), expD: hx(expD), logD: hx(logD), atanD: hx(atanD), sqrtD: hx(sqrtD) };
+};
+</script></body></html>
