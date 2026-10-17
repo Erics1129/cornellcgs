@@ -214,7 +214,17 @@ namespace CarrotTD {
    if(defeatClock<0&&lastDim<=0){RenderSettings.fogStartDistance=fogStartBase*scale;RenderSettings.fogEndDistance=fogEndBase*scale;}
    var asset=GraphicsSettings.currentRenderPipeline as UnityEngine.Rendering.Universal.UniversalRenderPipelineAsset;if(asset!=null)asset.shadowDistance=Mathf.Clamp(distance+(PrismStage?26:14),24,PrismStage?96:80);
    if(sound!=null)sound.ListenerX=(cameraTarget+pan).x;
-   UpdateShimmer(raw);UpdatePresence();UpdatePendingGhosts(raw);
+   ClampHeightFog();UpdateShimmer(raw);UpdatePresence();UpdatePendingGhosts(raw);
+  }
+  Vector4 heightFogAuthored,heightFogWritten=new Vector4(-1,0,0,0);
+  /// <summary>Carrot/HeightFog integrates exp(falloff * height) in closed form, which overflows a float once the camera stands more than
+  /// ~59 u above the fog base at falloff 1.5 (the screen turns to solid fog). Solo cameras never get that high; the zoomed-out duo and
+  /// endless views can, so the host lowers the falloff just enough to stay under the limit (identical fog wherever it was valid).</summary>
+  void ClampHeightFog(){
+   var current=Shader.GetGlobalVector("_CarrotHeightFog");if(current!=heightFogWritten)heightFogAuthored=current;
+   var fog=heightFogAuthored;if(fog.x<=0||fog.z<=0||GameCamera==null){heightFogWritten=current;return;}
+   float above=GameCamera.transform.position.y-fog.y;if(above*fog.z>80)fog.z=80/above;
+   if(fog!=current)Shader.SetGlobalVector("_CarrotHeightFog",fog);heightFogWritten=fog;
   }
 
   // ---- camera -----------------------------------------------------------------------------------------------------------------
@@ -238,10 +248,17 @@ namespace CarrotTD {
    if(!DuoHost||game==null||game.level==null)return false;
    soloFitReference=SoloBoxFit(tangent,aspect);
    if(DuoHalves&&!CarrotDuoMaps.IsDuoLevel(game.level.id))return false;
+   if(!FitDuoFrame(portrait,tangent,aspect))return false;
+   // Fog and shadow reach scale with how far the view is beyond what solo frames: the own half's fit in duo, a solo map's in endless.
+   if(DuoHalves)soloFitReference=fitDistance;return true;
+  }
+  bool FitDuoFrame(bool portrait,float tangent,float aspect){
    var points=new List<Vector3>();var all=new List<Vector3>();
    foreach(var route in game.level.routes)foreach(var p in route){points.Add(p);all.Add(p);}foreach(var p in game.level.pads){points.Add(p);all.Add(p);}
    if(duoOther!=null){foreach(var route in duoOther.routes)foreach(var p in route)all.Add(p);foreach(var p in duoOther.pads)all.Add(p);}
    if(EndlessMap){var home=CarrotDuoMaps.EndlessHomeRect(duoCfg.seat);points.Clear();foreach(var p in all)if(p.x>=home.xMin&&p.x<=home.xMax)points.Add(p);}
+   // "Both" frames the whole arena: its four corners join the envelope (inset by the fit's own corner radius).
+   {var a=duoCfg.arena;if(a.width<=0)a=EndlessMap?CarrotDuoMaps.EndlessRect:CarrotDuoMaps.ArenaRect(game.level.id);for(int i=0;i<4;i++)all.Add(new Vector3((i&1)==0?a.xMin+.6f:a.xMax-.6f,0,(i&2)==0?a.yMin+.6f:a.yMax-.6f));}
    int side=duoCfg.side==1?1:0,seat=duoCfg.seat==1?1:0;
    if(AxisZ){
     // L29: the lanes stack in z. South (mirrored) looks from the south like solo's mirror; north looks from the north (yaw +180).
@@ -254,13 +271,13 @@ namespace CarrotTD {
    if(portrait){
     cameraAngle=Quaternion.Euler(50,mirrored?-88:88,0);float actor=string.IsNullOrEmpty(game.level.boss)?1.8f:2.65f;
     EnvelopeFit(points,.66f,actor,tangent,aspect,.96f,.86f,.2f,.40f,out cameraTarget,out fitDistance);
-    EnvelopeFit(all,.66f,actor,tangent,aspect,.96f,.86f,.2f,.40f,out bothTarget,out float both);bothZoom=Mathf.Clamp(fitDistance/both,.3f,1);
+    EnvelopeFit(all,.66f,actor,tangent,aspect,.96f,.86f,.2f,.40f,out bothTarget,out float both);bothZoom=Mathf.Clamp(fitDistance/both,.3f,1);endlessBothFit=both;
    }else{
     cameraAngle=Quaternion.Euler(34,mirrored?9:-9,0);
     if(EndlessMap){
      var home=CarrotDuoMaps.EndlessHomeRect(seat);float cssWidth=Screen.width/Mathf.Max(.01f,inputPixelScale);bool wide=aspect>=1.6f&&cssWidth>=1200;
-     BoxFit(new Vector3(0,0,0),14.65f,6.4f,tangent,aspect,out bothTarget,out float both);
-     if(wide){cameraTarget=bothTarget;fitDistance=both;bothZoom=1;}
+     BoxFit(new Vector3(0,0,0),14.65f,6.4f,tangent,aspect,out bothTarget,out float both);endlessBothFit=both;
+     if(wide){cameraTarget=bothTarget;fitDistance=both;bothZoom=1;points.Clear();}
      else{BoxFit(new Vector3(home.center.x,0,0),home.width*.5f-.35f,6.4f,tangent,aspect,out cameraTarget,out fitDistance);bothZoom=Mathf.Clamp(fitDistance/both,.3f,1);}
     }else{
      BoxFit(OwnWorld(Vector3.zero),7.65f,5.65f,tangent,aspect,out cameraTarget,out fitDistance);
@@ -269,8 +286,21 @@ namespace CarrotTD {
    }
    partnerTarget=new Vector3(-cameraTarget.x,cameraTarget.y,cameraTarget.z);
    if(!EndlessMap)bothTarget=new Vector3(0,cameraTarget.y,cameraTarget.z);
+   else{
+    // Twin Gates is wider and deeper than a solo map: every default framing keeps the farthest pad at 18 px of radius or more (a
+    // fingertip target on a 390 px phone), so the camera comes closer than the home-rect fit when needed and the rest is a drag away.
+    float floor=PadFloorDistance(points,cameraTarget,tangent);if(floor<fitDistance){fitDistance=floor;bothZoom=Mathf.Clamp(fitDistance/Mathf.Max(1,BothFitDistance(tangent,aspect,portrait)),.3f,1);CarrotQa.Count("duo.padFloor",1);}
+   }
    return true;
   }
+  /// <summary>Largest camera distance at which every pad of `points` shows a radius of at least 18.5 CSS px.</summary>
+  float PadFloorDistance(List<Vector3> points,Vector3 target,float tangent){
+   float cssHeight=Screen.height/Mathf.Max(.01f,inputPixelScale);float zmax=.47f*cssHeight/(2*18.5f*tangent);Vector3 forward=cameraAngle*Vector3.forward;float ahead=0;
+   foreach(var p in game.level.pads){if(points.Count>0&&!points.Contains(p))continue;ahead=Mathf.Max(ahead,Vector3.Dot(new Vector3(p.x,.12f,p.z)-target,forward));}
+   return Mathf.Max(6,zmax-ahead);
+  }
+  float endlessBothFit;
+  float BothFitDistance(float tangent,float aspect,bool portrait){return endlessBothFit;}
   /// <summary>The solo landscape fit (the +-7.65 x +-5.65 box at the solo target), the fog and distance reference.</summary>
   float SoloBoxFit(float tangent,float aspect){var keep=cameraAngle;cameraAngle=Quaternion.Euler(34,-9,0);BoxFit(Vector3.zero,7.65f,5.65f,tangent,aspect,out _,out float d);cameraAngle=keep;return d;}
   /// <summary>Solo's landscape box fit around `centre` (target = centre + (0, .35, .2)).</summary>
@@ -291,6 +321,8 @@ namespace CarrotTD {
   /// partner's half is a drag away), plus solo's zoomed-in reach; zoomed out to "Both" the span still holds. Never recentres by itself.</summary>
   void ClampDuoPan(){
    Vector3 lo=Vector3.Min(Vector3.Min(cameraTarget,partnerTarget),bothTarget),hi=Vector3.Max(Vector3.Max(cameraTarget,partnerTarget),bothTarget);
+   // Twin Gates' default view can be closer than the map (the pad-size floor): the centre may then roam the whole map at zoom 1.
+   if(EndlessMap){var m=CarrotDuoMaps.EndlessRect;lo.x=Mathf.Min(lo.x,m.xMin+5);hi.x=Mathf.Max(hi.x,m.xMax-5);lo.z=Mathf.Min(lo.z,m.yMin+3);hi.z=Mathf.Max(hi.z,m.yMax-3);}
    float fraction=Mathf.Max(0,1-1/Mathf.Max(.01f,targetZoom)),reach=Mathf.Min(1,fraction*2.2f),extra=portraitCamera?1.7f:0;
    float hx=(routeMax.x-routeMin.x)*.5f+3,hz=(routeMax.z-routeMin.z)*.5f+3;float lx=hx*reach+extra,lz=hz*reach+extra;
    Vector3 c=cameraTarget+targetPan;c.x=Mathf.Clamp(c.x,lo.x-lx,hi.x+lx);c.z=Mathf.Clamp(c.z,lo.z-lz,hi.z+lz);targetPan=Flat(c-cameraTarget);
@@ -333,6 +365,12 @@ namespace CarrotTD {
    if(!DuoHalves||Spectator||game==null||game.level==null||!CarrotDuoMaps.IsDuoLevel(game.level.id))return;
    CarrotDuoMaps.Wall(game.level.id,out var a,out var b);bool z=AxisZ;var rng=new System.Random(4421+game.level.id*7);
    if(z)BuildPrismBrook(a,b);
+   else if(game.level.boss=="portal"){
+    // The observatory floats over the void: the wall is a row of carved pylons with teal lamps instead of dry stone.
+    var gates=new List<float>();foreach(var route in game.level.routes){var s=route[0];if(Mathf.Abs(s.x)<1.6f)gates.Add(s.z);}
+    var obsidian=Material("portal-carved-stone",new Color(.29f,.34f,.41f),1,.28f,.12f,1.7f);var teal=Material("portal-inlay",new Color(.14f,.7f,.72f),5,.6f,.4f,1);teal.SetColor("_EmissionColor",new Color(.05f,.55f,.64f));
+    for(float t=a.z+.4f;t<=b.z-.3f;t+=1.15f){bool gap=false;foreach(var g in gates)if(Mathf.Abs(t-g)<.9f)gap=true;if(gap)continue;Primitive("Divider pylon",PrimitiveType.Cylinder,new Vector3(0,-.3f,t),new Vector3(.18f,.62f,.18f),obsidian,decoration);Primitive("Divider lamp",PrimitiveType.Sphere,new Vector3(0,.4f,t),Vector3.one*.15f,teal,decoration,true);}
+   }
    else{
     var gates=new List<float>();foreach(var route in game.level.routes){var s=route[0];if(Mathf.Abs(s.x)<1.6f)gates.Add(s.z);}
     var stone=Material("entry-stone",new Color(.86f,.9f,.8f),1,.25f,0,1.8f);var cap=Material("duo-wall-cap",game.level.biome=="frost"?new Color(.9f,.94f,1):new Color(.82f,.8f,.7f),1,.3f,0,1.6f);
@@ -414,6 +452,10 @@ namespace CarrotTD {
   static Mesh BuilderRingMesh(){if(builderRing!=null)return builderRing;const int n=40;float inner=.42f,outer=.5f;var v=new Vector3[(n+1)*2];var c=new Color[v.Length];var t=new int[n*6];for(int i=0;i<=n;i++){float a=i*Mathf.PI*2/n;var d=new Vector3(Mathf.Cos(a),0,Mathf.Sin(a));v[i*2]=d*inner;v[i*2+1]=d*outer;c[i*2]=c[i*2+1]=Color.white;if(i<n){int k=i*6,b=i*2;t[k]=b;t[k+1]=b+1;t[k+2]=b+2;t[k+3]=b+1;t[k+4]=b+3;t[k+5]=b+2;}}builderRing=new Mesh{name="Builder ring"};builderRing.vertices=v;builderRing.colors=c;builderRing.triangles=t;builderRing.RecalculateNormals();builderRing.RecalculateBounds();return builderRing;}
 
   // ---- roster warm-up ---------------------------------------------------------------------------------------------------------
+  readonly HashSet<string> qaFirstSeen=new HashSet<string>();
+  /// <summary>QA builds: logs each creature model's first appearance in this level (perf.mjs reads the frame around it).</summary>
+  [System.Diagnostics.Conditional("CARROT_QA")] void QaFirstSpawn(string path){if(levelId!=qaFirstLevel){qaFirstSeen.Clear();qaFirstLevel=levelId;}if(qaFirstSeen.Add(path))Debug.Log("CARROT_DUO_QA first {\"path\":\""+path+"\",\"spectator\":"+(Spectator?1:0)+",\"level\":"+levelId+"}");}
+  int qaFirstLevel=-1;
   readonly Queue<string> rosterQueue=new Queue<string>();readonly List<GameObject> rosterLive=new List<GameObject>();GameObject rosterRig;int rosterFrames;
   /// <summary>Queues every creature model the match can bring (duo: this level's waves, boss and minibosses; endless: the whole roster
   /// except Asuna). StepRosterWarm instantiates two per frame on a pin-sized rig in front of the camera (a few pixels), renders them

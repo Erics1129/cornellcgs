@@ -19,7 +19,7 @@ namespace CarrotTD {
  /// Every probe logs one line: CARROT_DUO_QA <what> {json}.
  /// </summary>
  public sealed partial class CarrotView {
-  [Serializable] class DuoQaCommand {public string t="",what="",mode="";public int level,side,seat,on=-1,pad=-1,tower=-1,ticks,wave,demo,count=200;public float coins;}
+  [Serializable] class DuoQaCommand {public string t="",what="",mode="";public int level,side,seat,on=-1,pad=-1,tower=-1,ticks,wave,demo,count=200,reset;public float coins,value;}
   sealed class DuoQaLoop {
    public string layout="";public int levelId,side,seat;public GameObject partner;public CarrotGame replica;public CarrotView view;
    public readonly List<KeyValuePair<int,string>> mirror=new List<KeyValuePair<int,string>>();public int mirrorRead,delay=3;
@@ -39,9 +39,10 @@ namespace CarrotTD {
    switch(c.t){
     case "duo":DuoQaSetup(c.level,c.side==1?1:0);break;
     case "endless":DuoQaEndless(c.seat==1?1:0);break;
-    case "solo":DuoQaTeardown();game.LoadLevel(1);break;
+    case "solo":DuoQaTeardown();if(c.level>0){game.LoadLevel(c.level);duoQa=new DuoQaLoop{layout="solo",levelId=c.level,padOrder=QaPadOrder(game.level)};}else game.LoadLevel(1);break;
     case "bot":if(duoQa!=null){duoQa.bot=c.on!=0;if(duoQa.bot&&c.coins>0){duoQa.coins=c.coins;duoQa.waveCoins=Mathf.RoundToInt(c.coins/8);QaIssue("{\"type\":\"debugCoins\",\"value\":"+c.coins.ToString(Inv)+"}");}}break;
     case "warp":if(duoQa!=null&&!duoQa.warping){duoQa.warping=true;duoQa.warpLeft=c.ticks>0?c.ticks:200000;duoQa.warpWave=c.wave;game.AutoTick=false;game.Effect-=OnEffect;if(duoQa.view!=null&&duoQa.replica!=null)duoQa.replica.Effect-=duoQa.view.OnEffect;}break;
+    case "zoom":targetZoom=Mathf.Clamp(c.value,MinZoom,portraitCamera?2.5f:2.1f);followBoss=-1;ClampPan();break;
     case "camera":if(CarrotNetHooks.Camera!=null)CarrotNetHooks.Camera(c.mode);else NetCamera(c.mode);break;
     case "presence":if(CarrotNetHooks.Presence!=null)CarrotNetHooks.Presence(c.seat,c.pad,c.tower);else NetPresence(c.seat,c.pad,c.tower);break;
     case "pending":QaPending(c.demo!=0);break;
@@ -124,7 +125,11 @@ namespace CarrotTD {
   Vector2 CssPoint(Vector3 world,out bool front){Vector3 s=GameCamera.WorldToScreenPoint(world);front=s.z>0;float k=Mathf.Max(.01f,inputPixelScale);return new Vector2(s.x/k,(Screen.height-s.y)/k);}
   void DuoQaProbe(DuoQaCommand c){
    var sb=new StringBuilder(2048);string what=string.IsNullOrEmpty(c.what)?"view":c.what;sb.Append("CARROT_DUO_QA ").Append(what).Append(' ');
-   if(what=="digest"){sb.Append("{\"digest\":\"").Append(game.Digest().ToString("x16")).Append("\",\"discrete\":\"").Append(game.DiscreteDigest().ToString("x16")).Append("\",\"selection\":\"").Append(game.selectionType).Append("\",\"tick\":").Append(QaOwnTicks).Append('}');}
+   if(what=="digest"){sb.Append("{\"digest\":\"").Append(game.Digest().ToString("x16")).Append("\",\"discrete\":\"").Append(game.DiscreteDigest().ToString("x16")).Append("\",\"selection\":\"").Append(game.selectionType).Append("\",\"selectionId\":").Append(game.selectionId).Append(",\"coins\":").Append(game.coins).Append(",\"towers\":").Append(game.towers.Count).Append(",\"tick\":").Append(QaOwnTicks).Append(",\"paused\":").Append(game.paused?1:0).Append('}');}
+   else if(what=="sections"){if(c.reset!=0){CarrotQa.Reset();sb.Append("{\"reset\":1}");}else{int frames=Mathf.Max(1,CarrotQa.SectionFrames);double view=0,spectator=0,qa=0;sb.Append("{\"frames\":").Append(frames).Append(",\"sections\":{");bool first=true;
+     foreach(var kv in CarrotQa.sectionTotals){double ms=kv.Value/frames;if(kv.Key.StartsWith("qa.")||kv.Key=="spectator.gap")qa+=ms;else if(kv.Key.StartsWith("spectator."))spectator+=ms;else view+=ms;if(!first)sb.Append(',');first=false;sb.Append('"').Append(kv.Key).Append("\":").Append(ms.ToString("F4",Inv));}
+     sb.Append("},\"viewMs\":").Append(view.ToString("F4",Inv)).Append(",\"spectatorMs\":").Append(spectator.ToString("F4",Inv)).Append(",\"qaMs\":").Append(qa.ToString("F4",Inv)).Append(",\"alive\":").Append(game.enemies.Count);
+     if(duoQa!=null&&duoQa.replica!=null)sb.Append(",\"partnerAlive\":").Append(duoQa.replica.enemies.Count).Append(",\"partnerDormant\":").Append(duoQa.view!=null&&duoQa.view.dormant?1:0);sb.Append('}');}}
    else if(what=="pads"){
     float min=999;int selectable=0;sb.Append("{\"pads\":[");Vector3 right=GameCamera.transform.right;right.y=0;right.Normalize();
     for(int i=0;i<game.level.pads.Length;i++){Vector3 p=game.level.pads[i];p.y=TerrainHeight(p)+.12f;var a=CssPoint(p,out bool fa);var b=CssPoint(p+right*.47f,out bool fb);float r=(b-a).magnitude;bool on=fa&&a.x>=0&&a.y>=0&&a.x<=Screen.width/inputPixelScale&&a.y<=Screen.height/inputPixelScale;
@@ -150,6 +155,7 @@ namespace CarrotTD {
    sb.Append(",\"angle\":").Append(V(cameraAngle.eulerAngles)).Append(",\"target\":").Append(V(cameraTarget)).Append(",\"settled\":").Append(Mathf.Abs(zoom-targetZoom)<.002f&&(pan-targetPan).magnitude<.01f?1:0);
    int inView=0;var arena=duoCfg.arena;if(arena.width>0)for(int i=0;i<4;i++){Vector3 v=GameCamera.WorldToViewportPoint(new Vector3((i&1)==0?arena.xMin:arena.xMax,0,(i&2)==0?arena.yMin:arena.yMax));if(v.z>0&&v.x>=0&&v.x<=1&&v.y>=0&&v.y<=1)inView++;}
    Vector3 ov=GameCamera.WorldToViewportPoint(new Vector3(duoCfg.own.center.x,0,duoCfg.own.center.y)),pv=GameCamera.WorldToViewportPoint(new Vector3(duoCfg.partner.center.x,0,duoCfg.partner.center.y));
+   sb.Append(",\"partnerCoverage\":").Append(F(duoCfg.partner.width>0?ViewCoverage(duoCfg.partner):0)).Append(",\"fog\":[").Append(F(RenderSettings.fogStartDistance)).Append(',').Append(F(RenderSettings.fogEndDistance)).Append("],\"heightFog\":").Append(V(Shader.GetGlobalVector("_CarrotHeightFog")));
    sb.Append(",\"arenaCornersInView\":").Append(inView).Append(",\"ownVp\":").Append(V(ov)).Append(",\"partnerVp\":").Append(V(pv)).Append(",\"ownNearer\":").Append(ov.y<pv.y?1:0);
    sb.Append(",\"hostSun\":").Append(sun!=null&&sun.enabled&&sun.gameObject.activeInHierarchy?1:0).Append(",\"digest\":\"").Append(game.Digest().ToString("x16")).Append('"');
    // Props must stay out of the wall strip (|x| < .5 on axis X, |z| < .5 on L29).

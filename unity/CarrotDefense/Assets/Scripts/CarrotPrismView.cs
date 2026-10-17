@@ -17,7 +17,7 @@ namespace CarrotTD {
    // starts closer so the distant shards and gardens read as depth.
    RenderSettings.fogColor=new Color(.80f,.84f,.94f);RenderSettings.fogStartDistance=38;RenderSettings.fogEndDistance=150;
    skyMaterial.SetColor("_Zenith",new Color(.34f,.56f,.86f));skyMaterial.SetColor("_Horizon",new Color(.95f,.95f,1f));skyMaterial.SetColor("_Ground",new Color(.68f,.70f,.88f));skyMaterial.SetVector("_CarrotSunDir",-sun.transform.forward);skyMaterial.SetColor("_SunColor",new Color(1,.94f,.82f));skyMaterial.SetFloat("_SunSize",.025f);skyMaterial.SetFloat("_SunGlow",.24f);skyMaterial.SetFloat("_Stars",0);skyMaterial.SetFloat("_Aurora",0);skyMaterial.SetFloat("_CloudAmount",.37f);skyMaterial.SetColor("_CloudColor",new Color(.94f,.97f,1));
-   Shader.SetGlobalVector("_CarrotHeightFog",new Vector4(CarrotQuality.Rich?.012f:0,-2,1.5f,0));Shader.SetGlobalColor("_CarrotHeightFogColor",RenderSettings.fogColor);sunBase=sun.intensity;fogEndBase=RenderSettings.fogEndDistance;if(bossSpot!=null)bossSpot.intensity=16;
+   Shader.SetGlobalVector("_CarrotHeightFog",new Vector4(CarrotQuality.Rich?.012f:0,-2,1.5f,0));Shader.SetGlobalColor("_CarrotHeightFogColor",RenderSettings.fogColor);sunBase=sun.intensity;fogEndBase=RenderSettings.fogEndDistance;fogStartBase=RenderSettings.fogStartDistance;if(bossSpot!=null)bossSpot.intensity=16;
   }
   Material PrismCeramic(string id,Color color,float gloss=.65f,float metal=.16f){var m=Material("prism-"+id,color,-1,gloss,metal);m.SetFloat("_SnowStrength",0);m.SetFloat("_ReflectionStrength",.52f);return m;}
   // ---- polish: glazed ceramic tiles (procedural, self-made) ---------------------------------------------------------------------
