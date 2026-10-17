@@ -7,59 +7,7 @@
  * surface at a time (the lobby sheet or the reveal card); nothing in-game blurs; animations move transform and opacity only, and
  * reduced motion (the OS setting or the page's Reduced effects) leaves opacity alone.
  */
-/* The site's base layer squares every focus ring (border-radius: 0 !important). An important declaration in the first layer outranks
-   the later layers' important ones, so the ring here follows each control's own radius (--gl-radius, set per control below). */
-@layer carrot.tokens {
-  .ct-duo :focus-visible { border-radius: var(--gl-radius, 14px) !important; outline-offset: 3px !important; }
-}
-
-.ct-duo-layer { display: contents; }
-.ct-duo {
-  --duo-ink: var(--ink, #f2f6ff); --duo-ink-2: var(--ink-2, #c3cddd); --duo-ink-3: var(--ink-3, #93a1b8);
-  --duo-accent: var(--accent, #b3d944); --duo-accent-ink: var(--accent-ink, #10180a);
-  --duo-light: var(--gl-light, 255 255 255); --duo-tint: var(--gl-tint, 12 18 32);
-  --duo-me: #ffcf5a; --duo-me-ink: #241700; --duo-partner: #5fe3d0; --duo-partner-ink: #03201b;
-  --duo-good: var(--grow, #b3d944); --duo-warn: var(--coin, #ffcc22); --duo-threat: var(--threat, #ff66aa); --duo-leak: var(--leak, #ff5d5d);
-  --duo-ease: var(--e-out, cubic-bezier(.23, 1, .32, 1)); --duo-spring: var(--e-spring, cubic-bezier(.2, 1.15, .3, 1));
-  --duo-gutter: max(16px, var(--gutter, 12px));
-  --duo-shadow: 0 2px 6px rgb(0 0 0 / .2), 0 18px 40px -16px rgb(0 0 0 / .62);
-  --duo-shadow-lg: 0 4px 12px rgb(0 0 0 / .22), 0 40px 90px -24px rgb(0 0 0 / .72);
-  --duo-num: var(--f-num, 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace);
-  --duo-disp: var(--f-disp, 'Bricolage Grotesque', 'Hanken Grotesk', -apple-system, sans-serif);
-  color: var(--duo-ink);
-  font-family: var(--f-ui, 'Hanken Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif);
-  -webkit-font-smoothing: antialiased;
-}
-.ct-duo *, .ct-duo *::before, .ct-duo *::after { box-sizing: border-box; }
-.ct-duo :where(h2, h3, p, ul, li, dl, dt, dd) { margin: 0; padding: 0; }
-.ct-duo :where(ul) { list-style: none; }
-.ct-duo-sr, .ct-duo .ct-duo-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
-
-/* ---------------------------------------------------------------- the glass material (one recipe, four depths) */
-.ct-duo-sheet, .ct-duo-reveal__card, .ct-duo-results, .ct-duo-entry, .ct-duo-partner, .ct-duo-endless, .ct-duo-camera, .ct-duo-chip, .ct-duo-banner, .ct-duo-toast, .ct-duo-count {
-  --gl-a: var(--gl-a-2, .72);
-  background:
-    linear-gradient(180deg, rgb(var(--duo-light) / .075), rgb(var(--duo-light) / .015) 42%, rgb(var(--duo-light) / 0) 70%),
-    radial-gradient(120% 90% at 50% 130%, color-mix(in oklab, var(--duo-tone, var(--duo-accent)) 14%, transparent), transparent 70%),
-    rgb(var(--duo-tint) / var(--gl-a));
-  border: 1px solid rgb(var(--duo-light) / .13);
-  box-shadow: inset 0 1px 0 rgb(var(--duo-light) / .18), inset 0 -1px 0 rgb(0 0 0 / .24), var(--duo-shadow);
-  color: var(--duo-ink);
-}
-.ct-duo-sheet, .ct-duo-reveal__card { --gl-a: var(--gl-a-3, .78); border-radius: 28px; box-shadow: inset 0 1px 0 rgb(var(--duo-light) / .2), inset 0 -1px 0 rgb(0 0 0 / .26), var(--duo-shadow-lg); }
-.ct-duo-results { --gl-a: .86; border-radius: 28px; box-shadow: inset 0 1px 0 rgb(var(--duo-light) / .2), var(--duo-shadow-lg); }
-.ct-duo-partner, .ct-duo-endless { --gl-a: var(--gl-a-1, .7); border-radius: 22px; }
-.ct-duo-camera, .ct-duo-chip, .ct-duo-banner, .ct-duo-toast, .ct-duo-entry { --gl-a: var(--gl-a-1, .72); border-radius: 999px; }
-/* the one blurred surface, only on the page's real-glass tier (never while a wave runs: the page then sets data-glass='lite') */
-[data-glass='real'] .ct-duo-sheet, [data-glass='real'] .ct-duo-reveal__card { -webkit-backdrop-filter: blur(24px) saturate(160%); backdrop-filter: blur(24px) saturate(160%); }
-[data-glass='solid'] :is(.ct-duo-sheet, .ct-duo-reveal__card, .ct-duo-results, .ct-duo-entry, .ct-duo-partner, .ct-duo-endless, .ct-duo-camera, .ct-duo-chip, .ct-duo-banner, .ct-duo-toast) { --gl-a: var(--gl-a-solid, .94); -webkit-backdrop-filter: none; backdrop-filter: none; }
-@media (prefers-reduced-transparency: reduce) {
-  :is(.ct-duo-sheet, .ct-duo-reveal__card, .ct-duo-results, .ct-duo-entry, .ct-duo-partner, .ct-duo-endless, .ct-duo-camera, .ct-duo-chip, .ct-duo-banner, .ct-duo-toast) { --gl-a: .95; -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
-}
-@media (prefers-contrast: more) {
-  :is(.ct-duo-sheet, .ct-duo-reveal__card, .ct-duo-results, .ct-duo-partner, .ct-duo-endless, .ct-duo-camera, .ct-duo-chip, .ct-duo-banner, .ct-duo-toast) { --gl-a: .96; border-color: rgb(255 255 255 / .5); }
-  .ct-duo { --duo-ink-2: var(--duo-ink); --duo-ink-3: #d6deea; }
-}
+/* duo-base.css (loaded with the page) holds the tokens, the glass recipe, the entry pill, the page-root marks and the keyframes. */
 
 /* ---------------------------------------------------------------- type */
 .ct-duo-kicker { display: block; font-weight: 700; font-size: 11px; line-height: 1.2; font-family: inherit; letter-spacing: .16em; text-transform: uppercase; color: var(--duo-ink-3); }
@@ -135,24 +83,6 @@
 .ct-duo-seg__btn { --gl-radius: 999px; min-height: 44px; padding: 0 14px; border: 0; border-radius: 999px; background: transparent; color: var(--duo-ink-2); font-weight: 700; font-size: 13px; line-height: 1.1; font-family: inherit; cursor: pointer; transition: background-color 200ms var(--duo-ease), color 200ms; }
 .ct-duo-seg__btn[aria-checked='true'] { color: var(--duo-ink); background: rgb(var(--duo-light) / .14); box-shadow: inset 0 1px 0 rgb(var(--duo-light) / .2), 0 4px 12px -6px rgb(0 0 0 / .6); }
 .ct-duo-seg__btn:disabled { opacity: .45; cursor: default; }
-
-/* ---------------------------------------------------------------- entry pill on the title screen */
-.ct-duo-entry {
-  --gl-radius: 999px; --duo-tone: var(--duo-partner);
-  position: absolute; z-index: 30; left: 50%; bottom: calc(var(--safe-b, 16px) + 58px); translate: -50% 0;
-  display: inline-flex; align-items: center; gap: 12px; width: max-content; min-height: 56px; max-width: calc(100vw - 32px); padding: 6px 22px 6px 6px; cursor: pointer;
-  font: inherit; text-align: left; animation: duo-rise 520ms var(--duo-ease) 400ms both;
-  transition: transform 420ms var(--duo-spring), border-color 160ms;
-}
-.ct-duo-entry:hover { border-color: rgb(var(--duo-light) / .26); }
-.ct-duo-entry:active { transform: scale(.97); transition-duration: 90ms; }
-.ct-duo-entry__icon { display: grid; place-items: center; width: 44px; height: 44px; flex: none; border-radius: 999px; color: var(--duo-partner-ink); background: radial-gradient(90% 90% at 30% 20%, #e4fffa, var(--duo-partner) 62%, #2fb3a2); box-shadow: inset 0 1px 0 rgb(255 255 255 / .6), 0 6px 16px -6px color-mix(in oklab, var(--duo-partner) 80%, transparent); }
-.ct-duo-entry__icon .ct-duo-glyph { width: 22px; height: 22px; }
-.ct-duo-entry__text { display: grid; gap: 3px; min-width: 0; }
-.ct-duo-entry__text b { font: 800 15px/1.1 var(--duo-disp); }
-.ct-duo-entry__text small { font-size: 12px; color: var(--duo-ink-2); letter-spacing: .02em; }
-.ct-duo-entry.is-compact { position: static; translate: none; width: auto; min-height: 44px; padding: 0 16px 0 0; gap: 8px; animation: none; }
-.ct-duo-entry.is-compact .ct-duo-entry__icon { width: 44px; height: 44px; }
 
 /* ---------------------------------------------------------------- the lobby overlay */
 .ct-duo-lobby, .ct-duo-reveal { position: absolute; inset: 0; z-index: 45; display: grid; place-items: center; padding: var(--duo-gutter); padding-top: max(var(--duo-gutter), env(safe-area-inset-top)); padding-bottom: max(var(--duo-gutter), env(safe-area-inset-bottom)); }
@@ -284,9 +214,9 @@
 /* ---------------------------------------------------------------- the in-game rail (left edge) */
 .ct-duo-rail { position: absolute; z-index: 8; left: var(--safe-l, 12px); top: 50%; translate: 0 -50%; width: 216px; display: grid; gap: 8px; pointer-events: none; animation: duo-fade 300ms var(--duo-ease) both; }
 .ct-duo-rail > * { pointer-events: auto; }
-.ct-duo-partner { --duo-tone: var(--duo-partner); display: grid; gap: 8px; padding: 10px 12px 12px; }
+.ct-duo-partner { --tone: var(--duo-partner); display: grid; gap: 8px; padding: 10px 12px 12px; }
 .ct-duo-partner[data-state='away'] { opacity: .72; }
-.ct-duo-partner[data-state='hold'] { --duo-tone: var(--duo-good); }
+.ct-duo-partner[data-state='hold'] { --tone: var(--duo-good); }
 .ct-duo-partner__head { display: flex; align-items: center; gap: 8px; min-width: 0; }
 .ct-duo-partner__name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 800 14px/1.1 var(--duo-disp); }
 .ct-duo-partner__side { font-size: 10px; font-weight: 800; letter-spacing: .14em; color: var(--duo-partner); }
@@ -321,7 +251,7 @@
 .ct-duo-conn[data-state='hiccup'] i, .ct-duo-conn[data-state='reconnecting'] i { background: var(--duo-warn); box-shadow: 0 0 0 3px color-mix(in oklab, var(--duo-warn) 25%, transparent); animation: duo-pulse 1s ease-in-out infinite; }
 .ct-duo-conn[data-state='offline'] i { background: var(--duo-leak); box-shadow: none; }
 /* endless card */
-.ct-duo-endless { --duo-tone: var(--duo-accent); display: grid; gap: 9px; padding: 11px 12px 12px; }
+.ct-duo-endless { --tone: var(--duo-accent); display: grid; gap: 9px; padding: 11px 12px 12px; }
 .ct-duo-endless__top { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "kicker kicker" "wave score"; align-items: end; gap: 4px 8px; }
 .ct-duo-endless__top .ct-duo-kicker { grid-area: kicker; }
 .ct-duo-endless__wave { grid-area: wave; display: flex; align-items: baseline; gap: 6px; font: 800 24px/1 var(--duo-num); }
@@ -347,24 +277,24 @@
 
 /* ---------------------------------------------------------------- banners, toasts, the countdown */
 .ct-duo-banners { position: absolute; z-index: 10; left: 50%; bottom: calc(max(108px, 15%) + 64px); translate: -50% 0; width: max-content; max-width: calc(100% - 32px); pointer-events: none; }
-.ct-duo-banner { --duo-tone: var(--duo-accent); display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px 14px; min-height: 48px; padding: 6px 8px 6px 20px; pointer-events: auto; animation: duo-rise 300ms var(--duo-ease) both; }
-.ct-duo-banner[data-tone='warn'] { --duo-tone: var(--duo-warn); } .ct-duo-banner[data-tone='good'] { --duo-tone: var(--duo-good); } .ct-duo-banner[data-tone='info'] { --duo-tone: var(--duo-partner); }
+.ct-duo-banner { --tone: var(--duo-accent); display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px 14px; min-height: 48px; padding: 6px 8px 6px 20px; pointer-events: auto; animation: duo-rise 300ms var(--duo-ease) both; }
+.ct-duo-banner[data-tone='warn'] { --tone: var(--duo-warn); } .ct-duo-banner[data-tone='good'] { --tone: var(--duo-good); } .ct-duo-banner[data-tone='info'] { --tone: var(--duo-partner); }
 .ct-duo-banner:not(:has(.ct-duo-banner__actions)) { padding-right: 20px; }
 .ct-duo-banner__text { font-size: 14px; font-weight: 700; text-align: center; }
 .ct-duo-banner__text b { margin-left: 6px; color: #ffe3a0; }
 .ct-duo-banner__actions { display: flex; gap: 6px; }
 .ct-duo-toasts { position: absolute; z-index: 16; left: 50%; bottom: calc(max(108px, 15%) + 124px); translate: -50% 0; display: grid; justify-items: center; gap: 6px; width: max-content; max-width: calc(100% - 32px); pointer-events: none; }
-.ct-duo-toast { --duo-tone: var(--duo-partner); padding: 10px 18px; font-size: 13.5px; font-weight: 700; text-align: center; animation: duo-rise 260ms var(--duo-ease) both; }
-.ct-duo-toast[data-tone='warn'] { --duo-tone: var(--duo-warn); } .ct-duo-toast[data-tone='good'] { --duo-tone: var(--duo-good); }
+.ct-duo-toast { --tone: var(--duo-partner); padding: 10px 18px; font-size: 13.5px; font-weight: 700; text-align: center; animation: duo-rise 260ms var(--duo-ease) both; }
+.ct-duo-toast[data-tone='warn'] { --tone: var(--duo-warn); } .ct-duo-toast[data-tone='good'] { --tone: var(--duo-good); }
 .ct-duo-count { position: absolute; z-index: 13; left: 50%; top: 34%; translate: -50% -50%; display: grid; justify-items: center; gap: 6px; padding: 16px 26px 18px; border-radius: 28px; pointer-events: none; }
 .ct-duo-count small { font-size: 11px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: var(--duo-ink-2); }
 .ct-duo-count b { font: 800 56px/1 var(--duo-num); animation: duo-pop 600ms var(--duo-spring) both; }
 
 /* ---------------------------------------------------------------- results */
 .ct-duo-results-wrap { position: absolute; inset: 0; z-index: 18; display: grid; place-items: center; padding: var(--duo-gutter); pointer-events: none; }
-.ct-duo-results { --duo-tone: var(--duo-accent); pointer-events: auto; width: min(580px, 100%); max-height: 100%; overflow: auto; display: grid; gap: 16px; padding: 24px; animation: duo-rise 420ms var(--duo-ease) both; }
-.ct-duo-results[data-tone='win'] { --duo-tone: var(--duo-me); }
-.ct-duo-results[data-tone='loss'] { --duo-tone: var(--duo-leak); }
+.ct-duo-results { --tone: var(--duo-accent); pointer-events: auto; width: min(580px, 100%); max-height: 100%; overflow: auto; display: grid; gap: 16px; padding: 24px; animation: duo-rise 420ms var(--duo-ease) both; }
+.ct-duo-results[data-tone='win'] { --tone: var(--duo-me); }
+.ct-duo-results[data-tone='loss'] { --tone: var(--duo-leak); }
 .ct-duo-results__head { display: grid; gap: 6px; }
 .ct-duo-results__head h2 { font: 800 clamp(26px, 4.6vw, 36px)/1.05 var(--duo-disp); letter-spacing: -.02em; }
 .ct-duo-results[data-tone='win'] h2 { color: #fff1c4; text-shadow: 0 0 28px color-mix(in oklab, var(--duo-me) 45%, transparent); }
@@ -387,30 +317,14 @@
 .ct-duo-results__actions { justify-content: flex-start; }
 .ct-duo-results-pill { position: absolute; z-index: 18; left: 50%; bottom: calc(var(--safe-b, 16px) + 16px); translate: -50% 0; }
 
-/* ---------------------------------------------------------------- the stock HUD in multiplayer (no edits to its files) */
-/* endless: "Wave 03/999" and the stage number "90" give way to the endless card's wave and score */
-.ct-page[data-duo='endless'] :is(.ct-track__wave, .ct-track__no) { display: none; }
-/* phones: the title screen keeps room under its last row for the entry pill, so nothing sits beneath it (the lobby scrolls) */
-@media (max-width: 760px), (max-height: 520px) {
-  .ct-page[data-duo-entry] .ct-lobby { padding-bottom: calc(max(16px, env(safe-area-inset-bottom)) + 68px); }
-}
-/* the results card replaces the page's own; the stock paused card never shows under it */
-.ct-page[data-duo-phase='results'] .ct-paused { display: none; }
-
-/* ---------------------------------------------------------------- motion */
-@keyframes duo-fade { from { opacity: 0; } to { opacity: 1; } }
-@keyframes duo-rise { from { opacity: 0; transform: translateY(10px) scale(.985); } to { opacity: 1; transform: none; } }
-@keyframes duo-pop { 0% { opacity: 0; transform: scale(1.35); } 60% { opacity: 1; } 100% { opacity: 1; transform: scale(1); } }
-@keyframes duo-pulse { 0%, 100% { opacity: .35; } 50% { opacity: 1; } }
 /* reduced motion (the OS setting, or the page's Reduced effects via data-motion): opacity only, short */
 @media (prefers-reduced-motion: reduce) {
-  .ct-duo :is(.ct-duo-sheet, .ct-duo-reveal__card, .ct-duo-results, .ct-duo-banner, .ct-duo-toast, .ct-duo-reveal__count b, .ct-duo-count b), .ct-duo-entry { animation-name: duo-fade !important; animation-duration: 200ms !important; }
-  .ct-duo :is(.ct-duo-btn, .ct-duo-icon, .ct-duo-fight, .ct-duo-entry, .ct-duo-switch::after) { transition-property: background-color, border-color, color, opacity !important; }
+  .ct-duo :is(.ct-duo-sheet, .ct-duo-reveal__card, .ct-duo-results, .ct-duo-banner, .ct-duo-toast, .ct-duo-reveal__count b, .ct-duo-count b) { animation-name: duo-fade !important; animation-duration: 200ms !important; }
+  .ct-duo :is(.ct-duo-btn, .ct-duo-icon, .ct-duo-fight, .ct-duo-switch::after) { transition-property: background-color, border-color, color, opacity !important; }
   .ct-duo .ct-duo-switch::after { transition: none !important; }
 }
-.ct-page[data-motion='reduce'] .ct-duo :is(.ct-duo-sheet, .ct-duo-reveal__card, .ct-duo-results, .ct-duo-banner, .ct-duo-toast, .ct-duo-reveal__count b, .ct-duo-count b),
-.ct-page[data-motion='reduce'] .ct-duo-entry { animation-name: duo-fade !important; animation-duration: 200ms !important; }
-.ct-page[data-motion='reduce'] .ct-duo :is(.ct-duo-btn, .ct-duo-icon, .ct-duo-fight), .ct-page[data-motion='reduce'] .ct-duo-entry { transition-property: background-color, border-color, color, opacity !important; }
+.ct-page[data-motion='reduce'] .ct-duo :is(.ct-duo-sheet, .ct-duo-reveal__card, .ct-duo-results, .ct-duo-banner, .ct-duo-toast, .ct-duo-reveal__count b, .ct-duo-count b) { animation-name: duo-fade !important; animation-duration: 200ms !important; }
+.ct-page[data-motion='reduce'] .ct-duo :is(.ct-duo-btn, .ct-duo-icon, .ct-duo-fight) { transition-property: background-color, border-color, color, opacity !important; }
 .ct-page[data-motion='reduce'] .ct-duo-switch::after { transition: none !important; }
 
 /* ---------------------------------------------------------------- narrower screens */
@@ -435,7 +349,6 @@
   .ct-duo-reveal__card { align-self: center; }
   .ct-duo-results-wrap { place-items: end stretch; }
   .ct-duo-results { padding: 20px 18px; }
-  .ct-duo-entry { bottom: calc(max(16px, env(safe-area-inset-bottom)) + 4px); }
 }
 @media (max-width: 360px) {
   .ct-duo-fights { grid-template-columns: minmax(0, 1fr); }
@@ -499,5 +412,4 @@
   .ct-duo-sheet__head { padding-top: 12px; padding-bottom: 6px; }
   .ct-duo-reveal__card { gap: 8px; padding: 16px; }
   .ct-duo-minimap { width: min(220px, 100%); }
-  .ct-duo-entry { bottom: calc(max(8px, env(safe-area-inset-bottom)) + 4px); min-height: 52px; }
 }

@@ -9,7 +9,7 @@ import type { CarrotUnity } from '../unity'
 import type { Command, GameState, Selection } from '../types'
 import type { SnapshotStore } from '../hooks/useSnapshot'
 import { LevelCount, readCampaign } from '../progress'
-import { NET_VERSION, PAUSE_COOLDOWN_MS, errorCopy as protocolCopy } from '../net/protocol.ts'
+import { NET_VERSION, PAUSE_COOLDOWN_MS, PRESENCE_HZ, errorCopy as protocolCopy } from '../net/protocol.ts'
 import type { CameraMode, CreateSessionOptions, DuoSession, DuoSnapshot, EngineLink, NetOut, PageCommand, Profile, RoomMode, SessionEvent, SessionPhase } from './contract'
 import { idleSnapshot, inMatch, isEndless, loadedFraction, partnerSeat, peerAt } from './contract'
 import { displayName, isDuoFight, readProfile, saveName, ENDLESS_ID } from './profile'
@@ -37,7 +37,8 @@ export type UiState={open:boolean;toasts:Toast[];polite:string;assertive:string;
  own:{built:number;spent:number}
  copied:string}
 type Coarse={available:boolean;isOpen:boolean;active:boolean;phase:SessionPhase}
-export type DuoState=Coarse&{ctl:DuoController}
+/** What the page reads: the coarse state, plus the contract's handles (open, send, snapshot) and ctl for the duo components. */
+export type DuoState=Coarse&{ctl:DuoController;open:()=>void;send:(cmd:Command)=>void;snapshot:()=>DuoSnapshot}
 
 const params=()=>{try{return new URLSearchParams(location.search)}catch{return new URLSearchParams()}}
 const roomsUrl=()=>{const env=String(import.meta.env.VITE_ROOMS_URL||'').trim();if(env)return env;if(import.meta.env.DEV)return params().get('carrot-rooms')||'';return ''}
@@ -75,6 +76,8 @@ export class DuoController{
  private loadedNow=0
  private loadedResent=0
  private lastPresence=''
+ private presenceTimer:ReturnType<typeof setTimeout>|null=null
+ private idle=false
  private lastPartnerHealth=-1
  private lastPartnerHit=0
  private recorded=''
@@ -252,7 +255,13 @@ export class DuoController{
   if(next.partnerHold&&!prev.partnerHold)this.announce(`${this.partnerName()}'s garden is safe.`)
   if(next.partnerAway&&!prev.partnerAway)this.announce(`${this.partnerName()} stepped away. The match is paused.`,true)
   if(!next.partnerAway&&prev.partnerAway&&inMatch(next.phase))this.announce(`${this.partnerName()} is back.`)
-  if(next.path!==prev.path&&prev.path!=='none'&&next.path!=='none')this.announce(next.path==='relay'?'Connection switched to the relay.':'Direct connection restored.')
+  if(inMatch(next.phase)&&next.path!==prev.path&&prev.path!=='none'&&next.path!=='none')this.announce(next.path==='relay'?'Connection switched to the relay.':'Direct connection restored.')
+  // the room lobby: a friend joining or leaving is shown and announced (their name from before they left)
+  if(next.phase==='lobby'&&prev.phase==='lobby'){
+   const was=prev.peers.find(p=>!p.me),now=next.peers.find(p=>!p.me)
+   if(was&&!now)this.toast(`${displayName(was.name,was.seat)} left the room`,'info')
+   else if(!was&&now)this.announce(`${displayName(now.name,now.seat)} joined the room.`)
+  }
   const h=next.partner?.health??-1
   if(h>=0&&this.lastPartnerHealth>=0&&h<this.lastPartnerHealth&&inMatch(next.phase)){const t=Date.now();if(t-this.lastPartnerHit>6000){this.lastPartnerHit=t;this.announce(`${this.partnerName()}'s carrot was hit: ${h} ${h===1?'heart':'hearts'} left.`)}}
   this.lastPartnerHealth=h
@@ -303,6 +312,7 @@ export class DuoController{
   const loaded=args.ready?1:Math.max(0,Math.min(.99,args.loading||0))
   this.loadedNow=loaded
   if(this.session&&(Math.abs(loaded-this.lastLoaded)>=.02||(loaded===1&&this.lastLoaded!==1))){this.lastLoaded=loaded;this.session.setLoaded(loaded)}
+  this.sync()
  }
  /** After leaving multiplayer with the game open: the player's own next stage (the room's level is not a solo run). */
  private backToSolo(){
@@ -318,6 +328,9 @@ export class DuoController{
   const s=this.snap.get();if(!this.session||!isEndless(s)||!inMatch(s.phase))return
   const sel=st?.selection,pad=sel?.type==='pad'?sel.id:-1,tower=sel?.type==='tower'?sel.id:-1,key=`${pad}/${tower}`
   if(key===this.lastPresence)return;this.lastPresence=key;this.session.presence(pad,tower)
+  // the session drops a change that comes within its 5 Hz window: send the latest once more just after it
+  if(this.presenceTimer)clearTimeout(this.presenceTimer)
+  this.presenceTimer=setTimeout(()=>{this.presenceTimer=null;if(this.lastPresence===key)this.session?.presence(pad,tower)},1000/PRESENCE_HZ+20)
  }
  /** Own pending ops leave the snapshot's pending list when they execute or are rejected (rejections arrive as events first). */
  ownFrom(st:GameState|null){
@@ -345,20 +358,27 @@ export class DuoController{
  announce(text:string,assertive=false){this.announceFlip=!this.announceFlip;const t=text+(this.announceFlip?' ':'');this.setUi(assertive?{assertive:t}:{polite:t})}
  private sync(){
   const s=this.snap.get(),ui=this.ui.get(),c=this.coarse.get()
-  const active=!!this.session&&s.phase!=='idle'&&s.phase!=='error'&&s.phase!=='connecting'
   const isOpen=ui.open||s.phase==='error'
+  // active: a room exists, or the overlay covers the page (after leaving a finished match the page's own Results stay hidden too)
+  const active=(!!this.session&&s.phase!=='idle'&&s.phase!=='error'&&s.phase!=='connecting')||isOpen
+  // the lobby covers the whole canvas: Unity may drop to a low frame rate (EngineLink.idle, when the bridge offers it)
+  const idle=this.args.ready&&isOpen&&!inMatch(s.phase)&&s.phase!=='starting'&&s.phase!=='results'
+  if(idle!==this.idle){this.idle=idle;try{this.link.idle?.(idle)}catch{/* optional */}}
   if(c.active!==active||c.isOpen!==isOpen||c.phase!==s.phase)this.coarse.set({...c,active,isOpen,phase:s.phase})
  }
  private setHash(code:string){try{history.replaceState(history.state,'',`${location.pathname}${location.search}#room=${code}`)}catch{/* sandboxed: the code is still on screen */}}
  private clearHash(){try{if(roomFromHash(location.hash))history.replaceState(history.state,'',`${location.pathname}${location.search}`)}catch{/* ignore */}}
  /** The deep link this page was opened with (#room=CODE), once. */
  deepLink(){const code=roomFromHash(typeof location==='undefined'?'':location.hash);if(!code||!this.coarse.get().available)return;this.setUi({open:true});void this.resume(code)}
- dispose(){this.disposeSession();if(this.toastTimer)clearTimeout(this.toastTimer)}
+ dispose(){this.disposeSession();if(this.toastTimer)clearTimeout(this.toastTimer);if(this.presenceTimer)clearTimeout(this.presenceTimer)}
+ /** A page command from a duo component: through the same filter as the page's own, then to Unity unless it was consumed. */
+ send=(cmd:Command)=>{if(!this.filter(cmd))this.rawSend(cmd)}
 }
 
 /**
- * Multiplayer for CarrotPage: `available` (show the entry), `isOpen` (the lobby overlay), `active` (a room exists: the page's own
- * Results stay hidden and every page command goes through the filter), `phase`, and `ctl` for the duo components.
+ * Multiplayer for CarrotPage: `available` (show the entry), `isOpen` (the lobby overlay), `active` (a room exists or the overlay is
+ * open: the page's own Results stay hidden), `phase`, the contract's open/send/snapshot, and `ctl` for the duo components. Page
+ * commands go through the controller's filter whenever a session exists (installed on CarrotUnity through the net layer's link).
  */
 export function useDuo(args:UseDuoArgs):DuoState{
  const [ctl]=useState(()=>new DuoController(args))
@@ -370,7 +390,7 @@ export function useDuo(args:UseDuoArgs):DuoState{
  // endless: presence and the own-spend count follow the snapshot (no React state per publish)
  useEffect(()=>args.store.subscribe(()=>{const st=args.store.get();ctl.presenceFrom(st);ctl.ownFrom(st)}),[ctl,args.store])
  const coarse=useSyncExternalStore(ctl.coarse.subscribe,ctl.coarse.get)
- return useMemo(()=>({...coarse,ctl}),[coarse,ctl])
+ return useMemo(()=>({...coarse,ctl,open:ctl.open,send:ctl.send,snapshot:ctl.snap.get}),[coarse,ctl])
 }
 /** A slice of the session snapshot (re-renders only when the selected value changes). */
 export function useDuoSlice<T>(ctl:DuoController,select:(s:DuoSnapshot)=>T,equal:(a:T,b:T)=>boolean=shallow):T{return useSelect(ctl.snap,select,equal)}

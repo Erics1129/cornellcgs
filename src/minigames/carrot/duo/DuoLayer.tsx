@@ -1,19 +1,17 @@
-// Everything multiplayer draws, in one layer at the page root (so the lobby also shows while Unity loads): the entry pill on the title
-// screen, the lobby, the side reveal, the duo or endless HUD additions with the shared countdown, the results, the toasts and the
-// aria-live regions. It also marks the page root (data-duo) so duo.css can adjust the stock HUD without touching its files.
-import { useEffect, useRef } from 'react'
+// Everything multiplayer draws, in one layer at the page root (so the lobby also shows while Unity loads). Only the entry pill and
+// the page-root marks load with the page; the screens (DuoScreens: lobby, reveal, HUD, results) are a separate chunk fetched the
+// first time multiplayer opens (or prefetched when the pill is hovered or focused), so single-player visitors never download them.
+// The marks (data-duo, data-duo-phase, data-duo-entry on .ct-page) let duo-base.css adjust the stock HUD without touching its files.
+import { Suspense, lazy, useEffect, useRef, useState } from 'react'
 import type { GameDefinitions } from '../types'
 import type { DuoState } from './useDuo'
-import { useDuoSlice } from './useDuo'
-import { inLobby, inMatch, isEndless } from './contract'
+import { useDuoSlice, useDuoUi } from './useDuo'
+import { inMatch, isEndless } from './contract'
 import { DuoEntry } from './DuoEntry'
-import { DuoLobby } from './DuoLobby'
-import { SideReveal } from './SideReveal'
-import { DuoHud } from './DuoHud'
-import { EndlessHud } from './EndlessHud'
-import { DuoResults } from './DuoResults'
-import { Countdown, LiveRegion, Toasts } from './bits'
-import './duo.css'
+import './duo-base.css'
+
+const loadScreens=()=>import('./DuoScreens')
+const DuoScreens=lazy(loadScreens)
 
 export function DuoLayer({duo,entered,definitions}:{duo:DuoState;entered:boolean;definitions:GameDefinitions|null;reduced?:boolean}){
  const {ctl,phase}=duo
@@ -21,6 +19,10 @@ export function DuoLayer({duo,entered,definitions}:{duo:DuoState;entered:boolean
  const endless=useDuoSlice(ctl,s=>isEndless(s))
  const match=inMatch(phase)
  const showEntry=!entered&&duo.available&&!duo.isOpen&&phase==='idle'
+ // the screens chunk stays unloaded until multiplayer is first used, then stays mounted
+ const [wanted,setWanted]=useState(false)
+ const needed=duo.isOpen||phase!=='idle'
+ useEffect(()=>{if(needed)setWanted(true)},[needed])
  const mark=match||phase==='results'?(endless?'endless':'duo'):phase==='starting'?'starting':duo.isOpen?'lobby':''
  useEffect(()=>{
   const root=ref.current?.closest<HTMLElement>('.ct-page');if(!root)return
@@ -38,13 +40,16 @@ export function DuoLayer({duo,entered,definitions}:{duo:DuoState;entered:boolean
   return()=>{watch.disconnect();game.querySelector('.ct-hud__track')?.removeAttribute('aria-hidden')}
  },[mark,entered])
  return <div className="ct-duo-layer" ref={ref}>
-  {showEntry&&<DuoEntry onOpen={ctl.open}/>}
-  {duo.isOpen&&inLobby(phase)&&<DuoLobby ctl={ctl} definitions={definitions}/>}
-  {phase==='starting'&&<SideReveal ctl={ctl}/>}
-  {match&&(endless?<EndlessHud ctl={ctl} definitions={definitions}/>:<DuoHud ctl={ctl}/>)}
-  {match&&<Countdown ctl={ctl}/>}
-  {phase==='results'&&<DuoResults ctl={ctl} definitions={definitions}/>}
-  <Toasts ctl={ctl}/>
-  <LiveRegion ctl={ctl}/>
+  {showEntry&&<DuoEntry onOpen={ctl.open} onIntent={()=>{void loadScreens()}}/>}
+  {(wanted||needed)&&<Suspense fallback={null}><DuoScreens duo={duo} definitions={definitions}/></Suspense>}
+  {duo.available&&<LiveRegion duo={duo}/>}
  </div>
+}
+/**
+ * Partner events and every toast reach screen readers here (the toasts themselves are not live regions, so nothing is read twice).
+ * Mounted with the page, before anything is announced, as screen readers expect of a live region.
+ */
+function LiveRegion({duo}:{duo:DuoState}){
+ const t=useDuoUi(duo.ctl,u=>({polite:u.polite,assertive:u.assertive}))
+ return <div className="ct-duo ct-duo-sr"><p aria-live="polite" aria-atomic="true">{t.polite}</p><p aria-live="assertive" aria-atomic="true">{t.assertive}</p></div>
 }

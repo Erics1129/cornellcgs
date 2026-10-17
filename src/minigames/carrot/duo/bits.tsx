@@ -112,12 +112,6 @@ export function Toasts({ctl}:{ctl:DuoController}){
  if(!toasts.length)return null
  return <div className="ct-duo ct-duo-toasts">{toasts.map(t=><p key={t.id} className="ct-duo-toast" data-tone={t.tone}>{t.text}</p>)}</div>
 }
-/** Partner events and every toast reach screen readers here (the toasts themselves are not live regions, so nothing is read twice). */
-export function LiveRegion({ctl}:{ctl:DuoController}){
- const t=useDuoUi(ctl,u=>({polite:u.polite,assertive:u.assertive}))
- return <div className="ct-duo-sr"><p aria-live="polite" aria-atomic="true">{t.polite}</p><p aria-live="assertive" aria-atomic="true">{t.assertive}</p></div>
-}
-
 export type BannerSpec={key:string;text:ReactNode;tone?:'info'|'warn'|'good'|'threat';actions?:Array<{label:string;onClick:()=>void;primary?:boolean}>}
 /** The one banner that matters most right now (paused by whom, away with the grace clock, hold, waiting to start...). */
 export function Banners({ctl}:{ctl:DuoController}){

@@ -35,7 +35,8 @@ export function resultCopy(result:DuoResult,names:[string,string],mySeat:number,
   case 'duoWin':return {title:'Both gardens held',line:`You and ${partner} cleared every wave and both guardians.`,recorded:'Win recorded for both players',tone:'win'}
   case 'duoLoss':{
    const fell:number=typeof result.fell==='number'?result.fell:-1
-   const who=fell===mySeat?'Your carrot fell':fell===0||fell===1?`${names[fell]||result.fellName}'s carrot fell`:'A carrot fell'
+   // fell -1: both carrots fell within the same few ticks
+   const who=fell===mySeat?'Your carrot fell':fell===0||fell===1?`${names[fell]||result.fellName}'s carrot fell`:'Both carrots fell'
    const at=typeof result.wave==='number'&&result.wave>0?`On wave ${result.wave}. `:''
    return {title:who,line:`${at}Either carrot falling ends the match.`,recorded:'Counted like a solo loss: your records only keep bests',tone:'loss'}}
   case 'unfinished':{

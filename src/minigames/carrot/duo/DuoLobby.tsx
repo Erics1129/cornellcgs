@@ -182,7 +182,7 @@ function Seat({ctl,p,s}:{ctl:DuoController;p:PeerInfo;s:DuoSnapshot}){
  const status=p.away?'Away':p.connected?'Connected':'Connecting'
  const path=!p.me&&p.connected&&!p.away&&s.path!=='none'?`${s.path==='p2p'?'Direct':'Relay'} · ${Math.round(s.rttMs||0)} ms`:''
  return <article className="ct-duo-seat" role="listitem" data-me={p.me?'1':undefined} data-ready={p.ready?'1':undefined} data-away={p.away||!p.connected?'1':undefined}
-  aria-label={`${p.me?'You':shown}${p.host?', host':''}: ${p.ready?'ready':'not ready'}, ${status.toLowerCase()}, ${loaded>=1?'loaded':`loading ${pct}%`}${path?`, ${path.replace('·',',')}`:''}`}>
+  aria-label={`${p.me?'You':shown}${p.host?', host':''}: ${p.ready?'ready':'not ready'}, ${status.toLowerCase()}, ${loaded>=1?'loaded':`loading ${pct}%`}${path?`, ${path.replace(' · ',', ')}`:''}`}>
   <div className="ct-duo-seat__top">
    <Avatar name={shown} tone={p.me?'me':'partner'}/>
    <div className="ct-duo-seat__who">
