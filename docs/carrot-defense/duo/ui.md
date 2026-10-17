@@ -38,7 +38,7 @@ const duo=useDuo({store,engine,ready,entered,enter:()=>setEntered(true),loading}
 Nothing else in the page changes. Every page command (keyboard, HUD, Results, Settings restart, LevelSelect's `load`) reaches the
 duo layer through the send filter on `CarrotUnity` (`setSendFilter`, added to `unity.ts` by the net layer), so the old plan's hooks
 (3) to (5) are gone. A 3-way merge dry run of this file against carrot-next's working `CarrotPage.tsx` (base `1b1b65e`) merged with
-0 conflicts, and the merged page type-checks with the redesign's files; the full duo QA suite passed on it (desktop and portrait).
+0 conflicts, and the merged page type-checks with the redesign's files; the duo QA suite passed on it (792/792, Chromium and WebKit, desktop and portrait).
 
 `duo.active` is true while a room exists or the overlay is open; the page's own Results are then hidden (the duo results replace
 them). The award effect is untouched: a duo win reaches it through the own-half snapshot (phase `won`, mode `duo`, the level's own
@@ -152,10 +152,14 @@ of CSS) fetched on first use; the net layer is its own lazy chunk. The mock sess
   the solo choice, the endless record; per screen: no horizontal scroll, 44 px controls, live regions; focus rings and document tab
   order; reduced motion uses no transform animation; no backdrop-filter while playing and at most one in the lobby; the page's
   Results hidden; a duo win recorded through the page's award path; no entry without a rooms URL). WebKit tabs with Option+Tab.
-* With the netcode branch merged in a scratch worktree and `wrangler dev --local` serving `cgs-rooms`, two real browsers (Chromium and
-  Chromium, Chromium and WebKit) created and joined a room with a typed lowercase spaced code, saw both seats with ping, readied, the
-  host started, and the reveals drew opposite sides (WEST / EAST) before both reached prep; an unknown code read "Room not found", a
-  third player "Room full", and the host leaving promoted the guest.
+* `scripts/carrot-duo-ui-qa/rooms-e2e.mjs` runs the UI over the real net layer and a real `cgs-rooms` Worker (`wrangler dev --local`)
+  in two browsers on the mock Unity player. With the netcode branch (c79e8f3) merged into this one in a scratch worktree: 15/15 in
+  Chromium + WebKit and 15/15 in Chromium + Chromium. An unknown code reads "Room not found", a third player "Room full"; the guest
+  joins with a typed lowercase spaced code; the host sees both seats with a ping; a fresh guest leaves only the Tornado on offer;
+  Start gates on both ready and loaded; the reveals draw opposite gardens; prep says "Waiting for Ana to start" / "Mia is ready for
+  wave 1"; both reach wave 1 after the shared countdown; Space on one device pauses both ("You paused" / "Mia paused"); either
+  resumes with a shared 3-2-1; the cooldown binds only the player who resumed; a partner whose tab vanishes pauses the match with
+  the grace clock ("Mia stepped away 0:56"). In the same setup the host leaving the lobby promoted the guest to host.
 
 ## Integration notes (lead)
 
