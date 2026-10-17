@@ -304,8 +304,12 @@ export const CONTROL = {
   restoring: 12,
   /** v replicaExec, v ownExec: what the survivor holds, sent to a rejoining partner. */
   restoreInfo: 13,
-  /** u8 seat|255: the slow-peer policy slowed both clocks for this seat. */
+  /** a seat, b factor x1000: the slow-peer policy slowed both clocks for this seat. */
   slowed: 14,
+  /** a ms: lockstep, the input delay the sender measured this peer needs (asymmetric paths). */
+  delay: 15,
+  /** a request id: a reloaded player asks the survivor for its state (and, in duo, the survivor's copy of its log). */
+  restoreRequest: 16,
 } as const
 /** Chunk purposes: a resync blob, a reconnect restore blob, an op log. */
 export const CHUNK_PURPOSE = { resync: 1, restore: 2, oplog: 3 } as const
@@ -607,6 +611,8 @@ export type EngineLink = {
   quality?(tier: 'low' | 'medium' | 'high'): void
   /** Optional: ask Unity for a low frame rate while an overlay covers the canvas. */
   idle?(on: boolean): void
+  /** Optional: the latest snapshot's net block (the endless score for End run and a connection-ended run). */
+  snapshotNet?(): SnapshotNet | null
 }
 export type CreateSessionOptions = {
   engine: EngineLink

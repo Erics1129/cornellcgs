@@ -50,7 +50,12 @@ export class CarrotUnity {
   }catch(error){if(!this.dead)hooks.error(error instanceof Error?error.message:'The garden could not open.');this.release()}})()
  }
  private receive=(event:Event)=>{if(this.dead||!this.loaded)return;const s=(event as CustomEvent<GameState>).detail;if(s&&typeof s.level==='number')this.onState(s)}
- send(command:Command){this.instance?.SendMessage('CarrotGame','Command',JSON.stringify(command))}
+ private sendFilter?:(command:Command)=>boolean
+ /** Multiplayer hook: every page command passes this filter first; false keeps it from Unity (the duo session handled it). */
+ setSendFilter(filter?:(command:Command)=>boolean){this.sendFilter=filter}
+ send(command:Command){if(this.sendFilter&&!this.sendFilter(command))return;this.instance?.SendMessage('CarrotGame','Command',JSON.stringify(command))}
+ /** Multiplayer bridge, JS to Unity (src/minigames/carrot/net/protocol.ts NetIn). */
+ net(json:string){this.instance?.SendMessage('CarrotGame','Net',json)}
  /** Additive debug entry (never called by the page): forces a tier ("high", "medium", "low") or toggles one feature for A/B captures. */
  quality(setting:string){this.instance?.SendMessage('CarrotGame','Quality',setting)}
  uiSound(kind='click'){this.instance?.SendMessage('CarrotGame','UiSound',kind)}
