@@ -6,6 +6,8 @@
 //   node scripts/carrot-sim.mjs --digest             level-20 policy-0 determinism digest (compare with Unity's log)
 //   node scripts/carrot-sim.mjs --bands [--r1 200 --r2 100 --levels 1-29 --jobs N --out file]
 //   node scripts/carrot-sim.mjs --tune-dials [--levels 1-28 --iters 7 --out file]   Pressure-dial fit (prints, never edits)
+//   node scripts/carrot-sim.mjs --endless-bands [--r0 50 --r1 200 --r2 200 --solo 50]   two-player endless fairness targets (ebots-v1)
+//   node scripts/carrot-sim.mjs --duo-bands [--r1 1000 --variants 20]   duo p_duo vs p_solo^2 and the half-vs-solo mirror gate
 //   node scripts/carrot-sim.mjs --mute [--r1 200]       invariant (d): each boss cast muted in turn, R1 losses that flip
 //                                                    reference-bot bands, one process per seed slice, merged
 // The build is cached under output/carrot-sim/ by a hash of every source; the shim is compiled with
@@ -74,6 +76,14 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
     const best = await tuneDials({ exe, run, value, range, repo, jobs: Number(value('jobs', Math.max(2, cpus().length - 2))) })
     const out = value('out'); if (out) writeFileSync(out, JSON.stringify(best, null, 1) + '\n')
     process.exit(0)
+  }
+  if (flag('endless-bands')) {
+    const { runEndlessBands } = await import('./carrot-sim/endless.mjs')
+    process.exit(await runEndlessBands({ exe, run, value, repo, jobs: Number(value('jobs', Math.max(2, cpus().length - 2))) }))
+  }
+  if (flag('duo-bands')) {
+    const { runDuoBands } = await import('./carrot-sim/endless.mjs')
+    process.exit(await runDuoBands({ exe, run, value, repo, jobs: Number(value('jobs', Math.max(2, cpus().length - 2))) }))
   }
   if (flag('bands')) {
     const { runBands } = await import('./carrot-sim/bands.mjs')

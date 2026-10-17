@@ -35,17 +35,26 @@ namespace CarrotTD {
   static readonly int[] HomePermille={1650,2620,2620,4030,6280,6280,8680,9250};
   /// <summary>Per-boss HP dials in per mille, tunable only within 600-1400 by the endless bands.</summary>
   public static readonly int[] BossDial={1000,1000,1000,1000,1000,1000,1000,1000};
-  static readonly long[] growH=new long[ScaleCap+1],growM=new long[ScaleCap+1];
-  static CarrotEndlessGen(){growH[1]=growM[1]=1000000000L;for(int w=2;w<=ScaleCap;w++){growH[w]=growH[w-1]*102/100;growM[w]=growM[w-1]*10145/10000;}}
+  /// <summary>The curve's tunable constants (integers): H(w)=HLead/1000 (1+HLinear/1000 (w-1)) (HGrowth/1000)^(w-1), its miniboss twin,
+  /// budget B(w)=BBase+BLinear w+w^2/BQuadDiv, the reward multiplier min(RewardCap, 1000+RewardSlope (w-1)) per mille and the
+  /// stipend StipendBase+StipendSlope min(w, StipendCap). Only the bands change them (docs/carrot-defense/duo/sim.md).</summary>
+  public static int HLead=1050,HLinear=115,HGrowth=1020,MLead=1042,MLinear=95,MGrowth=10145,BBase=70,BLinear=16,BQuadDiv=4,RewardSlope=15,RewardCap=1600,StipendBase=20,StipendSlope=2,StipendCap=40;
+  static long[] growH,growM;static int grownH,grownM;
+  static void Grow(){
+   if(growH!=null&&grownH==HGrowth&&grownM==MGrowth)return;var h=new long[ScaleCap+1];var m=new long[ScaleCap+1];h[1]=m[1]=1000000000L;
+   for(int w=2;w<=ScaleCap;w++){h[w]=h[w-1]*HGrowth/1000;m[w]=m[w-1]*MGrowth/10000;}growH=h;growM=m;grownH=HGrowth;grownM=MGrowth;
+  }
   static int ScaleWave(int w){return w<1?1:w>ScaleCap?ScaleCap:w;}
-  /// <summary>H(w) in parts per million (1,050,000 at wave 1; 2.55e6 at 10; 8.1e6 at 30; 18.4e6 at 50).</summary>
-  public static long HPpm(int w){w=ScaleWave(w);return growH[w]/1000*(1050L*(1000+115L*(w-1)))/1000000L;}
+  /// <summary>H(w) in parts per million (1,050,000 at wave 1).</summary>
+  public static long HPpm(int w){Grow();w=ScaleWave(w);return growH[w]/1000*((long)HLead*(1000+(long)HLinear*(w-1)))/1000000L;}
   /// <summary>Hm(w) in parts per million (the miniboss curve).</summary>
-  public static long MiniPpm(int w){w=ScaleWave(w);return growM[w]/1000*(1042L*(1000+95L*(w-1)))/1000000L;}
-  public static int Budget(int w){return 70+16*w+w*w/4;}
-  public static int RewardPermille(int w){return Math.Min(1600,1000+15*(Math.Max(1,w)-1));}
+  public static long MiniPpm(int w){Grow();w=ScaleWave(w);return growM[w]/1000*((long)MLead*(1000+(long)MLinear*(w-1)))/1000000L;}
+  public static int Budget(int w){return BBase+BLinear*w+w*w/Math.Max(1,BQuadDiv);}
+  public static int RewardPermille(int w){return Math.Min(RewardCap,1000+RewardSlope*(Math.Max(1,w)-1));}
   public static int Reward(int baseReward,int w){return Math.Max(baseReward,(int)((long)baseReward*RewardPermille(w)/1000));}
-  public static int Stipend(int w){return 20+2*Math.Min(Math.Max(1,w),40);}
+  public static int Stipend(int w){return StipendBase+StipendSlope*Math.Min(Math.Max(1,w),StipendCap);}
+  /// <summary>Bands only: set a curve constant by name (gen=Key:value,...).</summary>
+  public static bool SetConstant(string key,int value){var f=typeof(CarrotEndlessGen).GetField(key);if(f==null||f.FieldType!=typeof(int)||f.IsLiteral||f.IsInitOnly)return false;f.SetValue(null,value);return true;}
   /// <summary>Breather before wave next: 6 s up to wave 10, 5 s up to 30, then 4 s.</summary>
   public static float Breather(int next){return next<=10?6f:next<=30?5f:4f;}
   public static bool BossWave(int w){return w>0&&w%10==0;}

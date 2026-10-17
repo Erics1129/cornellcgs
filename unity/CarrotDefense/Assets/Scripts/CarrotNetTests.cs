@@ -137,6 +137,8 @@ namespace CarrotTD {
    var rng=new BotRng(level,seed,BotCode("DUO"));int sideA=(int)(rng.Next()&1);
    var dev=new[]{new NetDevice(0,golden),new NetDevice(1,golden)};var link=new[]{new Link(),new Link()};var bots=new[]{new TwinBot(),new TwinBot()};
    dev[0].Send(SessionJson("duo",level,0,sideA,0));dev[1].Send(SessionJson("duo",level,1,1-sideA,0));
+   var trace=DuoDebug?new Dictionary<int,string>():null;int firstDiff=-1;
+   if(trace!=null){var own0=dev[0].game;var prev0=own0.NetTicked;own0.NetTicked=t=>{prev0?.Invoke(t);trace[t]=StateLine(own0);};var rep1=dev[1].replica;var prev1=rep1.NetTicked;rep1.NetTicked=t=>{prev1?.Invoke(t);string line;if(firstDiff<0&&trace.TryGetValue(t,out line)&&line!=StateLine(rep1)){firstDiff=t;Debug.Log("CARROT_DUO_TRACE first divergence tick="+t+"\n owner  "+line+"\n replica "+StateLine(rep1));}};}
    foreach(var d in dev){SellUprooted(d.game);d.Send("{\"t\":\"clock\",\"run\":true,\"speed\":1}");}
    double now=0,dt=1/60.0;int frames=0,limit=maxFrames>0?maxFrames:60*60*40;
    double stallAt=stalls?20+rng.Unit()*100:-1,stallFor=3+rng.Unit()*7,fastAt=30+rng.Unit()*60,fastFor=40,pauseAt=50+rng.Unit()*60;int speedNow=1;bool paused=false,perturbed=false;
@@ -156,7 +158,7 @@ namespace CarrotTD {
      // The page: forward own ops, exec, digests and self-caused results to the partner as a {t:'replica'} / {t:'partner'} message.
      var ops=new StringBuilder();var dig=new StringBuilder();var deep=new StringBuilder();int exec=-1;
      foreach(var m in msgs){
-      if(m.t=="own"&&m.ops!=null)foreach(var op in m.ops){if(ops.Length>0)ops.Append(',');CarrotNetSession.OpJson(ops,op,true);}
+      if(m.t=="own"&&m.ops!=null)foreach(var op in m.ops){if(ops.Length>0)ops.Append(',');CarrotNetSession.OpJson(ops,op,true);if(DuoDebug&&i==0&&(op.id==653||op.k>21900&&op.k<22000))Debug.Log("CARROT_DUO_OP dev0 s="+op.s+" k="+op.k+" op="+op.op+" id="+op.id+" pad="+op.pad+" ownTick="+d.game.NetTick+" frame="+frames);}
       if(m.t=="tick"){if(m.exec>exec)exec=m.exec;if(m.d!=null&&m.d.Length==3){if(dig.Length>0)dig.Append(',');dig.Append(m.d[0]).Append(',').Append(m.d[1]).Append(',').Append(m.d[2]);}
        if(m.dh!=null&&m.dh.Length==2){if(deep.Length>0)deep.Append(',');deep.Append(m.dh[0]).Append(',').Append(m.dh[1]);}}
       if(m.t=="result"&&m.cause=="self"&&(m.outcome=="cleared"||m.outcome=="lost"))link[i].Push(now+Delay(rng,maxDelayMs,now,stallAt,stallFor),"{\"t\":\"partner\",\"outcome\":\""+m.outcome+"\",\"tick\":"+m.tick+"}");
@@ -167,7 +169,7 @@ namespace CarrotTD {
      }
     }
     bool over=dev[0].game.phase!="playing"&&dev[0].game.phase!="ready"&&dev[1].game.phase!="playing"&&dev[1].game.phase!="ready";
-    if(over&&endAt<0)endAt=now+12;if(endAt>0&&now>=endAt&&link[0].Count==0&&link[1].Count==0)break;
+    if(over&&endAt<0)endAt=now+12+stallFor;if(endAt>0&&now>=endAt)break;
    }
    for(int i=0;i<2;i++){
     var d=dev[i];outcome.desyncs+=d.desyncs.Count;outcome.compared+=d.session.DigestsCompared;outcome.unverified+=d.session.Unverified;outcome.ffTicks+=(int)d.session.FastForwardTicks;
@@ -178,12 +180,16 @@ namespace CarrotTD {
    bool sameOutcome=dev[0].game.phase==dev[1].game.phase;
    outcome.ok=outcome.desyncs==0&&outcome.compared>=expected&&outcome.unverified==0&&outcome.refused==0&&sameOutcome&&dev[0].errors.Count==0&&dev[1].errors.Count==0;
    outcome.line="level="+level+" seed="+seed+" sides="+sideA+"/"+(1-sideA)+" ticks="+outcome.ticks+" phases="+dev[0].game.phase+"/"+dev[1].game.phase+" compared="+outcome.compared+" expected>="+expected+" desyncs="+outcome.desyncs+" unverified="+outcome.unverified+" fastForward="+outcome.ffTicks+" reentries="+(dev[0].session.Reentries+dev[1].session.Reentries)+" frames="+frames;
-   if(DuoDebug)for(int i=0;i<2;i++){int k=0;foreach(var m in dev[i].desyncs){if(k++>=4)break;Debug.Log("CARROT_DUO_DEBUG dev="+i+" kind="+m.kind+" where="+m.where+" tick="+m.tick+" local="+(m.local!=null&&m.local.Length==2?m.local[0]+"/"+m.local[1]:"")+" remote="+(m.remote!=null&&m.remote.Length==2?m.remote[0]+"/"+m.remote[1]:"")+" ownTick="+dev[i].game.NetTick+" replicaTick="+(dev[i].replica!=null?dev[i].replica.NetTick:-1)+" refused="+(dev[i].replica!=null?dev[i].replica.ReplicaRefused:-1)+" late="+(dev[i].replica!=null?dev[i].replica.LateOps:-1));}}
+   if(DuoDebug)for(int i=0;i<2;i++){int k=0;foreach(var m in dev[i].desyncs){if(k++>=4)break;Debug.Log("CARROT_DUO_DEBUG dev="+i+" kind="+m.kind+" where="+m.where+" tick="+m.tick+" local="+(m.local!=null&&m.local.Length==2?m.local[0]+"/"+m.local[1]:"")+" remote="+(m.remote!=null&&m.remote.Length==2?m.remote[0]+"/"+m.remote[1]:"")+" ownTick="+dev[i].game.NetTick+" replicaTick="+(dev[i].replica!=null?dev[i].replica.NetTick:-1)+" refused="+(dev[i].replica!=null?dev[i].replica.ReplicaRefused:-1)+" late="+(dev[i].replica!=null?dev[i].replica.LateOps:-1));}
+    for(int j=0;j<2;j++)Debug.Log("CARROT_DUO_DEBUG dev="+j+" own hold="+dev[j].game.HoldTick+" outcome="+dev[j].game.OutcomeTick+" phase="+dev[j].game.phase+" replica hold="+(dev[j].replica!=null?dev[j].replica.HoldTick:-9)+" outcome="+(dev[j].replica!=null?dev[j].replica.OutcomeTick:-9)+" limit="+dev[j].session.ReplicaCompareLimit+" pastEnd="+dev[j].session.PastEnd);}
    foreach(var d in dev){d.session.Dispose();Done(d.game);}
    return outcome;
   }
   static bool DuoDebug;
-  public static void DuoDebugRun(string[] args){DuoDebug=true;policyMerges=true;scoreNoise=null;ClearBotCaches();var o=DuoMatch(int.Parse(Arg(args,"level","25")),int.Parse(Arg(args,"seed","3")),maxDelayMs:int.Parse(Arg(args,"delay","200")),stalls:Arg(args,"stalls","0")=="1",maxFrames:int.Parse(Arg(args,"frames","20000")));Debug.Log("CARROT_DUO_DEBUG "+o.line);}
+  static string StateLine(CarrotGame g){var sb=new StringBuilder();sb.Append("t=").Append(g.NetTick).Append(" ph=").Append(g.phase).Append(" hold=").Append(g.DuoHold).Append(" c=").Append(g.coins).Append(" h=").Append(g.health).Append(" w=").Append(g.wave).Append(" el=").Append(FBits(g.elapsed).ToString("x8")).Append(" nw=").Append(FBits(g.nextWave).ToString("x8")).Append(" f=").Append(g.TestFocus).Append(" towers=");
+   foreach(var t in g.towers)sb.Append(t.id).Append(':').Append(t.kind).Append('/').Append(t.tier).Append('@').Append(t.pad).Append(',');sb.Append(" enemies=").Append(g.enemies.Count).Append(" blockers=");foreach(var b in g.blockers)sb.Append(b.id).Append(':').Append(FBits(b.hp).ToString("x8")).Append(',');
+   foreach(var e in g.enemies)sb.Append(' ').Append(e.id).Append(e.alive?"":"x").Append(':').Append(FBits(e.hp).ToString("x8"));return sb.ToString();}
+  public static void DuoDebugRun(string[] args){DuoDebug=true;policyMerges=true;scoreNoise=null;ClearBotCaches();var o=DuoMatch(int.Parse(Arg(args,"level","25")),int.Parse(Arg(args,"seed","3")),maxDelayMs:int.Parse(Arg(args,"delay","200")),stalls:Arg(args,"stalls","0")=="1",maxFrames:int.Parse(Arg(args,"frames","20000")));DuoDebug=false;Debug.Log("CARROT_DUO_DEBUG "+o.line);}
   static double Delay(BotRng rng,int maxDelayMs,double now,double stallAt,double stallFor){double d=rng.Unit()*maxDelayMs/1000.0;if(stallAt>0&&now>=stallAt&&now<stallAt+stallFor)d+=stallAt+stallFor-now;return d;}
 
   // ================= DuoReplica: the replica equals its owner at every 30th netTick over a delayed link (all 11 fights).
@@ -364,8 +370,9 @@ namespace CarrotTD {
   }
 
   // ================= EndlessAllKits: every boss, miniboss and kind at waves 1-120 on Twin Gates (and every duo half), no table reads.
+  static readonly Dictionary<string,int> kitCasts=new Dictionary<string,int>();
   public static void EndlessAllKits(string[] args){
-   netChecks=0;int spawned=0;var kinds=new List<string>();foreach(var tier in CarrotEndlessGen.Tiers)kinds.AddRange(tier);
+   netChecks=0;kitCasts.Clear();int spawned=0;var kinds=new List<string>();foreach(var tier in CarrotEndlessGen.Tiers)kinds.AddRange(tier);
    var all=new List<KeyValuePair<string,string>>();foreach(var b in CarrotEndlessGen.Bosses)all.Add(new KeyValuePair<string,string>("boss",b));foreach(var m in CarrotEndlessGen.Minis)all.Add(new KeyValuePair<string,string>(m,null));foreach(var k in kinds)all.Add(new KeyValuePair<string,string>(k,null));
    foreach(int w in ArgRange(args,"waves","1,10,30,60,90,120")){
     foreach(var unit in all){
@@ -375,11 +382,14 @@ namespace CarrotTD {
      g.TestAsSeat(0,()=>g.NetGo());foreach(var op in g.OutOps){op.k=g.NetTick+1;g.EnqueueOp(op);}g.OutOps.Clear();g.NetRunTo(g.NetTick+2,2,false);
      var e=g.TestSpawnWave(unit.Key,spawned%2,w,unit.Value);spawned++;NetCheck(e!=null&&e.alive&&e.hp>0,"spawned "+unit.Key+" "+unit.Value+" at wave "+w);
      if(unit.Key=="boss")NetCheck(e.maxHp==CarrotEndlessGen.BossHp(unit.Value,w),"endless boss HP from the integer curve");
-     for(int i=0;i<1200&&g.phase=="playing";i++){g.health=10;g.NetRunTo(g.NetTick+1,1,false);}
+     int casts=0,played=0;int unitId=e.id;g.Effect+=v=>{if((v.type=="telegraph"||v.type=="ability")&&v.id==unitId)casts++;};
+     for(int i=0;i<1200&&g.phase=="playing";i++){g.health=10;g.NetRunTo(g.NetTick+1,1,false);played++;}
+     NetCheck(played==1200,"the kit ran 40 s of play ("+played+")");if(unit.Key=="boss"||CarrotData.IsMini(unit.Key))kitCasts[unit.Value??unit.Key]=(kitCasts.ContainsKey(unit.Value??unit.Key)?kitCasts[unit.Value??unit.Key]:0)+casts;
      Done(g);
     }
    }
    NetCheck(CarrotData.EndlessTableHits==0,"zero per-level table reads for id 90 ("+CarrotData.EndlessTableHits+")");
+   var sb=new StringBuilder();foreach(var kv in kitCasts){sb.Append(kv.Key).Append('=').Append(kv.Value).Append(' ');NetCheck(kv.Value>0,"every boss and miniboss kit casts on Twin Gates ("+kv.Key+")");}Debug.Log("CARROT_ALL_KITS casts "+sb);
    // Duo halves: each fight's half 1 plays a full bot game without exceptions.
    policyMerges=true;scoreNoise=null;
    foreach(int level in CarrotDuoMaps.DuoLevels){ClearBotCaches();var g=NetGame(level,"duo",1);SellUprooted(g);var tb=new TwinBot();BuyBest(g,0);BuyBest(g,0);g.Command("{\"type\":\"start\"}");int ticks=0;

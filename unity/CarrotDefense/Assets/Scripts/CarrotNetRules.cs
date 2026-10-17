@@ -99,7 +99,8 @@ namespace CarrotTD {
     while(NetTick<limit&&n<maxTicks){
      int t=NetTick+1;ApplyOpsFor(t);NetTick=t;
      if(phase=="playing"&&!DuoHold){inTick=true;try{Tick(Step);}finally{inTick=false;}}
-     RunDeferred();n++;NetTicked?.Invoke(t);
+     // The tick's digest first (the state at the end of tick t), then deferred input, which is stamped t+1.
+     n++;NetTicked?.Invoke(t);RunDeferred();
     }
    }finally{silentRun=was;}
    return n;

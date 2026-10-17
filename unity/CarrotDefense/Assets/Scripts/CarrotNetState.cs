@@ -77,7 +77,8 @@ namespace CarrotTD {
   abstract class Sink {public abstract void I(int v);public abstract void U(uint v);public abstract void L(long v);public abstract void F(float v);public abstract void B(bool v);public abstract void S(string v);}
   sealed class WriteSink : Sink {
    public readonly BinaryWriter w;public WriteSink(Stream s){w=new BinaryWriter(s,Encoding.UTF8);}
-   public override void I(int v){w.Write(v);}public override void U(uint v){w.Write(v);}public override void L(long v){w.Write(v);}public override void F(float v){w.Write(v);}public override void B(bool v){w.Write(v);}
+   // Ints are zigzag varints (most are small); uints and longs stay fixed width.
+   public override void I(int v){uint z=(uint)((v<<1)^(v>>31));while(z>=0x80){w.Write((byte)(z|0x80));z>>=7;}w.Write((byte)z);}public override void U(uint v){w.Write(v);}public override void L(long v){w.Write(v);}public override void F(float v){w.Write(v);}public override void B(bool v){w.Write(v);}
    public override void S(string v){w.Write(v!=null);if(v!=null)w.Write(v);}
   }
   sealed class HashSink : Sink {
@@ -110,7 +111,11 @@ namespace CarrotTD {
    if(t.IsValueType&&!t.IsPrimitive){foreach(var f in Fields(t))Write(s,f.FieldType,f.GetValue(v),seen);return;}
    if(v==null){s.I(-1);return;}
    if(!seen.Add(v))throw new InvalidOperationException("CarrotNetState: shared reference in "+t.Name);
-   if(t.IsArray){var a=(Array)v;var et=t.GetElementType();s.I(a.Length);for(int i=0;i<a.Length;i++)Write(s,et,a.GetValue(i),seen);return;}
+   if(t.IsArray){var a=(Array)v;var et=t.GetElementType();s.I(a.Length);
+    // Per-wave arrays (1000 entries in endless) are written up to their last non-default entry.
+    if(et==typeof(int)){var ia=(int[])a;int used=ia.Length;while(used>0&&ia[used-1]==0)used--;s.I(used);for(int i=0;i<used;i++)s.I(ia[i]);return;}
+    if(et==typeof(bool)){var ba=(bool[])a;int used=ba.Length;while(used>0&&!ba[used-1])used--;s.I(used);for(int i=0;i<used;i++)s.B(ba[i]);return;}
+    for(int i=0;i<a.Length;i++)Write(s,et,a.GetValue(i),seen);return;}
    if(t.IsGenericType){
     var def=t.GetGenericTypeDefinition();var args=t.GetGenericArguments();
     if(def==typeof(List<>)){var l=(IList)v;s.I(l.Count);for(int i=0;i<l.Count;i++)Write(s,args[0],l[i],seen);return;}
@@ -127,7 +132,7 @@ namespace CarrotTD {
     using var ms=new MemoryStream(data);var r=new BinaryReader(ms,Encoding.UTF8);
     if(r.ReadUInt32()!=Magic){error="not a Carrot state";return false;}
     if(r.ReadUInt32()!=SchemaHash()){error="schema mismatch (different builds)";return false;}
-    int id=r.ReadInt32();string mode=r.ReadBoolean()?r.ReadString():"normal";uint arg=r.ReadUInt32();int speed=r.ReadInt32();int tick=r.ReadInt32();
+    int id=ReadInt(r);string mode=r.ReadBoolean()?r.ReadString():"normal";uint arg=r.ReadUInt32();int speed=ReadInt(r);int tick=ReadInt(r);
     if(g.level==null||g.level.id!=id||g.Mode!=mode||g.NetArg!=arg){var keepMode=g.NetMode;int keepSeat=g.NetSeat;g.LoadLevel(id,mode,arg);if(keepMode!=NetMode.None)g.NetBegin(keepMode,keepSeat);}
     foreach(var f in Fields(typeof(CarrotGame))){
      var current=f.GetValue(g);var value=Read(r,f.FieldType,current);
@@ -138,19 +143,22 @@ namespace CarrotTD {
     g.AfterImport(tick);return true;
    }catch(Exception e){error=e.GetType().Name+": "+e.Message;return false;}
   }
+  static int ReadInt(BinaryReader r){uint z=0;int shift=0;for(;;){byte b=r.ReadByte();z|=(uint)(b&0x7F)<<shift;if(b<0x80)break;shift+=7;if(shift>28)throw new InvalidOperationException("varint overrun");}return (int)(z>>1)^-(int)(z&1);}
   /// <summary>Reads a value of type t; collections and objects are refilled in place when `current` is one (readonly fields).</summary>
   static object Read(BinaryReader r,Type t,object current){
-   if(t==typeof(int))return r.ReadInt32();if(t==typeof(float))return r.ReadSingle();if(t==typeof(bool))return r.ReadBoolean();
+   if(t==typeof(int))return ReadInt(r);if(t==typeof(float))return r.ReadSingle();if(t==typeof(bool))return r.ReadBoolean();
    if(t==typeof(string))return r.ReadBoolean()?r.ReadString():null;if(t==typeof(uint))return r.ReadUInt32();if(t==typeof(long))return r.ReadInt64();
    if(t==typeof(Vector3))return new Vector3(r.ReadSingle(),r.ReadSingle(),r.ReadSingle());
-   if(t.IsEnum)return Enum.ToObject(t,r.ReadInt32());
+   if(t.IsEnum)return Enum.ToObject(t,ReadInt(r));
    if(t.IsValueType&&!t.IsPrimitive){object box=Activator.CreateInstance(t);foreach(var f in Fields(t))f.SetValue(box,Read(r,f.FieldType,null));return box;}
-   int n=r.ReadInt32();if(n<0)return null;
-   if(t.IsArray){var et=t.GetElementType();var a=current is Array c&&c.Length==n?c:Array.CreateInstance(et,n);for(int i=0;i<n;i++)a.SetValue(Read(r,et,null),i);return a;}
+   int n=ReadInt(r);if(n<0)return null;
+   if(t.IsArray){var et=t.GetElementType();var a=current is Array c&&c.Length==n?c:Array.CreateInstance(et,n);
+    if(et==typeof(int)||et==typeof(bool)){int used=ReadInt(r);if(used>n)throw new InvalidOperationException("array overrun");if(et==typeof(int)){var ia=(int[])a;for(int i=0;i<n;i++)ia[i]=i<used?ReadInt(r):0;}else{var ba=(bool[])a;for(int i=0;i<n;i++)ba[i]=i<used&&r.ReadBoolean();}return a;}
+    for(int i=0;i<n;i++)a.SetValue(Read(r,et,null),i);return a;}
    if(t.IsGenericType){
     var def=t.GetGenericTypeDefinition();var args=t.GetGenericArguments();
     if(def==typeof(List<>)){var l=(IList)(current??Activator.CreateInstance(t));l.Clear();for(int i=0;i<n;i++)l.Add(Read(r,args[0],null));return l;}
-    if(def==typeof(Dictionary<,>)){var d=(IDictionary)(current??Activator.CreateInstance(t));d.Clear();for(int i=0;i<n;i++){int k=r.ReadInt32();d[k]=Read(r,args[1],null);}return d;}
+    if(def==typeof(Dictionary<,>)){var d=(IDictionary)(current??Activator.CreateInstance(t));d.Clear();for(int i=0;i<n;i++){int k=ReadInt(r);d[k]=Read(r,args[1],null);}return d;}
     if(def==typeof(HashSet<>)){var set=current??Activator.CreateInstance(t);t.GetMethod("Clear").Invoke(set,null);var add=t.GetMethod("Add");bool isInt=args[0]==typeof(int);
      for(int i=0;i<n;i++){long x=r.ReadInt64();add.Invoke(set,new object[]{isInt?(object)(int)x:(object)x});}return set;}
     throw new InvalidOperationException("CarrotNetState: unsupported "+t.Name);

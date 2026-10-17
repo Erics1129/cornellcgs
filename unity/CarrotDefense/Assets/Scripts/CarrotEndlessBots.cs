@@ -11,7 +11,8 @@ namespace CarrotTD {
  //  Two bot seats share the purse and act only through the page's commands on one lockstep instance (NetMode Lockstep): every
  //  command becomes an intent checked against the provisional state and executes D=4 ticks later, exactly as on two devices.
  //  Each seat prefers its home wing and the centre (seat 0: x <= 2, seat 1: x >= -2) with p .8 per decision.
- //  E-R0 expert: decides every 0.25-0.5 s, takes the best option, merges, answers every telegraph, reads the preview.
+ //  E-R0 expert: decides every 0.25-0.5 s, takes the best option, merges, answers every telegraph, reads the preview, and
+ //      never calls a wave early (a safe expert).
  //  E-R1 median: the R1 human (lognormal 4 s cadence, geometric rank q .5, telegraphs p .6, merges p .5, preview p .7).
  //  E-R2 novice: the R2 human (telegraphs p .2, q .7, keeps 25% idle, no preview, never merges).
  //  E-solo: one E-R1 seat alone on the whole map (the "Continue solo" score).
@@ -84,8 +85,6 @@ namespace CarrotTD {
    }
    ESpend(g,b,h.maxActions);
    if(b.rng.Unit()<h.focusP)g.TestAsSeat(b.seat,()=>EFocus(g));
-   // Early calls: the expert calls the next wave when the field is clear and the purse is spent.
-   if(b.expert&&g.nextWave>0&&g.LiveEnemies==0&&g.ProvisionalCoins<60)g.TestAsSeat(b.seat,()=>g.Command("{\"type\":\"next\"}"));
   }
   static void EFocus(CarrotGame g){
    EnemyState boss=g.enemies.Find(e=>e.alive&&!string.IsNullOrEmpty(e.boss)&&!e.hidden);bool crisis=g.enemies.Exists(e=>e.alive&&string.IsNullOrEmpty(e.boss)&&e.distance/e.routeLength>.87f);
@@ -114,7 +113,11 @@ namespace CarrotTD {
      if(d.id=="frost"&&count<2)score*=.2f;
      if(score>0)buildCands.Add(new Cand{up=false,id=0,pad=p,kind=d.id,score=score,cost=d.cost[0]});}}
    bool upgradeFirst=count>=2&&b.rng.Unit()<.5;var list=upgradeFirst?(upCands.Count>0?upCands:buildCands):(buildCands.Count>0?buildCands:upCands);
-   if(list.Count==0)return false;list.Sort(CandOrder);
+   if(list.Count==0)return false;
+   // Mirrored pads score the same: each seat breaks the tie toward its own wing (seat 0 west, seat 1 east; E-solo alternates),
+   // so neither gate is favoured by pad numbering.
+   bool west=b.solo?b.rng.Unit()<.5:b.seat==0;var pads=g.level.pads;
+   list.Sort((x,y)=>{int c=y.score.CompareTo(x.score);if(c!=0)return c;float px=pads[x.pad].x,py=pads[y.pad].x;c=west?px.CompareTo(py):py.CompareTo(px);if(c!=0)return c;c=x.id.CompareTo(y.id);return c!=0?c:string.CompareOrdinal(x.kind,y.kind);});
    int k=0;while(k<list.Count-1&&b.rng.Unit()<b.h.q)k++;var c=list[k];int before=g.PendingOps.Count;
    if(c.up){g.Select("tower",c.id);g.Command("{\"type\":\"upgrade\"}");}else{g.Select("pad",c.pad);g.Command("{\"type\":\"buy\",\"kind\":\""+c.kind+"\"}");}
    g.Select("",-1);return g.PendingOps.Count>before;
@@ -126,6 +129,8 @@ namespace CarrotTD {
    foreach(var a in args){
     if(a.StartsWith("wave=",StringComparison.Ordinal)){maxWave=int.Parse(a.Substring(5),CultureInfo.InvariantCulture);continue;}
     if(a.StartsWith("d=",StringComparison.Ordinal)){d=int.Parse(a.Substring(2),CultureInfo.InvariantCulture);continue;}
+    if(a.StartsWith("gen=",StringComparison.Ordinal)){foreach(var pair in a.Substring(4).Split(',')){var kv=pair.Split(':');if(!CarrotEndlessGen.SetConstant(kv[0],int.Parse(kv[1],CultureInfo.InvariantCulture)))throw new ArgumentException("unknown constant "+kv[0]);}continue;}
+    if(a.StartsWith("gold=",StringComparison.Ordinal)){CarrotDuoMaps.Endless.startingGold=int.Parse(a.Substring(5),CultureInfo.InvariantCulture);continue;}
     if(a.StartsWith("dial=",StringComparison.Ordinal)){foreach(var pair in a.Substring(5).Split(',')){var kv=pair.Split(':');int i=CarrotEndlessGen.BossIndex(kv[0]);if(i>=0)CarrotEndlessGen.BossDial[i]=int.Parse(kv[1],CultureInfo.InvariantCulture);}continue;}
     var parts=a.Split(':');string bot=parts[0];foreach(int s in Range(parts[1])){var r=RunEndless(bot,(uint)(1000+s),maxWave,d);Debug.Log("CARROT_EBAND "+r.Json());}
    }

@@ -291,7 +291,8 @@ namespace CarrotTD {
    foreach(var t in towers)TickTower(t,dt);
    for(int i=enemies.Count-1;i>=0;i--){var e=enemies[i];if(e.alive)continue;e.deadFor+=dt;
     if(actors.TryGetValue(e.id,out var a)&&a.contactEnd>0&&elapsed>=a.contactEnd){a.contactEnd=0;unresolvedContacts=Mathf.Max(0,unresolvedContacts-1);}
-    if(e.deadFor>=.8f){enemies.RemoveAt(i);actors.Remove(e.id);}
+    // The per-enemy expansion record goes with it (it was kept forever: unbounded growth over a long endless run).
+    if(e.deadFor>=.8f){enemies.RemoveAt(i);actors.Remove(e.id);extras.Remove(e.id);}
    }
    for(int w=1;w<=wave;w++)if(waveStarted[w]&&!wavePaid[w]&&wavePending[w]==0&&waveLiving[w]==0){wavePaid[w]=true;int pay=WaveStipendHere(w);coins+=pay;TotalEarned+=pay;Emit("coins","wave",level.routes[0][level.routes[0].Length-1],value:pay);WaveCleared(w);EndlessWavePaid(w);}
    if(phase!="playing")return;
