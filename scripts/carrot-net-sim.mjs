@@ -32,7 +32,7 @@ export function link(world, model, kind) {
 }
 
 export class World {
-  constructor(seed = 1) { this.t = 1_000_000; this.q = []; this.rand = rng(seed); this.seq = 0 }
+  constructor(seed = 1) { this.t = 1_000_000; this.q = []; this.rand = rng(seed); this.seq = 0; this.steps = 0 }
   now = () => this.t
   at(t, fn) { this.q.push({ t, fn, s: this.seq++ }); }
   async run(until, tickers) {
@@ -43,6 +43,8 @@ export class World {
       while (this.q.length && this.q[0].t <= this.t) { const e = this.q.shift(); e.fn() }
       for (const k of tickers) k(this.t)
       await null; await null; await null
+      // let real async work (CompressionStream for state blobs) finish: virtual time stands still meanwhile
+      if (++this.steps % 10 === 0) await new Promise(r => setImmediate(r))
     }
   }
 }
@@ -69,7 +71,8 @@ export async function pair(opts) {
     const deliver = (bytes, via) => { if (bytes.length > maxFrame.bytes) maxFrame.bytes = bytes.length; const copy = bytes.slice(); return () => toOther().transport.receive(copy, via) }
     p.relay = { open: () => !state.tcp.down, send: bytes => { if (state.tcp.down) return false; wsLink.send(deliver(bytes, 'relay')); return true } }
     p.peerPath = { open: () => state.p2p && !state.udp.closed, send: (ch, bytes) => { if (!state.p2p || state.udp.closed) return false; (ch === 'u' ? uLink : rLink).send(deliver(bytes, ch)); return true }, restartIce: () => { p.restarts = (p.restarts || 0) + 1 } }
-    p.transport = new Transport({ now, partner: 1 - seat, relay: p.relay, stats, onFrame: (f, via) => p.match.onFrame(f, via) })
+    p.pathLog = []
+    p.transport = new Transport({ now, partner: 1 - seat, relay: p.relay, stats, onFrame: (f, via) => p.match.onFrame(f, via), onPath: path => p.pathLog.push([now(), path]) })
     p.transport.setPeer(p.peerPath)
     const d0 = opts.D ?? initialDelay(udp.rtt + 2 * udp.jitter, state.p2p ? 'p2p' : 'relay')
     p.match = new NetMatch({
