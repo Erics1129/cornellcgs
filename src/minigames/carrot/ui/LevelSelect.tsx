@@ -1,12 +1,15 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import type { CSSProperties } from 'react'
 import type { CampaignSave, ChallengeBoss, ChallengeSave, GameDefinitions, LevelDefinition, RecordsSave } from '../types'
 import { BossPortrait, CreaturePortrait, RouteDrawing, chapterArt, challengeArt, jacketArt, useImageAvailable } from '../art'
 import { levelKinds, parseComposition, traitsOf, workOf } from '../waves'
 import type { EnemyDefinition } from '../types'
 import { bossOfLevel, challengeDifficulty, challengeTitles, challengeUnlocked, formatSeconds, lockCaption, par as challengePar, stars } from '../challenges'
-import { LevelCount } from '../progress'
+import { LevelCount, gradeLetters } from '../progress'
 import { measuredR2 } from '../difficulty'
+import { names, noneYet } from '../copy'
 import { Grade, Medals, Pips, difficultyLabel } from './kit'
+import { glass, jelly } from './Glass'
 import Icon from '../Icon'
 
 export type Chapter={index:number;name:string;number:string;from:number;to:number;road?:string;challenges?:boolean;biome:string}
@@ -20,23 +23,44 @@ export function levelBand(l:LevelDefinition){
  const b=bossOfLevel(l.id);if(b)return difficultyLabel(0,l.challenge||challengeDifficulty[b])
  const r=r2Of(l.id);return r>=.6?'NORMAL':r>=.4?'HARD':'EXPERT'
 }
+export const bandTone=(band:string)=>({NORMAL:'normal',EASY:'normal',HARD:'hard',EXPERT:'expert',INSANE:'insane','????':'unknown'}[band]||'normal')
+
+const two=(n:number)=>String(n).padStart(2,'0')
+const starIcons=['check','heart','star']
+/** An empty record: a muted dot with an accessible name (no dash glyphs). */
+const None=()=><span className="ct-none" role="img" aria-label={noneYet}/>
+
 /**
  * The stage's "chart": one bar per wave, its height the wave's work (a guardian counts 8, a miniboss 4), like a rhythm game's note
- * density graph. Waves with flyers carry a wing tick, guardian and miniboss waves their colour; then the creatures the stage sends.
+ * density graph. Waves with flying creatures carry a dot under the bar, guardian and miniboss waves their colour; then the creatures
+ * the stage sends (a dot marks the ones the player has not met yet).
  */
 function StageChart({level,enemies,seen}:{level:LevelDefinition;enemies:EnemyDefinition[]|undefined;seen:string[]}){
  const waves=(level.waveCompositions||[]).map(c=>{const parts=parseComposition(c);const t=parts.map(p=>traitsOf(p.kind,enemies));return {work:parts.reduce((s,p)=>s+p.n*workOf(p.kind,enemies),0),air:t.some(x=>x.air),boss:t.some(x=>x.boss),mini:t.some(x=>x.mini)}})
  const max=Math.max(1,...waves.map(w=>w.work)),kinds=levelKinds(level).slice(0,12)
  if(!waves.length)return null
+ const air=waves.map((w,i)=>w.air?i+1:0).filter(Boolean)
  return <div className="ct-chart">
-  <div className="ct-chart__bars" role="img" aria-label={`${waves.length} waves; flyers in waves ${waves.map((w,i)=>w.air?i+1:0).filter(Boolean).join(', ')||'none'}${waves.some(w=>w.boss)?`; the guardian arrives in wave ${waves.findIndex(w=>w.boss)+1}`:''}`}>
-   {waves.map((w,i)=><i key={i} className={`${w.boss?'is-boss':w.mini?'is-mini':''} ${w.air?'is-air':''}`} style={{height:`${Math.max(8,w.work/max*100)}%`}}/>)}
-  </div>
+  {waves.length>1&&<div className="ct-chart__bars gl-well" role="img" aria-label={`${waves.length} waves; ${air.length?`flying creatures in waves ${air.join(', ')}`:'no flying creatures'}${waves.some(w=>w.boss)?`; the guardian arrives in wave ${waves.findIndex(w=>w.boss)+1}`:''}`}>
+   {waves.map((w,i)=><span key={i} className={`ct-chart__bar ${w.boss?'is-boss':w.mini?'is-mini':''} ${w.air?'is-air':''}`} style={{'--h':Math.max(.1,w.work/max),'--i':i} as CSSProperties}><i/></span>)}
+  </div>}
   <div className="ct-chart__kinds" aria-label={`Creatures: ${kinds.map(k=>traitsOf(k,enemies).name).join(', ')}`}>{kinds.map(k=><span key={k} className={`ct-chart__kind ${seen.includes(k)?'':'is-new'}`} title={traitsOf(k,enemies).name}><CreaturePortrait kind={k} fallback/></span>)}</div>
  </div>
 }
 
-export const bandTone=(band:string)=>({NORMAL:'normal',EASY:'normal',HARD:'hard',EXPERT:'expert',INSANE:'insane','????':'unknown'}[band]||'normal')
+/**
+ * Images that crossfade: a new source is laid over the last one that finished loading and fades in once it has loaded itself, so
+ * moving the focus never flashes the empty frame between two pictures (a source that fails to load simply never shows).
+ */
+function Crossfade({src}:{src:string}){
+ const [layers,setLayers]=useState([{src,id:0,ready:false}])
+ useEffect(()=>{setLayers(l=>{const top=l[l.length-1];return top.src===src?l:[...l.filter(x=>x.ready).slice(-1),{src,id:top.id+1,ready:false}]})},[src])
+ return <>{layers.map(l=><img key={l.id} src={l.src} alt="" decoding="async" className={l.ready?'is-ready':''} onLoad={()=>setLayers(all=>all.map(x=>x.id===l.id?{...x,ready:true}:x))}/>)}</>
+}
+/** The full-screen backdrop: the focused stage's land (or the guardian's key art), dimmed, with a light in the land's colour. */
+function Backdrop({src}:{src:string}){
+ return <div className="ct-select__backdrop" aria-hidden="true"><Crossfade src={src}/><i className="ct-select__shade"/></div>
+}
 
 type Props={definitions:GameDefinitions;save:CampaignSave;challenges:ChallengeSave;records:RecordsSave;current:number;preview:boolean;veteranAvailable:boolean;veteran:boolean;onVeteran:(on:boolean)=>void;onPlay:(id:number)=>void;onClose:()=>void;startChallenges?:boolean;reduced:boolean}
 export function LevelSelect({definitions,save,challenges,records,current,preview,veteranAvailable,veteran,onVeteran,onPlay,onClose,startChallenges,reduced}:Props){
@@ -50,13 +74,16 @@ export function LevelSelect({definitions,save,challenges,records,current,preview
  const ch=chapters.find(c=>c.index===chapter)||chapters[0]
  const rows=useMemo(()=>levels.filter(l=>l.id>=ch.from&&l.id<=ch.to),[levels,ch])
  const level=levels.find(l=>l.id===focus)||rows[0]
- // PLAY takes the first focus without scrolling the dialog (autoFocus scrolled it on short WebKit screens)
+ // Play takes the first focus without scrolling the dialog (autoFocus scrolled it on short WebKit screens)
  useEffect(()=>{const el=ref.current;el?.showModal();el?.querySelector<HTMLElement>('.ct-jacket__play')?.focus({preventScroll:true});if(el)el.scrollTop=0;return()=>el?.close()},[])
  // Scroll only the track list: scrollIntoView also scrolls the dialog itself, which pushed Back and the chapters off a short screen.
  useEffect(()=>{const box=list.current,row=box?.querySelector<HTMLElement>(`[data-id="${focus}"]`);if(!box||!row)return
-  const r=row.getBoundingClientRect(),b=box.getBoundingClientRect()
-  if(r.top<b.top)box.scrollTop-=b.top-r.top+4;else if(r.bottom>b.bottom)box.scrollTop+=r.bottom-b.bottom+4
+  const r=row.getBoundingClientRect(),b=box.getBoundingClientRect(),pad=14
+  if(r.top<b.top+pad)box.scrollTop-=b.top+pad-r.top;else if(r.bottom>b.bottom-pad)box.scrollTop+=r.bottom-b.bottom+pad
   if(ref.current&&ref.current.scrollTop)ref.current.scrollTop=0},[focus,chapter])
+ // the current chapter tab stays in view on narrow screens (the tabs scroll sideways there)
+ useEffect(()=>{const tab=ref.current?.querySelector<HTMLElement>('.ct-chapter.is-current'),box=tab?.parentElement;if(!tab||!box||box.scrollWidth<=box.clientWidth)return
+  const t=tab.offsetLeft,w=tab.offsetWidth;if(t<box.scrollLeft+16)box.scrollLeft=t-16;else if(t+w>box.scrollLeft+box.clientWidth-16)box.scrollLeft=t+w-box.clientWidth+16},[chapter])
  const pickChapter=(i:number)=>{const c=chapters.find(x=>x.index===i);if(!c)return;setChapter(i);const ls=levels.filter(l=>l.id>=c.from&&l.id<=c.to);const open=ls.filter(l=>isOpen(l.id));setFocus((open[open.length-1]||ls[0])?.id||c.from)}
  const keys=(e:React.KeyboardEvent)=>{
   const i=rows.findIndex(r=>r.id===focus)
@@ -71,43 +98,64 @@ export function LevelSelect({definitions,save,challenges,records,current,preview
  const open=level?isOpen(level.id):false,band=level?levelBand(level):'NORMAL'
  const jacketOk=useImageAvailable(jacketArt(level?.id||1))
  const cover=level?(jacketOk?jacketArt(level.id):boss?challengeArt(boss):chapterArt(level.biome)):chapterArt('garden')
- return <dialog ref={ref} className={`ct-select ${reduced?'':'is-animated'}`} aria-label="Stage select" onCancel={e=>{e.preventDefault();onClose()}} onKeyDown={keys} data-biome={level?.biome||'garden'}>
-  <div className="ct-select__backdrop" aria-hidden="true"><img key={cover} src={cover} alt="" decoding="async"/></div>
+ // the backdrop is the land itself (high-resolution key art), or the guardian's key art in the challenges
+ const scene=boss?challengeArt(boss):chapterArt(level?.biome||ch.biome)
+ const title=ch.challenges?names.challenges:names.stageSelect
+ const guardian=boss||level?.boss||''
+ const fastest=boss&&best?formatSeconds(best.seconds):rec?.bestSeconds?formatSeconds(rec.bestSeconds):''
+ return <dialog ref={ref} className={`ct-select ${reduced?'':'is-animated'} ${ch.challenges?'is-arena':''}`} aria-labelledby="ct-select-title" onCancel={e=>{e.preventDefault();onClose()}} onKeyDown={keys} data-biome={level?.biome||'garden'}>
+  <Backdrop src={scene}/>
   <header className="ct-select__top">
-   <button className="ct-icon-btn" onClick={onClose} aria-label="Back"><Icon name="back"/></button>
-   <h2>Stage select</h2>
-   <span className="ct-select__total"><b>{cleared}</b>/{LevelCount} cleared <i/> <b>{totalMedals}</b> medals</span>
+   <button className="ct-icon-btn ct-select__back" onClick={onClose} aria-label="Back"><Icon name="back"/></button>
+   <h2 id="ct-select-title">{title}</h2>
+   <p className={glass({depth:1,pill:true},'ct-select__total')}><span><b className="gl-num">{cleared}</b> of {LevelCount} cleared</span><i aria-hidden="true"/><span><b className="gl-num">{totalMedals}</b> medals</span></p>
   </header>
-  <nav className="ct-chapters" aria-label="Chapters">{chapters.map(c=>{const ls=levels.filter(l=>l.id>=c.from&&l.id<=c.to);if(!ls.length)return null;const done=c.challenges?ls.filter(l=>{const b=bossOfLevel(l.id);return b&&challenges.best[b]?.cleared}).length:ls.filter(l=>(save.medals[l.id]||0)&1).length
-   return <button key={c.index} className={`ct-chapter ${c.index===chapter?'is-current':''}`} aria-pressed={c.index===chapter} onClick={()=>pickChapter(c.index)} data-biome={c.biome}><span className="ct-chapter__no">{c.number}</span><span className="ct-chapter__name">{c.name}</span><span className="ct-chapter__done">{done}/{ls.length}</span></button>})}</nav>
+  <nav className={glass({depth:1,pill:true},'ct-chapters')} aria-label="Chapters"><div className="ct-chapters__scroll">{chapters.map(c=>{const ls=levels.filter(l=>l.id>=c.from&&l.id<=c.to);if(!ls.length)return null;const done=c.challenges?ls.filter(l=>{const b=bossOfLevel(l.id);return b&&challenges.best[b]?.cleared}).length:ls.filter(l=>(save.medals[l.id]||0)&1).length
+   return <button key={c.index} className={`ct-chapter gl--press ${c.index===chapter?'is-current':''}`} aria-pressed={c.index===chapter} onClick={()=>pickChapter(c.index)} data-biome={c.biome} aria-label={`${c.name}, ${done} of ${ls.length} cleared`}>
+    <span className="ct-chapter__ring" style={{'--ring':done/ls.length} as CSSProperties} aria-hidden="true"><img src={chapterArt(c.biome)} alt="" loading="lazy" decoding="async"/></span>
+    <span className="ct-chapter__text"><span className="ct-chapter__name">{c.name}</span><span className="ct-chapter__done gl-num">{done}/{ls.length}</span></span>
+   </button>})}</div></nav>
   <div className="ct-select__main">
-   {level&&<article className={`ct-jacket ${open?'':'is-locked'}`} key={level.id}>
-    <div className="ct-jacket__art"><img src={cover} alt="" loading="lazy" decoding="async"/><span className="ct-jacket__no">{String(level.id).padStart(2,'0')}</span>{!jacketOk&&level.routes&&<RouteDrawing routes={level.routes}/>}{boss||level.boss?<span className="ct-jacket__boss"><BossPortrait kind={boss||level.boss||''}/></span>:null}</div>
-    <div className="ct-jacket__meta">
-     <span className={`ct-band is-${bandTone(band)}`}>{band}</span><Pips value={levelPips(level)}/>
-     <span className="ct-jacket__waves">{boss==='asuna'?'Endurance':`${level.waves} waves`} · {level.routes?.length||1} {(level.routes?.length||1)>1?'routes':'route'}</span>
+   {level&&<article className={glass({depth:3,blur:true},'ct-jacket',open?'':'is-locked')}>
+    <div className="ct-jacket__art gl-thumb">
+     <Crossfade src={cover}/>
+     {!jacketOk&&level.routes&&<RouteDrawing routes={level.routes}/>}
+     <span className="ct-jacket__no gl-num" aria-hidden="true">{two(level.id)}</span>
+     {guardian?<span className="ct-jacket__boss" aria-hidden="true"><BossPortrait kind={guardian}/></span>:null}
+     {!open&&<span className="ct-jacket__locked" aria-hidden="true"><Icon name="lock"/></span>}
     </div>
-    <h3>{boss?challengeTitles[boss]?.replace('BossFight - ',''):level.name}</h3>
-    <p className="ct-jacket__sub">{boss?`${level.bossName||level.name} · The Arena`:`${biomeNames[level.biome]||level.biome}${level.boss?' · Guardian stage':''}`}</p>
-    <dl className="ct-jacket__best">
-     <div><dt>Best</dt><dd><Grade value={rec?.grade||0} size="md"/></dd></div>
-     <div><dt>{boss?'Stars':'Medals'}</dt><dd><Medals value={medal} icons={boss?['check','heart','star']:undefined} labels={boss?['Cleared.','Carrot unharmed.',`Under ${formatSeconds(challengePar[boss])}.`]:undefined}/></dd></div>
-     <div><dt>Fastest</dt><dd>{boss&&best?formatSeconds(best.seconds):rec?.bestSeconds?formatSeconds(rec.bestSeconds):'–'}</dd></div>
-     <div><dt>Chain</dt><dd>{rec?.bestStreak?`×${rec.bestStreak}`:'–'}</dd></div>
-    </dl>
-    <StageChart level={level} enemies={definitions.enemies} seen={records.seen.creatures}/>
-    {veteranAvailable&&!boss&&<label className="ct-switch"><input type="checkbox" checked={veteran} onChange={e=>onVeteran(e.target.checked)}/><span>Veteran</span><small>Tougher creatures, 60% refunds</small></label>}
-    {open?<button className="ct-cta ct-jacket__play" onClick={()=>onPlay(level.id)} >Play<Icon name="play"/></button>:<p className="ct-jacket__lock"><Icon name="lock"/>{boss?lockCaption[boss]||'Locked':`Clear stage ${String(level.id-1).padStart(2,'0')} to open`}</p>}
+    <div className="ct-jacket__body" key={level.id}>
+     <div className="ct-jacket__meta">
+      <span className={`ct-band is-${bandTone(band)}`}>{band}</span><Pips value={levelPips(level)}/>
+      <span className="ct-jacket__waves">{boss==='asuna'?'Endurance':`${level.waves} waves`} · {level.routes?.length||1} {(level.routes?.length||1)>1?'routes':'route'}</span>
+     </div>
+     <h3>{boss?challengeTitles[boss]:level.name}</h3>
+     <p className="ct-jacket__sub">{boss?`${biomeNames[level.biome]||biomeNames.arena} · Par ${formatSeconds(challengePar[boss])}`:`${biomeNames[level.biome]||level.biome}${level.boss?' · Guardian stage':''}`}</p>
+     <dl className="ct-jacket__best">
+      <div className="gl-fill"><dt className="gl-label">Best</dt><dd><Grade value={rec?.grade||0} size="md"/></dd></div>
+      <div className="gl-fill"><dt className="gl-label">{boss?'Stars':'Medals'}</dt><dd><Medals value={medal} icons={boss?starIcons:undefined} labels={boss?['Cleared.','Carrot unharmed.',`Under ${formatSeconds(challengePar[boss])}.`]:undefined}/></dd></div>
+      <div className="gl-fill"><dt className="gl-label">Fastest</dt><dd className="gl-num">{fastest||<None/>}</dd></div>
+      <div className="gl-fill"><dt className="gl-label">Chain</dt><dd className="gl-num">{rec?.bestStreak?`×${rec.bestStreak}`:<None/>}</dd></div>
+     </dl>
+     <StageChart level={level} enemies={definitions.enemies} seen={records.seen.creatures}/>
+     {veteranAvailable&&!boss&&<label className="ct-switch ct-jacket__veteran"><input type="checkbox" checked={veteran} onChange={e=>onVeteran(e.target.checked)}/><span>Veteran</span><small>Tougher creatures, 60% refunds</small></label>}
+    </div>
+    <div className="ct-jacket__go">
+     {open?<button className={jelly({size:'lg'},'ct-cta ct-jacket__play')} onClick={()=>onPlay(level.id)}>Play<Icon name="play"/></button>
+     :<p className="ct-jacket__lock gl-fill"><Icon name="lock"/>{boss?lockCaption[boss]||'Locked':`Clear stage ${two(level.id-1)} to unlock`}</p>}
+    </div>
    </article>}
    <ol className="ct-tracklist" ref={list} aria-label={`${ch.name} stages`}>
-    {rows.map(l=>{const b=bossOfLevel(l.id),r=records.levels[String(l.id)],m=b?stars(challenges.best[b],b):save.medals[l.id]||0,o=isOpen(l.id),bd=levelBand(l)
-     return <li key={l.id}><button data-id={l.id} className={`ct-trackrow ${l.id===focus?'is-focus':''} ${o?'':'is-locked'}`} aria-current={l.id===focus} onClick={()=>{if(l.id===focus&&o)onPlay(l.id);else setFocus(l.id)}} onKeyUp={e=>{if(e.key==='Tab')setFocus(l.id)}} onDoubleClick={()=>o&&onPlay(l.id)}
-      aria-label={`${l.id}. ${b?challengeTitles[b]:l.name}. ${bd}${o?'':'. Locked'}${r?.grade?`. Grade ${['','D','C','B','A','S'][r.grade]}`:''}`}>
-      <span className="ct-trackrow__no">{String(l.id).padStart(2,'0')}</span>
-      <span className="ct-trackrow__thumb" aria-hidden="true"><img src={jacketArt(l.id)} alt="" loading="lazy" decoding="async" onError={e=>{(e.target as HTMLImageElement).style.visibility='hidden'}}/></span>
-      <span className="ct-trackrow__name"><b>{b?challengeTitles[b]?.replace('BossFight - ',''):l.name}</b><small>{b?(challenges.best[b]?`Best ${challenges.best[b]!.health} HP · ${formatSeconds(challenges.best[b]!.seconds)}`:o?`Par ${formatSeconds(challengePar[b])}`:'Locked'):biomeNames[l.biome]!==ch.name&&!ch.challenges?biomeNames[l.biome]:l.boss?'Guardian':`${l.waves} waves`}</small></span>
+    {rows.map((l,i)=>{const b=bossOfLevel(l.id),r=records.levels[String(l.id)],m=b?stars(challenges.best[b],b):save.medals[l.id]||0,o=isOpen(l.id),bd=levelBand(l),on=l.id===focus,best=b?challenges.best[b]:undefined
+     const fresh=!b&&o&&!(m&1)&&l.id===save.unlocked&&!preview
+     const sub=b?(best?`Best: ${best.health} hearts · ${formatSeconds(best.seconds)}`:o?`Par ${formatSeconds(challengePar[b])}`:'Locked'):biomeNames[l.biome]!==ch.name&&!ch.challenges?biomeNames[l.biome]:l.boss?'Guardian':`${l.waves} waves`
+     return <li key={l.id} style={{'--i':i} as CSSProperties}><button data-id={l.id} className={glass({depth:2,interactive:true,selected:on},'ct-trackrow',on&&'is-focus',!o&&'is-locked',b&&'is-challenge')} aria-current={on} onClick={()=>{if(on&&o)onPlay(l.id);else setFocus(l.id)}} onKeyUp={e=>{if(e.key==='Tab')setFocus(l.id)}} onDoubleClick={()=>o&&onPlay(l.id)}
+      aria-label={`${l.id}. ${b?challengeTitles[b]:l.name}. ${bd}${o?'':'. Locked'}${r?.grade?`. Grade ${gradeLetters[r.grade]}`:''}`}>
+      <span className="ct-trackrow__no gl-num">{two(l.id)}</span>
+      <span className="ct-trackrow__art" aria-hidden="true"><span className="ct-trackrow__thumb gl-thumb"><img src={jacketArt(l.id)} alt="" loading="lazy" decoding="async" onError={e=>{(e.target as HTMLImageElement).style.visibility='hidden'}}/></span>{b&&<span className="ct-trackrow__boss"><BossPortrait kind={b}/></span>}</span>
+      <span className="ct-trackrow__name"><b><span className="ct-trackrow__title">{b?challengeTitles[b]:l.name}</span>{fresh&&<span className="ct-trackrow__new">New</span>}</b><small>{sub}</small></span>
       <span className={`ct-band is-${bandTone(bd)}`}>{bd}</span>
-      <Medals value={m} icons={b?['check','heart','star']:undefined}/>
+      <Medals value={m} icons={b?starIcons:undefined}/>
       {o?<Grade value={r?.grade||0} size="sm"/>:<span className="ct-trackrow__lock"><Icon name="lock"/></span>}
      </button></li>})}
    </ol>

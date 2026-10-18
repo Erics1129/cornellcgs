@@ -269,7 +269,7 @@ for (const engine of engines) {
     await has('.ct-forge', 'Super forged toast with undo'); await clearCommands(page); await page.click('.ct-forge button'); check(E('parity: undo sends mergeUndo'), (await commands(page)).some(c => c.type === 'mergeUndo'))
     await fixture(page, 'waveAir'); await clearCommands(page); await page.click('[aria-label="Mute sound"]'); check(E('parity: mute sends mute'), (await commands(page)).some(c => c.type === 'mute' && c.value === 1))
     await page.evaluate(() => document.activeElement?.blur()); await clearCommands(page); await page.keyboard.press('Space'); check(E('parity: Space pauses'), (await commands(page)).some(c => c.type === 'pause'))
-    await page.evaluate(() => window.__qa.patch({ paused: true })); await page.waitForTimeout(250); await has('.ct-paused', 'paused card'); await page.evaluate(() => window.__qa.patch({ paused: false }))
+    await page.evaluate(() => window.__qa.patch({ paused: true })); await page.waitForTimeout(250); await has('.ct-paused, .ct-pause', 'paused card'); await page.evaluate(() => window.__qa.patch({ paused: false }))
     await page.evaluate(() => { const qa = window.__qa; qa.set(qa.base(29, { phase: 'playing', wave: 1, elapsed: 90, reinforcementTier: 2, reinforcementIn: 14, boss: { id: 3, kind: 'asuna', name: 'Asuna', hp: 30000, maxHp: 38000, shield: 0, maxShield: 0, phase: 1, ability: '', castRemaining: 0, stage: 1 } })) }); await page.waitForTimeout(300)
     await has('.ct-reinforcements', 'Asuna reinforcements panel'); await page.screenshot({ path: join(outDir, `qa-${engine}-asuna.png`) })
     await page.evaluate(() => window.__qa.patch({ blind: 2.5, blindAlpha: .985, blindTint: 0 })); await page.waitForTimeout(250)

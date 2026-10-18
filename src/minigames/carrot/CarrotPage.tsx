@@ -19,7 +19,8 @@ import { Lobby } from './ui/Lobby'
 import { LevelSelect } from './ui/LevelSelect'
 import { Loading } from './ui/Loading'
 import { WaveTrack } from './ui/WaveTrack'
-import { BottomBar, Controls, Judgement, PausedCard, StatusPanel, Vignette, useBeatGlow } from './ui/Hud'
+import { BottomBar, Controls, Judgement, StatusPanel, Vignette, useBeatGlow } from './ui/Hud'
+import { PauseMenu } from './ui/Pause'
 import { BossBar, MiniBars, MonsterBars, Reinforcements } from './ui/BossBar'
 import { BuildMenu } from './ui/BuildMenu'
 import { hudEdges } from './ui/BuildMenu'
@@ -225,7 +226,7 @@ function CarrotPage(){
      {teach&&!result&&!forgeBeat&&<MergeTip onDismiss={()=>setTeach(false)}/>}
     </div>
     {!result&&!panel&&!forgeBeat&&<BuildMenu store={store} definitions={definitions} send={send} reduced={reduced} onSafeArea={onSafeArea} tutorialFocus={step==='build'?'seed':undefined}/>}
-    {!result&&!panel&&!encounters.card&&<PausedCard store={store} send={send}/>}
+    {!result&&!panel&&!encounters.card&&<PauseMenu store={store} send={send} challenge={!!challengeBoss} onRestart={()=>openPanel('restart')} onStages={()=>openPanel(challengeBoss?'challenges':'select')} onSettings={()=>openPanel('settings')}/>}
     {!result&&!step&&<PrismBriefing store={store} run={run}/>}
     {step&&!result&&<Coach step={step} towers={page?.towers||0} onSkip={()=>setRecords(r=>finishTutorial(r))} onDone={()=>setRecords(r=>finishTutorial(r))}/>}
     {encounters.card&&!result&&<EncounterCard card={encounters.card} onDismiss={encounters.dismiss}/>}
