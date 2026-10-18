@@ -437,7 +437,11 @@ namespace CarrotTD {
    float y=TerrainHeight(foot);if(z)y=-.025f;var pole=Material("banner-pole-light",new Color(.86f,.8f,.68f),2,.3f);Primitive("Team banner pole",PrimitiveType.Cylinder,foot+Vector3.up*(y+.8f),new Vector3(.055f,.8f,.055f),pole,decoration,true);
    Primitive("Team banner finial",PrimitiveType.Sphere,foot+Vector3.up*(y+1.64f),Vector3.one*.11f,pole,decoration,true);
    var cloth=Material("banner-"+ColorUtility.ToHtmlStringRGB(team),team*.85f,-1,.2f);cloth.SetColor("_EmissionColor",team*.75f);cloth.SetFloat("_Cull",0);cloth.SetFloat("_SnowStrength",0);
-   var flag=Primitive("Team banner",PrimitiveType.Cube,foot+Vector3.up*(y+1.3f)+(z?new Vector3(.31f,0,0):new Vector3(0,0,.31f)),z?new Vector3(.6f,.42f,.02f):new Vector3(.02f,.42f,.6f),cloth,decoration);flag.GetComponent<Renderer>().shadowCastingMode=ShadowCastingMode.Off;
+   // The flag hangs from a yawed arm so it reads face-on from the landscape cameras (looking along z) and still shows from the
+   // portrait ones (looking along x); it flies away from the carrot, mirrored with the half.
+   var arm=new GameObject("Team banner arm").transform;arm.SetParent(decoration,false);arm.position=foot+Vector3.up*(y+1.3f);
+   float away=Mathf.Sign(OwnWorld(new Vector3(-1,0,0)).x-OwnWorld(Vector3.zero).x);if(z)away=1;arm.rotation=Quaternion.Euler(0,away>0?-35:35,0);
+   var flag=Primitive("Team banner",PrimitiveType.Cube,new Vector3(away*.32f,0,0),new Vector3(.62f,.42f,.02f),cloth,arm);flag.GetComponent<Renderer>().shadowCastingMode=ShadowCastingMode.Off;
   }
 
   // ---- endless: presence, pending ghosts, builder tint ------------------------------------------------------------------------
