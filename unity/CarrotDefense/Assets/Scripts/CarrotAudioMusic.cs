@@ -28,6 +28,8 @@ namespace CarrotTD {
     case "MusicMarsh":return "MusicEyeball";case "MusicEyeball":return "MusicMarsh";
     case "MusicFrost":return "MusicPortal";case "MusicPortal":return "MusicFrost";
     case "MusicOrchard":return "MusicZombie";case "MusicZombie":return "MusicOrchard";
+    // The owner-supplied boss themes alternate with the tracks those bosses used before.
+    case "MusicBossOrchard":return "MusicOrchard";case "MusicBossTornado":return "MusicTornado";
     default:return null;
    }
   }

@@ -1,62 +1,84 @@
 [
-  {
-    "track": "MusicOrchard",
-    "title": "Battle Theme",
-    "author": "Wolfgang_ (Theodore Kerr)",
-    "sourcePage": "https://opengameart.org/node/16611",
-    "download": "https://opengameart.org/sites/default/files/Battle.mp3",
-    "license": "CC0-1.0",
-    "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "sourceFile": "MusicOrchard.mp3",
-    "sourceBytes": 4646747,
-    "sourceSha256": "dde7bd4f10bde031800ba8e22151fad591b7c13e1c9ae51920341b4e4ae37be5"
-  },
-  {
-    "track": "MusicTornado",
-    "title": "Battle Theme A",
-    "author": "cynicmusic",
-    "sourcePage": "https://opengameart.org/content/battle-theme-a",
-    "download": "https://opengameart.org/sites/default/files/battleThemeA.mp3",
-    "license": "CC0-1.0",
-    "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "sourceFile": "MusicTornado.mp3",
-    "sourceBytes": 3289143,
-    "sourceSha256": "6042399782e581d753d616bc703e66483d5eccb5fb687a20c9a552d68c49e620"
-  },
-  {
-    "track": "MusicZombie",
-    "title": "Col Legno",
-    "author": "Vehicle",
-    "sourcePage": "https://opengameart.org/content/col-legno",
-    "download": "https://opengameart.org/sites/default/files/Vehicle%20-%20OGA%20-%20Col%20Legno.wav",
-    "license": "CC0-1.0",
-    "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "sourceFile": "MusicZombie.wav",
-    "sourceBytes": 12688884,
-    "sourceSha256": "cd903ce0bd7812b81247ffad5bfce242f879ab4babe1bee08d86dcf0f33960c8"
-  },
-  {
-    "track": "MusicEyeball",
-    "title": "Pressure",
-    "author": "yd",
-    "sourcePage": "https://opengameart.org/content/pressure",
-    "download": "https://opengameart.org/sites/default/files/Pressure.ogg",
-    "license": "CC0-1.0",
-    "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "sourceFile": "MusicEyeball.ogg",
-    "sourceBytes": 3638049,
-    "sourceSha256": "b7bc42d944a60f7d3a0b1f7ad3d94eff784739e4ae833d6d398ce381ceb71bc8"
-  },
-  {
-    "track": "MusicPortal",
-    "title": "Epic Boss Battle",
-    "author": "Juhani Junkala / SubspaceAudio",
-    "sourcePage": "https://opengameart.org/content/boss-battle-music",
-    "download": "https://opengameart.org/sites/default/files/Juhani%20Junkala%20-%20Epic%20Boss%20Battle%20%5BSeamlessly%20Looping%5D.wav",
-    "license": "CC0-1.0",
-    "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
-    "sourceFile": "MusicPortal.wav",
-    "sourceBytes": 21773152,
-    "sourceSha256": "35f75b4381dfbb053992876f7dfc567d9fd959d61b73954d5b1cd519753e7df1"
-  }
+ {
+  "track": "MusicOrchard",
+  "title": "Battle Theme",
+  "author": "Wolfgang_ (Theodore Kerr)",
+  "sourcePage": "https://opengameart.org/node/16611",
+  "download": "https://opengameart.org/sites/default/files/Battle.mp3",
+  "license": "CC0-1.0",
+  "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+  "sourceFile": "MusicOrchard.mp3",
+  "sourceBytes": 4646747,
+  "sourceSha256": "dde7bd4f10bde031800ba8e22151fad591b7c13e1c9ae51920341b4e4ae37be5"
+ },
+ {
+  "track": "MusicTornado",
+  "title": "Battle Theme A",
+  "author": "cynicmusic",
+  "sourcePage": "https://opengameart.org/content/battle-theme-a",
+  "download": "https://opengameart.org/sites/default/files/battleThemeA.mp3",
+  "license": "CC0-1.0",
+  "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+  "sourceFile": "MusicTornado.mp3",
+  "sourceBytes": 3289143,
+  "sourceSha256": "6042399782e581d753d616bc703e66483d5eccb5fb687a20c9a552d68c49e620"
+ },
+ {
+  "track": "MusicZombie",
+  "title": "Col Legno",
+  "author": "Vehicle",
+  "sourcePage": "https://opengameart.org/content/col-legno",
+  "download": "https://opengameart.org/sites/default/files/Vehicle%20-%20OGA%20-%20Col%20Legno.wav",
+  "license": "CC0-1.0",
+  "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+  "sourceFile": "MusicZombie.wav",
+  "sourceBytes": 12688884,
+  "sourceSha256": "cd903ce0bd7812b81247ffad5bfce242f879ab4babe1bee08d86dcf0f33960c8"
+ },
+ {
+  "track": "MusicEyeball",
+  "title": "Pressure",
+  "author": "yd",
+  "sourcePage": "https://opengameart.org/content/pressure",
+  "download": "https://opengameart.org/sites/default/files/Pressure.ogg",
+  "license": "CC0-1.0",
+  "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+  "sourceFile": "MusicEyeball.ogg",
+  "sourceBytes": 3638049,
+  "sourceSha256": "b7bc42d944a60f7d3a0b1f7ad3d94eff784739e4ae833d6d398ce381ceb71bc8"
+ },
+ {
+  "track": "MusicPortal",
+  "title": "Epic Boss Battle",
+  "author": "Juhani Junkala / SubspaceAudio",
+  "sourcePage": "https://opengameart.org/content/boss-battle-music",
+  "download": "https://opengameart.org/sites/default/files/Juhani%20Junkala%20-%20Epic%20Boss%20Battle%20%5BSeamlessly%20Looping%5D.wav",
+  "license": "CC0-1.0",
+  "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+  "sourceFile": "MusicPortal.wav",
+  "sourceBytes": 21773152,
+  "sourceSha256": "35f75b4381dfbb053992876f7dfc567d9fd959d61b73954d5b1cd519753e7df1"
+ },
+ {
+  "track": "MusicBossOrchard",
+  "title": "Boss theme 1 (Old Hollowhead)",
+  "author": "supplied by the site owner",
+  "sourcePage": "owner-supplied file (musicboss1.m4a)",
+  "license": "owner-supplied; the owner provided it for this game",
+  "sourceFile": "MusicBossOrchard.wav",
+  "sourceBytes": 17446004,
+  "sourceSha256": "c62a88bff63ff5269c2ca6939cb545377fe38f62d02b743fbc9a79d0157479e0",
+  "edit": "cut to 16.40-115.30 s of the original on the beat so the theme loops seamlessly"
+ },
+ {
+  "track": "MusicBossTornado",
+  "title": "Boss theme 2 (Giant Tornado)",
+  "author": "supplied by the site owner",
+  "sourcePage": "owner-supplied file (bossmusic2.m4a)",
+  "license": "owner-supplied; the owner provided it for this game",
+  "sourceFile": "MusicBossTornado.wav",
+  "sourceBytes": 24043364,
+  "sourceSha256": "649285c624ec40b39ab22f8738eefee1632781256773b2dff738a75481550a5d",
+  "edit": "cut to 0.47-136.77 s of the original on the beat so the theme loops seamlessly"
+ }
 ]
