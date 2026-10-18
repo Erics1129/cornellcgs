@@ -5,6 +5,8 @@ import { spawnSync } from 'node:child_process'
 import { join, resolve, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 //   node scripts/carrot-det/make-specs.mjs <workDir>   writes <workDir>/specs/{bot,replay}-<id>.txt and <workDir>/results/dotnet/*.json
+// Multiplayer scenarios (duo replica op logs, two-seat endless): node scripts/carrot-sim.mjs --method NetDetSpecs <dir>, then
+// run-net.mjs per browser and compare-net.mjs <dir> dotnet <browser dirs...>.
 const here = dirname(fileURLToPath(import.meta.url)), wt = resolve(here, '../..'), D = resolve(process.argv[2] || join(wt, 'output/carrot-det-work'))
 const scen = JSON.parse(readFileSync(join(here, 'scenarios.json'), 'utf8'))
 mkdirSync(join(D, 'specs'), { recursive: true }); mkdirSync(join(D, 'results/dotnet'), { recursive: true })

@@ -22,6 +22,9 @@ addEventListener('carrot-state', () => { det.states++; if (!det.ready) { det.rea
   document.body.appendChild(s);
 })();
 det.send = (method, arg) => det.unity.SendMessage('CarrotDet', method, String(arg));
+// The multiplayer probe (CarrotNetDet) takes the same Begin/Step/Result messages.
+det.sendTo = (object, method, arg) => det.unity.SendMessage(object, method, String(arg));
+det.pumpTo = async (object, chunk, frames) => { for (let i = 0; i < frames && !det.done; i++) { det.sendTo(object, 'Step', chunk); await new Promise(r => requestAnimationFrame(r)); } };
 // Steps `chunk` ticks per animation frame until the probe logs DONE (the runner watches the console) or `frames` elapse.
 det.pump = async (chunk, frames) => { for (let i = 0; i < frames && !det.done; i++) { det.send('Step', chunk); await new Promise(r => requestAnimationFrame(r)); } };
 // JS Math fingerprint over the same inputs as CarrotDetRunner.MathProbe (shows what host-provided math would do).
