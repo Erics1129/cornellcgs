@@ -173,7 +173,7 @@ namespace CarrotTD {
    }
    for(int i=0;i<2;i++){
     var d=dev[i];outcome.desyncs+=d.desyncs.Count;outcome.compared+=d.session.DigestsCompared;outcome.unverified+=d.session.Unverified;outcome.ffTicks+=(int)d.session.FastForwardTicks;
-    if(d.replica!=null)outcome.refused+=d.replica.ReplicaRefused;foreach(var m in d.desyncs)if(outcome.detectAt[i]<0)outcome.detectAt[i]=m.tick;
+    if(d.replica!=null){outcome.refused+=d.replica.ReplicaRefused;if(d.replica.LastSnapshot!=null)outcome.refused+=1000;}foreach(var m in d.desyncs)if(outcome.detectAt[i]<0)outcome.detectAt[i]=m.tick;
    }
    outcome.wonA=dev[0].game.phase=="won";outcome.wonB=dev[1].game.phase=="won";outcome.ticks=Mathf.Max(dev[0].game.NetTick,dev[1].game.NetTick);
    int expected=0;for(int i=0;i<2;i++)if(dev[i].replica!=null)expected+=Mathf.Min(dev[i].replica.NetTick,dev[i].session.ReplicaCompareLimit)/30-2;
@@ -204,6 +204,43 @@ namespace CarrotTD {
    ClearBotCaches();var p=DuoMatch(25,7,perturbAt:900);Debug.Log("CARROT_DUO_REPLICA_CONTROL "+p.line+" detectedAt="+p.detectAt[1]);
    NetCheck(p.desyncs>0&&p.detectAt[1]>=900&&p.detectAt[1]<=930+30,"a one-coin replica perturbation is detected within 30 ticks (at "+p.detectAt[1]+")");
    Debug.Log("CARROT_DUO_REPLICA_OK compared="+compared+" checks="+netChecks);
+  }
+
+  // ================= PausedOps: ops issued while the match is paused (and during a partner-away pause) keep owner and replica equal;
+  // a partner's lockstep op never moves the local selection.
+  public static void PausedOps(string[] args){
+   netChecks=0;policyMerges=true;scoreNoise=null;
+   foreach(int level in new[]{16,27}){
+    ClearBotCaches();var o=NetGame(level,"duo",0);o.NetBegin(NetMode.DuoOwn,0);o.coins=20000;var r=NetGame(level,"duo",0);r.NetBegin(NetMode.Replica,0);r.coins=20000;var tb=new TwinBot();
+    BuyBest(o,0);BuyBest(o,0);o.NetGo();int bad=0;
+    for(int t=0;t<9000&&o.phase=="playing";t++){
+     bool paused=(t/300)%3==1;if(paused!=o.MatchPaused){o.SetMatchPaused(paused,1);r.SetMatchPaused(paused,1);}
+     if(t%7==0){PolicyStep(o,0,tb);
+      if(paused){ // the burst a paused player can fire: an early call, a build, an upgrade, a sale, a merge and its undo
+       o.Command("{\"type\":\"next\"}");int pad=FreePad(o);if(pad>=0){o.Select("pad",pad);o.Command("{\"type\":\"buy\",\"kind\":\"seed\"}");}
+       var low=o.towers.Find(x=>x.tier<4);if(low!=null){o.Select("tower",low.id);o.Command("{\"type\":\"upgrade\"}");}
+       if(t%21==0){var s=o.towers.Find(x=>x.tier==1);if(s!=null){o.Select("tower",s.id);o.Command("{\"type\":\"sell\"}");}}
+       if(MergeBest(o))o.Command("{\"type\":\"mergeUndo\"}");}}
+     foreach(var op in o.OutOps)r.EnqueueOp(op);o.OutOps.Clear();
+     // A paused match does not advance the clock: only unpaused ticks run, on both.
+     // Owner and replica are compared at tick boundaries (where digests are taken): a paused owner has applied its burst, the
+     // replica applies it before the next tick, the same state point.
+     if(!paused){o.NetRunTo(o.NetTick+1,1,false);r.NetRunTo(o.NetTick,1,false);if(NetPair(o)!=NetPair(r))bad++;}
+    }
+    Debug.Log("CARROT_PAUSED_OPS level="+level+" ops="+o.LocalSeq+" mismatches="+bad+" refused="+r.ReplicaRefused+" late="+r.LateOps+" phase="+o.phase);
+    NetCheck(bad==0&&r.ReplicaRefused==0&&r.LateOps==0,"L"+level+": ops issued while paused keep the replica equal");Done(o);Done(r);
+   }
+   // Lockstep selection: seat 1's ops never move seat 0's selection.
+   {var g=NetGame(CarrotDuoMaps.EndlessId,"endless",5);g.NetBegin(NetMode.Lockstep,0);g.coins=5000;g.TestAsSeat(0,()=>g.NetGo());
+    foreach(var op in g.OutOps){op.k=g.NetTick+1;g.EnqueueOp(op);}g.OutOps.Clear();g.NetRunTo(2,2,false);
+    g.Select("pad",3);int before=g.LocalSeq;
+    g.EnqueueOp(new NetOp{s=1,k=g.NetTick+1,seat=1,op="buy",pad=7,kind="frost"});g.EnqueueOp(new NetOp{s=2,k=g.NetTick+2,seat=1,op="focus",type="",id=-1});g.NetRunTo(g.NetTick+3,3,false);
+    var t7=g.towers.Find(x=>x.pad==7);NetCheck(t7!=null&&t7.builder==1,"the partner's build is theirs");
+    NetCheck(g.selectionType=="pad"&&g.selectionId==3,"a partner's build never moves the local selection");
+    g.EnqueueOp(new NetOp{s=3,k=g.NetTick+1,seat=1,op="upgrade",id=t7.id,v=1});g.EnqueueOp(new NetOp{s=4,k=g.NetTick+1,seat=0,op="upgrade",id=t7.id,v=1});g.NetRunTo(g.NetTick+1,1,false);
+    NetCheck(t7.tier==2,"two upgrades of one tier in one tick pay once (the second is refused by its precondition)");
+    Debug.Log("CARROT_PAUSED_OPS lockstep selection kept, double upgrade refused, rejects="+g.NetRejects.Count);Done(g);}
+   Debug.Log("CARROT_PAUSED_OPS_OK checks="+netChecks);
   }
 
   // ================= HeldWinTransitions: the eight scripted hold / partner-result cases.

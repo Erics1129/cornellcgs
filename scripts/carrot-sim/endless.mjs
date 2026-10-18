@@ -133,9 +133,12 @@ export async function runDuoBands({ exe, run, value, repo, jobs }) {
     // Statistical mirror gate: the same bot variant and seed on the solo map and on half 0.
     let agree = 0, total = 0; const perBot = {}
     for (const bot of bots) {
+      // The Asuna reference policy (RunPrismCampaign) scores pads by |z|, the solo lane being z=0: on the north half (lane z=5)
+      // it is a different policy, so it is reported but not judged. R1 and R2 are coordinate-free.
+      const excluded = level === 29 && bot === 'R0p0'
       const s = runs.filter(r => r.level === level && r.variant === bot && r.map === 'solo' && r.seed < variants), hh = new Map(runs.filter(r => r.level === level && r.variant === bot && r.map === 'half0' && r.seed < variants).map(r => [r.seed, r]))
       let a = 0, t = 0, ws = 0, wh = 0; for (const x of s) { const y = hh.get(x.seed); if (!y) continue; t++; if (x.won === y.won) a++; if (x.won) ws++; if (y.won) wh++ }
-      if (t) perBot[bot] = { n: t, agree: round(a / t), pSolo: round(ws / t), pHalf: round(wh / t) }; agree += a; total += t
+      if (t) perBot[bot] = { n: t, agree: round(a / t), pSolo: round(ws / t), pHalf: round(wh / t), ...(excluded ? { excluded: 'absolute-z policy' } : {}) }; if (!excluded) { agree += a; total += t }
     }
     const row = { level, n: solo.length, pSolo: round(pSolo), pHalf: round(pHalf), pDuo: round(pDuo), pSolo2: round(pSolo * pSolo), duoGap: round(pDuo - pSolo * pSolo), mirrorAgreement: round(agree / Math.max(1, total)), pWinGap: round(pHalf - pSolo), perBot }
     out.levels.push(row)
