@@ -19,7 +19,7 @@ namespace CarrotTD {
   public const int OrdinaryCap=70,LiveCap=120,ScaleCap=300;
   public const float GapScale=.9f,Overlap=.9f;
   /// <summary>ebots-v1 tuning record: every constant below changes only through `carrot-sim --endless-bands` (docs/carrot-defense/duo/sim.md).</summary>
-  public const string TuningVersion="endless-t1";
+  public const string TuningVersion="endless-t2";
   public static readonly string[][] Tiers={
    new[]{"nibble","dash","swarm","mite"},new[]{"shell","beetle","moth","slug"},new[]{"shaman","wisp","bat","burrow"},
    new[]{"crystal","scarab","firefly","sporeling"},new[]{"tinyZombie","riftling","shardling","mimic"}};
@@ -34,17 +34,18 @@ namespace CarrotTD {
   /// <summary>HPScale of each boss's home level in per mille (L4, L25, L8, L12, L26, L20, L27, L28): the campaign's boss-to-wave ratio.</summary>
   static readonly int[] HomePermille={1650,2620,2620,4030,6280,6280,8680,9250};
   /// <summary>Per-boss HP dials in per mille, tunable only within 600-1400 by the endless bands.</summary>
-  /// <summary>endless-t1: garden 900, tornado 700, marsh 600, frost 600, zombie 900, orchard 600, eyeball 900, portal 900 (the kits that
+  /// <summary>endless-t1 and t2: garden 900, tornado 700, marsh 600, frost 600, zombie 900, orchard 600, eyeball 900, portal 900 (the kits that
   /// uproot, tithe or lock towers left the garden too weak for the next wave at 1000).</summary>
   public static readonly int[] BossDial={900,700,600,600,900,600,900,900};
   /// <summary>The curve's tunable constants (integers): H(w)=HLead/1000 (1+HLinear/1000 (w-1)) (HGrowth/1000)^(w-1), its miniboss twin,
   /// budget B(w)=BBase+BLinear w+w^2/BQuadDiv, the reward multiplier min(RewardCap, 1000+RewardSlope (w-1)) per mille and the
   /// stipend StipendBase+StipendSlope min(w, StipendCap); a boss wave's adds and a miniboss wave's escorts take BossAdds and
   /// MiniEscorts per mille of the budget. Only the bands change them (docs/carrot-defense/duo/sim.md).</summary>
-  // endless-t1 (docs/carrot-defense/duo/sim.md): from t0 the late curve was flattened (HLinear 115 -> 240, HGrowth 1020 -> 1010: a
-  // saturated garden no longer caps every bot near wave 42), boss and miniboss waves were put back on the pressure trend (adds
-  // 400 -> 800, escorts 600 -> 850 per mille: their dips made the next wave the deadliest) and the miniboss lead fell 1042 -> 850.
-  public static int HLead=1050,HLinear=240,HGrowth=1010,MLead=850,MLinear=95,MGrowth=10145,BBase=70,BLinear=16,BQuadDiv=4,RewardSlope=15,RewardCap=1600,StipendBase=20,StipendSlope=2,StipendCap=40,BossAdds=800,MiniEscorts=850;
+  // endless-t2 (docs/carrot-defense/duo/sim.md). From t0: the mid curve was steepened and the late one bent (HLinear 115 -> 205,
+  // HGrowth 1020 -> 1018: at t0 a saturated garden capped every bot near wave 42, so skill bought nothing), boss and miniboss
+  // waves were put back on the pressure trend (adds 400 -> 800, escorts 600 -> 800 per mille: their dips made the next wave the
+  // deadliest), and the miniboss lead fell 1042 -> 700 (the wave-15 pool's abilities spiked the weakest pair).
+  public static int HLead=1050,HLinear=205,HGrowth=1018,MLead=700,MLinear=95,MGrowth=10145,BBase=70,BLinear=16,BQuadDiv=4,RewardSlope=15,RewardCap=1600,StipendBase=20,StipendSlope=2,StipendCap=40,BossAdds=800,MiniEscorts=800;
   static long[] growH,growM;static int grownH,grownM;
   static void Grow(){
    if(growH!=null&&grownH==HGrowth&&grownM==MGrowth)return;var h=new long[ScaleCap+1];var m=new long[ScaleCap+1];h[1]=m[1]=1000000000L;

@@ -1,6 +1,7 @@
 // Two-player endless and duo bands (docs/carrot-defense/duo/sim.md). Runs the pre-registered reference bots in parallel
 // slices on the standalone simulation, merges their JSON lines and evaluates the fairness targets.
-//   node scripts/carrot-sim.mjs --endless-bands [--r0 50 --r1 200 --r2 200 --solo 50 --jobs J --out file --raw file --dial id:v,...]
+//   node scripts/carrot-sim.mjs --endless-bands [--r0 50 --r1 200 --r2 200 --solo 50 --jobs J --out file --raw file --seed-offset K
+//                                               --gen Key:v,... --dial id:v,... (tuning only)]
 //   node scripts/carrot-sim.mjs --duo-bands [--r1 1000 --variants 20 --levels 4,8,... --jobs J --out file]
 import { mkdirSync, writeFileSync, readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
@@ -80,8 +81,9 @@ export function evaluateEndless(runs, meta) {
 export async function runEndlessBands({ exe, run, value, repo, jobs }) {
   const counts = { 'E-R0': Number(value('r0', 50)), 'E-R1': Number(value('r1', 200)), 'E-R2': Number(value('r2', 200)), 'E-solo': Number(value('solo', 50)) }
   const extra = []; if (value('dial')) extra.push('dial=' + value('dial')); if (value('gen')) extra.push('gen=' + value('gen')); if (value('gold')) extra.push('gold=' + value('gold')); if (value('d')) extra.push('d=' + value('d')); extra.push('wave=' + value('wave', 150))
-  const specs = []
-  for (const [bot, n] of Object.entries(counts)) for (let a = 0; a < n; a += 10) specs.push(`${bot}:${a}-${Math.min(n, a + 10) - 1}`)
+  // --seed-offset K runs seeds K..K+n-1 (an independent sample for robustness checks; the bands of record use offset 0).
+  const offset = Number(value('seed-offset', 0)), specs = []
+  for (const [bot, n] of Object.entries(counts)) for (let a = 0; a < n; a += 10) specs.push(`${bot}:${offset + a}-${offset + Math.min(n, a + 10) - 1}`)
   const started = Date.now(), runs = []
   const failed = await pool(specs, jobs, async spec => {
     const r = await run(exe, ['EndlessJobs', ...extra, spec], { quiet: true })
@@ -89,7 +91,7 @@ export async function runEndlessBands({ exe, run, value, repo, jobs }) {
     for (const line of r.out.split('\n')) if (line.startsWith('CARROT_EBAND ')) runs.push(JSON.parse(line.slice(13)))
     return true
   })
-  const meta = { kind: 'endless-bands', bots: 'ebots-v1', botsHash: hashOf(repo, 'unity/CarrotDefense/Assets/Scripts/CarrotEndlessBots.cs'), generatorHash: hashOf(repo, 'unity/CarrotDefense/Assets/Scripts/CarrotEndless.cs'), tuning: runs[0]?.tuning, commit: commitOf(repo), counts, extra, seconds: round((Date.now() - started) / 1000, 1), runs: runs.length, failedSlices: failed }
+  const meta = { kind: 'endless-bands', bots: runs[0]?.version, seedOffset: offset, botsHash: hashOf(repo, 'unity/CarrotDefense/Assets/Scripts/CarrotEndlessBots.cs'), generatorHash: hashOf(repo, 'unity/CarrotDefense/Assets/Scripts/CarrotEndless.cs'), tuning: runs[0]?.tuning, commit: commitOf(repo), counts, extra, seconds: round((Date.now() - started) / 1000, 1), runs: runs.length, failedSlices: failed }
   const result = evaluateEndless(runs, meta)
   const out = value('out', join(repo, 'docs/carrot-defense/duo/endless-bands.json'))
   mkdirSync(dirname(out), { recursive: true }); writeFileSync(out, JSON.stringify(result, null, 1) + '\n')
