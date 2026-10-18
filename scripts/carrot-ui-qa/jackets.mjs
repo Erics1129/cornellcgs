@@ -16,7 +16,7 @@ await page.addInitScript(() => { try { localStorage.setItem('cgs-carrot-records-
 await page.goto(`${base}/minigames/carrotDefense/?carrot-preview=${levels[0]}`, { waitUntil: 'networkidle' })
 await page.click('.ct-lobby .ct-cta--hero')
 await page.waitForFunction(() => !document.querySelector('.ct-loading') && window.__carrot?.state(), null, { timeout: 240000 })
-await page.addStyleTag({ content: '.ct-hud,.ct-toasts,.ct-judge,.ct-review,.ct-build,.ct-coach,.ct-encounter,.ct-minibars,.ct-monster-bars,.ct-vignette,.ct-paused{display:none!important}' })
+await page.addStyleTag({ content: '.ct-hud,.ct-toasts,.ct-judge,.ct-review,.ct-build,.ct-coach,.ct-encounter,.ct-minibars,.ct-monster-bars,.ct-vignette,.ct-paused,.ct-pause{display:none!important}' })
 let provenance = []; try { provenance = JSON.parse(readFileSync(join(dir, 'provenance.json'), 'utf8')).files } catch { /* first run */ }
 for (const level of levels) {
   await page.evaluate(l => window.__carrot.send({ type: 'load', level: l }), level)
