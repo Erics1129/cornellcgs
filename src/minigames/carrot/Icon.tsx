@@ -18,5 +18,11 @@ const paths:Record<string,string>={
  hex:'M12 2l8.5 5v10L12 22l-8.5-5V7Z',cross:'M10 4h4v6h6v4h-6v6h-4v-6H4v-4h6Z',flag:'M5 21V4h12l-3 4 3 4H5',
  focus:'M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5M12 9v6M9 12h6',splash:'M12 3v4m0 10v4M3 12h4m10 0h4M6 6l3 3m6 6 3 3m0-12-3 3m-6 6-3 3',
  dot:'M12 11a1 1 0 1 0 0 2 1 1 0 0 0 0-2Z',grid:'M4 4h6v6H4zm10 0h6v6h-6zM4 14h6v6H4zm10 0h6v6h-6z',
+ // HUD additions: two links of a chain, a stopwatch, a four-point spark, a finger tapping, a fast-forward pair
+ chain:'M10 13.5a3.6 3.6 0 0 0 5.1.4l3-3a3.6 3.6 0 0 0-5.1-5.1l-1.2 1.2M14 10.5a3.6 3.6 0 0 0-5.1-.4l-3 3a3.6 3.6 0 0 0 5.1 5.1l1.2-1.2',
+ timer:'M12 9v4.5l2.5 1.5M10 2.5h4M12 21.5a8 8 0 1 0 0-16 8 8 0 0 0 0 16Z',
+ spark:'M12 3.5c.6 4.4 2.6 6.4 7 7-4.4.6-6.4 2.6-7 7-.6-4.4-2.6-6.4-7-7 4.4-.6 6.4-2.6 7-7Z',
+ tap:'M9 11V5.5a1.5 1.5 0 0 1 3 0V10m0-1a1.5 1.5 0 0 1 3 0v1m0 0a1.5 1.5 0 0 1 3 0v4a6 6 0 0 1-6 6h-.5a5 5 0 0 1-4-2l-3-4a1.5 1.5 0 0 1 2.3-1.9L9 14',
+ fast:'m4 6 7 6-7 6V6Zm9 0 7 6-7 6V6Z',
 }
 export default function Icon({name}:{name:string}){return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={paths[name]||paths.leaf}/></svg>}

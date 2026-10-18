@@ -7,10 +7,14 @@ import { abilityText } from '../abilities'
 import { formatSeconds } from '../challenges'
 import Icon from '../Icon'
 import { miniBosses } from '../expansion'
+import { glass } from './Glass'
+import { fill, unit } from './hudKit'
 
 /** Real phase thresholds per guardian (CarrotGame.Thresholds p2/p3; frost, portal and asuna use the default .65/.3), drawn as ticks on the bar. */
 export const bossPhaseMarks:Record<string,number[]>={garden:[.25,.6],marsh:[.25,.55],frost:[.3,.65],orchard:[.3,.6],tornado:[.25,.6],zombie:[.3,.6],eyeball:[.3,.65],portal:[.3,.65],asuna:[.3,.65]}
 const pct=(n:number)=>`${Math.max(0,Math.min(1,Number.isFinite(n)?n:0))*100}%`
+/** A floating bar's fill slides in from the left (translateX) instead of squashing (scaleX), so its leading end stays round. */
+const slide=(v:number)=>`translateX(${((unit(v)-1)*100).toFixed(2)}%)`
 const ratio=(a:number,b:number)=>b>0?Math.max(0,Math.min(1,a/b)):0
 
 /** Remembers each cast's full windup (v2 reports it; against v1 the largest castRemaining seen for that cast stands in). */
@@ -46,36 +50,34 @@ export function BossBar({store,send,seenAbilities,superTargets,onSaved}:{store:S
  const eta=typeof b.eta==='number'&&Number.isFinite(b.eta)&&b.eta>=0?b.eta:null
  const seen=!!b.ability&&seenAbilities.includes(b.ability)
  const bonus=level===4?10:15
- return <section className={`ct-bossbar ct-panel ct-bossbar--${b.kind} ${casting?'is-casting':''}`} aria-label={`${b.name}, ${Math.ceil(b.hp).toLocaleString()} of ${Math.ceil(b.maxHp).toLocaleString()} health`}>
+ return <section className={glass({depth:2,tone:'threat',wash:true},'ct-bossbar',`ct-bossbar--${b.kind}`,casting&&'is-casting')} aria-label={`${b.name}, ${Math.ceil(b.hp).toLocaleString()} of ${Math.ceil(b.maxHp).toLocaleString()} health`}>
   <div className="ct-bossbar__head">
-   <BossPortrait kind={b.kind}/>
-   <strong>{b.name}</strong>
-   <span className="ct-tag">{(b.stage||1)>1?`Life ${b.stage} · `:''}Phase {b.phase||1}</span>
-   {challenge&&eta!==null&&<span className={`ct-bossbar__eta ${alert}`} aria-hidden="true"><Icon name="warning"/>{formatSeconds(eta)}</span>}
-   <span className="ct-bossbar__hp"><b>{Math.ceil(b.hp).toLocaleString()}</b><small> / {Math.ceil(b.maxHp).toLocaleString()}</small></span>
+   <span className="ct-bossbar__face"><BossPortrait kind={b.kind}/></span>
+   <span className="ct-bossbar__title"><strong>{b.name}</strong><span className="ct-tag">{(b.stage||1)>1?`Life ${b.stage} · `:''}Phase {b.phase||1}</span></span>
+   {challenge&&eta!==null&&<span className={`ct-bossbar__eta ${alert}`} aria-hidden="true"><Icon name="timer"/>{formatSeconds(eta)}</span>}
+   <span className="ct-bossbar__hp"><b>{Math.ceil(b.hp).toLocaleString()}</b><small>/ {Math.ceil(b.maxHp).toLocaleString()}</small></span>
   </div>
   <div className="ct-bossbar__bar" role="progressbar" aria-label="Guardian health" aria-valuemin={0} aria-valuemax={Math.ceil(b.maxHp)} aria-valuenow={Math.ceil(b.hp)}>
-   <i className="ct-bossbar__trail" style={{transform:`scaleX(${hp})`}}/>
-   <i className="ct-bossbar__main" style={{transform:`scaleX(${hp})`}}/>
-   {shield>0&&<i className="ct-bossbar__shield" style={{transform:`scaleX(${shield})`}}/>}
+   <i className="ct-bossbar__trail" style={fill(hp)}/>
+   <i className="ct-bossbar__main" style={fill(hp)}/>
+   {shield>0&&<i className="ct-bossbar__shield" style={fill(shield)}/>}
    {(bossPhaseMarks[b.kind]||[]).map(m=><b key={m} style={{left:pct(m)}}/>)}
   </div>
   {challenge&&<div className={`ct-deadline ${alert} ${fraction===null?'is-textonly':''}`}>
-   <span className="ct-deadline__text"><Icon name="warning"/>Guardian contact = defeat</span>
-   {fraction!==null&&<span className="ct-deadline__bar" role="progressbar" aria-label="Guardian route to the carrot" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(fraction*100)}><i style={{transform:`scaleX(${fraction})`}}/><b style={{left:'75%'}}/><b style={{left:'90%'}}/></span>}
-   {eta!==null&&<b className="ct-deadline__eta">ETA {formatSeconds(eta)}</b>}
+   <span className="ct-deadline__text"><Icon name="warning"/>If it reaches the carrot, you lose</span>
+   {fraction!==null&&<span className="ct-deadline__bar" role="progressbar" aria-label="Guardian route to the carrot" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(fraction*100)}><i style={fill(fraction)}/><b style={{left:'75%'}}/><b style={{left:'90%'}}/></span>}
+   {eta!==null&&<b className="ct-deadline__eta"><small>Arrives in</small> {formatSeconds(eta)}</b>}
   </div>}
   {casting&&text&&<div className="ct-cast" role="status">
    <span className="ct-cast__ring" ref={ring} aria-hidden="true"><AbilityGlyph ability={b.ability}/>{!['blind','uproot','thornwall','tithe','whiteout','crowcurse','dusk'].includes(b.ability)&&<Icon name={text.icon||'warning'}/>}</span>
-   <span className="ct-cast__what"><b>{text.name}</b><span>{seen?text.verb:text.hint}</span></span>
+   <span className="ct-cast__what"><b>{text.name}</b><span>{seen&&text.verb?text.verb:text.hint}</span></span>
    <span className="ct-cast__time"><span ref={count}>{b.castRemaining.toFixed(1)}</span><small>s</small></span>
    {b.ability==='uproot'&&target!==null&&(superTargets.has(target)
-    ?<span className="ct-chip is-info">Super drops to IV</span>
-    :<button className="ct-chip is-action" onClick={()=>{pendingSell.current=target;send({type:'select',selectionType:'tower',id:target})}} aria-label={`Sell the marked tower now, keeping ${bonus}% more coins`}>Sell now <small>+{bonus}%</small></button>)}
+    ?<span className="ct-chip is-info"><Icon name="shield"/>Super falls to Tier IV</span>
+    :<button className="ct-chip is-action" onClick={()=>{pendingSell.current=target;send({type:'select',selectionType:'tower',id:target})}} aria-label={`Sell the marked tower now, keeping ${bonus}% more coins`}><Icon name="sell"/>Sell now <small>+{bonus}%</small></button>)}
    {text.action==='spend'&&<span className="ct-chip is-info"><Icon name="coin"/>Spend</span>}
    {text.action==='focus'&&b.ability==='root'&&<span className="ct-chip is-info"><Icon name="target"/>Focus</span>}
   </div>}
-
  </section>
 }
 
@@ -83,8 +85,8 @@ export function BossBar({store,send,seenAbilities,superTargets,onSaved}:{store:S
 export function Reinforcements({store}:{store:SnapshotStore}){
  const r=useSlice(store,st=>st&&st.level===29&&st.phase==='playing'&&st.boss&&st.boss.hp>0?{tier:st.reinforcementTier||1,next:Math.ceil(st.reinforcementIn||0)}:null)
  if(!r)return null
- return <div className="ct-reinforcements ct-panel" aria-label={`Reinforcements tier ${r.tier}. Next group in ${r.next} seconds`}>
-  <span className="ct-label">Reinforcements <b>{['I','II','III','IV','V'][Math.max(0,Math.min(4,r.tier-1))]}</b></span>
+ return <div className={glass({depth:1},'ct-reinforcements')} aria-label={`Reinforcements tier ${r.tier}. Next group in ${r.next} seconds`}>
+  <span className="ct-reinforcements__label"><Icon name="swords"/>Reinforcements <b>{['I','II','III','IV','V'][Math.max(0,Math.min(4,r.tier-1))]}</b></span>
   <strong>{r.next}<small>s</small></strong>
   <span className="ct-escalation" aria-hidden="true">{[1,2,3,4,5].map(t=><i key={t} className={t<=r.tier?'is-lit':''}/>)}</span>
  </div>
@@ -95,10 +97,10 @@ export function MiniBars({store,send}:{store:SnapshotStore;send:(c:Command)=>voi
  const list=useSlice(store,st=>st&&st.phase!=='won'&&st.phase!=='lost'?(st.minibosses||[]).filter(m=>m.visible&&m.hp>0&&m.x>.02&&m.x<.98&&m.y>.04&&m.y<.98):[],
   (a,b)=>a.length===b.length&&a.every((m,i)=>{const o=b[i];return o.id===m.id&&Math.abs(o.x-m.x)<.001&&Math.abs(o.y-m.y)<.001&&o.hp===m.hp&&o.shield===m.shield&&o.ability===m.ability&&Math.round(o.castRemaining*10)===Math.round(m.castRemaining*10)}))
  return <div className="ct-minibars">{list.map((m:MiniBoss)=>{const casting=m.castRemaining>0&&!!m.ability,t=casting?abilityText(m.ability):null
-  return <button key={m.id} className={`ct-minibar ${casting?'is-casting':''}`} style={{transform:`translate3d(${(m.x*100).toFixed(2)}cqw,${(m.y*100).toFixed(2)}cqh,0)`}} onClick={()=>send({type:'select',selectionType:'enemy',id:m.id})}
+  return <button key={m.id} className={glass({depth:1,interactive:true},'ct-minibar',casting&&'is-casting')} style={{transform:`translate3d(${(m.x*100).toFixed(2)}cqw,${(m.y*100).toFixed(2)}cqh,0)`}} onClick={()=>send({type:'select',selectionType:'enemy',id:m.id})}
    aria-label={`${m.name}, ${Math.ceil(m.hp)} health. ${casting?`${t?.name} in ${m.castRemaining.toFixed(1)} seconds`:miniBosses.find(b=>b.id===m.kind)?.detail||''} Focus it.`}>
-   <span className="ct-minibar__name">{casting?<><Icon name="warning"/>{t?.name}</>:m.name}{casting&&<small>{m.castRemaining.toFixed(1)}s</small>}</span>
-   <span className="ct-minibar__bar"><i style={{transform:`scaleX(${ratio(m.hp,m.maxHp)})`}}/>{m.shield>0&&<i className="is-shield" style={{transform:`scaleX(${ratio(m.shield,m.maxShield)})`}}/>}</span>
+   <span className="ct-minibar__name">{casting?<Icon name="warning"/>:<Icon name="crown"/>}<span>{casting?t?.name:m.name}</span>{casting&&<small>{m.castRemaining.toFixed(1)}s</small>}</span>
+   <span className="ct-minibar__bar"><i style={{transform:slide(ratio(m.hp,m.maxHp))}}/>{m.shield>0&&<i className="is-shield" style={{transform:slide(ratio(m.shield,m.maxShield))}}/>}</span>
   </button>})}</div>
 }
 
@@ -115,8 +117,8 @@ export function MonsterBars({store}:{store:SnapshotStore}){
    for(let i=0;i<pool.length;i++){const el=pool[i],m=list[i]
     if(!m){if(el.style.display!=='none')el.style.display='none';continue}
     el.style.display='';el.style.transform=`translate3d(${(m.x*100).toFixed(2)}cqw,${(m.y*100).toFixed(2)}cqh,0)`
-    ;(el.children[0] as HTMLElement).style.transform=`scaleX(${ratio(m.hp,m.maxHp).toFixed(3)})`
-    const sh=el.children[1] as HTMLElement;const s=m.shield>0?ratio(m.shield,m.maxShield):0;sh.style.transform=`scaleX(${s.toFixed(3)})`;sh.style.display=s>0?'':'none'}}
+    ;(el.children[0] as HTMLElement).style.transform=slide(ratio(m.hp,m.maxHp))
+    const sh=el.children[1] as HTMLElement;const s=m.shield>0?ratio(m.shield,m.maxShield):0;sh.style.transform=slide(s);sh.style.display=s>0?'':'none'}}
   draw();const off=store.subscribe(draw);return()=>{off();host.replaceChildren()}},[store])
  return <div className="ct-monster-bars" ref={root} aria-hidden="true"/>
 }

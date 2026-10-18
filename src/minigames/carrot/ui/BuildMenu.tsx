@@ -7,6 +7,9 @@ import { CreaturePortrait, SuperEmblem, TowerPortrait } from '../art'
 import { miniBosses, towerTraits } from '../expansion'
 import Icon from '../Icon'
 import { readPrefs, writePrefs } from '../prefs'
+import { ordinal } from '../copy'
+import { glass } from './Glass'
+import { fill, meter } from './hudKit'
 
 const roman=['I','II','III','IV','S'],SuperTier=5,TopTier=4
 /** Towers that hit more than one creature per attack (splash, chains, pierce, pulses); the rest strike a single target. */
@@ -56,6 +59,9 @@ export function placePanel(size:{w:number;h:number},view:{w:number;h:number;top:
  return {x:Math.round(best.x),y:Math.round(best.y)}
 }
 
+/** Where the panel grows from: the pad's position inside the panel, clamped to its box (the materialize scales from there). */
+const originAt=(pad:{x:number;y:number},at:{x:number;y:number},size:{w:number;h:number})=>`${Math.round(Math.max(0,Math.min(size.w,pad.x-at.x)))}px ${Math.round(Math.max(0,Math.min(size.h,pad.y-at.y)))}px`
+
 type Props={store:SnapshotStore;definitions:GameDefinitions|null;send:(c:Command)=>void;reduced:boolean;onSafeArea:(panel:{rect:DOMRect|null;mode:PanelMode})=>void;onBuilt?:(kind:string)=>void;tutorialFocus?:string}
 export function BuildMenu({store,definitions,send,reduced,onSafeArea,onBuilt,tutorialFocus}:Props){
  const sel=useSlice(store,st=>{const s=st?.selection;return st&&s&&['pad','tower','blocker','enemy'].includes(s.type)&&st.phase!=='won'&&st.phase!=='lost'?s:null},(a,b)=>a===b||(!!a&&!!b&&a.type===b.type&&a.id===b.id&&a.tier===b.tier&&a.refund===b.refund&&a.partners===b.partners&&Math.round(a.hp)===Math.round(b.hp)&&a.kind===b.kind))
@@ -94,19 +100,19 @@ function Panel({sel,store,definitions,send,reduced,onSafeArea,onBuilt,tutorialFo
    // a compact panel anchored beside the pad takes over
    const r=node.getBoundingClientRect(),h=Math.min(200,r.height),p=padRect(pad.x,pad.y),c=carrot?carrotRect(carrot.x,carrot.y):null
    const low={x:r.x,y:r.y,w:r.width,h},high={x:r.x,y:top,w:r.width,h},bad=(q:Rect)=>hit(q,p)||(!!c&&hit(q,c))
-   if(!bad(low))setPlace({mode,flip:false,style:{}})
-   else if(!bad(high))setPlace({mode,flip:true,style:{top}})
-   else{const w=Math.min(280,vw-24),at=placePanel({w,h:Math.min(h,190)},{w:vw,h:vh,top,bottom},pad,carrot,spawnsPx);setPlace({mode:'anchored',flip:false,compact:true,style:{left:at.x,top:at.y,width:w}})}
+   if(!bad(low))setPlace({mode,flip:false,style:{transformOrigin:`${Math.round(pad.x-r.x)}px 100%`}})
+   else if(!bad(high))setPlace({mode,flip:true,style:{top,transformOrigin:`${Math.round(pad.x-r.x)}px 0`}})
+   else{const w=Math.min(280,vw-24),hh=Math.min(h,190),at=placePanel({w,h:hh},{w:vw,h:vh,top,bottom},pad,carrot,spawnsPx);setPlace({mode:'anchored',flip:false,compact:true,style:{left:at.x,top:at.y,width:w,transformOrigin:originAt(pad,at,{w,h:hh})}})}
   }else if(mode==='side'){
    const r=node.getBoundingClientRect(),w=r.width,right={x:r.x,y:top,w,h:vh-top},left={x:8,y:top,w,h:vh-top},p=padRect(pad.x,pad.y),c=carrot?carrotRect(carrot.x,carrot.y):null
    const bad=(r:Rect)=>(hit(r,p)?2:0)+(c&&hit(r,c)?1:0)
    const flip=bad(right)>bad(left)
    const sideTop=top
-   if(bad(right)&&bad(left)){const h=Math.min(node.scrollHeight,vh-top-12),at=placePanel({w,h},{w:vw,h:vh,top,bottom:vh-12},pad,carrot,spawnsPx);setPlace({mode:'anchored',flip:false,compact:true,style:{left:at.x,top:at.y,width:w,maxHeight:h}})}
-   else setPlace({mode,flip,style:{'--side-top':`${sideTop}px`} as CSSProperties})
+   if(bad(right)&&bad(left)){const h=Math.min(node.scrollHeight,vh-top-12),at=placePanel({w,h},{w:vw,h:vh,top,bottom:vh-12},pad,carrot,spawnsPx);setPlace({mode:'anchored',flip:false,compact:true,style:{left:at.x,top:at.y,width:w,maxHeight:h,transformOrigin:originAt(pad,at,{w,h})}})}
+   else setPlace({mode,flip,style:{'--side-top':`${sideTop}px`,transformOrigin:flip?'0 50%':'100% 50%'} as CSSProperties})
   }else{
-   const at=placePanel({w:node.offsetWidth,h:node.offsetHeight},{w:vw,h:vh,top,bottom},pad,carrot,spawnsPx)
-   setPlace({mode,flip:false,style:{left:at.x,top:at.y}})
+   const size={w:node.offsetWidth,h:node.offsetHeight},at=placePanel(size,{w:vw,h:vh,top,bottom},pad,carrot,spawnsPx)
+   setPlace({mode,flip:false,style:{left:at.x,top:at.y,transformOrigin:originAt(pad,at,size)}})
   }
  },[])
  useEffect(()=>{if(!place)return;const node=el.current;onSafeArea({rect:node?node.getBoundingClientRect():null,mode:place.mode});return()=>onSafeArea({rect:null,mode:place.mode})},[place,onSafeArea])
@@ -130,9 +136,9 @@ function Panel({sel,store,definitions,send,reduced,onSafeArea,onBuilt,tutorialFo
  }
  const build=()=>{if(!pickedTower)return;writePrefs({lastTower:pickedTower.id});send({type:'buy',kind:pickedTower.id});onBuilt?.(pickedTower.id);closeSoon(null)}
  const mode=place?.mode||firstMode
- // Desktop shows every tower at once: a grid of 52 px tiles, five to seven columns depending on how many towers are open.
+ // Desktop shows every tower at once: a grid of 48 px tiles, six or seven columns depending on how many towers are open.
  const tileCount=available.open.length+(available.next?1:0),cols=tileCount<=6?6:7
- const cls=`ct-build ct-panel ct-build--${mode} ct-build--${sel.type} ${place?.compact?'is-compact':''} ${place?.flip?'is-flipped':''} ${place?'is-placed':''} ${reduced?'':'is-animated'}`
+ const cls=glass({depth:2},'ct-build',`ct-build--${mode}`,`ct-build--${sel.type}`,place?.compact&&'is-compact',place?.flip&&'is-flipped',place&&'is-placed',!reduced&&'is-animated')
  const shared={ref:el as React.RefObject<HTMLElement>,className:cls,style:{'--tile-cols':cols,...place?.style} as CSSProperties,onPointerDown:()=>{hover.current=true},onPointerLeave:()=>{hover.current=false}}
  const close=<button className="ct-icon-btn ct-build__close" aria-label="Close" onClick={()=>send({type:'clear'})}><Icon name="close"/></button>
  if(sel.type==='pad'){
@@ -143,15 +149,15 @@ function Panel({sel,store,definitions,send,reduced,onSafeArea,onBuilt,tutorialFo
      return <button key={d.id} data-kind={d.id} role="option" aria-selected={picked===d.id} tabIndex={picked===d.id?0:-1} className={`ct-tile ${picked===d.id?'is-picked':''} ${cant?'is-short':''} ${tutorialFocus===d.id?'is-spotlight':''}`} onClick={()=>setPicked(d.id)} onDoubleClick={()=>{setPicked(d.id);if(!cant)build()}} aria-label={`${d.name}, ${d.cost[0]} coins, ${r.air?'hits air and ground':'ground only'}, ${r.area?'area':'single target'}`}>
       <TowerPortrait kind={d.id}/><span className="ct-tile__cost">{d.cost[0]}</span>{r.air&&<i className="ct-tile__air" aria-hidden="true"><Icon name="wing"/></i>}
      </button>})}
-    {available.next&&<span className="ct-tile is-locked" aria-label={`${available.next.name} opens at level ${available.next.unlock}`}><TowerPortrait kind={available.next.id}/><span className="ct-tile__cost"><Icon name="lock"/>{available.next.unlock}</span></span>}
+    {available.next&&<span className="ct-tile is-locked" aria-label={`${available.next.name} opens at stage ${available.next.unlock}`}><TowerPortrait kind={available.next.id}/><span className="ct-tile__cost"><Icon name="lock"/>{available.next.unlock}</span></span>}
    </div>
    {t&&reach&&<div className="ct-build__info">
     <div className="ct-build__name"><b>{t.name}</b><span className="ct-badges"><span className={`ct-badge ${reach.air?'is-air':''}`}><Icon name={reach.air?'wing':'leaf'}/>{reach.air?'Air':'Ground'}</span><span className="ct-badge"><Icon name={reach.area?'splash':'target'}/>{reach.area?'Area':'Single'}</span></span></div>
-    {(crowd[t.id]||0)>=3?<p className="ct-build__crowd" title="Plants of one kind share their soil: from the fourth, every plant of that kind deals less damage."><Icon name="warning"/>Crowded soil: a {(crowd[t.id]||0)+1}th {t.name} sets all to {Math.round(crowding((crowd[t.id]||0)+1)*100)}%</p>:<p>{towerTraits[t.id]||t.role}</p>}
-    <div className="ct-dps" aria-label={`Damage per second ${dps(t).toFixed(0)}, reach ${t.range[0].toFixed(1)}`}><span className="ct-label">DPS</span><span className="ct-dps__bar"><i style={{transform:`scaleX(${(dps(t)/maxDps).toFixed(3)})`}}/></span><span className="ct-dps__reach"><Icon name="target"/>{t.range[0].toFixed(1)}</span></div>
+    {(crowd[t.id]||0)>=3?<p className="ct-build__crowd" title="From the 4th tower of one kind, every tower of that kind deals less damage."><Icon name="warning"/>A {ordinal((crowd[t.id]||0)+1)} {t.name} cuts every {t.name} to {Math.round(crowding((crowd[t.id]||0)+1)*100)}% damage</p>:<p>{towerTraits[t.id]||t.role}</p>}
+    <div className="ct-dps" aria-label={`Damage per second ${dps(t).toFixed(0)}, reach ${t.range[0].toFixed(1)}`}><span className="ct-dps__label">DPS</span><span className="ct-dps__bar"><i style={meter(dps(t)/maxDps)}/></span><span className="ct-dps__reach"><Icon name="target"/>{t.range[0].toFixed(1)}</span></div>
    </div>}
    <div className="ct-build__actions">
-    <button className={`ct-cta ct-build__go ${tutorialFocus==='build'?'is-spotlight':''}`} disabled={!t||locked||short>0} onClick={build}>{!t?'Choose':locked?`Opens at level ${t.unlock}`:short>0?<>Need <b>{short}</b> more</>:<>Build <span className="ct-cta__cost"><Icon name="coin"/>{t.cost[0]}</span></>}</button>
+    <button className={`ct-cta ct-build__go ${tutorialFocus==='build'?'is-spotlight':''}`} disabled={!t||locked||short>0} onClick={build}>{!t?'Choose':locked?`Opens at stage ${t.unlock}`:short>0?<>Need <b>{short}</b> more</>:<>Build <span className="ct-cta__cost"><Icon name="coin"/>{t.cost[0]}</span></>}</button>
     {close}
    </div>
   </aside>
@@ -160,19 +166,19 @@ function Panel({sel,store,definitions,send,reduced,onSafeArea,onBuilt,tutorialFo
   const d=towers.find(x=>x.id===sel.kind);if(!d)return null
   const tier=Math.max(1,Math.min(SuperTier,sel.tier||1)),isSuper=tier>=SuperTier,partners=sel.partners||0
   const canGrow=tier<TopTier&&d.damage.length>tier,cost=d.cost[tier]??0,short=Math.max(0,cost-env.coins)
-  return <aside {...shared} aria-label="Selected defense">
+  return <aside {...shared} aria-label="Selected tower">
    <div className="ct-build__tower">
     <TowerPortrait kind={d.id} tier={tier}/>
-    <div><b>{isSuper?sel.superName||d.superName||d.name:d.name}</b><span className="ct-tag">{isSuper?`Super · ${d.name}`:`Tier ${roman[tier-1]}`}</span>{(crowd[d.id]||0)>3&&<span className="ct-tag is-crowd" title={`${crowd[d.id]} ${d.name} plants share their soil: each deals ${Math.round(crowding(crowd[d.id])*100)}% damage. Sell one or merge a pair.`}>Crowded {Math.round(crowding(crowd[d.id])*100)}%</span>}<p>{isSuper?d.superTrait||d.role:towerTraits[d.id]||d.role}</p></div>
+    <div><b>{isSuper?sel.superName||d.superName||d.name:d.name}</b><span className="ct-tag">{isSuper?`Super · ${d.name}`:`Tier ${roman[tier-1]}`}</span>{(crowd[d.id]||0)>3&&<span className="ct-tag is-crowd" title={`${crowd[d.id]} ${d.name} towers: each deals ${Math.round(crowding(crowd[d.id])*100)}% damage. Sell one or merge a pair.`}><Icon name="warning"/>Crowded {Math.round(crowding(crowd[d.id])*100)}%</span>}<p>{isSuper?d.superTrait||d.role:towerTraits[d.id]||d.role}</p></div>
    </div>
    <div className="ct-tiers" aria-label={`Tier ${tier} of 4${isSuper?', Super':''}`}>{roman.map((r,i)=>{const t=i+1,superCell=t===SuperTier,lockedSuper=superCell&&!isSuper&&partners===0
     return <span key={r} className={`${t===tier?'is-current':t<tier?'is-done':''} ${superCell?'is-super':''} ${lockedSuper?'is-locked':''}`}>{superCell?<SuperEmblem kind={d.id}/>:null}<b>{r}</b></span>})}</div>
-   <div className="ct-stats"><span><small>Power</small><b>{d.damage[tier-1]}</b>{canGrow&&<span className="ct-next">→ {d.damage[tier]}</span>}</span><span><small>Reach</small><b>{d.range[tier-1].toFixed(1)}</b>{canGrow&&<span className="ct-next">→ {d.range[tier].toFixed(1)}</span>}</span></div>
+   <div className="ct-stats"><span><small>Power</small><b>{d.damage[tier-1]}</b>{canGrow&&<span className="ct-next"><Icon name="arrow"/>{d.damage[tier]}</span>}</span><span><small>Reach</small><b>{d.range[tier-1].toFixed(1)}</b>{canGrow&&<span className="ct-next"><Icon name="arrow"/>{d.range[tier].toFixed(1)}</span>}</span></div>
    {tier===TopTier&&partners>0&&<p className="ct-helper">Drag onto its Tier IV twin, or press Merge.</p>}
    <div className="ct-build__actions">
     <button className="ct-sell" onClick={()=>send({type:'sell'})} aria-label={`Sell for ${sel.refund} coins`}><Icon name="sell"/><span>{sel.refund}</span></button>
     {isSuper?<span className="ct-chip is-info"><SuperEmblem kind={d.id}/>Super</span>
-    :tier===TopTier?partners>0?<button className="ct-cta" onClick={()=>send({type:'mergeArm',id:sel.id})}>Merge<Icon name="merge"/></button>:<button className="ct-cta" disabled>Grow a twin</button>
+    :tier===TopTier?partners>0?<button className="ct-cta" onClick={()=>send({type:'mergeArm',id:sel.id})}>Merge<Icon name="merge"/></button>:<button className="ct-cta" disabled>Needs a Tier IV twin</button>
     :<button className="ct-cta" disabled={short>0} onClick={()=>{send({type:'upgrade'});closeSoon(sel.id)}}>{short>0?<>Need <b>{short}</b></>:<>Upgrade <span className="ct-cta__cost"><Icon name="coin"/>{cost}</span></>}</button>}
     {close}
    </div>
@@ -182,9 +188,9 @@ function Panel({sel,store,definitions,send,reduced,onSafeArea,onBuilt,tutorialFo
  return <aside {...shared} aria-label={sel.type==='blocker'?'Scenery':'Focus target'}>
   <div className="ct-build__tower">
    {creature?<CreaturePortrait kind={creature.id}/>:<span className="ct-focus-icon"><Icon name={sel.type==='blocker'?'leaf':'target'}/></span>}
-   <div><b>{creature?.name||sel.kind.replace(/([a-z])([A-Z])/g,'$1 $2')}</b><span className="ct-tag">{sel.type==='blocker'?'Towers clearing':'Towers focused'}</span>{creature&&<p>{creature.detail}</p>}</div>
+   <div><b>{creature?.name||sel.kind.replace(/([a-z])([A-Z])/g,'$1 $2')}</b><span className="ct-tag">{sel.type==='blocker'?'Towers clearing it':'Towers targeting it'}</span>{creature&&<p>{creature.detail}</p>}</div>
   </div>
-  <div className="ct-stats"><span className="ct-hpline"><span className="ct-minibar__bar"><i style={{transform:`scaleX(${sel.maxHp>0?Math.max(0,Math.min(1,sel.hp/sel.maxHp)):0})`}}/></span><b>{Math.ceil(sel.hp)}<small> / {Math.ceil(sel.maxHp)}</small></b></span></div>
+  <div className="ct-stats"><span className="ct-hpline"><span className="ct-minibar__bar"><i style={fill(sel.maxHp>0?sel.hp/sel.maxHp:0)}/></span><b>{Math.ceil(sel.hp)}<small> / {Math.ceil(sel.maxHp)}</small></b></span></div>
   <div className="ct-build__actions">{close}</div>
  </aside>
 }
