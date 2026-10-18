@@ -204,7 +204,7 @@ export type NetIn =
   | { t: 'session'; mode: NetModeName; level: number; seat: Seat; side: Side; seed: number; names: [string, string]; netVersion: number }
   /** Duo own-half match clock: run (not paused) and speed. */
   | { t: 'clock'; run: boolean; speed: 1 | 2 }
-  /** Duo: apply the own start op now (wave 1). */
+  /** Wave 1 at the room's goAt. Duo: apply the own start op now. Endless: Unity's seat 0 issues the one start intent (seat 1 ignores it). */
   | { t: 'go' }
   /** Duo: the partner's executed tick (a ceiling the replica never passes), their new ops, and the buffer B to keep behind it. */
   | { t: 'replica'; exec: number; ops: Op[]; b?: number }
@@ -215,8 +215,15 @@ export type NetIn =
   | { t: 'pause'; on: boolean; by: Seat | -1 }
   /** Full-state export; Unity answers with {t:'state'}. target defaults to 'self'. */
   | { t: 'export'; target?: 'self' | 'replica' }
-  | { t: 'import'; target: 'replica' | 'self'; tick: number; b64: string }
-  /** Silent replay (no Effect events, no snapshot) from the instance's current tick up to `to`, applying ops on the way. */
+  /**
+   * Replaces one instance's state. seq (duo replica): the last partner op (wire seq) inside the state; Unity drops queued partner
+   * ops at or below it and the caller re-sends only the ops after it.
+   */
+  | { t: 'import'; target: 'replica' | 'self'; tick: number; b64: string; seq?: number }
+  /**
+   * Silent replay (no Effect events, no snapshot). Unity reloads the instance's level and replays from tick 0 up to `to` with the
+   * given ops, chunked at REPLAY_BUDGET_MS per frame ({t:'progress'} each frame), then answers {t:'replayed'}: send ALL ops at once.
+   */
   | { t: 'replay'; target: 'replica' | 'self'; ops: Op[]; to: number }
   | { t: 'camera'; mode: CameraMode }
   | { t: 'presence'; seat: Seat; pad: number; tower: number }
@@ -245,16 +252,27 @@ export type NetOut =
   | { t: 'own'; exec: number; ops: Op[] }
   /** Lockstep: an unstamped local intent. */
   | { t: 'intent'; op: Intent }
-  /** Executed tick; d = own NetDigest, rd = the replica's, dd/rdd = deep hashes, rexec = replica executed tick, hold = SpeedHold. */
-  | { t: 'tick'; exec: number; rexec?: number; d?: Digest; rd?: Digest; dd?: DeepDigest; rdd?: DeepDigest; hold?: boolean | number }
-  | { t: 'result'; outcome: 'cleared' | 'won' | 'lost'; tick: number; health: number; score?: number }
+  /**
+   * Executed tick; d = own NetDigest, rd = the replica's, dd/rdd = deep hashes (Unity names them dh/rdh; the bridge maps them),
+   * rexec = replica executed tick, hold = the duo half holds its win (DuoHold), rate = the tick rate after SpeedHold (1 | 2).
+   */
+  | { t: 'tick'; exec: number; rexec?: number; d?: Digest; rd?: Digest; dd?: DeepDigest; rdd?: DeepDigest; hold?: boolean | number; rate?: number }
+  /** cause: 'self' (this half), 'partner' (the partner's carrot fell first) or 'team' (both halves held: the duo win). */
+  | { t: 'result'; outcome: 'cleared' | 'won' | 'lost'; tick: number; health: number; score?: number; cause?: 'self' | 'partner' | 'team' }
   | ({ t: 'partnerView' } & PartnerView)
-  | { t: 'state'; target: 'self' | 'replica'; tick: number; b64: string }
+  /** seq (duo, target self): how many own ops (wire seqs 1..seq) the exported state already contains. */
+  | { t: 'state'; target: 'self' | 'replica'; tick: number; b64: string; seq?: number }
   | { t: 'reject'; seat: Seat; s: number; reason: string }
   | { t: 'replayed'; target: 'self' | 'replica'; tick: number; ms: number }
-  /** Unity-side divergence (e.g. the replica rejected an op its owner accepted). */
-  | { t: 'desync'; tick: number; local: [number, number]; remote: [number, number]; reason?: string }
+  /** An import finished (Unity reports it as replayed with import: true; the bridge renames it so no replay waiter takes it). */
+  | { t: 'imported'; target: 'self' | 'replica'; tick: number }
+  /** A chunked silent replay is still running: the instance reached `tick` of `to`. */
+  | { t: 'progress'; target: 'self' | 'replica'; tick: number; to: number }
+  /** Unity-side divergence (e.g. the replica rejected an op its owner accepted); kind digest|deep|refused|late|outcome, where self|replica. */
+  | { t: 'desync'; tick: number; local: [number, number]; remote: [number, number]; reason?: string; kind?: string; where?: string }
   | { t: 'view'; kind: string }
+  /** Unity refused a bridge message: version-mismatch, bad-session or import. */
+  | { t: 'error'; code: string; message?: string }
 
 /** The 'carrot-state' snapshot's optional net block (the existing snapshot is otherwise unchanged). */
 export type SnapshotNet = {

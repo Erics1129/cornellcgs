@@ -9,7 +9,7 @@ import { formatSeconds } from '../challenges'
 import type { DuoController } from './useDuo'
 import { useDuoSlice, useDuoUi } from './useDuo'
 import type { DuoResult, NetBlock } from './contract'
-import { partnerSeat } from './contract'
+import { partnerSeat, seatCounters } from './contract'
 import { resultCopy } from './copy'
 import { ENDLESS_NAME, fightInfo } from './profile'
 import { Avatar, Glyph } from './bits'
@@ -17,7 +17,7 @@ import { Avatar, Glyph } from './bits'
 export function DuoResults({ctl,definitions}:{ctl:DuoController;definitions:GameDefinitions|null}){
  const s=useDuoSlice(ctl,x=>({result:x.result,seat:x.seat??0,host:x.host,level:x.level,partnerHealth:x.partner?.health??null}))
  const ui=useDuoUi(ctl,u=>({endless:u.endless,own:u.own}))
- const own=useSlice(ctl.args.store,st=>{const net=(st as {net?:NetBlock}|null)?.net;return {health:st?.health??0,seconds:typeof st?.elapsed==='number'?st.elapsed:0,kills:st?.stats?.kills??0,towers:st?.towerCount??0,wave:st?.wave??0,seats:net?.seats?JSON.stringify(net.seats):''}})
+ const own=useSlice(ctl.args.store,st=>{const net=(st as {net?:NetBlock}|null)?.net;return {health:st?.health??0,seconds:typeof st?.elapsed==='number'?st.elapsed:0,kills:st?.stats?.kills??0,towers:st?.towerCount??0,wave:st?.wave??0,seats:seatCounters(net)?JSON.stringify(seatCounters(net)):''}})
  const [collapsed,setCollapsed]=useState(false)
  const primary=useRef<HTMLButtonElement>(null)
  useEffect(()=>{if(!collapsed)primary.current?.focus({preventScroll:true})},[collapsed,s.result])
@@ -72,8 +72,8 @@ function peopleFor(seatsJson:string,seat:number,partner:string,ownCount:{built:n
  const seats=seatsJson?(JSON.parse(seatsJson) as Array<{built?:number;spent?:number;damage?:number}>):null
  const me=seats?.[seat],them=seats?.[seat===0?1:0]
  const total=(me?.damage||0)+(them?.damage||0)
- const line=(c:{built?:number;spent?:number;damage?:number}|undefined,fallback?:{built:number;spent:number})=>{const built=c?.built??fallback?.built??0,spent=c?.spent??fallback?.spent??0
-  return `${built} ${built===1?'tower':'towers'} · ${spent.toLocaleString()} coins${total>0&&c?` · ${Math.round((c.damage||0)/total*100)}% of the damage`:''}`}
+ const line=(c:{built?:number;spent?:number;damage?:number}|undefined,fallback?:{built:number;spent:number})=>{const built=c?.built??fallback?.built,spent=c?.spent??fallback?.spent??0
+  return `${built!==undefined?`${built} ${built===1?'tower':'towers'} · `:''}${spent.toLocaleString()} coins${total>0&&c?` · ${Math.round((c.damage||0)/total*100)}% of the damage`:''}`}
  const list:Array<{name:string;tone:'me'|'partner';text:string}>=[{name:'You',tone:'me',text:line(me,ownCount)}]
  if(them)list.push({name:partner,tone:'partner',text:line(them)})
  return list

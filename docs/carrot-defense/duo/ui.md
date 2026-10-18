@@ -161,6 +161,15 @@ of CSS) fetched on first use; the net layer is its own lazy chunk. The mock sess
   resumes with a shared 3-2-1; the cooldown binds only the player who resumed; a partner whose tab vanishes pauses the match with
   the grace clock ("Mia stepped away 0:56"). In the same setup the host leaving the lobby promoted the guest to host.
 
+## Integration changes (lead, 2026-10-17)
+
+* Net messages to Unity wait in `DuoController.netQueue` until the player is loaded and then go out in order (a reload that
+  rejoins a running match sends `session` before Unity exists).
+* Endless reveal: the camera frames the seat's home wing (seat 0 west, seat 1 east), so the reveal and its mini-map name the
+  seat's gate; the room's side draw splits only the duo maps.
+* The endless purse split and the results' spend rows read Unity's `net.spent` ([seat 0, seat 1]) when `net.seats` is absent;
+  the partner's row then shows coins without a tower count.
+
 ## Integration notes (lead)
 
 * `net/protocol.ts` was cherry-picked from the netcode branch's first commit; the netcode branch has edited it since, so merging the two

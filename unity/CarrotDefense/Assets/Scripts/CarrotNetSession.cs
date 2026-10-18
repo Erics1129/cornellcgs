@@ -26,6 +26,12 @@ namespace CarrotTD {
   public string mode="";public int level,seat,side=-1;public uint seed;public string[] names={"",""};
   public bool Active {get{return mode!="";}}
   public int Reentries {get;private set;}
+  /// <summary>Sessions begun on this object (the bridge reconfigures the host view for every new match, not only the first).</summary>
+  public int Begins {get;private set;}
+  /// <summary>Duo: own ops this device has applied and handed to the page so far (the page's wire seqs are 1..this, in order).
+  /// A DuoOwn op applies when it is issued and is stamped NetTick+1, so a state exported at T can already hold ops stamped T+1;
+  /// the export reports this count so the partner re-sends exactly the ops after it.</summary>
+  int ownOpsOut;
   public int DigestsCompared {get;private set;}
   public int DeepCompared {get;private set;}
   public int Mismatches {get;private set;}
@@ -58,7 +64,7 @@ namespace CarrotTD {
 
   [Serializable] public class NetIn {
    public string t,mode,outcome,target,b64;public int level,seat,side,exec,to,tick,b,by,pad,tower,netVersion,speed;public long seed;public bool run,on;
-   public string[] names;public NetOp[] ops;public long[] d,dh;
+   public string[] names;public NetOp[] ops;public long[] d,dh;public int seq;
   }
   /// <summary>One JS-to-Unity message ({t:...}); unknown types are ignored and logged.</summary>
   public void Receive(string json){
@@ -75,8 +81,8 @@ namespace CarrotTD {
     case "step":if(m.ops!=null)foreach(var op in m.ops){int late=own.LateOps;if(!own.EnqueueOp(op)&&own.LateOps>late)Desync("late",own.NetTick,0,0,"self");}
      if(m.to>stepLimit)stepLimit=m.to;Remote(m.d,m.dh);break;
     case "pause":own.SetMatchPaused(m.on,m.by);if(replica!=null)replica.SetMatchPaused(m.on,m.by);break;
-    case "export":{var g=m.target=="replica"?replica:own;if(g!=null)outMisc.Add("{\"t\":\"state\",\"target\":"+Q(m.target=="replica"?"replica":"self")+",\"tick\":"+g.NetTick+",\"b64\":"+Q(g.ExportStateBase64())+"}");break;}
-    case "import":Import(m.target=="replica"?replica:own,m.target=="replica"?"replica":"self",m.tick,m.b64);break;
+    case "export":{var g=m.target=="replica"?replica:own;if(g!=null)outMisc.Add("{\"t\":\"state\",\"target\":"+Q(m.target=="replica"?"replica":"self")+",\"tick\":"+g.NetTick+(g==own&&mode=="duo"?",\"seq\":"+OwnOpsInState:"")+",\"b64\":"+Q(g.ExportStateBase64())+"}");break;}
+    case "import":Import(m.target=="replica"?replica:own,m.target=="replica"?"replica":"self",m.tick,m.b64,m.seq);break;
     case "replay":StartReplay(m.target=="replica"?"replica":"self",m.ops,m.to);break;
     case "camera":CarrotNetHooks.Camera?.Invoke(m.mode=="partner"||m.mode=="both"?m.mode:"own");break;
     case "presence":CarrotNetHooks.Presence?.Invoke(m.seat,m.pad,m.tower);break;
@@ -104,6 +110,7 @@ namespace CarrotTD {
    partnerExec=0;stepLimit=0;replicaAcc=0;lastOwnWave=0;lastReplicaWave=0;matchSpeed=1;
    ownDigests.Clear();replicaDigests.Clear();remoteDigests.Clear();ownDeep.Clear();replicaDeep.Clear();remoteDeep.Clear();
    partnerOutcome=replicaOutcome="";partnerOutcomeTick=replicaOutcomeTick=-1;ownCausePartner=false;replicaForced=false;refusedSeen=0;replicaCompareLimit=int.MaxValue;
+   ownOpsOut=0;Begins++;
    outMisc.Add("{\"t\":\"loaded\",\"exec\":0}");
   }
   public void End(){
@@ -222,9 +229,13 @@ namespace CarrotTD {
   }
 
   // ---- Export, import, replay.
-  void Import(CarrotGame g,string target,int tick,string b64){
+  /// <summary>Own ops inside the own half's state right now: those already handed to the page plus this frame's, not yet flushed.</summary>
+  int OwnOpsInState {get{return ownOpsOut+(own.NetMode==NetMode.DuoOwn?own.OutOps.Count:0);}}
+  void Import(CarrotGame g,string target,int tick,string b64,int seq){
    if(g==null){outMisc.Add("{\"t\":\"error\",\"code\":\"import\",\"message\":\"no "+target+"\"}");return;}
    string error;if(!g.ImportStateBase64(b64,out error)){outMisc.Add("{\"t\":\"error\",\"code\":\"import\",\"message\":"+Q(error)+"}");return;}
+   // The partner's ops through `seq` are inside the imported state: queued copies of them must not apply a second time.
+   if(g==replica&&seq>0)replica.DropQueuedThrough(replica.NetSeat,seq);
    if(tick>0&&g.NetTick!=tick)Log("import tick "+g.NetTick+" != "+tick);
    if(g==replica){replicaDigests.Clear();replicaDeep.Clear();lastReplicaWave=g.wave;replicaAcc=0;}else{ownDigests.Clear();ownDeep.Clear();lastOwnWave=g.wave;if(stepLimit<g.NetTick)stepLimit=g.NetTick;}
    remoteDigests.Clear();remoteDeep.Clear();
@@ -234,8 +245,8 @@ namespace CarrotTD {
    var g=target=="replica"?replica:own;if(g==null)return;
    var keepMode=g.NetMode;int keepSeat=g.NetSeat;bool endless=mode=="endless";
    g.LoadLevel(level,endless?"endless":"duo",endless?seed:(uint)(g==replica?1-side:side));g.NetBegin(keepMode,keepSeat);g.NetNames=names;
-   int maxSeq=0;if(ops!=null)foreach(var op in ops){g.EnqueueOp(op);if(op.seat==keepSeat&&op.s>maxSeq)maxSeq=op.s;}
-   if(g==own)own.LocalSeq=maxSeq;
+   int maxSeq=0,mine=0;if(ops!=null)foreach(var op in ops){g.EnqueueOp(op);if(op.seat==keepSeat){mine++;if(op.s>maxSeq)maxSeq=op.s;}}
+   if(g==own){own.LocalSeq=maxSeq;if(mode=="duo")ownOpsOut=mine;}
    if(g==replica){replicaDigests.Clear();lastReplicaWave=0;}else{ownDigests.Clear();lastOwnWave=0;}
    replay=new Replay{target=target,to=to,watch=Stopwatch.StartNew()};
   }
@@ -256,6 +267,7 @@ namespace CarrotTD {
    try{
     if(Active){
      if(own.OutOps.Count>0){
+      if(own.NetMode==NetMode.DuoOwn)ownOpsOut+=own.OutOps.Count;
       if(own.NetMode==NetMode.DuoOwn||own.LockstepSolo){var sb=new StringBuilder(64+own.OutOps.Count*48);sb.Append("{\"t\":\"own\",\"exec\":").Append(own.NetTick).Append(",\"ops\":[");for(int i=0;i<own.OutOps.Count;i++){if(i>0)sb.Append(',');OpJson(sb,own.OutOps[i],true);}sb.Append("]}");outOps.Add(sb.ToString());}
       else foreach(var op in own.OutOps){var sb=new StringBuilder(96);sb.Append("{\"t\":\"intent\",\"op\":");OpJson(sb,op,false);sb.Append('}');outOps.Add(sb.ToString());}
       own.OutOps.Clear();

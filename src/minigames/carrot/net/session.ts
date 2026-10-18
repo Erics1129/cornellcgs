@@ -14,7 +14,7 @@
  * comes back by the reconnect record (localStorage, 3 h TTL, guarded against two tabs) and is restored by state blobs.
  */
 import {
-  AWAY_PAUSE_MS, CHUNK_PURPOSE, CONTROL, ENDLESS_LEVEL, GRACE_MS, NET_VERSION, PAUSE_COOLDOWN_MS, PRESENCE_HZ, REPLAY_BUDGET_MS,
+  AWAY_PAUSE_MS, CHUNK_PURPOSE, CONTROL, ENDLESS_LEVEL, GRACE_MS, NET_VERSION, PAUSE_COOLDOWN_MS, PRESENCE_HZ,
   ROOM_CODE_RE, ROOM_TTL_MS, SILENCE_PAUSE_MS, STORAGE_KEYS, roomModeToNet,
 } from './protocol.ts'
 import type {
@@ -107,7 +107,7 @@ export function createDuoSession(opts: CreateSessionOptions & SessionDeps): DuoS
   let partnerAwaySince = 0
   let partnerHidden = false
   let fell: Seat | -1 = -1
-  let restoring: { started: number; needOwn: boolean; needPartner: boolean; replayTarget: number; ops: Op[] | null; replaying: boolean; infoSeen: boolean } | null = null
+  let restoring: { started: number; needOwn: boolean; needPartner: boolean; replayTarget: number; ops: Op[] | null; replaying: boolean; infoSeen: boolean; replayTo?: number } | null = null
   let disposed = false
   let lockRelease: (() => void) | null = null
   let joinWaiter: { resolve: () => void; reject: (e: SessionError) => void } | null = null
@@ -399,6 +399,17 @@ export function createDuoSession(opts: CreateSessionOptions & SessionDeps): DuoS
         return
       case 'blob': void onBlob(e.purpose, e.body); return
       case 'blobProgress': return
+      case 'replayProgress': if (e.target === 'self') onReplayProgress(e.tick, e.to); return
+      case 'unityError':
+        // An import Unity could not read is a resync like any other; a session it refused (an outdated player, a level that
+        // has no duo map) ends the match with the protocol's own copy.
+        if (e.code === 'import') { onDesync(match?.duo?.replicaExec ?? match?.ls?.E ?? 0); return }
+        if (snap.phase !== 'results') {
+          room?.send({ t: 'result', outcome: 'unfinished', tick: 0, ...(snap.mode === 'endless' ? { score: 0 } : {}) })
+          finish(snap.mode === 'duo' ? { kind: 'unfinished', level: snap.level, reason: 'desync', by: -1 } : { kind: 'endless', waves: 0, tick: 0, solo: snap.solo, endedBy: 'connection' })
+        }
+        set({ error: sessionError(e.code === 'version-mismatch' ? 'version-mismatch' : 'desync', e.code === 'version-mismatch' ? 'you' : undefined) })
+        return
       case 'loaded': return
       case 'control': return
     }
@@ -510,22 +521,29 @@ export function createDuoSession(opts: CreateSessionOptions & SessionDeps): DuoS
     }
     maybeResume()
   }
+  /**
+   * Rebuilds our own half from tick 0 with the whole op log in one Unity replay. Unity chunks it itself (REPLAY_BUDGET_MS of
+   * silent ticks per frame, so heartbeats and pongs keep flowing) and reports {t:'progress'} each frame; see onReplayProgress.
+   */
   async function replayOwn(ops: Op[], target: number) {
     if (!match || !restoring) return
     restoring.replaying = true
-    let at = 0, chunk = 300
-    while (at < target && match && restoring) {
-      const to = Math.min(target, at + chunk)
-      const r = await match.replay('self', ops.filter(op => op.k > at && op.k <= to), to)
-      at = r.tick
-      // keep each frame's replay under the budget (heartbeats and pongs keep flowing between chunks)
-      chunk = Math.max(30, Math.min(5000, Math.round(chunk * (r.ms > 0 ? Math.min(2, REPLAY_BUDGET_MS / r.ms) : 2))))
-      const pct = Math.round(100 * at / Math.max(1, target))
-      match.control(CONTROL.restoring, { a: pct }, false)
-      set({ restoring: { seat: seat ?? 0, progress: pct / 100 } })
-      await nextFrame()
+    restoring.replayTo = target
+    const r = await match.replay('self', ops.filter(op => op.k <= target), target)
+    if (restoring) {
+      restoring.replaying = false
+      match?.control(CONTROL.restoring, { a: 100 }, false)
+      set({ restoring: { seat: seat ?? 0, progress: 1 } })
+      if (r.tick < target) emit({ type: 'notice', message: 'Your garden was rebuilt up to the last moment both devices saw.' })
     }
-    if (restoring) restoring.replaying = false
+  }
+  let lastProgressSent = 0
+  function onReplayProgress(tick: number, to: number) {
+    if (!match || !restoring || !restoring.replaying) return
+    const pct = Math.max(0, Math.min(99, Math.round(100 * tick / Math.max(1, to))))
+    set({ restoring: { seat: seat ?? 0, progress: pct / 100 } }, false)
+    const t = now()
+    if (t - lastProgressSent >= 200) { lastProgressSent = t; match.control(CONTROL.restoring, { a: pct }, false) }
   }
   /** The surviving side, when the partner came back: give it our state (and its own log), take its fresh state. */
   async function survivorRestore() {
@@ -553,15 +571,15 @@ export function createDuoSession(opts: CreateSessionOptions & SessionDeps): DuoS
     if (match.duo) {
       if (restoring) {
         // we are the rejoiner: this is the partner's half for our replica
-        net({ t: 'import', target: 'replica', tick: body.tick, b64: body.b64 })
+        net({ t: 'import', target: 'replica', tick: body.tick, b64: body.b64, ...(body.seq !== undefined ? { seq: body.seq } : {}) })
         match.duo.adoptPartnerSeq(body.seq ?? 0, body.tick)
         match.duo.feed(true)
         restoring.needPartner = false
         maybeResume()
       } else {
         // we survived: the partner's freshly restored half replaces our replica of it
-        net({ t: 'import', target: 'replica', tick: body.tick, b64: body.b64 })
-        match.duo.afterImport(body.tick)
+        net({ t: 'import', target: 'replica', tick: body.tick, b64: body.b64, ...(body.seq !== undefined ? { seq: body.seq } : {}) })
+        match.duo.afterImport(body.tick, body.seq)
       }
     } else if (match.ls && restoring) {
       net({ t: 'import', target: 'self', tick: body.tick, b64: body.b64 })
@@ -613,8 +631,9 @@ export function createDuoSession(opts: CreateSessionOptions & SessionDeps): DuoS
       }
       if (info.goAt && !goFired && t >= local2(info.goAt)) {
         goFired = true
-        if (snap.mode === 'duo') net({ t: 'go' })
-        else if (seat === view?.host || snap.solo) engine.send({ type: 'start' })
+        // Duo: each device applies its own start op now. Endless: Unity's seat 0 turns 'go' into the one start intent both peers
+        // execute at its stamped tick (seat 1 ignores it), so it does not matter which seat hosts after a host promotion.
+        net({ t: 'go' })
         if (snap.phase === 'prep') set({ phase: 'playing', countdownAt: null, countdownKind: null })
       }
       if (resumeAt && t >= resumeAt) {
@@ -781,5 +800,4 @@ function safeStorage(kind: 'localStorage' | 'sessionStorage'): Storage | null {
   try { const s = (globalThis as unknown as Record<string, Storage>)[kind]; s.getItem('x'); return s } catch { return null }
 }
 const sleep = (ms: number) => new Promise(r => setTimeout(r, ms))
-const nextFrame = () => new Promise<void>(r => (typeof requestAnimationFrame === 'function' ? requestAnimationFrame(() => r()) : setTimeout(r, 16)))
 export type { SessionPhase }

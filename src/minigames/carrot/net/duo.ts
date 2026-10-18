@@ -111,12 +111,16 @@ export class DuoController {
     this.fedExec = this.partnerExec
     this.o.engine({ t: 'replica', exec: this.partnerExec, ops, b: this.buffer })
   }
-  /** After the replica imported the partner's state at `tick`: re-send every partner op stamped after it. */
-  afterImport(tick: number) {
+  /**
+   * After the replica imported the partner's state at `tick`: re-send every partner op the state does not hold. With `seq` (the
+   * partner's last op inside the state; Unity's own ops apply when issued, so the state can hold ops stamped tick + 1) that is
+   * every op after seq; without it, every op stamped after the tick.
+   */
+  afterImport(tick: number, seq?: number) {
     this.digests.reset(tick + 1)
     this.deep.reset(tick + 1)
     this.replicaExec = tick
-    const ops = [...this.partnerOps.values()].filter(op => op.k > tick).sort((a, b) => a.s - b.s)
+    const ops = [...this.partnerOps.values()].filter(op => (seq !== undefined ? op.s > seq : op.k > tick)).sort((a, b) => a.s - b.s)
     this.fedSeq = this.partnerContig
     this.fedExec = this.partnerExec
     this.o.engine({ t: 'replica', exec: this.partnerExec, ops, b: this.buffer })

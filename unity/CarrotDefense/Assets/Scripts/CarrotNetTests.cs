@@ -100,17 +100,20 @@ namespace CarrotTD {
   // ================= Network simulation (two devices, the real CarrotNetSession on both).
   [Serializable] public class OutMsg {
    public string t,outcome,cause,target,b64,kind,where,reason,phase,name,code,message;
-   public int exec,tick,health,score,s,seat,rexec,to,ms,rate,behind,coins,wave,waves;public bool hold;
+   public int exec,tick,health,score,s,seat,rexec,to,ms,rate,behind,coins,wave,waves,seq;public bool hold;
    public NetOp[] ops;public NetOp op;public long[] d,rd,dh,rdh,local,remote;
   }
   [Serializable] public class OutList {public OutMsg[] items;}
   static OutMsg[] ParseOut(string json){if(string.IsNullOrEmpty(json))return new OutMsg[0];var l=JsonUtility.FromJson<OutList>("{\"items\":"+json+"}");return l!=null&&l.items!=null?l.items:new OutMsg[0];}
   sealed class NetDevice {
    public readonly int seat;public readonly CarrotGame game;public readonly CarrotNetSession session;public CarrotGame replica;
+   /// <summary>The snapshot the test factory's level-1 load published before the session disabled snapshots (the real bridge
+   /// creates the replica inactive, so it has none); any other snapshot means the replica built one during the match.</summary>
+   public string replicaSnap0;
    public readonly List<OutMsg> desyncs=new List<OutMsg>(),results=new List<OutMsg>(),errors=new List<OutMsg>();public readonly List<string> golden;
    public NetDevice(int seat,List<string> golden=null){
     this.seat=seat;this.golden=golden;game=NetGame(1,"normal",0,true);session=new CarrotNetSession(game);
-    session.CreateReplica=()=>{replica=NetGame(1,"normal",0);return replica;};session.DestroyReplica=r=>{if(r!=null)Done(r);};
+    session.CreateReplica=()=>{replica=NetGame(1,"normal",0);replicaSnap0=replica.LastSnapshot;return replica;};session.DestroyReplica=r=>{if(r!=null)Done(r);};
    }
    public void Send(string json){golden?.Add("{\"dir\":\"in\",\"seat\":"+seat+",\"msg\":"+json+"}");session.Receive(json);}
    public OutMsg[] Frame(float dt){
@@ -173,13 +176,13 @@ namespace CarrotTD {
    }
    for(int i=0;i<2;i++){
     var d=dev[i];outcome.desyncs+=d.desyncs.Count;outcome.compared+=d.session.DigestsCompared;outcome.unverified+=d.session.Unverified;outcome.ffTicks+=(int)d.session.FastForwardTicks;
-    if(d.replica!=null){outcome.refused+=d.replica.ReplicaRefused;if(d.replica.LastSnapshot!=null)outcome.refused+=1000;}foreach(var m in d.desyncs)if(outcome.detectAt[i]<0)outcome.detectAt[i]=m.tick;
+    if(d.replica!=null){outcome.refused+=d.replica.ReplicaRefused;if(d.replica.LastSnapshot!=null&&!ReferenceEquals(d.replica.LastSnapshot,d.replicaSnap0))outcome.refused+=1000;}foreach(var m in d.desyncs)if(outcome.detectAt[i]<0)outcome.detectAt[i]=m.tick;
    }
    outcome.wonA=dev[0].game.phase=="won";outcome.wonB=dev[1].game.phase=="won";outcome.ticks=Mathf.Max(dev[0].game.NetTick,dev[1].game.NetTick);
    int expected=0;for(int i=0;i<2;i++)if(dev[i].replica!=null)expected+=Mathf.Min(dev[i].replica.NetTick,dev[i].session.ReplicaCompareLimit)/30-2;
    bool sameOutcome=dev[0].game.phase==dev[1].game.phase;
    outcome.ok=outcome.desyncs==0&&outcome.compared>=expected&&outcome.unverified==0&&outcome.refused==0&&sameOutcome&&dev[0].errors.Count==0&&dev[1].errors.Count==0;
-   outcome.line="level="+level+" seed="+seed+" sides="+sideA+"/"+(1-sideA)+" ticks="+outcome.ticks+" phases="+dev[0].game.phase+"/"+dev[1].game.phase+" compared="+outcome.compared+" expected>="+expected+" desyncs="+outcome.desyncs+" unverified="+outcome.unverified+" fastForward="+outcome.ffTicks+" reentries="+(dev[0].session.Reentries+dev[1].session.Reentries)+" frames="+frames;
+   outcome.line="level="+level+" seed="+seed+" sides="+sideA+"/"+(1-sideA)+" ticks="+outcome.ticks+" phases="+dev[0].game.phase+"/"+dev[1].game.phase+" compared="+outcome.compared+" expected>="+expected+" desyncs="+outcome.desyncs+" unverified="+outcome.unverified+" fastForward="+outcome.ffTicks+" reentries="+(dev[0].session.Reentries+dev[1].session.Reentries)+" refused="+outcome.refused+" errors="+(dev[0].errors.Count+dev[1].errors.Count)+(dev[0].errors.Count>0?" e0="+dev[0].errors[0]:"")+(dev[1].errors.Count>0?" e1="+dev[1].errors[0]:"")+" frames="+frames;
    if(DuoDebug)for(int i=0;i<2;i++){int k=0;foreach(var m in dev[i].desyncs){if(k++>=4)break;Debug.Log("CARROT_DUO_DEBUG dev="+i+" kind="+m.kind+" where="+m.where+" tick="+m.tick+" local="+(m.local!=null&&m.local.Length==2?m.local[0]+"/"+m.local[1]:"")+" remote="+(m.remote!=null&&m.remote.Length==2?m.remote[0]+"/"+m.remote[1]:"")+" ownTick="+dev[i].game.NetTick+" replicaTick="+(dev[i].replica!=null?dev[i].replica.NetTick:-1)+" refused="+(dev[i].replica!=null?dev[i].replica.ReplicaRefused:-1)+" late="+(dev[i].replica!=null?dev[i].replica.LateOps:-1));}
     for(int j=0;j<2;j++)Debug.Log("CARROT_DUO_DEBUG dev="+j+" own hold="+dev[j].game.HoldTick+" outcome="+dev[j].game.OutcomeTick+" phase="+dev[j].game.phase+" replica hold="+(dev[j].replica!=null?dev[j].replica.HoldTick:-9)+" outcome="+(dev[j].replica!=null?dev[j].replica.OutcomeTick:-9)+" limit="+dev[j].session.ReplicaCompareLimit+" pastEnd="+dev[j].session.PastEnd);}
    foreach(var d in dev){d.session.Dispose();Done(d.game);}
@@ -502,6 +505,40 @@ namespace CarrotTD {
   }
 
   // ================= NetBridgeGolden: real CarrotNetSession traffic of a scripted duo and endless run, both directions (JSONL).
+  /// <summary>Duo resync with an own op stamped T+1 already applied: the owner's export at T reports seq (the ops it holds), the
+  /// replica's import drops its queued copy, and nothing applies twice. Negative control: the same import without seq applies the
+  /// buy a second time (refused on the occupied pad: a desync).</summary>
+  public static void ExportSeqImport(string[] args){
+   netChecks=0;
+   foreach(bool withSeq in new[]{true,false}){
+    var a=new NetDevice(0);var b=new NetDevice(1);
+    a.Send(SessionJson("duo",25,0,0,0));b.Send(SessionJson("duo",25,1,1,0));
+    foreach(var d in new[]{a,b})d.Send("{\"t\":\"clock\",\"run\":true,\"speed\":1}");
+    int exec=0;var ops=new System.Text.StringBuilder();var dig=new System.Text.StringBuilder();
+    System.Action<OutMsg[]> collect=msgs=>{foreach(var m in msgs){if(m.t=="own"&&m.ops!=null)foreach(var op in m.ops){if(ops.Length>0)ops.Append(',');CarrotNetSession.OpJson(ops,op,true);}
+     if(m.t=="tick"){if(m.exec>exec)exec=m.exec;if(m.d!=null&&m.d.Length==3){if(dig.Length>0)dig.Append(',');dig.Append(m.d[0]).Append(',').Append(m.d[1]).Append(',').Append(m.d[2]);}}}};
+    System.Action feed=()=>{b.Send("{\"t\":\"replica\",\"exec\":"+exec+",\"b\":1,\"ops\":["+ops+"],\"d\":["+dig+"]}");ops.Clear();dig.Clear();};
+    for(int i=0;i<90;i++){collect(a.Frame(1/60f));b.Frame(1/60f);feed();}
+    // The buy applies at once on A (stamped NetTick+1); the export in the same frame already holds it.
+    a.game.Select("pad",0);a.game.Command("{\"type\":\"buy\",\"kind\":\"seed\"}");int T=a.game.NetTick;
+    a.Send("{\"t\":\"export\",\"target\":\"self\"}");var out1=a.Frame(0);string b64=null;int seq=-1,tick=-1;
+    foreach(var m in out1)if(m.t=="state"){b64=m.b64;seq=m.seq;tick=m.tick;}
+    NetCheck(a.game.towers.Count==1&&b64!=null&&tick==T,"export seq: the own buy applied and the state exported at "+T);
+    collect(out1);feed();
+    b.Send("{\"t\":\"import\",\"target\":\"replica\",\"tick\":"+tick+",\"b64\":\""+b64+"\""+(withSeq?",\"seq\":"+SeqOf(out1):"")+"}");b.Frame(0);
+    for(int i=0;i<150;i++){collect(a.Frame(1/60f));feed();b.Frame(1/60f);}
+    collect(a.Frame(0));feed();for(int i=0;i<30;i++)b.Frame(1/60f);
+    int refused=b.replica!=null?b.replica.ReplicaRefused:-1;
+    string line="withSeq="+withSeq+" seq="+SeqOf(out1)+" T="+T+" aTick="+a.game.NetTick+" replicaTick="+(b.replica!=null?b.replica.NetTick:-1)+" refused="+refused+" desyncs="+b.desyncs.Count+" compared="+b.session.DigestsCompared+" towers="+a.game.towers.Count+"/"+(b.replica!=null?b.replica.towers.Count:-1);
+    Debug.Log("CARROT_EXPORT_SEQ "+line);
+    if(withSeq)NetCheck(SeqOf(out1)==1&&refused==0&&b.desyncs.Count==0&&b.session.DigestsCompared>=3&&b.replica.towers.Count==1,"export seq: the replica holds the buy once, digests agree ("+line+")");
+    else NetCheck(refused>0||b.desyncs.Count>0,"export seq negative control: without seq the queued copy applies twice ("+line+")");
+    a.session.Dispose();b.session.Dispose();Done(a.game);Done(b.game);
+   }
+   Debug.Log("CARROT_EXPORT_SEQ_OK checks="+netChecks);
+  }
+  /// <summary>The seq field of the frame's state message (-1 when there is none).</summary>
+  static int SeqOf(OutMsg[] msgs){foreach(var m in msgs)if(m.t=="state")return m.seq;return -1;}
   public static void NetBridgeGolden(string[] args){
    policyMerges=true;scoreNoise=null;var lines=new List<string>();ClearBotCaches();
    lines.Add("{\"dir\":\"meta\",\"note\":\"generated by carrot-sim --method NetBridgeGolden; every message of the C# bridge in both directions\",\"netVersion\":"+CarrotNetSession.NetVersion+",\"schema\":\""+CarrotNetState.SchemaHash().ToString("x8")+"\"}");

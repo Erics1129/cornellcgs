@@ -32,6 +32,10 @@ export type MatchEvent =
   | { type: 'unityDesync'; tick: number; reason: string }
   | { type: 'blob'; purpose: number; tick: number; body: BlobBody }
   | { type: 'blobProgress'; fraction: number }
+  /** A chunked silent replay in Unity reached `tick` of `to`. */
+  | { type: 'replayProgress'; target: 'self' | 'replica'; tick: number; to: number }
+  /** Unity refused a bridge message (version-mismatch, bad-session, import). */
+  | { type: 'unityError'; code: string; message: string }
 export type BlobBody = { tick: number; b64?: string; seq?: number; ops?: Op[]; exec?: number }
 export type MatchOptions = {
   mode: NetModeName
@@ -65,8 +69,9 @@ export class NetMatch {
   private asked = new Map<number, number>()
   /** Lockstep: a resync in progress (both frozen; the host exports once converged). */
   lockstepResync: { id: number; exported: boolean } | null = null
-  private waitingState: Array<(m: Extract<NetOut, { t: 'state' }>) => void> = []
-  private waitingReplay: Array<(m: Extract<NetOut, { t: 'replayed' }>) => void> = []
+  // Waiters are matched by target: Unity answers in order per instance, and an answer for the other instance must never be taken.
+  private waitingState: Array<{ target: 'self' | 'replica'; fn: (m: Extract<NetOut, { t: 'state' }>) => void }> = []
+  private waitingReplay: Array<{ target: 'self' | 'replica'; fn: (m: Extract<NetOut, { t: 'replayed' }>) => void }> = []
   private disposed = false
   partnerView: PartnerView | null = null
   constructor(o: MatchOptions) {
@@ -103,16 +108,28 @@ export class NetMatch {
       case 'reject': this.o.onEvent({ type: 'reject', seat: m.seat, s: m.s, reason: m.reason }); return
       case 'view': this.o.onEvent({ type: 'view', kind: m.kind }); return
       case 'desync': this.o.onEvent({ type: 'unityDesync', tick: m.tick, reason: m.reason || 'engine' }); return
-      case 'state': { const w = this.waitingState.shift(); if (w) w(m); return }
-      case 'replayed': { const w = this.waitingReplay.shift(); if (w) w(m); return }
+      case 'state': { const i = this.waitingState.findIndex(w => w.target === m.target); if (i >= 0) this.waitingState.splice(i, 1)[0].fn(m); return }
+      case 'replayed': { const i = this.waitingReplay.findIndex(w => w.target === m.target); if (i >= 0) this.waitingReplay.splice(i, 1)[0].fn(m); return }
+      case 'progress': this.o.onEvent({ type: 'replayProgress', target: m.target, tick: m.tick, to: m.to }); return
+      case 'error': this.o.onEvent({ type: 'unityError', code: m.code, message: m.message ?? '' }); return
+      case 'imported': return
     }
   }
   /** Asks Unity for a full-state export of one instance. */
-  exportState(target: 'self' | 'replica'): Promise<{ tick: number; b64: string }> {
-    return new Promise(resolve => { this.waitingState.push(m => resolve({ tick: m.tick, b64: m.b64 })); this.net({ t: 'export', target }) })
+  exportState(target: 'self' | 'replica'): Promise<{ tick: number; b64: string; seq?: number }> {
+    return new Promise(resolve => { this.waitingState.push({ target, fn: m => resolve({ tick: m.tick, b64: m.b64, ...(m.seq !== undefined ? { seq: m.seq } : {}) }) }); this.net({ t: 'export', target }) })
   }
   replay(target: 'self' | 'replica', ops: Op[], to: number): Promise<{ tick: number; ms: number }> {
-    return new Promise(resolve => { this.waitingReplay.push(m => resolve({ tick: m.tick, ms: m.ms })); this.net({ t: 'replay', target, ops, to }) })
+    return new Promise(resolve => { this.waitingReplay.push({ target, fn: m => resolve({ tick: m.tick, ms: m.ms }) }); this.net({ t: 'replay', target, ops, to }) })
+  }
+  /**
+   * The last own wire seq inside a state exported at `tick`. Duo: Unity reports how many own ops the state holds (a DuoOwn op
+   * applies the moment it is issued and is stamped NetTick + 1, so an export at T can already hold ops stamped T + 1); lockstep
+   * (and an engine that does not report it): every op stamped at or below the tick.
+   */
+  private ownSeqIn(s: { tick: number; seq?: number }): number {
+    if (this.duo && s.seq !== undefined) return Math.max(0, Math.min(s.seq, this.duo.ownLog.length))
+    return this.lastOwnSeqAt(s.tick)
   }
 
   // ---------------------------------------------------------------- network in
@@ -186,7 +203,7 @@ export class NetMatch {
   private async answerResync(id: number, _tick: number) {
     if (this.duo) {
       const s = await this.exportState('self')
-      const body: BlobBody = { tick: s.tick, b64: s.b64, seq: this.lastOwnSeqAt(s.tick) }
+      const body: BlobBody = { tick: s.tick, b64: s.b64, seq: this.ownSeqIn(s) }
       void this.blobs.send(id, s.tick, CHUNK_PURPOSE.resync, await pack(new TextEncoder().encode(JSON.stringify(body))))
     } else if (this.ls) this.lockstepResync = this.lockstepResync ?? { id, exported: false }
   }
@@ -217,8 +234,8 @@ export class NetMatch {
     if (purpose === CHUNK_PURPOSE.resync) {
       if (this.duo && body.b64) {
         this.asked.clear()
-        this.net({ t: 'import', target: 'replica', tick: body.tick, b64: body.b64 })
-        this.duo.afterImport(body.tick)
+        this.net({ t: 'import', target: 'replica', tick: body.tick, b64: body.b64, ...(body.seq !== undefined ? { seq: body.seq } : {}) })
+        this.duo.afterImport(body.tick, body.seq)
         this.o.onEvent({ type: 'resynced', seat: this.duo.partner })
       } else if (this.ls && body.b64) {
         this.net({ t: 'import', target: 'self', tick: body.tick, b64: body.b64 })
@@ -239,7 +256,7 @@ export class NetMatch {
   /** Lockstep resync finished on the host side (the guest said done). */
   lockstepResyncDone() { this.lockstepResync = null }
   /** Exports our own state for a restore blob. */
-  async ownStateBody(): Promise<BlobBody> { const s = await this.exportState('self'); return { tick: s.tick, b64: s.b64, seq: this.lastOwnSeqAt(s.tick) } }
+  async ownStateBody(): Promise<BlobBody> { const s = await this.exportState('self'); return { tick: s.tick, b64: s.b64, seq: this.ownSeqIn(s) } }
   /** Digest cadence check for QA (ticks per digest). */
   static readonly digestEvery = DIGEST_EVERY
   /** Base64 helpers re-exported for the session's reconnect record. */

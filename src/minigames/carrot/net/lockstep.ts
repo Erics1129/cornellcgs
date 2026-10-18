@@ -156,8 +156,10 @@ export class LockstepController {
     if (msg.t === 'intent') this.stamp(msg.op)
     else if (msg.t === 'tick') {
       if (msg.exec > this.E) this.E = msg.exec
-      if (msg.hold !== undefined && !!msg.hold !== this.hold) this.setRate(() => { this.hold = !!msg.hold })
       while (this.pendingSpeed.length && this.pendingSpeed[0].k <= this.E) { const v = this.pendingSpeed.shift()!.v; if (v !== this.speed) this.setRate(() => { this.speed = v }) }
+      // SpeedHold (a boss windup plays at 1x): Unity reports the tick rate after the hold. Its speed op executed at the same tick
+      // as ours above, so a rate below our speed is the hold. (A tick's 'hold' is the duo win hold, never sent in lockstep.)
+      if (typeof msg.rate === 'number') { const held = msg.rate < this.speed; if (held !== this.hold) this.setRate(() => { this.hold = held }) }
       if (msg.d) { this.ownDigest = [msg.d[0], msg.d[1] >>> 0, msg.d[2] >>> 0]; this.digestLeft = DIGEST_REPEAT; this.report(this.digests.addLocal(msg.d[0], [msg.d[1] >>> 0, msg.d[2] >>> 0]), false) }
       if (msg.dd) { this.ownDeep = [msg.dd[0], msg.dd[1] >>> 0]; this.deepLeft = DIGEST_REPEAT; this.report(this.deep.addLocal(msg.dd[0], [msg.dd[1] >>> 0]), true) }
     }

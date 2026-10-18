@@ -94,10 +94,26 @@ export class DuoController{
   * game, so every call goes to whichever one is current, and the send filter is re-installed on each new one (attach()).
   */
  private unity:NetUnity={
-  net:json=>{const g=this.game() as unknown as {net?:(json:string)=>void}|null;g?.net?.(json)},
+  net:json=>this.netOut(json),
   send:cmd=>{this.game()?.send(cmd as Command)},
   setSendFilter:filter=>{this.passFilter=filter;this.filterOn=null;this.attach()},
   quality:setting=>{this.game()?.quality(setting)},
+ }
+ /**
+  * Net messages to Unity keep their order and are never lost: while the player is still loading (a reload rejoining a running
+  * match, a guest whose garden is still downloading) they wait here and go out, in order, the moment it is ready.
+  */
+ private netQueue:string[]=[]
+ private netOut(json:string){
+  const g=this.game() as unknown as {net?:(json:string)=>void}|null
+  if(!g?.net||!this.args.ready||this.netQueue.length){if(this.netQueue.length<20000)this.netQueue.push(json);return}
+  g.net(json)
+ }
+ private flushNet(){
+  if(!this.netQueue.length||!this.args.ready)return
+  const g=this.game() as unknown as {net?:(json:string)=>void}|null;if(!g?.net)return
+  const list=this.netQueue.splice(0)
+  for(const json of list)g.net(json)
  }
  /** Until the net layer's own link loads (or in the mock), the same contract: intercept() routes page commands, send() bypasses it. */
  private fallbackLink():InterceptLink{
@@ -208,7 +224,7 @@ export class DuoController{
   })()
   return this.pendingSession
  }
- private disposeSession(){for(const off of this.offSession.splice(0))off();this.session?.dispose();this.session=null;this.mock=null;this.snap.set(idleSnapshot());this.sync()}
+ private disposeSession(){this.netQueue=[];for(const off of this.offSession.splice(0))off();this.session?.dispose();this.session=null;this.mock=null;this.snap.set(idleSnapshot());this.sync()}
 
  // ---------------------------------------------------------------- what the lobby and HUD call
  open=()=>{this.setUi({open:true});void this.ensureSession()}
@@ -308,6 +324,7 @@ export class DuoController{
  effects(){
   const args=this.args
   if(args.engine.current!==this.filterOn)this.attach()
+  this.flushNet()
   if(args.ready&&this.loadOnReady){const id=this.loadOnReady;this.loadOnReady=0;this.rawSend({type:'load',level:id})}
   const loaded=args.ready?1:Math.max(0,Math.min(.99,args.loading||0))
   this.loadedNow=loaded

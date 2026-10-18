@@ -205,7 +205,7 @@ Duo difficulty is therefore roughly the square of solo difficulty. Two average p
 | --- | --- |
 | `DuoMirrorExact` | 11 fights x 2 policies, 405,679 ticks: Digest, DiscreteDigest, mirror-normalised NetDigest and every position bit (-x, or -z on L29) identical on every tick. |
 | `SelectionFreeEquivalence` | Levels 1-29 x 2 policies, 1,048,584 ticks: legacy commands vs DuoOwn ops (plus sales, early calls, undo, blocker focus) with 0 mismatching ticks. The zero-delay replica equals its owner on every tick, and the held half resolves at the solo outcome tick. |
-| `DuoReplica` | 11 fights x 2 seeds through two real sessions: delays 0-500 ms, a 3-10 s stall, a 2x window and a pause. 0 desyncs, 40,000 digests compared (at least `ticks/30 - 2` per device), 0 unverified, silent fast-forward exercised. Positive control: one coin on a replica is caught at tick 930 (perturbed at 900). |
+| `DuoReplica` | (Integration fixed the harness: its replica factory loads level 1, which published a snapshot before the session switched snapshots off, so every match counted 1000 refusals; the check now flags only a snapshot built during the match.) 11 fights x 2 seeds through two real sessions: delays 0-500 ms, a 3-10 s stall, a 2x window and a pause. 0 desyncs, 40,000 digests compared (at least `ticks/30 - 2` per device), 0 unverified, silent fast-forward exercised. Positive control: one coin on a replica is caught at tick 930 (perturbed at 900). |
 | `LockstepPeers` | 20 seeds x D {2,4,8} x loss {0,5,10}% x 25 waves (180 runs, ebots-v2, endless-t2): 0 desyncs, 650,875 digests compared, equal scores. Positive control: one coin on one peer is caught within 30 ticks. |
 | `PausedOps` | Bursts of early calls, builds, upgrades, sales, merges and undos issued while paused (L16, L27) keep owner and replica equal at every tick boundary. In lockstep a partner's build never moves the local selection, and two same-tick upgrades of one tier pay once. |
 | `HeldWinTransitions` | The 8 scripted cases, plus a session match. |
@@ -215,6 +215,7 @@ Duo difficulty is therefore roughly the square of solo difficulty. Two average p
 | `EndlessAllKits` | 8 bosses, 15 minibosses and 20 kinds at waves 1, 10, 30, 60, 90 and 120 on Twin Gates (every kit casts), plus every duo half played out: 0 exceptions, 0 table reads. |
 | `NaNDigest` | NaN payloads fold in NetDigest and in the deep hash. `Digest()` is unchanged. |
 | `NetBridgeGolden` | Writes the bridge fixture (see below). |
+| `ExportSeqImport` | Integration: an own buy applied in the same frame as an export is held once by the replica after import with `seq`; without `seq` it applies twice (refused, a desync). |
 | `NetPerf` | See Performance. |
 
 ## Bridge contract notes for integration
@@ -228,7 +229,12 @@ All additions are optional fields. The frozen shapes are unchanged.
 - `{t:'step', to, ops, d?, dh?}`. In lockstep, `d` and `dh` carry the partner's digests.
 - `{t:'partner', outcome, tick}`. Send it only for the partner's self-caused results.
 - `{t:'solo', on}` switches lockstep to Continue solo: own clock, ops stamped `NetTick+1`.
-- `{t:'export', target?}` and `{t:'import', target, tick, b64}`, with targets `self` or `replica`.
+- `{t:'export', target?}` and `{t:'import', target, tick, b64, seq?}`, with targets `self` or `replica`. The duo own-half
+  `state` answer carries `seq`: the own ops the state already holds (a DuoOwn op applies when issued, stamped NetTick + 1).
+  `import` into the replica with `seq` drops the queued partner ops at or below it (`DropQueuedThrough`); see the
+  `ExportSeqImport` gate and its negative control.
+- The web net layer compares the duo digests itself (the replica's `rd` against the partner's own `d` off the wire), so it
+  sends no `d`/`dh` in `replica` or `step`; the C# pending-remote compare stays for the session tests.
 
 **Outbound (Unity to JS):**
 - `{t:'tick'}` adds `rate` (1 or 2, with the speed hold applied), `rexec` (the replica's tick), `hold`, `dh` (own deep hash every

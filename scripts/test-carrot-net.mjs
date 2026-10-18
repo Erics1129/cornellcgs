@@ -105,9 +105,26 @@ console.log('bridge validation')
   const golden = root + 'docs/carrot-defense/duo/bridge-golden.jsonl'
   if (existsSync(golden)) {
     const lines = readFileSync(golden, 'utf8').split('\n').filter(Boolean).map(l => JSON.parse(l))
-    const outs = lines.filter(l => l.dir === 'out' || l.dir === undefined)
-    const parsed = outs.map(l => parseNetOut(l.msg ?? l))
-    ok(parsed.every(Boolean), `golden bridge fixture: all ${outs.length} Unity -> JS messages parse`)
+    // Unity's flush lines carry one array per frame (msgs); older fixtures had one message per line (msg).
+    const outs = lines.filter(l => l.dir === 'out' || l.dir === undefined).flatMap(l => l.msgs ?? [l.msg ?? l])
+    const parsed = outs.map(m => parseNetOut(m))
+    const failed = outs.filter((_, i) => !parsed[i]).map(m => m.t)
+    ok(parsed.every(Boolean), `golden bridge fixture: all ${outs.length} Unity -> JS messages parse${failed.length ? ' (failed: ' + [...new Set(failed)].join(', ') + ')' : ''}`)
+    // Every field Unity sends reaches the net layer, under this layer's name (dh -> dd, rdh -> rdd, replayed+import -> imported).
+    const renamed = { dh: 'dd', rdh: 'rdd' }
+    const dropped = new Set()
+    outs.forEach((m, i) => { const p = parsed[i]; if (p) for (const k of Object.keys(m)) if (k !== 't' && !(k in p) && !((renamed[k] ?? '') in p) && !(m.t === 'replayed' && m.import && (k === 'import' || k === 'ms'))) dropped.add(`${m.t}.${k}`) })
+    ok(dropped.size === 0, `golden bridge fixture: no Unity field is dropped${dropped.size ? ' (' + [...dropped].join(', ') + ')' : ''}`)
+    const imported = outs.filter(m => m.t === 'replayed' && m.import).map(m => parseNetOut(m))
+    ok(imported.every(m => m && m.t === 'imported'), 'golden bridge fixture: an import ack never reads as a finished replay')
+    // Every JS -> Unity message type in the fixture is one the net layer sends (NetIn), with the C# field names it reads.
+    const NET_IN = { session: ['mode', 'level', 'seat', 'side', 'seed', 'names', 'netVersion'], clock: ['run', 'speed'], go: [], replica: ['exec', 'ops', 'b'], partner: ['outcome', 'tick'], step: ['to', 'ops'], pause: ['on', 'by'], export: [], import: ['target', 'tick', 'b64'], replay: ['target', 'ops', 'to'], camera: ['mode'], presence: ['seat', 'pad', 'tower'], end: [], solo: ['on'] }
+    const ins = lines.filter(l => l.dir === 'in').map(l => l.msg)
+    const unknown = [...new Set(ins.filter(m => !(m.t in NET_IN)).map(m => m.t))]
+    ok(ins.length > 0 && unknown.length === 0, `golden bridge fixture: ${ins.length} JS -> Unity messages are NetIn types${unknown.length ? ' (unknown: ' + unknown.join(', ') + ')' : ''}`)
+    const missing = new Set()
+    for (const m of ins) for (const k of NET_IN[m.t] ?? []) if (!(k in m)) missing.add(`${m.t}.${k}`)
+    ok(missing.size === 0, `golden bridge fixture: C# reads the fields the net layer sends${missing.size ? ' (missing: ' + [...missing].join(', ') + ')' : ''}`)
   } else console.log('  (no docs/carrot-defense/duo/bridge-golden.jsonl yet: the sim stream generates it with NetBridgeGolden)')
 }
 

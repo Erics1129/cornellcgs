@@ -18,6 +18,8 @@ export const loadedFraction=(v:unknown)=>typeof v==='boolean'?(v?1:0):Math.max(0
  * them as `seats` (an additive field the sim may publish); otherwise the UI shows only what it can count for the local seat.
  */
 export type SeatCounters={built?:number;spent?:number;damage?:number}
-export type NetBlock=SnapshotNet&{seats?:SeatCounters[]}
+export type NetBlock=SnapshotNet&{seats?:SeatCounters[];spent?:number[]}
+/** The per-seat counters: `seats` when the sim publishes them, else the coins each seat spent (Unity's net.spent, [seat0, seat1]). */
+export const seatCounters=(net:NetBlock|null|undefined):SeatCounters[]|undefined=>net?.seats??(Array.isArray(net?.spent)&&net.spent.length===2?net.spent.map(v=>({spent:Math.max(0,Number(v)||0)})):undefined)
 export const idleSnapshot=():DuoSnapshot=>({phase:'idle',code:null,seat:null,host:false,roomMode:'duoBoss',mode:'duo',level:25,union:false,side:null,sides:null,countdownAt:null,countdownKind:null,peers:[],path:'none',rttMs:0,inputDelayMs:0,pausedBy:null,pauseReason:null,partnerAway:null,hiccup:false,waiting:false,reconnecting:false,pressedStart:[false,false],hold:false,partnerHold:false,partner:null,restoring:null,canContinueSolo:false,solo:false,speed:1,result:null,error:null,resyncs:0,
  stats:{path:'none',rttMs:0,inputDelayMs:0,delayTicks:0,replicaBehind:0,stalls20s:0,bytesOutPerSec:0,bytesInPerSec:0,framesOut:0,framesIn:0,digestsCompared:0,unverified:0,resyncs:0,pathSwitches:0,slowedFor:-1,rate:1}})

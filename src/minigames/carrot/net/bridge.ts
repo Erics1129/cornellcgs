@@ -54,17 +54,20 @@ export function parseNetOut(raw: unknown, bad = { n: 0 }): NetOut | null {
     case 'tick': {
       const out: Extract<NetOut, { t: 'tick' }> = { t: 'tick', exec: int('exec') }
       if (num(m.rexec)) out.rexec = int('rexec')
-      const d = digest(m.d, 3), rd = digest(m.rd, 3), dd = digest(m.dd, 2), rdd = digest(m.rdd, 2)
+      // Unity names the deep hashes dh / rdh (CarrotNetSession.OwnTicked / ReplicaTicked); dd / rdd are this layer's names.
+      const d = digest(m.d, 3), rd = digest(m.rd, 3), dd = digest(m.dd ?? m.dh, 2), rdd = digest(m.rdd ?? m.rdh, 2)
       if (d) out.d = d as [number, number, number]
       if (rd) out.rd = rd as [number, number, number]
       if (dd) out.dd = dd as [number, number]
       if (rdd) out.rdd = rdd as [number, number]
       if (m.hold !== undefined) out.hold = !!m.hold
+      if (num(m.rate)) out.rate = (m.rate as number) >= 2 ? 2 : 1
       return out
     }
     case 'result': {
       if (m.outcome !== 'cleared' && m.outcome !== 'won' && m.outcome !== 'lost') { bad.n++; return null }
-      return { t: 'result', outcome: m.outcome, tick: int('tick'), health: int('health'), ...(num(m.score) ? { score: int('score') } : {}) }
+      const cause: { cause?: 'self' | 'partner' | 'team' } = m.cause === 'self' || m.cause === 'partner' || m.cause === 'team' ? { cause: m.cause } : {}
+      return { t: 'result', outcome: m.outcome, tick: int('tick'), health: int('health'), ...(num(m.score) ? { score: int('score') } : {}), ...cause }
     }
     case 'partnerView': {
       const b = m.boss as Record<string, unknown> | null | undefined
@@ -76,12 +79,19 @@ export function parseNetOut(raw: unknown, bad = { n: 0 }): NetOut | null {
     }
     case 'state':
       if (typeof m.b64 !== 'string' || (m.target !== 'self' && m.target !== 'replica')) { bad.n++; return null }
-      return { t: 'state', target: m.target, tick: int('tick'), b64: m.b64 }
+      return { t: 'state', target: m.target, tick: int('tick'), b64: m.b64, ...(num(m.seq) ? { seq: int('seq') } : {}) }
     case 'reject': return { t: 'reject', seat: m.seat === 1 ? 1 : 0, s: int('s'), reason: typeof m.reason === 'string' ? m.reason : '' }
-    case 'replayed': return { t: 'replayed', target: m.target === 'replica' ? 'replica' : 'self', tick: int('tick'), ms: num(m.ms) ? (m.ms as number) : 0 }
+    case 'replayed':
+      // Unity answers an import with replayed + import: true; it must never resolve a waiting replay.
+      if (m.import) return { t: 'imported', target: m.target === 'replica' ? 'replica' : 'self', tick: int('tick') }
+      return { t: 'replayed', target: m.target === 'replica' ? 'replica' : 'self', tick: int('tick'), ms: num(m.ms) ? (m.ms as number) : 0 }
+    case 'progress': return { t: 'progress', target: m.target === 'replica' ? 'replica' : 'self', tick: int('tick'), to: int('to') }
+    case 'error': return typeof m.code === 'string' ? { t: 'error', code: m.code, ...(typeof m.message === 'string' ? { message: m.message } : {}) } : null
     case 'desync': {
       const pair = (x: unknown): [number, number] => (Array.isArray(x) && x.length === 2 ? [u32(x[0]), u32(x[1])] : [0, 0])
-      return { t: 'desync', tick: int('tick'), local: pair(m.local), remote: pair(m.remote), ...(typeof m.reason === 'string' ? { reason: m.reason } : {}) }
+      const kind = typeof m.kind === 'string' ? m.kind : '', where = typeof m.where === 'string' ? m.where : ''
+      const reason = typeof m.reason === 'string' ? m.reason : kind ? (where ? `${kind}:${where}` : kind) : ''
+      return { t: 'desync', tick: int('tick'), local: pair(m.local), remote: pair(m.remote), ...(reason ? { reason } : {}), ...(kind ? { kind } : {}), ...(where ? { where } : {}) }
     }
     case 'view': return typeof m.kind === 'string' ? { t: 'view', kind: m.kind } : null
     default: bad.n++; return null

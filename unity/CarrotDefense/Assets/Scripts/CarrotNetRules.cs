@@ -121,6 +121,8 @@ namespace CarrotTD {
    }
    seenOps.Add(key);netQueue.Add(op);return true;
   }
+  /// <summary>After a state import that already holds a seat's ops through `seq`: drop the queued copies of them. Returns how many.</summary>
+  public int DropQueuedThrough(int seat,int seq){int n=0;for(int i=netQueue.Count-1;i>=0;i--)if(netQueue[i].seat==seat&&netQueue[i].s<=seq){netQueue.RemoveAt(i);n++;}return n;}
   void ApplyOpsFor(int t){
    if(netQueue.Count==0)return;tickOps.Clear();
    for(int i=netQueue.Count-1;i>=0;i--)if(netQueue[i].k<=t){tickOps.Add(netQueue[i]);netQueue.RemoveAt(i);}

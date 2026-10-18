@@ -202,7 +202,8 @@ export class FakeEngine implements EngineLink {
         return
       }
       case 'clock': this.run = m.run; this.speed = m.speed; return
-      case 'go': this.send({ type: 'start' }); return
+      // like CarrotNetRules.NetGo: the duo half starts itself; in lockstep only seat 0 issues the start intent
+      case 'go': if (!this.shared || this.seat === 0) this.send({ type: 'start' }); return
       case 'replica': if (this.replica) { for (const op of m.ops) this.replica.queue.push(op); this.replica.queue.sort((a, b) => a.k - b.k || a.s - b.s); this.replicaExec = Math.max(this.replicaExec, m.exec); if (m.b !== undefined) this.replicaB = m.b } return
       case 'partner': {
         const own = this.own?.sim.st

@@ -30,8 +30,9 @@ namespace CarrotTD {
   void OnDestroy(){if(session!=null)session.Dispose();RestoreBackground();if(Instance==this)Instance=null;}
   /// <summary>JS -> Unity: every net message of the bridge contract ({t:'session'|'clock'|'go'|'replica'|...}).</summary>
   public void Net(string json){
-   if(session==null)return;bool was=session.Active;session.Receive(json);
-   if(session.Active&&!was)Started();else if(!session.Active&&was)RestoreBackground();
+   if(session==null)return;bool was=session.Active;int begins=session.Begins;session.Receive(json);
+   // Every new match configures the host view (a rematch on another fight arrives as a new session without an end first).
+   if(session.Active&&(!was||session.Begins!=begins))Started();else if(!session.Active&&was)RestoreBackground();
   }
   void Started(){
    // A window losing focus (a second monitor, devtools, a notification) must never freeze the match: only a hidden tab pauses it.

@@ -6,7 +6,7 @@ import { useSlice } from '../hooks/useSnapshot'
 import type { DuoController } from './useDuo'
 import { useDuoSlice, useDuoUi } from './useDuo'
 import type { NetBlock } from './contract'
-import { partnerSeat } from './contract'
+import { partnerSeat, seatCounters } from './contract'
 import { nextSpecial, specialLine } from './copy'
 import { ENDLESS_NAME } from './profile'
 import { Banners, CameraSwitch, ConnectionChip, Glyph } from './bits'
@@ -27,7 +27,7 @@ export function EndlessHud({ctl,definitions}:{ctl:DuoController;definitions:Game
   const wave=Math.max(0,st?.wave||0),special=nextSpecial(st?.phase==='ready'?0:wave)
   const next=(st?.incoming||[]).find(n=>(n.wave??wave)===special.wave&&(special.kind==='boss'?n.boss:n.mini))
   const net=(st as GameState&{net?:NetBlock}|null)?.net
-  return {wave,score:endlessScore(st),coins:st?.coins||0,phase:st?.phase||'ready',special:specialLine(special),specialKind:special.kind,specialIn:special.in,nextKind:next?.kind||'',spent:net?.seats?net.seats.map(x=>x?.spent||0).join(','):''}
+  return {wave,score:endlessScore(st),coins:st?.coins||0,phase:st?.phase||'ready',special:specialLine(special),specialKind:special.kind,specialIn:special.in,nextKind:next?.kind||'',spent:seatCounters(net)?.map(x=>x?.spent||0).join(',')??''}
  })
  const own=useDuoUi(ctl,u=>u.own)
  const seat=useDuoSlice(ctl,s=>s.seat??0)
