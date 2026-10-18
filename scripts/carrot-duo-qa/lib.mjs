@@ -83,7 +83,11 @@ export function diffPng(a, b, out, threshold = .12) {
   const n = pixelmatch(A.data, B.data, D.data, A.width, A.height, { threshold, includeAA: false })
   if (out) writeFileSync(out, PNG.sync.write(D))
   let sum = 0; for (let i = 0; i < A.data.length; i += 4) sum += Math.abs((A.data[i] * .2126 + A.data[i + 1] * .7152 + A.data[i + 2] * .0722) - (B.data[i] * .2126 + B.data[i + 1] * .7152 + B.data[i + 2] * .0722))
-  return { pixels: n, fraction: n / (A.width * A.height), meanLumaDelta: sum / (A.width * A.height) }
+  // Geometry check: 8x8 blocks whose mean luminance moved by more than 12 levels (grass sway, particles and lantern flicker of a
+  // slightly different pause instant stay under it; a moved or missing prop, path or pad does not).
+  const L = (P, x, y) => { const i = (y * P.width + x) * 4; return P.data[i] * .2126 + P.data[i + 1] * .7152 + P.data[i + 2] * .0722 }
+  let blocks = 0, moved = 0; for (let by = 0; by + 8 <= A.height; by += 8) for (let bx = 0; bx + 8 <= A.width; bx += 8) { let a = 0, b = 0; for (let y = 0; y < 8; y++) for (let x = 0; x < 8; x++) { a += L(A, bx + x, by + y); b += L(B, bx + x, by + y) } blocks++; if (Math.abs(a - b) / 64 > 12) moved++ }
+  return { pixels: n, fraction: n / (A.width * A.height), meanLumaDelta: sum / (A.width * A.height), blocksMoved: moved / blocks }
 }
 export function frameStats(frames) {
   const iv = frames.map(f => f[0]).sort((a, b) => a - b); if (!iv.length) return null

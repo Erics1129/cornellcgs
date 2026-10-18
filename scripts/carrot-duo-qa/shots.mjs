@@ -25,7 +25,7 @@ if (flag('compare')) {
   const [a, b] = arg('compare').split(',');const dirA = join(OUT, 'solo', a), dirB = join(OUT, 'solo', b), dirD = join(OUT, 'solo', `diff-${a}-${b}`); mkdirSync(dirD, { recursive: true })
   const rows = []
   for (const f of readdirSync(dirA).filter(f => f.endsWith('.png'))) { if (!existsSync(join(dirB, f))) { rows.push({ f, missing: true }); continue } rows.push({ f, ...diffPng(join(dirA, f), join(dirB, f), join(dirD, f)) }) }
-  writeFileSync(join(dirD, 'diff.json'), JSON.stringify(rows, null, 1)); for (const r of rows) console.log(r.f, r.missing ? 'MISSING' : `diff=${(r.fraction * 100).toFixed(3)}% lumaDelta=${r.meanLumaDelta.toFixed(3)}`)
+  writeFileSync(join(dirD, 'diff.json'), JSON.stringify(rows, null, 1)); for (const r of rows) console.log(r.f, r.missing ? 'MISSING' : `diff=${(r.fraction * 100).toFixed(3)}% lumaDelta=${r.meanLumaDelta.toFixed(3)} blocksMoved=${(r.blocksMoved * 100).toFixed(3)}%`)
   process.exit(0)
 }
 
@@ -39,7 +39,10 @@ try {
     await send(page, 'Quality', 'high')
     if (flag('solo')) {
       for (const level of levels) {
-        await loadSolo(page, level); await freeze(page)
+        // Frozen from the first frame: load and pause land before the level's first Update, so the view clock (wind, lantern flicker
+        // and the per-object light picks it drives) stays at 0 and the reveal camera settles on its pose; two players compare exactly.
+        await page.evaluate(l => { window.qa.cmd({ type: 'load', level: l }); window.qa.cmd({ type: 'setPaused', value: 1 }) }, level)
+        await waitFor(page, l => window.qa.state && window.qa.state.level === l && window.qa.state.paused, level, 120000); await sleep(4500)
         const file = join(OUT, 'solo', tag, `L${level}-${size[0]}x${size[1]}.png`); await canvasShot(page, file)
         report.runs.push({ level, size, file }); console.log('solo', level, size.join('x'), file)
         await cmd(page, { type: 'setPaused', value: 0 })
