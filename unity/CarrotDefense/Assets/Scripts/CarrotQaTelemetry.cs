@@ -26,7 +26,8 @@ namespace CarrotTD {
 
   /// <summary>Call from QA scene setup after creating CarrotGame. Idempotent; production has no such type.</summary>
   public static CarrotQaTelemetry Enable(CarrotGame target=null){
-   if(target==null)target=UnityEngine.Object.FindFirstObjectByType<CarrotGame>();
+   // Bound by name: a duo match has a second CarrotGame (the partner's replica, 'CarrotPartner') that must never be measured as the player's.
+   if(target==null){var go=GameObject.Find("CarrotGame");if(go!=null)target=go.GetComponent<CarrotGame>();}
    if(target==null){Debug.LogWarning("CARROT_QA_PERF unavailable: no CarrotGame");return null;}
    var observer=target.GetComponent<CarrotQaTelemetry>();
    if(observer==null)observer=target.gameObject.AddComponent<CarrotQaTelemetry>();
@@ -40,7 +41,10 @@ namespace CarrotTD {
   void OnDisable(){if(subscribed&&game!=null)game.Effect-=Observe;subscribed=false;DiscardWindow();}
   void Observe(CarrotEvent e){if(e.type=="level")ResetSession();}
   void ResetSession(){level=game!=null&&game.level!=null?game.level.id:-1;warmup=0;DiscardWindow();}
-  void DiscardWindow(){count=0;windowSeconds=0;sumSeconds=0;configurationChanges=0;skipNext=true;}
+  void DiscardWindow(){count=0;windowSeconds=0;sumSeconds=0;configurationChanges=0;skipNext=true;MarkSections();}
+  // Section totals at the window start (CarrotQa.Section): the report gives the per-frame view and spectator CPU of the window.
+  readonly System.Collections.Generic.Dictionary<string,double> sectionStart=new System.Collections.Generic.Dictionary<string,double>();int sectionFramesStart;
+  void MarkSections(){sectionStart.Clear();foreach(var kv in CarrotQa.sectionTotals)sectionStart[kv.Key]=kv.Value;sectionFramesStart=CarrotQa.SectionFrames;}
   void OnApplicationFocus(bool value){focused=value;DiscardWindow();}
   void OnApplicationPause(bool value){backgrounded=value;DiscardWindow();}
 
@@ -77,9 +81,13 @@ namespace CarrotTD {
     .Append(" meanFps=").Append((1000/meanMs).ToString("F1",Invariant)).Append(" alive=").Append(alive).Append(" towers=").Append(game.towers.Count)
     .Append(" quality=").Append(CarrotQuality.Name(lastTier)).Append(" renderScale=").Append(lastScale.ToString("F2",Invariant))
     .Append(" renderInterval=").Append(lastInterval).Append(" unityAllocatedMiB=").Append(allocated).Append(" configChanges=").Append(configurationChanges);
+   {double view=0,spectator=0;int frames=Math.Max(1,CarrotQa.SectionFrames-sectionFramesStart);
+    foreach(var kv in CarrotQa.sectionTotals){double d=kv.Value-(sectionStart.TryGetValue(kv.Key,out var s0)?s0:0);if(kv.Key=="spectator.gap"||kv.Key.StartsWith("qa."))continue;if(kv.Key.StartsWith("spectator."))spectator+=d;else view+=d;}
+    var partner=GameObject.Find("CarrotPartner");var spectatorView=partner!=null?partner.GetComponent<CarrotView>():null;
+    line.Append(" viewMs=").Append((view/frames).ToString("F3",Invariant)).Append(" spectatorMs=").Append((spectator/frames).ToString("F3",Invariant)).Append(" partner=").Append(spectatorView==null?"none":spectatorView.SpectatorDormant?"dormant":"awake");}
    if(configurationChanges>0)line.Append(" startQuality=").Append(CarrotQuality.Name(firstTier)).Append(" startScale=").Append(firstScale.ToString("F2",Invariant)).Append(" startInterval=").Append(firstInterval);
    Debug.Log(line.ToString());
-   count=0;windowSeconds=0;sumSeconds=0;configurationChanges=0;
+   count=0;windowSeconds=0;sumSeconds=0;configurationChanges=0;MarkSections();
   }
  }
 }

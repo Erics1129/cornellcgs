@@ -29,6 +29,8 @@ namespace CarrotTD {
   public static bool SimulationTimeScaleAvailable{get{ResolveTimeScale();return timeScaleMethod!=null;}}
   static void ResolveTimeScale(){if(timeScaleResolved)return;timeScaleResolved=true;try{timeScaleMethod=typeof(CarrotGame).GetMethod("RequestTimeScale",BindingFlags.Public|BindingFlags.Instance,null,new[]{typeof(float),typeof(float),typeof(string)},null);}catch(Exception){timeScaleMethod=null;}}
   bool RequestSimTimeScale(float scale,float realSeconds,string reason){
+   // Duo and endless: hit-stop and slow motion are view-only (the match clock never slows); a spectator never asks at all.
+   if(duoOn){CarrotQa.Count(Spectator?"spectator.timeScale":"duo.timeScaleRefused",1);return false;}
    ResolveTimeScale();if(timeScaleMethod==null||game==null)return false;
    try{timeScaleMethod.Invoke(game,new object[]{Mathf.Clamp01(scale),Mathf.Max(0,realSeconds),reason});CarrotQa.Count("timeScale."+reason,1);return true;}catch(Exception){return false;}
   }
@@ -81,7 +83,7 @@ namespace CarrotTD {
    followBoss=-1;
   }
   /// <summary>Back to the fitted framing (the page's recentre button).</summary>
-  public void Recenter(string unused=""){followBoss=-1;panNudged=false;targetZoom=1;targetPan=Vector3.zero;}
+  public void Recenter(string unused=""){followBoss=-1;panNudged=false;targetZoom=1;targetPan=Vector3.zero;if(duoOn)netCameraMode="own";}
 
   // ---- geometry -----------------------------------------------------------------------------------------------------------
   void MeasureRouteBounds(){
@@ -101,7 +103,7 @@ namespace CarrotTD {
   }
   /// <summary>Zoom toward a screen point: the ground point under it stays put once the damped camera settles.</summary>
   void ZoomAt(Vector2 screen,float zoomTo){
-   float maxZoom=portraitCamera?2.5f:2.1f;zoomTo=Mathf.Clamp(zoomTo,1,maxZoom);if(Mathf.Abs(zoomTo-targetZoom)<.0001f)return;
+   float maxZoom=portraitCamera?2.5f:2.1f;zoomTo=Mathf.Clamp(zoomTo,MinZoom,maxZoom);if(Mathf.Abs(zoomTo-targetZoom)<.0001f)return;
    followBoss=-1;
    if(TargetGroundPoint(screen,targetPan,targetZoom,out var before)&&TargetGroundPoint(screen,targetPan,zoomTo,out var after)){targetZoom=zoomTo;targetPan+=before-after;}
    else targetZoom=zoomTo;

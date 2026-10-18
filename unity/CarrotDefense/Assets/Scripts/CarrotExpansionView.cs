@@ -100,13 +100,13 @@ namespace CarrotTD {
      Vector2[] section={new Vector2(-.64f,-.5f-rough),new Vector2(-.66f,-.1f),new Vector2(-.56f,.028f),new Vector2(.56f,.028f),new Vector2(.66f,-.1f),new Vector2(.64f,-.5f-rough)};
      for(int j=0;j<6;j++){vertices.Add(p+side*section[j].x+Vector3.up*section[j].y);uv.Add(new Vector2(j*.2f,t*n*.3f));colors.Add(j==2||j==3?Color.white:new Color(.6f,.68f,.77f));if(i>0&&j<5){int v=i*6+j;tri.AddRange(new[]{v-6,v-5,v,v-5,v+1,v});}}
     }
-    var mesh=new Mesh{name="Carved floating bridge"};mesh.SetVertices(vertices);mesh.SetUVs(0,uv);mesh.SetColors(colors);mesh.SetTriangles(tri,0);mesh.RecalculateNormals();mesh.RecalculateBounds();var obj=MeshObject("Observatory bridge",mesh,stone,decoration);obj.AddComponent<MeshCollider>().sharedMesh=mesh;
+    var mesh=new Mesh{name="Carved floating bridge"};mesh.SetVertices(vertices);mesh.SetUVs(0,uv);mesh.SetColors(colors);mesh.SetTriangles(tri,0);mesh.RecalculateNormals();mesh.RecalculateBounds();var obj=MeshObject("Observatory bridge",mesh,stone,decoration);if(!Spectator)obj.AddComponent<MeshCollider>().sharedMesh=mesh;
    }
    var platform=Material("portal-platform",new Color(.45f,.5f,.56f),1,.32f,.12f,1.6f);platform.SetFloat("_AlbedoSaturation",.2f);
    foreach(var p in game.level.pads){Primitive("Floating tower terrace",PrimitiveType.Cylinder,p+Vector3.down*.17f,new Vector3(1.55f,.19f,1.55f),platform,decoration);PortalIsland(p,1.0f,.95f,stone);}
    foreach(var blocker in game.blockers){Vector3 p=blocker.position;Primitive("Obstacle terrace",PrimitiveType.Cylinder,p+Vector3.down*.17f,new Vector3(1.35f,.19f,1.35f),platform,decoration);}
    var route0=game.level.routes[0];Vector3 goal=route0[route0.Length-1];Primitive("Golden refuge terrace",PrimitiveType.Cylinder,goal+Vector3.down*.16f,new Vector3(2.7f,.20f,2.7f),platform,decoration);PortalIsland(goal,1.6f,1.8f,stone);
-   var far=new[]{new Vector3(-10,-1,7),new Vector3(9,-2,9),new Vector3(1,-1,10),new Vector3(-10,-2,-3)};for(int i=0;i<far.Length;i++)PortalIsland(far[i],1.5f+i*.18f,2.6f,stone);
+   var far=new[]{new Vector3(-10,-1,7),new Vector3(9,-2,9),new Vector3(1,-1,10),new Vector3(-10,-2,-3)};for(int i=0;i<far.Length;i++){if(duoOn&&far[i].x>6)continue;PortalIsland(OwnWorld(far[i]),1.5f+i*.18f,2.6f,stone);}
   }
   void PortalIsland(Vector3 p,float radius,float depth,Material stone){
    const int n=14;var v=new List<Vector3>();var colors=new List<Color>();var uv=new List<Vector2>();var tris=new List<int>();
@@ -116,7 +116,7 @@ namespace CarrotTD {
   void BuildPortalArena(){
    var brass=Material("portal-oxidized-brass",new Color(.5f,.40f,.19f),5,.52f,.7f,1.15f);var obsidian=Material("portal-carved-stone",new Color(.29f,.34f,.41f),1,.28f,.12f,1.7f);var teal=Material("portal-inlay",new Color(.14f,.7f,.72f),5,.6f,.4f,1);teal.SetColor("_EmissionColor",new Color(.05f,.55f,.64f));
    var roots=new[]{new Vector3(-7.8f,1.3f,6.6f),new Vector3(6.8f,1.6f,7.5f),new Vector3(.4f,2.8f,9)};
-   for(int i=0;i<roots.Length;i++){Vector3 p=roots[i];float r=i==2?1.25f:.95f;var gate=new GameObject("Ancient observatory gate").transform;gate.SetParent(world,false);gate.position=p;gate.rotation=Quaternion.Euler(i==1?-12:8,i==0?22:-18,i==0?-12:16);
+   for(int i=0;i<roots.Length;i++){if(FCut(roots[i],1.4f))continue;Vector3 p=FW(roots[i]);float r=i==2?1.25f:.95f;var gate=new GameObject("Ancient observatory gate").transform;gate.SetParent(world,false);gate.position=p;gate.rotation=FRot(i==1?-12:8,i==0?22:-18,i==0?-12:16);
     var ring=MeshObject("Carved segmented arch",PortalTorus(r,.12f,38,7),obsidian,gate);ring.transform.localRotation=Quaternion.identity;
     var inner=MeshObject("Brass celestial band",PortalTorus(r-.13f,.032f,48,5),brass,gate);portalArenaRings.Add(inner.transform);
     var outer=MeshObject("Outer astral band",PortalTorus(r+.14f,.035f,48,5),brass,gate);outer.transform.localRotation=Quaternion.Euler(12,18,0);portalArenaRings.Add(outer.transform);
