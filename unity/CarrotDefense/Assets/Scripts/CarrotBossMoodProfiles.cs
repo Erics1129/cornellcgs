@@ -109,6 +109,7 @@ namespace CarrotTD {
    list.Add(new CarrotMoodProfile{id="winter",lum=.35f,chromaDrain=0.2f,fogFloor=0.8f,exposure=0,contrast=3,saturation=-4,temperature=0,vignette=.17f,vignetteColor=C(.10f,.11f,.13f),
     dofBeyondBoard=true,
     sunPitch=30,skySunPitch=8,kFlat=.95f,key=C(.88f,.91f,.97f),fillMul=.80f,fill=C(.62f,.68f,.85f),ambMul=.92f,ambTint=C(.80f,.82f,.86f),shadowDelta=-.06f,
+    laneGain=.88f, // inverted polarity: the frost lane is darker than the snow, so it moves away from it (never brighten the snow)
     fog=C(.86f,.89f,.94f),fogEnd=44,zenith=C(.82f,.86f,.91f),horizon=C(.86f,.89f,.94f),ground=C(.86f,.89f,.94f),sunColor=C(.57f,.58f,.6f),sunGlow=.8f,clouds=1f,cloudColor=C(.93f,.95f,.98f),aurora=0,
     groundSat=.55f,groundGain=1,foliageSat=.50f,foliageGain=.80f,wither=H("#5E6B78",.30f),propSat=.60f,propGain=.90f,
     edgeFloor=.40f,edgeInward=2f,edgeMode=1,wake=3,wakeColor=H("#9DB8E0",.6f),lossColor=H("#5E6B78",1),
