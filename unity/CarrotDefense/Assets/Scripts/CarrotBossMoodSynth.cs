@@ -8,7 +8,7 @@ namespace CarrotTD {
  /// levels and the mood one-shots (distant crows before Old Hollowhead, the first natural sound after a guardian falls, Asuna's
  /// falling chime cascade). Presentation only: nothing here reads or writes the simulation.
  ///
- /// Rules the recipes keep (docs/carrot-defense/despair.md, sound): no rising pitch, no 20-150 Hz amplitude modulation (roughness
+ /// Rules the recipes keep: no rising pitch, no 20-150 Hz amplitude modulation (roughness
  /// is the alarm channel), no reversed swells and no beat; energy sits at 120-1000 Hz so phone speakers carry it (the low root is
  /// a virtual pitch built from its harmonics); pitched layers are open fifths on pitch classes that every confident key of the
  /// level's playlist contains (TonePitchClasses), and they drop 6 dB under an unconfident track. Every timbre stays outside the
@@ -23,7 +23,7 @@ namespace CarrotTD {
   public const int Rate=22050;
   public const float LoopSeconds=12,SeamSeconds=2,TargetRmsDb=-24;
   public static int LoopSamples=>(int)(LoopSeconds*Rate);
-  const int Slice=Rate/4,Control=32;
+  const int Slice=Rate/8,Control=32;
   static readonly string[] Campaign={"brambleback","lantern","winter","brambleback-autumn","hollowhead","hollowhead-finale"};
 
   /// <summary>Drone layers of a profile: an unpitched "air" layer and a pitched "tone" layer on the six campaign guardian levels;
@@ -72,7 +72,7 @@ namespace CarrotTD {
   static float LowPass(float f,float cut,float order=4){return (float)(1/Math.Sqrt(1+Math.Pow(f/cut,order)));}
 
   // ---------------- drones ----------------
-  /// <summary>Renders one 12 s loop of a profile's drone layer (RMS -24 dBFS, mono, 22.05 kHz); yields every 0.25 s of audio.</summary>
+  /// <summary>Renders one 12 s loop of a profile's drone layer (RMS -24 dBFS, mono, 22.05 kHz); yields every 0.125 s of audio.</summary>
   public static IEnumerator RenderDrone(string profile,string layer,Action<float[]> done){
    int loop=LoopSamples;bool tone=layer=="tone";int total=tone?loop:loop+(int)(SeamSeconds*Rate);
    var x=new float[total];var r=new Rng(Seed(profile,layer));
@@ -103,10 +103,12 @@ namespace CarrotTD {
      vibBeta[i]=vibratoCents>0?(float)(osc[i].f*(Math.Pow(2,vibratoCents/1200)-1)/4.5):0;}
     vib=vibratoCents>0?new Osc(4.5,0):null;
    }
+   float[] g;float b=1;
    public void Run(float[] x,int from,int to){
-    int n=osc.Length;var g=new float[n];float b=1;
+    int n=osc.Length;if(g==null)g=new float[n];
     for(int i=from;i<to;i++){
-     if((i-from)%Control==0){for(int k=0;k<n;k++)g[k]=amp[k]*(1+wanderDepth[k]*Lfo(i,wanderPeriod[k],wanderPhase[k]));b=1+breath*Lfo(i,LoopSeconds,.25f);}
+     // control points are absolute sample positions, so the render does not depend on how it is sliced
+     if(i%Control==0){for(int k=0;k<n;k++)g[k]=amp[k]*(1+wanderDepth[k]*Lfo(i,wanderPeriod[k],wanderPhase[k]));b=1+breath*Lfo(i,LoopSeconds,.25f);}
      float sum=0;
      if(vib==null){for(int k=0;k<n;k++){sum+=osc[k].Sin*g[k];osc[k].Step();}}
      else{float vc=vib.Cos;for(int k=0;k<n;k++){float B=vibBeta[k]*vc,B2=B*B;float sB=B*(1-B2/6*(1-B2/20*(1-B2/42))),cB=1-B2/2*(1-B2/12*(1-B2/30));sum+=(osc[k].Sin*cB+osc[k].Cos*sB)*g[k];osc[k].Step();}vib.Step();}
@@ -151,7 +153,7 @@ namespace CarrotTD {
    public Air(string profile,Rng rng){p=profile;r=rng;float cut=profile=="winter"?950:profile=="lantern"?1000:750;post.Set(cut,.7f);post2.Set(cut,.7f);}
    public void Run(float[] x,int from,int to){
     for(int i=from;i<to;i++){
-     if((i-from)%Control==0)Coefficients(i);
+     if(i%Control==0)Coefficients(i);
      float w=r.S(),n1=p1.Next(w),n2=p2.Next(r.S()),low=0,high=0;
      switch(p){
       case "brambleback":case "brambleback-autumn":{

@@ -1,5 +1,5 @@
 /*
- * BOSS MOOD (page): the HUD's share of the boss-level despair, driven by bossMood.ts (docs/carrot-defense/despair.md).
+ * BOSS MOOD (page): the HUD's share of the boss-level despair, driven by bossMood.ts.
  * Only on a boss level ([data-boss-mood]), only inside the battlefield HUD (.ct-hud): the panels cool and darken toward the guardian's
  * hue (35% x De), the ink cools (30% x De), the boss name becomes heavier small caps, and the boss bar's edge breathes slowly (a 4 s
  * period; 10 s for the Unknown Eyeball), stopping while a windup is live so the threat edge reads alone. On the guardian's fall the

@@ -46,6 +46,8 @@ export function useBossMood(store:SnapshotStore,root:RefObject<HTMLElement|null>
    if(store.run()!==run||next!==profile){run=store.run();tracker.reset(st.level);d=moodTarget(tracker.input(st,0));held=0;warmAt=-1;lastTick=-1;lastPhase=st.phase}
    if(!profile||next!==profile){profile=next;start()}
    tracker.observe(st,performance.now())
+   // the stage attribute follows each snapshot (a stage changes a few times a level; the colours stay on the 4 Hz tick)
+   if(timer)write('data-boss-mood-stage',tracker.stage(st))
    if(st.phase==='lost'&&lastPhase!=='lost')held=d
    lastPhase=st.phase
   }

@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using UnityEngine;
 
 namespace CarrotTD {
- // BOSS MOOD, sound (presentation only; docs/carrot-defense/despair.md). Reads the CarrotBossMood bus that the view writes
+ // BOSS MOOD, sound (presentation only). Reads the CarrotBossMood bus that the view writes
  // and the game state, never writes either. Never touches the music path (Transition, BossMusic, Carrot_Music*, the bossEnter
  // theme map): the only music call is the held-breath Duck(2.5), the same duck blindness uses.
  //
@@ -55,9 +55,10 @@ namespace CarrotTD {
    float sna=CarrotBossMood.SendNowAge;if(sna>=0&&(moodSendSeen<0||sna<moodSendSeen-.001f)){moodHeld=true;moodSendNow=true;moodSendAt=soundClock;Cue("mood:sendnow",game.wave);}moodSendSeen=sna;
    bool casting=MoodCasting();if(casting)moodLastCast=soundClock;
    MoodPrismBreak();
-   // ---- held breath: Duck(2.5) once, when the real breather seconds before the guardian cross 2.5 s ----
+   // ---- held breath: one duck when the real breather seconds before the guardian cross 2.5 s (or at once when the breather is
+   //      shorter, at 2x), held until the wave call: Duck(2.5), or the seconds left, at least 1 ----
    float real=game.nextWave/EffectiveSpeed();
-   if(!moodHeld&&moodBossWave>=2&&game.phase=="playing"&&game.wave==moodBossWave-1&&game.nextWave>0&&real<=MoodHeldDuck+.02f){moodHeld=true;Duck(MoodHeldDuck);Cue("mood:held",real);}
+   if(!moodHeld&&moodBossWave>=2&&game.phase=="playing"&&game.wave==moodBossWave-1&&game.nextWave>0&&real<=MoodHeldDuck+.02f){moodHeld=true;Duck(Mathf.Clamp(real,1,MoodHeldDuck));Cue("mood:held",real);}
    // ---- privation target ----
    float target=MoodPrivation(stage);
    float rate=stage==1?1/3f:moodReleaseAt>=0&&soundClock-moodReleaseAt<MoodBedBack?1/(MoodBedBack-MoodFirstCall):.35f;

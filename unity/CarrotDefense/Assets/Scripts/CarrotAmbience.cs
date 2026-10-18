@@ -72,9 +72,10 @@ namespace CarrotTD {
    }
    yield return null;
    var bed=new Bed(biome,r);
-   for(int start=0;start<total;start+=Rate){int end=Math.Min(total,start+Rate);for(int i=start;i<end;i++)x[i]+=bed.Next(i/(float)Rate);yield return null;}
+   int slice=life?Rate:Rate/8; // BOSS MOOD: the bare bed renders in finer slices (the default render keeps one second per frame)
+   for(int start=0;start<total;start+=slice){int end=Math.Min(total,start+slice);for(int i=start;i<end;i++)x[i]+=bed.Next(i/(float)Rate);yield return null;}
    // BOSS MOOD: the bare bed takes the full bed's gain and ceiling (BareBed), so its wind matches the full bed's sample for sample.
-   if(!life){yield return null;done(BareBed(x,ev,loop));yield break;}
+   if(!life){float[] bare=null;var finish=BareBed(x,ev,loop,d=>bare=d);while(finish.MoveNext())yield return null;done(bare);yield break;}
    // Seamless loop: the 2 s tail fades into the head (equal power), then the tail is dropped.
    int xf=total-loop;var outPcm=new float[loop];
    for(int i=0;i<loop;i++){float v=x[i];if(i<xf){float t=i/(float)xf;v=x[i]*Mathf.Sin(t*Mathf.PI*.5f)+x[loop+i]*Mathf.Cos(t*Mathf.PI*.5f);}outPcm[i]=v;}
@@ -87,14 +88,15 @@ namespace CarrotTD {
   }
   /// <summary>BOSS MOOD: the bare bed. The full mix (events + wind, summed exactly as the default render sums them) sets the gain
   /// and the soft-clip decision; the wind alone is shaped with them.</summary>
-  static float[] BareBed(float[] wind,float[] ev,int loop){
-   int total=wind.Length,xf=total-loop;var full=new float[loop];var bare=new float[loop];
-   for(int i=0;i<loop;i++){float v=ev[i]+wind[i],w=wind[i];if(i<xf){float t=i/(float)xf,a=Mathf.Sin(t*Mathf.PI*.5f),b=Mathf.Cos(t*Mathf.PI*.5f);v=v*a+(ev[loop+i]+wind[loop+i])*b;w=w*a+wind[loop+i]*b;}full[i]=v;bare[i]=w;}
+  static IEnumerator BareBed(float[] wind,float[] ev,int loop,Action<float[]> done){
+   int total=wind.Length,xf=total-loop,chunk=Rate*2;var full=new float[loop];var bare=new float[loop];
+   for(int s0=0;s0<loop;s0+=chunk){int s1=Math.Min(loop,s0+chunk);for(int i=s0;i<s1;i++){float v=ev[i]+wind[i],w=wind[i];if(i<xf){float t=i/(float)xf,a=Mathf.Sin(t*Mathf.PI*.5f),b=Mathf.Cos(t*Mathf.PI*.5f);v=v*a+(ev[loop+i]+wind[loop+i])*b;w=w*a+wind[loop+i]*b;}full[i]=v;bare[i]=w;}yield return null;}
    double sum=0;for(int i=0;i<loop;i++)sum+=full[i]*full[i];
+   yield return null;
    float rms=(float)Math.Sqrt(sum/loop),gain=rms>0?Mathf.Pow(10,TargetRmsDb/20)/rms:1;
-   float peak=0;for(int i=0;i<loop;i++){peak=Mathf.Max(peak,Mathf.Abs(full[i]*gain));bare[i]*=gain;}
+   float peak=0;for(int s0=0;s0<loop;s0+=chunk){int s1=Math.Min(loop,s0+chunk);for(int i=s0;i<s1;i++){peak=Mathf.Max(peak,Mathf.Abs(full[i]*gain));bare[i]*=gain;}yield return null;}
    if(peak>.5f)for(int i=0;i<loop;i++){float v=bare[i];bare[i]=Mathf.Abs(v)<.35f?v:Mathf.Sign(v)*(.35f+.15f*(float)Math.Tanh((Mathf.Abs(v)-.35f)/.15f));}
-   return bare;
+   done(bare);
   }
   public static float RmsDb(float[] pcm){double s=0;foreach(var v in pcm)s+=v*v;return pcm.Length==0?-120:20*Mathf.Log10(Mathf.Max(1e-9f,(float)Math.Sqrt(s/pcm.Length)));}
 
