@@ -29,7 +29,7 @@ namespace CarrotTD {
   AudioClip moodAirClip,moodToneClip,moodBareClip;readonly List<AudioClip> moodMade=new List<AudioClip>();
   int moodBuild=int.MinValue,moodRun=-1,moodWork;bool moodOn,moodBareReady,moodDroneReady,moodDroneStopped;string moodProfile="",moodBareBiome="";
   int moodArrivals,moodPhases,moodReleases,moodLastWave,moodBossWave,moodCrowWave=-1,moodDawnSeen;
-  bool moodHeld,moodSendNow,moodPrismCasting,moodChallenge,moodArrived,moodPausedNow;float moodPLogged=-1,moodSendSeen=-1;
+  bool moodHeld,moodSendNow,moodPrismCasting,moodChallenge,moodArrived,moodPausedNow;float moodPLogged=-1,moodSendSeen=-1,moodQaClock;
   readonly List<AudioSource> moodHeldPaused=new List<AudioSource>();
   float moodP,moodBedLevel,moodCut=1,moodArrivalFade=1,moodCastGain=1,moodKeyGain=.5f,moodDroneGain,moodGlide=1;
   float moodReleaseAt=-1,moodBreathAt=-99,moodLastCast=-99,moodLastWaveAt=-99,moodSendAt=-99,moodCrowAt=-1;
@@ -78,6 +78,11 @@ namespace CarrotTD {
    if(moodDroneReady&&!moodDroneStopped)MoodDrone(dt,De,stage,casting,breath);
    MoodOneShots(stage);
    MoodMilestones();
+#if UNITY_EDITOR||DEVELOPMENT_BUILD||CARROT_QA
+   moodQaClock+=dt;if(moodQaClock>=1){moodQaClock=0;var inv=System.Globalization.CultureInfo.InvariantCulture;
+    float drone=moodDroneGain>1e-5f?20*Mathf.Log10(moodDroneGain)+CarrotBossMoodSynth.TargetRmsDb:-120;
+    Debug.Log("CARROT_MOOD_SOUND level="+game.level.id+" stage="+stage+" De="+De.ToString("F3",inv)+" p="+moodP.ToString("F2",inv)+" drone="+drone.ToString("F1",inv)+"dBFS key="+moodKeyGain.ToString("F2",inv)+" track="+playing+" bed="+(ambience!=null?ambience.MoodGain:1).ToString("F2",inv)+" bare="+(moodBare!=null?moodBare.volume:0).ToString("F3",inv)+" cut="+moodCut.ToString("F2",inv)+" breath="+breath.ToString("F2",inv));}
+#endif
    // QA: privation in tenths, logged on change only (the cue log is a 512-entry ring shared with the music).
    float tenth=Mathf.Round(moodP*10)/10;if(tenth!=moodPLogged){moodPLogged=tenth;Cue("mood:p",tenth);}
   }
@@ -171,7 +176,10 @@ namespace CarrotTD {
   float MoodPrivation(int stage){
    float fear=CarrotBossMoodCurve.Fear(game!=null?game.health:10);
    switch(stage){
-    case 0:{if(moodBossWave<=1)return fear;float step=Mathf.Clamp01((Mathf.Max(game.wave,1)-1)/(float)Mathf.Max(1,moodBossWave-2));return Mathf.Clamp01(.667f*step+fear);}
+    case 0:{if(moodBossWave<=1)return fear;
+     // after the held breath (or a send-now) the garden stays silent through the guardian wave's first spawn
+     if(moodHeld&&moodReleaseAt<0||moodBossWave>=2&&game.wave>=moodBossWave)return 1;
+     float step=Mathf.Clamp01((Mathf.Max(game.wave,1)-1)/(float)Mathf.Max(1,moodBossWave-2));return Mathf.Clamp01(.667f*step+fear);}
     case 1:case 2:case 3:return 1;
     case 4:case 5:{ // release, and a challenge's post-guardian waves: the life comes back only where there is no aftershock
      if(moodChallenge&&CarrotBossMood.WavesLeft)return 1;return moodReleaseAt>=0&&soundClock-moodReleaseAt<MoodFirstCall?1:0;}

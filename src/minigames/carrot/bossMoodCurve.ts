@@ -127,7 +127,7 @@ export class MoodTracker{
  * false dawn), except in the release window, where D follows with tau .6 s after the delay. */
  step(st:GameState,d:number,held:number,dt:number){
   const input=this.input(st,held),t=moodTarget(input),stage=this.stage(st),age=this.releaseAge()
-  if(age>=0&&age<RELEASE_SECONDS&&st.phase!=='won'&&st.phase!=='lost'){if(age>=this.releaseDelay(st))d+=(t-d)*(1-Math.exp(-dt/.6));return d}
+  if(age>=0&&age<RELEASE_SECONDS){if(age>=this.releaseDelay(st))d+=(t-d)*(1-Math.exp(-dt/.6));return d}
   const entrance=stage==='arrival'||input.dawnAge>=2.2&&input.dawnAge<3,dawn=input.dawnAge<2.2
   return moodStep(d,t,dt,entrance,dawn)
  }
