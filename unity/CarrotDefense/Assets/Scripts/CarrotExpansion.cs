@@ -11,7 +11,7 @@ namespace CarrotTD {
   void DebugEncounter(string kind){if(string.IsNullOrEmpty(CarrotData.BossName(kind)))return;LoadLevel(CarrotData.BossHome(kind));PrepareReviewView();DebugStage();Spawn("boss",0,wave,false,0);}
   void DebugMini(string kind,int route){if(!CarrotData.IsMini(kind))return;if(phase=="won"||phase=="lost")LoadLevel(level.id);PrepareReviewView();if(phase!="playing")DebugStage();totalWork+=4;Spawn(kind,route,wave,false,0);}
   void DebugGarden(int group,int tier){
-   if(!CanManage())return;PrepareReviewView();foreach(var t in towers.ToArray())RemoveTower(t);projectiles.Clear();burns.Clear();clouds.Clear();controlWard.Clear();focusStates.Clear();auras.Clear();lastMerge=null;mergeArmed=0;selectionType="";selectionId=-1;
+   if(!CanManage())return;PrepareReviewView();foreach(var t in towers.ToArray())RemoveTower(t);projectiles.Clear();burns.Clear();clouds.Clear();controlWard.Clear();focusStates.Clear();auras.Clear();lastMerge=null;mergeArmed=0;SetSelection("",-1);
    tier=Mathf.Clamp(tier,1,5);int index=Mathf.Clamp(group,0,1)*10;
    for(int pad=0;pad<level.pads.Length&&index<(group==0?10:20);pad++){if(blockers.Exists(b=>b.pad==pad))continue;var d=CarrotData.Towers[index++];int spent=0;for(int i=0;i<Mathf.Min(tier,4);i++)spent+=d.cost[i];int partner=tier==5?spent:0;
     var t=new TowerState{id=nextId++,kind=d.id,pad=pad,tier=tier,spent=spent+partner,mergedSpent=partner,position=level.pads[pad],cooldown=.15f,lastShot=-20,builtAt=elapsed};towers.Add(t);Emit("build",t.kind,t.position,id:t.id,tier:tier,duration:.7f);
@@ -40,6 +40,8 @@ namespace CarrotTD {
   class ExtraEnemy {
    public int casts,stolen,poisonStacks,poisonCap,owner,rebirths; public bool clone;
    public float next,lifeUntil,poisonUntil,poisonDps,poisonTick,bleedUntil,bleedDps,bleedTick,shredUntil,shred,exposedUntil,exposed,sleepUntil,sleepReady,wakeDamage,regenAt,formUntil,grantedShield,grantUntil,shieldMaxBefore;
+   // Endless only: the boss's spawn HP (its rebirths scale from it) and the entity cap's folded HP bonus.
+   public float bossBase,foldBase,folded;
   }
   class SporeCloud {public int source,tier;public Vector3 position;public float until,tick,damage,radius;public readonly HashSet<int> touched=new HashSet<int>();}
   readonly List<SporeCloud> clouds=new List<SporeCloud>();
@@ -69,7 +71,7 @@ namespace CarrotTD {
    if(muting)return;
    // Every promised summon reserves completion work immediately; source death cannot orphan a reservation.
    int alive=0;foreach(var e in enemies)if(e.alive&&e.summoned)alive++;int available=Mathf.Max(0,22-alive-extraSpawns.Count);
-   for(int i=0;i<Mathf.Min(count,available);i++){
+   for(int i=0;i<Mathf.Min(count,available);i++){if(SummonCapped(source))continue;
     extraSpawns.Add(new ExtraSpawn{kind=kind,route=source.route,wave=wave>0?wave:1,owner=source.id,distance=Mathf.Min(source.distance+i*.25f,Mathf.Max(0,source.routeLength-6)),scale=hpScale,clone=clone,life=life,at=elapsed+.16f+i*.12f});pendingSummons++;
    }
   }
@@ -85,7 +87,7 @@ namespace CarrotTD {
   bool ExpansionDeath(EnemyState e,bool killed){
    var x=Extra(e);
    if(killed&&e.boss=="eyeball"&&e.stage<3){
-    CancelCast(e,actors[e.id]);Vector3 fallen=e.position;e.distance=Mathf.Max(0,e.distance-2.4f);e.position=CarrotData.RoutePoint(level.routes[e.route],e.distance,out e.direction);Emit("abilityTarget","reincarnate",fallen,e.position,e.id,e.id,duration:2.2f);e.stage++;x.rebirths++;e.maxHp=CarrotData.BossBaseHp("eyeball")*(e.stage==2?.42f:.22f);e.hp=e.maxHp;e.shield=0;e.hidden=true;x.formUntil=elapsed+2.2f;x.next=elapsed+5;
+    CancelCast(e,actors[e.id]);Vector3 fallen=e.position;e.distance=Mathf.Max(0,e.distance-2.4f);e.position=CarrotData.RoutePoint(level.routes[e.route],e.distance,out e.direction);Emit("abilityTarget","reincarnate",fallen,e.position,e.id,e.id,duration:2.2f);e.stage++;x.rebirths++;e.maxHp=(x.bossBase>0?x.bossBase:CarrotData.BossBaseHp("eyeball"))*(e.stage==2?.42f:.22f);e.hp=e.maxHp;e.shield=0;e.hidden=true;x.formUntil=elapsed+2.2f;x.next=elapsed+5;
     ClearGrantedShield(e);actors[e.id].phase=1;actors[e.id].baseSpeed=.22f*CarrotData.MovementScale;e.speed=0;e.phase=1;e.ability="reincarnate";e.castRemaining=2.2f;actors[e.id].stunUntil=elapsed+2.2f;
     Emit("telegraph","reincarnate",e.position,id:e.id,value:e.stage,duration:2.2f);return true;
    }
@@ -160,7 +162,7 @@ namespace CarrotTD {
     case "graveCall":QueueExtra("tinyZombie",e,3,.6f,false,26);duration=.7f;break;
     case "mirrorSplit":if(!e.clone)QueueExtra(e.kind,e,2,.23f,true,12);duration=.7f;break;
     case "riftBlink":Blink(e,1.2f,kind);duration=.6f;break;
-    case "mossShield":duration=4;foreach(var ally in enemies)if(ally.alive&&FlatDistance(e.position,ally.position)<2.4f){float shield=Mathf.Min(ally.maxHp*.16f,130*CarrotData.HPScale(level.id));GrantShield(ally,shield,duration);}break;
+    case "mossShield":duration=4;foreach(var ally in enemies)if(ally.alive&&FlatDistance(e.position,ally.position)<2.4f){float shield=Mathf.Min(ally.maxHp*.16f,MossShieldCap());GrantShield(ally,shield,duration);}break;
     case "emberCharge":duration=2.2f;if(!muting){e.rushUntil=elapsed+duration;a.rushMult=1.85f;}foreach(var t in towers)if(!muting&&FlatDistance(t.position,e.position)<2.7f&&!Ward(t))t.slowFor=Mathf.Max(t.slowFor,2.2f);break;
     case "venomMist":duration=3.5f;foreach(var t in towers)if(FlatDistance(t.position,e.position)<3.1f)Weaken(t,.72f,duration);value=3.1f;break;
     case "ironShell":duration=3.2f;if(!muting)a.armorUntil=elapsed+duration;x.exposedUntil=elapsed+duration+3;x.exposed=.25f;break;

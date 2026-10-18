@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Carrot duo view QA</title>
+<style>html,body{margin:0;height:100%;background:#0b0f12;overflow:hidden}canvas{position:fixed;inset:0;width:100vw;height:100vh;display:block;touch-action:none}#status{position:fixed;left:6px;bottom:4px;color:#8a9;font:11px monospace;pointer-events:none}</style></head>
+<body><canvas id="unity" tabindex="0"></canvas><div id="status">loading</div>
+<script>
+// Duo/endless presentation QA harness (scripts/carrot-duo-qa): loads a CARROT_QA Web player (CarrotDuoBuild.WebQaDuo) full-window
+// and exposes window.qa to the Playwright scripts: the Unity instance, the last 'carrot-state' snapshot, the CARROT_DUO_QA probe
+// lines, every 'carrot-net' view event, rAF frame intervals, Unity's per-frame main-thread work and the wasm heap size. ?name=<player> picks the build (carrot-qa).
+window.qa = { ready: false, states: 0, state: null, error: null, lines: [], net: [], frames: [], heapPeak: 0, heapGrowths: 0 };
+addEventListener('carrot-state', e => { qa.states++; qa.state = e.detail; if (!qa.ready && qa.unity) { qa.ready = true; document.getElementById('status').textContent = 'ready'; } });
+addEventListener('carrot-net', e => { const d = e.detail; qa.net.push([Math.round(performance.now()), typeof d === 'string' ? d : JSON.stringify(d)]); if (qa.net.length > 5000) qa.net.splice(0, 2000); });
+for (const k of ['log', 'warn', 'error']) { const o = console[k]; console[k] = function () { try { const m = Array.from(arguments).map(String).join(' '); if (/CARROT_DUO|CARROT_QA_PERF|CARROT_BUILD_MS|CARROT_WARMUP|Exception|error/i.test(m)) { qa.lines.push([Math.round(performance.now()), m.slice(0, 20000)]); if (qa.lines.length > 4000) qa.lines.splice(0, 1500); } } catch (e) {} return o.apply(this, arguments); }; }
+addEventListener('error', e => qa.lines.push([Math.round(performance.now()), 'PAGEERROR ' + e.message]));
+// WebGL draw calls per animation frame (third column of qa.frames), counted on the context prototype before Unity creates it.
+let draws = 0; { const P = window.WebGL2RenderingContext && WebGL2RenderingContext.prototype; if (P) for (const n of ['drawElements', 'drawArrays', 'drawElementsInstanced', 'drawArraysInstanced', 'drawRangeElements']) { const f = P[n]; if (f) P[n] = function () { draws++; return f.apply(this, arguments); }; } }
+// Main-thread work per Unity frame (fourth column of qa.frames): Unity's rAF callback is timed from its start to its end, so the
+// number is the frame's CPU cost (scripts, culling, draw submission) rather than the vsync-quantized interval.
+const rawRaf = window.requestAnimationFrame.bind(window); let work = 0;
+window.requestAnimationFrame = cb => rawRaf(t => { const s = performance.now(); try { cb(t); } finally { work += performance.now() - s; } });
+(() => { let prev = 0, lastHeap = 0; const tick = now => { if (prev) { qa.frames.push([Math.round((now - prev) * 100) / 100, Math.round(now), draws, Math.round(work * 100) / 100]); if (qa.frames.length > 80000) qa.frames.splice(0, 20000); } prev = now; draws = 0; work = 0;
+  try { const m = qa.unity && qa.unity.Module; const b = m && m.HEAPU8 && m.HEAPU8.buffer ? m.HEAPU8.buffer.byteLength : 0; if (b) { if (lastHeap && b > lastHeap) qa.heapGrowths++; lastHeap = b; if (b > qa.heapPeak) qa.heapPeak = b; } } catch (e) {}
+  rawRaf(tick); }; rawRaf(tick); })();
+(async () => {
+  const name = new URLSearchParams(location.search).get('name') || 'carrot-qa';
+  const s = document.createElement('script'); s.src = `/Build/${name}.loader.js`;
+  s.onload = async () => {
+    try {
+      const canvas = document.getElementById('unity');
+      qa.unity = await createUnityInstance(canvas, {
+        dataUrl: `/Build/${name}.data.unityweb`, frameworkUrl: `/Build/${name}.framework.js.unityweb`, codeUrl: `/Build/${name}.wasm.unityweb`,
+        streamingAssetsUrl: '/StreamingAssets', companyName: 'CGS', productName: 'Carrot duo QA', productVersion: '1',
+        webglContextAttributes: { alpha: false, antialias: false, powerPreference: 'high-performance', preserveDrawingBuffer: false },
+        devicePixelRatio: Math.min(devicePixelRatio, innerWidth < 700 ? 1.25 : 1.75),
+      });
+      qa.loaded = true;
+      const rm = matchMedia('(prefers-reduced-motion: reduce)').matches; qa.unity.SendMessage('CarrotGame', 'SetReducedMotion', rm ? '1' : '0');
+      qa.cmd({ type: 'mute', value: 1 });
+    } catch (e) { qa.error = String(e); document.getElementById('status').textContent = 'error ' + e; }
+  };
+  s.onerror = () => { qa.error = 'loader missing'; };
+  document.body.appendChild(s);
+})();
+qa.send = (method, arg) => qa.unity.SendMessage('CarrotGame', method, typeof arg === 'string' ? arg : JSON.stringify(arg));
+qa.cmd = c => qa.unity.SendMessage('CarrotGame', 'Command', JSON.stringify(c));
+qa.duo = c => qa.unity.SendMessage('CarrotGame', 'DuoQa', JSON.stringify(c));
+/** The newest CARROT_DUO_QA line of `kind` after `since` (ms), parsed. */
+qa.probe = (kind, since = 0) => { for (let i = qa.lines.length - 1; i >= 0; i--) { const [t, m] = qa.lines[i]; if (t < since) break; const k = 'CARROT_DUO_QA ' + kind + ' '; const j = m.indexOf(k); if (j >= 0) return JSON.parse(m.slice(j + k.length)); } return null; };
+qa.heap = () => { try { return qa.unity.Module.HEAPU8.buffer.byteLength; } catch (e) { return 0; } };
+</script></body></html>

@@ -17,7 +17,7 @@ namespace CarrotTD {
    // starts closer so the distant shards and gardens read as depth.
    RenderSettings.fogColor=new Color(.80f,.84f,.94f);RenderSettings.fogStartDistance=38;RenderSettings.fogEndDistance=150;
    skyMaterial.SetColor("_Zenith",new Color(.34f,.56f,.86f));skyMaterial.SetColor("_Horizon",new Color(.95f,.95f,1f));skyMaterial.SetColor("_Ground",new Color(.68f,.70f,.88f));skyMaterial.SetVector("_CarrotSunDir",-sun.transform.forward);skyMaterial.SetColor("_SunColor",new Color(1,.94f,.82f));skyMaterial.SetFloat("_SunSize",.025f);skyMaterial.SetFloat("_SunGlow",.24f);skyMaterial.SetFloat("_Stars",0);skyMaterial.SetFloat("_Aurora",0);skyMaterial.SetFloat("_CloudAmount",.37f);skyMaterial.SetColor("_CloudColor",new Color(.94f,.97f,1));
-   Shader.SetGlobalVector("_CarrotHeightFog",new Vector4(CarrotQuality.Rich?.012f:0,-2,1.5f,0));Shader.SetGlobalColor("_CarrotHeightFogColor",RenderSettings.fogColor);sunBase=sun.intensity;fogEndBase=RenderSettings.fogEndDistance;if(bossSpot!=null)bossSpot.intensity=16;
+   Shader.SetGlobalVector("_CarrotHeightFog",new Vector4(CarrotQuality.Rich?.012f:0,-2,1.5f,0));Shader.SetGlobalColor("_CarrotHeightFogColor",RenderSettings.fogColor);sunBase=sun.intensity;fogEndBase=RenderSettings.fogEndDistance;fogStartBase=RenderSettings.fogStartDistance;if(bossSpot!=null)bossSpot.intensity=16;
   }
   Material PrismCeramic(string id,Color color,float gloss=.65f,float metal=.16f){var m=Material("prism-"+id,color,-1,gloss,metal);m.SetFloat("_SnowStrength",0);m.SetFloat("_ReflectionStrength",.52f);return m;}
   // ---- polish: glazed ceramic tiles (procedural, self-made) ---------------------------------------------------------------------
@@ -80,7 +80,7 @@ namespace CarrotTD {
    var mesh=new Mesh{name="Prism crystal cluster"};mesh.SetVertices(v);mesh.SetColors(c);mesh.SetTriangles(t,0);mesh.RecalculateNormals();mesh.RecalculateBounds();
    var glass=PrismCeramic("crystal",new Color(.78f,.9f,1),.86f,.08f);glass.SetColor("_EmissionColor",new Color(.10f,.16f,.24f));var go=MeshObject("Sky garden crystals",mesh,glass,decoration);go.transform.position=p;if(log)LogDecor(p,size*.6f);
   }
-  void BuildPrismTerrain(){PrismBounds(out var min,out var max);float middle=(min.x+max.x)*.5f,length=max.x-min.x+3.4f;float depth=Mathf.Max(10.8f,max.z-min.z+2.8f);
+  void BuildPrismTerrain(){if(AxisZ){BuildDuoPrismTerrain();return;}PrismBounds(out var min,out var max);float middle=(min.x+max.x)*.5f,length=max.x-min.x+3.4f;float depth=Mathf.Max(10.8f,max.z-min.z+2.8f);
    var pearl=PrismTiles("pearl-tiles",new Color(.80f,.86f,.90f),.68f,.12f);var edge=PrismCeramic("titanium",new Color(.15f,.24f,.32f),.72f,.7f);var ivory=PrismTiles("ivory-tiles",new Color(.92f,.92f,.88f),.6f,.08f,.6f);var seamGlow=PrismSeamGlow();
    var baseObject=PrismBeam("Floating sky garden chassis",new Vector3(middle,-.025f,0),length,depth,.78f,pearl,.18f);baseObject.AddComponent<MeshCollider>().sharedMesh=baseObject.GetComponent<MeshFilter>().sharedMesh;
    PrismBeam("Undercut titanium keel",new Vector3(middle,-.69f,0),length-.4f,depth-.4f,.38f,edge,.12f);
@@ -91,17 +91,17 @@ namespace CarrotTD {
    for(int side=-1;side<=1;side+=2)SpectrumRim("Rainbow rim (long side)",new Vector3(middle,-.06f,side*(depth*.5f+.012f)),length,.62f,side<0?0:180);
    for(int side=-1;side<=1;side+=2)SpectrumRim("Rainbow rim (end)",new Vector3(middle+side*(length*.5f+.012f),-.06f,0),depth,.62f,side<0?90:-90);
   }
-  void BuildPrismRoads(){PrismBounds(out var min,out var max);float center=(min.x+max.x)*.5f,length=max.x-min.x+.8f;
+  void BuildPrismRoads(){if(AxisZ){BuildDuoPrismRoads();return;}PrismBounds(out var min,out var max);float center=(min.x+max.x)*.5f,length=max.x-min.x+.8f;
    var runway=PrismTiles("runway-tiles",new Color(.24f,.36f,.47f),.7f,.25f,.67f);var seam=PrismCeramic("seam",new Color(.70f,.80f,.96f),.72f,.42f);seam.SetColor("_EmissionColor",new Color(.45f,.36f,.75f)*.35f);
    PrismBeam("Continuous polished approach",new Vector3(center,.061f,0),length,1.34f,.085f,runway,.04f);
    for(int side=-1;side<=1;side+=2){PrismBeam("Runway silver edge",new Vector3(center,.074f,side*.67f),length,.055f,.035f,seam,.009f);SpectrumStrip("Seven colour runway inlay",new Vector3(center,.08f,side*.474f),length,.22f);}
    for(float x=min.x+.2f;x<max.x;x+=1.2f)PrismBeam("Runway luminous seam",new Vector3(x,.078f,0),.018f,.58f,.01f,seam,.002f);
   }
-  void BuildPrismPad(int id,Vector3 p){var root=new GameObject("Prism planting socket "+id);root.transform.SetParent(world,false);root.transform.position=new Vector3(p.x,-.025f,p.z);var click=root.AddComponent<CarrotClickable>();click.type="pad";click.id=id;var collider=root.AddComponent<SphereCollider>();collider.center=new Vector3(0,.12f,0);collider.radius=.50f;pads[id]=root;
+  void BuildPrismPad(int id,Vector3 p){var root=new GameObject("Prism planting socket "+id);root.transform.SetParent(world,false);root.transform.position=new Vector3(p.x,-.025f,p.z);if(!Spectator){var click=root.AddComponent<CarrotClickable>();click.type="pad";click.id=id;var collider=root.AddComponent<SphereCollider>();collider.center=new Vector3(0,.12f,0);collider.radius=.50f;}pads[id]=root;
    var plinth=PrismCeramic("socket",new Color(.43f,.59f,.63f),.6f,.26f);var interior=PrismCeramic("substrate",new Color(.12f,.25f,.23f),.25f,.04f);PrismBeam("Inset planting foundation",p+Vector3.up*.014f,1.17f,1.17f,.09f,plinth,.055f);PrismBeam("Dark living substrate",p+Vector3.up*.02f,.93f,.93f,.025f,interior,.008f);
    for(int side=-1;side<=1;side+=2)PrismBeam("Socket readiness light",p+new Vector3(0,.034f,side*.48f),.53f,.025f,.012f,PrismInlay(id%7),.003f);
   }
-  void BuildPrismDecoration(){PrismBounds(out var min,out var max);var white=PrismCeramic("arch",new Color(.78f,.87f,.89f),.73f,.24f);var soil=Material("prism-bed-soil",new Color(.23f,.32f,.16f),0,.25f,0,1.5f);var gold=PrismCeramic("gold",new Color(.77f,.55f,.19f),.73f,.75f);
+  void BuildPrismDecoration(){if(AxisZ){BuildDuoPrismDecoration();return;}PrismBounds(out var min,out var max);var white=PrismCeramic("arch",new Color(.78f,.87f,.89f),.73f,.24f);var soil=Material("prism-bed-soil",new Color(.23f,.32f,.16f),0,.25f,0,1.5f);var gold=PrismCeramic("gold",new Color(.77f,.55f,.19f),.73f,.75f);
    int index=0;for(float x=min.x+1.8f;x<max.x;x+=3.5f){for(int side=-1;side<=1;side+=2){Vector3 p=new Vector3(x,0,side*4.9f);PrismBeam("Floating botanical bed",p,2.25f,.87f,.14f,white);PrismBeam("Botanical soil",p+Vector3.up*.008f,2.03f,.65f,.035f,soil,.01f);PlaceScanned(index%3==0?"Shrub":"Fern",p+new Vector3(-.35f,0,.03f),index%3==0?.76f:.49f,index*33);if(CarrotQuality.Rich)PlaceScanned("Fern",p+new Vector3(.58f,0,-.08f),.34f,index*51);Flower(p+new Vector3(.74f,0,side*.14f),.22f,index%2==0?new Color(1,.48f,.65f):new Color(1,.83f,.39f));}index++;}
    // Open sculptures frame the far edge. No arch crosses the enemy lane or covers a build socket.
    for(float x=min.x+3;x<max.x;x+=8){var arch=MeshObject("Open white orbital sculpture",PortalTorus(1.55f,.085f,64,7),white,decoration);arch.transform.position=new Vector3(x,1.17f,5.9f);arch.transform.rotation=Quaternion.Euler(0,18,-24);arch.transform.localScale=new Vector3(1,1.35f,1);var ring=MeshObject("Suspended champagne band",PortalTorus(1.28f,.018f,64,5),gold,decoration);ring.transform.position=arch.transform.position;ring.transform.rotation=Quaternion.Euler(0,-12,24);ring.transform.localScale=new Vector3(1,1.35f,1);}

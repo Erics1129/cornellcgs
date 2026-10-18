@@ -1,0 +1,643 @@
+{
+ "meta": {
+  "kind": "duo-bands",
+  "commit": "c26d35e",
+  "botsHash": "d526c0cc0dd1a8d2",
+  "r1": 1000,
+  "variants": 20,
+  "seconds": 299.2,
+  "failedSlices": 0
+ },
+ "levels": [
+  {
+   "level": 4,
+   "n": 1020,
+   "pSolo": 1,
+   "pHalf": 1,
+   "pDuo": 1,
+   "pSolo2": 1,
+   "duoGap": 0,
+   "mirrorAgreement": 1,
+   "pWinGap": 0,
+   "perBot": {
+    "R0p0": {
+     "n": 20,
+     "agree": 1,
+     "pSolo": 1,
+     "pHalf": 1
+    },
+    "R0p1": {
+     "n": 20,
+     "agree": 1,
+     "pSolo": 1,
+     "pHalf": 1
+    },
+    "R1": {
+     "n": 40,
+     "agree": 1,
+     "pSolo": 1,
+     "pHalf": 1
+    },
+    "R2": {
+     "n": 20,
+     "agree": 1,
+     "pSolo": 1,
+     "pHalf": 1
+    },
+    "RN": {
+     "n": 20,
+     "agree": 1,
+     "pSolo": 1,
+     "pHalf": 1
+    }
+   }
+  },
+  {
+   "level": 8,
+   "n": 1020,
+   "pSolo": 0.645,
+   "pHalf": 0.642,
+   "pDuo": 0.4,
+   "pSolo2": 0.416,
+   "duoGap": -0.016,
+   "mirrorAgreement": 1,
+   "pWinGap": -0.003,
+   "perBot": {
+    "R0p0": {
+     "n": 20,
+     "agree": 1,
+     "pSolo": 1,
+     "pHalf": 1
+    },
+    "R0p1": {
+     "n": 20,
+     "agree": 1,
+     "pSolo": 1,
+     "pHalf": 1
+    },
+    "R1": {
+     "n": 40,
+     "agree": 1,
+     "pSolo": 0.4,
+     "pHalf": 0.4
+    },
+    "R2": {
+     "n": 20,
+     "agree": 1,
+     "pSolo": 0.4,
+     "pHalf": 0.4
+    },
+    "RN": {
+     "n": 20,
+     "agree": 1,
+     "pSolo": 1,
+     "pHalf": 1
+    }
+   }
+  },
+  {
+   "level": 12,
+   "n": 1020,
+   "pSolo": 0.773,
+   "pHalf": 0.773,
+   "pDuo": 0.575,
+   "pSolo2": 0.597,
+   "duoGap": -0.021,
+   "mirrorAgreement": 1,
+   "pWinGap": 0,
+   "perBot": {
+    "R0p0": {
+     "n": 20,
+     "agree": 1,
+     "pSolo": 1,
+     "pHalf": 1
+    },
+    "R0p1": {
+     "n": 20,
+     "agree": 1,
+     "pSolo": 1,
+     "pHalf": 1
+    },
+    "R1": {
+     "n": 40,
+     "agree": 1,
+     "pSolo": 0.8,
+     "pHalf": 0.8
+    },
+    "R2": {
+     "n": 20,
+     "agree": 1,
+     "pSolo": 0.3,
+     "pHalf": 0.3
+    },
+    "RN": {
+     "n": 20,
+     "agree": 1,
+     "pSolo": 1,
+     "pHalf": 1
+    }
+   }
+  },
+  {
+   "level": 16,
+   "n": 1020,
+   "pSolo": 0.783,
+   "pHalf": 0.784,
+   "pDuo": 0.587,
+   "pSolo2": 0.614,
+   "duoGap": -0.026,
+   "mirrorAgreement": 1,
+   "pWinGap": 0.001,
+   "perBot": {
+    "R0p0": {
+     "n": 20,
+     "agree": 1,
+     "pSolo": 1,
+     "pHalf": 1
+    },
+    "R0p1": {
+     "n": 20,
+     "agree": 1,
+     "pSolo": 1,
+     "pHalf": 1
+    },
+    "R1": {
+     "n": 40,
+     "agree": 1,
+     "pSolo": 0.75,
+     "pHalf": 0.75
+    },
+    "R2": {
+     "n": 20,
+     "agree": 1,
+     "pSolo": 0.4,
+     "pHalf": 0.4
+    },
+    "RN": {
+     "n": 20,
+     "agree": 1,
+     "pSolo": 1,
+     "pHalf": 1
+    }
+   }
+  },
+  {
+   "level": 20,
+   "n": 1020,
+   "pSolo": 0.679,
+   "pHalf": 0.678,
+   "pDuo": 0.482,
+   "pSolo2": 0.462,
+   "duoGap": 0.021,
+   "mirrorAgreement": 1,
+   "pWinGap": -0.001,
+   "perBot": {
+    "R0p0": {
+     "n": 20,
+     "agree": 1,
+     "pSolo": 1,
+     "pHalf": 1
+    },
+    "R0p1": {
+     "n": 20,
+     "agree": 1,
+     "pSolo": 1,
+     "pHalf": 1
+    },
+    "R1": {
+     "n": 40,
+     "agree": 1,
+     "pSolo": 0.65,
+     "pHalf": 0.65
+    },
+    "R2": {
+     "n": 20,
+     "agree": 1,
+     "pSolo": 0.55,
+     "pHalf": 0.55
+    },
+    "RN": {
+     "n": 20,
+     "agree": 1,
+     "pSolo": 0.9,
+     "pHalf": 0.9
+    }
+   }
+  },
+  {
+   "level": 24,
+   "n": 1020,
+   "pSolo": 0.485,
+   "pHalf": 0.485,
+   "pDuo": 0.205,
+   "pSolo2": 0.236,
+   "duoGap": -0.031,
+   "mirrorAgreement": 1,
+   "pWinGap": 0,
+   "perBot": {
+    "R0p0": {
+     "n": 20,
+     "agree": 1,
+     "pSolo": 0.65,
+     "pHalf": 0.65
+    },
+    "R0p1": {
+     "n": 20,
+     "agree": 1,
+     "pSolo": 1,
+     "pHalf": 1
+    },
+    "R1": {
+     "n": 40,
+     "agree": 1,
+     "pSolo": 0.55,
+     "pHalf": 0.55
+    },
+    "R2": {
+     "n": 20,
+     "agree": 1,
+     "pSolo": 0.2,
+     "pHalf": 0.2
+    },
+    "RN": {
+     "n": 20,
+     "agree": 1,
+     "pSolo": 0,
+     "pHalf": 0
+    }
+   }
+  },
+  {
+   "level": 25,
+   "n": 1020,
+   "pSolo": 0.781,
+   "pHalf": 0.781,
+   "pDuo": 0.587,
+   "pSolo2": 0.611,
+   "duoGap": -0.023,
+   "mirrorAgreement": 1,
+   "pWinGap": 0,
+   "perBot": {
+    "R0p0": {
+     "n": 20,
+     "agree": 1,
+     "pSolo": 0.85,
+     "pHalf": 0.85
+    },
+    "R0p1": {
+     "n": 20,
+     "agree": 1,
+     "pSolo": 0.55,
+     "pHalf": 0.55
+    },
+    "R1": {
+     "n": 40,
+     "agree": 1,
+     "pSolo": 0.8,
+     "pHalf": 0.8
+    },
+    "R2": {
+     "n": 20,
+     "agree": 1,
+     "pSolo": 0.5,
+     "pHalf": 0.5
+    },
+    "RN": {
+     "n": 20,
+     "agree": 1,
+     "pSolo": 0,
+     "pHalf": 0
+    }
+   }
+  },
+  {
+   "level": 26,
+   "n": 1020,
+   "pSolo": 0.675,
+   "pHalf": 0.675,
+   "pDuo": 0.454,
+   "pSolo2": 0.455,
+   "duoGap": -0.001,
+   "mirrorAgreement": 1,
+   "pWinGap": 0,
+   "perBot": {
+    "R0p0": {
+     "n": 20,
+     "agree": 1,
+     "pSolo": 0.65,
+     "pHalf": 0.65
+    },
+    "R0p1": {
+     "n": 20,
+     "agree": 1,
+     "pSolo": 0.45,
+     "pHalf": 0.45
+    },
+    "R1": {
+     "n": 40,
+     "agree": 1,
+     "pSolo": 0.75,
+     "pHalf": 0.75
+    },
+    "R2": {
+     "n": 20,
+     "agree": 1,
+     "pSolo": 0.25,
+     "pHalf": 0.25
+    },
+    "RN": {
+     "n": 20,
+     "agree": 1,
+     "pSolo": 0,
+     "pHalf": 0
+    }
+   }
+  },
+  {
+   "level": 27,
+   "n": 1020,
+   "pSolo": 0.417,
+   "pHalf": 0.417,
+   "pDuo": 0.172,
+   "pSolo2": 0.174,
+   "duoGap": -0.002,
+   "mirrorAgreement": 1,
+   "pWinGap": 0,
+   "perBot": {
+    "R0p0": {
+     "n": 20,
+     "agree": 1,
+     "pSolo": 0.55,
+     "pHalf": 0.55
+    },
+    "R0p1": {
+     "n": 20,
+     "agree": 1,
+     "pSolo": 0.8,
+     "pHalf": 0.8
+    },
+    "R1": {
+     "n": 40,
+     "agree": 1,
+     "pSolo": 0.35,
+     "pHalf": 0.35
+    },
+    "R2": {
+     "n": 20,
+     "agree": 1,
+     "pSolo": 0.15,
+     "pHalf": 0.15
+    },
+    "RN": {
+     "n": 20,
+     "agree": 1,
+     "pSolo": 0,
+     "pHalf": 0
+    }
+   }
+  },
+  {
+   "level": 28,
+   "n": 1020,
+   "pSolo": 0.268,
+   "pHalf": 0.268,
+   "pDuo": 0.061,
+   "pSolo2": 0.072,
+   "duoGap": -0.011,
+   "mirrorAgreement": 1,
+   "pWinGap": 0,
+   "perBot": {
+    "R0p0": {
+     "n": 20,
+     "agree": 1,
+     "pSolo": 1,
+     "pHalf": 1
+    },
+    "R0p1": {
+     "n": 20,
+     "agree": 1,
+     "pSolo": 0.3,
+     "pHalf": 0.3
+    },
+    "R1": {
+     "n": 40,
+     "agree": 1,
+     "pSolo": 0.15,
+     "pHalf": 0.15
+    },
+    "R2": {
+     "n": 20,
+     "agree": 1,
+     "pSolo": 0.05,
+     "pHalf": 0.05
+    },
+    "RN": {
+     "n": 20,
+     "agree": 1,
+     "pSolo": 0,
+     "pHalf": 0
+    }
+   }
+  },
+  {
+   "level": 29,
+   "n": 1020,
+   "pSolo": 0.305,
+   "pHalf": 0.305,
+   "pDuo": 0.095,
+   "pSolo2": 0.093,
+   "duoGap": 0.002,
+   "mirrorAgreement": 1,
+   "pWinGap": 0,
+   "perBot": {
+    "R0p0": {
+     "n": 20,
+     "agree": 0.4,
+     "pSolo": 1,
+     "pHalf": 0.4,
+     "excluded": "absolute-z policy"
+    },
+    "R1": {
+     "n": 40,
+     "agree": 1,
+     "pSolo": 0.25,
+     "pHalf": 0.25
+    },
+    "R2": {
+     "n": 20,
+     "agree": 1,
+     "pSolo": 0,
+     "pHalf": 0
+    }
+   }
+  }
+ ],
+ "checks": [
+  {
+   "name": "L4: p_duo within +-0.05 of p_solo^2",
+   "pass": true,
+   "detail": "1 vs 1"
+  },
+  {
+   "name": "L4: half-vs-solo outcome agreement >= 95% (5 bots x 20 seeds)",
+   "pass": true,
+   "detail": 1
+  },
+  {
+   "name": "L4: R1 p_win on the half within +-0.02 of solo",
+   "pass": true,
+   "detail": "1 vs 1"
+  },
+  {
+   "name": "L8: p_duo within +-0.05 of p_solo^2",
+   "pass": true,
+   "detail": "0.4 vs 0.416"
+  },
+  {
+   "name": "L8: half-vs-solo outcome agreement >= 95% (5 bots x 20 seeds)",
+   "pass": true,
+   "detail": 1
+  },
+  {
+   "name": "L8: R1 p_win on the half within +-0.02 of solo",
+   "pass": true,
+   "detail": "0.642 vs 0.645"
+  },
+  {
+   "name": "L12: p_duo within +-0.05 of p_solo^2",
+   "pass": true,
+   "detail": "0.575 vs 0.597"
+  },
+  {
+   "name": "L12: half-vs-solo outcome agreement >= 95% (5 bots x 20 seeds)",
+   "pass": true,
+   "detail": 1
+  },
+  {
+   "name": "L12: R1 p_win on the half within +-0.02 of solo",
+   "pass": true,
+   "detail": "0.773 vs 0.773"
+  },
+  {
+   "name": "L16: p_duo within +-0.05 of p_solo^2",
+   "pass": true,
+   "detail": "0.587 vs 0.614"
+  },
+  {
+   "name": "L16: half-vs-solo outcome agreement >= 95% (5 bots x 20 seeds)",
+   "pass": true,
+   "detail": 1
+  },
+  {
+   "name": "L16: R1 p_win on the half within +-0.02 of solo",
+   "pass": true,
+   "detail": "0.784 vs 0.783"
+  },
+  {
+   "name": "L20: p_duo within +-0.05 of p_solo^2",
+   "pass": true,
+   "detail": "0.482 vs 0.462"
+  },
+  {
+   "name": "L20: half-vs-solo outcome agreement >= 95% (5 bots x 20 seeds)",
+   "pass": true,
+   "detail": 1
+  },
+  {
+   "name": "L20: R1 p_win on the half within +-0.02 of solo",
+   "pass": true,
+   "detail": "0.678 vs 0.679"
+  },
+  {
+   "name": "L24: p_duo within +-0.05 of p_solo^2",
+   "pass": true,
+   "detail": "0.205 vs 0.236"
+  },
+  {
+   "name": "L24: half-vs-solo outcome agreement >= 95% (5 bots x 20 seeds)",
+   "pass": true,
+   "detail": 1
+  },
+  {
+   "name": "L24: R1 p_win on the half within +-0.02 of solo",
+   "pass": true,
+   "detail": "0.485 vs 0.485"
+  },
+  {
+   "name": "L25: p_duo within +-0.05 of p_solo^2",
+   "pass": true,
+   "detail": "0.587 vs 0.611"
+  },
+  {
+   "name": "L25: half-vs-solo outcome agreement >= 95% (5 bots x 20 seeds)",
+   "pass": true,
+   "detail": 1
+  },
+  {
+   "name": "L25: R1 p_win on the half within +-0.02 of solo",
+   "pass": true,
+   "detail": "0.781 vs 0.781"
+  },
+  {
+   "name": "L26: p_duo within +-0.05 of p_solo^2",
+   "pass": true,
+   "detail": "0.454 vs 0.455"
+  },
+  {
+   "name": "L26: half-vs-solo outcome agreement >= 95% (5 bots x 20 seeds)",
+   "pass": true,
+   "detail": 1
+  },
+  {
+   "name": "L26: R1 p_win on the half within +-0.02 of solo",
+   "pass": true,
+   "detail": "0.675 vs 0.675"
+  },
+  {
+   "name": "L27: p_duo within +-0.05 of p_solo^2",
+   "pass": true,
+   "detail": "0.172 vs 0.174"
+  },
+  {
+   "name": "L27: half-vs-solo outcome agreement >= 95% (5 bots x 20 seeds)",
+   "pass": true,
+   "detail": 1
+  },
+  {
+   "name": "L27: R1 p_win on the half within +-0.02 of solo",
+   "pass": true,
+   "detail": "0.417 vs 0.417"
+  },
+  {
+   "name": "L28: p_duo within +-0.05 of p_solo^2",
+   "pass": true,
+   "detail": "0.061 vs 0.072"
+  },
+  {
+   "name": "L28: half-vs-solo outcome agreement >= 95% (5 bots x 20 seeds)",
+   "pass": true,
+   "detail": 1
+  },
+  {
+   "name": "L28: R1 p_win on the half within +-0.02 of solo",
+   "pass": true,
+   "detail": "0.268 vs 0.268"
+  },
+  {
+   "name": "L29: p_duo within +-0.05 of p_solo^2",
+   "pass": true,
+   "detail": "0.095 vs 0.093"
+  },
+  {
+   "name": "L29: half-vs-solo outcome agreement >= 95% (5 bots x 20 seeds)",
+   "pass": true,
+   "detail": 1
+  },
+  {
+   "name": "L29: R1 p_win on the half within +-0.02 of solo",
+   "pass": true,
+   "detail": "0.305 vs 0.305"
+  }
+ ],
+ "pass": true
+}

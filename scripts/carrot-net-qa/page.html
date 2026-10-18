@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>carrot-net-qa</title>
+<style>
+  :root { color-scheme: light dark; --bg: #f4f1ea; --ink: #1d1b16 }
+  @media (prefers-color-scheme: dark) { :root { --bg: #16150f; --ink: #ece7da } }
+  body { margin: 0; padding: 16px; background: var(--bg); color: var(--ink); font: 14px/1.4 ui-monospace, Menlo, monospace }
+  pre { white-space: pre-wrap; word-break: break-word }
+</style>
+</head>
+<body>
+<!-- QA page for the Carrot net layer: the real session over the rooms Worker with the FakeEngine (no Unity). -->
+<pre id="out">loading</pre>
+<script src="/bundle.js"></script>
+<script>
+  // a small live readout for a human watching the run
+  setInterval(() => { try { const s = window.qa.snap(); document.getElementById('out').textContent = JSON.stringify({ phase: s.phase, code: s.code, seat: s.seat, path: s.path, rtt: s.rttMs, delay: s.inputDelayMs, stats: s.stats, result: s.result }, null, 1) } catch { /* not ready */ } }, 500)
+</script>
+</body>
+</html>

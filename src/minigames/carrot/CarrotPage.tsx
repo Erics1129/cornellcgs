@@ -15,6 +15,7 @@ import type { Prefs } from './prefs'
 import { readVolumes, subscribeVolumes, writeVolumes } from './volume'
 import type { Volumes } from './volume'
 import { levelKinds } from './waves'
+import { DuoLayer, useDuo } from './duo'
 import { Lobby } from './ui/Lobby'
 import { LevelSelect } from './ui/LevelSelect'
 import { Loading } from './ui/Loading'
@@ -88,6 +89,7 @@ function CarrotPage(){
  const tutorialActive=(!preview||new URLSearchParams(location.search).has('carrot-tutorial'))&&!records.tutorial&&save.unlocked<=1&&!Object.keys(save.medals).length&&(page?.level||level)===1
  const step=useTutorialStep(store,tutorialActive&&ready&&!panel)
  const veteranAvailable=!!page?.veteranCap||!!definitions?.levels.some(l=>l.modes?.includes('veteran'))
+ const duo=useDuo({store,engine,ready,entered,enter:()=>setEntered(true),loading})
 
  // Development preview only (tree-shaken from production): a QA harness can drive the level, read the live state, or inject a snapshot.
  useEffect(()=>{if(!preview)return;const w=window as unknown as {__carrot?:{send:(c:Command)=>void;state:()=>GameState|null;inject:(s:GameState|null)=>void;ready:()=>void}};w.__carrot={send:c=>engine.current?.send(c),state:()=>store.get(),inject:s=>store.set(s),ready:()=>{setError('');setReady(true)}};return()=>{delete w.__carrot}},[preview,store])
@@ -230,7 +232,7 @@ function CarrotPage(){
     {!result&&!step&&<PrismBriefing store={store} run={run}/>}
     {step&&!result&&<Coach step={step} towers={page?.towers||0} onSkip={()=>setRecords(r=>finishTutorial(r))} onDone={()=>setRecords(r=>finishTutorial(r))}/>}
     {encounters.card&&!result&&<EncounterCard card={encounters.card} onDismiss={encounters.dismiss}/>}
-    {result&&st&&(st.phase==='won'||st.phase==='lost')&&<Results state={st} level={currentLevel} definitions={definitions} summary={tracker.summary()} grade={resultInfo.grade} previousGrade={resultInfo.previous} challengeBoss={challengeBoss} losses={resultInfo.losses}
+    {result&&!duo.active&&st&&(st.phase==='won'||st.phase==='lost')&&<Results state={st} level={currentLevel} definitions={definitions} summary={tracker.summary()} grade={resultInfo.grade} previousGrade={resultInfo.previous} challengeBoss={challengeBoss} losses={resultInfo.losses}
      onNext={()=>choose(Math.min(LevelCount,st.level+1))} onRetry={()=>choose(st.level)} onSelect={()=>openPanel('select')} onChallenges={()=>openPanel('challenges')} onDock={onResultsDock}/>}
    </>}
   </main>}
@@ -240,5 +242,6 @@ function CarrotPage(){
   {panel==='credits'&&<CreditsModal onClose={closePanel}/>}
   {panel==='settings'&&<SettingsModal prefs={prefs} volumes={volumes} sound={save.sound} inGame={entered&&ready} canFocusBoss={v2&&!!page?.boss} onPrefs={p=>writePrefs(p)} onVolumes={v=>writeVolumes(v)} onSound={toggleSound} onFocusBoss={()=>{closePanel();engine.current?.focusBoss()}} onRestart={entered&&ready?()=>setPanel('restart'):undefined} expanded={expanded} onStages={entered&&ready?()=>setPanel(challengeBoss?'challenges':'select'):undefined} onHelp={entered&&ready?()=>setPanel('help'):undefined} onFullscreen={entered&&ready?()=>void fullscreen():undefined} onClose={closePanel}/>}
   {panel==='restart'&&<ConfirmModal title="Restart this stage?" body="The current run ends and the stage starts again from wave 1." confirm="Restart" onConfirm={restart} onClose={closePanel}/>}
+  <DuoLayer duo={duo} entered={entered} definitions={definitions} reduced={reduced}/>
  </div>
 }

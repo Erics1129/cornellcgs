@@ -69,6 +69,8 @@ namespace CarrotTD {
 #endif
   // Priorities (spec event_intensity): telegraph/bite 10 > boss 8 > signature 6 > elite 5 > kill 3 > routine 2.
   public const int PRoutine=2,PKill=3,PElite=5,PSignature=6,PBoss=8,PThreat=10;
+  /// <summary>World x the stereo pan is centred on: 0 in solo; the camera centre in duo and endless, where the map spans 32 units.</summary>
+  public float ListenerX;
   public const int VoiceCount=20,CreatureVoiceLimit=5,PerClipConcurrency=6;
   public const float Debounce=.02f,MusicLevel=.40f,MusicMax=.8f,FoleyBudget=.85f,RoutineBudget=.6f,SfxGain=2.1f,PanScale=.07f,PanLimit=.6f;
   // Music slots 0 (A) and 1 (B) live in the browser: slotTrack is the track each slot plays, slotVolume the last gain sent, musicReady the decoded tracks.
@@ -182,7 +184,7 @@ namespace CarrotTD {
    if(throttle!=null)lastSound[throttle]=soundClock;
    var s=voice.source;s.Stop();s.clip=clip;s.volume=Mathf.Clamp(volume,0,.9f);s.pitch=Mathf.Clamp(pitch,.5f,2f);
    s.spatialBlend=at.HasValue?.2f:0;s.minDistance=18;s.maxDistance=42;s.rolloffMode=AudioRolloffMode.Linear;s.transform.position=at??transform.position;
-   s.panStereo=at.HasValue?Mathf.Clamp(at.Value.x*PanScale,-PanLimit,PanLimit):0;s.priority=priority>=PSignature?16:creature?100:128;s.Play();
+   s.panStereo=at.HasValue?Mathf.Clamp((at.Value.x-ListenerX)*PanScale,-PanLimit,PanLimit):0;s.priority=priority>=PSignature?16:creature?100:128;s.Play();
    voice.clip=clip;voice.priority=priority;voice.creature=creature;voice.start=soundClock;voice.end=soundClock+clip.length/Mathf.Max(.5f,s.pitch);voice.volume=s.volume;voice.fadeTo=-1;voice.owner=0;
    return voice;
   }

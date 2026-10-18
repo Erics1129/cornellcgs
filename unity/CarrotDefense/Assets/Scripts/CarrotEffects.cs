@@ -38,8 +38,12 @@ namespace CarrotTD {
   Color Soil{get{return Biome=="frost"?new Color(.88f,.92f,1f):Biome=="marsh"?new Color(.27f,.33f,.22f):Biome=="orchard"?new Color(.42f,.28f,.12f):new Color(.46f,.32f,.16f);}}
   /// <summary>A point lifted above the walking surface (trail strip or terrain) so ground effects are never buried under the path mesh.</summary>
   Vector3 G(Vector3 p,float lift){return new Vector3(p.x,Ground(p)+lift,p.z);}
+  /// <summary>Set by a spectator view (the partner's duo half) just before AddComponent: no licensed layer, no effect lights.</summary>
+  public static bool NextSpectator;
+  public bool Spectator{get;private set;}
   void Awake(){
-   licensedFx=gameObject.AddComponent<CarrotLicensedFx>();
+   Spectator=NextSpectator;
+   if(!Spectator)licensedFx=gameObject.AddComponent<CarrotLicensedFx>();
    var sheet=Resources.Load<Texture2D>("Carrot/Textures/VfxSheet");bool high=CarrotQuality.Rich;pool=new FxPool(transform,sheet,high);
    var plane=new GameObject("Debris ground");plane.transform.SetParent(transform,false);plane.transform.position=Vector3.zero;plane.transform.rotation=Quaternion.identity;groundPlane=plane.transform;
    flash=new FxSystem(transform,"Flashes",pool.additiveHot,CarrotQuality.Cap(64));
@@ -53,7 +57,26 @@ namespace CarrotTD {
    fireflyMaterial=new Material(pool.additiveSheet);fireflyMaterial.SetColor("_Color",new Color(.75f,1,.5f)*3);
    auraDecal=pool.Extra("Boss aura",pool.DecalMesh(FxSheet.Crack),pool.decal);auraRing=pool.Extra("Boss aura ring",pool.ringThin,pool.additiveSheet);
    lanternGlow=pool.Extra("Carrot lantern",pool.glowQuad,pool.overlayGlow);
+   if(Spectator)foreach(var s in pool.lights)if(s!=null&&s.go!=null)Destroy(s.go);
   }
+  // ---- duo: the spectator's cheap set and the host's weather box ------------------------------------------------------------
+  readonly float[] cheapShots=new float[40];int cheapNext;
+  /// <summary>A partner's shot as one glowing mote flying muzzle to target (40 in flight at most; the rest are dropped).</summary>
+  public void CheapShot(Vector3 from,Vector3 to,Color c,float life){
+   int slot=-1;for(int i=0;i<cheapShots.Length;i++){int k=(cheapNext+i)%cheapShots.Length;if(cheapShots[k]<=clock){slot=k;break;}}
+   if(slot<0){CarrotQa.Count("spectator.shotsDropped",1);return;}cheapShots[slot]=clock+life;cheapNext=(slot+1)%cheapShots.Length;
+   flash.Frame(FxSheet.GlowSoft);flash.Emit(from,(to-from)/Mathf.Max(.05f,life),.24f,life,new Color(c.r,c.g,c.b,.85f),0,0);CarrotQa.Count("spectator.shots",1);
+  }
+  /// <summary>A partner creature's death as a small puff and flash (the full kill recipe is for the own half).</summary>
+  public void DeathPuff(Vector3 p,Color c){Smoke(p+Vector3.up*.2f,N(3),.25f,.55f,.5f,new Color(.75f,.74f,.7f,.45f),.35f,.3f);Flash(p+Vector3.up*.3f,.55f,.12f,new Color(c.r,c.g,c.b,.75f));}
+  bool ambientMoved;Vector3 ambientCentre,ambientScale=Vector3.one;
+  /// <summary>Duo/endless: centre and stretch the weather box over the whole map (shape-only scaling). Call before Ambient, then AfterAmbient.</summary>
+  public void AmbientArea(Vector3 centre,Vector3 scale){ambientMoved=true;ambientCentre=centre;ambientScale=scale;Stretch(ambient);}
+  /// <summary>Back to the authored solo box (no-op unless AmbientArea moved it).</summary>
+  public void ResetAmbientArea(){if(!ambientMoved)return;ambientMoved=false;ambientCentre=Vector3.zero;ambientScale=Vector3.one;Stretch(ambient);Stretch(fogCards);}
+  /// <summary>The fog cards are created by Ambient: stretch them too and re-run their warm start inside the new box.</summary>
+  public void AfterAmbient(){if(!ambientMoved||fogCards==null)return;Stretch(fogCards);if(fogCards.gameObject.activeSelf)fogCards.Simulate(20,true,true,false);}
+  void Stretch(ParticleSystem ps){if(ps==null)return;var main=ps.main;main.scalingMode=ParticleSystemScalingMode.Shape;ps.transform.localPosition=ambientCentre;ps.transform.localScale=ambientScale;}
   FxPool.Slot lanternGlow;
   // ---- Super towers, blindness and the challenge bosses: per-frame hooks called by the view (no allocation) ----------------------
   /// <summary>Emblem decal plus thin ring under Super tower `slot` (0-5); `alpha` is .7, or .25 while a telegraph is live within 2 u. Inactive slots are parked.</summary>
@@ -172,7 +195,7 @@ namespace CarrotTD {
   }
   void DecalFx(Vector3 p,int cell,float size,float life,Color c,bool erode=false,float alpha=1,float grow=0,bool telegraph=false,float emissive=0){if(!CarrotQuality.Rich&&!telegraph&&cell!=FxSheet.Scorch&&cell!=FxSheet.Ice)return;int slot=FxPool.Take(pool.decals);if(slot<0){float oldest=0;int victim=-1;for(int i=0;i<live.Count;i++)if(live[i].k==K.Decal&&live[i].age>oldest){oldest=live[i].age;victim=i;}if(victim<0)return;slot=live[victim].slot;live.RemoveAt(victim);}
    var s=pool.decals[slot];s.busy=true;s.go.SetActive(true);s.mf.sharedMesh=pool.DecalMesh(cell);s.t.position=G(p,.018f);s.t.rotation=Quaternion.Euler(0,telegraph?0:R(0,360),0);s.t.localScale=Vector3.zero;Add(new Live{k=K.Decal,slot=slot,life=life,f0=grow>0?grow:size,f1=size,f2=alpha,f3=emissive,color=c,i0=cell,i1=erode?1:0});}
-  void LightFx(Vector3 p,float intensity,float range,float life,Color c,float attack=.03f,int pulseHz=0){if(pool.lights.Length==0)return;
+  void LightFx(Vector3 p,float intensity,float range,float life,Color c,float attack=.03f,int pulseHz=0){if(pool.lights.Length==0||Spectator)return;
    if(intensity>=6&&!CarrotFlashGovernor.Allow()){int best=-1;float bright=0;for(int i=0;i<live.Count;i++)if(live[i].k==K.Light&&live[i].f0>bright){bright=live[i].f0;best=i;}if(best>=0){var l=live[best];l.life=Mathf.Max(l.life,l.age+Mathf.Min(.15f,life));live[best]=l;}return;}
    pulseHz=0;/* no strobing lights: an envelope only */int slot=FxPool.Take(pool.lights);if(slot<0){float dimmest=float.MaxValue;int victim=-1;for(int i=0;i<live.Count;i++)if(live[i].k==K.Light&&pool.lights[live[i].slot].light.intensity<dimmest){dimmest=pool.lights[live[i].slot].light.intensity;victim=i;}if(victim<0||dimmest>intensity)return;slot=live[victim].slot;live.RemoveAt(victim);}var s=pool.lights[slot];s.busy=true;s.go.SetActive(true);s.t.position=p;s.light.intensity=0;Add(new Live{k=K.Light,slot=slot,life=life,f0=intensity,f1=range,f2=attack,color=c,i1=pulseHz});}
   /// <summary>Spline-extruded tube (root snare, rewind ribbon) that grows along its length over `grow` seconds.</summary>
