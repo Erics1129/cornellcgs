@@ -1,113 +1,467 @@
 /*
- * Carrot Defense: the entry page and what opens from it: lobby, loading screen, How to play, Settings, Field guide (owner: entry).
+ * Carrot Defense: the entry page and what opens from it: lobby, loading screen, How to play, Settings, Field guide, Credits
+ * (owner: entry). The dialog shell itself (.ct-dialog, .ct-dialog__inner) is in ui/menus.css; this file styles what goes inside it.
  * Layers: see ui/glass.css. Rules here live in carrot.entry (and carrot.themes for phone and reduced-motion variants).
+ *
+ * The lobby, back to front: key art (the chapter of the next stage) / its light (a glow and soft rays from the art's own sun or moon,
+ * screen-blended) / drifting motes / the scrim that carries the type's contrast / glass. Depth: each layer slides with a fine pointer by
+ * its data-depth (ui/useLobbyDepth.ts); the glass rims turn toward the pointer. Blur budget (real tier only, the backdrop is a still
+ * image): the stage card, the action capsule and the numbers strip on desktop; only the stage card on phones.
  */
 @layer carrot.tokens, carrot.base, carrot.glass, carrot.hud, carrot.entry, carrot.menus, carrot.themes, carrot.prefs;
 
 @layer carrot.entry {
-  /* ---- the lobby error line (moved from the shared base) ---- */
-  .ct-error { color: #ffc2b0; margin-top: 18px; max-width: 420px; }
-  .ct-error button { text-decoration: underline; min-height: 44px; }
+  /* ================================================================ lobby ================================================ */
+  .ct-lobby {
+    /* per chapter: where the art's light comes from, its colour, the motes' colour, how the art is framed (wide and tall screens) */
+    --sun: 255 204 140; --sun-x: 9%; --sun-y: -4%; --rays-from: 108deg; --mote: 255 220 150;
+    --art-pos: 60% 50%; --art-pos-tall: 91% 50%;
+    position: absolute; inset: 0; overflow: hidden auto; overscroll-behavior: contain;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-rows: auto minmax(0, 1fr) auto auto;
+    grid-template-areas: 'nav nav' 'hero card' 'stats card' 'foot foot';
+    column-gap: 40px; row-gap: 18px;
+    padding: max(22px, var(--safe-t)) max(40px, var(--safe-r)) max(16px, var(--safe-b)) max(40px, var(--safe-l));
+  }
+  .ct-lobby[data-biome='marsh'] { --sun: 176 206 255; --sun-x: 85%; --sun-y: 4%; --rays-from: 192deg; --mote: 132 226 255; }
+  .ct-lobby[data-biome='frost'] { --sun: 255 206 178; --sun-x: 31%; --sun-y: 0%; --rays-from: 118deg; --mote: 255 250 255; }
+  .ct-lobby[data-biome='orchard'] { --sun: 255 168 96; --sun-x: 69%; --sun-y: 12%; --rays-from: 150deg; --mote: 255 166 84; --art-pos-tall: 79% 50%; }
 
-  /* ---- shared entrance choreography: 400-600 ms staggered; opacity-only under reduced motion (themes layer) ---- */
-  .is-animated .ct-enter { animation: ct-rise .5s var(--ease-out) both; animation-delay: calc(var(--i, 0) * 60ms); }
+  /* the travelling glint: a masked ring the shape of its glass (so it follows any radius), with one soft spot of light inside that
+     useLobbyDepth moves along the rim toward the pointer (transform and opacity on its own layer: no repaint) */
+  .ct-rimlight {
+    position: absolute; inset: 0; z-index: 2; pointer-events: none; overflow: hidden;
+    border-radius: inherit; corner-shape: inherit; padding: 1.5px;
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor;
+    mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+  }
+  .ct-rimlight i {
+    --glint: 150px;
+    position: absolute; left: 50%; top: 50%; width: var(--glint); height: var(--glint); margin: calc(var(--glint) / -2) 0 0 calc(var(--glint) / -2);
+    border-radius: 50%; background: radial-gradient(closest-side, rgb(255 255 255 / .95), rgb(255 255 255 / .38) 42%, transparent);
+    opacity: 0; will-change: transform, opacity;
+  }
+  .ct-lobby__next .ct-rimlight i { --glint: 280px; }
+  .ct-lobby__stats .ct-rimlight i { --glint: 220px; }
+  .ct-title__badge .ct-rimlight i { --glint: 60px; }
+  .ct-lobby [data-light] { --gl-rim-angle: 158deg; }
+  .ct-lobby[data-biome='marsh'] [data-light] { --gl-rim-angle: 202deg; }
+  .ct-lobby[data-biome='frost'] [data-light] { --gl-rim-angle: 168deg; }
+  .ct-lobby[data-biome='orchard'] [data-light] { --gl-rim-angle: 194deg; }
 
-  /* ---- lobby ---- */
-  .ct-lobby { position: absolute; inset: 0; overflow: auto; display: grid; grid-template-rows: auto 1fr auto; grid-template-columns: minmax(0, 1fr) auto; padding: var(--safe-t) max(36px, var(--safe-r)) var(--safe-b) max(36px, var(--safe-l)); }
-  .ct-lobby__art { position: fixed; inset: 0; z-index: -1; background: #0b1810; }
-  .ct-lobby__art img { width: 100%; height: 100%; object-fit: cover; object-position: 62% center; }
-  .ct-lobby__art::after { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, rgba(5, 9, 12, .9) 0%, rgba(5, 9, 12, .55) 38%, rgba(5, 9, 12, 0) 72%), linear-gradient(0deg, rgba(5, 9, 12, .85), transparent 30%); }
-  .ct-lobby__nav { grid-column: 1 / 3; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-top: 10px; }
-  .ct-lobby__brand { font: 700 11px/1 var(--f-ui); letter-spacing: .24em; color: var(--ink-2); }
-  .ct-lobby__icons { display: flex; gap: 6px; }
-  .ct-lobby__copy { grid-column: 1; align-self: center; max-width: 640px; padding: 32px 0; }
-  .ct-lobby__copy .ct-kicker { color: var(--accent); }
-  .ct-lobby__copy h1 { margin: 16px 0 14px; font: 800 clamp(58px, 8vw, 116px)/.9 var(--f-disp); letter-spacing: -.035em; text-shadow: 0 3px 30px rgba(0, 0, 0, .35); }
-  .ct-lobby__copy h1 .ct-lobby__3d { font: 700 .34em/1 var(--f-num); font-style: normal; letter-spacing: 0; vertical-align: middle; display: inline-flex; padding: 6px 10px; margin-left: 10px; color: var(--accent-ink); background: var(--accent); clip-path: var(--chamfer); }
-  .ct-lobby__cn { font-size: 17px; letter-spacing: .14em; color: var(--ink-2); }
-  .ct-lobby__actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 30px; }
-  .ct-lobby__meta { display: flex; flex-wrap: wrap; gap: 6px 18px; margin-top: 24px; font-size: 12px; color: var(--ink-2); letter-spacing: .04em; }
-  .ct-lobby__meta b { font-family: var(--f-num); color: var(--ink); }
-  .ct-lobby__next { grid-column: 2; grid-row: 2; align-self: end; margin-bottom: 18px; display: grid; grid-template-columns: 148px 1fr; gap: 14px; align-items: center; width: 400px; padding: 10px; text-align: left; transition: border-color .16s; }
-  .ct-lobby__next:hover { border-color: var(--hair-hi); }
-  .ct-lobby__jacket { display: block; aspect-ratio: 16 / 9; overflow: hidden; clip-path: var(--chamfer); background: #111a28; }
-  .ct-lobby__jacket img { width: 100%; height: 100%; object-fit: cover; display: block; }
-  .ct-lobby__next-copy { display: grid; gap: 6px; min-width: 0; }
-  .ct-lobby__next-copy b { font: 800 17px/1.1 var(--f-disp); display: flex; gap: 8px; align-items: baseline; }
-  .ct-lobby__next-copy b i { font: 700 13px var(--f-num); font-style: normal; color: var(--accent); }
-  .ct-lobby__next-meta { display: flex; align-items: center; gap: 8px; }
-  .ct-lobby__foot { grid-column: 1 / 3; display: flex; justify-content: space-between; align-items: center; gap: 12px; font-size: 12px; color: var(--ink-2); padding-bottom: 6px; }
-  .ct-lobby__foot .ct-ghost { background: transparent; }
+  /* ---- the scene ---- */
+  .ct-lobby__stage { position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; background: #05080d; }
+  /* every layer the pointer moves is its own compositor layer, so a move is a re-composite, never a repaint (the title's drop shadows
+     and the art would otherwise be painted again on every frame) */
+  .ct-lobby [data-depth], .ct-lobby [data-tilt-inner] { will-change: translate; }
+  /* 40 px of overscan on every side, so the parallax never shows an edge */
+  .ct-lobby__layer { position: absolute; inset: -40px; }
+  .ct-lobby__art { display: block; width: 100%; height: 100%; object-fit: cover; object-position: var(--art-pos); }
+  .ct-lobby__light {
+    position: absolute; inset: 0; mix-blend-mode: screen;
+    background:
+      radial-gradient(36% 46% at var(--sun-x) var(--sun-y), rgb(var(--sun) / .36), rgb(var(--sun) / .1) 48%, transparent 74%),
+      conic-gradient(from var(--rays-from) at var(--sun-x) var(--sun-y), transparent 0deg, rgb(var(--sun) / .1) 5deg, transparent 11deg,
+        transparent 16deg, rgb(var(--sun) / .07) 21deg, transparent 29deg, rgb(var(--sun) / .05) 35deg, transparent 42deg,
+        transparent 49deg, rgb(var(--sun) / .08) 55deg, transparent 63deg, transparent 360deg);
+    -webkit-mask: radial-gradient(90% 100% at var(--sun-x) var(--sun-y), #000 8%, transparent 78%);
+    mask: radial-gradient(90% 100% at var(--sun-x) var(--sun-y), #000 8%, transparent 78%);
+  }
+  .ct-lobby__motes i {
+    position: absolute; left: var(--x); top: var(--y); width: var(--s); height: var(--s); border-radius: 50%;
+    background: radial-gradient(circle, rgb(var(--mote)) 0 28%, rgb(var(--mote) / .4) 52%, transparent 72%);
+    box-shadow: 0 0 calc(var(--s) * 1.6) rgb(var(--mote) / .45);
+    opacity: 0;
+    animation: ct-mote var(--t) linear var(--d) infinite;
+  }
+  /* light in front of the scrim: the same rays, faint, so they cross the dark side of the screen too (measured with the type over it) */
+  .ct-lobby__rays {
+    position: absolute; inset: 0; mix-blend-mode: screen; opacity: .55;
+    background: conic-gradient(from var(--rays-from) at var(--sun-x) var(--sun-y), transparent 0deg, rgb(var(--sun) / .09) 6deg, transparent 13deg,
+      transparent 19deg, rgb(var(--sun) / .06) 24deg, transparent 32deg, transparent 47deg, rgb(var(--sun) / .07) 54deg, transparent 62deg, transparent 360deg);
+    -webkit-mask: radial-gradient(75% 85% at var(--sun-x) var(--sun-y), #000 0%, rgb(0 0 0 / .5) 40%, transparent 72%);
+    mask: radial-gradient(75% 85% at var(--sun-x) var(--sun-y), #000 0%, rgb(0 0 0 / .5) 40%, transparent 72%);
+  }
+  /* the scrim carries the type's contrast: dark at the left (title) and the bottom (cards, footer), a lighter veil at the top (nav) */
+  .ct-lobby__scrim {
+    position: absolute; inset: 0;
+    background:
+      radial-gradient(130% 100% at 68% 42%, transparent 52%, rgb(3 5 9 / .5) 100%),
+      linear-gradient(90deg, rgb(5 8 13 / .9) 0%, rgb(5 8 13 / .7) 22%, rgb(5 8 13 / .3) 44%, rgb(5 8 13 / 0) 62%),
+      linear-gradient(0deg, rgb(5 8 13 / .92) 0%, rgb(5 8 13 / .5) 18%, rgb(5 8 13 / 0) 40%),
+      linear-gradient(180deg, rgb(5 8 13 / .72) 0%, rgb(5 8 13 / .28) 9%, rgb(5 8 13 / 0) 18%);
+  }
 
-  /* ---- loading ---- */
-  .ct-loading { position: absolute; inset: 0; z-index: 15; display: grid; place-items: center; padding: 16px; background-size: cover; background-position: center; }
-  .ct-loading::before { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(5, 8, 13, .7), rgba(5, 8, 13, .92)); }
-  .ct-loading__card { width: min(460px, 100%); display: grid; gap: 14px; padding: 24px; }
-  .ct-loading h2 { font: 800 clamp(28px, 5vw, 40px)/1 var(--f-disp); letter-spacing: -.02em; }
-  .ct-loading__stage { display: flex; align-items: center; gap: 10px; }
-  .ct-loading__stage b { font: 700 34px/1 var(--f-num); color: var(--accent); }
-  .ct-loading__bar { position: relative; height: 4px; background: rgba(255, 255, 255, .14); overflow: hidden; }
-  .ct-loading__bar i { position: absolute; inset: 0; transform-origin: left; background: var(--accent); transition: transform .3s linear; }
-  .ct-loading__bytes { display: flex; justify-content: space-between; font: 700 13px/1 var(--f-num); color: var(--ink-2); }
+  /* ---- nav ---- */
+  .ct-lobby__nav { grid-area: nav; display: flex; align-items: center; gap: 12px; }
+  .ct-lobby__brand { flex: 1; text-align: center; font: 700 11px/1 var(--f-ui); letter-spacing: .3em; text-transform: uppercase; color: var(--ink); text-shadow: 0 1px 8px rgb(0 0 0 / .6); }
+  .ct-lobby__icons { display: inline-flex; gap: 2px; padding: 3px; }
+
+  /* ---- the title block ---- */
+  .ct-lobby__hero { grid-area: hero; align-self: center; display: grid; justify-items: start; min-width: 0; padding: 20px 0 6px; }
+  .ct-lobby__kicker { margin: 0 0 20px 4px; font: 700 12px/1 var(--f-ui); letter-spacing: .3em; text-transform: uppercase; color: var(--accent-text); text-shadow: 0 1px 10px rgb(0 0 0 / .5); }
+  .ct-title {
+    margin: 0; font: 800 clamp(76px, 9.4vw, 152px)/.84 var(--f-disp); font-variation-settings: 'opsz' 96; letter-spacing: -.05em;
+    /* one hard drop under the letters (a little thickness) and one soft shadow into the scene; painted once, never animated */
+    filter: drop-shadow(0 .02em 0 rgb(70 34 0 / .45)) drop-shadow(0 .16em .3em rgb(0 0 0 / .42));
+  }
+  .ct-title__line { display: flex; align-items: center; gap: .1em; }
+  .ct-title__word {
+    display: inline-block; padding: 0 .05em .08em 0;
+    color: #fff3d6;
+    /* the warm fill, and above it one band of light that crosses the letters once after the entrance (background-position on the
+       title only, for 1.1 s; never repeated) */
+    background: linear-gradient(105deg, transparent 38%, rgb(255 255 255 / .95) 48%, rgb(255 255 255 / 0) 58%) 130% 0 / 260% 100% no-repeat,
+      linear-gradient(180deg, #fffefb 6%, #fff4d8 44%, #f6d48e 90%);
+    -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .ct-title__badge {
+    --gl-hover: 0;
+    align-self: flex-start; margin-top: .06em; padding: .46em .56em .44em; font: 700 max(.22em, 15px)/1 var(--f-num); letter-spacing: 0;
+    color: var(--ink); -webkit-text-fill-color: currentColor;
+    --gl-ring: inset 0 0 0 1.5px color-mix(in oklab, var(--accent) 60%, transparent), 0 0 26px -6px color-mix(in oklab, var(--accent) 80%, transparent);
+  }
+  .ct-lobby__cn { margin: 22px 0 0 6px; font: 600 20px/1 var(--f-ui); letter-spacing: .5em; color: #f4ead6; text-shadow: 0 1px 10px rgb(0 0 0 / .55); }
+
+  /* ---- actions ---- */
+  .ct-lobby__actions { display: flex; flex-wrap: wrap; align-items: center; gap: 14px; margin-top: 42px; }
+  .ct-lobby__play { min-width: 228px; min-height: 64px; padding: 0 30px 0 11px; gap: 14px; justify-content: flex-start; font-size: 19px; letter-spacing: .005em; }
+  .ct-lobby__play-label { flex: 1; text-align: center; }
+  .ct-lobby__play-disc {
+    display: grid; place-items: center; width: 42px; height: 42px; border-radius: 50%;
+    background: rgb(0 0 0 / .13); box-shadow: inset 0 1px 2px rgb(0 0 0 / .22), 0 1px 0 rgb(255 255 255 / .4);
+  }
+  .ct-lobby__play-disc svg { width: 17px; height: 17px; fill: currentColor; translate: 1.5px 0; }
+  .ct-lobby__more { display: inline-flex; gap: 3px; padding: 4px; }
+  .ct-lobby__more .ct-ghost { min-height: 50px; padding: 0 20px 0 17px; font-size: 15px; }
+  .ct-lobby .ct-error { display: flex; align-items: center; gap: 10px; max-width: 560px; margin-top: 18px; padding: 8px 8px 8px 16px; font-size: 14px; }
+  .ct-lobby .ct-error > svg { color: var(--leak-mark); }
+  .ct-lobby .ct-error span { flex: 1; }
+
+  /* ---- the numbers: a tray of raised fills ---- */
+  .ct-lobby__stats-wrap { grid-area: stats; align-self: end; justify-self: start; }
+  .ct-lobby__stats { --gl-r: var(--r-4); --gl-pad: 6px; padding: 6px; }
+  .ct-lobby__stats ul { display: flex; gap: 4px; }
+  .ct-lobby__stats li { display: grid; gap: 4px; align-content: center; min-width: 92px; padding: 9px 16px 10px 14px; }
+  .ct-lobby__stats b { display: flex; align-items: center; gap: 7px; font-size: 24px; line-height: 1; color: var(--ink); }
+  .ct-lobby__stats b svg { width: 16px; height: 16px; color: var(--accent-mark); }
+  .ct-lobby__stats span { font-size: 12px; line-height: 1.1; color: var(--ink-2); white-space: nowrap; }
+
+  /* ---- the next stage ---- */
+  .ct-lobby__card-wrap { grid-area: card; align-self: end; justify-self: end; }
+  .ct-lobby__next { display: grid; gap: 14px; width: 384px; padding: 10px 10px 16px; text-align: left; will-change: transform; }
+  .ct-lobby__jacket { position: relative; display: block; aspect-ratio: 16 / 9; background: #0d1522; }
+  .ct-lobby__jacket img { transition: scale .9s var(--e-out); }
+  .ct-lobby__jacket::after { content: ""; position: absolute; inset: 0; background: radial-gradient(60% 75% at 0% 100%, rgb(4 7 12 / .82), rgb(4 7 12 / .4) 55%, transparent 80%), linear-gradient(0deg, rgb(4 7 12 / .6), transparent 50%); }
+  .ct-lobby__jacket-no { position: absolute; z-index: 1; left: 14px; bottom: 9px; font-size: 46px; line-height: 1; color: #fff; text-shadow: 0 2px 14px rgb(0 0 0 / .55); }
+  .ct-lobby__jacket-go {
+    position: absolute; z-index: 1; right: 12px; bottom: 12px; display: grid; place-items: center; width: 46px; height: 46px; border-radius: 50%;
+    color: var(--accent-ink);
+    background: radial-gradient(120% 120% at 50% -30%, rgb(255 255 255 / .55), transparent 58%), linear-gradient(180deg, color-mix(in oklab, var(--accent), white 18%), var(--accent));
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / .7), inset 0 -2px 5px rgb(0 0 0 / .18), 0 8px 18px -8px color-mix(in oklab, var(--accent) 80%, transparent), 0 6px 14px -6px rgb(0 0 0 / .6);
+    transition: scale var(--t-release) var(--e-spring);
+  }
+  .ct-lobby__jacket-go svg { width: 17px; height: 17px; fill: currentColor; translate: 1.5px 0; }
+  .ct-lobby__next-body { display: grid; gap: 8px; min-width: 0; padding: 0 8px; }
+  .ct-lobby__next-name { font: 800 25px/1.05 var(--f-disp); letter-spacing: -.012em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ct-lobby__next-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+  .ct-lobby__waves { font: 600 13px/1 var(--f-ui); color: var(--ink-2); }
+  .ct-lobby__progress { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 12px; margin-top: 4px; }
+  .ct-lobby__progress .gl-meter { height: 6px; }
+  .ct-lobby__progress > span { font-size: 13px; color: var(--ink); }
+  .ct-lobby__progress small { font: 600 12px var(--f-ui); color: var(--ink-2); letter-spacing: 0; }
+  /* focus: glass.css still lists the old chamfered card among the inset-ring controls (outline none, !important in an earlier layer,
+     which no later layer can undo), so the card draws its ring through the glass ring slot instead, following its corners */
+  .ct-lobby__next:focus-visible { --gl-ring: 0 0 0 2px #05080d, 0 0 0 4.5px var(--focus); }
+  @media (hover: hover) and (pointer: fine) {
+    .ct-lobby__next:hover .ct-lobby__jacket img { scale: 1.045; }
+    .ct-lobby__next:hover .ct-lobby__jacket-go { scale: 1.08; }
+  }
+
+  /* ---- footer ---- */
+  .ct-lobby__foot { grid-area: foot; display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: 12px; color: var(--ink-2); }
+  .ct-lobby__foot > span:first-child { text-shadow: 0 1px 8px rgb(0 0 0 / .6); }
+  .ct-lobby__links { display: flex; gap: 8px; }
+
+  /* ---- entrance (about 1.4 s; nothing waits for it) and the way out ----
+     Everything enters with the properties no control uses: translate and opacity, filled backwards only, so the press scale, the
+     parallax (translate on the wrappers) and the tilt (transform) own their properties as soon as the entrance ends. */
+  .is-animated .ct-lobby__art { animation: ct-lobby-art 1.9s var(--e-out) backwards; }
+  .is-animated :is(.ct-lobby__light, .ct-lobby__rays) { animation: ct-fade 1.6s ease-out .3s backwards; }
+  .is-animated .ct-lobby__motes { animation: ct-fade 2s ease-out .8s backwards; }
+  .is-animated .ct-in { animation: ct-lobby-rise .72s var(--e-out) backwards; animation-delay: calc(160ms + var(--i, 0) * 62ms); }
+  .is-animated .ct-title__word { animation: ct-lobby-word .95s var(--e-out) calc(260ms + var(--i, 0) * 120ms) backwards, ct-lobby-glint 1.1s var(--e-inout) calc(1150ms + var(--i, 0) * 140ms) backwards; }
+  .is-animated .ct-title__badge { animation: ct-lobby-badge .8s var(--e-spring) .62s backwards; }
+  .is-animated .ct-lobby__next { animation: ct-lobby-card .9s var(--e-sheet) .7s backwards; }
+  /* the way out: the scene leans in and dims almost to black in 260 ms, so the loading screen (which rises from black) follows without a cut */
+  .ct-lobby__art { transition: scale .6s var(--e-out), filter .26s ease-in; }
+  .ct-lobby.is-leaving .ct-lobby__art { scale: 1.06; filter: brightness(.22); }
+  .ct-lobby.is-leaving :is(.ct-lobby__light, .ct-lobby__rays, .ct-lobby__motes) { opacity: 0; transition: opacity .2s ease-in; }
+  .ct-lobby.is-leaving :is(.ct-in, .ct-title, .ct-lobby__next) { opacity: 0; scale: .985; transition: opacity .22s var(--e-out), scale .3s var(--e-out); pointer-events: none; }
+  /* with a dialog open the scene holds still: moving motes behind a blurred sheet would re-blur it every frame */
+  .ct-page:has(dialog[open]) .ct-lobby__motes i { animation-play-state: paused; }
+  @keyframes ct-lobby-art { from { opacity: 0; scale: 1.14; } }
+  @keyframes ct-lobby-rise { from { opacity: 0; translate: 0 18px; } }
+  @keyframes ct-lobby-word { from { opacity: 0; translate: 0 .16em; filter: blur(14px); } }
+  @keyframes ct-lobby-badge { from { opacity: 0; scale: .72; } }
+  @keyframes ct-lobby-glint { from { background-position: 130% 0, 0 0; } to { background-position: -30% 0, 0 0; } }
+  @keyframes ct-lobby-card { from { opacity: 0; translate: 0 34px; } }
+  @keyframes ct-mote { 0% { transform: translate(0, 0); opacity: 0; } 14% { opacity: var(--o); } 78% { opacity: var(--o); } 100% { transform: translate(var(--dx), var(--dy)); opacity: 0; } }
+}
+
+@layer carrot.entry {
+  /* ================================================================ loading ============================================== */
+  .ct-loading { position: absolute; inset: 0; z-index: 15; display: grid; place-items: center; padding: max(16px, var(--safe-t)) max(16px, var(--safe-r)) max(16px, var(--safe-b)) max(16px, var(--safe-l)); overflow: hidden auto; background: #05080d; }
+  /* the stage's own board, out of focus (a still image: the filter is painted once) */
+  .ct-loading__scene { position: fixed; inset: 0; overflow: hidden; pointer-events: none; }
+  .ct-loading__scene img { position: absolute; inset: -60px; width: calc(100% + 120px); height: calc(100% + 120px); object-fit: cover; filter: blur(22px) saturate(1.25) brightness(.62); scale: 1.04; animation: ct-loading-scene 1.6s var(--e-out) backwards; }
+  .ct-loading__scene::after { content: ""; position: absolute; inset: 0; background: radial-gradient(90% 80% at 50% 45%, rgb(5 8 13 / .1), rgb(5 8 13 / .7) 100%); }
+  .ct-loading__card { --gl-pad: 12px; position: relative; width: min(480px, 100%); display: grid; gap: 18px; padding: 12px 12px 22px; }
+  .ct-loading__jacket { position: relative; display: block; aspect-ratio: 16 / 7; }
+  .ct-loading__jacket::after { content: ""; position: absolute; inset: 0; background: radial-gradient(50% 90% at 0% 100%, rgb(4 7 12 / .84), rgb(4 7 12 / .4) 55%, transparent 80%), linear-gradient(0deg, rgb(4 7 12 / .6), transparent 55%); }
+  .ct-loading__no { position: absolute; z-index: 1; left: 16px; bottom: 10px; font-size: 44px; line-height: 1; color: #fff; text-shadow: 0 2px 14px rgb(0 0 0 / .55); }
+  .ct-loading__body { display: grid; gap: 12px; padding: 0 12px; }
+  .ct-loading h2 { font: 800 clamp(30px, 5vw, 40px)/1 var(--f-disp); letter-spacing: -.02em; }
+  .ct-loading__meta { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-top: -2px; font-size: 13px; color: var(--ink-2); }
+  .ct-loading__progress { display: grid; gap: 8px; margin-top: 4px; }
+  .ct-loading__bar { height: 8px; }
+  /* a light sweeping along the fill while it loads (transform only) */
+  .ct-loading__bar i { overflow: hidden; }
+  .ct-loading__bar i::after { content: ""; position: absolute; inset: 0; width: 40%; background: linear-gradient(90deg, transparent, rgb(255 255 255 / .55), transparent); translate: -100% 0; animation: ct-loading-sweep 1.7s var(--e-inout) infinite; }
+  .ct-loading__bytes { display: flex; justify-content: space-between; font-size: 13px; color: var(--ink-2); }
   .ct-loading__bytes b { color: var(--ink); }
-  .ct-loading__tip { min-height: 2.8em; font-size: 14px; color: var(--ink-2); }
-  .ct-loading__tower { display: grid; grid-template-columns: 56px 1fr; gap: 12px; align-items: center; padding-top: 12px; border-top: 1px solid var(--hair); }
-  .ct-loading__tower .ct-portrait { width: 56px; height: 56px; clip-path: var(--chamfer); }
-  .ct-loading__tower div { display: grid; gap: 2px; }
-  .ct-loading__tower b { font: 800 15px var(--f-disp); }
-  .ct-loading__tower span { font-size: 12px; color: var(--ink-2); }
+  .ct-loading__tip { --gl-pad: 12px; display: grid; gap: 6px; min-height: 92px; align-content: start; padding: 12px 14px; font-size: 14px; line-height: 1.4; color: var(--ink); }
+  .ct-loading__tip > span:last-child { animation: ct-fade .5s ease-out backwards; }
+  .ct-loading__tower { --gl-pad: 12px; display: grid; grid-template-columns: 52px 1fr; gap: 12px; align-items: center; padding: 8px 12px 8px 8px; }
+  .ct-loading__tower .gl-thumb { --gl-pad: 20px; width: 52px; height: 52px; background: rgb(0 0 0 / .25); }
+  .ct-loading__tower .ct-portrait { width: 100%; height: 100%; }
+  .ct-loading__tower div { display: grid; gap: 3px; min-width: 0; }
+  .ct-loading__tower b { font: 800 15px/1.15 var(--f-disp); }
+  .ct-loading__tower span { font-size: 12px; line-height: 1.3; color: var(--ink-2); }
+  .ct-loading__error { display: grid; gap: 16px; justify-items: start; }
+  .ct-loading__error p { display: flex; gap: 10px; align-items: flex-start; font-size: 15px; line-height: 1.4; }
+  .ct-loading__error p svg { flex: none; margin-top: 1px; color: var(--leak-mark); }
+  @keyframes ct-loading-scene { from { opacity: 0; scale: 1.14; } }
+  @keyframes ct-loading-sweep { 0% { translate: -100% 0; } 70%, 100% { translate: 260% 0; } }
 
-  /* ---- How to play, Field guide, Settings (the dialog shell itself is in menus.css) ---- */
+  /* ================================================================ inside the dialogs ==================================== */
+  /* How to play */
   .ct-help-steps { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
-  .ct-help-steps article { padding: 14px; border: 1px solid var(--hair); display: grid; gap: 6px; align-content: start; }
-  .ct-help-steps svg { color: var(--accent); width: 24px; height: 24px; }
-  .ct-help-steps h3 { font: 800 16px var(--f-disp); }
-  .ct-help-steps p, .ct-help-track p, .ct-help-gestures { font-size: 13px; line-height: 1.45; color: var(--ink-2); }
-  .ct-help-track { margin-top: 16px; display: grid; gap: 8px; }
-  .ct-help-track h3 { font: 800 16px var(--f-disp); }
-  .ct-help-track b { display: inline-flex; align-items: center; gap: 3px; color: var(--ink); }
-  .ct-help-track b svg { width: 14px; height: 14px; color: var(--ally-hi); }
-  .ct-help-gestures { margin-top: 14px; }
-  .ct-help-shortcuts { margin-top: 12px; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; font-size: 13px; color: var(--ink-2); }
-  .ct-help-shortcuts kbd { font: 700 12px var(--f-num); padding: 3px 7px; border: 1px solid var(--hair); color: var(--ink); }
-  .ct-dialog details { margin-top: 16px; font-size: 13px; color: var(--ink-2); }
-  .ct-dialog summary { min-height: 44px; display: flex; align-items: center; cursor: pointer; color: var(--ink); font-weight: 700; }
-  .ct-dialog details a { display: inline-flex; min-height: 44px; align-items: center; color: var(--ally-hi); text-decoration: underline; }
-  .ct-guide-grid { margin-top: 14px; display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; }
-  .ct-guide-grid article { display: grid; grid-template-columns: 64px 1fr; gap: 12px; padding: 10px; border: 1px solid var(--hair); }
-  .ct-guide-grid article .ct-portrait { width: 64px; height: 64px; clip-path: var(--chamfer); }
-  .ct-guide-grid article > div { display: grid; gap: 4px; align-content: start; min-width: 0; }
-  .ct-guide-grid h3 { font: 800 15px/1.15 var(--f-disp); }
-  .ct-guide-grid h3 small { display: block; font: 600 12px var(--f-ui); color: var(--ink-3); }
-  .ct-guide-grid p { font-size: 12px; line-height: 1.35; color: var(--ink-2); }
-  .ct-guide-grid article.is-super { border-color: rgba(170, 136, 255, .45); }
-  .ct-settings section { display: grid; gap: 10px; padding: 14px 0; border-bottom: 1px solid var(--hair); }
-  .ct-settings section:last-child { border-bottom: 0; }
-  .ct-settings h3 { font: 700 11px/1 var(--f-ui); letter-spacing: .16em; text-transform: uppercase; color: var(--ink-3); }
-  .ct-settings__row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
-  .ct-slider { display: grid; grid-template-columns: 96px 1fr 40px; align-items: center; gap: 12px; min-height: 44px; }
+  .ct-help-steps article { --gl-r: var(--r-4); position: relative; display: grid; gap: 8px; align-content: start; padding: 16px 16px 18px; }
+  .ct-help-steps__icon {
+    display: grid; place-items: center; width: 44px; height: 44px; margin-bottom: 6px; border-radius: 50%; color: var(--accent-mark);
+    background: radial-gradient(circle at 50% 120%, color-mix(in oklab, var(--accent) 30%, transparent), transparent 70%), rgb(255 255 255 / .06);
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / .16), inset 0 -1px 0 rgb(0 0 0 / .2), 0 6px 14px -8px color-mix(in oklab, var(--accent) 60%, transparent);
+  }
+  .ct-help-steps__icon svg { width: 22px; height: 22px; }
+  .ct-help-steps__no { position: absolute; top: 16px; right: 18px; font-size: 24px; line-height: 1; color: rgb(255 255 255 / .5); }
+  .ct-help-steps h3 { font: 800 18px/1.1 var(--f-disp); }
+  .ct-help-steps p, .ct-help-track p, .ct-help-gestures { font-size: 13.5px; line-height: 1.5; color: var(--ink-2); }
+  .ct-help-track { --gl-r: var(--r-5); --gl-pad: 10px; display: grid; grid-template-columns: minmax(200px, 270px) minmax(0, 1fr); gap: 20px; align-items: center; margin-top: 12px; padding: 18px 20px 18px 18px; }
+  .ct-help-track__copy { display: grid; gap: 8px; }
+  .ct-help-track h3 { font: 800 18px/1.1 var(--f-disp); }
+  .ct-help-track b { display: inline-flex; align-items: center; gap: 3px; color: var(--ink); font-weight: 700; white-space: nowrap; }
+  .ct-help-track b svg { width: 14px; height: 14px; color: var(--ally-mark); }
+  .ct-help-controls { display: grid; gap: 12px; margin-top: 16px; padding: 0 4px; }
+  .ct-help-gestures { display: flex; gap: 10px; align-items: flex-start; }
+  .ct-help-gestures svg { flex: none; width: 18px; height: 18px; margin-top: 1px; color: var(--ink-2); }
+  .ct-help-keys { display: flex; flex-wrap: wrap; gap: 8px 18px; }
+  .ct-help-keys li { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: var(--ink-2); }
+  .ct-help-keys kbd, .ct-dialog kbd {
+    display: inline-grid; place-items: center; min-width: 30px; height: 30px; padding: 0 9px; border-radius: 9px;
+    font: 700 12px/1 var(--f-num); color: var(--ink);
+    background: linear-gradient(180deg, rgb(255 255 255 / .13), rgb(255 255 255 / .06));
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / .22), inset 0 -2px 0 rgb(0 0 0 / .3), 0 2px 4px rgb(0 0 0 / .25);
+  }
+  .ct-help-credits { margin-top: 14px; }
+  .ct-help-credits summary { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 16px 0 4px; list-style: none; cursor: pointer; font-weight: 700; color: var(--ink); border-radius: 999px; --gl-radius: 999px; }
+  .ct-help-credits summary::-webkit-details-marker { display: none; }
+  .ct-help-credits summary svg { width: 16px; height: 16px; color: var(--ink-2); rotate: 90deg; transition: rotate var(--t-hover) var(--e-out); }
+  .ct-help-credits[open] summary svg { rotate: -90deg; }
+  .ct-help-credits[open] > :not(summary) { animation: ct-fade .25s ease-out backwards; }
+
+  /* the wave track sketch */
+  .ct-sketch { display: grid; gap: 8px; }
+  .ct-sketch__lane { display: grid; grid-template-columns: 18px 1fr; align-items: center; gap: 8px; }
+  .ct-sketch__route { font: 700 11px/1 var(--f-num); color: var(--ink-2); text-align: center; }
+  .ct-sketch__rail {
+    position: relative; isolation: isolate; height: 44px; border-radius: 999px;
+    background: linear-gradient(90deg, rgb(255 255 255 / .1), rgb(255 255 255 / .03) 30%, rgb(255 255 255 / .03));
+    box-shadow: inset 0 1px 2px rgb(0 0 0 / .35);
+  }
+  /* the bright line where creatures appear */
+  .ct-sketch__rail::before { content: ""; position: absolute; left: 14px; top: 7px; bottom: 7px; width: 3px; border-radius: 2px; background: var(--ally-hi); box-shadow: 0 0 12px var(--ally); }
+  .ct-sketch__note {
+    position: absolute; top: 50%; left: var(--at); width: 32px; height: 32px; margin: -16px 0 0 -16px; display: grid; place-items: center; border-radius: 50%;
+    color: #e9eef6; background: rgb(18 26 40 / .9); box-shadow: inset 0 1px 0 rgb(255 255 255 / .2), 0 0 0 1.5px rgb(255 255 255 / .16), 0 4px 10px rgb(0 0 0 / .4);
+  }
+  .ct-sketch__note.is-boss { color: #ffe3ef; box-shadow: inset 0 1px 0 rgb(255 255 255 / .2), 0 0 0 1.5px var(--threat), 0 0 16px -2px var(--threat); }
+  .ct-sketch__note .ct-creature-glyph { width: 30px; height: 30px; color: inherit; }
+  .ct-sketch__note b { position: absolute; right: -5px; top: -5px; display: grid; place-items: center; width: 17px; height: 17px; border-radius: 50%; color: #06111b; background: var(--ally-hi); }
+  .ct-sketch__note b svg { width: 11px; height: 11px; stroke-width: 2.4; }
+  .ct-sketch__tail { position: absolute; left: 50%; top: 50%; width: calc(var(--group) * 2.6); height: 10px; margin-top: -5px; border-radius: 999px; z-index: -1; background: linear-gradient(90deg, rgb(255 255 255 / .22), rgb(255 255 255 / .06)); }
+
+  /* Credits */
+  .ct-credits__list { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+  .ct-credits__list li { --gl-r: var(--r-4); --gl-pad: 0px; display: grid; gap: 6px; align-content: start; padding: 14px 16px; }
+  .ct-credits__list li:first-child, .ct-credits__list li:last-child { grid-column: 1 / -1; }
+  .ct-credits__list p { font-size: 13.5px; line-height: 1.45; color: var(--ink); }
+  .ct-credits__more { margin-top: 12px; padding: 0 4px; font-size: 13px; line-height: 1.5; color: var(--ink-2); }
+  .ct-credits__more a { display: inline-flex; align-items: center; min-height: 44px; padding: 0 4px; color: var(--ally-text); font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }
+
+  /* Field guide */
+  .ct-collection .ct-segment { margin-bottom: 14px; }
+  .ct-guide-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 8px; }
+  .ct-guide-grid article { --gl-r: var(--r-4); --gl-pad: 8px; display: grid; grid-template-columns: 76px 1fr; gap: 14px; padding: 8px 14px 12px 8px; animation: ct-guide-in .42s var(--e-out) backwards; animation-delay: min(calc(var(--i, 0) * 18ms), 360ms); }
+  .ct-guide-grid__art { display: block; width: 76px; height: 76px; background: radial-gradient(circle at 50% 70%, rgb(255 255 255 / .1), rgb(0 0 0 / .25)); }
+  .ct-guide-grid__art .ct-portrait { width: 100%; height: 100%; }
+  .ct-guide-grid article > div { display: grid; gap: 4px; align-content: start; min-width: 0; padding-top: 2px; }
+  .ct-guide-grid h3 { font: 800 15.5px/1.15 var(--f-disp); }
+  .ct-guide-grid h3 small { display: block; margin-top: 2px; font: 600 12px var(--f-ui); color: var(--ink-2); }
+  .ct-guide-grid p { font-size: 12.5px; line-height: 1.4; color: var(--ink-2); }
+  .ct-guide-grid .ct-badges { margin-top: 2px; }
+  .ct-guide-grid article.is-super { --gl-ring: inset 0 0 0 1.5px color-mix(in oklab, var(--super) 70%, transparent), 0 0 24px -8px var(--super); background: color-mix(in oklab, var(--super) 9%, rgb(255 255 255 / .06)); }
+  .ct-guide-grid article.is-mini .gl-label { color: var(--coin-text); }
+  @keyframes ct-guide-in { from { opacity: 0; translate: 0 8px; } }
+
+  /* Settings: grouped rows on a recessed well, no dividers (the rows are separated by the well showing between them) */
+  .ct-settings section { display: grid; gap: 8px; }
+  .ct-settings section + section { margin-top: 18px; }
+  .ct-settings h3 { padding: 0 6px; font: 700 11px/1.2 var(--f-ui); letter-spacing: .14em; text-transform: uppercase; color: var(--ink-2); }
+  .ct-settings__group { --gl-r: var(--r-4); --gl-pad: 0px; display: grid; gap: 2px; padding: 0; overflow: hidden; border-radius: calc(var(--r-4) * var(--gl-sq)); background: rgb(0 0 0 / .22); box-shadow: inset 0 1px 2px rgb(0 0 0 / .3); }
+  .ct-settings__group > * { min-height: 56px; padding: 6px 16px; background: rgb(255 255 255 / .055); }
+  .ct-settings .ct-switch { grid-template-columns: minmax(0, 1fr) auto; column-gap: 16px; }
+  .ct-settings .ct-switch input { grid-column: 2; grid-row: 1 / 3; }
+  .ct-settings .ct-switch span { grid-column: 1; font-weight: 700; }
+  .ct-settings .ct-switch small { grid-column: 1; color: var(--ink-2); font-size: 12.5px; }
+  .ct-slider { display: grid; grid-template-columns: 96px 1fr 40px; align-items: center; gap: 14px; }
   .ct-slider span { font-weight: 700; }
-  .ct-slider b { font: 700 13px var(--f-num); text-align: right; }
-  .ct-slider input { width: 100%; height: 44px; accent-color: var(--accent); }
-  .ct-slider input:disabled { opacity: .45; }
+  .ct-slider b { font-size: 13px; text-align: right; color: var(--ink); }
   .ct-field { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
   .ct-field > span { font-weight: 700; }
+  .ct-field .ct-segment { align-self: center; }
+  .ct-settings__actions { display: flex; flex-wrap: wrap; gap: 8px; }
 }
 
 @layer carrot.themes {
+  /* ---- the lobby on a phone held upright: the title at the top, the art in the middle, everything you press at the bottom ---- */
   @media (max-width: 640px) {
-    .ct-lobby { grid-template-columns: 1fr; padding-left: max(18px, var(--safe-l)); padding-right: max(18px, var(--safe-r)); }
-    .ct-lobby__copy { padding: 12px 0; }
-    .ct-lobby__next { grid-column: 1; grid-row: auto; width: 100%; grid-template-columns: 120px 1fr; margin-bottom: 10px; }
-    .ct-lobby__actions .ct-cta--hero { width: 100%; }
-    .ct-lobby__brand { display: none; }
+    .ct-lobby {
+      --art-pos: var(--art-pos-tall);
+      grid-template-columns: minmax(0, 1fr);
+      grid-template-rows: auto auto auto auto minmax(14px, 1fr) auto auto auto auto auto;
+      grid-template-areas: 'nav' 'kicker' 'title' 'cn' '.' 'card' 'play' 'more' 'stats' 'foot';
+      row-gap: 10px;
+      padding: max(14px, var(--safe-t)) max(16px, var(--safe-r)) max(12px, var(--safe-b)) max(16px, var(--safe-l));
+    }
+    .ct-lobby__scrim {
+      background:
+        linear-gradient(180deg, rgb(5 8 13 / .9) 0%, rgb(5 8 13 / .82) 22%, rgb(5 8 13 / .62) 33%, rgb(5 8 13 / .14) 46%, rgb(5 8 13 / 0) 54%),
+        linear-gradient(0deg, rgb(5 8 13 / .95) 0%, rgb(5 8 13 / .82) 36%, rgb(5 8 13 / .2) 56%, rgb(5 8 13 / 0) 64%);
+    }
+    .ct-lobby__hero, .ct-lobby__actions { display: contents; }
+    .ct-lobby__brand { visibility: hidden; }
+    .ct-lobby__kicker { grid-area: kicker; margin: 8px 0 0 2px; font-size: 11px; }
+    .ct-title { grid-area: title; font-size: min(19vw, 80px); margin-top: 2px; }
+    .ct-lobby__cn { grid-area: cn; margin-top: 4px; font-size: 16px; }
+    .ct-lobby__play { grid-area: play; width: 100%; min-height: 60px; justify-content: center; padding: 0 30px 0 10px; }
+    .ct-lobby__play-disc { position: absolute; left: 9px; }
+    .ct-lobby__more { grid-area: more; display: flex; width: 100%; }
+    .ct-lobby__more .ct-ghost { flex: 1 1 0; min-width: 0; min-height: 46px; padding: 0 10px; font-size: 14px; }
+    .ct-lobby .ct-error { grid-area: card; margin: 0; }
+    .ct-lobby__stats-wrap { grid-area: stats; justify-self: stretch; }
+    .ct-lobby__stats { --gl-pad: 5px; padding: 5px; }
+    .ct-lobby__stats ul { gap: 3px; }
+    .ct-lobby__stats li { flex: 1 1 0; min-width: 0; gap: 3px; align-content: start; padding: 8px 4px 9px; text-align: center; justify-items: center; }
+    .ct-lobby__stats b { font-size: 18px; gap: 5px; }
+    .ct-lobby__stats b svg { width: 13px; height: 13px; }
+    .ct-lobby__stats span { font-size: 11px; white-space: normal; }
+    .ct-lobby__card-wrap { grid-area: card; justify-self: stretch; }
+    .ct-lobby__next { --gl-pad: 8px; width: 100%; grid-template-columns: 116px minmax(0, 1fr); align-items: center; gap: 12px; padding: 8px 12px 8px 8px; }
+    .ct-lobby__jacket-no { left: 8px; bottom: 5px; font-size: 24px; }
+    .ct-lobby__jacket-go { display: none; }
+    .ct-lobby__next-body { gap: 5px; padding: 0; }
+    .ct-lobby__next-name { font-size: 18px; }
+    .ct-lobby__waves, .ct-lobby__next .ct-medals, .ct-lobby__next .ct-grade { display: none; }
+    .ct-lobby__progress { display: none; }
+    .ct-lobby__foot { justify-content: center; flex-wrap: wrap; row-gap: 2px; }
+    .ct-lobby__foot > span:first-child { order: 2; width: 100%; text-align: center; font-size: 11px; }
+    .ct-lobby__links { gap: 6px; }
+    .ct-lobby__links .ct-ghost { min-height: 44px; padding: 0 14px; font-size: 13px; }
+    .ct-lobby__motes i:nth-child(n + 11) { display: none; }
     .ct-help-steps { grid-template-columns: 1fr 1fr; }
+    .ct-help-track { grid-template-columns: 1fr; padding: 14px; }
+    .ct-credits__list { grid-template-columns: 1fr; }
+    .ct-slider { grid-template-columns: 76px 1fr 32px; gap: 10px; }
+    .ct-settings__group > * { padding: 6px 14px; }
+    .ct-loading__card { gap: 14px; }
+    .ct-loading__tip { min-height: 0; }
   }
+  /* big screens: the whole lobby scales up, so the composition keeps its proportions on a 27-inch display */
+  @media (min-width: 1700px) and (min-height: 960px) { .ct-lobby { zoom: 1.16; } }
+  @media (min-width: 2300px) and (min-height: 1300px) { .ct-lobby { zoom: 1.45; } }
+  /* very short phones (iPhone SE and the like): drop the numbers, keep every control */
+  @media (max-width: 640px) and (max-height: 700px) {
+    .ct-lobby__stats-wrap, .ct-lobby__kicker { display: none; }
+    .ct-title { font-size: min(16vw, 66px); }
+  }
+  /* ---- phones on their side: two columns, title and actions on the left, the stage card on the right ---- */
   @media (max-height: 500px) and (orientation: landscape) {
-    .ct-lobby__copy h1 { font-size: 48px; margin: 8px 0; }
-    .ct-lobby__actions { margin-top: 14px; }
-    .ct-lobby__meta { display: none; }
-    .ct-lobby__next { width: 300px; grid-template-columns: 110px 1fr; }
+    .ct-lobby {
+      grid-template-columns: minmax(0, 1fr) auto;
+      grid-template-rows: auto minmax(0, 1fr) auto;
+      grid-template-areas: 'nav nav' 'hero card' 'foot foot';
+      row-gap: 6px; column-gap: 20px;
+      padding: max(10px, var(--safe-t)) max(18px, var(--safe-r)) max(8px, var(--safe-b)) max(18px, var(--safe-l));
+    }
+    .ct-lobby__scrim {
+      background:
+        linear-gradient(90deg, rgb(5 8 13 / .9) 0%, rgb(5 8 13 / .72) 26%, rgb(5 8 13 / .3) 48%, rgb(5 8 13 / 0) 62%),
+        linear-gradient(0deg, rgb(5 8 13 / .9) 0%, rgb(5 8 13 / .4) 22%, rgb(5 8 13 / 0) 40%),
+        linear-gradient(180deg, rgb(5 8 13 / .82) 0%, rgb(5 8 13 / .6) 16%, rgb(5 8 13 / 0) 30%);
+    }
+    .ct-lobby__hero { padding: 0; }
+    .ct-lobby__kicker { display: none; }
+    .ct-title { font-size: min(13vh, 56px); }
+    .ct-lobby__cn { margin-top: 10px; font-size: 14px; }
+    .ct-lobby__actions { margin-top: 16px; gap: 8px 10px; }
+    .ct-lobby__play { min-width: 0; min-height: 52px; padding: 0 22px 0 7px; gap: 10px; font-size: 16px; }
+    .ct-lobby__play-disc { width: 38px; height: 38px; }
+    .ct-lobby__more .ct-ghost { min-height: 44px; padding: 0 14px; font-size: 13px; }
+    .ct-lobby__more .ct-ghost svg { display: none; }
+    .ct-lobby__stats-wrap { display: none; }
+    .ct-lobby__card-wrap { align-self: center; }
+    .ct-lobby__next { --gl-pad: 8px; width: 270px; gap: 10px; padding: 8px 8px 12px; }
+    .ct-lobby__jacket { aspect-ratio: 16 / 8; }
+    .ct-lobby__jacket-no { font-size: 30px; left: 10px; bottom: 6px; }
+    .ct-lobby__jacket-go { width: 38px; height: 38px; right: 8px; bottom: 8px; }
+    .ct-lobby__next-body { gap: 6px; padding: 0 4px; }
+    .ct-lobby__next-name { font-size: 19px; }
+    .ct-lobby__progress, .ct-lobby__waves { display: none; }
+    .ct-lobby__foot > span:first-child { font-size: 11px; }
+    .ct-lobby__links .ct-ghost { min-height: 44px; padding: 0 14px; font-size: 13px; }
+    .ct-help-steps { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .ct-loading__card { width: min(640px, 100%); grid-template-columns: 220px minmax(0, 1fr); align-items: start; padding: 12px; }
+    .ct-loading__jacket { aspect-ratio: 4 / 5; }
+    .ct-loading__body { padding: 4px 4px 0; gap: 9px; }
+    .ct-loading h2 { font-size: 26px; }
+    .ct-loading__tower { display: none; }
+    .ct-loading__tip { min-height: 0; font-size: 13px; }
   }
-  .ct-page[data-motion='reduce'] .is-animated .ct-enter { animation: ct-fade .2s linear both !important; }
+  /* the glint is light on glass: gone where the glass turns solid or high contrast */
+  :is([data-glass='solid'], .ct-page[data-glass='solid']) .ct-rimlight { display: none; }
+  @media (prefers-contrast: more), (forced-colors: active) { .ct-rimlight { display: none; } }
+  /* forced colours: the title becomes plain system text (a gradient clipped to the letters could vanish there) */
+  @media (forced-colors: active) {
+    .ct-title { filter: none; }
+    .ct-title__word { background: none; color: CanvasText; -webkit-text-fill-color: CanvasText; }
+    .ct-lobby__scrim, .ct-lobby__light, .ct-lobby__rays, .ct-lobby__motes { display: none; }
+  }
+  /* ---- reduced motion: nothing moves; things that appear fade for 200 ms ---- */
+  .ct-page[data-motion='reduce'] .ct-lobby :is(.ct-lobby__art, .ct-in, .ct-title, .ct-lobby__next) { animation: ct-fade .2s linear backwards !important; }
+  .ct-page[data-motion='reduce'] .ct-lobby :is(.ct-title__word, .ct-title__badge) { animation: none !important; }
+  .ct-page[data-motion='reduce'] :is(.ct-loading__scene img, .ct-loading__tip > span, .ct-guide-grid article, .ct-help-credits[open] > :not(summary)) { animation: ct-fade .2s linear backwards !important; }
+  .ct-page[data-motion='reduce'] .ct-loading__bar i::after { animation: none !important; display: none; }
+  .ct-page[data-motion='reduce'] .ct-lobby__next :is(.ct-lobby__jacket img, .ct-lobby__jacket-go) { scale: none !important; }
 }

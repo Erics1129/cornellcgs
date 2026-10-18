@@ -25,7 +25,7 @@ import { BuildMenu } from './ui/BuildMenu'
 import { hudEdges } from './ui/BuildMenu'
 import type { PanelMode } from './ui/BuildMenu'
 import { Results } from './ui/Results'
-import { FieldGuide, HelpModal, SettingsModal } from './ui/Modals'
+import { CreditsModal, FieldGuide, HelpModal, SettingsModal } from './ui/Modals'
 import { ConfirmModal } from './ui/Dialog'
 import { useGlassTier, usePointerLight } from './ui/Glass'
 import { errors } from './copy'
@@ -37,7 +37,7 @@ import './ui/menus.css'
 
 const SuperTier=5,TopTier=4
 const clampLevel=(value:unknown,count:number)=>Math.max(1,Math.min(count,Number(value)||1))
-type Panel='select'|'challenges'|'guide'|'help'|'settings'|'restart'|null
+type Panel='select'|'challenges'|'guide'|'help'|'settings'|'credits'|'restart'|null
 const lossCounts=new Map<number,number>()
 
 /** The local review panel follows every publish (development preview only; the page itself re-renders only on slice changes). */
@@ -80,6 +80,8 @@ function CarrotPage(){
  usePointerLight(root)
  const v2=!!page&&page.v>=2
  const currentLevel=definitions?.levels.find(l=>l.id===(page?.level||level))
+ // the entry page shows the chapter of the stage it offers next, so its art and accent follow the campaign
+ const lobbyBiome=definitions?.levels.find(l=>l.id===(preview?qaLevel:Math.min(LevelCount,save.unlocked)))?.biome
  const challengeBoss=page?bossOfLevel(page.level):null
  // the guided first level: a fresh player on level 1 (the dev preview opts in with ?carrot-tutorial)
  const tutorialActive=(!preview||new URLSearchParams(location.search).has('carrot-tutorial'))&&!records.tutorial&&save.unlocked<=1&&!Object.keys(save.medals).length&&(page?.level||level)===1
@@ -191,13 +193,13 @@ function CarrotPage(){
 
  const st=store.get()
  const pageClass=['ct-page',page?.biome==='prism'?'is-prism':'',expanded?'is-expanded':'',page?.blind?'is-blind':'',page?.blackout?'is-blackout':'',page?.white?'is-blind-white':'',result?'has-result':''].filter(Boolean).join(' ')
- return <div className={pageClass} ref={root} data-biome={page?.biome||currentLevel?.biome||'garden'} data-boss={challengeBoss||undefined} data-motion={reduced?'reduce':'full'} data-glass={glassTier} style={{'--hud-scale':prefs.hudScale/100} as CSSProperties} onClickCapture={e=>{
+ return <div className={pageClass} ref={root} data-biome={page?.biome||(entered?currentLevel?.biome:lobbyBiome)||'garden'} data-boss={challengeBoss||undefined} data-motion={reduced?'reduce':'full'} data-glass={glassTier} style={{'--hud-scale':prefs.hudScale/100} as CSSProperties} onClickCapture={e=>{
   const button=(e.target as Element).closest('button:not(:disabled),a');if(!saved.current.sound||!button)return
   const label=button.getAttribute('aria-label')||button.textContent||''
   const kind=/^Close|^Back/.test(label)?'close':/Stage select|^Stages|Choose|How to|[Cc]hallenges|Settings|Field guide/.test(label)?'open':'click'
   if(ready&&entered)engine.current?.uiSound(kind);else menuSound(kind)
  }}>
-  {!entered?<Lobby definitions={definitions} save={save} records={records} error={error} preview={preview} qaLevel={qaLevel} reduced={reduced} onPlay={choose} onSelect={()=>openPanel('select')} onChallenges={()=>openPanel('challenges')} onGuide={()=>openPanel('guide')} onHelp={()=>openPanel('help')} onSettings={()=>openPanel('settings')}/>
+  {!entered?<Lobby definitions={definitions} save={save} records={records} error={error} preview={preview} qaLevel={qaLevel} reduced={reduced} onPlay={choose} onSelect={()=>openPanel('select')} onChallenges={()=>openPanel('challenges')} onGuide={()=>openPanel('guide')} onHelp={()=>openPanel('help')} onSettings={()=>openPanel('settings')} onCredits={()=>openPanel('credits')}/>
   :<main className="ct-game" aria-label="Carrot Defense battlefield">
    <div className="ct-scene" ref={mount}/>
    {(!ready||error)&&<Loading level={currentLevel} definitions={definitions} progress={loading} bytes={bytes} error={error} onRetry={()=>location.reload()}/>}
@@ -234,6 +236,7 @@ function CarrotPage(){
   {(panel==='select'||panel==='challenges')&&definitions&&<LevelSelect definitions={definitions} save={save} challenges={challenges} records={records} current={page?.level||save.unlocked} preview={preview} veteranAvailable={veteranAvailable} veteran={veteran} onVeteran={setVeteran} onPlay={choose} onClose={closePanel} startChallenges={panel==='challenges'} reduced={reduced}/>}
   {panel==='guide'&&<FieldGuide definitions={definitions} superSave={superSave} onClose={closePanel}/>}
   {panel==='help'&&<HelpModal onClose={closePanel}/>}
+  {panel==='credits'&&<CreditsModal onClose={closePanel}/>}
   {panel==='settings'&&<SettingsModal prefs={prefs} volumes={volumes} sound={save.sound} inGame={entered&&ready} canFocusBoss={v2&&!!page?.boss} onPrefs={p=>writePrefs(p)} onVolumes={v=>writeVolumes(v)} onSound={toggleSound} onFocusBoss={()=>{closePanel();engine.current?.focusBoss()}} onRestart={entered&&ready?()=>setPanel('restart'):undefined} expanded={expanded} onStages={entered&&ready?()=>setPanel(challengeBoss?'challenges':'select'):undefined} onHelp={entered&&ready?()=>setPanel('help'):undefined} onFullscreen={entered&&ready?()=>void fullscreen():undefined} onClose={closePanel}/>}
   {panel==='restart'&&<ConfirmModal title="Restart this stage?" body="The current run ends and the stage starts again from wave 1." confirm="Restart" onConfirm={restart} onClose={closePanel}/>}
  </div>
