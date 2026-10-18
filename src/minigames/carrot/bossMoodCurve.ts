@@ -95,9 +95,12 @@ export class MoodTracker{
   if(b&&(this.bossId<0||this.state>=3)&&(this.bossId<0||b.id!==this.bossId)){this.bossId=b.id;this.bossKind=b.kind;this.state=1;this.arrivalAt=this.clock;this.lastStage=b.stage||1;this.lastAbility='';this.minis.clear()}
   if(b&&b.id===this.bossId){
    this.state=1;if(typeof b.routeFraction==='number'&&Number.isFinite(b.routeFraction))this.route=clamp01(b.routeFraction);else if(this.route===0)this.route=.5
-   const stage=b.stage||1;if(stage>this.lastStage){this.rebirths+=stage-this.lastStage;this.reformAt=elapsed}this.lastStage=stage
-   if(b.ability==='reincarnate'&&this.lastAbility!=='reincarnate')this.dawnAt=elapsed
-   this.lastAbility=b.ability||''
+   // the Eyeball: a life ends (its stage rises and the reincarnate cast starts in the same tick) = the false dawn; the cast ending
+   // (2.2 s later) is the re-formation, where Unity's tracker counts the rebirth
+   const ability=b.ability||''
+   if(ability==='reincarnate'&&this.lastAbility!=='reincarnate')this.dawnAt=elapsed
+   if(this.lastAbility==='reincarnate'&&ability!=='reincarnate'&&this.dawnAt>-1e8){this.rebirths++;this.reformAt=elapsed}
+   this.lastAbility=ability;this.lastStage=b.stage||1
    this.leakBase=MoodTracker.leaks(st,b.kind)
   }else if(this.bossId>=0&&(this.state===1||this.state===2)&&st.phase!=='lost'){
    if(MoodTracker.leaks(st,this.bossKind)>this.leakBase)this.state=4

@@ -187,8 +187,8 @@ namespace CarrotTD {
      if(moodHeld&&moodReleaseAt<0||moodBossWave>=2&&game.wave>=moodBossWave)return 1;
      float step=Mathf.Clamp01((Mathf.Max(game.wave,1)-1)/(float)Mathf.Max(1,moodBossWave-2));return Mathf.Clamp01(.667f*step+fear);}
     case 1:case 2:case 3:return 1;
-    case 4:case 5:{ // release, and a challenge's post-guardian waves: the life comes back only where there is no aftershock
-     if(moodChallenge&&CarrotBossMood.WavesLeft)return 1;return moodReleaseAt>=0&&soundClock-moodReleaseAt<MoodFirstCall?1:0;}
+    case 4:case 5:{ // release, and a challenge's post-guardian waves: the aftershock keeps the bed bare until the win
+     if(MoodAftershock())return 1;return moodReleaseAt>=0&&soundClock-moodReleaseAt<MoodFirstCall?1:0;}
     case 6:return 0;
     case 7:return moodP; // lost: the bed stays as it was
     default:return moodP;
@@ -206,6 +206,8 @@ namespace CarrotTD {
    foreach(var x in game.enemies)if(x!=null&&x.alive&&!x.clone&&x.boss=="asuna"&&x.ability=="prismBreak"&&x.castRemaining>0){now=true;break;}
    if(moodPrismCasting&&!now)MoodBreath("prism");moodPrismCasting=now;
   }
+  /// <summary>A challenge whose guardian falls with waves still to come (L25-L28): no release until the win.</summary>
+  bool MoodAftershock(){return moodChallenge&&game!=null&&game.level!=null&&moodBossWave<game.level.waves;}
   void MoodRelease(){moodReleaseAt=soundClock;moodFirstPlayed=moodBedBackLogged=moodResolvedLogged=false;Cue("mood:release",0);}
   bool MoodCasting(){
    if(game==null||game.enemies==null)return false;
@@ -254,7 +256,7 @@ namespace CarrotTD {
    if(moodReleaseAt<0)return;float t=soundClock-moodReleaseAt;
    string call=CarrotBossMoodSynth.ReleaseCall(moodProfile);
    float at=call=="cascade"?.6f:MoodFirstCall;
-   bool natural=!(moodChallenge&&CarrotBossMood.WavesLeft);
+   bool natural=!MoodAftershock();
    if(!moodFirstPlayed&&t>=at){moodFirstPlayed=true;if(call!=null&&natural){Play("Mood"+call,call=="cascade"?.07f:call=="drips"?.06f:.075f,1,"mood-first",2,false,PKill);Cue("mood:first",t);}}
    if(!moodResolvedLogged&&t>=MoodResolve){moodResolvedLogged=true;if(moodDroneReady)Cue("mood:resolved",t);}
    if(!moodBedBackLogged&&t>=MoodBedBack&&moodP<=.02f){moodBedBackLogged=true;Cue("mood:bed",t);}

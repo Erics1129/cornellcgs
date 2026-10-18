@@ -73,10 +73,11 @@ const boss = (o = {}) => ({ id: 77, kind: 'garden', name: 'Brambleback', hp: 100
 { // the Eyeball: reincarnate cast = false dawn; the life stage counts rebirths; minibosses after the fall add to the aftershock
  const t = new MoodTracker(), eye = o => snap(27, { phase: 'playing', wave: 7, ...o })
  t.observe(eye({ elapsed: 100, boss: boss({ kind: 'eyeball', routeFraction: .6 }) }), 0)
- t.observe(eye({ elapsed: 101, boss: boss({ kind: 'eyeball', routeFraction: .6, ability: 'reincarnate', castRemaining: 2.2 }) }), 1000)
+ t.observe(eye({ elapsed: 101, boss: boss({ kind: 'eyeball', routeFraction: .6, ability: 'reincarnate', castRemaining: 2.2, stage: 2 }) }), 1000)
+ ok(t.rebirths === 0, 'the life stage rising with the cast is the dawn, not yet a rebirth')
  near(t.input(eye({ elapsed: 101.5 }), 0).dawnAge, .5, 'dawn age from the reincarnate cast'); near(moodTarget(t.input(eye({ elapsed: 101.5 }), 0)), moodTarget(C(27, 'playing', 7, 1, { route: .6, dawn: .5 })), 'false dawn target')
  t.observe(eye({ elapsed: 103.2, boss: boss({ kind: 'eyeball', routeFraction: .6, stage: 2 }) }), 3200)
- ok(t.rebirths === 1, 'one rebirth'); near(t.input(eye({ elapsed: 103.2 }), 0).dawnAge, 2.2, 'reform snaps the dawn window to 2.2 s')
+ ok(t.rebirths === 1, 'one rebirth when the cast ends (the re-formation)'); near(t.input(eye({ elapsed: 103.2 }), 0).dawnAge, 2.2, 'reform snaps the dawn window to 2.2 s')
  t.observe(eye({ elapsed: 150, wave: 8, enemyCount: 6, boss: null }), 50000); ok(t.state === 3, 'eyeball falls'); ok(t.releaseDelay(eye({ wave: 8 })) === .6, 'challenge release delay .6 s')
  play(t, 50000, 60000); ok(t.stage(eye({ wave: 8 })) === 'post', 'a challenge with waves left goes to post after 9 s')
  t.observe(eye({ elapsed: 160, wave: 9, boss: null, minibosses: [{ id: 501, kind: 'warDrummer', hp: 100, maxHp: 100, shield: 0, maxShield: 0, phase: 1, ability: '', castRemaining: 0, x: 0, y: 0, visible: true }] }), 60000)
