@@ -1,0 +1,63 @@
+/*
+ * BOSS MOOD (page): the HUD's share of the boss-level despair, driven by bossMood.ts (docs/carrot-defense/despair.md).
+ * Only on a boss level ([data-boss-mood]), only inside the battlefield HUD (.ct-hud): the panels cool and darken toward the guardian's
+ * hue (35% x De), the ink cools (30% x De), the boss name becomes heavier small caps, and the boss bar's edge breathes slowly (a 4 s
+ * period; 10 s for the Unknown Eyeball), stopping while a windup is live so the threat edge reads alone. On the guardian's fall the
+ * chrome warms for a moment and settles.
+ * Never touched: the signal tokens (--threat, --leak, --coin, --ally, --super, --accent), the boss warning band, menus and results.
+ * Motion: opacity and transform only, every animation 2 s or longer except the one-shot name fade-in (900 ms), none at all under
+ * Reduced effects (data-motion="reduce"); no mood colour applies under prefers-contrast: more.
+ * The tokens are captured on .ct-page and re-derived on .ct-hud, so the base palette (and its accessibility variants) stays the
+ * source; a glass HUD that tints with --gl-tint ("r g b") takes the same shift from --mood-gl-tint.
+ * Loaded after carrot.css (CarrotPage imports bossMood.ts after it), so this layer sits above the page's own layers.
+ */
+@layer carrot.mood {
+  .ct-page[data-boss-mood] {
+    --mood-base-panel-hi: var(--panel-hi); --mood-base-panel-lo: var(--panel-lo);
+    --mood-base-ink: var(--ink); --mood-base-ink-2: var(--ink-2);
+  }
+  @media not (prefers-contrast: more) {
+    .ct-page[data-boss-mood] .ct-hud {
+      --mood-cold-hi: color-mix(in oklab, var(--mood-base-panel-hi), var(--mood-panel, #0b111b) calc(var(--mood-d, 0) * 35%));
+      --mood-cold-lo: color-mix(in oklab, var(--mood-base-panel-lo), var(--mood-panel, #0b111b) calc(var(--mood-d, 0) * 35%));
+      --panel-hi: color-mix(in oklab, var(--mood-cold-hi), var(--mood-warm-tint, #3a2a14) calc(var(--mood-warm, 0) * 15%));
+      --panel-lo: color-mix(in oklab, var(--mood-cold-lo), var(--mood-warm-tint, #3a2a14) calc(var(--mood-warm, 0) * 15%));
+      --ink: color-mix(in oklab, var(--mood-base-ink), var(--mood-ink, #f2f6ff) calc(var(--mood-d, 0) * 30%));
+      --ink-2: color-mix(in oklab, var(--mood-base-ink-2), var(--mood-ink, #f2f6ff) calc(var(--mood-d, 0) * 20%));
+      --gl-tint: var(--mood-gl-tint, 12 18 32);
+      color: var(--ink);
+    }
+  }
+
+  /* The guardian's name: heavier, colder small caps (no bounce, no glow), fading in once with a hairline drawn under it. */
+  .ct-page[data-boss-mood] :is(.ct-bossbar__head, .ct-bossbar__title) strong {
+    position: relative; font-variant-caps: all-small-caps; letter-spacing: .06em;
+    animation: ct-mood-name 900ms var(--ease-out, ease-out) both;
+  }
+  .ct-page[data-boss-mood] :is(.ct-bossbar__head, .ct-bossbar__title) strong::after {
+    content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 1px; background: currentColor; opacity: .45;
+    transform-origin: left; animation: ct-mood-hair 1200ms var(--ease-out, ease-out) both;
+  }
+  /* The boss bar's edge breathes (opacity .55 <-> .80), paused and hidden while a windup is live. */
+  .ct-page[data-boss-mood] .ct-bossbar::before {
+    content: ""; position: absolute; inset: 0; pointer-events: none; z-index: 0;
+    box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--mood-ink, #f2f6ff) 55%, transparent);
+    opacity: .55;
+    animation: ct-mood-breath calc(var(--mood-breath, 4s) / 2) ease-in-out infinite alternate;
+  }
+  .ct-page[data-boss-mood] .ct-bossbar.is-casting::before { animation: none; opacity: 0; }
+
+  @keyframes ct-mood-name { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes ct-mood-hair { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+  @keyframes ct-mood-breath { from { opacity: .55; } to { opacity: .8; } }
+
+  .ct-page[data-boss-mood][data-motion='reduce'] :is(.ct-bossbar__head, .ct-bossbar__title) strong,
+  .ct-page[data-boss-mood][data-motion='reduce'] :is(.ct-bossbar__head, .ct-bossbar__title) strong::after,
+  .ct-page[data-boss-mood][data-motion='reduce'] .ct-bossbar::before { animation: none !important; }
+  .ct-page[data-boss-mood][data-motion='reduce'] .ct-bossbar::before { opacity: .6; }
+  @media (prefers-reduced-motion: reduce) {
+    .ct-page[data-boss-mood] :is(.ct-bossbar__head, .ct-bossbar__title) strong,
+    .ct-page[data-boss-mood] :is(.ct-bossbar__head, .ct-bossbar__title) strong::after,
+    .ct-page[data-boss-mood] .ct-bossbar::before { animation: none !important; }
+  }
+}

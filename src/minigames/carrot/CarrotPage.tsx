@@ -30,6 +30,7 @@ import { ConfirmModal, FieldGuide, HelpModal, SettingsModal } from './ui/Modals'
 import { AirToast, BossWarning, Coach, EncounterCard, ForgeToast, NoticeToast, PrismBriefing, useEncounters, useTutorialStep } from './ui/Onboarding'
 import Icon from './Icon'
 import './carrot.css'
+import { useBossMood } from './bossMood' // BOSS MOOD (after carrot.css: its layer sits above the page's)
 
 const SuperTier=5,TopTier=4
 const clampLevel=(value:unknown,count:number)=>Math.max(1,Math.min(count,Number(value)||1))
@@ -71,6 +72,7 @@ export default function CarrotPage(){
  const step=useTutorialStep(store,tutorialActive&&ready&&!panel)
  const veteranAvailable=!!page?.veteranCap||!!definitions?.levels.some(l=>l.modes?.includes('veteran'))
  const duo=useDuo({store,engine,ready,entered,enter:()=>setEntered(true),loading})
+ useBossMood(store,root,reduced,definitions) // BOSS MOOD
 
  // Development preview only (tree-shaken from production): a QA harness can drive the level, read the live state, or inject a snapshot.
  useEffect(()=>{if(!preview)return;const w=window as unknown as {__carrot?:{send:(c:Command)=>void;state:()=>GameState|null;inject:(s:GameState|null)=>void;ready:()=>void}};w.__carrot={send:c=>engine.current?.send(c),state:()=>store.get(),inject:s=>store.set(s),ready:()=>{setError('');setReady(true)}};return()=>{delete w.__carrot}},[preview,store])

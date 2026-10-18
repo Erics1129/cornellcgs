@@ -20,6 +20,8 @@ namespace CarrotTD {
   readonly Dictionary<string,AudioClip> cache=new Dictionary<string,AudioClip>();
   string biome="";float level,target;int buildId;
   public string Biome=>biome;
+  /// <summary>BOSS MOOD: the boss-mood privation gain on the bed's output (1 everywhere else; CarrotAudioBossMood owns it).</summary>
+  public float MoodGain=1;
   public bool Ready=>source!=null&&source.clip!=null&&cache.ContainsKey(biome);
   public float LastBuildMs {get;private set;}
   public CarrotAmbience(AudioSource source){this.source=source;if(source!=null){source.loop=true;source.volume=0;source.priority=200;}}
@@ -46,29 +48,33 @@ namespace CarrotTD {
    if(source==null||source.clip==null)return;
    target=PlayGain*(combat?.5f:1)*Mathf.Clamp01(duck)*Mathf.Clamp01(volume);
    level=Mathf.MoveTowards(level,target,dt*(target<level?.9f:.25f));
-   source.volume=level;
+   source.volume=level*Mathf.Clamp01(MoodGain); // BOSS MOOD
    if(paused&&source.isPlaying)source.Pause();else if(!paused&&!source.isPlaying&&level>0)source.UnPause();
   }
   public void Stop(){buildId++;if(source!=null){source.Stop();source.clip=null;}biome="";}
   public void Dispose(){Stop();foreach(var c in made)if(c!=null)UnityEngine.Object.Destroy(c);made.Clear();cache.Clear();}
 
   // ---------------- synthesis ----------------
-  /// <summary>Renders the loop; yields once per second of audio rendered. Deterministic per biome.</summary>
-  public static IEnumerator Render(string biome,Action<float[]> done){
+  /// <summary>Renders the loop; yields once per second of audio rendered. Deterministic per biome. BOSS MOOD: life=false renders the
+  /// bare bed (the wind without its birds, frogs, creaks, crickets or pings) with the full bed's RNG draws, gain and ceiling.</summary>
+  public static IEnumerator Render(string biome,Action<float[]> done,bool life=true){
    biome=Normalize(biome);
    int loop=(int)(LoopSeconds*Rate),total=loop+(int)(Crossfade*Rate);
    var x=new float[total];uint h=2166136261u;foreach(char c in biome){h^=c;h*=16777619u;}var r=new Rng(h^0xA511E9B3u);
    // Pre-scheduled events (birds, croaks, chirps, creaks, pings) are short and rendered whole.
+   var ev=life?x:new float[total]; // BOSS MOOD: the bare bed renders its events into a scratch buffer
    switch(biome){
-    case "garden":Birds(x,r);break;
-    case "marsh":Frogs(x,r);break;
-    case "frost":Creaks(x,r);break;
-    case "orchard":Crickets(x,r);break;
-    case "prism":Pings(x,r);break;
+    case "garden":Birds(ev,r);break;
+    case "marsh":Frogs(ev,r);break;
+    case "frost":Creaks(ev,r);break;
+    case "orchard":Crickets(ev,r);break;
+    case "prism":Pings(ev,r);break;
    }
    yield return null;
    var bed=new Bed(biome,r);
    for(int start=0;start<total;start+=Rate){int end=Math.Min(total,start+Rate);for(int i=start;i<end;i++)x[i]+=bed.Next(i/(float)Rate);yield return null;}
+   // BOSS MOOD: the bare bed takes the full bed's gain and ceiling (BareBed), so its wind matches the full bed's sample for sample.
+   if(!life){yield return null;done(BareBed(x,ev,loop));yield break;}
    // Seamless loop: the 2 s tail fades into the head (equal power), then the tail is dropped.
    int xf=total-loop;var outPcm=new float[loop];
    for(int i=0;i<loop;i++){float v=x[i];if(i<xf){float t=i/(float)xf;v=x[i]*Mathf.Sin(t*Mathf.PI*.5f)+x[loop+i]*Mathf.Cos(t*Mathf.PI*.5f);}outPcm[i]=v;}
@@ -78,6 +84,17 @@ namespace CarrotTD {
    // A gentle ceiling (rare bird peaks): soft-clip above 0.5 so a loud call never pokes out of the bed.
    if(peak>.5f)for(int i=0;i<loop;i++){float v=outPcm[i];outPcm[i]=Mathf.Abs(v)<.35f?v:Mathf.Sign(v)*(.35f+.15f*(float)Math.Tanh((Mathf.Abs(v)-.35f)/.15f));}
    done(outPcm);
+  }
+  /// <summary>BOSS MOOD: the bare bed. The full mix (events + wind, summed exactly as the default render sums them) sets the gain
+  /// and the soft-clip decision; the wind alone is shaped with them.</summary>
+  static float[] BareBed(float[] wind,float[] ev,int loop){
+   int total=wind.Length,xf=total-loop;var full=new float[loop];var bare=new float[loop];
+   for(int i=0;i<loop;i++){float v=ev[i]+wind[i],w=wind[i];if(i<xf){float t=i/(float)xf,a=Mathf.Sin(t*Mathf.PI*.5f),b=Mathf.Cos(t*Mathf.PI*.5f);v=v*a+(ev[loop+i]+wind[loop+i])*b;w=w*a+wind[loop+i]*b;}full[i]=v;bare[i]=w;}
+   double sum=0;for(int i=0;i<loop;i++)sum+=full[i]*full[i];
+   float rms=(float)Math.Sqrt(sum/loop),gain=rms>0?Mathf.Pow(10,TargetRmsDb/20)/rms:1;
+   float peak=0;for(int i=0;i<loop;i++){peak=Mathf.Max(peak,Mathf.Abs(full[i]*gain));bare[i]*=gain;}
+   if(peak>.5f)for(int i=0;i<loop;i++){float v=bare[i];bare[i]=Mathf.Abs(v)<.35f?v:Mathf.Sign(v)*(.35f+.15f*(float)Math.Tanh((Mathf.Abs(v)-.35f)/.15f));}
+   return bare;
   }
   public static float RmsDb(float[] pcm){double s=0;foreach(var v in pcm)s+=v*v;return pcm.Length==0?-120:20*Mathf.Log10(Mathf.Max(1e-9f,(float)Math.Sqrt(s/pcm.Length)));}
 
