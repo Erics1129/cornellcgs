@@ -528,8 +528,10 @@ namespace CarrotTD {
 
   // ================= NetPerf: own half + replica cost vs solo, endless tick cost at wave 60, silent replay rate.
   public static void NetPerf(string[] args){
-   policyMerges=true;scoreNoise=null;var inv=CultureInfo.InvariantCulture;
+   policyMerges=true;scoreNoise=null;var inv=CultureInfo.InvariantCulture;bool warm=false;
    foreach(int level in ArgRange(args,"levels","24,28")){
+    // The first pass of each level warms the JIT and is not reported (a cold first level inflates whichever path runs first).
+    for(int pass=warm?1:0;pass<2;pass++){warm=true;
     ClearBotCaches();var solo=NetGame(level,"normal",0);var tb=new TwinBot();SellUprooted(solo);BuyBest(solo,0);BuyBest(solo,0);solo.Command("{\"type\":\"start\"}");var ops=new List<string>();
     var soloWatch=new Stopwatch();int ticks=0;var script=new List<KeyValuePair<int,Action<CarrotGame>>>();
     while(solo.phase=="playing"&&ticks<40000){if(ticks%7==0)PolicyStep(solo,0,tb);soloWatch.Start();solo.StepSimulation(1f/30);soloWatch.Stop();ticks++;}
@@ -537,9 +539,9 @@ namespace CarrotTD {
     var duoWatch=new Stopwatch();int dticks=0;
     while((own.phase=="playing"||own.phase=="ready")&&!own.DuoHold&&dticks<40000){if(dticks%7==0)PolicyStep(own,0,tb2);foreach(var op in own.OutOps)rep.EnqueueOp(op);own.OutOps.Clear();duoWatch.Start();own.NetRunTo(own.NetTick+1,1,false);rep.NetRunTo(own.NetTick,1,false);duoWatch.Stop();dticks++;}
     double soloUs=soloWatch.Elapsed.TotalMilliseconds*1000/Math.Max(1,ticks),duoUs=duoWatch.Elapsed.TotalMilliseconds*1000/Math.Max(1,dticks);
-    Debug.Log("CARROT_NET_PERF level="+level+" soloUsPerTick="+soloUs.ToString("F2",inv)+" ownPlusReplicaUsPerTick="+duoUs.ToString("F2",inv)+" ratio="+(duoUs/Math.Max(.001,soloUs)).ToString("F2",inv)+" ticks="+ticks+"/"+dticks);
+    if(pass==1)Debug.Log("CARROT_NET_PERF level="+level+" soloUsPerTick="+soloUs.ToString("F2",inv)+" ownPlusReplicaUsPerTick="+duoUs.ToString("F2",inv)+" ratio="+(duoUs/Math.Max(.001,soloUs)).ToString("F2",inv)+" ticks="+ticks+"/"+dticks);
     Done(solo);Done(own);Done(rep);
-   }
+   }}
    // Endless tick cost around wave 60 (immortal carrot so the field is full, an E-R0 garden building on).
    {var g=NetGame(CarrotDuoMaps.EndlessId,"endless",60606);g.NetBegin(NetMode.Lockstep,0);g.coins=100000;
     for(int pad=0,k=0;pad<g.level.pads.Length;pad++){if(g.blockers.Exists(b=>b.pad==pad))continue;var d=CarrotData.Towers[k++%CarrotData.Towers.Length];g.BuyAt(pad,d.id,pad%2);var t=g.towers.Find(x=>x.pad==pad);if(t!=null)for(int u=0;u<3;u++)g.UpgradeTower(t.id,0,0);}
