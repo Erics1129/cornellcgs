@@ -30,8 +30,8 @@ import { ConfirmModal, FieldGuide, HelpModal, SettingsModal } from './ui/Modals'
 import { AirToast, BossWarning, Coach, EncounterCard, ForgeToast, NoticeToast, PrismBriefing, useEncounters, useTutorialStep } from './ui/Onboarding'
 import Icon from './Icon'
 import './carrot.css'
-import { useBossMood } from './bossMood' // BOSS MOOD (after carrot.css: its layer sits above the page's)
 
+import { useBossMood } from './bossMood' // BOSS MOOD (after the page's stylesheets: its layer sits above theirs)
 const SuperTier=5,TopTier=4
 const clampLevel=(value:unknown,count:number)=>Math.max(1,Math.min(count,Number(value)||1))
 type Panel='select'|'challenges'|'guide'|'help'|'settings'|'restart'|null
