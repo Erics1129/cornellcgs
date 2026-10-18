@@ -8,6 +8,8 @@ import { CreaturePortrait } from '../art'
 import Icon from '../Icon'
 import { formatSeconds } from '../challenges'
 import { bandTone, levelBand } from './LevelSelect'
+import { glass } from './Glass'
+import { fill } from './hudKit'
 
 /** Game seconds the track shows ahead of the judgement line. */
 export const TrackWindow=20
@@ -26,8 +28,8 @@ const NoteView=memo(function NoteView({n,unseen,register}:{n:Note;unseen:boolean
  return <div className={`ct-note ${t.air?'is-air':''} ${t.mini?'is-mini':''} ${t.boss?'is-boss':''} ${unseen?'is-new':''}`} data-route={n.route} data-kind={n.kind} data-key={n.key} ref={el=>register(n.key,el)}>
   <span className="ct-note__tail"/>
   <span className="ct-note__head">{t.boss?<Icon name="skull"/>:<CreaturePortrait kind={n.kind} fallback/>}</span>
-  <span className="ct-note__label"><b>{n.n>1?`×${n.n}`:t.boss?'BOSS':t.mini?'MINI':'×1'}</b><Badges n={n}/></span>
-  {unseen&&<span className="ct-note__new" title="New creature"/>}
+  <span className="ct-note__label">{!(n.n<=1&&(t.boss||t.mini))&&<b>{`×${Math.max(1,n.n)}`}</b>}<Badges n={n}/></span>
+  {unseen&&<span className="ct-note__new" title="New creature"><Icon name="spark"/></span>}
  </div>
 })
 
@@ -55,7 +57,7 @@ export function WaveTrack({store,level,enemies,seen,reduced,compact}:{store:Snap
   // each note's drawn width (head plus label), measured once per note and again after a resize
   const widths=new Map<string,number>()
   const resize=new ResizeObserver(()=>{HeadSize=0;widths.clear()});if(rail.current)resize.observe(rail.current)
-  const laid:Array<{n:Note;el:HTMLDivElement;target:number;lane:number;w:number;x:number;folded:boolean;gone:boolean}>=[]
+  const laid:Array<{n:Note;el:HTMLDivElement;target:number;lane:number;w:number;x:number;folded:boolean;gone:boolean;next:boolean}>=[]
   const frame=()=>{
    raf=requestAnimationFrame(frame)
    const box=rail.current;if(!box)return
@@ -71,11 +73,12 @@ export function WaveTrack({store,level,enemies,seen,reduced,compact}:{store:Snap
     // until the note's first spawn, in game seconds; queued notes (the ready phase, or a wave still in flight) park in view, unmoving
     const until=isNext?(breather?clock.nextWave+n.at:st.phase==='ready'?2.5+n.at:TrackWindow*.62+Math.min(n.at,16)*.32):n.at-clock.waveElapsed
     let w=widths.get(n.key);if(w===undefined){w=el.offsetWidth||HeadSize;widths.set(n.key,w)}
-    laid.push({n,el,target:until*px,lane:layoutLanes>1?n.route%layoutLanes:0,w,x:0,folded:false,gone:false})
+    laid.push({n,el,target:until*px,lane:layoutLanes>1?n.route%layoutLanes:0,w,x:0,folded:false,gone:false,next:isNext})
    }
    // Layout pass, per lane, in time order: a note never starts before the previous one's label ends (it is pushed right instead), and
-   // whatever no longer fits left of the lane's "+N" chip folds into that chip, so heads and counts never cover each other.
-   laid.sort((a,b)=>a.target-b.target)
+   // whatever no longer fits left of the lane's "+N" chip folds into that chip, so heads and counts never cover each other. The next
+   // wave's groups always come after the current wave's (a moving note never slides through a parked one).
+   laid.sort((a,b)=>Number(a.next)-Number(b.next)||a.target-b.target)
    const edge=new Array<number>(layoutLanes).fill(-Infinity),folded=new Array<number>(layoutLanes).fill(0)
    for(const it of laid){
     const tail=it.n.span*px
@@ -105,29 +108,37 @@ export function WaveTrack({store,level,enemies,seen,reduced,compact}:{store:Snap
   raf=requestAnimationFrame(frame)
   return()=>{cancelAnimationFrame(raf);resize.disconnect()}
  },[notes,nextKeys,store,reduced,lanes,layoutLanes])
+ // a new wave: its number pops and the judgement light swells once (opacity only under reduced motion)
+ const waveNo=useRef<HTMLElement>(null),lastWave=useRef(s?.wave||0)
+ useEffect(()=>{const w=s?.wave||0,before=lastWave.current;lastWave.current=w;if(w<=before||before===0&&s?.phase!=='playing')return
+  const node=waveNo.current;if(!node)return
+  node.animate(reduced?[{opacity:.4},{opacity:1}]:[{transform:'scale(1.45)',color:'#ffffff'},{transform:'scale(1)'}],{duration:reduced?200:520,easing:'cubic-bezier(.23,1,.32,1)'})
+ },[s?.wave,s?.phase,reduced])
  if(!s||!status)return null
  const asuna=s.level===29,label=asuna?`Encounter, ${formatSeconds(status.elapsed)}`:`Wave ${Math.max(0,s.wave)} of ${s.waves}`
  const upcoming=(plan?.next.length?plan.next:plan?.current||[]).slice(0,4).map(n=>`${n.n} ${n.traits.name}${n.traits.air?' (flying)':''}${n.traits.boss?' (guardian)':''} on route ${routeLetters[n.route]||n.route+1}`).join(', ')
- return <section className={`ct-track ct-panel ${compact?'is-compact':''}`} aria-label={`${s.name}. ${label}.${upcoming?` ${plan?.next.length?'Next':'Now'}: ${upcoming}.`:''}`} data-lanes={lanes}>
+ const phase=s.phase==='ready'?'is-ready':status.next>0?'is-breather':s.phase==='playing'?'is-live':''
+ return <section className={glass({depth:1},'ct-track',compact&&'is-compact')} aria-label={`${s.name}. ${label}.${upcoming?` ${plan?.next.length?'Next':'Now'}: ${upcoming}.`:''}`} data-lanes={lanes}>
+  <i className="ct-track__light" data-beat aria-hidden="true"/>
   <header className="ct-track__head">
    <span className="ct-track__no" aria-hidden="true">{String(s.level).padStart(2,'0')}</span>
    <strong className="ct-track__name">{s.name}</strong>
    {level&&<span className={`ct-band ct-track__band is-${bandTone(levelBand(level))}`}>{levelBand(level)}</span>}
-   <span className="ct-track__wave" aria-hidden="true">{asuna?<><small>T+</small>{formatSeconds(status.elapsed)}</>:<><small>WAVE</small>{String(Math.max(1,s.wave)).padStart(2,'0')}<small>/{String(s.waves).padStart(2,'0')}</small></>}</span>
-   <span className="ct-track__status" role="status">{s.phase==='ready'?'READY':status.next>0?<>NEXT <b>{status.next}s</b></>:s.phase==='playing'?<><b>{status.enemies}</b> ON PATH</>:''}</span>
+   <span className="ct-track__wave" aria-hidden="true">{asuna?<><small>Time</small><b>{formatSeconds(status.elapsed)}</b></>:<><small>Wave</small><b ref={waveNo}>{Math.max(1,s.wave)}</b><small>/ {s.waves}</small></>}</span>
+   <span className={`ct-track__status ${phase}`} role="status">{s.phase==='ready'?'Ready':status.next>0?<>Next <b>{status.next}s</b></>:s.phase==='playing'?<><b>{status.enemies}</b> on the path</>:''}</span>
   </header>
-  <div className="ct-track__progress" tabIndex={0} role="progressbar" aria-label="Level progress" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(status.progress*100)}>
-   <i className="ct-track__fill" style={{transform:`scaleX(${status.progress})`}}/>
+  <div className="ct-track__progress" tabIndex={0} role="progressbar" aria-label="Stage progress" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(status.progress*100)}>
+   <span className="ct-track__groove"><i className="ct-track__fill" style={fill(status.progress)}/></span>
    {flags.map(f=><i key={f.wave} className={`ct-track__flag is-${f.kind}`} style={{left:`${f.at*100}%`}} title={f.kind==='boss'?`Guardian in wave ${f.wave}`:`Miniboss in wave ${f.wave}`}/>)}
   </div>
   <div className="ct-track__lanes" aria-hidden="true">
-   {Array.from({length:lanes},(_,i)=><div className="ct-lane" key={i} data-route={i}><b className="ct-lane__tag">{compact?'◆':routeLetters[i]}</b></div>)}
+   {Array.from({length:lanes},(_,i)=><div className="ct-lane" key={i} data-route={i}><b className="ct-lane__tag">{compact?'·':routeLetters[i]}</b></div>)}
    <div className="ct-track__rail" ref={rail}>
     <div className="ct-track__beats" ref={beats}/>
     {notes.map(n=><div className="ct-note-row" key={n.key} style={{top:`${(compact?0:n.route%lanes)*100/lanes}%`,height:`${100/lanes}%`}}><NoteView n={n} unseen={!n.traits.boss&&!seen.includes(n.kind)} register={register}/></div>)}
-    <i className="ct-track__judge"/>
+    <i className="ct-track__judge" data-beat/>
     {Array.from({length:lanes},(_,i)=><i key={i} className="ct-track__hit" data-route={i} ref={el=>{hits.current[i]=el}} style={{top:`${i*100/lanes}%`,height:`${100/lanes}%`}}/>)}
-    {Array.from({length:layoutLanes},(_,i)=><b key={'more'+i+'/'+layoutLanes} className="ct-track__more" data-route={i} data-n="0" title="More packets queued" ref={el=>{more.current[i]=el}} style={{top:`${i*100/layoutLanes}%`,height:`${100/layoutLanes}%`}}/>)}
+    {Array.from({length:layoutLanes},(_,i)=><b key={'more'+i+'/'+layoutLanes} className="ct-track__more" data-route={i} data-n="0" title="More groups coming" ref={el=>{more.current[i]=el}} style={{top:`${i*100/layoutLanes}%`,height:`${100/layoutLanes}%`}}/>)}
    </div>
   </div>
  </section>
