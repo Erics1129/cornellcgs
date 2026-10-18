@@ -47,13 +47,13 @@ const challenges = (best = {}) => ({ version: 3, best })
 const win = { cleared: true, health: 9, seconds: 200, towers: 8 }
 eq(DUO_FIGHTS, [4, 8, 12, 16, 20, 24, 25, 26, 27, 28, 29], 'eleven boss fights')
 eq(FIGHTS.map(f => f.id), [...DUO_FIGHTS], 'every fight has a fallback name')
-const fresh = unlockedFights(campaign(1), challenges())
-eq(fresh, [25], 'a fresh save has only the Giant Tornado (always open)')
-const mid = unlockedFights(campaign(13), challenges({ tornado: win }))
-eq(mid, [4, 8, 12, 25, 26, 29], 'unlocked 13: L4, L8, L12; the Zombie and Asuna open at 13')
+// every boss fight is open from the start (no prerequisites), whatever the save holds
+eq(unlockedFights(campaign(1), challenges()), [...DUO_FIGHTS], 'a fresh save has all eleven boss fights')
+eq(unlockedFights(campaign(13), challenges({ tornado: win })), [...DUO_FIGHTS], 'a mid save has all eleven')
 const late = unlockedFights(campaign(24, { 24: 1 }), challenges({ tornado: win, zombie: win, eyeball: win }))
 eq(late, [4, 8, 12, 16, 20, 24, 25, 26, 27, 28, 29], 'a complete save has all eleven')
-eq(unlockedFights(campaign(5), challenges({ tornado: win })), [4, 25, 26], 'the Tornado cleared opens the Zombie')
+// offerFights still intersects the two lists (a partner on an older build may send fewer)
+const fresh = [25], mid = [4, 8, 12, 25, 26, 29]
 // intersection (default)
 const offer = offerFights(fresh, mid, false, 0)
 eq(offer.filter(o => o.open).map(o => o.id), [25], 'fresh + mid, intersection: only the Tornado')
@@ -77,7 +77,7 @@ eq(displayName(' Ana ', 0), 'Ana')
 values.set('cgs-carrot-defense-v1', JSON.stringify(campaign(9, { 1: 7 })))
 values.set('cgs-carrot-challenges-v1', JSON.stringify(challenges({ tornado: win })))
 values.set(ENDLESS_KEY, JSON.stringify({ version: 1, best: { waves: 17, seconds: 900, kills: 400, partner: 'Ana', solo: false, at: '2026-10-01T10:00:00.000Z' }, runs: 3 }))
-eq(readProfile('Mia'), { name: 'Mia', unlocked: [4, 8, 25, 26], best: 17 }, 'the room profile reads the saves (read-only)')
+eq(readProfile('Mia'), { name: 'Mia', unlocked: [...DUO_FIGHTS], best: 17 }, 'the room profile reads the saves (read-only); every boss fight is open')
 eq(JSON.parse(values.get('cgs-carrot-defense-v1')).unlocked, 9, 'reading the profile writes nothing to the campaign save')
 
 // ---------------------------------------------------------------- endless record

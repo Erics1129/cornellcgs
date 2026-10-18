@@ -1,4 +1,5 @@
 import { getAudioBus, getAudioPrefs, preferPlaybackSession } from './audioPrefs'
+import { NativeAudioContext } from './audioUnlock'
 
 /**
  * Menu sounds before (and around) the Unity player, synthesised with Web Audio: no files, so nothing to download and
@@ -17,7 +18,7 @@ function context(): AudioContext | null {
     return unity.state === 'closed' ? null : unity
   }
   if (!own) {
-    const C = window.AudioContext || (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
+    const C = NativeAudioContext
     if (!C) return null
     try { own = new C() } catch { return null }
   }

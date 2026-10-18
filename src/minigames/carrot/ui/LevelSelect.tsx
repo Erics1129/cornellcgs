@@ -4,7 +4,7 @@ import type { CampaignSave, ChallengeBoss, ChallengeSave, GameDefinitions, Level
 import { BossPortrait, CreaturePortrait, RouteDrawing, chapterArt, challengeArt, jacketArt, useImageAvailable } from '../art'
 import { levelKinds, parseComposition, traitsOf, workOf } from '../waves'
 import type { EnemyDefinition } from '../types'
-import { bossOfLevel, challengeDifficulty, challengeTitles, challengeUnlocked, formatSeconds, lockCaption, par as challengePar, stars } from '../challenges'
+import { bossOfLevel, challengeDifficulty, challengeTitles, challengeUnlocked, isGuardianLevel, formatSeconds, lockCaption, par as challengePar, stars } from '../challenges'
 import { LevelCount, gradeLetters } from '../progress'
 import { measuredR2 } from '../difficulty'
 import { names, noneYet } from '../copy'
@@ -66,7 +66,7 @@ type Props={definitions:GameDefinitions;save:CampaignSave;challenges:ChallengeSa
 export function LevelSelect({definitions,save,challenges,records,current,preview,veteranAvailable,veteran,onVeteran,onPlay,onClose,startChallenges,reduced}:Props){
  const ref=useRef<HTMLDialogElement>(null),list=useRef<HTMLOListElement>(null)
  const levels=definitions.levels
- const isOpen=(id:number)=>preview||(id>LevelCount?challengeUnlocked(id,save,challenges):id<=save.unlocked)
+ const isOpen=(id:number)=>preview||(id>LevelCount?challengeUnlocked(id,save,challenges):id<=save.unlocked||isGuardianLevel(id))
  const initial=startChallenges?(levels.find(l=>l.id>LevelCount)?.id||current):Math.min(current,LevelCount)
  const [focus,setFocus]=useState(initial)
  const chapterOf=(id:number)=>chapters.find(c=>id>=c.from&&id<=c.to)||chapters[0]

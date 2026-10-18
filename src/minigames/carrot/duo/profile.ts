@@ -3,7 +3,7 @@
 import type { CampaignSave, ChallengeSave } from '../types'
 import type { Profile } from '../net/protocol.ts'
 import { readCampaign } from '../progress.ts'
-import { challengeUnlocked, readChallenges } from '../challenges.ts'
+import { readChallenges } from '../challenges.ts'
 import { DUO_LEVELS, ENDLESS_LEVEL, STORAGE_KEYS, duoLayout, isDuoLevel } from '../net/protocol.ts'
 import { bestWaves, cleanName, readEndless } from './endlessRecord.ts'
 
@@ -31,9 +31,9 @@ export const FIGHTS:FightInfo[]=[
 export const fightInfo=(id:number):FightInfo|undefined=>FIGHTS.find(f=>f.id===id)
 export const isDuoFight=isDuoLevel
 
-/** The fights this save has open, by the single-player rules: a campaign guardian when id <= unlocked, a Challenge by challengeUnlocked(). */
-export function unlockedFights(campaign:CampaignSave,challenges:ChallengeSave):number[]{
- return DUO_FIGHTS.filter(id=>id<CHALLENGE_FIRST?id<=campaign.unlocked:challengeUnlocked(id,campaign,challenges))
+/** The fights this save has open: every boss fight, with no prerequisites (owner's call, 2026-10-18). */
+export function unlockedFights(_campaign?:CampaignSave,_challenges?:ChallengeSave):number[]{
+ return [...DUO_FIGHTS]
 }
 export type FightOffer={id:number;open:boolean;mine:boolean;theirs:boolean;
  /** the seats that have not unlocked it yet (the lobby shows "locked for Mia") */

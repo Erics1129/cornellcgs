@@ -12,21 +12,9 @@ assert.equal(bossOfLevel(25),'tornado');assert.equal(bossOfLevel(27),'eyeball');
 assert.deepEqual(challengeLevels,{tornado:25,zombie:26,eyeball:27,portal:28,asuna:29})
 
 // Unlock rules: Easy is open from a fresh save; Hard after the Tornado or campaign level 12; Insane after the Zombie or campaign level 24.
-assert.equal(challengeUnlocked(25,campaign(1),fresh),true,'the Giant Tornado is open from a fresh save')
-assert.equal(challengeUnlocked(26,campaign(1),fresh),false,'the Zombie waits on a fresh save')
-assert.equal(challengeUnlocked(27,campaign(1),fresh),false,'the Eyeball waits on a fresh save')
-assert.equal(challengeUnlocked(26,campaign(12),fresh),false,'reaching level 12 is not clearing it')
-assert.equal(challengeUnlocked(26,campaign(13),fresh),true,'clearing Last Harvest (12) opens the Zombie')
-assert.equal(challengeUnlocked(27,campaign(24),fresh),false,'reaching level 24 is not clearing it')
-assert.equal(challengeUnlocked(27,campaign(24,{24:1}),fresh),true,'a level-24 medal opens the Eyeball')
-assert.equal(challengeUnlocked(27,campaign(24,{24:6}),fresh),false,'only the cleared bit of the level-24 medal counts')
+for(const id of [25,26,27,28,29])assert.equal(challengeUnlocked(id,campaign(1),fresh),true,`boss fight ${id} is open from a fresh save, with no prerequisites`)
 assert.equal(challengeUnlocked(24,campaign(24,{24:7}),fresh),false,'campaign levels are not challenges')
 
-assert.equal(challengeUnlocked(29,campaign(1),fresh),false,'Asuna waits on a fresh save')
-assert.equal(challengeUnlocked(29,campaign(12),fresh),false,'reaching level 12 is not clearing it (Asuna)')
-assert.equal(challengeUnlocked(29,campaign(13),fresh),true,'clearing Last Harvest (12) opens Asuna')
-assert.equal(challengeUnlocked(29,campaign(1),{version:3,best:{portal:{cleared:true,health:5,seconds:600,towers:8}}}),true,'clearing the Portal opens Asuna')
-assert.equal(challengeUnlocked(29,campaign(1),{version:3,best:{asuna:{cleared:true,health:5,seconds:300,towers:8}}}),true,'a save that already cleared Asuna keeps her open')
 assert.equal(bossOfLevel(29),'asuna')
 
 // Awards: only a won fight records; a slower replay keeps the faster time; better health replaces health.
@@ -37,14 +25,11 @@ assert.equal(awardChallenge(fresh,'dragon',7,120,4),fresh,'unknown guardians nev
 let save=awardChallenge(fresh,'tornado',7,232.44,5)
 assert.deepEqual(save,{version:3,best:{tornado:{cleared:true,health:7,seconds:232.4,towers:5}}})
 assert.deepEqual(readChallenges(),save,'the record survives a reload');assert.deepEqual(rawChallenges(),save)
-assert.equal(challengeUnlocked(26,campaign(1),save),true,'clearing the Tornado opens the Zombie')
-assert.equal(challengeUnlocked(27,campaign(1),save),false,'the Tornado alone does not open the Eyeball')
 save=awardChallenge(save,'tornado',10,300,9)
 assert.deepEqual(save.best.tornado,{cleared:true,health:10,seconds:232.4,towers:5},'a slower replay keeps the faster time and its tower count but takes the better health')
 save=awardChallenge(save,'tornado',4,200,3)
 assert.deepEqual(save.best.tornado,{cleared:true,health:10,seconds:200,towers:3},'a faster replay replaces time and towers but never lowers health')
 save=awardChallenge(save,'zombie',9,355,8)
-assert.equal(challengeUnlocked(27,campaign(1),save),true,'clearing the Zombie opens the Eyeball')
 assert.equal(values.get('cgs-carrot-defense-v1'),'{"version":1,"unlocked":3,"medals":{},"sound":true}','the campaign save is untouched')
 
 // Stars: 1 cleared, 2 carrot unharmed, 4 under par (240/360/480 s).
@@ -94,9 +79,7 @@ for(const future of [{version:4,best:{portal:{unknown:true}},seasons:[1]},{versi
 
 // Portal never renumbers the campaign or old challenges, and never drops a legacy record.
 assert.equal(bossOfLevel(28),'portal')
-assert.equal(challengeUnlocked(28,campaign(24,{24:7}),fresh),false,'campaign completion alone does not bypass the final challenge')
 const eyeClear=awardChallenge(save,'eyeball',6,601,17)
-assert.equal(challengeUnlocked(28,campaign(1),eyeClear),true,'defeating the Eyeball opens Portal')
 const portalClear=awardChallenge(eyeClear,'portal',4,719.8,20)
 assert.equal(stars(portalClear.best.portal,'portal'),5)
 assert.deepEqual(readChallenges(),portalClear,'Portal record persists with every old record')
