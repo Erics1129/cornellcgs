@@ -169,6 +169,8 @@ namespace CarrotTD {
   float dormantClock;bool dormant;public bool SpectatorDormant=>dormant;
   /// <summary>QA only (perf experiments): the spectator skips its whole frame.</summary>
   [NonSerialized] internal bool qaFreeze;
+  /// <summary>The spectator's actor count and the replica's enemies + towers, both read at the end of its last frame (QA).</summary>
+  [NonSerialized] internal int lastActors=-1,lastExpected=-1;
   /// <summary>The spectator's frame: no clocks shared with the page, no globals, the partner's actors and a filtered effect set.</summary>
   void SpectatorUpdate(){
    CarrotQa.Section("spectator.gap");if(qaFreeze)return;
@@ -184,7 +186,7 @@ namespace CarrotTD {
    if(!dormant){UpdateCarrot(dt);if(carrot!=null&&GameCamera!=null){Vector3 face=GameCamera.transform.position-carrotPosition;face.y=0;if(face.sqrMagnitude>.01f)carrot.root.transform.rotation=Quaternion.Slerp(carrot.root.transform.rotation,Quaternion.LookRotation(face)*Quaternion.Euler(0,180,0),1-Mathf.Exp(-raw*10));}DrawContactShadows();}
    else if(dormantClock==0)DrawContactShadows();
    CarrotQa.Section("spectator.post");
-   int actors=enemies.Count+towers.Count,expect=game.enemies.Count+game.towers.Count;CarrotQa.Max("spectator.actorMismatch",dormant?0:Mathf.Abs(actors-expect));
+   int actors=enemies.Count+towers.Count,expect=game.enemies.Count+game.towers.Count;CarrotQa.Max("spectator.actorMismatch",dormant?0:Mathf.Abs(actors-expect));lastActors=actors;lastExpected=expect;
   }
   /// <summary>The partner's actors are watched, not played: no shadow casting (the contact blob stays), no secondary-motion springs,
   /// animation only while a renderer is visible, two bone influences and one mesh LOD coarser than the tier picks. Bosses keep their

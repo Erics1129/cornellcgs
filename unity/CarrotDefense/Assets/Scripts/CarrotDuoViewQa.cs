@@ -172,7 +172,8 @@ namespace CarrotTD {
    float strip=99;bool zAxis=AxisZ;foreach(var d in decorLog){if(d.w<.5f)continue;float c=zAxis?Mathf.Abs(d.y):Mathf.Abs(d.x);strip=Mathf.Min(strip,c-d.z*.5f);}if(!DuoHalves)strip=-1;sb.Append(",\"propWallClearance\":").Append(F(strip));
    var q=duoQa;var partner=q!=null?q.partner:GameObject.Find("CarrotPartner");
    if(partner!=null){var v=partner.GetComponent<CarrotView>();var rg=partner.GetComponent<CarrotGame>();int playing=0;var sources=partner.GetComponentsInChildren<AudioSource>(true);foreach(var s in sources)if(s.isPlaying)playing++;
-    int expected=rg!=null?rg.enemies.Count+rg.towers.Count:-1,actors=v!=null?v.enemies.Count+v.towers.Count:-1;
+    // Both counts as of the end of the spectator's last frame: the replica may have ticked since (the driver runs after it).
+    int expected=v!=null&&v.lastExpected>=0?v.lastExpected:rg!=null?rg.enemies.Count+rg.towers.Count:-1,actors=v!=null&&v.lastActors>=0?v.lastActors:v!=null?v.enemies.Count+v.towers.Count:-1;
     sb.Append(",\"partner\":{\"view\":").Append(v!=null&&v.Spectator?1:0).Append(",\"dormant\":").Append(v!=null&&v.dormant?1:0).Append(",\"actors\":").Append(actors).Append(",\"expected\":").Append(expected).Append(",\"tick\":").Append(rg!=null?Mathf.RoundToInt(rg.elapsed*30f):-1);
     sb.Append(",\"audioSources\":").Append(sources.Length).Append(",\"audioPlaying\":").Append(playing).Append(",\"cinemachine\":").Append(partner.GetComponentsInChildren<CinemachineVirtualCameraBase>(true).Length).Append(",\"lights\":").Append(partner.GetComponentsInChildren<Light>(true).Length);
     sb.Append(",\"cameras\":").Append(partner.GetComponentsInChildren<Camera>(true).Length).Append(",\"colliders\":").Append(partner.GetComponentsInChildren<Collider>(true).Length).Append(",\"clickables\":").Append(partner.GetComponentsInChildren<CarrotClickable>(true).Length);
