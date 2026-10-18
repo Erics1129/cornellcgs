@@ -14,6 +14,7 @@ Shader "Carrot/Storybook" {
   _Sheen("Fuzz sheen",Range(0,1))=0 _SheenTint("Sheen tint",Color)=(1,1,1,1)
   _DetailNormal("Detail normal",2D)="bump"{} _DetailScale("Detail scale",Float)=6 _DetailStrength("Detail strength",Range(0,2))=0
   _HitFlash("Hit flash",Range(0,1))=0 _RimBoost("Rim boost",Range(0,1))=0
+  _MoodClass("Boss mood class",Float)=0 // BOSS MOOD
  }
  SubShader { Tags {"RenderType"="Opaque" "RenderPipeline"="UniversalPipeline" "Queue"="Geometry"} Cull [_Cull]
   HLSLINCLUDE
@@ -22,6 +23,7 @@ Shader "Carrot/Storybook" {
   CBUFFER_START(UnityPerMaterial)
   float4 _MainTex_ST,_Color,_EmissionColor,_DissolveEdge,_SubsurfaceTint,_SheenTint;
   float _Metallic,_Glossiness,_WorldTexture,_TextureScale,_BumpScale,_UseRoughnessMap,_UseOcclusionMap,_OcclusionStrength,_ReflectionStrength,_Cutoff,_AlbedoSaturation,_AlbedoGain,_Wind,_VertexColorSRGB,_Translucency,_Dissolve,_SnowStrength,_Bend,_SuperPulse,_Subsurface,_Sheen,_DetailScale,_DetailStrength,_HitFlash,_RimBoost;
+  float _MoodClass; // BOSS MOOD
   CBUFFER_END
   // Written once per frame by CarrotView: the Super towers' emission pulse (only materials with _SuperPulse read it, so wood and pots never glow).
   float _CarrotSuperPulse;
@@ -43,6 +45,7 @@ Shader "Carrot/Storybook" {
    #pragma multi_compile_instancing
    #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
    #include "CarrotSurface.hlsl"
+   #include "CarrotBossMood.hlsl" // BOSS MOOD
    struct v2f {float4 pos:SV_POSITION;float3 world:TEXCOORD0;float3 normal:TEXCOORD1;float2 uv:TEXCOORD2;float4 tangent:TEXCOORD3;float4 color:COLOR;float fog:TEXCOORD4;float3 vertexLight:TEXCOORD5;UNITY_VERTEX_INPUT_INSTANCE_ID};
    v2f vert(appdata v){v2f o;UNITY_SETUP_INSTANCE_ID(v);UNITY_TRANSFER_INSTANCE_ID(v,o);o.world=CarrotWorld(v.vertex,v.uv);o.pos=TransformWorldToHClip(o.world);o.normal=TransformObjectToWorldNormal(v.normal);o.tangent=float4(TransformObjectToWorldDir(v.tangent.xyz),v.tangent.w*GetOddNegativeScale());o.uv=TRANSFORM_TEX(v.uv,_MainTex);o.color=v.color;
     // FBX stores display-encoded colors; textures already receive their own sRGB decode.
@@ -85,6 +88,7 @@ Shader "Carrot/Storybook" {
     float snow=smoothstep(.45,.8,n.y+(CarrotHash(floor(i.world*9))-.5)*.12)*_SnowAmount*_SnowStrength;
     albedo=lerp(albedo,float3(.93,.96,1.0),snow);smoothness=lerp(smoothness,.18,snow);metallic*=1-snow;
     [unroll] for(int wi=0;wi<2;wi++){float wet=saturate(1-distance(i.world.xz,_WetCenters[wi].xy)/max(.01,_WetCenters[wi].z))*_WetCenters[wi].w;albedo*=lerp(1,.72,wet);smoothness=lerp(smoothness,.6,wet);}
+    CarrotMoodSurface(albedo,smoothness,i.world,i.pos); // BOSS MOOD
     float3 view=SafeUnit(GetWorldSpaceViewDir(i.world));
     float4 shadowCoord=TransformWorldToShadowCoord(i.world);float2 screenUV=GetNormalizedScreenSpaceUV(i.pos);
     AmbientOcclusionFactor aoFactor;aoFactor.indirectAmbientOcclusion=1;aoFactor.directAmbientOcclusion=1;

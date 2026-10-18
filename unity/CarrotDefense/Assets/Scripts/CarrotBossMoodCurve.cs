@@ -117,6 +117,8 @@ namespace CarrotTD {
   readonly System.Collections.Generic.HashSet<int> minis=new System.Collections.Generic.HashSet<int>();
   CarrotGame game;
   public void Reset(CarrotGame g){game=g;BossId=-1;State=0;Rebirths=Minis=DeathWave=0;Route=0;DawnAt=ReliefAt=DeathAt=ArrivalAt=ReformAt=-1e9f;BossKind="";minis.Clear();}
+  /// <summary>Adopts a guardian already on the field (a build that lands after its bossEnter, e.g. the QA review encounter).</summary>
+  public void Adopt(){if(game==null||BossId>=0||game.level==null)return;foreach(var e in game.enemies)if(e.alive&&!e.clone&&!string.IsNullOrEmpty(e.boss)&&e.boss==game.level.boss){BossId=e.id;BossKind=e.boss;State=e.hidden?2:1;ArrivalAt=game.elapsed;Arrivals++;break;}}
   public void OnEvent(CarrotEvent e){
    if(game==null||e==null)return;float now=game.elapsed;
    if(e.type=="bossEnter"){if(BossId<0||State>=3){BossId=e.id;BossKind=e.kind??"";State=1;ArrivalAt=now;Arrivals++;}return;}
