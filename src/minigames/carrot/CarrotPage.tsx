@@ -37,6 +37,7 @@ import './ui/entry.css'
 import './ui/hud.css'
 import './ui/menus.css'
 
+import { useBossMood } from './bossMood' // BOSS MOOD (after the page's stylesheets: its layer sits above theirs)
 const SuperTier=5,TopTier=4
 const clampLevel=(value:unknown,count:number)=>Math.max(1,Math.min(count,Number(value)||1))
 type Panel='select'|'challenges'|'guide'|'help'|'settings'|'credits'|'restart'|null
@@ -90,6 +91,7 @@ function CarrotPage(){
  const step=useTutorialStep(store,tutorialActive&&ready&&!panel)
  const veteranAvailable=!!page?.veteranCap||!!definitions?.levels.some(l=>l.modes?.includes('veteran'))
  const duo=useDuo({store,engine,ready,entered,enter:()=>setEntered(true),loading})
+ useBossMood(store,root,reduced,definitions) // BOSS MOOD
 
  // Development preview only (tree-shaken from production): a QA harness can drive the level, read the live state, or inject a snapshot.
  useEffect(()=>{if(!preview)return;const w=window as unknown as {__carrot?:{send:(c:Command)=>void;state:()=>GameState|null;inject:(s:GameState|null)=>void;ready:()=>void}};w.__carrot={send:c=>engine.current?.send(c),state:()=>store.get(),inject:s=>store.set(s),ready:()=>{setError('');setReady(true)}};return()=>{delete w.__carrot}},[preview,store])

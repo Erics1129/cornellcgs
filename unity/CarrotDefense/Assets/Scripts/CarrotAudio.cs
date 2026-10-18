@@ -135,6 +135,7 @@ namespace CarrotTD {
   public void Tick(float dt,bool isPaused,string phase){
    if(isPaused!=paused){paused=isPaused;foreach(var v in voices){if(v.source==null)continue;if(paused)v.source.Pause();else v.source.UnPause();}for(int slot=0;slot<2;slot++)if(slotTrack[slot]!=null)Carrot_MusicPause(slot,paused?1:0);}
    if(ambience!=null)ambience.Tick(dt,EnemiesAlive()>0,DuckGain(),muted?0:sfxPref,paused);
+   TickBossMood(dt,isPaused); // BOSS MOOD
    if(paused)return;
    soundClock+=dt;
    for(int i=pending.Count-1;i>=0;i--){if(soundClock<pending[i].at)continue;var p=pending[i];pending.RemoveAt(i);eventPosition=p.position;if(p.clip!=null)PlayClip(p.clip,p.volume,p.pitch,p.priority,p.position,false,p.throttle,p.gap);else Play(p.name,p.volume,p.pitch,p.throttle,p.gap,false,p.priority,p.position);eventPosition=null;}
