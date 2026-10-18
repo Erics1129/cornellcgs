@@ -67,7 +67,10 @@ try {
     const med = (a, k) => { const v = a.map(x => x[k]).sort((x, y) => x - y); return v[v.length >> 1] }
     const r = { runs, solo: { p95: med(runs.solo, 'p95'), mean: med(runs.solo, 'mean') }, duo: { p95: med(runs.duo, 'p95'), mean: med(runs.duo, 'mean') }, duoBoth: { p95: med(runs.duoBoth, 'p95'), mean: med(runs.duoBoth, 'mean') } }
     r.ratioP95 = r.duo.p95 / r.solo.p95; r.ratioP95Both = r.duoBoth.p95 / r.solo.p95; r.pass = r.ratioP95 <= 1.25
-    console.log('phone', JSON.stringify({ solo: r.solo, duo: r.duo, duoBoth: r.duoBoth, ratioP95: r.ratioP95, ratioP95Both: r.ratioP95Both }))
+    // Paired ratios: each repetition's three pages ran back to back, so their ratio cancels most of the shared machine's load swings.
+    const pmed = v => { v = v.slice().sort((x, y) => x - y); return v[v.length >> 1] }
+    r.paired = { p95: pmed(runs.duo.map((x, i) => x.p95 / runs.solo[i].p95)), p95Both: pmed(runs.duoBoth.map((x, i) => x.p95 / runs.solo[i].p95)), mean: pmed(runs.duo.map((x, i) => x.mean / runs.solo[i].mean)), meanBoth: pmed(runs.duoBoth.map((x, i) => x.mean / runs.solo[i].mean)) }
+    console.log('phone', JSON.stringify({ solo: r.solo, duo: r.duo, duoBoth: r.duoBoth, ratioP95: r.ratioP95, ratioP95Both: r.ratioP95Both, paired: r.paired }))
     report.results.phone = r; save()
   }
   if (only.includes('first')) {

@@ -45,6 +45,10 @@ namespace CarrotTD {
   bool DuoHost=>duoOn&&!duoCfg.spectator;
   bool AxisZ=>DuoHalves&&game!=null&&game.level!=null&&CarrotDuoMaps.SideLayout(game.level.id)==DuoAxis.Z;
   CarrotView HostOf=>duoCfg.host!=null?duoCfg.host:hostView;
+  /// <summary>The spectator builds its carrot's fence and flowers before CombineDecoration, so they join the shadowless batches
+  /// (solo and the host build them afterwards, as before: about 25 draws and 15 shadow casters saved per partner half).
+  /// The prism refuge keeps its own objects.</summary>
+  bool SpectatorNestEarly=>Spectator&&!PrismStage;
   /// <summary>The spectator animates at the match's speed and pause (the host's), not the replica's own fields.</summary>
   CarrotGame ClockGame{get{if(Spectator){var h=HostOf;if(h!=null&&h.game!=null)return h.game;}return game;}}
   float ViewGameSpeed=>ClockGame.speed;
