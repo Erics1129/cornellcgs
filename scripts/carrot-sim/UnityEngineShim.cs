@@ -58,6 +58,15 @@ namespace UnityEngine {
   public override int GetHashCode()=>x.GetHashCode()^(y.GetHashCode()<<2)^(z.GetHashCode()>>2);
   public override string ToString()=>"("+x.ToString("F2",CultureInfo.InvariantCulture)+", "+y.ToString("F2",CultureInfo.InvariantCulture)+", "+z.ToString("F2",CultureInfo.InvariantCulture)+")";
  }
+ public struct Rect {
+  public float x,y,width,height;
+  public Rect(float x,float y,float width,float height){this.x=x;this.y=y;this.width=width;this.height=height;}
+  public static Rect MinMaxRect(float xmin,float ymin,float xmax,float ymax)=>new Rect(xmin,ymin,xmax-xmin,ymax-ymin);
+  public float xMin=>x;public float yMin=>y;public float xMax=>x+width;public float yMax=>y+height;
+  public Vector2 center=>new Vector2(x+width/2f,y+height/2f);
+  public bool Contains(Vector2 p)=>p.x>=xMin&&p.x<xMax&&p.y>=yMin&&p.y<yMax;
+  public bool Contains(Vector3 p)=>p.x>=xMin&&p.x<xMax&&p.y>=yMin&&p.y<yMax;
+ }
  public struct Quaternion {public float x,y,z,w;public static Quaternion identity=>new Quaternion{w=1};}
  public struct Color {public float r,g,b,a;public Color(float r,float g,float b,float a=1){this.r=r;this.g=g;this.b=b;this.a=a;}}
  public static class Mathf {
@@ -141,6 +150,8 @@ namespace UnityEngine {
   static object Read(JsonElement e,Type t){
    if(t==typeof(string))return e.ValueKind==JsonValueKind.String?e.GetString():e.ValueKind==JsonValueKind.Null?null:e.ToString();
    if(t==typeof(int))return e.ValueKind==JsonValueKind.Number?(e.TryGetInt32(out int i)?i:(int)e.GetDouble()):0;
+   if(t==typeof(long))return e.ValueKind==JsonValueKind.Number?(e.TryGetInt64(out long l)?l:(long)e.GetDouble()):0L;
+   if(t==typeof(uint))return e.ValueKind==JsonValueKind.Number?(e.TryGetUInt32(out uint u)?u:(uint)e.GetDouble()):0u;
    if(t==typeof(float))return e.ValueKind==JsonValueKind.Number?(float)e.GetDouble():0f;
    if(t==typeof(double))return e.ValueKind==JsonValueKind.Number?e.GetDouble():0d;
    if(t==typeof(bool))return e.ValueKind==JsonValueKind.True||(e.ValueKind==JsonValueKind.Number&&e.GetDouble()!=0);

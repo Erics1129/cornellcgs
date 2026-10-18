@@ -134,26 +134,37 @@ new string[]{"boss:1,nibble:6,beetle:2"}};
  // WAVES:END
 
 public static TowerDef Tower(string kind){foreach(var t in Towers)if(t.id==kind)return t;return null;}
- public static LevelDef Level(int id){return id>0&&id<=Levels.Length?Levels[id-1]:null;}
- public static float HPScale(int level){return HPScaleTable[Mathf.Clamp(level-1,0,HPScaleTable.Length-1)];}
- public static float GapScale(int level){return GapScaleTable[Mathf.Clamp(level-1,0,GapScaleTable.Length-1)];}
- public static float Breather(int level){return BreatherTable[Mathf.Clamp(level-1,0,BreatherTable.Length-1)];}
- public static float PacketOverlap(int level){return PacketOverlapTable[Mathf.Clamp(level-1,0,PacketOverlapTable.Length-1)];}
+ /// <summary>Campaign and challenge levels 1-29, plus the two-player endless map (CarrotDuoMaps.EndlessId, outside Levels so
+ /// game-data.json, level select and the record regexes never see it). Duo halves are CarrotDuoMaps.Half.</summary>
+ public static LevelDef Level(int id){if(id==CarrotDuoMaps.EndlessId)return CarrotDuoMaps.Endless;return id>0&&id<=Levels.Length?Levels[id-1]:null;}
+ /// <summary>Two-player endless (id 90) reads none of the per-level tables below; it has its own integer curve (CarrotEndless).
+ /// The standalone simulation counts and throws on any such read so a missed override can never silently play endless with
+ /// another level's tuning (the clamped indices below would hand it Asuna's row).</summary>
+ public static int EndlessTableHits;
+ static void NoEndless(int level,string table){
+#if CARROT_STANDALONE_TEST
+  if(level==CarrotDuoMaps.EndlessId){System.Threading.Interlocked.Increment(ref EndlessTableHits);throw new InvalidOperationException("endless (id 90) read the per-level table "+table);}
+#endif
+ }
+ public static float HPScale(int level){NoEndless(level,"HPScale");return HPScaleTable[Mathf.Clamp(level-1,0,HPScaleTable.Length-1)];}
+ public static float GapScale(int level){NoEndless(level,"GapScale");return GapScaleTable[Mathf.Clamp(level-1,0,GapScaleTable.Length-1)];}
+ public static float Breather(int level){NoEndless(level,"Breather");return BreatherTable[Mathf.Clamp(level-1,0,BreatherTable.Length-1)];}
+ public static float PacketOverlap(int level){NoEndless(level,"PacketOverlap");return PacketOverlapTable[Mathf.Clamp(level-1,0,PacketOverlapTable.Length-1)];}
  /// <summary>The difficulty pass phases in over the opening: wave 1 is played at the pre-pass health (the table entry), wave 2 halfway, full health from wave 3. Chapter 0 has no grace.</summary>
- public static float OpeningScale(int level,int wave){float grace=OpeningTable[Mathf.Clamp(level-1,0,OpeningTable.Length-1)];return wave<=1?grace:wave==2?Mathf.Sqrt(grace):1f;}
+ public static float OpeningScale(int level,int wave){NoEndless(level,"OpeningScale");float grace=OpeningTable[Mathf.Clamp(level-1,0,OpeningTable.Length-1)];return wave<=1?grace:wave==2?Mathf.Sqrt(grace):1f;}
  /// <summary>The only sanctioned per-level knob: a multiplier on ordinary enemy HP, fitted by scripts/carrot-sim.mjs --tune-dials
  /// (pass 2 step 6) within [0.65, 1.60]. Every entry is listed with its fit in balance-results.md.</summary>
  public static readonly float[] Pressure={1f,1f,1.1f,1.2f,1.541f,1.6f,.87f,1.051f,.771f,1.027f,.873f,.936f,.828f,.846f,.941f,.65f,.976f,.853f,.65f,.678f,1.087f,.932f,.741f,.65f,1.46f,1.035f,.65f,.667f,1f};
- public static float PressureScale(int level){return Pressure[Mathf.Clamp(level-1,0,Pressure.Length-1)];}
+ public static float PressureScale(int level){NoEndless(level,"Pressure");return Pressure[Mathf.Clamp(level-1,0,Pressure.Length-1)];}
  /// <summary>Pass-2 late ramp on ordinary health (WaveRampTable, generated); a miniboss takes half the rise. Summons and bosses are not ramped.</summary>
- public static float WaveRamp(int level,int wave,bool mini){var t=WaveRampTable[Mathf.Clamp(level-1,0,WaveRampTable.Length-1)];float r=wave>=1&&wave<=t.Length?t[wave-1]:1;return mini?1+(r-1)*.5f:r;}
+ public static float WaveRamp(int level,int wave,bool mini){NoEndless(level,"WaveRamp");var t=WaveRampTable[Mathf.Clamp(level-1,0,WaveRampTable.Length-1)];float r=wave>=1&&wave<=t.Length?t[wave-1]:1;return mini?1+(r-1)*.5f:r;}
  /// <summary>Challenge levels are the boss fights reached from the lobby (ids 25-27); they share the arena map.</summary>
 
  public const float MovementScale=.82f;
  /// <summary>Pass 2 pace: ordinary enemies of a chapter walk this much faster (bosses keep their authored pace). Chapter 1
  /// (L5-L8) is sharpened with pace rather than health alone so its levels do not run long (invariant i).</summary>
  public static readonly float[] ChapterPace={1f,1.2f,1f,1f,1f};
- public static float Pace(int level){return ChapterPace[level<=4?0:level<=8?1:level<=12?2:level<=24?3:4];}
+ public static float Pace(int level){NoEndless(level,"Pace");return ChapterPace[level<=4?0:level<=8?1:level<=12?2:level<=24?3:4];}
  public static readonly EnemyDef[] AddedEnemies={
 new EnemyDef{id="mite",name="Dew Mite",trait="Skitter",intro=1,hp=24f,speed=1.32f,armor=0f,shield=0f,reward=5,air=false,mini=false},
 new EnemyDef{id="beetle",name="Acorn Beetle",trait="Armor",intro=2,hp=90f,speed=0.67f,armor=0.25f,shield=0f,reward=12,air=false,mini=false},
@@ -193,20 +204,30 @@ new EnemyDef{id="portalSentinel",name="Portal Sentinel",trait="sentinelRift",int
   lock(traits)traits[kind]=t;return t;
  }
  /// <summary>One unit of a wave's spawn schedule: game seconds after the wave starts, packet kind ("boss" for the level boss) and route.</summary>
- public struct PlannedSpawn {public float at;public string kind;public int route;}
+ public struct PlannedSpawn {public float at;public string kind;public int route;
+  /// <summary>Endless boss packets ("boss:&lt;id&gt;") name their boss; null for the campaign's "boss:1" (the level boss).</summary>
+  public string boss;}
  /// <summary>The exact BeginWave schedule of wave w (1-based): packets run in order, units alternate routes in blocks of
  /// max(2, count/routes), swarm gaps are .24 s and others .78 s (times the level's gap scale), the boss gap 1.8 s; each packet
  /// advances the stream by max(2, its length x overlap) + .8 s. The web exports this as levels[].wavePlan.</summary>
  public static List<PlannedSpawn> PlanWave(int levelId,int wave,List<PlannedSpawn> into){
-  into.Clear();var lvl=Level(levelId);if(lvl==null||wave<1||wave>lvl.waves)return into;
-  string[] packets=Waves[levelId-1][wave-1].Split(',');float at=.65f;int packetIndex=0,routes=lvl.routes.Length;
-  float gapScale=GapScale(levelId),overlap=PacketOverlap(levelId);
+  into.Clear();NoEndless(levelId,"PlanWave");var lvl=Level(levelId);if(lvl==null||wave<1||wave>lvl.waves)return into;
+  return PlanPackets(Waves[levelId-1][wave-1].Split(','),wave,lvl.routes.Length,GapScale(levelId),PacketOverlap(levelId),into);
+ }
+ /// <summary>The shared packet scheduler behind PlanWave and the endless generator. Grammar: "kind:n" or "kind:n@r" (pinned to
+ /// route r), "boss:1" (the level boss) or "boss:&lt;id&gt;[@r]" (endless: that boss). Unpinned units alternate routes as PlanWave
+ /// always has; the campaign's schedule is byte-identical to the pre-refactor PlanWave (CarrotNetTests.EndlessGeneratorProperties).</summary>
+ public static List<PlannedSpawn> PlanPackets(string[] packets,int wave,int routes,float gapScale,float overlap,List<PlannedSpawn> into){
+  into.Clear();float at=.65f;int packetIndex=0;routes=Mathf.Max(1,routes);
   foreach(string packet in packets){
-   int colon=packet.IndexOf(':');string kind=packet.Substring(0,colon);int count=int.Parse(packet.Substring(colon+1),CultureInfo.InvariantCulture);
+   int colon=packet.IndexOf(':');string kind=packet.Substring(0,colon);string rest=packet.Substring(colon+1);int pin=-1;
+   int amp=rest.IndexOf('@');if(amp>=0){pin=int.Parse(rest.Substring(amp+1),CultureInfo.InvariantCulture);rest=rest.Substring(0,amp);}
+   string boss=null;int count;
+   if(kind=="boss"&&rest.Length>0&&!char.IsDigit(rest[0])){boss=rest;count=1;}else count=int.Parse(rest,CultureInfo.InvariantCulture);
    for(int i=0;i<count;i++){
-    int route=kind=="boss"?0:(wave+packetIndex+i/Mathf.Max(2,count/routes))%routes;
+    int route=pin>=0?pin%routes:kind=="boss"?0:(wave+packetIndex+i/Mathf.Max(2,count/routes))%routes;
     float gap=kind=="swarm"?.24f*gapScale:kind=="boss"?1.8f:.78f*gapScale;
-    into.Add(new PlannedSpawn{at=at+i*gap,kind=kind,route=route});
+    into.Add(new PlannedSpawn{at=at+i*gap,kind=kind,route=route,boss=boss});
    }
    at+=Mathf.Max(2,count*(kind=="swarm"?.24f:kind=="boss"?1.8f:.78f)*(kind=="boss"?1:gapScale*overlap))+.8f;packetIndex++;
   }
@@ -222,14 +243,15 @@ new EnemyDef{id="portalSentinel",name="Portal Sentinel",trait="sentinelRift",int
  /// <summary>Veteran mode is built and testable but offered only once both expert policies clear it (balance-results.md).</summary>
  public static readonly bool VeteranShipped=true;
  /// <summary>Coins paid when a wave is fully resolved: 15/20/25/30 by biome tier on levels 1-8, 10/14/18/22 on 9-24, 30 on the challenges.</summary>
- public static int WaveStipend(int level){int tier=BiomeTier(Level(level)!=null?Level(level).biome:"garden");if(IsChallenge(level))return 30;return level<=8||!Pass2Economy?15+5*tier:10+4*tier;}
+ public static int WaveStipend(int level){NoEndless(level,"WaveStipend");int tier=BiomeTier(Level(level)!=null?Level(level).biome:"garden");if(IsChallenge(level))return 30;return level<=8||!Pass2Economy?15+5*tier:10+4*tier;}
  /// <summary>Coins for calling the next wave with breatherLeft seconds still on the clock.</summary>
  public static int EarlyCallBonus(float breatherLeft){return Pass2Economy?Mathf.Min(10,2*Mathf.FloorToInt(breatherLeft)):Mathf.Min(6,Mathf.FloorToInt(breatherLeft));}
  /// <summary>Breather before wave nextWave (the level's table entry, lengthened before a level's first air wave where needed).</summary>
- public static float Breather(int level,int nextWave){return Breather(level);}
+ public static float Breather(int level,int nextWave){NoEndless(level,"Breather");return Breather(level);}
  public static bool IsMini(string id){var e=Enemy(id);return e!=null&&e.mini;}
  public static int Work(string id){return id=="boss"?8:IsMini(id)?4:1;}
- public static bool IsChallenge(int id){return id>=25;}
+ /// <summary>The five Challenges (25-29); the endless map (90) is not one.</summary>
+ public static bool IsChallenge(int id){return id>=25&&id<=29;}
  public static string ChallengeDifficulty(int id){return id==25?"easy":id==26?"hard":id==27?"insane":id==28?"????":id==29?"insane":"";}
  public static string BossName(string id){switch(id){case "garden":return "Brambleback";case "marsh":return "Lantern Regent";case "frost":return "Crown of Winter";case "orchard":return "Old Hollowhead";case "tornado":return "Giant Tornado";case "zombie":return "Zombie";case "eyeball":return "Unknown Eyeball";case "portal":return "Portal";case "asuna":return "Asuna";}return "";}
  /// <summary>Base boss health before BossScale (campaign bosses carry the x1.45 spike of the difficulty pass; pass 2 raised the
@@ -239,14 +261,14 @@ new EnemyDef{id="portalSentinel",name="Portal Sentinel",trait="sentinelRift",int
  public static int BiomeTier(string biome){return biome=="garden"?0:biome=="marsh"?1:biome=="frost"?2:3;}
  /// <summary>The level where each boss first appears. Returning and new bosses scale from that home level so they keep pace with the ordinary curve; levels 1-12 are untouched.</summary>
  public static int BossHome(string id){switch(id){case "garden":return 4;case "marsh":return 8;case "frost":return 12;case "tornado":return 25;case "zombie":return 26;case "eyeball":return 27;case "portal":return 28;case "asuna":return 29;}return 20;}
- public static float BossScale(int level,string boss){return level<=12?1f:HPScale(level)/HPScale(BossHome(boss));}
+ public static float BossScale(int level,string boss){NoEndless(level,"BossScale");return level<=12?1f:HPScale(level)/HPScale(BossHome(boss));}
  /// <summary>Polish pass: the campaign guardians carry part of their level's pressure. Before it no R1 or R2 run of L4, L8, L12 or L16
  /// was lost after the guardian appeared (it died at 51-79% of its route); the walls before it now ease and the guardian is tougher.
  /// Challenges and their home tables are untouched (1).</summary>
- public static float BossPressure(int level){switch(level){case 4:return 1.3f;case 8:return 2f;case 12:return 1.85f;case 16:return 1.75f;case 20:return 1.3f;case 24:return 1f;}return 1f;}
+ public static float BossPressure(int level){NoEndless(level,"BossPressure");switch(level){case 4:return 1.3f;case 8:return 2f;case 12:return 1.85f;case 16:return 1.75f;case 20:return 1.3f;case 24:return 1f;}return 1f;}
  static readonly int[] ArenaLitPads={4,5,6,7},NoLitPads=new int[0];
  /// <summary>Lantern pads: towers built there keep full sight during Blindness (the arena's four lantern posts).</summary>
- public static int[] LitPads(int level){return IsChallenge(level)&&level!=29?ArenaLitPads:NoLitPads;}
+ public static int[] LitPads(int level){if(level==CarrotDuoMaps.EndlessId){NoEndless(level,"LitPads");return CarrotDuoMaps.EndlessLitPads;}return IsChallenge(level)&&level!=29?ArenaLitPads:NoLitPads;}
  static Vector3[] P(params int[] p){var a=new Vector3[p.Length/2];for(int i=0;i<a.Length;i++)a[i]=new Vector3(p[i*2]-7,0,p[i*2+1]-5);return a;}
  public static float RouteLength(Vector3[] route){float length=0;for(int i=1;i<route.Length;i++)length+=Vector3.Distance(route[i-1],route[i]);return length;}
  public static Vector3 RoutePoint(Vector3[] route,float distance,out Vector3 direction){direction=Vector3.forward;for(int i=1;i<route.Length;i++){var d=route[i]-route[i-1];float len=d.magnitude;if(distance<=len){direction=d/len;return route[i-1]+direction*Mathf.Max(0,distance);}distance-=len;direction=d/len;}return route[route.Length-1];}
