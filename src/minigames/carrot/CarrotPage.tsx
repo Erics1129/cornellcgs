@@ -4,9 +4,10 @@ import { CarrotUnity } from './unity'
 import build from './unity-build.json'
 import { CarrotReview } from './CarrotReview'
 import { menuSound, stopMenuSound } from './uiAudio'
+import { installAudioUnlock } from './audioUnlock'
 import { LevelCount, RECORD, RECORDS, awardCampaign, awardRecord, finishTutorial, gradeRun, markSeen, readCampaign, readRecords, readSuper, recordSuper, saveCampaign, teachSuper } from './progress'
 import { progress } from '../../lib/account/index.ts'
-import { awardChallenge, bossOfLevel, challengeUnlocked, par as challengePar, readChallenges } from './challenges'
+import { awardChallenge, bossOfLevel, challengeUnlocked, isGuardianLevel, par as challengePar, readChallenges } from './challenges'
 import type { Command, GameDefinitions, GameState } from './types'
 import { createSnapshotStore, useSlice } from './hooks/useSnapshot'
 import { createRunTracker } from './hooks/runTracker'
@@ -97,6 +98,8 @@ function CarrotPage(){
  useEffect(()=>{if(!preview)return;const w=window as unknown as {__carrot?:{send:(c:Command)=>void;state:()=>GameState|null;inject:(s:GameState|null)=>void;ready:()=>void}};w.__carrot={send:c=>engine.current?.send(c),state:()=>store.get(),inject:s=>store.set(s),ready:()=>{setError('');setReady(true)}};return()=>{delete w.__carrot}},[preview,store])
  useEffect(()=>{let active=true;fetch(`/assets/minigames/carrot/game-data.json?v=${build.version}`).then(r=>{if(!r.ok)throw new Error(errors.gameData);return r.json()}).then((d:GameDefinitions)=>{if(active&&Array.isArray(d.towers)&&Array.isArray(d.levels))setDefinitions(d)}).catch(e=>{if(active)setError(e.message)});return()=>{active=false}},[])
  useEffect(()=>{const oldTitle=document.title;document.title='Carrot Defense 3D · Cornell CGS';document.documentElement.classList.add('ct-document');return()=>{document.title=oldTitle;document.documentElement.classList.remove('ct-document')}},[])
+ // Safari: start Web Audio inside the first gesture and hand it to Unity (see audioUnlock.ts).
+ useEffect(()=>installAudioUnlock(),[])
  useEffect(()=>{const m=matchMedia('(prefers-reduced-motion: reduce)');const f=()=>setOsReduced(m.matches);m.addEventListener('change',f);return()=>m.removeEventListener('change',f)},[])
  useEffect(()=>subscribePrefs(setPrefs),[])
  useEffect(()=>subscribeVolumes(setVolumes),[])
@@ -187,7 +190,7 @@ function CarrotPage(){
  },[v2,onSafeArea])
  useEffect(()=>{if(!v2||!ready)return;const f=()=>onSafeArea({rect:null,mode:'anchored'});const t=window.setTimeout(f,400);addEventListener('resize',f);return()=>{clearTimeout(t);removeEventListener('resize',f)}},[v2,ready,onSafeArea,page?.boss])
 
- const isOpen=(id:number)=>preview||(id>LevelCount?challengeUnlocked(id,saved.current,challengesRef.current):id<=saved.current.unlocked)
+ const isOpen=(id:number)=>preview||(id>LevelCount?challengeUnlocked(id,saved.current,challengesRef.current):id<=saved.current.unlocked||isGuardianLevel(id))
  const choose=(id:number)=>{if(!isOpen(id))return;setPanel(null);setLevel(id);setResult(false);award.current='';if(entered){send(veteran&&id<=LevelCount?{type:'load',level:id,mode:'veteran'}:{type:'load',level:id})}else setEntered(true)}
  const openPanel=(value:Panel)=>{const st=store.get();wasPlaying.current=!!st&&!st.paused&&st.phase==='playing';if(wasPlaying.current)send({type:'pause'});setPanel(value)}
  const closePanel=()=>{setPanel(null);if(wasPlaying.current&&store.get()?.paused)send({type:'pause'});wasPlaying.current=false}
