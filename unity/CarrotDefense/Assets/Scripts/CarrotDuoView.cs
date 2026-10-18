@@ -482,7 +482,7 @@ namespace CarrotTD {
   void BuilderTint(Actor a,TowerState t){
    if(!EndlessMap||t.builder<0||a==null||a.root==null)return;
    if(a.builderMark!=null)return;Color c=t.builder==duoCfg.seat?LocalColour:PartnerColour;
-   var mat=Material("builder-ring-"+ColorUtility.ToHtmlStringRGB(c),c*.7f,-1,.3f);mat.SetColor("_EmissionColor",c*1.6f);mat.SetFloat("_SnowStrength",0);mat.SetFloat("_Cull",0);
+   var mat=Material("builder-ring-"+ColorUtility.ToHtmlStringRGB(c),c*.9f,-1,.3f);mat.SetColor("_EmissionColor",c*.85f);mat.SetFloat("_SnowStrength",0);mat.SetFloat("_Cull",0);
    var ring=MeshObject("Builder ring",BuilderRingMesh(),mat,a.root.transform);ring.transform.localPosition=new Vector3(0,.05f,0);var r=ring.GetComponent<Renderer>();r.shadowCastingMode=ShadowCastingMode.Off;r.receiveShadows=false;a.builderMark=ring;CarrotQa.Count("duo.builderTint",1);
   }
   static Mesh builderRing;
