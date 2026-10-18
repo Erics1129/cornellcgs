@@ -154,6 +154,8 @@ namespace CarrotTD {
    else ProbeView(sb);
    Debug.Log(sb.ToString());
   }
+  /// <summary>Smallest distance from the wall line to an occluding prop's footprint edge on this view's half (-1 outside duo).</summary>
+  float WallClearance(){if(!DuoHalves)return -1;float strip=99;bool zAxis=AxisZ;foreach(var d in decorLog){if(d.w<.5f)continue;float c=zAxis?Mathf.Abs(d.y):Mathf.Abs(d.x);strip=Mathf.Min(strip,c-d.z*.5f);}return strip;}
   int TowerOnPad(int id){foreach(var t in game.towers)if(t.id==id)return t.pad;return -1;}
   int BlockerOnPad(int id){foreach(var b in game.blockers)if(b.id==id)return b.pad;return -1;}
   /// <summary>Camera, framing and the spectator invariants (counted on the partner object, so a spectator that never spawned fails the actor check).</summary>
@@ -169,7 +171,8 @@ namespace CarrotTD {
    sb.Append(",\"arenaCornersInView\":").Append(inView).Append(",\"ownVp\":").Append(V(ov)).Append(",\"partnerVp\":").Append(V(pv)).Append(",\"ownNearer\":").Append(ov.y<pv.y?1:0);
    sb.Append(",\"hostSun\":").Append(sun!=null&&sun.enabled&&sun.gameObject.activeInHierarchy?1:0).Append(",\"digest\":\"").Append(game.Digest().ToString("x16")).Append('"');
    // Props must stay out of the wall strip (|x| < .5 on axis X, |z| < .5 on L29).
-   float strip=99;bool zAxis=AxisZ;foreach(var d in decorLog){if(d.w<.5f)continue;float c=zAxis?Mathf.Abs(d.y):Mathf.Abs(d.x);strip=Mathf.Min(strip,c-d.z*.5f);}if(!DuoHalves)strip=-1;sb.Append(",\"propWallClearance\":").Append(F(strip));
+   float strip=WallClearance(),partnerStrip=-1,pathClear=DecorClearance(),partnerPathClear=-1;{var sv=duoQa!=null&&duoQa.view!=null?duoQa.view:null;if(sv!=null){partnerStrip=sv.WallClearance();partnerPathClear=sv.DecorClearance();}}
+   sb.Append(",\"propWallClearance\":").Append(F(strip)).Append(",\"partnerPropWallClearance\":").Append(F(partnerStrip)).Append(",\"propPathClearance\":").Append(F(pathClear)).Append(",\"partnerPropPathClearance\":").Append(F(partnerPathClear));
    var q=duoQa;var partner=q!=null?q.partner:GameObject.Find("CarrotPartner");
    if(partner!=null){var v=partner.GetComponent<CarrotView>();var rg=partner.GetComponent<CarrotGame>();int playing=0;var sources=partner.GetComponentsInChildren<AudioSource>(true);foreach(var s in sources)if(s.isPlaying)playing++;
     // Both counts as of the end of the spectator's last frame: the replica may have ticked since (the driver runs after it).

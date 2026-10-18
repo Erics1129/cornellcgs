@@ -434,7 +434,9 @@ namespace CarrotTD {
   void BuildDuoArenaStones(){
    var rng=new System.Random(7001+levelId*13);float rx=7.6f+CarrotDuoMaps.Offset,rz=5.6f;int count=26;
    for(int i=0;i<count;i++){float a=i/(float)count*Mathf.PI*2+.07f;Vector3 p=new Vector3(Mathf.Cos(a)*rx,0,Mathf.Sin(a)*rz);if(Mathf.Abs(p.x)<1.4f)continue;
-    if(!FreeBothHalves(p,.9f))p+=new Vector3(Mathf.Cos(a),0,Mathf.Sin(a))*.8f;if(!FreeBothHalves(p,.8f))continue;bool front=p.z<-2.5f;float h=front?.45f+(float)rng.NextDouble()*.25f:1.2f+(float)rng.NextDouble()*.7f;PlaceScanned(i%2==0?"MossRockA":"MossRockB",p,h,(float)rng.NextDouble()*360,!front);}
+    if(!FreeBothHalves(p,.9f))p+=new Vector3(Mathf.Cos(a),0,Mathf.Sin(a))*.8f;if(!FreeBothHalves(p,.8f))continue;
+    // EnsureClearance measures this view's own paths only: on the partner's side a stone keeps a wider margin to theirs.
+    if(CarrotDuoMaps.HalfAt(game.level.id,p)!=(duoCfg.side==1?1:0)&&!FreeBothHalves(p,1.7f))continue;bool front=p.z<-2.5f;float h=front?.45f+(float)rng.NextDouble()*.25f:1.2f+(float)rng.NextDouble()*.7f;PlaceScanned(i%2==0?"MossRockA":"MossRockB",p,h,(float)rng.NextDouble()*360,!front);}
   }
   /// <summary>Each carrot's banner in its half's colour (warm gold for the local player, teal for the partner) beside the nest.</summary>
   void BuildTeamBanner(){

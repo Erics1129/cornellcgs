@@ -5,13 +5,15 @@
 //   spectator  no audio, Cinemachine, lights, cameras, colliders, clickables, volumes or time-scale requests on 'CarrotPartner', its
 //            actor count equals the replica's enemies + towers, the host key light stays on
 //   endless  844x390: every pad >= 18 px and selectable by a real tap; ghost sprouts, the presence ring and builder rings render
+//   dressing every duo fight, both sides: no occluding prop within 1 u of a path (EnsureClearance's rule) or inside the wall strip, on
+//            either half
 //   node scripts/carrot-duo-qa/checks.mjs [--only camera,taps,spectator,endless] [--engine webkit]
 import { writeFileSync, mkdirSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { serve, open, cmd, duo, send, probe, sleep, arg, flag, waitFor, REPO } from './lib.mjs'
 
 const OUT = process.env.CARROT_DUO_QA_OUT || '/private/tmp/claude-501/-Users-eric-Claude/c0f378b2-d447-4405-9fc6-aa152072f6bd/scratchpad/carrot-duo/maps-and-view/checks'
-const engine = arg('engine', 'chromium'), only = (arg('only', 'camera,taps,spectator,endless')).split(',')
+const engine = arg('engine', 'chromium'), only = (arg('only', 'camera,taps,spectator,endless,dressing')).split(',')
 const build = resolve(REPO, arg('build', 'output/carrot-qa')), name = arg('name', 'carrot-qa')
 mkdirSync(OUT, { recursive: true })
 const results = []; const check = (id, pass, detail) => { results.push({ id, pass: !!pass, detail }); console.log((pass ? 'PASS ' : 'FAIL ') + id + ' ' + JSON.stringify(detail).slice(0, 400)) }
@@ -111,6 +113,15 @@ try {
       const g = await probe(page, 'view'); check(`endless.ghostDissolve seat${seat}`, g.counts.pendingGhosts === 0, g.counts)
       await duo(page, { t: 'solo' }); await ctx.browser.close()
     }
+  }
+  if (only.includes('dressing')) {
+    const ctx = await open({ engine, url, name, size: [1440, 900] }); const { page } = ctx; await send(page, 'Quality', 'high')
+    for (const level of [4, 8, 12, 16, 20, 24, 25, 26, 27, 28, 29]) for (const side of [0, 1]) {
+      await setup(page, level, side, { bot: false }); const p = await settle(page, 1200)
+      // Arena stones and scanned props keep 1 u to the path centreline minus nothing; the wall strip is |c| < .5 (L28 floats: no props).
+      check(`dressing L${level} s${side}`, p.propWallClearance >= .5 && p.partnerPropWallClearance >= .5 && p.propPathClearance >= .99 && p.partnerPropPathClearance >= .99, { wall: p.propWallClearance, partnerWall: p.partnerPropWallClearance, path: p.propPathClearance, partnerPath: p.partnerPropPathClearance })
+    }
+    await duo(page, { t: 'solo' }); await ctx.browser.close()
   }
 } finally { server.close() }
 writeFileSync(join(OUT, `checks-${engine}.json`), JSON.stringify({ engine, at: new Date().toISOString(), results }, null, 1))
