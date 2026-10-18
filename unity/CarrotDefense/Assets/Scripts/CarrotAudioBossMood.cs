@@ -27,7 +27,7 @@ namespace CarrotTD {
  public sealed partial class CarrotAudio {
   AudioSource moodAir,moodTone,moodBare;
   AudioClip moodAirClip,moodToneClip,moodBareClip;readonly List<AudioClip> moodMade=new List<AudioClip>();
-  int moodBuild=int.MinValue,moodRun=-1,moodWork;bool moodOn,moodBareReady,moodDroneReady,moodDroneStopped;string moodProfile="",moodBareBiome="";
+  int moodBuild=int.MinValue,moodLevel=-1,moodWork;bool moodOn,moodBareReady,moodDroneReady,moodDroneStopped;string moodProfile="",moodBareBiome="";
   int moodArrivals,moodPhases,moodReleases,moodLastWave,moodBossWave,moodCrowWave=-1,moodDawnSeen;
   bool moodHeld,moodSendNow,moodPrismCasting,moodChallenge,moodArrived,moodPausedNow;float moodPLogged=-1,moodSendSeen=-1,moodQaClock;
   readonly List<AudioSource> moodHeldPaused=new List<AudioSource>();
@@ -39,9 +39,11 @@ namespace CarrotTD {
 
   /// <summary>BOSS MOOD hook (CarrotAudio.Tick, after the ambience). dt is real seconds.</summary>
   void TickBossMood(float dt,bool isPaused){
-   bool active=MoodActive();
-   if(!active){if(moodOn||(ambience!=null&&ambience.MoodGain!=1))MoodOff();return;}
-   if(CarrotBossMood.Build!=moodBuild||game.RunId!=moodRun)MoodBegin();
+   int gate=MoodGate();
+   if(gate<0){if(moodOn||(ambience!=null&&ambience.MoodGain!=1))MoodOff();return;}
+   // a boss level the view has not reached yet (the bus still describes the previous level for a frame): stop, keep the clips
+   if(gate==0){if(moodOn&&moodLevel!=game.level.id){MoodStopSources(true);moodBuild=int.MinValue;}return;}
+   if(CarrotBossMood.Build!=moodBuild)MoodBegin();
    MoodPause(isPaused);
    if(isPaused)return;
    int stage=CarrotBossMood.Stage;float De=Mathf.Clamp01(CarrotBossMood.De);
@@ -88,15 +90,18 @@ namespace CarrotTD {
    float tenth=Mathf.Round(moodP*10)/10;if(tenth!=moodPLogged){moodPLogged=tenth;Cue("mood:p",tenth);}
   }
 
-  bool MoodActive(){
-   if(game==null||game.level==null||!CarrotBossMood.Active||string.IsNullOrEmpty(CarrotBossMood.Profile))return false;
-   if(CarrotBossMood.Level!=game.level.id||string.IsNullOrEmpty(game.level.boss))return false;
-   return game.Mode=="normal"||game.Mode=="veteran";
+  /// <summary>-1: no mood here (a non-boss level, duo, endless, or the view switched it off for this level); 0: a boss level the bus
+  /// has not caught up with yet; 1: active.</summary>
+  int MoodGate(){
+   if(game==null||game.level==null||string.IsNullOrEmpty(game.level.boss)||CarrotBossMoodCurve.Profile(game.level.id)=="")return -1;
+   if(game.Mode!="normal"&&game.Mode!="veteran")return -1;
+   if(CarrotBossMood.Level!=game.level.id)return 0;
+   return CarrotBossMood.Active&&!string.IsNullOrEmpty(CarrotBossMood.Profile)?1:-1;
   }
 
   void MoodBegin(){
    MoodStopSources(false);
-   moodBuild=CarrotBossMood.Build;moodRun=game.RunId;moodOn=true;
+   moodBuild=CarrotBossMood.Build;moodLevel=game.level.id;moodOn=true;
    string profile=CarrotBossMood.Profile;bool sameDrone=profile==moodProfile&&moodAirClip!=null&&moodToneClip!=null;
    moodProfile=profile;moodChallenge=CarrotBossMoodCurve.Challenge(game.level.id);moodBossWave=CarrotBossMoodCurve.BossWave(game.level.id);
    moodArrivals=CarrotBossMood.ArrivalCount;moodPhases=CarrotBossMood.PhaseCount;moodReleases=CarrotBossMood.ReleaseCount;moodLastWave=game.wave;
@@ -168,7 +173,7 @@ namespace CarrotTD {
    FreeMoodClip(ref moodAirClip);FreeMoodClip(ref moodToneClip);FreeMoodClip(ref moodBareClip);
    foreach(var kind in CarrotBossMoodSynth.OneShots){string name="Mood"+kind;if(clips.TryGetValue(name,out var c)){foreach(var v in voices)if(v.clip==c)StopVoice(v);clips.Remove(name);moodMade.Remove(c);Destroy(c);}}
    foreach(var c in moodMade)if(c!=null)Destroy(c);moodMade.Clear();
-   moodOn=false;moodBuild=int.MinValue;moodRun=-1;moodProfile="";moodBareBiome="";moodBareReady=moodDroneReady=false;
+   moodOn=false;moodBuild=int.MinValue;moodLevel=-1;moodProfile="";moodBareBiome="";moodBareReady=moodDroneReady=false;
    Cue("mood:off",0);
   }
 
