@@ -119,6 +119,12 @@ namespace CarrotTD {
    duoFrames.Clear();duoOther=null;terrainHalfX=7.8f;terrainMinX=-24;terrainMaxX=24;netCameraMode="own";
    if(!duoOn||game==null||game.level==null)return;int id=game.level.id;duoBuilt=true;
    if(Spectator&&HostOf!=null){skyZenith=HostOf.skyZenith;skyHorizon=HostOf.skyHorizon;}
+   // The loaded LevelDef is the truth (a rematch may change the fight or redraw the sides without a new configuration): the
+   // endless id means Twin Gates, and a duo half is recognised by reference (CarrotDuoMaps.Half is cached), with the rectangles
+   // recomputed for this level.
+   if(id==CarrotDuoMaps.EndlessId&&duoCfg.layout!="endless"){duoCfg.layout="endless";int seat=duoCfg.seat==1?1:0;duoCfg.arena=CarrotDuoMaps.EndlessRect;duoCfg.own=CarrotDuoMaps.EndlessHomeRect(seat);duoCfg.partner=CarrotDuoMaps.EndlessHomeRect(1-seat);}
+   if(CarrotDuoMaps.IsDuoLevel(id)&&id!=CarrotDuoMaps.EndlessId){int found=game.level==CarrotDuoMaps.Half(id,0)?0:game.level==CarrotDuoMaps.Half(id,1)?1:-1;
+    if(found>=0){duoCfg.layout="duo";duoCfg.side=found;duoCfg.arena=CarrotDuoMaps.ArenaRect(id);duoCfg.own=CarrotDuoMaps.HalfRect(id,found);duoCfg.partner=CarrotDuoMaps.HalfRect(id,1-found);CarrotDuoMaps.Wall(id,out duoCfg.wallA,out duoCfg.wallB);}}
    if(DuoHalves&&CarrotDuoMaps.IsDuoLevel(id)){
     bool z=CarrotDuoMaps.SideLayout(id)==DuoAxis.Z;int side=duoCfg.side==1?1:0;
     Vector3 o=CarrotDuoMaps.MapPoint(Vector3.zero,z,side),ax=CarrotDuoMaps.MapPoint(Vector3.right,z,side)-o,az=CarrotDuoMaps.MapPoint(Vector3.forward,z,side)-o;
