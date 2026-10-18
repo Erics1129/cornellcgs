@@ -1,11 +1,12 @@
 // Frame cost of the duo/endless presentation against solo (maps-and-view stream), through harness.html + DuoQa on a CARROT_QA player.
 //   cpu     Chromium, High tier, 1440x900, L24 final-wave peak, 600 frames: view CPU (CarrotQa sections, the spectator's included,
 //           the loopback's replica stepping excluded) of solo, duo with both halves on screen ("Both") and duo with the partner off screen
-//   phone   Chromium mobile emulation 844x390 at 4x CPU throttle: rAF frame-time p95 of solo vs duo (own view and Both)
-//   first   the worst frame around each creature model's first appearance (4x throttle, from wave 1): target under 50 ms
+//   phone   Chromium mobile emulation 844x390 at 4x CPU throttle: rAF frame-time p95 of solo vs duo (own view and Both), plus Unity's
+//           unquantized main-thread work per frame; at the tier the game picks for that viewport (Low) unless --tier high|medium
+//   first   the worst frame around each creature model's first appearance (4x throttle, from wave 1): target under 50 ms (same --tier)
 //   heap    JS heap growth over a 10-minute loopback duo match (Chromium, precise memory info)
 //   wasm    WebKit: the wasm heap peak and growth count across L24 and L28 duo final waves in Both (target <= 384 MB)
-//   node scripts/carrot-duo-qa/perf.mjs [--only cpu,phone,first,heap,wasm] [--level 24] [--minutes 10]
+//   node scripts/carrot-duo-qa/perf.mjs [--only cpu,phone,first,heap,wasm] [--level 24] [--minutes 10] [--reps 3] [--tier auto]
 import { writeFileSync, mkdirSync, readFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { serve, open, cmd, duo, send, probe, sleep, arg, flag, waitFor, frameStats, REPO } from './lib.mjs'
@@ -53,15 +54,17 @@ try {
   }
   if (only.includes('phone')) {
     // Fresh page per run, interleaved, three repetitions; frames are counted from the warp's wave peak (a live final-wave crowd).
-    const reps = Number(arg('reps', 3)), runs = { solo: [], duo: [], duoBoth: [] }
+    const reps = Number(arg('reps', 3)), phoneTier = arg('tier', 'auto'), runs = { solo: [], duo: [], duoBoth: [] }
     for (let rep = 0; rep < reps; rep++) for (const cond of rep % 2 ? ['duoBoth', 'duo', 'solo'] : ['solo', 'duo', 'duoBoth']) {
-      const ctx = await open({ url, name, size: [844, 390], phone: true }); const { page } = ctx; await send(page, 'Quality', 'high')
+      // --tier auto (the default) keeps the tier the game picks for a phone-sized viewport (Low); --tier high is the stress case.
+      const ctx = await open({ url, name, size: [844, 390], phone: true }); const { page } = ctx; if (phoneTier !== 'auto') await send(page, 'Quality', phoneTier)
       const cdp = await ctx.context.newCDPSession(page)
       const warp = await prepare(page, cond === 'solo' ? 'solo' : 'duo'); if (cond === 'duoBoth') { await duo(page, { t: 'camera', mode: 'both' }); await sleep(2000) }
       await cdp.send('Emulation.setCPUThrottlingRate', { rate: 4 }); await sleep(1500)
       await duo(page, { t: 'probe', what: 'sections', reset: 1 }); const f = frameStats(await frames(page, 600)); const sec = await probe(page, 'sections'); const view = await probe(page, 'view')
-      runs[cond].push({ ...f, warp, viewMs: sec.viewMs, spectatorMs: sec.spectatorMs, replicaMs: sec.sections['qa.replica'] || 0, alive: sec.alive, partnerAlive: sec.partnerAlive, coverage: view.partnerCoverage, dormant: view.partner && view.partner.dormant })
-      console.log('phone run', rep, cond, JSON.stringify({ p95: f.p95, mean: f.mean, draws: f.drawsMedian, alive: sec.alive, partnerAlive: sec.partnerAlive, viewMs: sec.viewMs, spectatorMs: sec.spectatorMs }))
+      const tierName = await page.evaluate(() => { for (let i = window.qa.lines.length - 1; i >= 0; i--) { const m = /CARROT_BUILD_MS .* tier=(\w+)/.exec(window.qa.lines[i][1]); if (m) return m[1] } return '' })
+      runs[cond].push({ ...f, warp, tierName, viewMs: sec.viewMs, spectatorMs: sec.spectatorMs, replicaMs: sec.sections['qa.replica'] || 0, alive: sec.alive, partnerAlive: sec.partnerAlive, coverage: view.partnerCoverage, dormant: view.partner && view.partner.dormant })
+      console.log('phone run', rep, cond, JSON.stringify({ tier: tierName, p95: f.p95, mean: f.mean, workP95: f.workP95, workMean: f.workMean, draws: f.drawsMedian, alive: sec.alive, partnerAlive: sec.partnerAlive, viewMs: sec.viewMs, spectatorMs: sec.spectatorMs }))
       await ctx.browser.close()
     }
     const med = (a, k) => { const v = a.map(x => x[k]).sort((x, y) => x - y); return v[v.length >> 1] }
@@ -69,25 +72,28 @@ try {
     r.ratioP95 = r.duo.p95 / r.solo.p95; r.ratioP95Both = r.duoBoth.p95 / r.solo.p95; r.pass = r.ratioP95 <= 1.25
     // Paired ratios: each repetition's three pages ran back to back, so their ratio cancels most of the shared machine's load swings.
     const pmed = v => { v = v.slice().sort((x, y) => x - y); return v[v.length >> 1] }
-    r.paired = { p95: pmed(runs.duo.map((x, i) => x.p95 / runs.solo[i].p95)), p95Both: pmed(runs.duoBoth.map((x, i) => x.p95 / runs.solo[i].p95)), mean: pmed(runs.duo.map((x, i) => x.mean / runs.solo[i].mean)), meanBoth: pmed(runs.duoBoth.map((x, i) => x.mean / runs.solo[i].mean)) }
+    r.paired = { p95: pmed(runs.duo.map((x, i) => x.p95 / runs.solo[i].p95)), p95Both: pmed(runs.duoBoth.map((x, i) => x.p95 / runs.solo[i].p95)), mean: pmed(runs.duo.map((x, i) => x.mean / runs.solo[i].mean)), meanBoth: pmed(runs.duoBoth.map((x, i) => x.mean / runs.solo[i].mean)),
+      workP95: pmed(runs.duo.map((x, i) => x.workP95 / runs.solo[i].workP95)), workP95Both: pmed(runs.duoBoth.map((x, i) => x.workP95 / runs.solo[i].workP95)) }
+    for (const k of ['solo', 'duo', 'duoBoth']) { r[k].workP95 = med(runs[k], 'workP95'); r[k].workMean = med(runs[k], 'workMean') }
     console.log('phone', JSON.stringify({ solo: r.solo, duo: r.duo, duoBoth: r.duoBoth, ratioP95: r.ratioP95, ratioP95Both: r.ratioP95Both, paired: r.paired }))
-    report.results.phone = r; save()
+    r.tier = phoneTier; report.results[phoneTier === 'auto' ? 'phone' : 'phone-' + phoneTier] = r; save()
   }
   if (only.includes('first')) {
-    const ctx = await open({ url, name, size: [844, 390], phone: true }); const { page } = ctx; await send(page, 'Quality', 'high')
-    const cdp = await ctx.context.newCDPSession(page); const r = { levels: {} }
+    // Same tier choice as phone: auto (the phone's own Low tier) unless --tier names one.
+    const firstTier = arg('tier', 'auto'); const ctx = await open({ url, name, size: [844, 390], phone: true }); const { page } = ctx; if (firstTier !== 'auto') await send(page, 'Quality', firstTier)
+    const cdp = await ctx.context.newCDPSession(page); const r = { levels: {}, tier: firstTier }
     for (const lv of [24, 27]) {
       await duo(page, { t: 'duo', level: lv, side: 0 }); await waitFor(page, l => window.qa.state && window.qa.state.level === l, lv); await sleep(5000)
       await cdp.send('Emulation.setCPUThrottlingRate', { rate: 4 }); const t0 = await page.evaluate(() => performance.now())
       await duo(page, { t: 'bot', on: 1, coins: 7000 }); await cmd(page, { type: 'speed', value: 2 })
       await sleep(lv === 24 ? 150000 : 120000)
-      const firsts = await page.evaluate(t0 => { const out = []; for (const [t, m] of window.qa.lines) { if (t < t0) continue; const i = m.indexOf('CARROT_DUO_QA first '); if (i >= 0) out.push([t, JSON.parse(m.slice(i + 20))]) } const f = window.qa.frames; return out.map(([t, info]) => { const near = f.filter(x => x[1] >= t - 20 && x[1] <= t + 160).map(x => x[0]); return { t: Math.round(t - t0), path: info.path, spectator: info.spectator, worst: near.length ? Math.max(...near) : null } }) }, t0)
+      const firsts = await page.evaluate(t0 => { const out = []; for (const [t, m] of window.qa.lines) { if (t < t0) continue; const i = m.indexOf('CARROT_DUO_QA first '); if (i >= 0) out.push([t, JSON.parse(m.slice(i + 20))]) } const f = window.qa.frames; return out.map(([t, info]) => { const near = f.filter(x => x[1] >= t - 20 && x[1] <= t + 160); return { t: Math.round(t - t0), path: info.path, spectator: info.spectator, worst: near.length ? Math.max(...near.map(x => x[0])) : null, worstWork: near.length ? Math.max(...near.map(x => x[3] || 0)) : null } }) }, t0)
       const base = frameStats(await page.evaluate(t0 => window.qa.frames.filter(x => x[1] >= t0), t0))
-      r.levels[lv] = { firsts, baseline: base, worst: Math.max(...firsts.map(f => f.worst || 0)) }
-      console.log('first', lv, JSON.stringify({ n: firsts.length, worst: r.levels[lv].worst, p95: base && base.p95, list: firsts.map(f => f.path.split('/').pop() + (f.spectator ? '*' : '') + ':' + f.worst) }))
+      r.levels[lv] = { firsts, baseline: base, worst: Math.max(...firsts.map(f => f.worst || 0)), worstWork: Math.max(...firsts.map(f => f.worstWork || 0)) }
+      console.log('first', lv, JSON.stringify({ n: firsts.length, worst: r.levels[lv].worst, worstWork: r.levels[lv].worstWork, p95: base && base.p95, max: base && base.max, workP95: base && base.workP95, list: firsts.map(f => f.path.split('/').pop() + (f.spectator ? '*' : '') + ':' + f.worst) }))
       await cdp.send('Emulation.setCPUThrottlingRate', { rate: 1 }); await cmd(page, { type: 'speed', value: 1 })
     }
-    report.results.first = r; save(); await ctx.browser.close()
+    report.results[firstTier === 'auto' ? 'first' : 'first-' + firstTier] = r; save(); await ctx.browser.close()
   }
   if (only.includes('heap')) {
     const ctx = await open({ url, name, size: [1440, 900] }); const { page } = ctx; await send(page, 'Quality', 'high')

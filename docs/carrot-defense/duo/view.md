@@ -100,7 +100,7 @@ Lag diet:
   - animate only while one of their renderers is visible;
   - use two bone influences and one mesh LOD coarser than the tier picks;
   - **cast no shadows on any tier**, bosses excepted. The plan asked for Medium and Low only; High is included because the partner's shadow pass was the largest single cost measured (−254 draws).
-- **Partner decoration casts no shadow** either.
+- **Partner decoration casts no shadow** either. The partner's carrot fence and flowers are built before the decoration combine, so they join its shadowless batches (16 fewer draws in the High own view at 844x390, and its 15 fence posts stop casting; solo and the host keep the old order).
 - **Dormant:** when the partner's rectangle covers under 10% of the screen, actors sync at 4 Hz and effects, the carrot and the contact-shadow rebuild stop. It wakes the next frame.
 - **Roster warm-up:** the level's whole creature roster (the whole roster except Asuna in endless) is instantiated off-screen, two per frame, during the lobby and the side reveal. No creature's first appearance links a shader or uploads a mesh mid-wave.
 
@@ -120,7 +120,7 @@ $N scripts/carrot-duo-qa/shots.mjs --solo --tag base --build output/carrot-qa-ba
 $N scripts/carrot-duo-qa/shots.mjs --duo        # 11 fights x 2 sides x {own, both, partner} x {1440x900, 844x390, 390x844}
 $N scripts/carrot-duo-qa/shots.mjs --endless
 $N scripts/carrot-duo-qa/checks.mjs             # camera, taps, spectator, endless, dressing (add --engine webkit)
-$N scripts/carrot-duo-qa/perf.mjs               # cpu, phone, first, heap, wasm
+$N scripts/carrot-duo-qa/perf.mjs               # cpu, phone, first, heap, wasm (phone and first: --tier high for the stress case)
 ```
 
 How the scaffold works:
@@ -137,27 +137,33 @@ Unity re-serializes `ProjectSettings.asset` (`WebGL:` gains a trailing space) on
 These are the results on the loopback scaffold, with the QA player built from this branch. Evidence (frames, contact sheets, JSON) is in
 `scratchpad/carrot-duo/maps-and-view/`.
 
-The machine was shared with other agents' Unity builds and browsers (load average 14 to 22), so frame-time numbers are medians of fresh-page runs.
+The machine was shared with other agents' Unity builds and browsers (load average 6 to 24), so frame-time numbers are medians of interleaved fresh-page runs. Unless a row says otherwise, the numbers come from the final player (`a22cc8c`; later commits change only comments, this file and the QA scripts). `checks.mjs` passes 109/109 on it in Chromium and in WebKit.
 
 | Acceptance | Result |
 | --- | --- |
-| Solo unchanged | Frozen-clock captures, pre-change player against this one, for L1, L12, L24, L25, L28 and L29 at 1440x900 and 390x844: all at the noise floor (at most 0.16% of pixels, at most 0.19% of 8x8 blocks), with one exception. See note 1 below. |
-| Screenshot set (`shots/duo/final`, `shots/endless/final`, `shots/closeups`) | 198 duo frames (11 fights x 2 sides x own/Both/Watch x 1440x900, 844x390, 390x844), 12 Twin Gates frames, 24 reduced-motion frames and 14 close-ups, all reviewed. No prop on a path or pad, and props stay ≥ 0.98 u from the wall line. The divider is continuous with openings at every seam gate (the twin arches face each other through it). Both carrots are visible in Both. Lantern posts stand on the 4 lit Twin Gates pads. Team banners are gold and teal. |
-| Camera (`checks.mjs`, Chromium, 59/59) | Own-half fit ratio to solo is 1.000 on L4, L25 and L29 at all three sizes. A real drag at zoom 1 reaches \|pan.x\| = 16 (portrait 17.7). Both frames all four arena corners. Portrait puts the own half nearest. L29 north yaw is 173 (solo + 180) and south is 7. Reduced motion completes a mode change in one frame. |
+| Solo unchanged | Frozen-clock captures, pre-change player against the final one, for L1, L12, L24, L25, L28 and L29 at 1440x900 and 390x844: all 12 frames at the noise floor (at most 0.15% of pixels and 0.22% of 8x8 blocks; the diff images show only particle motes). L28 matched too (0.007%), but see note 1. |
+| Screenshot set (`shots/duo/nest`, `shots/duo/nest-rm`, `shots/endless/nest`, `shots/closeups`) | On the final player: 198 duo frames (11 fights x 2 sides x own/Both/Watch x 1440x900, 844x390, 390x844), 12 Twin Gates frames and 24 reduced-motion frames, all reviewed through contact sheets. There are also 16 close-ups: 14 from the player before `340edf2` and two of the batched partner nest. The only console errors are the licensed Asuna model (absent from this checkout) and favicon 404s. No prop sits on a path or pad. The dressing check (`checks.mjs`, 22/22, both halves of every fight) finds every prop footprint at least 0.55 u from the wall line (L27; the strip is 0.5 u) and every occluding prop at least 1.004 u from a path centreline. The divider is continuous with openings at every seam gate (the twin arches face each other through it). Both carrots are visible in Both. Lantern posts stand on the 4 lit Twin Gates pads. Team banners are gold and teal. |
+| Camera (`checks.mjs`, 59/59 in Chromium and in WebKit) | Own-half fit ratio to solo is 1.000 on L4, L25 and L29 at all three sizes. A real drag at zoom 1 reaches \|pan.x\| = 16 (portrait 17.7). Both frames all four arena corners. Portrait puts the own half nearest. L29 north yaw is 173 (solo + 180) and south is 7. Reduced motion completes a mode change in one frame. |
 | Partner taps | 200 real pointer taps on the partner's half: 200 `partnerTap` events; state digest, coins and towers unchanged; no selection left. Run in Chromium and WebKit, at 1440x900 and 844x390. |
 | Spectator invariants | On `CarrotPartner`: 0 AudioSources, 0 Cinemachine cameras, 0 lights, 0 cameras, 0 colliders, 0 CarrotClickables, 0 Volumes and 0 time-scale requests. Actors equal the replica's enemies + towers in every frame (`actorMismatchMax` 0). The host's key light stays on. Checked in all three camera modes, in Chromium and WebKit. |
 | Twin Gates, 844x390 | Smallest on-screen pad radius 18.5 px. 35/35 pads selected by a real tap. Ghost sprouts (2), the presence ring and builder rings render, and ghosts dissolve on reject. |
-| View CPU (Chromium, High, L24 wave-14 peak, 900 frames, median of 3 fresh pages) | CPU_RESULT |
-| Frame time at 4x CPU throttle (mobile emulation, 844x390, median of 3) | PHONE_RESULT |
-| First appearance (4x throttle, L24 and L27 from wave 1) | FIRST_RESULT |
-| JS heap, 10-minute loopback (4 matches) | +7.1 MB (69.1 MB to 76.3 MB) |
-| WebKit wasm heap (L24 and L28 duo peaks, Both) | 160 MB peak (the initial size), 0 growth events |
+| View CPU (Chromium, High, 1440x900, L24 wave-14 peak, 900 frames, median of 3 fresh pages) | View scripts (CarrotQa sections, spectator included): solo 0.706 ms, Both 1.007 ms (**1.43x**, target 1.5x), own view with the partner off screen and dormant 0.766 ms (**1.08x**, target 1.15x). An earlier run of the same suite gave 1.36x and 1.06x. Unity's mean main-thread work per frame is 4.3, 5.8 and 4.7 ms. |
+| Frame time at 4x CPU throttle (mobile emulation, 844x390, L24 wave-14 peak, median of 5) | At the tier the game picks for this viewport (Low): rAF p95 solo 17.7 ms, own view 18.0 ms (**1.02x**, target 1.25x), Both 18.1 ms (1.02x). Unity's unquantized main-thread work p95 is 12.5, 14.9 and 15.5 ms (paired ratios 1.23x and 1.29x). See note 3 for High forced on this viewport, which misses the target. |
+| First appearance (4x throttle, 844x390, L24 and L27 from wave 1, both halves) | At the phone tier (Low), the worst frame around any of the 50 first appearances is 26.6 ms on L24 and 31.6 ms on L27 (the eyeball boss's entrance). Unity's longest frame work in those windows is 37.3 ms (target 50 ms). For High, see note 3. |
+| JS heap, 10-minute loopback (4 matches) | +7.1 MB (69.1 MB to 76.3 MB), measured on the player before `340edf2` (later commits only move props and batch the partner's nest). |
+| WebKit wasm heap (L24 and L28 duo peaks, Both) | 160 MB peak (the initial size) and 0 growth events, on the same earlier player. |
 | QA player | `WebQaDuo` loads in Chromium and WebKit. Compression is gzip with the decompression fallback (asserted by the build); ProjectSettings is unchanged. |
 
 Notes:
 
-1. **L28's pad discs** in the full-sequence 1440x900 frame. L28's planting discs and their floating terraces are exactly coplanar in solo (both at y = 0.02), a pre-existing z-fight. Which surface wins depends on renderer order, and that order moved with the session's history, so even two runs of the same player differed. With the same level sequence, the pre-change player and this one are identical (0.006%).
+1. **L28's pad discs.** L28's planting discs and their floating terraces are exactly coplanar in solo (both at y = 0.02), a pre-existing z-fight. Which surface wins depends on renderer order, and that order moves with the session's history. Earlier full-sequence runs differed by 0.8% in the 1440x900 frame, even between two runs of the same player. With the same level sequence the two players are identical, as in the final run.
 2. **Endless at wave 60** needs the endless generator (sim-and-modes), so its wasm heap peak is left for the integration run. Twin Gates in the scaffold runs level 19's waves.
+3. **High tier forced on a phone viewport** (a stress case: the game gives phone-sized viewports Low).
+   - Frame time: rAF p95 is 18.3 ms solo, 25.3 ms in the own view (**1.38x, over the 1.25x target**) and 26.1 ms in Both (1.43x), median of 5 in a quiet window. Mean frame ratios are 1.17x and 1.27x.
+   - Why the p95 jumps: solo High already uses about 93% of the 16.7 ms refresh at 4x. The partner half adds about 90 draws to the main pass (+2.5 ms at 4x), so the p95 frame slips to the next refresh step (25 ms).
+   - Measured per pass: the host's shadow map is 191 draws in solo and 194 in duo (the partner casts nothing), and the main pass is 249, +79 in the own view and +207 in Both. The partner's visible renderers in the own view are 40 actor parts, 28 decoration batches, 9 scenery parts and 3 others.
+   - Next steps, if High phones matter: merge the partner's decoration batches into the host's batches of the same material (−26 draws), and merge the static parts of each partner tower (−20 in the own view, −65 in Both).
+   - First appearance at High: 35.2 ms and 41.6 ms worst (L24, L27) in the quietest run. Under load the numbers were 50.1 and 50.0 ms (load average 22) and 59.4 and 107.7 ms (a run whose baseline p95 was itself 66.6 ms). In every run, the run's longest frame (58 to 133 ms) came somewhere other than a first appearance.
 
 ## Integration notes (for the lead)
 
@@ -171,5 +177,6 @@ Notes:
   - `CarrotDuoWall.shader` was not added: the shimmer uses Carrot/FxAdditive, so there is no new variant to warm.
   - `CarrotWorldLighting.cs` and `CarrotWorldBars.cs` needed no edits.
 - **Renamed file:** `CarrotEndlessView.cs` is `CarrotTwinGatesView.cs` (carrot-sim pickup; see the top of this file).
+- **High tier on phones:** the game gives phone-sized viewports Low, where the duo frame matches solo. If players force High on a phone, the own view's p95 frame is 1.38x solo. Note 3 under QA has the measurements and the two merges that would recover most of it.
 - **Release player:** re-run `checks.mjs` and `perf.mjs` on the release player from the licensed checkout. Asuna and the licensed effect layer are absent from this QA player, and the spectator skips the licensed layer anyway.
 

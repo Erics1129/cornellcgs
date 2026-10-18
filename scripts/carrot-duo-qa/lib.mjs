@@ -93,5 +93,8 @@ export function frameStats(frames) {
   const iv = frames.map(f => f[0]).sort((a, b) => a - b); if (!iv.length) return null
   const q = p => iv[Math.min(iv.length - 1, Math.floor(p * iv.length))]; const total = iv.reduce((s, x) => s + x, 0)
   const d = frames.map(f => f[2] || 0).filter(x => x > 0).sort((a, b) => a - b)
-  return { frames: iv.length, mean: Math.round(total / iv.length * 100) / 100, p50: q(.5), p95: q(.95), p99: q(.99), max: iv[iv.length - 1], drawsMedian: d.length ? d[d.length >> 1] : 0 }
+  // Unity's main-thread work per frame (harness column 4): not quantized to the display's refresh like the interval is.
+  const w = frames.map(f => f[3]).filter(x => x > 0).sort((a, b) => a - b); const wq = p => w.length ? w[Math.min(w.length - 1, Math.floor(p * w.length))] : 0
+  return { frames: iv.length, mean: Math.round(total / iv.length * 100) / 100, p50: q(.5), p95: q(.95), p99: q(.99), max: iv[iv.length - 1], drawsMedian: d.length ? d[d.length >> 1] : 0,
+    workMean: w.length ? Math.round(w.reduce((s, x) => s + x, 0) / w.length * 100) / 100 : 0, workP50: wq(.5), workP95: wq(.95) }
 }
