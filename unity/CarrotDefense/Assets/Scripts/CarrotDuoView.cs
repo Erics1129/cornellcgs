@@ -482,11 +482,11 @@ namespace CarrotTD {
   void BuilderTint(Actor a,TowerState t){
    if(!EndlessMap||t.builder<0||a==null||a.root==null)return;
    if(a.builderMark!=null)return;Color c=t.builder==duoCfg.seat?LocalColour:PartnerColour;
-   var mat=Material("builder-ring-"+ColorUtility.ToHtmlStringRGB(c),c*.6f,-1,.3f);mat.SetColor("_EmissionColor",c*.9f);mat.SetFloat("_SnowStrength",0);
-   var ring=MeshObject("Builder ring",BuilderRingMesh(),mat,a.root.transform);ring.transform.localPosition=new Vector3(0,.035f,0);var r=ring.GetComponent<Renderer>();r.shadowCastingMode=ShadowCastingMode.Off;r.receiveShadows=false;a.builderMark=ring;CarrotQa.Count("duo.builderTint",1);
+   var mat=Material("builder-ring-"+ColorUtility.ToHtmlStringRGB(c),c*.7f,-1,.3f);mat.SetColor("_EmissionColor",c*1.6f);mat.SetFloat("_SnowStrength",0);mat.SetFloat("_Cull",0);
+   var ring=MeshObject("Builder ring",BuilderRingMesh(),mat,a.root.transform);ring.transform.localPosition=new Vector3(0,.05f,0);var r=ring.GetComponent<Renderer>();r.shadowCastingMode=ShadowCastingMode.Off;r.receiveShadows=false;a.builderMark=ring;CarrotQa.Count("duo.builderTint",1);
   }
   static Mesh builderRing;
-  static Mesh BuilderRingMesh(){if(builderRing!=null)return builderRing;const int n=40;float inner=.42f,outer=.5f;var v=new Vector3[(n+1)*2];var c=new Color[v.Length];var t=new int[n*6];for(int i=0;i<=n;i++){float a=i*Mathf.PI*2/n;var d=new Vector3(Mathf.Cos(a),0,Mathf.Sin(a));v[i*2]=d*inner;v[i*2+1]=d*outer;c[i*2]=c[i*2+1]=Color.white;if(i<n){int k=i*6,b=i*2;t[k]=b;t[k+1]=b+1;t[k+2]=b+2;t[k+3]=b+1;t[k+4]=b+3;t[k+5]=b+2;}}builderRing=new Mesh{name="Builder ring"};builderRing.vertices=v;builderRing.colors=c;builderRing.triangles=t;builderRing.RecalculateNormals();builderRing.RecalculateBounds();return builderRing;}
+  static Mesh BuilderRingMesh(){if(builderRing!=null)return builderRing;const int n=40;float inner=.47f,outer=.6f;var v=new Vector3[(n+1)*2];var c=new Color[v.Length];var t=new int[n*6];for(int i=0;i<=n;i++){float a=i*Mathf.PI*2/n;var d=new Vector3(Mathf.Cos(a),0,Mathf.Sin(a));v[i*2]=d*inner;v[i*2+1]=d*outer;c[i*2]=c[i*2+1]=Color.white;if(i<n){int k=i*6,b=i*2;t[k]=b;t[k+1]=b+1;t[k+2]=b+2;t[k+3]=b+1;t[k+4]=b+3;t[k+5]=b+2;}}builderRing=new Mesh{name="Builder ring"};builderRing.vertices=v;builderRing.colors=c;builderRing.triangles=t;builderRing.RecalculateNormals();builderRing.RecalculateBounds();return builderRing;}
 
   // ---- roster warm-up ---------------------------------------------------------------------------------------------------------
   readonly HashSet<string> qaFirstSeen=new HashSet<string>();
