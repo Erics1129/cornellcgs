@@ -82,9 +82,10 @@ export const ARRIVAL_SECONDS=2.6,RELEASE_SECONDS=9
  */
 export class MoodTracker{
  level=0;bossId=-1;bossKind='';state:0|1|2|3|4=0;route=0;rebirths=0;deathWave=0;dawnAt=-1e9;reformAt=-1e9;arrivalAt=-1e9;deathAt=-1e9;leakBase=0;lastStage=1;lastAbility='';lastAtDeath=false
+ releaseAt=-1e9;releaseDelayS=.6;releaseFull=false;lastPhase=''
  clock=0;private lastNow=-1
  readonly minis=new Set<number>()
- reset(level:number){this.level=level;this.bossId=-1;this.bossKind='';this.state=0;this.route=0;this.rebirths=0;this.deathWave=0;this.dawnAt=this.reformAt=this.arrivalAt=this.deathAt=-1e9;this.leakBase=0;this.lastStage=1;this.lastAbility='';this.lastAtDeath=false;this.clock=0;this.lastNow=-1;this.minis.clear()}
+ reset(level:number){this.level=level;this.bossId=-1;this.bossKind='';this.state=0;this.route=0;this.rebirths=0;this.deathWave=0;this.dawnAt=this.reformAt=this.arrivalAt=this.deathAt=-1e9;this.leakBase=0;this.lastStage=1;this.lastAbility='';this.lastAtDeath=false;this.releaseAt=-1e9;this.releaseDelayS=.6;this.releaseFull=false;this.lastPhase='';this.clock=0;this.lastNow=-1;this.minis.clear()}
  /** Advances the tracker clock to now (ms) unless paused; returns the real seconds advanced. */
  time(now:number,paused:boolean){const dt=this.lastNow<0?0:Math.max(0,Math.min(1,(now-this.lastNow)/1000));this.lastNow=now;if(paused)return 0;this.clock+=dt;return dt}
  static leaks(st:GameState,kind:string){const s=st.stats;if(!s||!Array.isArray(s.leakKinds))return 0;const i=s.leakKinds.indexOf(kind);return i>=0?Number(s.leakCounts?.[i])||0:0}
@@ -104,8 +105,14 @@ export class MoodTracker{
    this.leakBase=MoodTracker.leaks(st,b.kind)
   }else if(this.bossId>=0&&(this.state===1||this.state===2)&&st.phase!=='lost'){
    if(MoodTracker.leaks(st,this.bossKind)>this.leakBase)this.state=4
-   else{this.state=3;this.deathAt=this.clock;this.deathWave=st.wave;this.lastAtDeath=(st.enemyCount||0)===0;this.minis.clear()}
+   else{this.state=3;this.deathAt=this.clock;this.deathWave=st.wave;this.lastAtDeath=(st.enemyCount||0)===0;this.minis.clear()
+    // the view's release at the fall: front-loaded (.15 s) when a campaign guardian was the last enemy, else .6 s; "full" unless
+    // a challenge still has waves to come
+    const ch=challengeLevel(st.level);this.releaseAt=this.clock;this.releaseDelayS=!ch&&this.lastAtDeath?.15:.6;this.releaseFull=!ch||(st.wave>=(st.waves||0)&&this.lastAtDeath)}
   }
+  // the win starts the full release when the fall's was not (a challenge's aftershock), front-loaded
+  if(st.phase==='won'&&this.lastPhase!=='won'&&(this.releaseAt<-1e8||!this.releaseFull)){this.releaseAt=this.clock;this.releaseDelayS=.15;this.releaseFull=true}
+  this.lastPhase=st.phase
   if(this.state===3)for(const m of st.minibosses||[])if(m&&m.hp>0)this.minis.add(m.id)
  }
  input(st:GameState,held:number):MoodInput{
@@ -113,14 +120,13 @@ export class MoodTracker{
   return moodInput(st.level,{ wave:st.wave, waves:st.waves||moodProfile(st.level)?.waves||0, hearts:st.health, boss:this.state, phase:st.phase, nextWave:st.nextWave||0, route:this.route, dawnAge, held, rebirths:this.rebirths, minis:this.minis.size, deathWave:this.deathWave })
  }
  /** Seconds since the guardian fell (-1 before), on the tracker clock. */
- releaseAge(){return this.state===3?this.clock-this.deathAt:-1}
- /** The view's release shape: D follows with tau .6 s after a delay of .15 s when the board is won by the kill (a campaign guardian
- * that was the last enemy alive), else .6 s. */
- releaseDelay(st:GameState){return (!challengeLevel(st.level)||st.phase==='won')&&this.lastAtDeath?.15:.6}
+ releaseAge(){return this.releaseAt>-1e8?this.clock-this.releaseAt:-1}
+ /** The view's release shape: D follows with tau .6 s after the delay (.15 s front-loaded, else .6 s). */
+ releaseDelay(){return this.releaseDelayS}
  stage(st:GameState):MoodStage{
   if(st.phase==='won')return 'won'
   if(st.phase==='lost')return 'lost'
-  if(this.state===3)return this.clock-this.deathAt<RELEASE_SECONDS||!challengeLevel(st.level)?'release':'post'
+  if(this.state===3)return this.releaseAge()<RELEASE_SECONDS||!challengeLevel(st.level)?'release':'post'
   if(this.state===1||this.state===2)return this.clock-this.arrivalAt<ARRIVAL_SECONDS?'arrival':'advance'
   if(this.state===4)return 'advance'
   const p=moodProfile(st.level)
@@ -130,7 +136,7 @@ export class MoodTracker{
  * false dawn), except in the release window, where D follows with tau .6 s after the delay. */
  step(st:GameState,d:number,held:number,dt:number){
   const input=this.input(st,held),t=moodTarget(input),stage=this.stage(st),age=this.releaseAge()
-  if(age>=0&&age<RELEASE_SECONDS){if(age>=this.releaseDelay(st))d+=(t-d)*(1-Math.exp(-dt/.6));return d}
+  if(age>=0&&age<RELEASE_SECONDS){if(age>=this.releaseDelay())d+=(t-d)*(1-Math.exp(-dt/.6));return d}
   const entrance=stage==='arrival'||input.dawnAge>=2.2&&input.dawnAge<3,dawn=input.dawnAge<2.2
   return moodStep(d,t,dt,entrance,dawn)
  }

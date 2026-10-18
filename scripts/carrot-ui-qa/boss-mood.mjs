@@ -57,7 +57,7 @@ const boss = (o = {}) => ({ id: 77, kind: 'garden', name: 'Brambleback', hp: 100
  play(t, 3000, 5600); ok(t.stage(snap(4, { phase: 'playing', wave: 8, boss: boss() })) === 'advance', 'advance after 2.6 s of play')
  t.observe(snap(4, { phase: 'playing', wave: 8, health: 7, enemyCount: 0, boss: null }), 5700); ok(t.state === 3, 'death (escorts biting in the same snapshot do not make it a leak)')
  ok(t.stage(snap(4, { phase: 'playing', wave: 8 })) === 'release', 'release stage'); near(moodTarget(t.input(snap(4, { phase: 'playing', wave: 8 }), 0)), 0, 'campaign target after the fall')
- ok(t.releaseDelay(snap(4, { phase: 'playing', wave: 8 })) === .15, 'front-loaded release when the guardian was the last enemy')
+ ok(t.releaseDelay() === .15, 'front-loaded release when the guardian was the last enemy')
  { let d = .9; for (let i = 0; i < 2; i++) d = t.step(snap(4, { phase: 'playing', wave: 8 }), d, 0, .05); near(d, .9, 'release holds for the .15 s delay', 1e-9) }
  play(t, 5700, 16000); ok(t.stage(snap(4, { phase: 'playing', wave: 8 })) === 'release', 'a campaign guardian stays in release (the view: stage 4)')
 }
@@ -78,8 +78,9 @@ const boss = (o = {}) => ({ id: 77, kind: 'garden', name: 'Brambleback', hp: 100
  near(t.input(eye({ elapsed: 101.5 }), 0).dawnAge, .5, 'dawn age from the reincarnate cast'); near(moodTarget(t.input(eye({ elapsed: 101.5 }), 0)), moodTarget(C(27, 'playing', 7, 1, { route: .6, dawn: .5 })), 'false dawn target')
  t.observe(eye({ elapsed: 103.2, boss: boss({ kind: 'eyeball', routeFraction: .6, stage: 2 }) }), 3200)
  ok(t.rebirths === 1, 'one rebirth when the cast ends (the re-formation)'); near(t.input(eye({ elapsed: 103.2 }), 0).dawnAge, 2.2, 'reform snaps the dawn window to 2.2 s')
- t.observe(eye({ elapsed: 150, wave: 8, enemyCount: 6, boss: null }), 50000); ok(t.state === 3, 'eyeball falls'); ok(t.releaseDelay(eye({ wave: 8 })) === .6, 'challenge release delay .6 s')
+ t.observe(eye({ elapsed: 150, wave: 8, enemyCount: 6, boss: null }), 50000); ok(t.state === 3, 'eyeball falls'); ok(t.releaseDelay() === .6, 'challenge release delay .6 s')
  play(t, 50000, 60000); ok(t.stage(eye({ wave: 8 })) === 'post', 'a challenge with waves left goes to post after 9 s')
+ t.observe(eye({ elapsed: 300, wave: 11, phase: 'won', boss: null }), 70000); ok(t.releaseAge() >= 0 && t.releaseAge() < .5 && t.releaseDelay() === .15, 'the win restarts a front-loaded full release after a challenge aftershock')
  t.observe(eye({ elapsed: 160, wave: 9, boss: null, minibosses: [{ id: 501, kind: 'warDrummer', hp: 100, maxHp: 100, shield: 0, maxShield: 0, phase: 1, ability: '', castRemaining: 0, x: 0, y: 0, visible: true }] }), 60000)
  ok(t.minis.size === 1, 'a miniboss after the fall'); near(moodTarget(t.input(eye({ wave: 9 }), 0)), Math.min(.45, .15 + .25 * (9 - 8) / (11 - 8) + .04), 'aftershock target')
 }
