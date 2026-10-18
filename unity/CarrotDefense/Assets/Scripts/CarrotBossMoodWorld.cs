@@ -49,7 +49,7 @@ namespace CarrotTD {
 
   void BossMoodDisposeWorld(){
    foreach(var o in moodObjects)if(o!=null)Destroy(o);moodObjects.Clear();foreach(var o in moodOwned)if(o!=null)Destroy(o);moodOwned.Clear();moodFieldRow=-1;moodFieldPx=null;moodClones.Clear();moodBossClones.Clear();moodBossDressed.Clear();moodBossHeight.Clear();moodMistMaterials.Clear();
-   moodField=null;moodThornMesh=null;moodThornMaterial=null;moodFragMesh=null;moodFragMaterial=null;moodThornGrowth=-1;moodLossCount=0;moodFront=0;moodShotOn=false;
+   moodThornBase=null;moodFragPos=null;moodField=null;moodThornMesh=null;moodThornMaterial=null;moodFragMesh=null;moodFragMaterial=null;moodThornGrowth=-1;moodLossCount=0;moodFront=0;moodShotOn=false;
   }
 
   void BossMoodWorldBuild(){
@@ -151,7 +151,7 @@ namespace CarrotTD {
   // ---------------------------------------------------------------- per frame
   void BossMoodWorldTick(CarrotMoodInput input,float dt){
    if(moodFieldRow>=0)BossMoodFieldStep();
-   var p=mood;float de=moodDe;int bw=CarrotBossMoodCurve.BossWave(game.level.id);
+   var p=mood;float de=(moodChan&16)!=0?moodDe:0;int bw=CarrotBossMoodCurve.BossWave(game.level.id);
    // wake front: the creep before the boss, then the boss's own route fraction; it never retreats (losses do not heal until the release)
    float creep=bw>1?.35f*Mathf.Clamp01((Mathf.Max(game.wave,1)-1)/(float)Mathf.Max(1,bw-1)):0;
    float frontWant=Mathf.Max(creep,input.boss==1||input.boss==2||input.boss==4?input.route:0);moodFront=Mathf.Max(moodFront,frontWant);if(input.boss==1||input.boss==2)moodBossRoute=Mathf.Max(moodBossRoute,input.route);
@@ -241,7 +241,8 @@ namespace CarrotTD {
     if(actor==null||e==null)return;
     float drawn=BossMoodHeight(actor,e)*p.bossScale;Vector3 root=follow.position;var route=game.level.routes[Mathf.Clamp(e.route,0,game.level.routes.Length-1)];float len=CarrotData.RouteLength(route);
     float back=p.back*(portraitCamera?.85f:1)*Mathf.Max(1,p.bossScale*.8f),h=p.height+(portraitCamera?.3f:0);Vector3 look=root+Vector3.up*(drawn*p.look);Vector3 cam;
-    Vector3 toCarrot=carrotPosition-root;toCarrot.y=0;if(toCarrot.sqrMagnitude<.01f)toCarrot=Vector3.back;toCarrot.Normalize();
+    // In front of the guardian (where it walks), leaning to the carrot's side: the lens meets its face, not its back.
+    Vector3 toCarrot=carrotPosition-root;toCarrot.y=0;if(toCarrot.sqrMagnitude<.01f)toCarrot=Vector3.back;toCarrot.Normalize();Vector3 facing=e.direction;facing.y=0;if(facing.sqrMagnitude>.01f){toCarrot=(facing.normalized*.7f+toCarrot*.3f);if(toCarrot.sqrMagnitude<.01f)toCarrot=facing;toCarrot.Normalize();}
     bool found=false;
     if(p.shot==2){cam=root+toCarrot*back+Vector3.up*(back*Mathf.Tan(p.shotPitch*Mathf.Deg2Rad));found=true;}
     else{
@@ -249,7 +250,8 @@ namespace CarrotTD {
      // first candidate (0, +-25, +-45 degrees around that bearing) with a clear view of the whole body and nothing of the garden
      // within 1.6 u of the lens wins; otherwise the original shot stays.
      cam=root;foreach(float turn in new[]{0f,25f,-25f,45f,-45f}){Vector3 dir=Quaternion.Euler(0,turn,0)*toCarrot;Vector3 ground=root+dir*back;ground.y=SurfaceHeight(ground);
-      Vector3 c=ground+Vector3.up*(p.shot==3?Mathf.Max(h,drawn*p.look):h);Vector3 lk=p.shot==3?new Vector3(look.x,c.y,look.z):look;
+      // Shot 3 (the Eyeball): dead level, the lens 1 u above the eye's centre so the eye sits low in frame, under the warning card.
+      Vector3 c=ground+Vector3.up*(p.shot==3?drawn*p.look+1f:h);Vector3 lk=p.shot==3?new Vector3(look.x,c.y,look.z):look;
       if(ShotClear(c,root,drawn,lk)){cam=c;look=lk;found=true;break;}}}
     if(!found)return;
     Quaternion rot=Quaternion.LookRotation(look-cam);
@@ -293,9 +295,10 @@ namespace CarrotTD {
 
   // ---------------------------------------------------------------- thorn silhouettes rising beyond the board (Brambleback)
   void BossMoodThorns(){
-   var rng=new System.Random(9307+game.level.id*31+5);var spots=new List<Vector3>();var cam=GameCamera;
-   Vector3 center=new Vector3((moodBounds.x+moodBounds.z)*.5f,0,(moodBounds.y+moodBounds.w)*.5f);Vector3 camF=cam!=null?cam.transform.forward:Vector3.forward;camF.y=0;camF.Normalize();
-   var screenPts=new List<Vector2>();if(cam!=null){foreach(var q in moodDepthSamples){var s=cam.WorldToViewportPoint(q);if(s.z>0)screenPts.Add(new Vector2(s.x,s.y));}}
+   var rng=new System.Random(9307+game.level.id*31+5);var spots=new List<Vector3>();var cam=GameCamera;Matrix4x4 vp=PlayViewProjection();
+   Vector3 center=new Vector3((moodBounds.x+moodBounds.z)*.5f,0,(moodBounds.y+moodBounds.w)*.5f);Vector3 camF=cameraAngle*Vector3.forward;camF.y=0;camF.Normalize();
+   // Screen tests use the fitted play camera (cameraAngle at fitDistance), whatever camera happens to render this frame.
+   var screenPts=new List<Vector2>();foreach(var q in moodDepthSamples){if(PlayViewport(vp,q,out var sp))screenPts.Add(sp);}
    for(int tries=0;tries<400&&spots.Count<44;tries++){
     float ang=(float)rng.NextDouble()*Mathf.PI*2;float out_=1.8f+(float)rng.NextDouble()*2.4f;Vector3 dir=new Vector3(Mathf.Cos(ang),0,Mathf.Sin(ang));
     // a point outside the bounds + 1.5 u along this direction (rectangle expanded)
@@ -303,7 +306,7 @@ namespace CarrotTD {
     if(Vector3.Dot(c-center,camF)<-(moodBounds.w-moodBounds.y)*.25f)continue; // never on the camera's side (it would stand in front of the board)
     FieldAt(c,out float laneD,out _,out float padD,out _);if(laneD<2.2f||padD<2f)continue;
     float h=1.1f+(float)rng.NextDouble()*1.3f;
-    if(cam!=null){var a=cam.WorldToViewportPoint(c);var b=cam.WorldToViewportPoint(c+Vector3.up*h);if(a.z<=0)continue;float minx=Mathf.Min(a.x,b.x)-.03f,maxx=Mathf.Max(a.x,b.x)+.03f,miny=Mathf.Min(a.y,b.y)-.01f,maxy=Mathf.Max(a.y,b.y)+.02f;bool hides=false;foreach(var q in screenPts)if(q.x>minx&&q.x<maxx&&q.y>miny&&q.y<maxy){hides=true;break;}if(hides)continue;}
+    {if(!PlayViewport(vp,c,out var a)||!PlayViewport(vp,c+Vector3.up*(h+.4f),out var b))continue;if(a.y<.12f)continue;float minx=Mathf.Min(a.x,b.x)-.04f,maxx=Mathf.Max(a.x,b.x)+.04f,miny=Mathf.Min(a.y,b.y)-.02f,maxy=Mathf.Max(a.y,b.y)+.03f;bool hides=false;foreach(var q in screenPts)if(q.x>minx&&q.x<maxx&&q.y>miny&&q.y<maxy){hides=true;break;}if(hides)continue;}
     bool near=false;foreach(var q in spots)if(Vector3.Distance(q,c)<1.6f)near=true;if(near)continue;int stalks=3+rng.Next(2);for(int k=0;k<stalks;k++){float a2=(float)rng.NextDouble()*6.283f,r2=.15f+(float)rng.NextDouble()*.35f;var q2=c+new Vector3(Mathf.Cos(a2)*r2,0,Mathf.Sin(a2)*r2);spots.Add(new Vector3(q2.x,TerrainHeight(q2)-.05f,q2.z));}}
    int n=spots.Count;if(n==0)return;moodThornBase=spots.ToArray();moodThornH=new float[n];moodThornLean=new float[n];moodThornYaw=new float[n];moodThornDelay=new float[n];
    for(int i=0;i<n;i++){moodThornH[i]=.8f+(float)rng.NextDouble()*1.4f;moodThornLean[i]=.2f+(float)rng.NextDouble()*.55f;moodThornYaw[i]=(float)rng.NextDouble()*360;moodThornDelay[i]=(float)rng.NextDouble()*.45f;}
@@ -312,6 +315,9 @@ namespace CarrotTD {
    var go=new GameObject("Boss mood thorns");moodObjects.Add(go);go.transform.SetParent(world,false);go.AddComponent<MeshFilter>().sharedMesh=moodThornMesh;var r=go.AddComponent<MeshRenderer>();r.sharedMaterial=moodThornMaterial;r.shadowCastingMode=CarrotQuality.Rich?ShadowCastingMode.On:ShadowCastingMode.Off;r.receiveShadows=true;
    moodThornGrowth=-1;
   }
+  /// <summary>View-projection of the fitted play camera (SnapCamera's pose at zoom 1, no pan).</summary>
+  Matrix4x4 PlayViewProjection(){Vector3 pos=cameraTarget-(cameraAngle*Vector3.forward)*fitDistance;var view=Matrix4x4.TRS(pos,cameraAngle,new Vector3(1,1,-1)).inverse;float aspect=GameCamera!=null?GameCamera.aspect:1.6f;var proj=Matrix4x4.Perspective(38,aspect,.1f,100);return proj*view;}
+  static bool PlayViewport(Matrix4x4 vp,Vector3 p,out Vector2 v){Vector4 c=vp*new Vector4(p.x,p.y,p.z,1);v=Vector2.zero;if(c.w<=.01f)return false;v=new Vector2(c.x/c.w*.5f+.5f,c.y/c.w*.5f+.5f);return v.x>-.2f&&v.x<1.2f&&v.y>-.2f&&v.y<1.2f;}
   readonly List<Vector3> thornV=new List<Vector3>();readonly List<int> thornT=new List<int>();readonly List<Vector2> thornUv=new List<Vector2>();
   void BossMoodThornMesh(float growth){
    thornV.Clear();thornT.Clear();thornUv.Clear();
@@ -331,7 +337,8 @@ namespace CarrotTD {
    int n=CarrotQuality.Tier==CarrotQuality.LowTier?6:12;moodFragRng=new System.Random(9307+game.level.id*31+7);
    moodFragPos=new Vector3[n];moodFragVel=new Vector3[n];moodFragLife=new float[n];moodFragSize=new float[n];moodFragSpin=new float[n];for(int i=0;i<n;i++)moodFragLife[i]=-(float)moodFragRng.NextDouble()*3;
    moodFragMesh=new Mesh{name="Boss mood fragments"};moodFragMesh.MarkDynamic();moodOwned.Add(moodFragMesh);
-   Material source=null;materials.TryGetValue("portal-foundation",out source);moodFragMaterial=source!=null?new Material(source){name="boss-mood-fragments"}:new Material(Shader.Find("Carrot/Storybook")){name="boss-mood-fragments"};moodFragMaterial.SetFloat("_Cull",0);moodOwned.Add(moodFragMaterial);
+   // a plain slate stone (no atlas: the chunks carry no UVs), the platform's own hue
+   moodFragMaterial=new Material(Shader.Find("Carrot/Storybook")){name="boss-mood-fragments"};moodFragMaterial.color=new Color(.20f,.23f,.28f);moodFragMaterial.SetFloat("_Glossiness",.3f);moodFragMaterial.SetFloat("_SnowStrength",0);moodFragMaterial.SetFloat("_Cull",0);moodOwned.Add(moodFragMaterial);
    var go=new GameObject("Boss mood fragments");moodObjects.Add(go);go.transform.SetParent(world,false);go.AddComponent<MeshFilter>().sharedMesh=moodFragMesh;var r=go.AddComponent<MeshRenderer>();r.sharedMaterial=moodFragMaterial;r.shadowCastingMode=ShadowCastingMode.Off;r.receiveShadows=true;
   }
   readonly List<Vector3> fragV=new List<Vector3>();readonly List<int> fragT=new List<int>();readonly List<Vector3> fragN=new List<Vector3>();

@@ -17,11 +17,11 @@ namespace CarrotTD {
  public sealed partial class CarrotView {
   // ---------------------------------------------------------------- state
   CarrotMoodProfile mood;bool moodActive,moodDisabled;float moodForce=-1;Transform moodWorld;int moodBuilds;
-  float moodD,moodDL,moodDe,moodDeL,moodI=1,moodLow=1,moodClock,moodLogClock;
+  float moodD,moodDL,moodDe,moodDeL,moodI=1,moodLow=1,moodClock,moodLogClock;bool moodPhone;
   readonly CarrotMoodTracker moodTracker=new CarrotMoodTracker();CarrotGame moodTrackedGame;
   int moodStage,moodReleaseSeen,moodArrivalSeen,moodPhaseSeen,moodDawnSeen,moodRebirthSeen;float moodStageClock,moodArrival=-1,moodRelease=-1,moodReleaseHold,moodReleaseDelay=.6f,moodReleaseSpeed=6,moodReleaseTau=.8f,moodReleaseMax=20;bool moodReleaseFull;
   float moodPrevNext,moodSendNow=-1,moodPhaseAge=1e9f;int moodPrevWave;string moodPrevPhase="";
-  float bossMoodRim,moodBossK=1,moodDmax,moodBossRoute;bool moodThroughBase;float moodDawnClock=-1;
+  float bossMoodRim,moodBossK=1,moodDmax,moodBossRoute;int moodChan=31;bool moodThroughBase;float moodDawnClock=-1;
   // ---------------------------------------------------------------- baselines (captured at the end of ApplyBiomeLighting)
   struct MoodBase{public bool valid;public Quaternion sunRot,fillRot;public Color sunColor,fillColor,ambSky,ambEq,ambGround,fog,zenith,horizon,ground,skySun,cloudColor;
    public float sunRaw,sunShadow,fillIntensity,fogStart,fogEnd,sunSize,sunGlow,clouds,stars,aurora;
@@ -55,7 +55,7 @@ namespace CarrotTD {
    }
    mb.valid=true;
    mood=CarrotMoodProfile.Get(CarrotBossMoodCurve.Profile(game.level.id));moodI=CarrotBossMoodCurve.Intensity(game.level.id);
-   moodLow=(CarrotQuality.Tier==CarrotQuality.LowTier||CarrotQuality.Phone?.6f:1f)*(mood!=null?mood.lum:1);
+   moodPhone=CarrotQuality.Tier==CarrotQuality.LowTier||CarrotQuality.Phone;moodLow=(moodPhone?.6f:1f)*(mood!=null?mood.lum:1);
    BossMoodVolume();
   }
   /// <summary>Off: the only writes a non-boss level ever sees from this system (shader global, Volume, bus, FX).</summary>
@@ -167,7 +167,8 @@ namespace CarrotTD {
 
   // ---------------------------------------------------------------- light, fog, sky
   void BossMoodLight(CarrotMoodInput input){
-   float L=CarrotBossMoodCurve.Light(moodDeL),C=moodDe;var p=mood;
+   // QA channel mask (Quality('mood:chan:<bits>')): 1 light, 2 fog, 4 sky, 8 grade, 16 world; 31 = all (normal play).
+   float L=(moodChan&1)!=0?CarrotBossMoodCurve.Light(moodDeL):0,C=moodDe;var p=mood;float CF=(moodChan&2)!=0?C:0;
    Vector3 e0=mb.sunRot.eulerAngles;float pitch0=e0.x>180?e0.x-360:e0.x;
    float pitchEnd=p.sunPitch<0?pitch0:Mathf.Max(p.sunPitch,Mathf.Max(18,pitch0-8));if(pitchEnd>pitch0)pitchEnd=pitch0;
    float pitch=Mathf.Lerp(pitch0,pitchEnd,L);
@@ -179,31 +180,35 @@ namespace CarrotTD {
    sunBase=mb.sunRaw*keyMul;
    bool free=dipClock<0&&lastDim<=0&&orbitClock<0&&defeatClock<0;
    if(free)sun.intensity=sunBase;
-   float CD=p.chromaDrain*C;
-   if(defeatClock<0){Color key=p.key.a>0?Color.Lerp(mb.sunColor,SameLuma(new Color(p.key.r,p.key.g,p.key.b),mb.sunColor),L):mb.sunColor;key=Desat(key,CD);if(dawn>0)key=Color.Lerp(key,new Color(1,.86f,.6f),dawn);sun.color=key;}
+   float CD=p.chromaDrain*C;float CDL=(moodChan&1)!=0?CD:0;
+   if(defeatClock<0){Color key=p.key.a>0?Color.Lerp(mb.sunColor,SameLuma(new Color(p.key.r,p.key.g,p.key.b),mb.sunColor),L):mb.sunColor;key=Desat(key,CDL);if(dawn>0)key=Color.Lerp(key,new Color(1,.86f,.6f),dawn);sun.color=key;}
    sun.shadowStrength=Mathf.Clamp01(mb.sunShadow+p.shadowDelta*L);
-   if(fill!=null){float fm=1-(1-p.fillMul)*moodLow;fill.intensity=Mathf.Min(mb.fillIntensity*Mathf.Lerp(1,fm,L),sunBase/3f);fill.color=Desat(p.fill.a>0?Color.Lerp(mb.fillColor,SameLuma(new Color(p.fill.r,p.fill.g,p.fill.b),mb.fillColor),L):mb.fillColor,CD);
+   if(fill!=null){float fm=1-(1-p.fillMul)*moodLow;fill.intensity=Mathf.Min(mb.fillIntensity*Mathf.Lerp(1,fm,L),sunBase/3f);fill.color=Desat(p.fill.a>0?Color.Lerp(mb.fillColor,SameLuma(new Color(p.fill.r,p.fill.g,p.fill.b),mb.fillColor),L):mb.fillColor,CDL);
     float swing=p.fillYawSwing>0&&!reducedMotion?p.fillYawSwing*Mathf.Sin(moodClock*Mathf.PI*2*.06f)*L:0;fill.transform.rotation=mb.fillRot*Quaternion.Euler(0,swing,0);}
-   float am=Mathf.Lerp(1,1-(1-p.ambMul)*moodLow,L);float at=p.ambTint.a>0?.22f*C:0;Color tint=new Color(p.ambTint.r,p.ambTint.g,p.ambTint.b);
-   RenderSettings.ambientSkyColor=Desat(Color.Lerp(mb.ambSky*am,tint,at),CD);RenderSettings.ambientEquatorColor=Desat(Color.Lerp(mb.ambEq*am,tint,at),CD);RenderSettings.ambientGroundColor=Desat(Color.Lerp(mb.ambGround*Mathf.Lerp(1,am,.7f),tint*.6f,at),CD);
+   // Ambient: its value follows ambMul (within the luminance budget); the profile tint moves only its hue (luminance kept).
+   float am=Mathf.Lerp(1,1-(1-p.ambMul)*moodLow,L);float at=p.ambTint.a>0&&(moodChan&1)!=0?.30f*C:0;Color tint=new Color(p.ambTint.r,p.ambTint.g,p.ambTint.b);
+   {Color sky=mb.ambSky*am,eq=mb.ambEq*am,gr=mb.ambGround*Mathf.Lerp(1,am,.7f);float cdl=(moodChan&1)!=0?CD:0;
+    RenderSettings.ambientSkyColor=Desat(Color.Lerp(sky,SameLuma(tint,sky),at),cdl);RenderSettings.ambientEquatorColor=Desat(Color.Lerp(eq,SameLuma(tint,eq),at),cdl);RenderSettings.ambientGroundColor=Desat(Color.Lerp(gr,SameLuma(tint,gr),at),cdl);}
    // Fog: colour toward the profile; the end closes in, but never so far that fog at any route or pad sample rises by more than .03.
-   RenderSettings.fogColor=Desat(p.fog.a>0?Color.Lerp(mb.fog,FloorLuma(new Color(p.fog.r,p.fog.g,p.fog.b),mb.fog,p.fogFloor+(1-p.fogFloor)*(1-moodLow)),C):mb.fog,CD);
-   float start=mb.fogStart,end=p.fogEnd>0?Mathf.Lerp(mb.fogEnd,p.fogEnd,C):mb.fogEnd;
+   RenderSettings.fogColor=Desat(p.fog.a>0?Color.Lerp(mb.fog,FloorLuma(new Color(p.fog.r,p.fog.g,p.fog.b),mb.fog,Mathf.Min(1,p.fogFloor+(1-p.fogFloor)*(1-moodLow)+(moodPhone?.2f:0))),CF):mb.fog,CD*((moodChan&2)!=0?1:0));
+   float start=mb.fogStart,end=p.fogEnd>0?Mathf.Lerp(mb.fogEnd,p.fogEnd,CF):mb.fogEnd;
    moodDmax=BossMoodDmax();float endMin=start+6;
    if(moodDmax>start){float f0=Mathf.Clamp01((moodDmax-start)/Mathf.Max(.01f,mb.fogEnd-start));endMin=Mathf.Max(endMin,start+(moodDmax-start)/Mathf.Min(1,f0+.03f));}
    fogEndBase=Mathf.Max(end,endMin);if(free)RenderSettings.fogEndDistance=fogEndBase;
    // Sky (visible in the entrance shot and the victory orbit only): its sun disk is decoupled from the shadow-casting light.
    if(skyMaterial!=null){
-    float SC=Mathf.Clamp01(C*1.6f);
+    float SC=(moodChan&4)!=0?Mathf.Clamp01(C*1.6f):0;
     float sp=p.skySunPitch>=0?Mathf.Lerp(pitch0,p.skySunPitch,L):pitch;if(dawn>0)sp=Mathf.Lerp(sp,30,dawn);float swing=p.fillYawSwing>0&&!reducedMotion?p.fillYawSwing*Mathf.Sin(moodClock*Mathf.PI*2*.06f)*L:0;
     skyMaterial.SetVector("_CarrotSunDir",-(Quaternion.Euler(sp,e0.y+swing,0)*Vector3.forward));
-    skyMaterial.SetColor("_Zenith",Mix(mb.zenith,p.zenith,SC));skyMaterial.SetColor("_Horizon",Mix(mb.horizon,p.horizon,SC));skyMaterial.SetColor("_Ground",Mix(mb.ground,p.ground,SC));
+    // the sky shows in the play frame on some maps (the orchard horizon, the prism and portal voids): its value keeps .6x the biome's
+    float CDS=p.chromaDrain*SC*(p.id=="portal"?.9f:.6f);skyMaterial.SetColor("_Zenith",Desat(Mix(mb.zenith,SkyFloor(p.zenith,mb.zenith),SC),CDS));skyMaterial.SetColor("_Horizon",Desat(Mix(mb.horizon,SkyFloor(p.horizon,mb.horizon),SC),CDS));skyMaterial.SetColor("_Ground",Desat(Mix(mb.ground,SkyFloor(p.ground,mb.ground),SC),CDS));
     Color sunSky=Mix(mb.skySun,p.sunColor,SC);if(dawn>0)sunSky=Color.Lerp(sunSky,new Color(1,.86f,.6f)*1.5f,dawn);skyMaterial.SetColor("_SunColor",sunSky);skyMaterial.SetColor("_CloudColor",Mix(mb.cloudColor,p.cloudColor,SC));
     skyMaterial.SetFloat("_SunSize",p.sunSize>=0?Mathf.Lerp(mb.sunSize,p.sunSize,C):mb.sunSize);skyMaterial.SetFloat("_SunGlow",p.sunGlow>=0?Mathf.Lerp(mb.sunGlow,p.sunGlow,C):mb.sunGlow);
     skyMaterial.SetFloat("_CloudAmount",p.clouds>=0?Mathf.Lerp(mb.clouds,p.clouds,C):mb.clouds);skyMaterial.SetFloat("_Stars",p.stars>=0?Mathf.Lerp(mb.stars,p.stars,C):mb.stars);
     float aurora=p.aurora>=0?Mathf.Lerp(mb.aurora,p.aurora,C):mb.aurora;if(moodRelease>=moodReleaseDelay&&moodReleaseFull&&mb.aurora>0)aurora=Mathf.Max(aurora,mb.aurora*(1+.3f*Bump(moodRelease-moodReleaseDelay,4)));skyMaterial.SetFloat("_Aurora",aurora);
    }
   }
+  Color SkyFloor(Color target,Color baseColor){if(target.a<=0)return target;var c=FloorLuma(new Color(target.r,target.g,target.b),baseColor,mood!=null&&mood.id=="winter"?0:moodPhone?.8f:.6f);c.a=1;return c;}
   static Color Desat(Color c,float k){if(k<=0)return c;float l=Luma(c);return Color.Lerp(c,new Color(l,l,l,c.a),Mathf.Clamp01(k));}
   static float Luma(Color c){return .2126f*c.r+.7152f*c.g+.0722f*c.b;}
   /// <summary>c with the luminance of `like` (hue and chroma of c).</summary>
@@ -224,7 +229,7 @@ namespace CarrotTD {
 
   // ---------------------------------------------------------------- screen grade (nearly neutral; the world carries the drain)
   void BossMoodGrade(){
-   if(moodVolume==null)return;var p=mood;float C=moodDe;
+   if(moodVolume==null)return;var p=mood;float C=(moodChan&8)!=0?moodDe:0;
    moodVolume.enabled=true;moodVolume.weight=1;
    float over=0,overEv=0;
    if(moodReleaseFull&&p.overshoot&&moodRelease>=moodReleaseDelay){float o=Bump(moodRelease-moodReleaseDelay,9);over=(p.dawn?8:6)*o;overEv=(p.dawn?.12f:.10f)*o;}
@@ -306,6 +311,7 @@ namespace CarrotTD {
   // ---------------------------------------------------------------- hook 5: Quality('mood:<0..1>' | 'mood:auto' | 'mood:off')
   bool BossMoodQuality(string tier){
    if(tier==null||!tier.StartsWith("mood:"))return false;string v=tier.Substring(5);
+   if(v.StartsWith("chan:")){int.TryParse(v.Substring(5),out moodChan);Debug.Log("CarrotQuality debug "+tier);return true;}
    if(v.StartsWith("debug:")){float d;float.TryParse(v.Substring(6),NumberStyles.Float,CultureInfo.InvariantCulture,out d);Shader.SetGlobalFloat("_CarrotMoodDebug",d);BossMoodProbe();Debug.Log("CarrotQuality debug "+tier);return true;}
    if(v=="off"){moodDisabled=true;BossMoodRestoreBase();BossMoodNeutral(true);foreach(var o in moodObjects)if(o!=null)o.SetActive(false);}
    else if(v=="auto"){moodForce=-1;BossMoodResume();}
