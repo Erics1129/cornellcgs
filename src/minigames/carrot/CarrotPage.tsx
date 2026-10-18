@@ -194,7 +194,7 @@ function CarrotPage(){
 
  const st=store.get()
  const pageClass=['ct-page',page?.biome==='prism'?'is-prism':'',expanded?'is-expanded':'',page?.blind?'is-blind':'',page?.blackout?'is-blackout':'',page?.white?'is-blind-white':'',result?'has-result':''].filter(Boolean).join(' ')
- return <div className={pageClass} ref={root} data-biome={page?.biome||(entered?currentLevel?.biome:lobbyBiome)||'garden'} data-boss={challengeBoss||undefined} data-motion={reduced?'reduce':'full'} data-glass={glassTier} style={{'--hud-scale':prefs.hudScale/100} as CSSProperties} onClickCapture={e=>{
+ return <div className={pageClass} ref={root} data-biome={page?.biome||(entered?currentLevel?.biome:lobbyBiome)||'garden'} data-boss={challengeBoss||undefined} data-motion={reduced?'reduce':'full'} data-glass={glassTier} data-panel={panel||undefined} style={{'--hud-scale':prefs.hudScale/100} as CSSProperties} onClickCapture={e=>{
   const button=(e.target as Element).closest('button:not(:disabled),a');if(!saved.current.sound||!button)return
   const label=button.getAttribute('aria-label')||button.textContent||''
   const kind=/^Close|^Back/.test(label)?'close':/Stage select|^Stages|Choose|How to|[Cc]hallenges|Settings|Field guide/.test(label)?'open':'click'

@@ -18,7 +18,8 @@ Back to front, all `pointer-events: none` except the controls:
 | Glass | Nav (All games, Cornell CGS, a capsule with Settings and How to play), the title block, Play or Continue (jelly, 64 px), a capsule with Stage select and Boss challenges, the numbers strip, the next-stage card, the footer (Field guide, Credits). | title +5, numbers +4, card +9 |
 
 Blur (real tier; the backdrop is a still image): the card, the action capsule and the numbers strip on desktop; only the card on
-coarse pointers.
+coarse pointers. While a dialog is open (`.ct-page[data-panel]`) the title screen's glass stops blurring and the motes hold still: the
+dialog sheet is the one blurred surface.
 
 **Light on the glass.** Each glass surface on the page carries a `.ct-rimlight`: a ring masked to the surface's own shape with one soft
 spot of light inside. `useLobbyDepth` moves the spot along the rim toward the pointer (transform and opacity on its own layer) and

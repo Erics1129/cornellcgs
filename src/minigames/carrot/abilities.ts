@@ -12,7 +12,7 @@ const base:Record<string,AbilityText>={
  tithe:{name:'Tithe',hint:'The guardian claims a fifth of your coins. Spend before it lands.',card:'The guardian takes a fifth of your coins. Spend them first.',verb:'Spend coins',action:'spend',icon:'coin'},
  whiteout:{name:'Whiteout',hint:'A frost gust freezes every shot in the air for a moment.',card:'Whiteout: shots freeze in the air and unlit towers lose reach.',verb:'Wait out',icon:'bolt'},
  dusk:{name:'Dusk',hint:'It goes dark and crows join the path. Defeat every crow to win.',card:'Crows join in the dark. Defeat every crow to win.',verb:'Clear crows',action:'air',icon:'eye'},
- gust:{name:'Gust',hint:'Shots near the tornado hit for half. Mortar and Thunderhead ignore it.',card:'Near the funnel, shots hit for half. Mortar and Thunderhead ignore it.',verb:'Use mortar',icon:'bolt'},
+ gust:{name:'Gust',hint:'Shots near the tornado hit for half. Mortar and Thunderhead ignore it.',card:'Near the funnel, shots hit for half. Mortar and Thunderhead ignore it.',verb:'Use Mortar',icon:'bolt'},
  liftoff:{name:'Lift-off',hint:'The tornado lifts off: ground-only towers cannot reach it.',card:'The tornado flies. Ground-only towers cannot reach it for four seconds.',verb:'Hit air',action:'air',icon:'wing'},
  raise:{name:'Raise Dead',hint:'Fallen creatures rise again beside the Zombie.',card:'Fallen creatures rise beside the Zombie. Keep splash damage ready.',verb:'Splash ready',icon:'skull'},
  gaze:{name:'Gaze',hint:'Your strongest tower is stunned for five seconds. Lotus can cleanse it.',card:'The eye stuns your strongest tower. Sanctuary Lotus can cleanse it.',verb:'Cleanse stun',icon:'eye'},

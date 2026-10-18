@@ -57,6 +57,13 @@ export function ordinal(n: number): string {
  return `${n}${['th', 'st', 'nd', 'rd'][k % 10] || 'th'}`
 }
 
+/** An English plural for a creature or tower name: Dash, Dashes; Nibble, Nibbles; Firefly, Fireflies. */
+export function plural(name: string): string {
+ if (/(s|x|z|ch|sh)$/i.test(name)) return `${name}es`
+ if (/[^aeiou]y$/i.test(name)) return `${name.slice(0, -1)}ies`
+ return `${name}s`
+}
+
 /** "1 creature", "3 creatures" (pass the plural when it is not just +s). */
 export function count(n: number, one: string, many = `${one}s`): string {
  return `${n} ${n === 1 ? one : many}`

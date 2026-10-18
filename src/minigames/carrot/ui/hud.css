@@ -1,15 +1,15 @@
 /*
  * Carrot Defense: the in-game HUD (owner: HUD). Status pills, wave track, control docks, bottom bar, boss bar, cast row, deadline,
- * reinforcements, minibars and monster bars, judgement, vignette and paused state, toasts, warning band, tutorial coach and briefing,
+ * reinforcements, minibars and monster bars, judgement, vignette and the paused dim, toasts, warning band, tutorial coach and briefing,
  * first-encounter card, build menu and tower panel.
  * Layers: see ui/glass.css. Rules here live in carrot.hud (and carrot.themes for phone, reduced-motion and contrast variants).
  *
  * The look: rounded glass from ui/glass.css (.gl), never a hard corner or a hairline. Depth 1 (thin) for the always-on HUD, depth 2 for
- * panels with secondary text, depth 3 for the paused pill. Inside glass only fills, wells and solid pills (no glass on glass).
- * Budget: no backdrop-filter while a wave runs (the page puts the tier on 'lite' during live play and on phones). One HUD surface at a
- * time asks for blur, and only while the game is paused: the paused pill, or the first-encounter card that replaces it. Measured over
- * the live board (Chromium 1440x900): one blurred surface held 120 fps; adding the wave track as a second one dropped windows to
- * 77-110 fps whenever the GPU was shared, so the track and the boss bar stay lite even when paused.
+ * panels with secondary text, depth 3 for the first-encounter card. Inside glass only fills, wells and solid pills (no glass on glass).
+ * Budget: no backdrop-filter while a wave runs (the page puts the tier on 'lite' during live play and on phones). One surface at a
+ * time asks for blur, and only while the game is paused: the pause dock (ui/menus.css), or the first-encounter card that replaces
+ * it. Measured over the live board (Chromium 1440x900): one blurred surface held 120 fps; adding the wave track as a second one
+ * dropped windows to 77-110 fps whenever the GPU was shared, so the track and the boss bar stay lite even when paused.
  * Everything that moves every frame (notes, beat lights, cast ring, bars) moves by transform, opacity or a small repaint.
  * Text on glass follows the measured tokens: --ink and the remapped --ink-2 on depth 1; coloured small text only through -text
  * tokens on depth 2; colour on depth 1 goes to icons, rings, meters and solid chips.
@@ -225,24 +225,9 @@
     background: linear-gradient(180deg, #fff0a8, var(--coin)); box-shadow: inset 0 1px 0 rgb(255 255 255 / .6), inset 0 -1px 0 rgb(0 0 0 / .12); text-shadow: none; }
   .ct-send__bonus svg { width: 14px; height: 14px; }
 
-  /* ---- paused: the board's edges dim, a low pill of real glass (blurred by the page tier on desktop) ---- */
+  /* ---- paused: the board's edges dim softly under the pause dock (markup: ui/Pause.tsx; the dock itself is in ui/menus.css) ---- */
   .ct-dim { position: absolute; inset: 0; z-index: 5; pointer-events: none; background: radial-gradient(130% 100% at 50% 42%, transparent 40%, rgb(3 5 10 / .5)), rgb(3 5 10 / .14); animation: ct-fade .32s var(--e-out) both; transition: opacity var(--t-exit) var(--e-out); }
   .ct-dim.is-leaving { animation: none; opacity: 0; }
-  /* An open build panel (z-index 14) draws over it. */
-  .ct-paused { position: absolute; z-index: 9; left: 50%; bottom: max(108px, 15%); translate: -50% 0; display: flex; align-items: center; gap: 14px; min-height: 64px; padding: 10px 14px 10px 10px; color: var(--ink); }
-  .ct-paused__play { flex: none; display: grid; place-items: center; width: 44px; height: 44px; border-radius: 50%; color: var(--accent-ink);
-    background: radial-gradient(120% 130% at 50% -45%, rgb(255 255 255 / .5), transparent 56%), linear-gradient(180deg, color-mix(in oklab, var(--accent), white 18%), var(--accent) 55%, color-mix(in oklab, var(--accent), black 14%));
-    box-shadow: inset 0 1px 0 rgb(255 255 255 / .7), inset 0 -2px 6px rgb(0 0 0 / .18), 0 8px 20px -8px color-mix(in oklab, var(--accent) 80%, transparent); }
-  .ct-paused__play { position: relative; }
-  .ct-paused__play svg { width: 20px; height: 20px; margin-left: 2px; fill: currentColor; }
-  /* a soft ring leaves the play disc now and then: tap here to carry on */
-  .ct-paused__play::after { content: ""; position: absolute; inset: 0; border-radius: 50%; pointer-events: none; box-shadow: 0 0 0 2px color-mix(in oklab, var(--accent) 70%, transparent); animation: ct-ripple 2.8s var(--e-out) .6s infinite; opacity: 0; will-change: transform, opacity; }
-  @keyframes ct-ripple { 0% { transform: scale(1); opacity: .9; } 55%, 100% { transform: scale(1.7); opacity: 0; } }
-  .ct-paused__text { display: grid; gap: 5px; text-align: left; }
-  .ct-paused__text b { font: 800 20px/1 var(--f-disp); letter-spacing: -.005em; }
-  .ct-paused__text small { font: 650 12px/1 var(--f-ui); color: var(--ink-2); }
-  .ct-paused__key { margin-left: 8px; padding: 6px 9px; border-radius: 9px; font: 700 11px/1 var(--f-ui); color: var(--ink); background: rgb(var(--gl-light) / .1); box-shadow: inset 0 1px 0 rgb(var(--gl-light) / .16), inset 0 -1px 0 rgb(0 0 0 / .3), 0 1px 2px rgb(0 0 0 / .3); }
-  @media (pointer: coarse) { .ct-paused__key { display: none; } .ct-paused { padding-right: 22px; } }
 
   /* ---- boss bar: the guardian's face in a lit ring, a jelly health capsule, the cast below ---- */
   .ct-bossbar { --gl-r: var(--hud-r); display: grid; gap: 6px; padding: 8px 12px 9px 8px; }
@@ -313,10 +298,12 @@
   .ct-minibar.is-casting { --gl-ring: inset 0 0 0 1px rgb(255 140 190 / .55), 0 0 16px -6px var(--threat); }
   .ct-minibar.is-casting .ct-minibar__name svg { color: var(--threat-mark); }
   .ct-minibar__bar { position: relative; display: block; height: 6px; border-radius: 999px; overflow: hidden; background: rgb(0 0 0 / .34); box-shadow: inset 0 1px 1px rgb(0 0 0 / .45); }
-  .ct-minibar__bar i { position: absolute; inset: 0; border-radius: inherit; background: linear-gradient(180deg, #fff1a8, var(--coin)); transform-origin: left; transition: transform .3s var(--ease-out); }
+  .ct-minibar__bar i { position: absolute; inset: 0; background: linear-gradient(180deg, #fff1a8, var(--coin)); transform-origin: left; transition: transform .3s var(--ease-out); }
   .ct-minibar__bar i.is-shield { background: repeating-linear-gradient(-45deg, rgb(170 242 255 / .9) 0 3px, rgb(153 238 255 / .3) 3px 6px); }
   .ct-monster-bar { position: absolute; left: 0; top: 0; translate: -50% -100%; width: 30px; height: 5px; border-radius: 999px; overflow: hidden; background: rgb(6 9 16 / .82); box-shadow: 0 1px 2px rgb(0 0 0 / .5); transition: transform .1s linear; }
-  .ct-monster-bar i { position: absolute; inset: 0; border-radius: inherit; background: linear-gradient(180deg, #ffa8a2, var(--leak)); }
+  /* the rounded, clipping bar rounds its fills; no border-radius: inherit on them (a bar restyled on every frame of its move transition
+     would restyle both fills with it: 50 moving creatures cost several times the HUD's other style work in Chromium) */
+  .ct-monster-bar i { position: absolute; inset: 0; background: linear-gradient(180deg, #ffa8a2, var(--leak)); }
   .ct-monster-bar i.is-shield { top: auto; height: 2px; bottom: 0; background: var(--ally-hi); }
 
   /* ---- judgement: a glossy display word in the judgement's colour, with its own shadow, and a small glass pill under it ---- */
@@ -336,32 +323,7 @@
   .ct-judge__sub { display: inline-flex; align-items: center; min-height: 30px; padding: 0 15px; font: 650 13px/1 var(--f-ui); color: var(--ink); white-space: nowrap; opacity: 0; }
   .ct-vignette { position: absolute; inset: 0; z-index: 5; pointer-events: none; opacity: 0; background: radial-gradient(125% 95% at 50% 50%, transparent 60%, rgba(237, 17, 33, .22) 80%, rgba(237, 17, 33, .5) 100%); }
 
-  /* ---- toasts, banners, coach (markup in ui/Onboarding.tsx). Until that markup carries the .gl classes, this is the same depth-2 material
-     as ui/glass.css .gl--2 (lite: no blur). An element that does carry .gl takes the foundation's material instead. ---- */
-  :where(.ct-toast, .ct-warning, .ct-air-toast, .ct-forge, .ct-teach, .ct-coach, .ct-encounter__card):not(.gl) {
-    --gl-a: var(--gl-a-2); --gl-r: var(--hud-r); --gl-sheen: .05; --gl-hot: .05; --gl-spill: 22%; --gl-tone: var(--tone, var(--accent));
-    --gl-body: color-mix(in srgb, rgb(var(--gl-tint) / var(--gl-a)), var(--gl-tone) var(--gl-wash, 0%));
-    --ink-2: var(--ink-glass-2); --ink-3: var(--ink-glass-2);
-    position: relative; isolation: isolate; border: 0; clip-path: none; border-radius: calc(var(--gl-r) * var(--gl-sq)); color: var(--ink);
-    background:
-      var(--gl-grain) 0 0 / 160px 160px,
-      linear-gradient(180deg, rgb(var(--gl-light) / var(--gl-sheen)), rgb(var(--gl-light) / .02) 38%, rgb(var(--gl-light) / 0) 62%),
-      radial-gradient(130% 90% at 12% -10%, rgb(var(--gl-light) / var(--gl-hot)), transparent 60%),
-      radial-gradient(90% 70% at 50% 135%, color-mix(in oklab, var(--gl-tone) var(--gl-spill), transparent), transparent 70%),
-      linear-gradient(var(--gl-body), var(--gl-body));
-    background-blend-mode: soft-light, normal, normal, normal, normal;
-    box-shadow: var(--gl-ring, 0 0 #0000), inset 0 1px 0 rgb(var(--gl-light) / .24), inset 0 -1px 0 rgb(0 0 0 / .28), inset 0 12px 20px -14px rgb(var(--gl-light) / .12),
-      inset 0 -14px 24px -16px rgb(0 0 0 / .38), inset 0 0 16px rgb(var(--gl-light) / .045), var(--sh-2);
-  }
-  :where(.ct-toast, .ct-warning, .ct-air-toast, .ct-forge, .ct-teach, .ct-coach, .ct-encounter__card):not(.gl)::before {
-    content: ""; position: absolute; inset: 0; z-index: 1; padding: 1px; border-radius: inherit; pointer-events: none;
-    background: linear-gradient(165deg, rgb(var(--gl-light) / .66) 0%, rgb(var(--gl-light) / .18) 20%, rgb(var(--gl-light) / .04) 46%, rgb(var(--gl-light) / .07) 72%, color-mix(in oklab, var(--gl-tone) 50%, rgb(var(--gl-light) / .36)) 100%);
-    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
-  }
-  @supports (corner-shape: superellipse(1.6)) { :where(.ct-warning, .ct-air-toast, .ct-forge, .ct-teach, .ct-coach, .ct-encounter__card):not(.gl) { corner-shape: superellipse(1.6); } }
-  /* no glass on glass inside these cards either: their buttons become fills */
-  :where(.ct-toast, .ct-warning, .ct-air-toast, .ct-forge, .ct-teach, .ct-coach, .ct-encounter__card):not(.gl) :is(.ct-icon-btn, .ct-ghost) { background: rgb(var(--gl-light) / .08); box-shadow: var(--gl-ring), inset 0 1px 0 rgb(var(--gl-light) / .12); -webkit-backdrop-filter: none; backdrop-filter: none; }
-  :where(.ct-toast, .ct-warning, .ct-air-toast, .ct-forge, .ct-teach, .ct-coach, .ct-encounter__card):not(.gl) :is(.ct-icon-btn, .ct-ghost)::before { display: none; }
+  /* ---- toasts, banners, coach (markup in ui/Onboarding.tsx): every one is .gl glass from the markup; this file lays them out ---- */
   .ct-toasts { position: absolute; z-index: 12; left: 50%; top: max(24%, 196px); translate: -50% 0; display: grid; justify-items: center; gap: 10px; width: min(560px, calc(100% - 24px)); pointer-events: none; }
   .ct-toasts > * { pointer-events: auto; }
   .ct-toast { --gl-r: 999px; display: inline-flex; align-items: center; min-height: 40px; padding: 0 18px; font: 650 13px/1.25 var(--f-ui); color: var(--ink); animation: ct-toast-in var(--t-pop) var(--e-spring) both; }
@@ -408,8 +370,7 @@
   .ct-encounter { position: absolute; inset: 0; z-index: 20; display: grid; place-items: center; padding: 16px; background: radial-gradient(120% 100% at 50% 50%, rgb(4 6 10 / .3), rgb(4 6 10 / .62)); }
   .ct-encounter__card { --tone: var(--threat); --gl-wash: 6%; --gl-a: var(--gl-a-3); --gl-r: 32px; width: min(460px, 100%); display: grid; grid-template-columns: auto 1fr; gap: 14px 16px; padding: 20px; box-shadow: var(--gl-ring, 0 0 #0000), inset 0 1px 0 rgb(var(--gl-light) / .24), inset 0 -1px 0 rgb(0 0 0 / .28), inset 0 12px 20px -14px rgb(var(--gl-light) / .12), inset 0 -14px 24px -16px rgb(0 0 0 / .38), var(--sh-3); animation: ct-sheet-in var(--t-sheet) var(--e-sheet) both; }
   @keyframes ct-sheet-in { from { opacity: 0; scale: .96; } to { opacity: 1; scale: 1; } }
-  /* the game is paused while this card is up, so it is real glass on desktop (the page tier) */
-  [data-glass='real'] .ct-encounter__card:not(.gl) { -webkit-backdrop-filter: blur(32px) saturate(180%); backdrop-filter: blur(32px) saturate(180%); }
+  /* the game is paused while this card is up, so its .gl--blur is real glass on desktop (the page tier) */
   .ct-encounter__glyph { position: relative; display: grid; place-items: center; width: 68px; height: 68px; overflow: hidden; border-radius: 50%; color: var(--threat-mark); background: radial-gradient(circle at 50% 30%, #3a1a2e, #160b13 80%); box-shadow: inset 0 0 0 2px var(--threat-mark), 0 0 26px -6px var(--threat); }
   .ct-encounter__glyph > .ct-portrait { position: absolute; inset: 0; width: 100%; height: 100%; opacity: .35; }
   .ct-encounter__glyph > .ct-glyph, .ct-encounter__glyph > svg { position: relative; width: 42px; height: 42px; }
@@ -625,7 +586,6 @@
     .ct-build--sheet .ct-build__tower > .ct-portrait, .ct-build--sheet .ct-focus-icon { width: 44px; height: 44px; border-radius: 13px; }
     .ct-build--sheet .ct-build__tower p { display: none; }
     .ct-build--sheet .ct-stats > span { padding: 6px 9px; }
-    .ct-paused { bottom: max(126px, 17%); }
   }
   /* ---- phone landscape: one row on top (status | merged lane | boss), controls in the right rail ---- */
   @media (max-height: 500px) and (orientation: landscape) {
@@ -707,39 +667,31 @@
     .ct-build--side .ct-stats > span { padding: 6px 8px; font-size: 14px; }
     .ct-build--side .ct-build__actions .ct-cta { min-height: 44px; padding: 0 12px; font-size: 14px; }
     .ct-build--side .ct-sell { min-width: 64px; min-height: 44px; padding: 0 10px; }
-    .ct-paused { bottom: 60px; min-height: 56px; }
   }
   @media (min-width: 1700px) { .ct-hud { grid-template-columns: minmax(0, 1fr) minmax(420px, 720px) minmax(0, 1fr); } }
 
   /* Phones: an open sheet is translucent, so nothing with text may sit under it. Toasts move to the free side (or below a top
-     sheet) and the paused pill steps aside (the dock's play button and Space still resume). */
+     sheet); the pause dock steps aside on its own while something is selected (ui/Pause.tsx). */
   .ct-toasts { transition: top var(--t-pop) var(--e-out), left var(--t-pop) var(--e-out); }
   .ct-page:has(.ct-build--side.is-placed:not(.is-flipped)) .ct-toasts { left: var(--safe-l); translate: none; width: calc(100% - 252px - 52px - var(--safe-l) - var(--safe-r) - 16px); }
   .ct-page:has(.ct-build--side.is-flipped.is-placed) .ct-toasts { left: calc(var(--safe-l) + 260px); translate: none; width: calc(100% - 260px - 52px - var(--safe-l) - var(--safe-r) - 8px); }
   .ct-page:has(.ct-build--sheet.is-flipped.is-placed) .ct-toasts { top: auto; bottom: calc(var(--safe-b) + 120px); }
-  .ct-page:has(.ct-build--sheet.is-placed, .ct-build--side.is-placed) .ct-paused { opacity: 0; visibility: hidden; transition: opacity 120ms ease-out, visibility 0s 120ms; }
 
   /* ---- reduced motion: opacity only, 250 ms or less (the page's Reduced effects or the OS setting) ---- */
   .ct-page[data-motion='reduce'] :is(.ct-toast, .ct-warning, .ct-air-toast, .ct-forge, .ct-teach, .ct-coach, .ct-encounter__card, .ct-dim) { animation: ct-fade .2s linear both !important; }
   .ct-page[data-motion='reduce'] .ct-build.is-placed { animation: none !important; }
   .ct-page[data-motion='reduce'] :is(.ct-hp i.is-hit, .is-spotlight, .ct-deadline.is-critical .ct-deadline__text svg, .ct-stat__alarm) { animation: none !important; }
-  .ct-page[data-motion='reduce'] .ct-paused__play::after { animation: none !important; opacity: 0; }
   .ct-page[data-motion='reduce'] .ct-stat__alarm { opacity: .8; }
   .ct-page[data-motion='reduce'] .is-spotlight { box-shadow: 0 0 0 3px #fff; }
-  /* solid tier (Reduced effects in Safari, reduced transparency, more contrast) for the toast material above */
-  [data-glass='solid'] :where(.ct-toast, .ct-warning, .ct-air-toast, .ct-forge, .ct-teach, .ct-coach, .ct-encounter__card):not(.gl) { --gl-a: var(--gl-a-solid); --gl-sheen: .04; --gl-hot: 0; --gl-wash: 0%; -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
   @media (prefers-reduced-transparency: reduce) {
-    :where(.ct-toast, .ct-warning, .ct-air-toast, .ct-forge, .ct-teach, .ct-coach, .ct-encounter__card):not(.gl) { --gl-a: var(--gl-a-solid); --gl-wash: 0%; -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
     .ct-judge__word::before { display: none; }
   }
   @media (prefers-contrast: more) {
-    :where(.ct-toast, .ct-warning, .ct-air-toast, .ct-forge, .ct-teach, .ct-coach, .ct-encounter__card):not(.gl) { --gl-a: var(--gl-a-solid); --gl-wash: 0%; --ink-2: var(--ink); --ink-3: var(--ink); }
     .ct-judge__word, .ct-counter--coins .ct-counter__value { text-shadow: none !important; }
     .ct-judge__word::before, .ct-track__light, .ct-track__judge::before { display: none; }
     .ct-note__label, .ct-tile__cost { background: #05080d; }
   }
   @media (forced-colors: active) {
-    :where(.ct-toast, .ct-warning, .ct-air-toast, .ct-forge, .ct-teach, .ct-coach, .ct-encounter__card):not(.gl) { background: Canvas; color: CanvasText; border: 1px solid CanvasText; }
     .ct-judge__word, .ct-judge__word::after { color: CanvasText; background: none; -webkit-background-clip: border-box; background-clip: border-box; }
   }
 }

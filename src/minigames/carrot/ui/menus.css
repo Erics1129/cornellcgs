@@ -20,8 +20,11 @@
     display: grid; grid-template-rows: auto auto minmax(0, 1fr); gap: 16px; overflow: hidden;
   }
   .ct-select::backdrop { background: #05080d; }
-  /* While the menu covers the board, the board is not composited (Unity keeps running; nothing behind the menu has to be redrawn). */
-  .ct-page:has(.ct-select[open]) .ct-scene { visibility: hidden; }
+  /* While the menu covers the board, the board is not composited (Unity keeps running; nothing behind the menu has to be redrawn).
+     data-panel comes from CarrotPage (a page-level :has() here restyled the page root on every DOM insertion during play). */
+  .ct-page:is([data-panel='select'], [data-panel='challenges']) .ct-scene { visibility: hidden; }
+  /* a dialog over the results card is the one blurred surface; the card under it stays glass without the blur */
+  .ct-page[data-panel] .ct-results.gl--blur { -webkit-backdrop-filter: none; backdrop-filter: none; }
 
   /* the land behind the menu: high-resolution key art, slightly soft and dimmed, crossfading as the focus moves to another land */
   .ct-select__backdrop { position: absolute; inset: 0; z-index: -1; overflow: hidden; background: #05080d; }
@@ -90,7 +93,7 @@
     box-shadow: inset 0 1px 0 rgb(255 255 255 / .3), inset 0 0 0 1px rgb(255 255 255 / .08);
   }
   .ct-jacket .ct-route-drawing { z-index: 1; }
-  .ct-jacket__no { position: absolute; z-index: 1; left: 16px; bottom: 8px; font: 700 54px/1 var(--f-num); letter-spacing: -.04em; color: #fff; text-shadow: 0 2px 16px rgb(0 0 0 / .55); }
+  .ct-jacket__no { position: absolute; z-index: 1; left: 16px; bottom: 8px; font: 800 54px/1 var(--f-num); font-variant-numeric: tabular-nums; letter-spacing: -.03em; color: #fff; text-shadow: 0 2px 16px rgb(0 0 0 / .55); }
   .ct-jacket__boss {
     position: absolute; z-index: 1; right: 12px; top: 12px; width: 62px; height: 62px; border-radius: 50%; background: #1b1020;
     box-shadow: 0 0 0 2px rgb(12 18 32 / .9), 0 0 0 3.5px var(--threat-mark), 0 0 26px -2px color-mix(in oklab, var(--threat) 80%, transparent), 0 10px 22px -8px rgb(0 0 0 / .8);
@@ -205,7 +208,10 @@
   .ct-results .ct-grade--s { color: var(--coin-mark); }
   .ct-results .ct-grade--a { color: var(--ally-mark); }
   .ct-results .ct-grade--d { color: var(--leak-mark); }
-  .ct-results__medal.is-none .ct-grade::before { width: 12px; height: 12px; }
+  /* no grade (a failed run): the carrot's own wince in the lens instead of an empty dot; the grade element keeps the accessible name */
+  .ct-results__medal.is-none { --g: var(--leak); }
+  .ct-results__medal .ct-face { position: absolute; inset: 13%; width: auto; height: auto; box-shadow: inset 0 0 0 1.5px rgb(255 255 255 / .22), inset 0 -10px 18px -8px rgb(120 30 0 / .5), 0 10px 24px -10px rgb(0 0 0 / .7); }
+  .ct-results__medal.is-none .ct-grade::before { display: none; }
   .ct-results__boss { position: absolute; right: -16px; bottom: -10px; width: 50px; height: 50px; border-radius: 50%; background: #1b1020; box-shadow: 0 0 0 3px #0e1424, 0 0 0 4.5px var(--threat-mark), 0 8px 18px rgb(0 0 0 / .55); }
   .ct-results__boss .ct-portrait { width: 100%; height: 100%; border-radius: 50%; }
   .ct-results__boss.is-beaten .ct-portrait { filter: grayscale(.7) brightness(.7); }
@@ -265,6 +271,10 @@
   .ct-pause__glyph svg { width: 18px; height: 18px; stroke-width: 2.4; }
   .ct-pause__title { font: 800 19px/1 var(--f-disp); letter-spacing: -.01em; }
   .ct-pause__resume { min-width: 136px; }
+  /* the key that also resumes, as a soft keycap pressed into the jelly (fine pointers only: a phone has no Space bar) */
+  .ct-pause__key { display: none; margin: 0 -8px 0 2px; padding: 5px 8px; border-radius: 9px; font: 750 11px/1 var(--f-ui); letter-spacing: .02em; color: inherit;
+    background: rgb(0 0 0 / .12); box-shadow: inset 0 1px 2px rgb(0 0 0 / .16), 0 1px 0 rgb(255 255 255 / .35); }
+  @media (hover: hover) and (pointer: fine) { .ct-pause__key { display: inline-block; } }
   .ct-pause__tools { display: flex; gap: 6px; padding-left: 4px; }
 
   /* =============================================================== dialogs ===================================================== */
@@ -276,7 +286,6 @@
   .ct-dialog::backdrop { background: transparent; }
   .ct-dialog__inner { width: min(760px, 100%); max-height: calc(100dvh - 32px); min-height: 0; display: flex; flex-direction: column; overflow: hidden; }
   .ct-dialog__head { flex: none; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 4px 12px; padding: 22px 22px 8px 28px; }
-  .ct-dialog__head .ct-kicker { grid-column: 1; }
   .ct-dialog__head h2 { grid-column: 1; font: 800 28px/1.05 var(--f-disp); letter-spacing: -.02em; }
   .ct-dialog__head .ct-icon-btn { grid-column: 2; grid-row: 1 / 3; }
   .ct-dialog__body {
@@ -384,6 +393,8 @@
     .ct-dialog__body { padding: 12px 20px 24px; }
     .ct-confirm__actions > * { flex: 1 1 0; min-width: 0; }
   }
+  /* the HUD hides or shrinks its own carrot face on phones (themes layer); the one in the results lens keeps its size */
+  .ct-results__medal .ct-face { display: block; width: auto; height: auto; }
   @media (max-width: 400px) {
     .ct-results__actions .ct-ghost svg { display: none; }
   }
@@ -435,7 +446,8 @@
     .ct-trackrow__thumb { --gl-pad: 8px; width: 68px; }
     .ct-trackrow__boss { width: 24px; height: 24px; }
 
-    .ct-pause { bottom: max(84px, 22%); }
+    /* a short screen: the dock drops to the free bottom edge (Send now hides while paused), so the board's middle stays readable */
+    .ct-pause { bottom: var(--safe-b); }
     .ct-dialog { padding: 8px; }
     .ct-dialog__inner { max-height: calc(100dvh - 16px); }
     .ct-dialog__head { padding: 14px 14px 4px 22px; }

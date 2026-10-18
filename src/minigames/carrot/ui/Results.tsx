@@ -5,8 +5,9 @@ import type { RunSummary } from '../hooks/runTracker'
 import { BossPortrait, TowerPortrait } from '../art'
 import { formatSeconds, par as challengePar, stars } from '../challenges'
 import { gradeLetters } from '../progress'
-import { actions, names } from '../copy'
+import { actions, names, plural } from '../copy'
 import { Grade, Medals } from './kit'
+import { CarrotFace } from './hudKit'
 import { glass } from './Glass'
 import { parseComposition, traitsOf } from '../waves'
 import Icon from '../Icon'
@@ -23,8 +24,8 @@ const airTowers=(d:GameDefinitions|null,level:number)=>(d?.towers||[]).filter(t=
 export function lossAdvice(state:GameState,level:LevelDefinition|undefined,d:GameDefinitions|null,lostByWave:number[]):string[]{
  const out:string[]=[],route=(r:number)=>'ABCDE'[r]||String(r+1)
  if(state.lossCauses?.length){
-  for(const c of state.lossCauses.slice(0,2)){const name=traitsOf(c.kind,d?.enemies).name,plural=c.count>1?`${name}s`:name
-   out.push(`${plural} on route ${route(c.route)}${c.airUncovered?': no air towers in range':''}. Try ${towerName(d,c.counter)}.`)}
+  for(const c of state.lossCauses.slice(0,2)){const name=traitsOf(c.kind,d?.enemies).name,many=c.count>1?plural(name):name
+   out.push(`${many} on route ${route(c.route)}${c.airUncovered?': no air towers in range':''}. Try ${towerName(d,c.counter)}.`)}
   return out
  }
  const waves=lostByWave.map((n,w)=>({w,n:n||0})).filter(x=>x.n>0).sort((a,b)=>b.n-a.n).slice(0,2)
@@ -32,10 +33,10 @@ export function lossAdvice(state:GameState,level:LevelDefinition|undefined,d:Gam
   const parts=parseComposition(level?.waveCompositions?.[w-1]),t=parts.map(p=>({...p,t:traitsOf(p.kind,d?.enemies,state.boss?.name)}))
   const air=t.find(p=>p.t.air),boss=t.find(p=>p.t.boss),armor=t.find(p=>p.t.armor),shield=t.find(p=>p.t.shield),fast=t.find(p=>p.t.fast)
   if(boss)out.push(`Wave ${w}: the guardian reached the carrot. Watch its casts on the boss bar.`)
-  else if(air)out.push(`Wave ${w}: ${air.t.name}s fly. Air-capable towers cover them: ${airTowers(d,state.level).slice(0,3).join(', ')}.`)
-  else if(armor)out.push(`Wave ${w}: ${armor.t.name}s are armored. Prism, Storm Bell and Thunderhead cut through.`)
-  else if(shield)out.push(`Wave ${w}: ${shield.t.name}s carry shields. Slow them with Frost, then burst them.`)
-  else if(fast)out.push(`Wave ${w}: ${fast.t.name}s are fast. Cover the last bend before the carrot.`)
+  else if(air)out.push(`Wave ${w}: ${plural(air.t.name)} fly. Air-capable towers cover them: ${airTowers(d,state.level).slice(0,3).join(', ')}.`)
+  else if(armor)out.push(`Wave ${w}: ${plural(armor.t.name)} are armored. Prism, Storm Bell and Thunderhead cut through.`)
+  else if(shield)out.push(`Wave ${w}: ${plural(shield.t.name)} carry shields. Slow them with Frost, then burst them.`)
+  else if(fast)out.push(`Wave ${w}: ${plural(fast.t.name)} are fast. Cover the last bend before the carrot.`)
   else if(parts.length)out.push(`Wave ${w}: ${parts.reduce((s,p)=>s+p.n,0)} creatures. Upgrade the towers that cover the most path.`)
  }
  return out
@@ -65,6 +66,7 @@ export function Results({state,level,definitions,summary,grade,previousGrade,cha
   <div className="ct-results__scroll">
    <div className="ct-results__hero">
     <div className={`ct-results__medal ${letter?`is-${letter.toLowerCase()}`:'is-none'}`}>
+     {!letter&&<CarrotFace pose={6}/>}
      <Grade value={grade} size="xl" label={grade?`Grade ${letter}`:'No grade'}/>
      {challengeBoss?<span className={`ct-results__boss ${won?'is-beaten':''}`} aria-hidden="true"><BossPortrait kind={challengeBoss}/>{won&&<Icon name="check"/>}</span>:null}
     </div>

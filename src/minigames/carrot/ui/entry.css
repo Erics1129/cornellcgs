@@ -118,7 +118,7 @@
   }
   .ct-title__badge {
     --gl-hover: 0;
-    align-self: flex-start; margin-top: .06em; padding: .46em .56em .44em; font: 700 max(.22em, 15px)/1 var(--f-num); letter-spacing: 0;
+    align-self: flex-start; margin-top: .06em; padding: .46em .56em .44em; font: 800 max(.22em, 15px)/1 var(--f-num); letter-spacing: .01em;
     color: var(--ink); -webkit-text-fill-color: currentColor;
     --gl-ring: inset 0 0 0 1.5px color-mix(in oklab, var(--accent) 60%, transparent), 0 0 26px -6px color-mix(in oklab, var(--accent) 80%, transparent);
   }
@@ -171,8 +171,8 @@
   .ct-lobby__progress .gl-meter { height: 6px; }
   .ct-lobby__progress > span { font-size: 13px; color: var(--ink); }
   .ct-lobby__progress small { font: 600 12px var(--f-ui); color: var(--ink-2); letter-spacing: 0; }
-  /* focus: glass.css still lists the old chamfered card among the inset-ring controls (outline none, !important in an earlier layer,
-     which no later layer can undo), so the card draws its ring through the glass ring slot instead, following its corners */
+  /* focus: the card tilts in 3D, so it draws its ring through the glass ring slot (it follows the corners and the tilt) instead of an
+     outline (glass.css turns the outline off for it) */
   .ct-lobby__next:focus-visible { --gl-ring: 0 0 0 2px #05080d, 0 0 0 4.5px var(--focus); }
   @media (hover: hover) and (pointer: fine) {
     .ct-lobby__next:hover .ct-lobby__jacket img { scale: 1.045; }
@@ -199,8 +199,12 @@
   .ct-lobby.is-leaving .ct-lobby__art { scale: 1.06; filter: brightness(.22); }
   .ct-lobby.is-leaving :is(.ct-lobby__light, .ct-lobby__rays, .ct-lobby__motes) { opacity: 0; transition: opacity .2s ease-in; }
   .ct-lobby.is-leaving :is(.ct-in, .ct-title, .ct-lobby__next) { opacity: 0; scale: .985; transition: opacity .22s var(--e-out), scale .3s var(--e-out); pointer-events: none; }
-  /* with a dialog open the scene holds still: moving motes behind a blurred sheet would re-blur it every frame */
-  .ct-page:has(dialog[open]) .ct-lobby__motes i { animation-play-state: paused; }
+  /* with a dialog open the scene holds still: moving motes behind a blurred sheet would re-blur it every frame. (data-panel is set by
+     CarrotPage; a .ct-page:has(dialog[open]) here made every DOM insertion in the page restyle the page root: measured at half of the
+     HUD's style work under load in Chromium) */
+  .ct-page[data-panel] .ct-lobby__motes i { animation-play-state: paused; }
+  /* and its glass stops blurring under the dialog's scrim (the blur budget: the sheet is the one blurred surface while it is open) */
+  .ct-page[data-panel] .ct-lobby .gl--blur { -webkit-backdrop-filter: none; backdrop-filter: none; }
   @keyframes ct-lobby-art { from { opacity: 0; scale: 1.14; } }
   @keyframes ct-lobby-rise { from { opacity: 0; translate: 0 18px; } }
   @keyframes ct-lobby-word { from { opacity: 0; translate: 0 .16em; filter: blur(14px); } }

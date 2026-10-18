@@ -13,12 +13,12 @@ its React primitive, the tiers that keep the HUD cheap during play, the measured
 | `src/minigames/carrot/ui/GlassLab.tsx` | foundation | DEV only (`?carrot-glass-lab`): every primitive over chosen backdrops. Never in production. |
 | `src/minigames/carrot/copy.ts` | foundation | Names and messages shared by more than one surface; `ordinal()`, `count()`. |
 | `src/minigames/carrot/ui/kit.tsx` | foundation | Medals, Grade, Pips, Counter (shared by every surface). |
-| `src/minigames/carrot/ui/entry.css` | entry | Lobby, loading screen, How to play, Settings, Field guide. |
-| `ui/Lobby.tsx`, `ui/Loading.tsx`, `ui/Modals.tsx` | entry | The same, markup. |
-| `src/minigames/carrot/ui/hud.css` | HUD | Status, wave track, controls, bottom bar, boss bar, cast row, deadline, minibars, judgement, toasts, warning band, coach, briefing, encounter card, build menu, paused pill, cast chips (`.ct-chip`), the rolling counter (`.ct-counter`). |
-| `ui/Hud.tsx`, `ui/WaveTrack.tsx`, `ui/BossBar.tsx`, `ui/BuildMenu.tsx`, `ui/Onboarding.tsx` | HUD | The same, markup (the merge tip is `MergeTip` in Onboarding). |
-| `src/minigames/carrot/ui/menus.css` | menus | Stage select and challenges, results, the dialog shell (`.ct-dialog`), the restart confirm. |
-| `ui/LevelSelect.tsx`, `ui/Results.tsx`, `ui/Dialog.tsx` | menus | The same, markup (`Modal` and `ConfirmModal` live in Dialog.tsx). |
+| `src/minigames/carrot/ui/entry.css` | entry | Lobby, loading screen, How to play, Settings, Field guide, Credits (`docs/carrot-defense/entry-ui.md`). |
+| `ui/Lobby.tsx`, `ui/useLobbyDepth.ts`, `ui/Loading.tsx`, `ui/Modals.tsx` | entry | The same, markup; the pointer depth and rim light. |
+| `src/minigames/carrot/ui/hud.css` | HUD | Status, wave track, controls, bottom bar, boss bar, cast row, deadline, minibars, judgement, toasts, warning band, coach, briefing, encounter card, build menu, the paused dim (`.ct-dim`), cast chips (`.ct-chip`), the rolling counter (`.ct-counter`). |
+| `ui/Hud.tsx`, `ui/WaveTrack.tsx`, `ui/BossBar.tsx`, `ui/BuildMenu.tsx`, `ui/hudKit.tsx`, `ui/Onboarding.tsx` | HUD | The same, markup (the merge tip is `MergeTip` in Onboarding; `hudKit` has the carrot face and the bar fills). |
+| `src/minigames/carrot/ui/menus.css` | menus | Stage select and challenges, results, the pause dock (`.ct-pause`), the dialog shell (`.ct-dialog`), the restart confirm. |
+| `ui/LevelSelect.tsx`, `ui/Results.tsx`, `ui/Pause.tsx`, `ui/Dialog.tsx` | menus | The same, markup (`Modal` and `ConfirmModal` live in Dialog.tsx). |
 | `CarrotPage.tsx` | integration | The shell. Surfaces should not need it; if one must, keep the edit to a line. |
 | `unity.ts`, `progress.ts`, `types.ts`, the save and bridge code | contract | Do not change behaviour. |
 
@@ -81,7 +81,7 @@ get `corner-shape: superellipse(1.6)` with the radius scaled 1.3x (`--gl-sq`); W
 | `.gl-seg`, `.gl-switch`, `.gl-range` | Segmented control (pressed option is a lifted fill), switch on `<input type=checkbox>` (52x32, the knob stretches while pressed), slider on `<input type=range>` (set `--v` as a percentage inline). |
 | `.gl-thumb` | Image corners inside glass (concentric). |
 | `.gl-label` | 11 px uppercase overline in `--ink-2`. |
-| `.gl-num` | Mono, tabular figures. |
+| `.gl-num` | Hanken Grotesk tabular figures, the same face as the HUD's counters (`--f-num`). |
 | `.gl-text` | A 1 px text shadow on glass (a legibility aid; contrast still comes from the tint). |
 | `.gl-scroll`, `.gl-scroll--x` | Content fades out where it meets floating chrome, instead of a divider line. |
 
@@ -98,7 +98,6 @@ So existing markup upgraded in place; new markup should use the `gl-*` names.
 | `.ct-band` | Solid pill (`.gl-tag`) in the band colour |
 | `.ct-switch input`, `.ct-segment`, `.ct-slider input` | `.gl-switch`, `.gl-seg`, `.gl-range` |
 | `.ct-pips`, `.ct-medals`, `.ct-grade.is-empty` | Round dots, round medals without hairlines, a dot for "no grade" |
-| `.ct-panel` | Unchanged (chamfered, opaque). Replace it with `.gl` per surface; adding `gl gl--N` to an element that also has `ct-panel` works (`.gl` clears the border and the clip-path). |
 
 ## Tiers: where real blur is allowed
 
@@ -194,3 +193,70 @@ Names that code matches (rename only together with it): the click-sound rule in 
 `Stages`, `Choose`, `How to`, `Challenges`, `Settings`, `Field guide`), the entry button text in `scripts/carrot-qa/lib.mjs`
 (`Continue|Play`), the `text=` and `aria-label` selectors in `scripts/carrot-ui-qa/qa.mjs` and `menus.mjs`, and the ability card limits
 in `scripts/carrot-ui-qa/unit.mjs` (cards 12 words or fewer, verbs exactly two words).
+
+## Integration: the three passes together
+
+The entry page (`docs/carrot-defense/entry-ui.md`), the HUD and the menus were built in parallel on this foundation and merged in
+`carrot-next`. What the merge settled:
+
+- **One paused state.** The pause dock (`ui/Pause.tsx`, styles in `menus.css`) is the only paused surface: Resume (with a Space keycap
+  on fine pointers, `aria-keyshortcuts="Space"`), Restart stage, Stage select or Boss challenges, Settings. It brings the HUD's soft
+  board-edge dim (`.ct-dim`), which stays while something is selected; the dock itself steps aside then. The HUD's paused pill is gone.
+  Short landscape screens put the dock on the bottom edge, where Send now would sit (it hides while paused).
+- **Every surface is `.gl`.** The toast and the guardian warning carry `.gl` classes too, so `hud.css` no longer needs its copy of the
+  material, and the chamfered `.ct-panel` (with its tokens) is deleted. The first-encounter card asks for blur (`.gl--blur`): the game is
+  paused while it shows.
+- **One numeral face.** `--f-num` is Hanken Grotesk with tabular figures, the face the HUD's counters already used; JetBrains Mono no longer
+  appears in the game. **One play glyph**: every `Icon name="play"` is filled (`svg[data-icon='play']`).
+- **Blur budget across surfaces.** A dialog over the title screen or over the results card is the one blurred surface: the lobby's glass and
+  the results card drop their blur while `.ct-page[data-panel]` is set (CarrotPage sets `data-panel` to the open panel).
+- **Copy.** Band labels are sentence case in the source (`Expert`; the pill uppercases them), so screen readers read words. Creature
+  plurals go through `plural()` (`Dashes`, not `Dashs`). `Clear stage 4 to unlock` (no zero padding in a sentence), `Use Mortar`, the wave
+  track's accessible name says `Wave 1 of 8, ready` before the first wave.
+- **A failed run** shows the carrot's wince in the results lens instead of an empty disc (the grade element keeps the name "No grade").
+
+### Style cost: three rules for HUD-adjacent CSS
+
+Measured with the QA perf load (`scripts/carrot-ui-qa/qa.mjs perf`: a guardian fight, 50 moving creature bars, every publish changing bars,
+coins and the boss bar) and Chromium's Performance metrics. After the merge, style recalculation took about 6x the baseline's time and the
+wave track's frame callback 2 ms (p95 8.5 ms at 4x CPU throttle, against 1.5 ms before the redesign). Three causes, each found by deleting
+rules one at a time:
+
+1. **No page-level `:has()` on something that is not a class.** `.ct-page:has(dialog[open]) .ct-lobby__motes i` (entry) made every DOM
+   insertion in the page restyle the page root: about half of all style work. Page state now comes from an attribute that React sets
+   (`data-panel`); the menus' `.ct-page:has(.ct-select[open])` went the same way. The HUD's class-based `:has()` rules cost little.
+2. **No `border-radius: inherit` on children of something restyled every frame.** Creature bars move with a 0.1 s transition per snapshot;
+   with `border-radius: inherit` on their fills, every frame of every transition restyled both fills as well. The rounded, clipping bar
+   already rounds them.
+3. **No layout reads inside a frame callback.** The wave track read `clientWidth` every frame, which forced a style and layout pass there.
+   It now reads the width when a ResizeObserver says it changed.
+
+After the fixes (production build, QA perf suite, paired with the baseline build): snapshot p95 0.8 to 1.0 ms against 1.0 to 1.1 ms at 1x,
+2.7 to 2.9 ms against 2.5 to 2.6 ms at 4x; frame callbacks p95 0.1 ms against 0.3 to 0.4 ms at 1x, 0.5 to 0.6 against 0.9 at 4x.
+
+### Measured after the merge
+
+Release player, production build, a bot playing at 2x, each window 6 s, the integrated build alternated with the baseline (`1b1b65e`, the
+live site) on the same machine (shared with other jobs; headless).
+
+| Engine, viewport | Title screen | Combat | Paused (pause dock) | Settings open | Stage select open |
+|---|---|---|---|---|---|
+| Chromium 1440x900 1x, L5, 2 pairs | 119.7 to 120 (base 120) | 120 (120) | 120 (120) | 120 (120) | 120 (120) |
+| Chromium 1440x900 2x, L25 guardian stage | 119.8 to 120 (120) | 120 (120) | 120 (120) | 120 (120) | 120 (120) |
+| Chromium 390x844 and 844x390 (touch, 2x), L5 | 120 (120) | 120 (120) | 120 (120) | 120 (120) | |
+| Chromium 1440x900, 4x CPU throttle, L5, 2 pairs | | 78 to 94, mean 84.2 (base 72 to 93, mean 81.3) | 100 to 113 (99 to 103) | 100 to 114 (94 to 102) | 103 to 119 (86 to 117) |
+| WebKit iPhone 13 profile (portrait), L5 | 60 (60) | 60 (60) | 60 (60) | 60 (60) | |
+| WebKit 1440x900, L5, 3 pairs | 59.8 to 60 (49.6 to 60) | 15.0 to 20.2, mean 19.3 (16.8 to 20.1, mean 19.1) | 19.8 to 20.5 (16.2 to 20.1) | 19.8 to 20.4 (18.3 to 20.1) | 19.7 to 20.2 (19.6 to 20) |
+
+WebKit desktop ran at about 20 fps for both builds because another job held the GPU during these runs; the pairs still match. Blurred
+surfaces at once: 3 on the title screen (1 on phones), 1 with any dialog open, 1 while paused (0 on phones, which stay lite in game), 0
+during play.
+
+Contrast after the merge (rendered probes, text hidden and the pixels under each run compared; 1st percentile; Chromium and WebKit): the
+entry probe 810 runs per engine over four chapters and three viewports, the menus probe 2,400 per engine over three tiers and three
+viewports, the HUD probe over nine real board frames and 15 states 10,082 (Chromium) and 10,000 (WebKit) runs. 0 below 4.5:1 (3:1 for
+large text) anywhere. The tightest are still the stage numbers on board images (large text, 3.3:1).
+
+Re-run: the probes are `scripts/carrot-ui-qa/menus-contrast.mjs`, `glass-contrast.mjs` and the pass tools named in each surface's notes;
+the frame pacing script and the style bisection used here are in the integration evidence folder (`perfcmp.mjs`, `recalc.mjs`,
+`selstats.mjs`).

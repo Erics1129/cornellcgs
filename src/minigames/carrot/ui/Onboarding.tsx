@@ -47,7 +47,7 @@ export function Coach({step,towers,onSkip,onDone}:{step:TutorialStep;towers:numb
  useEffect(()=>{if(step!=='watch')return;const t=window.setTimeout(()=>done.current(),7000);return()=>clearTimeout(t)},[step])
  if(!step)return null
  const c=coachCopy[step]
- return <aside className={glass({depth:2,tone:'accent'},'ct-coach ct-panel')} role="status" aria-label="Tutorial">
+ return <aside className={glass({depth:2,tone:'accent'},'ct-coach')} role="status" aria-label="Tutorial">
   <span className="ct-coach__step">{['pad','build','more','start','watch'].indexOf(step)+1}<small>/5</small></span>
   <div><b>{c.title}{step==='more'&&<small> · {towers}/3</small>}</b><p>{c.body}</p></div>
   <button className="ct-ghost ct-coach__skip" onClick={step==='watch'?onDone:onSkip}>{step==='watch'?'Got it':'Skip tutorial'}</button>
@@ -63,7 +63,7 @@ export function PrismBriefing({store,run}:{store:SnapshotStore;run:number}){
  const s=useSlice(store,st=>st&&st.level===29&&(st.phase==='ready'||(st.phase==='playing'&&(st.elapsed||0)<25))?st.phase:null)
  const [closed,setClosed]=useState(-1)
  if(!s||closed===run)return null
- return <aside className={glass({depth:2,tone:'super'},'ct-coach ct-briefing ct-panel')} role="note" aria-labelledby="ct-briefing-title">
+ return <aside className={glass({depth:2,tone:'super'},'ct-coach ct-briefing')} role="note" aria-labelledby="ct-briefing-title">
   <span className="ct-coach__step"><Icon name="warning"/></span>
   <div><span className="ct-kicker">Before you start · Asuna</span><b id="ct-briefing-title">Asuna runs past fixed defenses</b>
    <ul><li>She dashes forward every few seconds, so towers behind her stop helping.</li><li>Sell the towers she has passed and rebuild on the clearings ahead of her.</li><li>You can sell and build while paused (Space).</li></ul></div>
@@ -89,7 +89,7 @@ export function EncounterCard({card,onDismiss}:{card:Card;onDismiss:()=>void}){
  const t=abilityText(card.id),button=useRef<HTMLButtonElement>(null)
  useEffect(()=>{button.current?.focus()},[])
  return <div className="ct-encounter" role="dialog" aria-modal="true" aria-labelledby="ct-encounter-title">
-  <div className={glass({depth:3,tone:'threat',wash:true,pop:'sheet'},'ct-encounter__card ct-panel')}>
+  <div className={glass({depth:3,tone:'threat',wash:true,blur:true,pop:'sheet'},'ct-encounter__card')}>
    <span className="ct-encounter__glyph">{card.source==='boss'?<BossPortrait kind={card.kind}/>:null}<AbilityGlyph ability={card.id}/>{!['blind','uproot','thornwall','tithe','whiteout','crowcurse','dusk'].includes(card.id)&&<Icon name={t.icon||'warning'}/>}</span>
    <div><span className="ct-kicker">New {card.source==='boss'?'guardian cast':'miniboss power'} · game paused</span><h3 id="ct-encounter-title">{t.name}</h3><p>{t.card}</p></div>
    <button ref={button} className="ct-cta" onClick={onDismiss}>Got it<Icon name="play"/></button>
@@ -104,7 +104,7 @@ export function BossWarning({store,run}:{store:SnapshotStore;run:number}){
  const [shown,setShown]=useState<{kind:string;name:string}|null>(null),last=useRef('')
  useEffect(()=>{if(!boss)return;const key=`${run}:${boss.id}`;if(key===last.current)return;last.current=key;setShown(boss);const t=window.setTimeout(()=>setShown(null),3400);return()=>clearTimeout(t)},[boss?.id,run])
  if(!shown)return null
- return <div className={`ct-warning ct-warning--${shown.kind}`} role="status"><span className="ct-warning__band" aria-hidden="true"/><BossPortrait kind={shown.kind}/><div><span><Icon name="warning"/>Guardian incoming</span><strong>{shown.name}</strong></div></div>
+ return <div className={glass({depth:2,tone:'threat',wash:true},'ct-warning',`ct-warning--${shown.kind}`)} role="status"><span className="ct-warning__band" aria-hidden="true"/><BossPortrait kind={shown.kind}/><div><span><Icon name="warning"/>Guardian incoming</span><strong>{shown.name}</strong></div></div>
 }
 /** The snapshot's notices, minus the ones the HUD already shows (wave numbers are on the track; the load prompt is gone). */
 const quiet=/^(Choose a place|Wave \d+|Defend the carrot)$/
@@ -124,7 +124,7 @@ export function NoticeToast({store,forged=''}:{store:SnapshotStore;forged?:strin
   setText(plain[notice]||notice);clearTimeout(timer.current);timer.current=window.setTimeout(()=>setText(''),2600)},[notice,forged,store])
  useEffect(()=>()=>clearTimeout(timer.current),[])
  if(!text)return null
- return <div className="ct-toast" role="status">{text}</div>
+ return <div className={glass({depth:1,pill:true},'ct-toast')} role="status">{text}</div>
 }
 /** "Flying creatures next wave": shown while the next wave containing flyers is queued (the breather, or before the first wave). */
 export function AirToast({store,level,enemies,definitions}:{store:SnapshotStore;level:LevelDefinition|undefined;enemies:EnemyDefinition[]|undefined;definitions:GameDefinitions|null}){
@@ -138,15 +138,15 @@ export function AirToast({store,level,enemies,definitions}:{store:SnapshotStore;
  if(!visible)return null
  const firstAir=!Array.from({length:next-1},(_,i)=>i+1).some(w=>waveHasAir(level,w,enemies))
  const air=(definitions?.towers||[]).filter(t=>t.air&&t.unlock<=s.lvl).slice(0,3).map(t=>t.name)
- return <div className={glass({depth:2,tone:'ally'},'ct-air-toast ct-panel')} role="status"><Icon name="wing"/><div><b>Flying creatures next wave</b>{firstAir&&<span>Ground-only towers can’t reach them. Try {air.join(', ')}.</span>}</div><button className="ct-icon-btn" aria-label="Dismiss" onClick={()=>setDismissed(key)}><Icon name="close"/></button></div>
+ return <div className={glass({depth:2,tone:'ally'},'ct-air-toast')} role="status"><Icon name="wing"/><div><b>Flying creatures next wave</b>{firstAir&&<span>Ground-only towers can’t reach them. Try {air.join(', ')}.</span>}</div><button className="ct-icon-btn" aria-label="Dismiss" onClick={()=>setDismissed(key)}><Icon name="close"/></button></div>
 }
 /** Super forged: the emblem, the name and the 4-second undo. */
 export function ForgeToast({store,name,kind,send}:{store:SnapshotStore;name:string;kind:string;send:(c:Command)=>void}){
  const undo=useSlice(store,st=>st&&st.phase!=='won'&&st.phase!=='lost'?Math.ceil(st.mergeUndo||0):0)
  if(undo<=0)return null
- return <div className={glass({depth:2,tone:'super'},'ct-forge ct-panel')} role="status"><SuperEmblem kind={kind||'seed'}/><span className="ct-forge__text"><small>Super forged</small><b>{name||'Super tower'}</b></span><button className="ct-ghost" onClick={()=>send({type:'mergeUndo'})}><Icon name="undo"/>Undo <small>{undo}s</small></button></div>
+ return <div className={glass({depth:2,tone:'super'},'ct-forge')} role="status"><SuperEmblem kind={kind||'seed'}/><span className="ct-forge__text"><small>Super forged</small><b>{name||'Super tower'}</b></span><button className="ct-ghost" onClick={()=>send({type:'mergeUndo'})}><Icon name="undo"/>Undo <small>{undo}s</small></button></div>
 }
 /** The merge lesson (once per device, on the first fully grown tower; CarrotPage decides when). */
 export function MergeTip({onDismiss}:{onDismiss:()=>void}){
- return <div className={glass({depth:2,tone:'super'},'ct-teach ct-panel')} role="status"><Icon name="merge"/><p>Two fully grown towers of the same kind can merge into one Super tower. Drag one onto the other.</p><button className="ct-icon-btn" aria-label="Dismiss merge tip" onClick={onDismiss}><Icon name="close"/></button></div>
+ return <div className={glass({depth:2,tone:'super'},'ct-teach')} role="status"><Icon name="merge"/><p>Two fully grown towers of the same kind can merge into one Super tower. Drag one onto the other.</p><button className="ct-icon-btn" aria-label="Dismiss merge tip" onClick={onDismiss}><Icon name="close"/></button></div>
 }

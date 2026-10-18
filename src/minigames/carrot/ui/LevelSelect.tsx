@@ -21,9 +21,9 @@ const r2Of=(id:number)=>measuredR2[id-1]??.5
 export function levelPips(l:LevelDefinition){const b=bossOfLevel(l.id);if(b)return challengePips[b];const r=r2Of(l.id);return r>=.9?1:r>=.75?2:r>=.55?3:r>=.4?4:5}
 export function levelBand(l:LevelDefinition){
  const b=bossOfLevel(l.id);if(b)return difficultyLabel(0,l.challenge||challengeDifficulty[b])
- const r=r2Of(l.id);return r>=.6?'NORMAL':r>=.4?'HARD':'EXPERT'
+ const r=r2Of(l.id);return r>=.6?'Normal':r>=.4?'Hard':'Expert'
 }
-export const bandTone=(band:string)=>({NORMAL:'normal',EASY:'normal',HARD:'hard',EXPERT:'expert',INSANE:'insane','????':'unknown'}[band]||'normal')
+export const bandTone=(band:string)=>({normal:'normal',easy:'normal',hard:'hard',expert:'expert',insane:'insane','????':'unknown'}[band.toLowerCase()]||'normal')
 
 const two=(n:number)=>String(n).padStart(2,'0')
 const starIcons=['check','heart','star']
@@ -95,7 +95,7 @@ export function LevelSelect({definitions,save,challenges,records,current,preview
  const rec=level?records.levels[String(level.id)]:undefined
  const best=boss?challenges.best[boss]:undefined
  const medal=level?(boss?stars(best,boss):save.medals[level.id]||0):0
- const open=level?isOpen(level.id):false,band=level?levelBand(level):'NORMAL'
+ const open=level?isOpen(level.id):false,band=level?levelBand(level):'Normal'
  const jacketOk=useImageAvailable(jacketArt(level?.id||1))
  const cover=level?(jacketOk?jacketArt(level.id):boss?challengeArt(boss):chapterArt(level.biome)):chapterArt('garden')
  // the backdrop is the land itself (high-resolution key art), or the guardian's key art in the challenges
@@ -142,7 +142,7 @@ export function LevelSelect({definitions,save,challenges,records,current,preview
     </div>
     <div className="ct-jacket__go">
      {open?<button className={jelly({size:'lg'},'ct-cta ct-jacket__play')} onClick={()=>onPlay(level.id)}>Play<Icon name="play"/></button>
-     :<p className="ct-jacket__lock gl-fill"><Icon name="lock"/>{boss?lockCaption[boss]||'Locked':`Clear stage ${two(level.id-1)} to unlock`}</p>}
+     :<p className="ct-jacket__lock gl-fill"><Icon name="lock"/>{boss?lockCaption[boss]||'Locked':`Clear stage ${level.id-1} to unlock`}</p>}
     </div>
    </article>}
    <ol className="ct-tracklist" ref={list} aria-label={`${ch.name} stages`}>

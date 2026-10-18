@@ -8,12 +8,12 @@ import { glass, jelly } from './Glass'
  * The modal dialog shell shared by How to play, Settings, Field guide and the restart confirm (styles: ui/menus.css). A glass sheet:
  * the header stays put and the body scrolls under a soft edge fade (no divider line). Children go in the body.
  */
-export function Modal({title,children,onClose,className='',kicker}:{title:string;children:ReactNode;onClose:()=>void;className?:string;kicker?:string}){
+export function Modal({title,children,onClose,className=''}:{title:string;children:ReactNode;onClose:()=>void;className?:string}){
  const ref=useRef<HTMLDialogElement>(null)
  useEffect(()=>{const el=ref.current;el?.showModal();return()=>el?.close()},[])
  return <dialog ref={ref} className={`ct-dialog ${className}`} onCancel={e=>{e.preventDefault();onClose()}} onClick={e=>{if(e.target===e.currentTarget)onClose()}} aria-label={title}>
   <div className={glass({depth:3,blur:true,pop:'sheet'},'ct-dialog__inner')}>
-   <header className="ct-dialog__head">{kicker&&<span className="gl-label ct-kicker">{kicker}</span>}<h2>{title}</h2><button className="ct-icon-btn" onClick={onClose} aria-label={`Close ${title}`}><Icon name="close"/></button></header>
+   <header className="ct-dialog__head"><h2>{title}</h2><button className="ct-icon-btn" onClick={onClose} aria-label={`Close ${title}`}><Icon name="close"/></button></header>
    <div className="ct-dialog__body">{children}</div>
   </div>
  </dialog>

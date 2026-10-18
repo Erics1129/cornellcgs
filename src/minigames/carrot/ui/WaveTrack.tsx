@@ -9,6 +9,7 @@ import Icon from '../Icon'
 import { formatSeconds } from '../challenges'
 import { bandTone, levelBand } from './LevelSelect'
 import { glass } from './Glass'
+import { plural } from '../copy'
 import { fill } from './hudKit'
 
 /** Game seconds the track shows ahead of the judgement line. */
@@ -56,13 +57,15 @@ export function WaveTrack({store,level,enemies,seen,reduced,compact}:{store:Snap
   let raf=0,HeadSize=0
   // each note's drawn width (head plus label), measured once per note and again after a resize
   const widths=new Map<string,number>()
-  const resize=new ResizeObserver(()=>{HeadSize=0;widths.clear()});if(rail.current)resize.observe(rail.current)
+  // the rail's width, read when it changes (a read inside the frame would force a style and layout pass every frame)
+  let width=rail.current?.clientWidth||0
+  const resize=new ResizeObserver(()=>{HeadSize=0;widths.clear();width=rail.current?.clientWidth||0});if(rail.current)resize.observe(rail.current)
   const laid:Array<{n:Note;el:HTMLDivElement;target:number;lane:number;w:number;x:number;folded:boolean;gone:boolean;next:boolean}>=[]
   const frame=()=>{
    raf=requestAnimationFrame(frame)
    const box=rail.current;if(!box)return
    if(!HeadSize)HeadSize=parseFloat(getComputedStyle(box).getPropertyValue('--head'))||28
-   const width=box.clientWidth,clock=store.clock(),st=store.get();if(!st)return
+   const clock=store.clock(),st=store.get();if(!st||!width)return
    const judge=JudgeOffset,px=(width-judge)/TrackWindow,breather=st.nextWave>0
    // bar lines every 5 game seconds scroll with the clock (a static line under reduced motion)
    if(beats.current){const measure=5*px;beats.current.style.setProperty('--measure',`${measure.toFixed(1)}px`);beats.current.style.transform=reduced?'none':`translate3d(${(-((clock.elapsed%5)*px)+judge%measure).toFixed(1)}px,0,0)`}
@@ -115,8 +118,8 @@ export function WaveTrack({store,level,enemies,seen,reduced,compact}:{store:Snap
   node.animate(reduced?[{opacity:.4},{opacity:1}]:[{transform:'scale(1.45)',color:'#ffffff'},{transform:'scale(1)'}],{duration:reduced?200:520,easing:'cubic-bezier(.23,1,.32,1)'})
  },[s?.wave,s?.phase,reduced])
  if(!s||!status)return null
- const asuna=s.level===29,label=asuna?`Encounter, ${formatSeconds(status.elapsed)}`:`Wave ${Math.max(0,s.wave)} of ${s.waves}`
- const upcoming=(plan?.next.length?plan.next:plan?.current||[]).slice(0,4).map(n=>`${n.n} ${n.traits.name}${n.traits.air?' (flying)':''}${n.traits.boss?' (guardian)':''} on route ${routeLetters[n.route]||n.route+1}`).join(', ')
+ const asuna=s.level===29,label=asuna?`Encounter, ${formatSeconds(status.elapsed)}`:`Wave ${Math.max(1,s.wave)} of ${s.waves}${s.phase==='ready'?', ready':''}`
+ const upcoming=(plan?.next.length?plan.next:plan?.current||[]).slice(0,4).map(n=>`${n.n} ${n.n>1&&!n.traits.boss?plural(n.traits.name):n.traits.name}${n.traits.air?' (flying)':''}${n.traits.boss?' (guardian)':''} on route ${routeLetters[n.route]||n.route+1}`).join(', ')
  const phase=s.phase==='ready'?'is-ready':status.next>0?'is-breather':s.phase==='playing'?'is-live':''
  return <section className={glass({depth:1},'ct-track',compact&&'is-compact')} aria-label={`${s.name}. ${label}.${upcoming?` ${plan?.next.length?'Next':'Now'}: ${upcoming}.`:''}`} data-lanes={lanes}>
   <i className="ct-track__light" data-beat aria-hidden="true"/>

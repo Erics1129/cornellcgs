@@ -3,7 +3,7 @@ import type { SnapshotStore } from '../hooks/useSnapshot'
 import { useSlice } from '../hooks/useSnapshot'
 import type { RunTracker, JudgementEvent } from '../hooks/runTracker'
 import { Counter } from './kit'
-import { glass, useExit } from './Glass'
+import { glass } from './Glass'
 import { CarrotFace, PhonePortrait, carrotPose, useMedia } from './hudKit'
 import Icon from '../Icon'
 import { abilityText } from '../abilities'
@@ -193,21 +193,4 @@ export function BottomBar({store,send,onHelp,startSpotlight,earlyBonusCap=6}:{st
    {s.phase==='playing'&&s.next>=0&&!s.paused&&<button className="ct-ghost ct-send" onClick={()=>send({type:'next'})} aria-label={`Send the next wave now${bonus?` for ${bonus} bonus coins`:''}`}>{actions.sendNow}{bonus>0&&<span className="ct-send__bonus"><Icon name="coin"/>+{bonus}</span>}<Icon name="fast"/></button>}
   </div>
  </div>
-}
-
-/**
- * Paused (the pause button, Space or a hidden tab): a low pill of real glass (the page's tier blurs it on desktop while paused), and a
- * soft dim at the board's edges. The board's centre stays clear and keeps its wheel zoom and drag pan.
- */
-export function PausedCard({store,send}:{store:SnapshotStore;send:(c:{type:string})=>void}){
- const paused=useSlice(store,st=>!!st&&st.paused&&st.phase==='playing'),{mounted,leaving}=useExit(paused)
- if(!mounted)return null
- return <>
-  <div className={cx('ct-dim',leaving&&'is-leaving')} aria-hidden="true"/>
-  <button className={glass({depth:3,pill:true,blur:true,interactive:true,pop:true},'ct-paused',leaving&&'is-leaving')} tabIndex={leaving?-1:undefined} onClick={()=>{if(!leaving)send({type:'pause'})}}>
-   <span className="ct-paused__play" aria-hidden="true"><Icon name="play"/></span>
-   <span className="ct-paused__text"><b>Paused</b><small>{actions.resume}</small></span>
-   <kbd className="ct-paused__key" aria-hidden="true">Space</kbd>
-  </button>
- </>
 }

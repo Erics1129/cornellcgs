@@ -31,7 +31,7 @@
  *                       materialize on mount (.is-leaving for the exit)
  * Legacy names render the same recipes, so old markup upgrades in place: .ct-icon-btn = thin clear-ish glass circle, .ct-ghost = thin
  * glass pill button, .ct-cta = jelly, .ct-tag/.ct-badge = soft pill, .ct-band = solid pill, plus the switch, segment, slider, pips,
- * medals and the focus ring. .ct-panel is unchanged (chamfered, opaque) until each surface replaces it with .gl.
+ * medals and the focus ring. Every surface is .gl glass (the chamfered .ct-panel is gone: no hard corners anywhere).
  *
  * Budget (measured, see the foundation report): no backdrop-filter while a wave runs, on any device (the page sets data-glass='lite'
  * during live play); at most three blurred surfaces on screen, one on phones; never animate blur, fade the blurred surface itself (a
@@ -50,16 +50,14 @@
 @layer carrot.tokens {
   .ct-page {
     --ink: #f2f6ff; --ink-2: #c3cddd; --ink-3: #93a1b8; --ink-dim: #6f7c92;
-    --panel-hi: rgba(16, 24, 38, .9); --panel-lo: rgba(7, 11, 18, .84); --panel-solid: #0b111b; --hair: rgba(255, 255, 255, .14); --hair-hi: rgba(153, 238, 255, .5);
     /* semantic channels (hex from osu! OsuColour, MIT); only threat and leak may pulse */
     --ally: #66ccff; --ally-hi: #99eeff; --coin: #ffcc22; --grow: #b3d944; --threat: #ff66aa; --leak: #ff5d5d; --core: #ed1121; --super: #aa88ff;
     --route-a: #66ccff; --route-b: #7cf2b0; --route-c: #f7a6ff; --route-d: #ffd37a;
     --accent: #b3d944; --accent-ink: #10180a;
-    --f-num: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+    /* numbers: Hanken Grotesk's tabular figures, the same face as the HUD's counters (every digit one width, so values never jitter) */
+    --f-num: 'Hanken Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     --f-ui: 'Hanken Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     --f-disp: 'Bricolage Grotesque', 'Hanken Grotesk', -apple-system, sans-serif;
-    --c: 8px; /* chamfer (legacy .ct-panel only) */
-    --chamfer: polygon(var(--c) 0, 100% 0, 100% calc(100% - var(--c)), calc(100% - var(--c)) 100%, 0 100%, 0 var(--c));
     --ease-out: cubic-bezier(.22, 1, .36, 1); --ease-in: cubic-bezier(.42, 0, 1, 1);
     --t-judge: 100ms; --t-roll: 250ms; --t-hud: 300ms; --t-bar: 500ms; --t-trail-delay: 500ms; --t-trail: 300ms;
     --gutter: 12px;
@@ -121,21 +119,20 @@
   :where(.ct-page) :where(h1, h2, h3, p, dl, dd, ol, ul) { margin: 0; padding: 0; }
   :where(.ct-page) :where(ol, ul) { list-style: none; }
   :where(.ct-page) :where(svg) { width: 20px; height: 20px; flex: none; }
+  /* one play glyph everywhere: a filled, round-cornered triangle (the stroke's round joins soften its points) */
+  .ct-page svg[data-icon='play'] { fill: currentColor; }
   /* The site's unlayered :focus-visible (4 px radius) outranks every layer; !important here is the only override. The ring follows the
      focused element's own shape: --gl-radius is set by every glass primitive and is 0 (square) for everything else. To round a custom
      focusable element, set --gl-radius on it rather than border-radius. */
   .ct-page :focus-visible { outline: 2px solid var(--focus) !important; outline-offset: 3px !important; border-radius: var(--gl-radius) !important; }
   .ct-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 
-  /* legacy panel: chamfered and opaque. Each surface replaces it with .gl; adding .gl to a .ct-panel element is enough (.gl clears the
-     border and the clip-path). */
-  .ct-panel { position: relative; background: linear-gradient(180deg, var(--panel-hi), var(--panel-lo)); border: 1px solid var(--hair); clip-path: var(--chamfer); }
-  .ct-label { font: 700 11px/1 var(--f-ui); letter-spacing: .16em; text-transform: uppercase; color: var(--ink-3); }
   .ct-kicker { display: block; font: 700 11px/1.2 var(--f-ui); letter-spacing: .18em; text-transform: uppercase; color: var(--ink-3); }
-  /* chamfered legacy controls ring focus inside (a clip-path would cut an outline); glass controls use the round outline above */
+  /* controls inside clipping scrollers (tiles, rows, tabs) and the tilting stage card ring focus with a box-shadow that follows their
+     rounded shape (an outline would be cut by the scroller); each surface draws that ring, this only turns the outline off */
   .ct-chip:focus-visible, .ct-tile:focus-visible, .ct-trackrow:focus-visible, .ct-chapter:focus-visible, .ct-sell:focus-visible, .ct-lobby__next:focus-visible { outline: none !important; box-shadow: inset 0 0 0 2px var(--ally-hi); }
   .ct-cta b { font-family: var(--f-num); }
-  .ct-cta__cost { display: inline-flex; align-items: center; gap: 4px; font: 700 13px/1 var(--f-num); letter-spacing: 0; }
+  .ct-cta__cost { display: inline-flex; align-items: center; gap: 4px; font: 800 13px/1 var(--f-num); font-variant-numeric: tabular-nums; letter-spacing: 0; }
   .ct-cta__cost svg { width: 16px; height: 16px; }
   .ct-badges { display: inline-flex; flex-wrap: wrap; gap: 4px; }
   .ct-grade { display: inline-grid; place-items: center; font: 800 18px/1 var(--f-disp); transform: skewX(-10deg); color: var(--ink-3); min-width: 1.4em; }
@@ -457,7 +454,7 @@
   .gl-meter { position: relative; display: block; height: 6px; border-radius: 999px; overflow: hidden; background: rgb(0 0 0 / .3); box-shadow: inset 0 1px 1px rgb(0 0 0 / .4); }
   .gl-meter > i { position: absolute; inset: 0; border-radius: inherit; background: linear-gradient(180deg, color-mix(in oklab, var(--tone, var(--accent)), white 22%), var(--tone, var(--accent))); transform: translateX(calc((var(--v, 1) - 1) * 100%)); transition: transform var(--t-bar) var(--e-out); }
   .gl-label { display: block; font: 700 11px/1.2 var(--f-ui); letter-spacing: .06em; text-transform: uppercase; color: var(--ink-2); }
-  .gl-num { font-family: var(--f-num); font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -.02em; }
+  .gl-num { font-family: var(--f-num); font-weight: 750; font-variant-numeric: tabular-nums; letter-spacing: -.01em; }
   .gl-text { text-shadow: 0 1px 1px rgb(0 0 0 / .35); }
   /* scroll edge: content fades where it meets floating chrome, instead of a divider line */
   .gl-scroll { overflow: auto; overscroll-behavior: contain; -webkit-mask: linear-gradient(transparent, #000 var(--gl-fade, 20px), #000 calc(100% - var(--gl-fade, 20px)), transparent); mask: linear-gradient(transparent, #000 var(--gl-fade, 20px), #000 calc(100% - var(--gl-fade, 20px)), transparent); }
@@ -517,10 +514,7 @@
   .ct-page[data-motion='reduce'] *, .ct-page[data-motion='reduce'] *::before, .ct-page[data-motion='reduce'] *::after { transition-duration: 0s !important; }
   .ct-page[data-motion='reduce'] :is(.gl-jelly, .ct-cta)::before { animation: none !important; }
   @media (prefers-contrast: more) {
-    .ct-page { --hair: rgba(255, 255, 255, .45); --ink-3: #c3cddd; --panel-hi: #0b111b; --panel-lo: #05080d; }
-  }
-  @media (prefers-reduced-transparency: reduce) {
-    .ct-page { --panel-hi: #0e1522; --panel-lo: #0b111b; }
+    .ct-page { --ink-3: #c3cddd; }
   }
 }
 

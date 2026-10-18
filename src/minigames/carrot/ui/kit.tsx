@@ -14,7 +14,8 @@ export function Grade({value,size='md',label}:{value:number;size?:'sm'|'md'|'xl'
  if(!letter)return <span className={`ct-grade ct-grade--${size} is-empty`} role="img" aria-label={label||'Not graded yet'}/>
  return <span className={`ct-grade ct-grade--${size} ct-grade--${letter.toLowerCase()}`} role="img" aria-label={label||`Grade ${letter}`}>{letter}</span>
 }
-export const difficultyLabel=(pips:number,challenge?:string)=>challenge?{easy:'EASY',hard:'HARD',insane:'INSANE','????':'????'}[challenge]||challenge.toUpperCase():pips>=5?'EXPERT':pips>=3?'HARD':'NORMAL'
+/** A difficulty band, in sentence case (the band pill uppercases it in CSS; screen readers read the word, not the letters). */
+export const difficultyLabel=(pips:number,challenge?:string)=>challenge?{easy:'Easy',hard:'Hard',insane:'Insane','????':'????'}[challenge]||challenge.charAt(0).toUpperCase()+challenge.slice(1):pips>=5?'Expert':pips>=3?'Hard':'Normal'
 export function Pips({value,max=5}:{value:number;max?:number}){return <span className="ct-pips" role="img" aria-label={`Difficulty ${value} of ${max}`}>{Array.from({length:max},(_,i)=><i key={i} className={i<value?'is-on':''}/>)}</span>}
 /**
  * A rolling numeric counter with dim leading zeros (a score-counter look: 0340): the value rolls 250 ms OutQuint toward its target and
