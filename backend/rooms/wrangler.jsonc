@@ -1,0 +1,22 @@
+{
+  // cgs-rooms: Carrot Defense duo play (room codes, lobby, signalling, gameplay relay). Deploy:
+  //   npx wrangler login && npx wrangler whoami
+  //   npx wrangler deploy --config backend/rooms/wrangler.jsonc
+  // Local: npx wrangler dev --config backend/rooms/wrangler.jsonc --env dev --local
+  // Optional TURN (Cloudflare Realtime): npx wrangler secret put TURN_KEY_ID / TURN_KEY_API_TOKEN --config backend/rooms/wrangler.jsonc
+  "name": "cgs-rooms",
+  "main": "worker.ts",
+  "compatibility_date": "2026-10-01",
+  "workers_dev": true,
+  "vars": { "ALLOWED_ORIGINS": "https://cornellcgs.org,https://www.cornellcgs.org" },
+  "durable_objects": { "bindings": [{ "name": "ROOMS", "class_name": "Room" }] },
+  // Free plan: Durable Object classes must be SQLite-backed (new_sqlite_classes, not new_classes).
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Room"] }],
+  "env": {
+    // Local development and phone tests: also allows localhost and private LAN origins (and DEV_ORIGINS, e.g. an https tunnel).
+    "dev": {
+      "vars": { "ALLOWED_ORIGINS": "https://cornellcgs.org,https://www.cornellcgs.org", "DEV": "1", "DEV_ORIGINS": "" },
+      "durable_objects": { "bindings": [{ "name": "ROOMS", "class_name": "Room" }] }
+    }
+  }
+}
