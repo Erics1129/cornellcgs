@@ -518,7 +518,7 @@ namespace CarrotTD {
   /// along the distance gradient when it intrudes (twice at most), removed when it still does; logged for the QA clearance check.</summary>
   bool EnsureClearance(GameObject obj,Vector3 p){
    var b=BoundsOf(obj);float half=Mathf.Max(b.size.x,b.size.z)*.5f;Vector3 c=new Vector3(b.center.x,0,b.center.z);
-   for(int pass=0;pass<3;pass++){float clear=PathDistance(c)-half;if(clear>=1f){LogDecor(c,half*2);return true;}if(pass==2)break;
+   for(int pass=0;pass<3;pass++){if(DuoSeamHit(c,half))break;float clear=PathDistance(c)-half;if(clear>=1f){LogDecor(c,half*2);return true;}if(pass==2)break;
     Vector3 g=new Vector3(PathDistance(c+Vector3.right*.1f)-PathDistance(c-Vector3.right*.1f),0,PathDistance(c+Vector3.forward*.1f)-PathDistance(c-Vector3.forward*.1f));if(g.sqrMagnitude<1e-6f)g=c.sqrMagnitude>1e-4f?c:Vector3.right;
     Vector3 move=g.normalized*(1f-clear+.05f);if(move.magnitude>2.5f)break;obj.transform.position+=move;c+=move;GroundScan(obj,c,b.size.y);bool padHit=false;foreach(var q in game.level.pads)if(Vector3.Distance(new Vector3(q.x,0,q.z),c)<.6f+half)padHit=true;if(padHit||Pond(c))break;}
    obj.SetActive(false);Destroy(obj);return false;

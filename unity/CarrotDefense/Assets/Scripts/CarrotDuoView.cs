@@ -137,6 +137,9 @@ namespace CarrotTD {
    if(Mathf.Abs(p.x)<1.6f)foreach(var route in duoOther.routes)for(int i=1;i<route.Length;i++)d=Mathf.Min(d,SegmentDistance(p,route[i-1],route[i]));
    return d;
   }
+  /// <summary>Duo: a prop whose footprint reaches the 1-unit wall strip (EnsureClearance may push a prop away from a seam gate's path
+  /// and toward the wall) is dropped, so the strip only ever holds the divider.</summary>
+  bool DuoSeamHit(Vector3 c,float half){if(!DuoHalves||duoFrames.Count==0)return false;return (duoFrames[0].seamZ?Mathf.Abs(c.z):Mathf.Abs(c.x))-half<.5f;}
   /// <summary>Both halves' free-space test (the arena-wide stone ring).</summary>
   bool FreeBothHalves(Vector3 p,float margin){
    if(!IsFree(p,margin))return false;if(duoOther==null)return true;
