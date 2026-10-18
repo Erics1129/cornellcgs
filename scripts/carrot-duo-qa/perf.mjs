@@ -6,7 +6,7 @@
 //   heap    JS heap growth over a 10-minute loopback duo match (Chromium, precise memory info)
 //   wasm    WebKit: the wasm heap peak and growth count across L24 and L28 duo final waves in Both (target <= 384 MB)
 //   node scripts/carrot-duo-qa/perf.mjs [--only cpu,phone,first,heap,wasm] [--level 24] [--minutes 10]
-import { writeFileSync, mkdirSync } from 'node:fs'
+import { writeFileSync, mkdirSync, readFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { serve, open, cmd, duo, send, probe, sleep, arg, flag, waitFor, frameStats, REPO } from './lib.mjs'
 
@@ -14,7 +14,9 @@ const OUT = process.env.CARROT_DUO_QA_OUT || '/private/tmp/claude-501/-Users-eri
 const only = arg('only', 'cpu,phone,first,heap,wasm').split(','), level = Number(arg('level', 24)), minutes = Number(arg('minutes', 10))
 const build = resolve(REPO, arg('build', 'output/carrot-qa')), name = arg('name', 'carrot-qa')
 mkdirSync(OUT, { recursive: true })
-const report = { at: new Date().toISOString(), level, results: {} }
+// perf.json keeps every section's latest run (a run of --only phone leaves the cpu results in place).
+let previous = {}; try { previous = JSON.parse(readFileSync(join(OUT, 'perf.json'), 'utf8')).results || {} } catch {}
+const report = { at: new Date().toISOString(), level, build: name, results: previous }
 const save = () => writeFileSync(join(OUT, 'perf.json'), JSON.stringify(report, null, 1))
 const { server, url } = await serve(build)
 // The reference bot survives to these waves on every level (L24 falls to its wave-15 boss pair), so they are the peaks measured.
