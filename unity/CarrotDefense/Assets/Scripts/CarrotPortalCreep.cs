@@ -4,7 +4,7 @@ using UnityEngine.Rendering.Universal;
 
 namespace CarrotTD {
  // Portal challenge only (owner request, 2026-10-18): a near-black sky with a dark blue blink, and a creepy grade over the
- // whole frame. Presentation only. LateUpdate runs after the boss mood has written the sky, so these values win.
+ // whole frame that keeps the board readable (the map stays dark, the light does not). Presentation only. LateUpdate runs after the boss mood has written the sky, so these values win.
  public sealed partial class CarrotView {
   Volume creepVolume;
 
@@ -28,11 +28,11 @@ namespace CarrotTD {
    var go=new GameObject("Portal creep grade");go.transform.SetParent(transform,false);
    creepVolume=go.AddComponent<Volume>();creepVolume.isGlobal=true;creepVolume.priority=5;creepVolume.weight=1;
    var profile=ScriptableObject.CreateInstance<VolumeProfile>();creepVolume.profile=profile;
-   var adjust=profile.Add<ColorAdjustments>(true);adjust.saturation.Override(-65);adjust.contrast.Override(30);adjust.postExposure.Override(-.45f);adjust.colorFilter.Override(new Color(.78f,.9f,.86f));
-   var balance=profile.Add<WhiteBalance>(true);balance.temperature.Override(-25);balance.tint.Override(-12);
-   var vignette=profile.Add<Vignette>(true);vignette.intensity.Override(.5f);vignette.smoothness.Override(.55f);vignette.color.Override(Color.black);
-   var grain=profile.Add<FilmGrain>(true);grain.type.Override(FilmGrainLookup.Medium3);grain.intensity.Override(.55f);grain.response.Override(.6f);
-   var aberration=profile.Add<ChromaticAberration>(true);aberration.intensity.Override(.35f);
+   var adjust=profile.Add<ColorAdjustments>(true);adjust.saturation.Override(-40);adjust.contrast.Override(15);adjust.postExposure.Override(.25f);adjust.colorFilter.Override(new Color(.78f,.9f,.86f));
+   var balance=profile.Add<WhiteBalance>(true);balance.temperature.Override(-20);balance.tint.Override(-8);
+   var vignette=profile.Add<Vignette>(true);vignette.intensity.Override(.3f);vignette.smoothness.Override(.5f);vignette.color.Override(Color.black);
+   var grain=profile.Add<FilmGrain>(true);grain.type.Override(FilmGrainLookup.Medium3);grain.intensity.Override(.35f);grain.response.Override(.6f);
+   var aberration=profile.Add<ChromaticAberration>(true);aberration.intensity.Override(.2f);
   }
  }
 }
