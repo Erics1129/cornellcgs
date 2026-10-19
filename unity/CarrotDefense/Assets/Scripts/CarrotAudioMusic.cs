@@ -65,7 +65,8 @@ namespace CarrotTD {
    if(pool!=null&&pool.Length>1&&pool[(poolIndex+1)%pool.Length]==track&&NearSwitch())return true;
    return track==BossThemeOfLevel()&&BossSoon();
   }
-  bool BossSoon(){return game!=null&&game.level!=null&&!string.IsNullOrEmpty(levelBoss)&&!bossActive&&game.wave>=game.level.waves-1&&game.phase=="playing";}
+  // The Portal opens on wave 4 of 12, so its theme is decoded from the start: the drop must land on the arrival, not after a download.
+  bool BossSoon(){return game!=null&&game.level!=null&&!string.IsNullOrEmpty(levelBoss)&&!bossActive&&(levelBoss=="portal"||game.wave>=game.level.waves-1)&&game.phase=="playing";}
   bool NearSwitch(){int slot=targetA?0:1;if(slotTrack[slot]!=playing||string.IsNullOrEmpty(playing))return false;float len=Carrot_MusicSeconds(playing);return len>1&&Carrot_MusicElapsed(slot)>=SwitchAt(len)-25;}
 
   void TickMusic(float dt,string phase){

@@ -343,6 +343,7 @@ namespace CarrotTD {
    if(!boss&&id!="fragment"){float scale=CarrotData.HPScale(level.id)*CarrotData.PressureScale(level.id)*CarrotData.OpeningScale(level.id,fromWave)*(summoned?1:CarrotData.WaveRamp(level.id,fromWave,added!=null&&added.mini))*(Veteran?1.1f:1);hp*=scale;shield*=scale;}
    // Bosses start from the authored base table; returning and new bosses past level 12 keep pace with the ordinary curve (BossScale is 1 on levels 1-12 and on a boss's home level).
    if(boss)hp=CarrotData.BossBaseHp(id)*CarrotData.BossScale(level.id,id)*CarrotData.BossPressure(level.id);
+   if(boss&&id=="portal"&&PortalTwins)hp*=2; // the twins' shared pool is doubled (owner request)
    }
    // On challenge levels summons belong to the wave that is current when they appear, so the next wave waits for them but not for the boss.
    if(summoned&&CarrotData.IsChallenge(level.id)&&wave>0)fromWave=wave;
