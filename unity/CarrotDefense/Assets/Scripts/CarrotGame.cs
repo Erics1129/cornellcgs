@@ -40,6 +40,9 @@ namespace CarrotTD {
   int[] waveLiving,wavePending,waveBoss;
   bool[] waveStarted,wavePaid;
   readonly List<SpawnJob> spawns=new List<SpawnJob>();
+  // Portal challenge, solo (owner request, 2026-10-18): two portals from opposite sides share one health pool, every
+  // wave creature arrives twice, and creatures move at half speed.
+  bool PortalTwins=>level!=null&&level.boss=="portal"&&!isEndless&&NetMode==NetMode.None;bool portalTwin;
   readonly List<Projectile> projectiles=new List<Projectile>();
   readonly List<BurnZone> burns=new List<BurnZone>();
   readonly Dictionary<int,FocusState> focusStates=new Dictionary<int,FocusState>();
@@ -260,6 +263,7 @@ namespace CarrotTD {
    if(isEndless){EnsurePlan(wave);EnsurePlan(wave+1);wavePending[wave]=wavePlans[wave].Count;}
    var plan=wavePlans[wave];int firstRoute=plan.Count>0?plan[0].route:0;
    foreach(var p in plan)spawns.Add(new SpawnJob{at=elapsed+p.at,kind=p.kind,boss=p.boss,route=p.route,wave=wave});
+   if(PortalTwins)foreach(var p in plan)if(p.kind!="boss"){spawns.Add(new SpawnJob{at=elapsed+p.at+.6f,kind=p.kind,boss=p.boss,route=p.route,wave=wave});wavePending[wave]++;totalWork+=CarrotData.Work(p.kind);}
    Emit("wave",level.biome,level.routes[Mathf.Max(0,firstRoute)][0],value:wave,duration:2);EmitIncoming(wave+1);Publish();
   }
   // Challenge levels gate waves on ordinary enemies only: the boss arrives mid-level and the remaining waves spawn as adds while it walks; the final wave still needs the boss, every add and every reserved summon dead.
@@ -328,6 +332,7 @@ namespace CarrotTD {
    if(clone&&id=="eyeball"){hp=240;velocity=.5f;shield=0;reward=0;}
    if(clone&&id=="asuna"){hp=75;velocity=.8f;shield=0;reward=0;}
    velocity*=CarrotData.MovementScale*(boss||isEndless?1:CarrotData.Pace(level.id));
+   if(!boss&&PortalTwins)velocity*=.5f;
    if(isEndless){
     // Endless: whole HP from the integer curve of the unit's own wave (CarrotEndlessGen); rewards grow to x1.6 by wave 41.
     int w=Mathf.Max(1,fromWave);bool mini=added!=null&&added.mini;int bonus=endlessBonus!=null&&w<endlessBonus.Length&&endlessBonus[w]>0?endlessBonus[w]:1000;
@@ -355,7 +360,8 @@ namespace CarrotTD {
      case "eyeball":a.abilityD=elapsed+9;a.abilityE=elapsed+8;break; // Blindness forms, Gaze
      case "zombie":a.abilityE=elapsed+15;break;            // Raise Dead; Uproot is set on the phase-2 entry
     }
-    SetNotice(CarrotData.BossName(id),4);Emit("bossEnter",id,e.position,id:e.id,value:hp,duration:3);
+    if(!portalTwin){SetNotice(CarrotData.BossName(id),4);Emit("bossEnter",id,e.position,id:e.id,value:hp,duration:3);}
+    if(id=="portal"&&!portalTwin&&!clone&&PortalTwins&&level.routes.Length>1){portalTwin=true;var twin=Spawn("boss",route==0?1:0,fromWave,summoned,distance,false,owner,"portal");portalTwin=false;twin.reward=0;}
    }
    else Emit("spawn",id,e.position,id:e.id);
    return e;
@@ -767,9 +773,10 @@ namespace CarrotTD {
    float oldShield=e.shield,hpDamage=amount,hpBefore=e.hp,soaked=0;
    if(oldShield>0){float absorbed=Mathf.Min(oldShield,amount);e.shield-=absorbed;ConsumeGrantedShield(e,absorbed);hpDamage=amount-absorbed;soaked=absorbed;if(kind=="prism"||kind=="moonflower")hpDamage+=amount*.25f;}
    e.hp=Mathf.Max(0,e.hp-hpDamage);e.hitAt=elapsed;CreditDamage(source,kind,soaked+(hpBefore-e.hp));
+   bool sharedPortal=e.boss=="portal"&&PortalTwins;if(sharedPortal)foreach(var t in enemies)if(t!=e&&t.alive&&t.boss=="portal")t.hp=e.hp;
    Emit("hit",kind,e.position,e.position,source,e.id,value:amount,duration:.16f);
    if(oldShield>0&&e.shield<=0){Emit("ability","shieldBreak",e.position,id:e.id,duration:.45f);if(e.kind=="crystal"){a.baseSpeed=1.2f*CarrotData.MovementScale;a.stunUntil=elapsed+.35f;}}
-   if(e.hp<=0)ResolveEnemy(e,true);
+   if(e.hp<=0){ResolveEnemy(e,true);if(sharedPortal)foreach(var t in enemies.FindAll(x=>x.alive&&x.boss=="portal")){t.hp=0;ResolveEnemy(t,true);}}
   }
   void DamageBlocker(BlockerState b,float damage,string kind,int source){
    if(b==null||b.hp<=0)return;b.hp=Mathf.Max(0,b.hp-damage);Emit("hit",kind,b.position,b.position,source,-b.id,value:damage,duration:.12f);if(b.hp<=0)ClearBlocker(b,true);

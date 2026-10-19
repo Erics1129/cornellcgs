@@ -15,7 +15,8 @@ namespace CarrotTD {
     case "marsh":return new[]{"MusicMarsh","MusicExplore"};
     case "frost":return new[]{"MusicFrost","MusicExplore"};
     case "orchard":return new[]{"MusicOrchard","MusicExplore"};
-    case "arena":{string theme="Music"+BossTheme(string.IsNullOrEmpty(boss)?"tornado":boss);return new[]{theme,BossPartner(theme)};}
+    // The Portal keeps its old score until the boss is out; its arrival then starts the owner's theme at the drop.
+    case "arena":{if(boss=="portal")return new[]{"MusicPortal",BossPartner("MusicPortal")};string theme="Music"+BossTheme(string.IsNullOrEmpty(boss)?"tornado":boss);return new[]{theme,BossPartner(theme)};}
     case "prism":return new[]{"MusicExplore"};
     default:return new[]{"MusicExplore"};
    }
