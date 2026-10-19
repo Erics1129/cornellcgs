@@ -605,7 +605,7 @@ namespace CarrotTD {
    for(int s=superSlot;s<6;s++)effects.SuperMark(s,Vector3.zero,"",Color.white,0,false);
    RemoveMissing(towers,seen);
    if(!Spectator)ComputeSeparation();
-   seen.Clear();foreach(var e in game.enemies){seen.Add(e.id);if(!enemies.TryGetValue(e.id,out var a)){string path=ExpansionEnemyPath(e);QaFirstSpawn(path);a=Spawn(path,world,e.kind,1);if(e.kind=="fragment"){a.modelScale*=.45f;a.model.localScale=a.modelScale;}if(!Spectator)Clickable(a,"enemy",e.id,!string.IsNullOrEmpty(e.boss)?2.1f:!string.IsNullOrEmpty(e.miniboss)?1.35f:.85f);enemies[e.id]=a;a.tone=e.kind=="crystal"||e.kind=="fragment"?CarrotEffects.Tone("frost"):e.kind=="shaman"||e.kind=="swarm"?CarrotEffects.Tone("marsh"):new Color(1,.6f,.2f);}
+   seen.Clear();foreach(var e in game.enemies){seen.Add(e.id);if(!enemies.TryGetValue(e.id,out var a)){string path=ExpansionEnemyPath(e);QaFirstSpawn(path);a=Spawn(path,world,e.kind,1);if(e.kind=="portal"){a.modelScale*=2.5f;a.shadowSize*=2.5f;}if(e.kind=="fragment"){a.modelScale*=.45f;a.model.localScale=a.modelScale;}if(!Spectator)Clickable(a,"enemy",e.id,!string.IsNullOrEmpty(e.boss)?2.1f:!string.IsNullOrEmpty(e.miniboss)?1.35f:.85f);enemies[e.id]=a;a.tone=e.kind=="crystal"||e.kind=="fragment"?CarrotEffects.Tone("frost"):e.kind=="shaman"||e.kind=="swarm"?CarrotEffects.Tone("marsh"):new Color(1,.6f,.2f);}
     bool boss=!string.IsNullOrEmpty(e.boss);if(e.alive&&e.castRemaining>0&&(boss||!string.IsNullOrEmpty(e.miniboss)))windupLive=true;if(e.alive&&e.speed>a.baseSpeed&&game.elapsed>=e.slowUntil&&game.elapsed>=e.rushUntil)a.baseSpeed=e.speed;
     bool tornado=e.boss=="tornado",eyeball=e.boss=="eyeball",zombie=e.boss=="zombie";
     // Jolt is a damped spring on a presentation offset; EnemyState is never written.

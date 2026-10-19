@@ -108,7 +108,7 @@ namespace CarrotTD {
     AudioCheck(again[1234]==pcm[1234]&&again[pcm.Length/2]==pcm[pcm.Length/2],"ambience deterministic: "+biome);
    }
    // ---- playlists: a 10-minute level never loops one short track more than twice in a row ----
-   var seconds2=new Dictionary<string,float>{{"MusicExplore",191.7f},{"MusicFrost",186.2f},{"MusicGarden",69.6f},{"MusicMarsh",108f},{"MusicEyeball",180f},{"MusicOrchard",116.1f},{"MusicPortal",123.4f},{"MusicTornado",95.9f},{"MusicZombie",71.9f},{"MusicAsuna",216.5f},{"MusicBossTornado",136.3f},{"MusicBossOrchard",98.9f}};
+   var seconds2=new Dictionary<string,float>{{"MusicExplore",191.7f},{"MusicFrost",186.2f},{"MusicGarden",69.6f},{"MusicMarsh",108f},{"MusicEyeball",180f},{"MusicOrchard",116.1f},{"MusicPortal",123.4f},{"MusicTornado",95.9f},{"MusicZombie",71.9f},{"MusicAsuna",216.5f},{"MusicBossTornado",136.3f},{"MusicBossOrchard",98.9f},{"MusicBossPortal",98.9f}};
    foreach(var biome in new[]{"garden","marsh","frost","orchard","arena"})foreach(var boss in new[]{"","tornado","zombie","eyeball","portal"}){
     if(biome!="arena"&&boss!="")continue;if(biome=="arena"&&boss=="")continue;
     var list=Compact(LevelPool(biome,boss));AudioCheck(list.Length>=2,"playlist has an alternative: "+biome+"/"+boss);
