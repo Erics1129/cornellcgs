@@ -38,7 +38,7 @@ export default function Events() {
     <SectionIndex rank="10" />
     <div className="container-site agenda-layout">
       <header className="agenda-heading">
-        <p className="agenda-eyebrow">The calendar</p>
+        <p className="agenda-eyebrow">Events</p>
         <h2><ScrollWords text={events.heading} treatment="spread" /></h2>
         <a className="agenda-more" href="/events/">All events <span aria-hidden="true">↗</span></a>
       </header>

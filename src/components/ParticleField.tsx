@@ -22,7 +22,7 @@ function makeSprite(color: string, shard: boolean) {
   const glow = ctx.createRadialGradient(32, 32, 0, 32, 32, 31)
   glow.addColorStop(0, `rgba(${color},.8)`)
   glow.addColorStop(.2, `rgba(${color},.35)`)
-  glow.addColorStop(.55, 'rgba(36,7,73,.16)')
+  glow.addColorStop(.55, 'rgba(60,20,23,.16)')
   glow.addColorStop(1, `rgba(${color},0)`)
   ctx.fillStyle = glow
   ctx.fillRect(0, 0, 64, 64)
@@ -30,15 +30,15 @@ function makeSprite(color: string, shard: boolean) {
     ctx.beginPath()
     ctx.moveTo(13, 25); ctx.lineTo(39, 12); ctx.lineTo(49, 38); ctx.lineTo(26, 48); ctx.closePath()
     const glass = ctx.createLinearGradient(17, 14, 44, 49)
-    glass.addColorStop(0, 'rgba(228,197,255,.96)')
+    glass.addColorStop(0, 'rgba(239,213,215,.96)')
     glass.addColorStop(.45, `rgba(${color},.42)`)
     glass.addColorStop(1, `rgba(${color},.12)`)
     ctx.fillStyle = glass; ctx.fill()
     ctx.strokeStyle = `rgba(${color},.86)`; ctx.lineWidth = 1.2; ctx.stroke()
     ctx.beginPath(); ctx.moveTo(13, 25); ctx.lineTo(35, 30); ctx.lineTo(39, 12)
-    ctx.strokeStyle = 'rgba(224,190,255,.7)'; ctx.lineWidth = .8; ctx.stroke()
+    ctx.strokeStyle = 'rgba(237,208,210,.7)'; ctx.lineWidth = .8; ctx.stroke()
   } else {
-    ctx.fillStyle = 'rgba(224,188,255,.95)'
+    ctx.fillStyle = 'rgba(237,206,208,.95)'
     ctx.beginPath(); ctx.arc(32, 32, 2.5, 0, TAU); ctx.fill()
   }
   return sprite
@@ -186,7 +186,7 @@ export default function ParticleField({ mode, paused = false }: { mode: Mode; pa
           const other = particles[i - 6]
           if (Math.hypot(p.x - other.x, p.y - other.y) < 135) {
             ctx.globalAlpha = envelope * .12 * Math.min(p.alpha, other.alpha)
-            ctx.strokeStyle = '#c594ff'; ctx.lineWidth = .6
+            ctx.strokeStyle = '#eaa9ae'; ctx.lineWidth = .6
             ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(other.x, other.y); ctx.stroke()
           }
         }
@@ -197,7 +197,7 @@ export default function ParticleField({ mode, paused = false }: { mode: Mode; pa
           const age = clock - trail[a + 2]
           if (age > .45) continue
           ctx.globalAlpha = envelope * (1 - age / .45) * .18
-          ctx.strokeStyle = '#c594ff'; ctx.lineWidth = 1
+          ctx.strokeStyle = '#eaa9ae'; ctx.lineWidth = 1
           ctx.beginPath(); ctx.moveTo(trail[b], trail[b + 1]); ctx.lineTo(trail[a], trail[a + 1]); ctx.stroke()
         }
       }

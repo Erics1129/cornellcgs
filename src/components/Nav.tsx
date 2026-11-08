@@ -16,17 +16,17 @@ type Group = {
 
 const GROUPS: Group[] = [
   {
-    label: 'Who We Are',
+    label: 'Who we are',
     target: 'who-we-are',
     subs: [
       { label: 'Who we are', id: 'who-we-are' },
-      { label: 'Our Team', id: 'people' },
+      { label: 'Our team', id: 'people' },
       { label: 'Advisors', id: 'advisors' },
       { label: 'World', id: 'world' },
     ],
   },
   {
-    label: 'What We Do',
+    label: 'What we do',
     target: 'what-we-do',
     subs: [
       { label: 'What we do', id: 'what-we-do' },
@@ -47,7 +47,7 @@ const GROUPS: Group[] = [
     target: 'join',
     subs: [
       { label: 'How to join', id: 'join' },
-      { label: 'Contact Us', id: 'contact' },
+      { label: 'Contact', id: 'contact' },
     ],
   },
 ]
@@ -188,7 +188,7 @@ export default function Nav() {
           <div className="hidden gap-10 md:grid md:grid-cols-2">
             <div>
               <p data-panel-item className="font-display mb-7 text-[clamp(2.4rem,4.5vw,4.2rem)] font-[640] leading-[1.05] tracking-[-0.02em]">{active.label}</p>
-              <div data-panel-item><a href={pagePath(active.target)} className="cgs-nav-cta">Learn More<span aria-hidden="true">↗</span></a></div>
+              <div data-panel-item><a href={pagePath(active.target)} className="cgs-nav-cta">Read more<span aria-hidden="true">↗</span></a></div>
             </div>
             <nav aria-label={active.label} className="flex flex-col pr-10">
               {active.subs.map((s) => <a key={s.id + s.label} data-panel-item href={pagePath(s.id)} className="cgs-nav-link">{s.label}<span aria-hidden="true">↗</span></a>)}

@@ -20,7 +20,7 @@ export const nav = [
   { id: 'ml-process', label: 'ML', rank: 'J' },
   { id: 'events', label: 'Events', rank: '10' },
   { id: 'world', label: 'World', rank: '9' },
-  { id: 'people', label: 'Our Team', rank: '8' },
+  { id: 'people', label: 'Our team', rank: '8' },
   { id: 'join', label: 'Join', rank: '★' },
 ]
 
@@ -44,15 +44,17 @@ export const typing = {
 
 export const hero = {
   /** the coffee chat form (the same link as the Join page's card) */
-  ctaPrimary: { label: 'Join CGS', href: 'https://docs.google.com/forms/d/e/1FAIpQLSfCJEW9kdTEYV41YZZCt4MQRg8c9KdNSbrw9IGmSgCRF9eglw/viewform' },
+  ctaPrimary: { label: 'Book a coffee chat', href: 'https://docs.google.com/forms/d/e/1FAIpQLSfCJEW9kdTEYV41YZZCt4MQRg8c9KdNSbrw9IGmSgCRF9eglw/viewform' },
   /** the mini games are real pages at /minigames/ */
-  ctaSecondary: { label: 'Play mini games', href: '/minigames/' },
+  ctaSecondary: { label: 'Play our games', href: '/minigames/' },
   scrollHint: 'Scroll',
 }
 
 export const whoWeAre = {
-  heading: 'Game *AI*',
-  paragraphs: ['A Cornell student club. We write game solvers and train agents that learn to play.'],
+  heading: 'We teach computers to play cards.',
+  paragraphs: [
+    'We’re a student club at Cornell. We write game solvers, build simulators, and train agents that get better by playing against themselves. Right now most of that goes into a Guandan bot.',
+  ],
   photoPlaceholder: 'TODO team photo',
   // TODO real numbers — null shows as "TBA" until they exist
   counters: [
@@ -64,14 +66,14 @@ export const whoWeAre = {
 }
 
 export const whatWeDo = {
-  heading: 'At *Play*',
+  heading: 'A normal week',
   // TODO real threads
   threads: [
     {
       rank: 'A',
       suit: '♠',
       title: 'Study nights',
-      text: 'Every week: game theory, ranges, equilibria.',
+      text: 'We sit down and work through game theory, ranges, and equilibria.',
     },
     {
       rank: 'K',
@@ -83,19 +85,19 @@ export const whatWeDo = {
       rank: 'Q',
       suit: '♠',
       title: 'Build',
-      text: 'We write our own agents and tools.',
+      text: 'We write our own agents and tools instead of downloading them.',
     },
     {
       rank: 'J',
       suit: '♠',
       title: 'Tournaments',
-      text: 'Run like the real thing, with no buy-in.',
+      text: 'Run like the real thing. No buy-in.',
     },
     {
       rank: '10',
       suit: '♠',
       title: 'Talks',
-      text: 'On quant, poker, and academic research.',
+      text: 'People from quant, poker, and research tell us what they actually do.',
     },
   ],
 }
@@ -133,7 +135,7 @@ export const mlProcess = {
 }
 
 export const events = {
-  heading: 'Coming *Up*',
+  heading: 'On the calendar',
   // TODO real events
   items: [
     {
@@ -165,13 +167,13 @@ export const events = {
 }
 
 export const world = {
-  heading: 'One *Table*',
+  heading: 'One table, a lot of hometowns',
   // TODO real country count
-  text: 'Cornell students from around the world.',
+  text: 'Cornell students from all over the world. Teach us the card game you grew up with.',
 }
 
 export const people = {
-  heading: 'Our *Team*',
+  heading: 'Who runs it',
   /** One card per person. Roles and bios are filled in as they come; a card without them shows the name only. */
   leaders: [
     {
@@ -233,8 +235,8 @@ export const team: Array<{ label: string; alt: string; people: Array<{ name: str
 ]
 
 export const join = {
-  heading: 'Join *CGS*',
-  text: 'New members every semester.',
+  heading: 'Pull up a chair',
+  text: 'We take new members every semester. Any major, no experience needed.',
   cta: { label: 'Apply to CGS', href: 'mailto:recruitment@cornellcgs.org' }, // TODO form url when one exists
 }
 
@@ -423,7 +425,7 @@ export const pages: Record<string, SubPageDef> = {
     ],
   },
   people: {
-    title: 'Our Team',
+    title: 'Our team',
     lead: 'Board and members of Cornell CGS.',
     sections: [
       { heading: 'Advisors', alt: 'Faculty', body: 'See the Advisors page.' },
@@ -437,7 +439,7 @@ export const pages: Record<string, SubPageDef> = {
       {
         heading: 'Our team', alt: 'Board and members',
         body: 'The board and the rest of the club are listed on the Our Team page.',
-        link: { label: 'Our Team', href: '/ourTeam/' },
+        link: { label: 'Our team', href: '/ourTeam/' },
       },
     ],
   },
@@ -461,7 +463,7 @@ export const pages: Record<string, SubPageDef> = {
     ],
   },
   contact: {
-    title: 'Contact Us',
+    title: 'Contact',
     lead: 'Email the team that fits your question.',
     sections: [
       { heading: 'Recruitment', alt: 'Join CGS', body: 'recruitment@cornellcgs.org' },

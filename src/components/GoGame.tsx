@@ -103,7 +103,7 @@ export default function GoGame({ camera, paused }: { camera: RefObject<HTMLDivEl
           const a=i/56*Math.PI*2, p=project(x+Math.cos(a)*radius,y+Math.sin(a)*radius,.226)
           if(i===0)ctx!.moveTo(p.x,p.y);else ctx!.lineTo(p.x,p.y)
         }
-        ctx!.strokeStyle=`rgba(175,208,255,${alpha})`;ctx!.lineWidth=delay? .65:1.4;ctx!.stroke()
+        ctx!.strokeStyle=`rgba(237,221,193,${alpha})`;ctx!.lineWidth=delay? .65:1.4;ctx!.stroke()
       }
     }
     function draw() {
@@ -132,7 +132,7 @@ export default function GoGame({ camera, paused }: { camera: RefObject<HTMLDivEl
       if(state.last>=GO_SEED && state.contact>.8){
         const [x,y]=current.move,p=project(x*.42,y*.42,.404)
         ctx!.beginPath();ctx!.arc(p.x,p.y,compact.matches?1.8:2.4,0,Math.PI*2)
-        ctx!.fillStyle=current.color===1?'#b6d5ff':'#31496b';ctx!.fill()
+        ctx!.fillStyle=current.color===1?'#ebdfca':'#5e523e';ctx!.fill()
       }
       ctx!.globalAlpha=1
       const elapsed=clock-impactAt, strength=elapsed>=0&&elapsed<.29 ? Math.exp(-elapsed*18)*Math.sin(elapsed*80) : 0

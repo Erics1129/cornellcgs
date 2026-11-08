@@ -61,11 +61,11 @@ export default function Footer() {
   }, [])
 
   return (
-    <footer ref={root} id="contact" className="relative bg-[#0a1e3f] text-[#e8eefb]">
+    <footer ref={root} id="contact" className="relative bg-[#332816] text-[#f7f3ec]">
       {/* The page melts into the bar — no hard seam */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-x-0 -top-40 h-40 bg-[linear-gradient(to_bottom,transparent,#0a1e3f)]"
+        className="pointer-events-none absolute inset-x-0 -top-40 h-40 bg-[linear-gradient(to_bottom,transparent,#332816)]"
       />
       {/* Watermark clips in its own layer so the seam gradient above stays unclipped */}
       <div
@@ -95,7 +95,7 @@ export default function Footer() {
               CORNELL CGS
             </p>
           </div>
-          <ul className="mono flex flex-col gap-2 text-[max(0.85rem,0.8125rem)] text-[#93a6cc]">
+          <ul className="mono flex flex-col gap-2 text-[max(0.85rem,0.8125rem)] text-[#bfb4a0]">
             <li data-f-row>Email — {contact.email}</li>
           </ul>
         </div>
@@ -112,7 +112,7 @@ export default function Footer() {
                 e.preventDefault()
                 scrollToId(id)
               }}
-              className="link-wipe text-[max(1.05rem,1.0625rem)] font-[550] text-[#e8eefb] transition-colors [transition-timing-function:var(--ease-out)] hover:text-white"
+              className="link-wipe text-[max(1.05rem,1.0625rem)] font-[550] text-[#f7f3ec] transition-colors [transition-timing-function:var(--ease-out)] hover:text-white"
             >
               {label}
             </a>
@@ -124,22 +124,22 @@ export default function Footer() {
               e.preventDefault()
               scrollToId('contact')
             }}
-            className="link-wipe text-[max(1.05rem,1.0625rem)] font-[550] text-[#e8eefb] transition-colors [transition-timing-function:var(--ease-out)] hover:text-white"
+            className="link-wipe text-[max(1.05rem,1.0625rem)] font-[550] text-[#f7f3ec] transition-colors [transition-timing-function:var(--ease-out)] hover:text-white"
           >
-            Contact Us
+            Contact
           </a>
         </nav>
       </div>
 
-      <div className="relative z-10 border-t border-[rgba(147,166,204,0.25)]">
+      <div className="relative z-10 border-t border-[rgba(191,180,160,0.25)]">
         <div className="container-site flex flex-col gap-2 py-6 md:flex-row md:items-center md:justify-between">
-          <p className="mono text-[max(0.8rem,0.75rem)] text-[#93a6cc]">
+          <p className="mono text-[max(0.8rem,0.75rem)] text-[#bfb4a0]">
             {site.footerLine(new Date().getFullYear())}
           </p>
-          <p className="mono text-[max(0.8rem,0.75rem)] text-[#93a6cc]">{site.domain}</p>
+          <p className="mono text-[max(0.8rem,0.75rem)] text-[#bfb4a0]">{site.domain}</p>
         </div>
-        <div className="container-site border-t border-[rgba(147,166,204,0.18)] py-4">
-          <p className="mono text-[max(0.75rem,0.75rem)] text-[#93a6cc]">
+        <div className="container-site border-t border-[rgba(191,180,160,0.18)] py-4">
+          <p className="mono text-[max(0.75rem,0.75rem)] text-[#bfb4a0]">
             <span
               className="life-glow inline-block"
               style={{ ['--life-delay' as string]: '-2.2s', ['--life-dur' as string]: '5s' }}

@@ -1,22 +1,13 @@
 .hero-glass-title {
-  --glass-0:rgb(181 215 244); --glass-1:rgb(217 234 250); --glass-2:rgb(173 203 236); --glass-light:48%;
-  color:#e8f3ff;
-  filter:drop-shadow(0 2px 1px #020714a6) drop-shadow(0 0 14px #050b1770);
+  --glass-0:rgb(230 217 195); --glass-1:rgb(243 236 224); --glass-2:rgb(222 209 187); --glass-light:48%;
+  color:#f9f5ee;
+  filter:drop-shadow(0 1px 0 #0009) drop-shadow(0 0 24px #0d0c0aa0);
 }
 .hero-glass-line { display:block; overflow:hidden; margin-bottom:-.12em; padding-bottom:.12em; }
 .hero-glass-ink { display:block; }
-@supports (background-clip:text) or (-webkit-background-clip:text) {
-  .hero-glass-ink {
-    background-image:linear-gradient(163deg,
-      #fff 0%,var(--glass-0) 21%,#e1edfaab 34%,var(--glass-1) 44%,
-      #ffffffef var(--glass-light),#d5e8fc9e 58%,var(--glass-2) 78%,#f4f8ff 100%);
-    background-size:100% 100%;
-    background-clip:text; -webkit-background-clip:text;
-    -webkit-text-fill-color:transparent;
-    -webkit-text-stroke:.3px #e1f2ff66;
-  }
-}
-.hero-glass-ink::selection,.hero-glass-ink em::selection { background:#accfff; color:#10213a; -webkit-text-fill-color:#10213a; }
+/* Plain printed ink. The reflective gradient fill read as a render effect. */
+.hero-glass-ink { color:var(--ivory); font-weight:540; font-variation-settings:'opsz' 72; }
+.hero-glass-ink::selection,.hero-glass-ink em::selection { background:#ecdcbf; color:#312819; -webkit-text-fill-color:#312819; }
 @media(forced-colors:active) {
   .hero-glass-title { filter:none; }
   .hero-glass-ink { background:none; -webkit-text-fill-color:CanvasText; -webkit-text-stroke:0; }
@@ -25,8 +16,8 @@
 /* Hero actions: the outline button keeps its edge over the moving city */
 /* (component CSS loads before global.css, so these outrank .btn by selector) */
 .hero-actions .btn { padding-inline: 1rem; white-space: nowrap; }
-.btn.hero-btn-ghost { background: rgb(4 8 24 / 0.42); border-color: rgb(226 236 255 / 0.55); }
-.btn.hero-btn-ghost:hover { background: rgb(40 70 160 / 0.32); }
+.btn.hero-btn-ghost { background: rgb(19 15 9 / 0.42); border-color: rgb(247 242 234 / 0.55); }
+.btn.hero-btn-ghost:hover { background: rgb(133 109 67 / 0.32); }
 
 /* Scroll hint: an outlined card with a spade — reads as a card, never as a hole */
 .hero-hint-card {
@@ -35,10 +26,10 @@
   width: 1.5rem;
   height: 2.1rem;
   border-radius: 0.25rem;
-  border: 1px solid rgb(214 226 246 / 0.55);
+  border: 1px solid rgb(239 232 221 / 0.55);
   background: linear-gradient(160deg, rgb(255 255 255 / 0.14), rgb(255 255 255 / 0.03));
   box-shadow: 0 6px 16px -8px rgb(0 0 0 / 0.7);
-  color: rgb(214 226 246 / 0.8);
+  color: rgb(239 232 221 / 0.8);
   font-size: 0.72rem;
   line-height: 1;
 }

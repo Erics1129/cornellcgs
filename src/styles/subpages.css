@@ -1,6 +1,6 @@
 /* Standalone pages own their surfaces. No deck selectors, entrances, or pins. */
 .subpage {
-  --sp-paper: #f2efe7; --sp-ink: #152941; --sp-muted: #536071; --sp-accent: #2f5376;
+  --sp-paper: #f2efe7; --sp-ink: #372e1f; --sp-muted: #6a645a; --sp-accent: #66583f;
   --sp-rule: #c9c9c0; --sp-panel: #e5e0d4;
   color-scheme: light; background: var(--sp-paper); color: var(--sp-ink);
   min-height: 100svh; font-family: var(--font-body); font-size: 1rem; line-height: 1.6;
@@ -80,7 +80,7 @@
 .sp-workshop__notes .sp-section:nth-child(3) { border-left: 2px solid var(--sp-accent); padding-left: 1.3rem; }
 
 /* 03 — A deep blue technical stage; the list is a connected process rail. */
-.subpage--ml-process { --sp-paper: #071a2b; --sp-panel: #0a2035; --sp-ink: #e3f3f8; --sp-muted: #aac4d0; --sp-accent: #99d7ed; --sp-rule: #345267; color-scheme: dark; }
+.subpage--ml-process { --sp-paper: #231c0f; --sp-panel: #2b2314; --sp-ink: #f3efe8; --sp-muted: #c7c0b3; --sp-accent: #dac9ac; --sp-rule: #5c513f; color-scheme: dark; }
 .subpage--ml-process h1 { max-width: 15ch; font-size: clamp(3.5rem,6.6vw,6.5rem); font-weight: 500; }
 .subpage--ml-process .sp-lead { max-width: none; font-size: 1.2rem; }
 .sp-process { display: grid; grid-template-columns: 1.1fr 1fr; align-items: start; gap: 10%; margin-top: 4rem; }
@@ -111,7 +111,7 @@
 .sp-program .sp-action { grid-column: 2; }
 
 /* 05 — A world atlas cover: monumental word, full globe, narrow marginalia. */
-.subpage--world { --sp-paper: #132c30; --sp-panel: #213c3d; --sp-ink: #efdfbc; --sp-muted: #bfd1cc; --sp-accent: #d3b17c; --sp-rule: #44605e; color-scheme: dark; }
+.subpage--world { --sp-paper: #29241a; --sp-panel: #373127; --sp-ink: #efdfbc; --sp-muted: #bfd1cc; --sp-accent: #d3b17c; --sp-rule: #5a544a; color-scheme: dark; }
 .subpage--world .sp-main { display: grid; grid-template-columns: 1fr 1.25fr; gap: 3rem 12%; }
 .subpage--world .sp-intro { grid-column: 1 / -1; }
 .subpage--world h1 { font-family: var(--font-serif); font-weight: 400; font-size: clamp(8rem,20vw,20rem); line-height: .85; letter-spacing: -.065em; }
@@ -139,7 +139,7 @@
 .sp-team-notes .sp-body { margin-top: .7rem !important; }
 
 /* 07 — A faculty profile, real portrait and a separate network study below. */
-.subpage--advisors { --sp-paper: #fafaf7; --sp-panel: #edeeeb; --sp-ink: #172c44; --sp-muted: #5b6771; --sp-accent: #345d84; --sp-rule: #d2d8d8; }
+.subpage--advisors { --sp-paper: #fafaf7; --sp-panel: #edeeeb; --sp-ink: #3a3121; --sp-muted: #6c6860; --sp-accent: #726246; --sp-rule: #d2d8d8; }
 .sp-advisors-cover { display: grid; grid-template-columns: 1.1fr 1fr; gap: 12%; align-items: center; }
 .subpage--advisors h1 { font-family: var(--font-serif); font-weight: 400; font-size: clamp(4.5rem,8vw,8rem); }
 .sp-advisors-cover .page-scene__window { aspect-ratio: 1 / 1.2; }
@@ -152,7 +152,7 @@
 .sp-advisor__title { margin-top: 1.5rem !important; font-size: 1.1rem; }
 .sp-advisors-notes { display: grid; grid-template-columns: 1fr 1fr; gap: 4rem; }
 .sp-advisors-notes h2 { font-size: 1.5rem; }
-.sp-study { min-height: 260px; margin-top: 4rem; padding: 1.5rem; background: #eff1ee; color: #152941; }
+.sp-study { min-height: 260px; margin-top: 4rem; padding: 1.5rem; background: #eff1ee; color: #372e1f; }
 .sp-study__canvas { height: clamp(230px,30vw,380px); }
 .sp-study__loading { height: 260px; }
 .sp-study .cgs-scene-caption { display: none; }
@@ -172,7 +172,7 @@
 .sp-join-notes h2 { font-size: 1.8rem; }
 
 /* 09 — Amber correspondence: a signal vignette above large, native mail links. */
-.subpage--contact { --sp-paper: #171f27; --sp-panel: #202c35; --sp-ink: #f5d8a6; --sp-muted: #c1bab0; --sp-accent: #e3b566; --sp-rule: #4c4e4c; color-scheme: dark; }
+.subpage--contact { --sp-paper: #23201b; --sp-panel: #302c25; --sp-ink: #f5d8a6; --sp-muted: #c1bab0; --sp-accent: #e3b566; --sp-rule: #4c4e4c; color-scheme: dark; }
 .sp-contact-cover { display: grid; grid-template-columns: 1.4fr 1fr; gap: 10%; align-items: center; }
 .subpage--contact h1 { font-size: clamp(4rem,7.5vw,7.5rem); font-weight: 450; max-width: 7ch; }
 .subpage--privacy,.subpage--terms { --sp-paper: #f3efdf; --sp-panel: #dfddc6; --sp-ink: #254c3c; --sp-muted: #5e6c5d; --sp-accent: #417359; --sp-rule: #c4cbb6; }
@@ -322,7 +322,7 @@
 .sp-play-card__art { display: block; width: 100%; height: auto; aspect-ratio: 1200 / 630; object-fit: cover; background: #3b2416; }
 .sp-play-card__art--plain { display: grid; grid-template-columns: repeat(4, 1fr); gap: 3px; padding: 12% 26%; }
 .sp-play-card__art--plain i { aspect-ratio: 1; background: #e8cf9f; }
-.sp-play-card__art--plain i[data-inked] { background: #1f49c9; }
+.sp-play-card__art--plain i[data-inked] { background: #a38045; }
 .sp-play-card__art--plain i[data-wall] { background: #8a5a33; }
 .sp-play-card__copy { display: grid; gap: .55rem; min-width: 0; }
 .sp-play-card__title { font-size: clamp(1.6rem, 2.8vw, 2.4rem); font-weight: 600; line-height: 1.05; letter-spacing: -.04em; }

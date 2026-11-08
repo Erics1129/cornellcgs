@@ -67,7 +67,7 @@ export function TypedHeading({
   className = '',
   as: Tag = 'h2',
   hold = 2600,
-  caret = 'bg-[#1e5eff]',
+  caret = 'bg-[#cc9f51]',
 }: {
   text: string
   alt?: string
@@ -92,7 +92,7 @@ export function TypedHeading({
 export function TypedBody({
   text,
   className = '',
-  caret = 'bg-[#1e5eff]',
+  caret = 'bg-[#cc9f51]',
 }: {
   text: string
   className?: string

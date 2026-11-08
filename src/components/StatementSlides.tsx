@@ -105,7 +105,7 @@ export function ProjectSlide() {
             <span className="chapter-type-mask" aria-hidden="true"><span data-chapter-glyph>Current</span></span>
             <span className="chapter-type-mask" aria-hidden="true"><span data-chapter-glyph>projects</span></span>
           </h2>
-          <p data-project-copy className="project-description">What members are working on right now.</p>
+          <p data-project-copy className="project-description">What members are building this semester.</p>
         </div>
         <div className="project-table" aria-hidden="true">
           <div className="project-table-light" />
@@ -137,11 +137,11 @@ export function AnyoneSlide() {
   return (
     <section ref={root} id="anyone" className="section support-scene anyone-scene" data-chapter-surface="world" aria-labelledby="together-title">
       <div className="container-site anyone-copy">
-        <h2 id="together-title" data-chapter-type="gather" className="anyone-title" aria-label="Together">
-          <span aria-hidden="true">{'Together'.split('').map((letter, i) => <span key={i} data-chapter-glyph>{letter}</span>)}</span>
+        <h2 id="together-title" data-chapter-type="gather" className="anyone-title" aria-label="Any major.">
+          <span aria-hidden="true">{'Any major.'.split('').map((letter, i) => <span key={i} data-chapter-glyph>{letter === ' ' ? '\u00a0' : letter}</span>)}</span>
         </h2>
         <div data-anyone-rule className="anyone-rule" aria-hidden="true" />
-        <p data-anyone-copy className="anyone-invitation">Any major can join, and you don’t need experience.</p>
+        <p data-anyone-copy className="anyone-invitation">You don’t need experience. You need to be curious why the bot folded.</p>
       </div>
     </section>
   )

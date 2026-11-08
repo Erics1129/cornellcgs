@@ -32,8 +32,8 @@ export default function MLProcess() {
       <div className="scene-edge scene-edge--bottom" />
       <div className="container-site scene-content">
         <div className="scene-copy">
-          <p className="scene-eyebrow"><span />Machine learning</p>
-          <TypedHeading text={mlProcess.heading} alt="Adapt" className="scene-title scene-title--serif" caret="bg-[#b8d7ff]" />
+          <p className="scene-eyebrow"><span />How we train an agent</p>
+          <TypedHeading text={mlProcess.heading} alt="Adapt" className="scene-title scene-title--serif" caret="bg-[#ebe0cc]" />
           <div className="ml-sequence">
             <div ref={track} className="ml-sequence-track" />
             {mlProcess.steps.map((step,i) => <div key={`${step.n}-${i}`} data-ml-step className="ml-step">

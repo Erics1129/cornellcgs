@@ -25,44 +25,33 @@ export default function Join() {
           ★
         </span>
       </div>
-      {/* The network: a node sphere behind the invitation, connections lighting up */}
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
-        data-depth="-30"
-      >
-        <div className="absolute inset-[-20%] rounded-full bg-[radial-gradient(50%_50%_at_50%_70%,color-mix(in_srgb,var(--glow)_30%,transparent),transparent_70%)]" />
-        <NodeSphere className="relative block h-[min(88vh,88vw)] w-[min(88vh,88vw)]" />
-      </div>
-      <div className="container-site relative z-10">
-        <div data-reveal="colossal" data-depth="20">
-          {/* The swell owns the outer transform, the tilt the card's — the float sits between */}
-          <div className="life-float" style={{ ['--life-delay' as string]: '-3.6s', ['--life-dur' as string]: '8.2s' }}>
-            <CardShell
-              className="panel neon relative mx-auto flex max-w-3xl flex-col items-center gap-6 overflow-hidden rounded-[2rem] px-8 py-20 text-center md:py-24"
-              tiltMax={2}
-            >
-              <div
-                aria-hidden="true"
-                className="pointer-events-none absolute inset-0 bg-[radial-gradient(70%_70%_at_50%_110%,color-mix(in_srgb,var(--glow)_28%,transparent),transparent_70%)]"
-              />
-              <h2 className="h-section relative max-w-[14ch]">
-                <ScrollWords text={join.heading} treatment="mask" />
-              </h2>
-              <p data-reveal="para" className="body-muted relative max-w-[44ch]">
-                {join.text}
-              </p>
-              {/* TODO form url */}
-              <a
-                data-reveal="para"
-                href={join.cta.href}
-                className="btn btn-primary neon neon-idle relative text-[max(1.05rem,1.0625rem)]"
-                data-interactive
-              >
-                {join.cta.label} <span aria-hidden="true">♠</span>
-              </a>
-            </CardShell>
-          </div>
+      <div className="container-site relative z-10 join-layout">
+        <p data-reveal="para" className="join-aside">
+          The joker is the card that fits any hand. That’s the whole pitch.
+        </p>
+        <div className="join-stage">
+        {/* The dotted globe: the network behind the invitation, lighting up connections */}
+        <div aria-hidden="true" className="join-sphere" data-depth="-30">
+          <div className="join-sphere-glow" />
+          <NodeSphere className="relative block h-full w-full" />
+        </div>
+        <div data-reveal="colossal" data-depth="20" className="join-card-wrap">
+          {/* A real joker: ivory stock, ink type, the index in both corners */}
+          <CardShell className="join-card neon relative flex flex-col items-start gap-6" tiltMax={3}>
+            <span className="join-card-index" aria-hidden="true">JOKER<br />★</span>
+            <span className="join-card-index join-card-index--flip" aria-hidden="true">JOKER<br />★</span>
+            <h2 className="join-card-title">
+              <ScrollWords text={join.heading} treatment="mask" />
+            </h2>
+            <p data-reveal="para" className="join-card-text">
+              {join.text}
+            </p>
+            {/* TODO form url */}
+            <a data-reveal="para" href={join.cta.href} className="join-card-cta" data-interactive>
+              {join.cta.label} <span aria-hidden="true">♠</span>
+            </a>
+          </CardShell>
+        </div>
         </div>
       </div>
     </section>
