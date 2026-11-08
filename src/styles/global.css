@@ -10,14 +10,14 @@
 :root {
   --bg-top: #0d0c0a;
   --bg-mid: #17140f;
-  --bg-bot: #2b241a;
-  --glow: #7a5f3a;
+  --bg-bot: #3a2317;
+  --glow: #9a3b22;
   --text: #f2ecdf;
   --muted: #bdb29c;
   --neon-core: #fff7e8;
-  --neon-mid: #d4b47c;
-  --neon-dim: #2a2319;
-  --accent-amber: #e06a52;
+  --neon-mid: #e8574a;
+  --neon-dim: #3a1712;
+  --accent-amber: #e6b45a;
 
   /* Card colors, identical in both worlds */
   --ivory: #efe6d2;
@@ -100,7 +100,7 @@ html[data-theme='black'] {
   --text: #f2ecdf;
   --muted: #bdb29c;
   --neon-core: #fff7e8;
-  --neon-mid: #d4b47c;
+  --neon-mid: #e8574a;
 }
 
 /* ---------------------------------------------------------------------------
@@ -1289,13 +1289,12 @@ html[data-theme='sky'], html[data-theme='lilac'] { color-scheme: light; }
 }
 
 /* ---------------------------------------------------------------------------
-   One photographic grade for every film and rendered scene.
-   The cinematic plates (city, black hole, globe, galaxy, eye, Go board, logo
-   cube) were all rendered in saturated blue and purple, which is what made the
-   site read as generated. Run them through the same warm monochrome, like
-   plates printed for one deck, so they sit in the ink and ivory palette.
+   One light grade for every film and rendered scene. The films keep their own
+   color (the orange black hole, the blue eye and globe, the logo cube), just
+   pulled a touch warmer and softer so they sit with the ivory and red.
+   The hero city is the exception. Its native cyan and purple read as stock
+   cyberpunk, so it is turned toward amber and red instead of gray.
 --------------------------------------------------------------------------- */
-.code-city__view,
 #who-we-are canvas,
 .alpha-scene canvas,
 [data-scene],
@@ -1306,7 +1305,10 @@ html[data-theme='sky'], html[data-theme='lilac'] { color-scheme: light; }
 #vision video,
 .page-scene__film,
 .scroll-film {
-  filter: grayscale(1) sepia(0.42) contrast(1.08) brightness(0.9);
+  filter: sepia(0.14) saturate(0.95) contrast(1.04);
+}
+.code-city__view {
+  filter: sepia(0.55) saturate(1.7) hue-rotate(-18deg) contrast(1.06) brightness(0.88);
 }
 
 /* Section labels: a short line of the display italic after a suit pip.
@@ -1375,7 +1377,24 @@ html[data-theme='sky'], html[data-theme='lilac'] { color-scheme: light; }
   color: var(--muted);
   padding-bottom: 2rem;
 }
-.join-card-wrap { transform: rotate(-2.5deg); }
+.join-stage { position: relative; }
+.join-sphere {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: min(125vh, 78rem);
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  z-index: 0;
+}
+.join-sphere-glow {
+  position: absolute;
+  inset: 8%;
+  border-radius: 50%;
+  background: radial-gradient(50% 50% at 50% 55%, color-mix(in srgb, var(--glow) 55%, transparent), transparent 72%);
+}
+.join-card-wrap { position: relative; z-index: 1; transform: rotate(-2.5deg); }
 .join-card {
   aspect-ratio: 5 / 3.4;
   padding: clamp(2.5rem, 5vw, 4.5rem) clamp(2rem, 5vw, 4.5rem);
@@ -1424,6 +1443,7 @@ html[data-theme='sky'], html[data-theme='lilac'] { color-scheme: light; }
   .join-aside { padding-bottom: 0; }
   .join-card { aspect-ratio: auto; padding: 3.75rem 2rem 3.75rem 3.4rem; }
   .join-card-wrap { transform: rotate(-1.5deg); }
+  .join-sphere { width: 150vw; }
 }
 
 /* Headings that never named a font fell back to the body grotesk */
@@ -1435,8 +1455,8 @@ html[data-theme='sky'], html[data-theme='lilac'] { color-scheme: light; }
   font-family: var(--font-display);
 }
 
-/* The logo cube and the Go board get the same plate grade as the films */
+/* The logo cube and the Go board get the same light grade as the films */
 .cgs-voxel-mark,
 .go-study {
-  filter: grayscale(1) sepia(0.42) contrast(1.08) brightness(0.92);
+  filter: sepia(0.14) saturate(0.95) contrast(1.04);
 }

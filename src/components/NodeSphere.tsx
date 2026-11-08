@@ -104,7 +104,7 @@ export default function NodeSphere({ className = '' }: { className?: string }) {
       const z1 = p[0] * sy + p[2] * cy
       const y1 = p[1] * cx - z1 * sx
       const z2 = p[1] * sx + z1 * cx
-      const R = Math.min(w, h) * 0.42
+      const R = Math.min(w, h) * 0.8
       const depth = 1 / (1.9 - z2 * 0.55)
       return { x: w / 2 + x1 * R * depth, y: h / 2 + y1 * R * depth, z: z2 }
     }
@@ -119,12 +119,12 @@ export default function NodeSphere({ className = '' }: { className?: string }) {
       ctx.clearRect(0, 0, w, h)
 
       // Edges — thinner and dimmer at the back
-      ctx.lineWidth = 0.8
+      ctx.lineWidth = 1
       for (const [i, j] of edges) {
         const a = proj[i]
         const b = proj[j]
         const z = (a.z + b.z) / 2
-        ctx.strokeStyle = `rgba(169,180,214,${0.06 + (z + 1) * 0.11})`
+        ctx.strokeStyle = `rgba(222,190,140,${0.1 + (z + 1) * 0.16})`
         ctx.beginPath()
         ctx.moveTo(a.x, a.y)
         ctx.lineTo(b.x, b.y)
@@ -132,10 +132,10 @@ export default function NodeSphere({ className = '' }: { className?: string }) {
       }
       // Nodes
       for (const p of proj) {
-        const a = 0.25 + (p.z + 1) * 0.33
-        ctx.fillStyle = `rgba(232,251,255,${a})`
+        const a = 0.4 + (p.z + 1) * 0.3
+        ctx.fillStyle = `rgba(246,232,206,${a})`
         ctx.beginPath()
-        ctx.arc(p.x, p.y, 1 + (p.z + 1) * 0.8, 0, Math.PI * 2)
+        ctx.arc(p.x, p.y, 1.4 + (p.z + 1) * 1.1, 0, Math.PI * 2)
         ctx.fill()
       }
 
@@ -150,10 +150,10 @@ export default function NodeSphere({ className = '' }: { className?: string }) {
           const pa = project(arc.a, cy, sy, cx, sx)
           const pb = project(arc.b, cy, sy, cx, sx)
           const grad = ctx.createLinearGradient(pa.x, pa.y, pb.x, pb.y)
-          grad.addColorStop(0, `rgba(255,79,163,${fade})`)
-          grad.addColorStop(1, `rgba(78,168,255,${fade})`)
+          grad.addColorStop(0, `rgba(232,87,74,${fade})`)
+          grad.addColorStop(1, `rgba(230,180,90,${fade})`)
           ctx.strokeStyle = grad
-          ctx.lineWidth = 2.2
+          ctx.lineWidth = 2.8
           ctx.lineCap = 'round'
           ctx.beginPath()
           const e = 1 - Math.pow(1 - drawn, 3)
@@ -168,12 +168,12 @@ export default function NodeSphere({ className = '' }: { className?: string }) {
           }
           ctx.stroke()
           // Endpoints
-          ctx.fillStyle = `rgba(255,79,163,${fade})`
+          ctx.fillStyle = `rgba(232,87,74,${fade})`
           ctx.beginPath()
           ctx.arc(pa.x, pa.y, 3.2, 0, Math.PI * 2)
           ctx.fill()
           if (drawn >= 1) {
-            ctx.fillStyle = `rgba(78,168,255,${fade})`
+            ctx.fillStyle = `rgba(230,180,90,${fade})`
             ctx.beginPath()
             ctx.arc(pb.x, pb.y, 3.2, 0, Math.PI * 2)
             ctx.fill()

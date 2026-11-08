@@ -1,5 +1,6 @@
 import { useRef } from 'react'
 import CardShell from './CardShell'
+import NodeSphere from './NodeSphere'
 import ScrollWords from './ScrollWords'
 import { join } from '../content'
 import { useSectionReveals, useSectionDepth } from '../lib/reveal'
@@ -28,6 +29,12 @@ export default function Join() {
         <p data-reveal="para" className="join-aside">
           The joker is the card that fits any hand. That’s the whole pitch.
         </p>
+        <div className="join-stage">
+        {/* The dotted globe: the network behind the invitation, lighting up connections */}
+        <div aria-hidden="true" className="join-sphere" data-depth="-30">
+          <div className="join-sphere-glow" />
+          <NodeSphere className="relative block h-full w-full" />
+        </div>
         <div data-reveal="colossal" data-depth="20" className="join-card-wrap">
           {/* A real joker: ivory stock, ink type, the index in both corners */}
           <CardShell className="join-card neon relative flex flex-col items-start gap-6" tiltMax={3}>
@@ -44,6 +51,7 @@ export default function Join() {
               {join.cta.label} <span aria-hidden="true">♠</span>
             </a>
           </CardShell>
+        </div>
         </div>
       </div>
     </section>
