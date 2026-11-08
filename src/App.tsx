@@ -20,7 +20,8 @@ import UniverseJourney from './components/UniverseJourney'
 import People from './components/People'
 import Join from './components/Join'
 import Footer from './components/Footer'
-import { AlphaGoSlide, AnyoneSlide, ProjectSlide } from './components/StatementSlides'
+import { AlphaGoSlide, ProjectSlide } from './components/StatementSlides'
+import SodaSlide from './components/SodaSlide'
 import { CodeSlide, StatsSlide } from './components/ShowcaseSlides'
 
 /**
@@ -227,7 +228,7 @@ export default function App() {
           <WorldSection />
           <UniverseJourney />
           <People />
-          <AnyoneSlide />
+          <SodaSlide />
           <Join />
           <FutureEye />
         </main>

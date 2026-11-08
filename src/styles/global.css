@@ -25,10 +25,12 @@
   --silver: #d3d0cc;
   --cornell-red: #c8102e;
 
-  --font-display: 'Newsreader', 'Iowan Old Style', Georgia, serif;
-  --font-body: 'Hanken Grotesk', 'Helvetica Neue', system-ui, sans-serif;
-  --font-mono: 'JetBrains Mono', 'SF Mono', ui-monospace, monospace;
-  --font-serif: 'Newsreader', 'Iowan Old Style', Georgia, serif;
+  /* Apple's own face. SF Pro can't be self hosted, so Apple devices get the real
+     thing from the system and everything else gets Inter, its closest open cousin. */
+  --font-display: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', 'Helvetica Neue', 'Segoe UI', system-ui, sans-serif;
+  --font-body: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Inter', 'Helvetica Neue', 'Segoe UI', system-ui, sans-serif;
+  --font-mono: ui-monospace, 'SF Mono', 'JetBrains Mono', Menlo, monospace;
+  --font-serif: var(--font-display);
 
   /* Motion signature — MUST stay numerically identical to src/lib/eases.ts */
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
@@ -152,8 +154,8 @@ body {
 
 .font-display {
   font-family: var(--font-display);
-  font-weight: 560;
-  letter-spacing: -0.015em;
+  font-weight: 600;
+  letter-spacing: -0.03em;
 }
 
 .h-hero {
@@ -1460,3 +1462,59 @@ html[data-theme='sky'], html[data-theme='lilac'] { color-scheme: light; }
 .go-study {
   filter: sepia(0.14) saturate(0.95) contrast(1.04);
 }
+
+/* ---------------------------------------------------------------------------
+   Apple type. One sans family everywhere, no italics, Apple's weights and
+   tracking: semibold headlines pulled tight, regular body at 17px loosened a hair.
+   --------------------------------------------------------------------------- */
+html { font-feature-settings: 'kern', 'ss01' 0; text-rendering: optimizeLegibility; }
+body { font-family: var(--font-body); letter-spacing: -0.011em; }
+em,
+.italic-display,
+.alpha-word,
+.anyone-title,
+.anyone-invitation,
+.poker-monogram { font-style: normal; }
+em, .italic-display { font-weight: 600; }
+
+.h-display,
+.h-section,
+.h-card,
+.hero-glass-ink,
+.identity-title,
+.agenda-heading h2,
+.agenda-name,
+.people-name,
+.project-title,
+.scene-title,
+.anyone-title,
+.stat-big,
+.universe-heading h2,
+.earth-place-copy h3,
+.sp-section h2,
+.join-card-title {
+  font-family: var(--font-display);
+  font-variation-settings: normal;
+  font-weight: 600;
+  letter-spacing: -0.035em;
+}
+.h-section,
+.identity-title,
+.join-card-title { line-height: 1.04; }
+.h-card, .agenda-name, .people-name { letter-spacing: -0.02em; }
+.anyone-title { font-weight: 700; letter-spacing: -0.045em; }
+.alpha-word { font-weight: 600; letter-spacing: -0.04em; }
+
+.eyebrow,
+.identity-eyebrow,
+.agenda-eyebrow,
+.scene-eyebrow,
+.code-eyebrow {
+  font: 600 1rem/1.4 var(--font-body);
+  letter-spacing: -0.01em;
+}
+.join-aside {
+  font: 500 clamp(1.25rem, 1.9vw, 1.6rem)/1.35 var(--font-display);
+  letter-spacing: -0.02em;
+}
+.join-card-index { font-family: var(--font-display); font-weight: 700; }
