@@ -4,20 +4,20 @@
 @property --chapter-surface {
   syntax: '<color>';
   inherits: true;
-  initial-value: #04081c;
+  initial-value: #171209;
 }
 @property --chapter-depth {
   syntax: '<color>';
   inherits: true;
-  initial-value: #0b1734;
+  initial-value: #2b2314;
 }
 
 .support-scene[data-chapter-surface] {
-  --chapter-surface: oklab(from #04081c l a b);
-  --chapter-depth: oklab(from #0b1734 l a b);
-  --chapter-ink: #f2f5ff;
-  --chapter-muted: #b7c5e0;
-  --chapter-rule: #7186ac;
+  --chapter-surface: oklab(from #171209 l a b);
+  --chapter-depth: oklab(from #2b2314 l a b);
+  --chapter-ink: #fbf9f6;
+  --chapter-muted: #d7cfc0;
+  --chapter-rule: #9f937e;
   --text: var(--chapter-ink);
   --muted: var(--chapter-muted);
   color: var(--chapter-ink);
@@ -31,28 +31,28 @@
     --chapter-depth var(--theme-transition-duration, 1200ms) cubic-bezier(.33, 0, .67, 1);
   /* Safe fallback for browsers without contrast-color(): light ink on a
      quiet dark reading surface while the surrounding world still changes. */
-  --chapter-copy-surface: #060810;
-  --chapter-ink: #f2f5ff;
-  --chapter-muted: #c2cee1;
+  --chapter-copy-surface: #0e0c08;
+  --chapter-ink: #fbf9f6;
+  --chapter-muted: #dad4c9;
   --chapter-rule: color-mix(in oklab, var(--chapter-ink) 42%, transparent);
 }
 html[data-theme='sky'] .support-scene[data-chapter-surface='world'] {
-  --chapter-surface: oklab(from #dfeeff l a b);
-  --chapter-depth: oklab(from #b9d6ff l a b);
+  --chapter-surface: oklab(from #f6f1e8 l a b);
+  --chapter-depth: oklab(from #ece0cc l a b);
   color-scheme: light;
 }
 html[data-theme='lilac'] .support-scene[data-chapter-surface='world'] {
-  --chapter-surface: oklab(from #efe6ff l a b);
-  --chapter-depth: oklab(from #d6c4ff l a b);
+  --chapter-surface: oklab(from #f8edee l a b);
+  --chapter-depth: oklab(from #efd4d6 l a b);
   color-scheme: light;
 }
 html[data-theme='violet'] .support-scene[data-chapter-surface='world'] {
-  --chapter-surface: oklab(from #0e0620 l a b);
-  --chapter-depth: oklab(from #26134c l a b);
+  --chapter-surface: oklab(from #1b0b0c l a b);
+  --chapter-depth: oklab(from #411e21 l a b);
 }
 html[data-theme='black'] .support-scene[data-chapter-surface='world'] {
   --chapter-surface: oklab(from #000 l a b);
-  --chapter-depth: oklab(from #15151e l a b);
+  --chapter-depth: oklab(from #1c1a17 l a b);
 }
 
 /* A flat, feathered reading surface gives every glyph the same background.
@@ -98,11 +98,11 @@ html:is([data-theme='sky'], [data-theme='lilac']) .support-scene[data-chapter-su
   }
 }
 .support-scene[data-chapter-surface='dark'] {
-  --chapter-surface: #060810;
-  --chapter-depth: #060810;
-  --chapter-ink: #f2f5ff;
-  --chapter-muted: #c2cee1;
-  --chapter-rule: #8093b0;
+  --chapter-surface: #0e0c08;
+  --chapter-depth: #0e0c08;
+  --chapter-ink: #fbf9f6;
+  --chapter-muted: #dad4c9;
+  --chapter-rule: #a59c8b;
 }
 .support-scene [data-chapter-type] {
   color: var(--chapter-ink, var(--text));

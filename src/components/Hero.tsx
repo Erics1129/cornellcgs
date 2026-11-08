@@ -6,8 +6,6 @@ import TypeLine from './TypeLine'
 import HeroCard from './HeroCard'
 import GlassTitle from './GlassTitle'
 import CodeCity from '../effects/CodeCity'
-import ParticleField from './ParticleField'
-import EnergyVeil from './EnergyVeil'
 import { hero } from '../content'
 import { EASE } from '../lib/eases'
 import { BOOTED_EVENT, prefersReducedMotion } from '../lib/motion'
@@ -129,8 +127,6 @@ export default function Hero() {
       className="relative isolate flex min-h-[100svh] items-center overflow-hidden"
     >
       <CodeCity paused={effectsPaused} />
-      <EnergyVeil mode="hero" paused={effectsPaused} />
-      <ParticleField mode="hero" paused={effectsPaused} />
       <SectionIndex rank="A" />
 
       {/* The animation, front and center */}

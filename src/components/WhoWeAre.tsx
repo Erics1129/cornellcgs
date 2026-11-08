@@ -30,7 +30,7 @@ export default function WhoWeAre() {
     <SectionIndex rank="K" />
     <div className="container-site identity-layout">
       <div className="identity-copy">
-        <p data-identity-copy className="identity-eyebrow">Cornell CGS</p>
+        <p data-identity-copy className="identity-eyebrow">Who we are</p>
         <h2 className="identity-title"><ScrollWords text={whoWeAre.heading} treatment="illuminate" /></h2>
         {whoWeAre.paragraphs.map((line, i) => <p data-identity-copy className="identity-lead" key={i}>{line}</p>)}
         <a data-identity-copy href="/whoWeAre/" className="identity-link">About us <span aria-hidden="true">↗</span></a>

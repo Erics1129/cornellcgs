@@ -6,29 +6,29 @@
    tokens or the fixed-color city backdrop.
 --------------------------------------------------------------------------- */
 
-/* Default page palette: dark blue. */
+/* Default page palette: ink. A card room at night, ivory type, brass light. */
 :root {
-  --bg-top: #04081c;
-  --bg-mid: #0b2a6b;
-  --bg-bot: #3b5fb8;
-  --glow: #2f6bff;
-  --text: #f2f5ff;
-  --muted: #a9b4d6;
-  --neon-core: #e8fbff;
-  --neon-mid: #4ea8ff;
-  --neon-dim: #12336b;
-  --accent-amber: #ffc46b;
+  --bg-top: #0d0c0a;
+  --bg-mid: #17140f;
+  --bg-bot: #2b241a;
+  --glow: #7a5f3a;
+  --text: #f2ecdf;
+  --muted: #bdb29c;
+  --neon-core: #fff7e8;
+  --neon-mid: #d4b47c;
+  --neon-dim: #2a2319;
+  --accent-amber: #e06a52;
 
   /* Card colors, identical in both worlds */
   --ivory: #efe6d2;
-  --ink: #0b0b0f;
-  --silver: #c9cdd6;
+  --ink: #0e0d0c;
+  --silver: #d3d0cc;
   --cornell-red: #c8102e;
 
-  --font-display: 'Hanken Grotesk', 'Helvetica Neue', system-ui, sans-serif;
+  --font-display: 'Newsreader', 'Iowan Old Style', Georgia, serif;
   --font-body: 'Hanken Grotesk', 'Helvetica Neue', system-ui, sans-serif;
   --font-mono: 'JetBrains Mono', 'SF Mono', ui-monospace, monospace;
-  --font-serif: 'STIX Two Text', 'Times New Roman', serif;
+  --font-serif: 'Newsreader', 'Iowan Old Style', Georgia, serif;
 
   /* Motion signature — MUST stay numerically identical to src/lib/eases.ts */
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
@@ -41,55 +41,55 @@
 /* The other four worlds — MUST mirror PALETTES in src/lib/theme.ts. Light
    worlds flip the text/chrome to navy so everything stays readable. */
 html[data-theme='sky'] {
-  --bg-top: #dfeeff;
-  --bg-mid: #b9d6ff;
-  --bg-bot: #7fb0ff;
-  --glow: #4ea8ff;
-  --text: #0a1e3f;
-  --muted: #3e5680;
-  --neon-core: #0b2a6b;
-  --neon-mid: #1e5eff;
-  --neon-dim: #c7dbff;
-  --accent-amber: #b86e00;
+  --bg-top: #f4efe3;
+  --bg-mid: #ebe2cf;
+  --bg-bot: #dccdb0;
+  --glow: #c8ad7f;
+  --text: #17130d;
+  --muted: #3f372a;
+  --neon-core: #17130d;
+  --neon-mid: #a3242b;
+  --neon-dim: #e4d9c2;
+  --accent-amber: #8a4a12;
 }
 
 html[data-theme='lilac'] {
-  --bg-top: #efe6ff;
-  --bg-mid: #d6c4ff;
-  --bg-bot: #a98cf5;
-  --glow: #8f6cff;
-  --text: #1a1040;
-  --muted: #4a3d7a;
-  --neon-core: #2a1a6e;
-  --neon-mid: #6a3dff;
-  --neon-dim: #dccfff;
-  --accent-amber: #a85f00;
+  --bg-top: #f6ece7;
+  --bg-mid: #efd9d0;
+  --bg-bot: #ddb3a6;
+  --glow: #c46a5c;
+  --text: #2a0d0c;
+  --muted: #4f2b27;
+  --neon-core: #2a0d0c;
+  --neon-mid: #ad1a2b;
+  --neon-dim: #f0dcd3;
+  --accent-amber: #7c4510;
 }
 
 html[data-theme='violet'] {
-  --bg-top: #0e0620;
-  --bg-mid: #2a1364;
-  --bg-bot: #5a34b8;
-  --glow: #7a4dff;
-  --text: #f3eeff;
-  --muted: #b7a9dc;
-  --neon-core: #f0e8ff;
-  --neon-mid: #a07cff;
-  --neon-dim: #2a1a5e;
-  --accent-amber: #ffcf8a;
+  --bg-top: #150607;
+  --bg-mid: #2e0c10;
+  --bg-bot: #5a1b1e;
+  --glow: #a8322c;
+  --text: #f7ede6;
+  --muted: #d6b8ae;
+  --neon-core: #fff2ea;
+  --neon-mid: #ec8a6c;
+  --neon-dim: #3b1214;
+  --accent-amber: #f0c07e;
 }
 
 html[data-theme='black'] {
   --bg-top: #000000;
-  --bg-mid: #0a0a0f;
-  --bg-bot: #1a1a24;
-  --glow: #3a3a55;
-  --text: #f2f2f5;
-  --muted: #9a9aa8;
+  --bg-mid: #0a0a09;
+  --bg-bot: #1b1a17;
+  --glow: #3d3a33;
+  --text: #f3f1ec;
+  --muted: #a8a49a;
   --neon-core: #ffffff;
-  --neon-mid: #8c8cff;
-  --neon-dim: #22222e;
-  --accent-amber: #ffd08a;
+  --neon-mid: #d3d0cc;
+  --neon-dim: #22211d;
+  --accent-amber: #e0a96a;
 }
 
 /* Chapters that sit on dark video (the black hole, the globe, the eye) keep light
@@ -97,10 +97,10 @@ html[data-theme='black'] {
 #ml-process,
 #world,
 #vision {
-  --text: #f2f5ff;
-  --muted: #a9b4d6;
-  --neon-core: #e8fbff;
-  --neon-mid: #4ea8ff;
+  --text: #f2ecdf;
+  --muted: #bdb29c;
+  --neon-core: #fff7e8;
+  --neon-mid: #d4b47c;
 }
 
 /* ---------------------------------------------------------------------------
@@ -152,8 +152,8 @@ body {
 
 .font-display {
   font-family: var(--font-display);
-  font-weight: 640;
-  letter-spacing: -0.02em;
+  font-weight: 560;
+  letter-spacing: -0.015em;
 }
 
 .h-hero {
@@ -166,28 +166,27 @@ body {
 
 .h-section {
   font-family: var(--font-display);
-  font-weight: 660;
+  font-weight: 540;
   font-size: clamp(2.6rem, 6vw, 6rem);
-  line-height: 1.02;
-  letter-spacing: -0.02em;
+  line-height: 1;
+  letter-spacing: -0.025em;
+  font-variation-settings: 'opsz' 72;
 }
 
 .h-card {
   font-family: var(--font-display);
-  font-weight: 650;
+  font-weight: 600;
   font-size: clamp(1.5rem, 2.2vw, 2.1rem);
   line-height: 1.1;
 }
 
-/* Emphasis is the site's serif voice — the LaTeX accent from the ML chapter,
-   promoted site-wide. Slightly undersized so x-heights agree with Hanken. */
+/* Emphasis is just the display face's own italic. No font swap mid line. */
 em,
 .italic-display {
-  font-family: var(--font-serif);
+  font-family: inherit;
   font-style: italic;
-  font-weight: 480;
-  font-size: 0.97em;
-  letter-spacing: 0;
+  font-weight: inherit;
+  letter-spacing: inherit;
 }
 
 .mono {
@@ -417,7 +416,7 @@ em,
 /* A navy card back with a silver frame for DOM cards (backs) */
 .card-back-surface {
   background:
-    radial-gradient(90% 70% at 50% 40%, #16203a 0%, #0c1226 60%, #080d1c 100%);
+    radial-gradient(90% 70% at 50% 40%, #322b1e 0%, #201b12 60%, #18130c 100%);
   border-radius: clamp(10px, 1.2vw, 18px);
   box-shadow: 0 18px 50px -12px rgba(0, 0, 0, 0.6);
   position: relative;
@@ -732,12 +731,12 @@ a:hover .btn-label > span {
 --------------------------------------------------------------------------- */
 
 .sheet-light ::selection {
-  background: #0a1e3f;
+  background: #332816;
   color: #ffffff;
 }
 
 .sheet-light :focus-visible {
-  outline-color: #1e5eff;
+  outline-color: #cc9f51;
 }
 
 /* Counters must not wiggle while counting */
@@ -815,9 +814,9 @@ a:hover .btn-label > span {
 }
 
 .neon-light {
-  --neon-core: #0b2a6b;
-  --neon-mid: #1e5eff;
-  --neon-dim: #c7dbff;
+  --neon-core: #554221;
+  --neon-mid: #cc9f51;
+  --neon-dim: #f0e6d6;
 }
 
 .neon-burst {
@@ -955,7 +954,7 @@ a:hover .btn-label > span {
 }
 
 .outline-fill {
-  -webkit-text-stroke: 1px #0a1e3f;
+  -webkit-text-stroke: 1px #332816;
   animation: outline-fill var(--life-dur, 6.5s) ease-in-out infinite;
   animation-delay: var(--life-delay, 0s);
 }
@@ -964,15 +963,15 @@ a:hover .btn-label > span {
   0%,
   100% {
     -webkit-text-fill-color: transparent;
-    -webkit-text-stroke-color: #0a1e3f;
+    -webkit-text-stroke-color: #332816;
   }
   35% {
-    -webkit-text-fill-color: #0a1e3f;
-    -webkit-text-stroke-color: #0a1e3f;
+    -webkit-text-fill-color: #332816;
+    -webkit-text-stroke-color: #332816;
   }
   62% {
-    -webkit-text-fill-color: #1e5eff;
-    -webkit-text-stroke-color: #1e5eff;
+    -webkit-text-fill-color: #cc9f51;
+    -webkit-text-stroke-color: #cc9f51;
   }
 }
 
@@ -995,7 +994,7 @@ a:hover .btn-label > span {
 }
 
 .glitch-word.glitch-on::before {
-  color: #1e5eff;
+  color: #cc9f51;
   clip-path: inset(0 0 55% 0);
   animation: glitch-a 0.5s steps(2, end) 1;
 }
@@ -1089,18 +1088,18 @@ a:hover .btn-label > span {
   0%,
   100% {
     opacity: 0.58;
-    color: #46587a;
+    color: #6e6452;
   }
   50% {
     opacity: 1;
-    color: #0a1e3f;
+    color: #332816;
   }
 }
 
 .underline-run {
   display: inline;
   padding-bottom: 2px;
-  background-image: linear-gradient(90deg, #1e5eff, #7fb0ff);
+  background-image: linear-gradient(90deg, #cc9f51, #e2c89c);
   background-size: 26% 2px;
   background-repeat: no-repeat;
   background-position: -30% 100%;
@@ -1130,7 +1129,7 @@ a:hover .btn-label > span {
     animation: none;
   }
   .outline-fill {
-    -webkit-text-fill-color: #0a1e3f;
+    -webkit-text-fill-color: #332816;
   }
 }
 
@@ -1139,8 +1138,8 @@ a:hover .btn-label > span {
 --------------------------------------------------------------------------- */
 .dice {
   --dice-face: #f5f1e6;
-  --dice-pip: #1e5eff;
-  --dice-edge: rgba(10, 30, 63, 0.35);
+  --dice-pip: #cc9f51;
+  --dice-edge: rgba(51, 40, 22, 0.35);
   perspective: calc(var(--dice-size) * 6);
   position: relative;
   flex: none;
@@ -1148,7 +1147,7 @@ a:hover .btn-label > span {
 
 .neon-light .dice,
 .sheet-light .dice {
-  --dice-face: #0a1e3f;
+  --dice-face: #332816;
   --dice-pip: #ffffff;
   --dice-edge: rgba(255, 255, 255, 0.25);
 }
@@ -1232,15 +1231,15 @@ html.cinema-on #code-layer-canvas,html.universe-on #code-layer-canvas { visibili
 /* The surface underneath the words decides their ink. Fixed dark films keep
    light ink while the surrounding live palette can still become sky/lilac. */
 #top, #universe, #vision, #ml-process, #world {
-  --text: #f3f7ff;
-  --muted: #b7c6dd;
-  --neon-core: #e8f8ff;
-  --neon-mid: #91cfff;
+  --text: #fcfaf6;
+  --muted: #d4cdc0;
+  --neon-core: #f9f5ee;
+  --neon-mid: #e6d0aa;
   color: var(--text);
   color-scheme: dark;
 }
 #top .body-muted { color: var(--muted); }
-#top :is(h1, .mono) { text-shadow: 0 2px 18px #02081666; }
+#top :is(h1, .mono) { text-shadow: 0 2px 18px #120d0666; }
 html[data-theme='sky'], html[data-theme='lilac'] { color-scheme: light; }
 
 /* ---------------------------------------------------------------------------
@@ -1256,9 +1255,9 @@ html[data-theme='sky'], html[data-theme='lilac'] { color-scheme: light; }
   min-height: 34px;
   padding: 0.4rem 0.85rem 0.4rem 0.75rem;
   border-radius: 999px;
-  border: 1px solid rgb(200 215 245 / 0.2);
-  background: rgb(6 10 24 / 0.55);
-  color: rgb(205 216 236 / 0.88);
+  border: 1px solid rgb(235 226 210 / 0.2);
+  background: rgb(20 16 10 / 0.55);
+  color: rgb(229 223 212 / 0.88);
   font: 500 0.7rem/1 var(--font-mono);
   letter-spacing: 0.04em;
   cursor: pointer;
@@ -1271,15 +1270,15 @@ html[data-theme='sky'], html[data-theme='lilac'] { color-scheme: light; }
 @media (hover: hover) and (pointer: fine) {
   :is(.alpha-pause, .cgs-sphere-pause, .vision-pause, .identity-figure figcaption button):hover {
     color: #fff;
-    border-color: rgb(200 215 245 / 0.42);
-    background: rgb(22 36 78 / 0.62);
+    border-color: rgb(235 226 210 / 0.42);
+    background: rgb(65 54 35 / 0.62);
   }
 }
 @media (pointer: coarse) {
   :is(.alpha-pause, .cgs-sphere-pause, .vision-pause, .identity-figure figcaption button) { min-height: 44px; }
 }
 :is(.alpha-pause, .cgs-sphere-pause, .vision-pause, .identity-figure figcaption button):focus-visible {
-  outline: 2px solid #a9c8ff;
+  outline: 2px solid #ecdabc;
   outline-offset: 3px;
 }
 
@@ -1287,4 +1286,157 @@ html[data-theme='sky'], html[data-theme='lilac'] { color-scheme: light; }
    of every left-aligned chapter heading (phones reserve room instead). */
 @media (min-width: 640px) and (max-width: 1023.98px) {
   .card-index { left: auto; right: clamp(1.1rem, 4vw, 3rem); }
+}
+
+/* ---------------------------------------------------------------------------
+   One photographic grade for every film and rendered scene.
+   The cinematic plates (city, black hole, globe, galaxy, eye, Go board, logo
+   cube) were all rendered in saturated blue and purple, which is what made the
+   site read as generated. Run them through the same warm monochrome, like
+   plates printed for one deck, so they sit in the ink and ivory palette.
+--------------------------------------------------------------------------- */
+.code-city__view,
+#who-we-are canvas,
+.alpha-scene canvas,
+[data-scene],
+.universe-canvas,
+.earth-travel,
+#world video,
+#ml-process video,
+#vision video,
+.page-scene__film,
+.scroll-film {
+  filter: grayscale(1) sepia(0.42) contrast(1.08) brightness(0.9);
+}
+
+/* Section labels: a short line of the display italic after a suit pip.
+   The old tiny tracked uppercase mono labels were a template habit and too
+   small to read (they were 11px). */
+.eyebrow,
+.identity-eyebrow,
+.agenda-eyebrow,
+.scene-eyebrow,
+.code-eyebrow {
+  display: flex;
+  align-items: baseline;
+  gap: 0.55em;
+  font: italic 500 1.0625rem/1.4 var(--font-display);
+  letter-spacing: 0;
+  text-transform: none;
+}
+.eyebrow::before,
+.identity-eyebrow::before,
+.agenda-eyebrow::before,
+.scene-eyebrow::before,
+.code-eyebrow::before {
+  content: '\2660';
+  font-style: normal;
+  font-size: 0.8em;
+  color: var(--neon-mid);
+}
+.scene-eyebrow > span { display: none; }
+.agenda-eyebrow { color: #5c5345; }
+.agenda-eyebrow::before { color: #a3242b; }
+
+/* Newsreader sets tighter than the old grotesk did. Ease the negative tracking
+   the chapter headings were tuned with, so the serifs never collide. */
+.identity-title,
+.agenda-heading h2,
+.project-title,
+.scene-title,
+.anyone-title,
+.stat-big,
+.universe-heading h2,
+.earth-place-copy h3 {
+  letter-spacing: -0.022em;
+  font-variation-settings: 'opsz' 72;
+}
+.identity-title {
+  font-size: clamp(2.9rem, 5.4vw, 5.6rem);
+  line-height: 0.98;
+  font-weight: 540;
+  max-width: 11ch;
+  text-wrap: balance;
+}
+.identity-copy { max-width: 36rem; }
+.identity-lead { max-width: 34ch; }
+.anyone-title { font-weight: 500; }
+
+/* Join (Joker): the invitation is printed on an actual card, set off center */
+.join-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr);
+  align-items: end;
+  gap: clamp(2rem, 6vw, 6rem);
+}
+.join-aside {
+  max-width: 22ch;
+  font: italic 500 clamp(1.3rem, 2vw, 1.75rem)/1.35 var(--font-display);
+  color: var(--muted);
+  padding-bottom: 2rem;
+}
+.join-card-wrap { transform: rotate(-2.5deg); }
+.join-card {
+  aspect-ratio: 5 / 3.4;
+  padding: clamp(2.5rem, 5vw, 4.5rem) clamp(2rem, 5vw, 4.5rem);
+  justify-content: center;
+  border-radius: 1.25rem;
+  color: #17130d;
+  background:
+    radial-gradient(110% 90% at 15% 0%, #fffaf0 0%, transparent 60%),
+    linear-gradient(160deg, #efe7d4, #e2d6bc);
+  box-shadow: inset 0 0 0 1px #fff8, inset 0 0 0 10px #efe7d4, inset 0 0 0 11px #a3242b55, 0 3px 3px #0007, 0 40px 70px -30px #000;
+}
+.join-card-index {
+  position: absolute;
+  top: 1.2rem;
+  left: 1.3rem;
+  font: 700 0.8rem/1.05 var(--font-display);
+  letter-spacing: 0.08em;
+  text-align: center;
+  color: #a3242b;
+  writing-mode: vertical-rl;
+  text-orientation: upright;
+}
+.join-card-index--flip { top: auto; left: auto; bottom: 1.2rem; right: 1.3rem; transform: rotate(180deg); }
+.join-card-title {
+  font: 540 clamp(2.6rem, 5vw, 5rem)/1 var(--font-display);
+  letter-spacing: -0.022em;
+  font-variation-settings: 'opsz' 72;
+}
+.join-card-text { max-width: 34ch; color: #4d4434; font-size: 1.1875rem; }
+.join-card-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6em;
+  min-height: 3rem;
+  padding: 0.75rem 1.4rem;
+  border-radius: 999px;
+  background: #17130d;
+  color: #f2ecdf;
+  font-weight: 700;
+  transition: background 0.25s ease;
+}
+.join-card-cta:hover { background: #a3242b; }
+.join-card-cta:focus-visible { outline: 2px solid #a3242b; outline-offset: 3px; }
+@media (max-width: 767px) {
+  .join-layout { grid-template-columns: 1fr; }
+  .join-aside { padding-bottom: 0; }
+  .join-card { aspect-ratio: auto; padding: 3.75rem 2rem 3.75rem 3.4rem; }
+  .join-card-wrap { transform: rotate(-1.5deg); }
+}
+
+/* Headings that never named a font fell back to the body grotesk */
+.identity-title,
+.agenda-heading h2,
+.agenda-name,
+.people-name,
+.sp-section h2 {
+  font-family: var(--font-display);
+}
+
+/* The logo cube and the Go board get the same plate grade as the films */
+.cgs-voxel-mark,
+.go-study {
+  filter: grayscale(1) sepia(0.42) contrast(1.08) brightness(0.92);
 }

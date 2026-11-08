@@ -385,8 +385,8 @@ const CodePanel = forwardRef<CodePanelHandle, {
                 {i === inlayRow && <span ref={inlay} className="showcase-code-inlay" hidden />}
                 <i data-code-caret className="showcase-code-caret" hidden />
                 <svg data-code-pointer className="showcase-editor-pointer" viewBox="0 0 16 22" fill="none" style={{ display: 'none' }}>
-                  <path d="M2 1v17l4-4 3 6 3-1-3-6h6L2 1Z" fill="#f1f6ff" stroke="#0c111b" strokeWidth="1.5" strokeLinejoin="round" />
-                  <circle cx="3" cy="3" r="2" fill="#8fc1ff" />
+                  <path d="M2 1v17l4-4 3 6 3-1-3-6h6L2 1Z" fill="#fbf9f5" stroke="#18150f" strokeWidth="1.5" strokeLinejoin="round" />
+                  <circle cx="3" cy="3" r="2" fill="#e6cfa8" />
                 </svg>
               </div>
             </div>

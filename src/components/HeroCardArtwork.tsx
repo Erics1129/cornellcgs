@@ -27,21 +27,18 @@ export default function HeroCardArtwork({ side }: { side: 'ace' | 'back' }) {
         <g transform="rotate(180 180 252)"><text x="39" y="64">A</text><text x="42" y="88" fontSize="22">♠</text></g>
       </g>
       <path d="M91 121h55l34-31 34 31h55M91 337h55l34 31 34-31h55" stroke="var(--poker-accent)" strokeOpacity=".27" strokeWidth=".8" />
-      <path d={spade} fill={`url(#${id}foil)`} />
-      <g clipPath={`url(#${id}spade)`} stroke="var(--poker-face)" strokeWidth="1.3" opacity=".6">
-        <path d="M125 173v58l23 23v54m-2-160v63l24 24v82m14-181v175m18-154v52l22 22v63m8-103v37l18 18" />
-        <circle cx="125" cy="230" r="3.2" /><circle cx="146" cy="211" r="3.2" /><circle cx="202" cy="202" r="3.2" /><circle cx="184" cy="179" r="3.2" />
-      </g>
-      <path d={spade} stroke="var(--poker-foil)" strokeOpacity=".6" strokeWidth=".65" />
+      {/* a plain printed ace: solid ink, one hairline inset, nothing glowing */}
+      <path d={spade} fill="var(--poker-foil)" />
+      <path d={spade} transform="translate(180 212) scale(.86) translate(-180 -212)" stroke="var(--poker-face)" strokeOpacity=".55" strokeWidth=".9" />
       <text x="180" y="410" textAnchor="middle" className="poker-signature" fill="var(--poker-foil)">CORNELL CGS</text>
       <path d="M133 428h32m30 0h32" stroke="var(--poker-accent)" strokeOpacity=".7" /><circle cx="180" cy="428" r="2" fill="var(--poker-accent)" />
     </> : <>
-      <g stroke="var(--poker-accent)" strokeWidth=".65" opacity=".27">
+      <g stroke="var(--poker-accent)" strokeWidth=".65" opacity=".55">
         {Array.from({ length: 17 }, (_, i) => <path key={i} d={`M${43+i*7} 57Q${295-i*4} 126 ${317-i*7} 252Q${65+i*4} 377 ${43+i*7} 447M${317-i*7} 57Q${65+i*4} 126 ${43+i*7} 252Q${295-i*4} 377 ${317-i*7} 447`} />)}
       </g>
-      <path d="m180 138 83 114-83 114-83-114Z" fill="var(--poker-face)" stroke={`url(#${id}foil)`} strokeWidth="1.3" />
+      <path d="m180 138 83 114-83 114-83-114Z" fill="var(--poker-face)" stroke="var(--poker-accent)" strokeWidth="1.3" />
       <path d="m180 149 74 103-74 103-74-103Z" stroke="var(--poker-accent)" strokeOpacity=".32" strokeWidth=".6" />
-      <text x="180" y="266" textAnchor="middle" className="poker-monogram" fill={`url(#${id}foil)`}>CGS</text>
+      <text x="180" y="266" textAnchor="middle" className="poker-monogram" fill="var(--poker-accent)">CGS</text>
       <path d="M170 212h20M170 287h20" stroke="var(--poker-accent)" strokeOpacity=".8" />
       {[64,440].map(y => <g key={y} transform={`translate(180 ${y})`}><path d="m0-7 7 7-7 7-7-7Z" stroke="var(--poker-foil)" strokeOpacity=".7" /><circle r="2" fill="var(--poker-accent)" /></g>)}
     </>}

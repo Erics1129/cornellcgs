@@ -98,6 +98,6 @@ export default function GlassTitle() {
   return <h1 ref={root} className="hero-glass-title font-display pointer-events-auto text-[clamp(2.5rem,4.8vw,5.4rem)] md:text-[min(14.8cqw,5.4rem)] leading-[0.98] tracking-[-0.028em]">
     <span data-hero-line className="hero-glass-line"><span className="hero-glass-ink">Cornell</span></span>
     <span data-hero-line className="hero-glass-line"><span className="hero-glass-ink">Computational</span></span>
-    <span data-hero-line className="hero-glass-line"><span className="hero-glass-ink">Game <em>Society</em></span></span>
+    <span data-hero-line className="hero-glass-line"><span className="hero-glass-ink">Game Society</span></span>
   </h1>
 }

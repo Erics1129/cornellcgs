@@ -5,11 +5,13 @@ import HeroCardArtwork from './HeroCardArtwork'
 import '../styles/hero-poker.css'
 
 const COLORS = [
-  { name: 'midnight', accent: '#69dcff', second: '#8875ff', foil: '#daefff', face: '#081326' },
-  { name: 'ice', accent: '#a9f2ff', second: '#509cff', foil: '#f0fbff', face: '#123249' },
-  { name: 'lilac', accent: '#d6bbff', second: '#88b6ff', foil: '#f0e7ff', face: '#211b3d' },
-  { name: 'violet', accent: '#ac86ff', second: '#58cefa', foil: '#e6d9ff', face: '#170e2f' },
-  { name: 'carbon', accent: '#92b8df', second: '#556cd0', foil: '#d3e4f4', face: '#080d17' },
+  // A real deck: the face is always ivory card stock with an ink ace. Each flip
+  // changes the back's ink, the way club decks come in a few back colors.
+  { name: 'midnight', accent: '#a3242b', second: '#15120d', foil: '#15120d', face: '#efe7d4' },
+  { name: 'ice', accent: '#1f2f4f', second: '#15120d', foil: '#15120d', face: '#efe7d4' },
+  { name: 'lilac', accent: '#6e1a1f', second: '#15120d', foil: '#15120d', face: '#f1e9da' },
+  { name: 'violet', accent: '#8a6a35', second: '#15120d', foil: '#15120d', face: '#efe7d4' },
+  { name: 'carbon', accent: '#2b2a27', second: '#15120d', foil: '#15120d', face: '#ece4d0' },
 ] as const
 
 /** Two-sided vector card. Entrance, float, pointer tilt and flip have separate

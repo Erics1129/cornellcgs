@@ -8,7 +8,7 @@
 .card-material {
   border: 1px solid rgba(81, 68, 43, .24);
   box-shadow: inset 0 1px 0 rgba(255,255,255,.82), inset 0 -1px 0 rgba(82,64,32,.2),
-    0 1px 0 #c7bca4, 0 2px 0 rgba(8,13,22,.7), 0 5px 9px -5px rgba(0,0,0,.48);
+    0 1px 0 #c7bca4, 0 2px 0 rgba(19,16,11,.7), 0 5px 9px -5px rgba(0,0,0,.48);
 }
 .card-material.card-face-surface {
   background: repeating-linear-gradient(0deg, rgba(81,62,29,.018) 0 1px, transparent 1px 3px),
@@ -16,11 +16,11 @@
     linear-gradient(145deg, #fffbee 0%, #f2ead8 58%, #e6dcc6 100%);
 }
 .card-material.card-back-surface {
-  border-color: rgba(189,204,228,.24);
-  background: repeating-linear-gradient(45deg, rgba(180,198,226,.035) 0 1px, transparent 1px 5px),
-    radial-gradient(ellipse at 24% 10%, #1c2c47, #0b1528 65%, #080f1d);
-  box-shadow: inset 0 1px 0 rgba(221,232,249,.3), inset 0 -1px 0 rgba(0,0,0,.4),
-    0 1px 0 #b9b6aa, 0 2px 0 #060b14, 0 5px 9px -5px rgba(0,0,0,.5);
+  border-color: rgba(219,211,198,.24);
+  background: repeating-linear-gradient(45deg, rgba(216,206,190,.035) 0 1px, transparent 1px 5px),
+    radial-gradient(ellipse at 24% 10%, #3d3526, #211c12 65%, #18140d);
+  box-shadow: inset 0 1px 0 rgba(243,237,227,.3), inset 0 -1px 0 rgba(0,0,0,.4),
+    0 1px 0 #b9b6aa, 0 2px 0 #110e09, 0 5px 9px -5px rgba(0,0,0,.5);
 }
 .card-side.card-face-surface, .card-side.card-back-surface {
   position: absolute;
@@ -45,7 +45,7 @@
 .community-slot { position: relative; width: 100%; max-width: 20rem; min-height: 22rem; aspect-ratio: 5 / 7; margin-inline: auto; perspective: 1100px; }
 .community-slot .card-deal { position: absolute; inset: 0; }
 .community-turn { transform: rotateY(180deg); }
-.community-back { display: grid; place-items: center; font-size: 4rem; color: #c8d4e5; }
+.community-back { display: grid; place-items: center; font-size: 4rem; color: #ded9cf; }
 .community-face { display: flex; flex-direction: column; justify-content: space-between; gap: 1rem; padding: 1.3rem; color: var(--ink); }
 .community-face h3 { font-size: clamp(1.2rem, 1.5vw, 1.55rem); overflow-wrap: anywhere; }
 .community-face p { font-size: .95rem; line-height: 1.45; color: #514a3d; }
@@ -55,7 +55,7 @@
 @media (min-width: 1200px) {
   .community-board { grid-template-columns: repeat(5, minmax(0, 1fr)); }
   .community-slot { min-height: 19rem; }
-  .card-deck-spot { position: relative; display: grid; place-items: center; width: 4rem; aspect-ratio: 5 / 7; flex: none; transform: rotate(7deg); box-shadow: 2px 2px 0 #b9b6aa, 3px 4px 0 #142039, 4px 6px 0 #b9b6aa, 5px 8px 0 #142039; }
+  .card-deck-spot { position: relative; display: grid; place-items: center; width: 4rem; aspect-ratio: 5 / 7; flex: none; transform: rotate(7deg); box-shadow: 2px 2px 0 #b9b6aa, 3px 4px 0 #31291c, 4px 6px 0 #b9b6aa, 5px 8px 0 #31291c; }
 }
 
 .event-hand { position: relative; display: grid; grid-template-columns: minmax(0, 1fr); gap: 2.5rem 1.5rem; padding: 2rem 0 3rem; }
@@ -86,7 +86,7 @@
 .people-front .material-index { font-size: 1.1rem; }
 .people-front .material-index > :last-child { font-size: .8rem; }
 .people-portrait, .people-initials { width: clamp(3.3rem, 6vw, 4.6rem); height: clamp(3.3rem, 6vw, 4.6rem); margin-inline: auto; border-radius: 50%; flex-shrink: 0; object-fit: cover; box-shadow: 0 2px 7px rgba(25,24,18,.18); }
-.people-initials { display: grid; place-items: center; font-family: var(--font-display, Georgia, serif); font-size: 1.3rem; color: #e5e5dc; background: radial-gradient(circle at 30% 20%, #294163, #0b172b); }
+.people-initials { display: grid; place-items: center; font-family: var(--font-display, Georgia, serif); font-size: 1.3rem; color: #e5e5dc; background: radial-gradient(circle at 30% 20%, #564a36, #241d12); }
 .people-name { text-align: center; }
 .people-name .h-card { font-size: clamp(.92rem, 1.1vw, 1.05rem); line-height: 1.15; color: var(--ink); }
 .people-name p { margin-top: .25rem; font-size: max(11px, .66rem); line-height: 1.35; color: #675c46; }
@@ -94,16 +94,16 @@
 .people-back::before { opacity: .4; }
 .people-slot[data-flipped="true"] .people-back { pointer-events: auto; }
 .people-slot[data-flipped="true"] .people-front { pointer-events: none; }
-.people-bio { position: relative; height: 100%; overflow-y: auto; overscroll-behavior-y: contain; scrollbar-width: thin; scrollbar-color: #63718a transparent; padding: .1rem .3rem 1.4rem .1rem; color: #d8e0ed; font-size: 13px; line-height: 1.45; touch-action: pan-y;
+.people-bio { position: relative; height: 100%; overflow-y: auto; overscroll-behavior-y: contain; scrollbar-width: thin; scrollbar-color: #81796c transparent; padding: .1rem .3rem 1.4rem .1rem; color: #e8e4dd; font-size: 13px; line-height: 1.45; touch-action: pan-y;
   /* clipped text fades out at the bottom, a hint that the bio scrolls */
   -webkit-mask-image: linear-gradient(#000 calc(100% - 1.4rem), transparent); mask-image: linear-gradient(#000 calc(100% - 1.4rem), transparent); }
 .people-bio .h-card { font-size: 1rem; line-height: 1.2; color: #f8f4e9; }
-.people-bio-role { font-size: max(10.5px, .62rem); line-height: 1.4; text-transform: uppercase; letter-spacing: .08em; color: #aebed5; margin: .35rem 0 .5rem; }
+.people-bio-role { font-size: max(10.5px, .62rem); line-height: 1.4; text-transform: uppercase; letter-spacing: .08em; color: #ccc4b7; margin: .35rem 0 .5rem; }
 .people-bio-group { margin-top: .75rem; }
 .people-bio-group h4 { margin-bottom: .3rem; font-size: max(10.5px, .6rem); text-transform: uppercase; letter-spacing: .12em; color: #dcc48f; }
 .people-bio-group p + p { margin-top: .3rem; }
 .people-flip-control { position: absolute; left: .55rem; right: .55rem; bottom: .4rem; z-index: 2; transform: translateZ(24px); display: flex; align-items: center; justify-content: space-between; gap: .4rem; min-height: 44px; padding: .5rem .4rem; border-top: 1px solid rgba(69,58,34,.18); color: #564c39; font-size: max(11px, .64rem); letter-spacing: .05em; cursor: pointer; touch-action: manipulation; border-radius: 0 0 .5rem .5rem; }
-.people-slot[data-flipped="true"] .people-flip-control { color: #d7e1ef; border-color: rgba(196,212,234,.25); }
+.people-slot[data-flipped="true"] .people-flip-control { color: #eae5dc; border-color: rgba(225,218,205,.25); }
 .people-flip-control > span:first-child { white-space: nowrap; }
 /* The smallest cards: the width clamp sits at its 9rem minimum below about 870px */
 @media (max-width: 899px) {
