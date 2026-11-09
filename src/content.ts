@@ -30,15 +30,12 @@ export const heroTitle = ['Cornell', 'Computational', 'Game Society']
 /** Hero typing line — the lead changes too. */
 export const typing = {
   pairs: [
-    { lead: 'We do research in', tail: 'computational game theory' },
-    { lead: 'We study', tail: 'imperfect information games' },
-    { lead: 'We build', tail: 'poker solvers' },
-    { lead: 'We train', tail: 'reinforcement learning agents' },
-    { lead: 'We compute', tail: 'equilibria' },
-    { lead: 'We work on', tail: 'multi-agent learning' },
-    { lead: 'We build', tail: 'AlphaGo style agents' },
-    { lead: 'We are training', tail: 'a Guandan agent' },
-    { lead: 'We play', tail: 'anything with payoffs' },
+    { lead: 'We are training', tail: 'a Guandan AI' },
+    { lead: 'We built', tail: 'a poker equity calculator' },
+    { lead: 'We make', tail: 'our own mini games' },
+    { lead: 'Our bots learn by', tail: 'playing themselves' },
+    { lead: 'We have', tail: 'fun at our meetings' },
+    { lead: 'Flip the card and', tail: 'deal yourself in' },
   ],
 }
 
@@ -51,9 +48,9 @@ export const hero = {
 }
 
 export const whoWeAre = {
-  heading: 'We teach computers to play cards.',
+  heading: 'We build game AI, block by block.',
   paragraphs: [
-    'We’re a student club at Cornell. We write game solvers, build simulators, and train agents that get better by playing against themselves. Right now most of that goes into a Guandan bot.',
+    'We’re a student club at Cornell. Like the blocks in our logo, every project snaps onto the last one. We’ve made mini games and a poker calculator, and now we’re training a Guandan AI.',
   ],
   photoPlaceholder: 'TODO team photo',
   // TODO real numbers — null shows as "TBA" until they exist
@@ -66,92 +63,81 @@ export const whoWeAre = {
 }
 
 export const whatWeDo = {
-  heading: 'A normal week',
-  // TODO real threads
+  /** the five cards on this slide are A K Q J 10 of spades */
+  heading: 'Our royal flush',
   threads: [
     {
       rank: 'A',
       suit: '♠',
-      title: 'Study nights',
-      text: 'We sit down and work through game theory, ranges, and equilibria.',
+      title: 'Guandan AI',
+      text: 'Four bots play Guandan against each other and learn from every hand.',
     },
     {
       rank: 'K',
       suit: '♠',
-      title: 'Research',
-      text: 'Solvers, learning agents, and equity math.',
+      title: 'Poker odds',
+      text: 'Our hold’em calculator deals 20,000 hands to find your odds. Try it below.',
     },
     {
       rank: 'Q',
       suit: '♠',
-      title: 'Build',
-      text: 'We write our own agents and tools instead of downloading them.',
+      title: 'Mini games',
+      text: 'We make our own games. Ink Maze, Forge or Fold, and Carrot Defense 3D.',
     },
     {
       rank: 'J',
       suit: '♠',
-      title: 'Tournaments',
-      text: 'Run like the real thing. No buy-in.',
+      title: 'Game solvers',
+      text: 'Next up is an AI that finds the best path through Ink Maze.',
     },
     {
       rank: '10',
       suit: '♠',
-      title: 'Talks',
-      text: 'People from quant, poker, and research tell us what they actually do.',
+      title: 'Meetings',
+      text: 'We have fun at meetings. We play our games, test our bots, and hang out.',
     },
   ],
 }
 
 export const mlProcess = {
   heading: 'Self-play',
-  // TODO real steps
   steps: [
     {
       n: '01',
       title: 'Frame',
-      text: 'Write the game down as states, actions, and payoffs.',
+      text: 'Turn the rules of the game into code.',
     },
     {
       n: '02',
       title: 'Simulate',
-      text: 'Build a simulator so agents can play themselves.',
+      text: 'Build a fast table where bots can play each other.',
     },
     {
       n: '03',
       title: 'Train',
-      text: 'Counterfactual regret minimization or deep reinforcement learning.',
+      text: 'Let them play game after game and learn from every win and loss.',
     },
     {
       n: '04',
       title: 'Evaluate',
-      text: 'Measure exploitability and play agents head to head.',
+      text: 'Put the new bot against the old one to see if it got better.',
     },
     {
       n: '05',
       title: 'Ship',
-      text: 'Release the agents and tools once they hold up.',
+      text: 'Share it once it holds up.',
     },
   ],
 }
 
 export const events = {
   heading: 'On the calendar',
-  // TODO real events
+  // TODO(club): add real events with dates as they are set
   items: [
     {
-      title: 'Fall Kickoff',
-      date: 'Date TBA', // TODO date
-      blurb: 'Our first meeting of the year.',
-    },
-    {
-      title: 'Solver Workshop',
-      date: 'Date TBA', // TODO date
-      blurb: 'Write a small CFR solver with us.',
-    },
-    {
-      title: 'Spring Banquet',
-      date: 'Date TBA', // TODO date
-      blurb: 'End-of-year dinner.',
+      title: 'Club meetings',
+      date: 'Time TBA',
+      blurb: 'We play, build, and have fun. Times go up here once they are set.',
     },
   ],
 }
@@ -159,11 +145,11 @@ export const events = {
 export const world = {
   heading: 'One table, a lot of hometowns',
   // TODO real country count
-  text: 'Cornell students from all over the world. Teach us the card game you grew up with.',
+  text: 'Our members grew up all over this globe, and every hometown has its own card game. Teach us yours.',
 }
 
 export const people = {
-  heading: 'Who runs it',
+  heading: 'Flip a card, meet the team',
   /** One card per person. Roles and bios are filled in as they come; a card without them shows the name only. */
   leaders: [
     {
@@ -250,9 +236,9 @@ export const contact = {
 export const vision = {
   title: 'Next',
   next: [
-    'Make our agents stronger.',
-    'Let anyone play against them.',
-    'Share what we find.',
+    'Finish training our Guandan AI.',
+    'Build an AI that solves Ink Maze.',
+    'Let anyone play against our bots.',
   ],
 }
 
@@ -360,7 +346,7 @@ export const minigames = {
 export const pages: Record<string, SubPageDef> = {
   'who-we-are': {
     title: 'About',
-    lead: 'A Cornell club for people who like games and the math behind them.',
+    lead: 'A Cornell club that builds game AI and has fun doing it.',
     sections: [
       { heading: 'How we work', alt: 'Culture', body: 'Beginners are welcome, and we still check each other\u2019s math.' },
       { heading: 'Game AI', alt: 'Focus', body: 'Solvers, learning agents, and the math behind them.' },
@@ -374,24 +360,24 @@ export const pages: Record<string, SubPageDef> = {
       {
         // TODO(club): add numbers once benchmarks exist
         heading: 'Guandan agent', alt: 'In training',
-        body: 'Four agents play the card game Guandan against each other and learn from self-play. No benchmarks published yet.',
+        body: 'Four bots play the card game Guandan against each other and learn from every hand. No results published yet.',
       },
       {
         heading: 'Poker equity', alt: 'Calculator',
         body: 'A Monte Carlo equity calculator for Texas hold\u2019em. You can run it on our home page.',
       },
-      { heading: 'Study nights', alt: 'Every week', body: 'A weekly session on game theory, ranges, and equilibria.' },
-      { heading: 'Club events', alt: 'Off the laptop', body: 'Tournaments with real structure and no buy-in, plus talks on quant, poker, and academia.' },
+      { heading: 'Mini games', alt: 'Made by us', body: 'Ink Maze, Forge or Fold, and Carrot Defense 3D. All free to play in your browser.' },
+      { heading: 'Meetings', alt: 'Have fun', body: 'We play our games, test our bots, and hang out.' },
     ],
   },
   'ml-process': {
     title: 'Machine Learning',
     lead: 'How we turn a game\u2019s rules into an agent that plays it.',
     sections: [
-      { heading: 'Frame', alt: 'The rules', body: 'Write the game down as states, actions, and payoffs.' },
-      { heading: 'Simulate', alt: 'Simulator', body: 'Build a simulator fast enough for agents to play themselves.' },
-      { heading: 'Train', alt: 'Self-play', body: 'Counterfactual regret minimization or deep reinforcement learning.' },
-      { heading: 'Evaluate', alt: 'Testing', body: 'Measure exploitability and play agents head to head.' },
+      { heading: 'Frame', alt: 'The rules', body: 'Turn the rules of the game into code.' },
+      { heading: 'Simulate', alt: 'Simulator', body: 'Build a table fast enough for bots to play each other.' },
+      { heading: 'Train', alt: 'Self-play', body: 'Let them play game after game and learn from every win and loss.' },
+      { heading: 'Evaluate', alt: 'Testing', body: 'Put the new bot against the old one to see if it got better.' },
       { heading: 'Share', alt: 'Release', body: 'We plan to release agents, tools, and write-ups. Nothing is out yet.' },
     ],
   },
@@ -399,9 +385,7 @@ export const pages: Record<string, SubPageDef> = {
     title: 'Events',
     lead: 'Dates go up here once they are set.',
     sections: [
-      { heading: 'Fall Kickoff', alt: 'First meeting', body: 'Our first meeting of the year. Date TBA.' },
-      { heading: 'Solver Workshop', alt: 'Hands-on', body: 'Write a small CFR solver with us. Date TBA.' },
-      { heading: 'Spring Banquet', alt: 'Dinner', body: 'End-of-year dinner. Date TBA.' },
+      { heading: 'Club meetings', alt: 'Time TBA', body: 'We play, build, and have fun. Times go up here once they are set.' },
     ],
   },
   world: {

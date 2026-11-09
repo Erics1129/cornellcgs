@@ -268,8 +268,8 @@ export default function SodaSlide() {
           <span className="soda-sound__label">{muted ? 'Sound off' : ready ? 'Sound on' : 'Tap for sound'}</span>
         </button>
         <div ref={copy} className="container-site soda-copy">
-          <h2 id="together-title" className="anyone-title">Any major.</h2>
-          <p className="anyone-invitation">You don’t need experience. You need to be curious why the bot folded.</p>
+          <h2 id="together-title" className="anyone-title">Drop in.</h2>
+          <p className="anyone-invitation">We’re gonna have fun at meetings! No experience needed, just drop in like the ice.</p>
         </div>
       </div>
     </section>

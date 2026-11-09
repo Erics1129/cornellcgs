@@ -32,7 +32,7 @@ export default function MLProcess() {
       <div className="scene-edge scene-edge--bottom" />
       <div className="container-site scene-content">
         <div className="scene-copy">
-          <p className="scene-eyebrow"><span />How we train an agent</p>
+          <p className="scene-eyebrow"><span />How our AI learns</p>
           <TypedHeading text={mlProcess.heading} alt="Adapt" className="scene-title scene-title--serif" caret="bg-[#ebe0cc]" />
           <div className="ml-sequence">
             <div ref={track} className="ml-sequence-track" />
