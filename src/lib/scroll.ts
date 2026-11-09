@@ -105,15 +105,39 @@ export function initSmoothScroll(): () => void {
   }
   const trackChapter = () => { if (!trackingFrame && !restoring) trackingFrame = requestAnimationFrame(rememberChapter) }
   const tick = (time: number) => lenis?.raf(time * 1000)
+  // Cards on the table flex with the speed of the scroll, as if caught by the
+  // air: a fast flick tips them back a few degrees and they settle when the
+  // page does. Written per card (not on :root) so only they restyle.
+  const tiltCards: HTMLElement[] = []
+  let tilt = 0
+  let tiltShown = 0
+  const collectCards = () => {
+    tiltCards.length = 0
+    tiltCards.push(...document.querySelectorAll<HTMLElement>('.project-card-holder, .community-slot, .people-slot'))
+  }
+  const tiltTick = () => {
+    if (!lenis || !matchMedia('(pointer: fine)').matches) return
+    const target = Math.max(-7, Math.min(7, lenis.velocity * 0.28))
+    tilt += (target - tilt) * 0.12
+    if (Math.abs(tilt - tiltShown) < 0.02) return
+    tiltShown = Math.abs(tilt) < 0.03 ? 0 : tilt
+    for (const el of tiltCards) el.style.setProperty('--scroll-tilt', tiltShown.toFixed(2))
+  }
   const setScrollMotion = () => {
     gsap.ticker.remove(tick)
+    gsap.ticker.remove(tiltTick)
     lenis?.destroy(); lenis = null
+    for (const el of tiltCards) el.style.removeProperty('--scroll-tilt')
+    tilt = tiltShown = 0
     if (!motion.matches) {
-      lenis = new Lenis({ lerp: .13, wheelMultiplier: 1, syncTouch: false })
+      lenis = new Lenis({ lerp: .085, wheelMultiplier: .92, syncTouch: false })
       lenis.on('scroll', ScrollTrigger.update)
       gsap.ticker.add(tick)
+      collectCards()
+      gsap.ticker.add(tiltTick)
     }
   }
+  ScrollTrigger.addEventListener('refresh', collectCards)
   const onMotionChange = () => {
     const saved = anchor
     reduced = motion.matches
@@ -176,6 +200,8 @@ export function initSmoothScroll(): () => void {
 
   return () => {
     cleanupBase()
+    ScrollTrigger.removeEventListener('refresh', collectCards)
+    gsap.ticker.remove(tiltTick)
     gsap.ticker.remove(tick)
     lenis?.destroy()
     lenis = null

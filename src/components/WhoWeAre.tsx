@@ -32,7 +32,7 @@ export default function WhoWeAre() {
       <div className="identity-copy">
         <p data-identity-copy className="identity-eyebrow">Who we are</p>
         <h2 className="identity-title"><ScrollWords text={whoWeAre.heading} treatment="illuminate" /></h2>
-        {whoWeAre.paragraphs.map((line, i) => <p data-identity-copy className="identity-lead" key={i}>{line}</p>)}
+        {whoWeAre.paragraphs.map((line, i) => <p data-identity-copy data-lines className="identity-lead" key={i}>{line}</p>)}
         <a data-identity-copy href="/whoWeAre/" className="identity-link">About us <span aria-hidden="true">↗</span></a>
         {facts.length > 0 && <dl className="identity-facts">{facts.map((fact, i) => <div key={i}><dt>{fact.label}</dt><dd>{fact.value}</dd></div>)}</dl>}
       </div>

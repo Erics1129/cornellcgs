@@ -5,6 +5,7 @@ import { initSmoothScroll } from './lib/scroll'
 import { useNeonEdges } from './lib/neon'
 import { BOOTED_EVENT, prefersReducedMotion } from './lib/motion'
 import { dealCard, shadowStyle } from './lib/cardMotion'
+import { initLineReveals } from './lib/lines'
 import GradientBG from './effects/GradientBG'
 import CodeLayer from './effects/CodeLayer'
 import FutureEye from './components/FutureEye'
@@ -202,6 +203,20 @@ export default function App() {
     }
   }, [])
 
+
+  // Line by line copy reveals, once the fonts have set the real line breaks
+  useEffect(() => {
+    if (!loaded || !mainRef.current) return
+    let cleanup = () => {}
+    let alive = true
+    ;(document.fonts?.ready ?? Promise.resolve()).then(() => {
+      if (alive && mainRef.current) cleanup = initLineReveals(mainRef.current)
+    })
+    return () => {
+      alive = false
+      cleanup()
+    }
+  }, [loaded])
 
   return (
     <div ref={appRef}>

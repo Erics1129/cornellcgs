@@ -40,7 +40,15 @@
 .project-card-holder-1 { left: 68%; margin-top: 25px; }
 /* Outrank the later global card surface's position:relative; otherwise an
    empty card loses its inset height and collapses to its border. */
-.project-card.card-back-surface { position: absolute; inset: 0; box-shadow: none; }
+.project-card { position: absolute; inset: 0; perspective: 1100px; }
+.project-turn { position: absolute; inset: 0; transform: rotateY(180deg); }
+.project-back { display: grid; place-items: center; border-radius: clamp(10px, 1.2vw, 18px); font-size: clamp(2rem, 3.4vw, 3.4rem); color: #d9d1c0; }
+.project-back::before { content: ''; position: absolute; inset: 7%; border: 1px solid rgb(217 209 192 / .35); border-radius: inherit; }
+.project-face { display: flex; flex-direction: column; justify-content: space-between; padding: clamp(.7rem, 1.1vw, 1.1rem); border-radius: clamp(10px, 1.2vw, 18px); color: var(--ink, #15120c); }
+.project-face.is-red { color: #a3221b; }
+.project-face .material-index { font-size: clamp(1.05rem, 1.5vw, 1.45rem); }
+.project-face-name { display: grid; gap: .3rem; text-align: center; font-family: var(--font-display); font-weight: 600; font-size: clamp(1.05rem, 1.7vw, 1.6rem); letter-spacing: -.02em; color: var(--ink, #15120c); }
+.project-face-name small { font-family: var(--font-body); font-size: clamp(.68rem, .8vw, .8rem); font-weight: 500; letter-spacing: .02em; color: #6b6150; }
 
 .support-scene.anyone-scene { min-height: 90svh; }
 .anyone-copy { padding-block: 2rem; }

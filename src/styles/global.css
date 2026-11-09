@@ -1284,9 +1284,10 @@ html[data-theme='sky'], html[data-theme='lilac'] { color-scheme: light; }
   outline-offset: 3px;
 }
 
-/* Tablets: the corner index moves to the right edge, clear of the first line
-   of every left-aligned chapter heading (phones reserve room instead). */
-@media (min-width: 640px) and (max-width: 1023.98px) {
+/* Tablets and up: the corner index moves to the right edge, clear of the first
+   line of every left-aligned chapter heading and of the chapter rail on the
+   left (phones reserve room instead). */
+@media (min-width: 640px) {
   .card-index { left: auto; right: clamp(1.1rem, 4vw, 3rem); }
 }
 
@@ -1518,3 +1519,22 @@ em, .italic-display { font-weight: 600; }
   letter-spacing: -0.02em;
 }
 .join-card-index { font-family: var(--font-display); font-weight: 700; }
+
+/* Line by line reveals (src/lib/lines.ts) */
+.line-mask {
+  display: block;
+  overflow: hidden;
+  padding: 0.08em 0 0.14em;
+  margin: -0.08em 0 -0.14em;
+}
+.line-mask__inner {
+  display: inline-block;
+  transform-origin: 0 100%;
+  will-change: transform, opacity;
+}
+
+/* Cards flex with scroll speed (src/lib/scroll.ts writes --scroll-tilt) */
+.project-table, .community-board, .people-grid { perspective: 1400px; }
+.project-card-holder, .community-slot, .people-slot {
+  rotate: x calc(var(--scroll-tilt, 0) * 1deg);
+}

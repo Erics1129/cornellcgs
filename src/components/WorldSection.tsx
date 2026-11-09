@@ -95,7 +95,7 @@ export default function WorldSection() {
           <div className="scene-copy">
             <p className="scene-eyebrow"><span />Where we’re from</p>
             <h2 className="scene-title"><ScrollWords text={world.heading} treatment="illuminate" /></h2>
-            <p className="scene-lead">{world.text}</p>
+            <p data-lines className="scene-lead">{world.text}</p>
             <a className="scene-link" href="/world/">More about our members <span aria-hidden="true">↗</span></a>
           </div>
         </div>
