@@ -6,7 +6,7 @@
   padding: 0;
   overflow: clip;
   contain: none;
-  background: linear-gradient(180deg, #1a0d07 0%, #6b2a0c 38%, #2a0c04 100%);
+  background: radial-gradient(70% 45% at 55% 62%, #3a1406, transparent 70%), linear-gradient(180deg, #0b0705 0%, #0b0705 38%, #1c0803 40%, #0c0402 100%);
 }
 .soda-scene.is-still,
 .soda-scene.is-flat { height: 100svh; }

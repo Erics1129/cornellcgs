@@ -1,6 +1,10 @@
 import * as THREE from 'three'
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js'
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js'
+import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js'
+import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js'
+import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js'
+import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js'
 
 /**
  * Ice in soda. One full screen WebGL scene whose whole story is a function of
@@ -186,6 +190,58 @@ function coreTexture() {
   return t
 }
 
+/** Feathered fracture lines, the white veins frozen into the middle of a cube. */
+function crackTexture(seed: number) {
+  const size = 512
+  const c = document.createElement('canvas')
+  c.width = c.height = size
+  const ctx = c.getContext('2d')!
+  const r = rng(seed)
+  ctx.lineCap = 'round'
+  const branch = (x: number, y: number, ang: number, len: number, width: number, depth: number) => {
+    let cx = x
+    let cy = y
+    const steps = Math.max(3, Math.floor(len / 6))
+    ctx.beginPath()
+    ctx.moveTo(cx, cy)
+    for (let i = 0; i < steps; i++) {
+      ang += (r() - 0.5) * 0.5
+      cx += Math.cos(ang) * (len / steps)
+      cy += Math.sin(ang) * (len / steps)
+      ctx.lineTo(cx, cy)
+      if (depth > 0 && r() < 0.22) branch(cx, cy, ang + (r() < 0.5 ? 1 : -1) * (0.5 + r() * 0.7), len * 0.45, width * 0.6, depth - 1)
+    }
+    ctx.lineWidth = width
+    ctx.stroke()
+  }
+  ctx.shadowColor = 'rgba(255,255,255,0.8)'
+  ctx.shadowBlur = 6
+  ctx.strokeStyle = 'rgba(255,255,255,0.55)'
+  // a central feather: a spine with short barbs either side
+  const spineX = size * (0.42 + r() * 0.16)
+  for (let y = size * 0.18; y < size * 0.82; y += 7 + r() * 6) {
+    const l = 30 + r() * 60 * Math.sin(((y / size - 0.18) / 0.64) * Math.PI)
+    branch(spineX, y, Math.PI * (0.15 + r() * 0.15), l, 0.8 + r() * 0.8, 1)
+    branch(spineX, y, Math.PI * (0.85 - r() * 0.15), l, 0.8 + r() * 0.8, 1)
+  }
+  ctx.strokeStyle = 'rgba(255,255,255,0.4)'
+  for (let k = 0; k < 6; k++) branch(size * (0.2 + r() * 0.6), size * (0.2 + r() * 0.6), r() * Math.PI * 2, 80 + r() * 140, 0.6 + r(), 2)
+  // trapped air beads
+  ctx.shadowBlur = 0
+  for (let k = 0; k < 120; k++) {
+    const x = size * (0.25 + 0.5 * r())
+    const y = size * (0.2 + 0.6 * r())
+    const rad = 0.6 + Math.pow(r(), 3) * 4
+    ctx.fillStyle = `rgba(255,255,255,${0.35 + r() * 0.5})`
+    ctx.beginPath()
+    ctx.arc(x, y, rad, 0, Math.PI * 2)
+    ctx.fill()
+  }
+  const t = new THREE.CanvasTexture(c)
+  t.colorSpace = THREE.SRGBColorSpace
+  return t
+}
+
 // ---------------------------------------------------------------- shaders
 const FULLSCREEN_VERT = /* glsl */ `
 varying vec2 vUv;
@@ -199,6 +255,7 @@ uniform float uTime;
 uniform float uWater;   // waterline height in NDC
 uniform vec3 uImpact;   // x (NDC), seconds since impact, strength
 uniform float uDepth;   // how far the camera has sunk
+uniform float uScroll;
 uniform vec2 uLook;
 
 float hash(vec2 p) { p = fract(p * vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x * p.y); }
@@ -214,93 +271,108 @@ float fbm(vec2 p) {
 }
 float surfaceY(float x) {
   float y = uWater;
-  y += 0.0055 * sin(x * 3.1 + uTime * 1.25) + 0.0035 * sin(x * 7.7 - uTime * 1.9) + 0.002 * sin(x * 17.0 + uTime * 2.7);
+  y += 0.004 * sin(x * 3.1 + uTime * 1.1) + 0.0025 * sin(x * 7.7 - uTime * 1.7) + 0.0012 * sin(x * 19.0 + uTime * 2.9);
   float T = uImpact.y;
   if (T > 0.0) {
     float d = abs(x - uImpact.x);
-    float front = 0.12 + T * 0.75;
-    y += uImpact.z * 0.03 * sin((d - front) * 30.0) * exp(-abs(d - front) * 5.0) * exp(-T * 0.9);
-    y -= uImpact.z * 0.05 * exp(-d * d * 30.0) * sin(min(T * 6.0, 3.14159)) * exp(-T * 1.5);
+    float front = 0.1 + T * 0.6;
+    y += uImpact.z * 0.022 * sin((d - front) * 34.0) * exp(-abs(d - front) * 6.0) * exp(-T * 1.1);
   }
   return y;
 }
-vec3 toLinear(vec3 c) { return pow(c, vec3(2.2)); }
+vec3 toLinear(vec3 c) { return pow(max(c, 0.0), vec3(2.2)); }
+
+// tiny carbonation specks rising through the body of the drink
+float specks(vec2 q, float scale, float speed, float seed) {
+  vec2 g = q * scale + vec2(seed, -(uTime * speed + uScroll * speed * 14.0));
+  vec2 id = floor(g);
+  vec2 f = fract(g) - 0.5;
+  float h = hash(id + seed);
+  if (h < 0.9) return 0.0;
+  vec2 o = vec2(hash(id + 3.1) - 0.5, hash(id + 7.7) - 0.5) * 0.6;
+  float r = length(f - o);
+  float size = 0.08 + 0.12 * hash(id + 1.3);
+  return smoothstep(size, size * 0.3, r);
+}
 
 void main() {
   vec2 ndc = vUv * 2.0 - 1.0;
   float aspect = uRes.x / uRes.y;
-  vec2 p = vec2(ndc.x * aspect, ndc.y) + uLook * 0.04;
+  vec2 p = vec2(ndc.x * aspect, ndc.y) + uLook * 0.03;
   float px = 2.0 / uRes.y;
   float sy = surfaceY(ndc.x);
   float above = ndc.y - sy;
 
-  // ---------- the air above the glass rim: a dim warm room, out of focus
-  vec3 air = mix(vec3(0.045, 0.030, 0.022), vec3(0.20, 0.13, 0.085), smoothstep(-0.3, 1.2, ndc.y));
-  air += vec3(0.35, 0.24, 0.15) * exp(-length(p - vec2(-0.6 * aspect, 1.15)) * 1.6) * 0.5;
-  for (int i = 0; i < 6; i++) {
+  // the strong light behind the drink: everything is lit from behind, like a
+  // glass of cola held up to a window
+  vec2 lightPos = vec2(0.12 * aspect, sy - 0.45 - uDepth * 0.3);
+
+  // ---------- air: a dark room with the same light glowing behind
+  vec3 air = vec3(0.018, 0.012, 0.010);
+  vec2 la = vec2(0.18 * aspect, sy + 0.5);
+  air += vec3(0.55, 0.38, 0.24) * exp(-length((p - la) * vec2(0.7, 1.1)) * 2.6) * 0.35;
+  air += vec3(0.30, 0.22, 0.16) * smoothstep(0.0, 1.2, above) * 0.12;
+  for (int i = 0; i < 5; i++) {
     float fi = float(i);
-    vec2 c = vec2(sin(fi * 2.31 + 0.7) * aspect * 0.95, sy + 0.35 + 0.8 * fract(fi * 0.618 + 0.13));
-    float r = 0.025 + 0.035 * fract(fi * 0.37);
+    vec2 c = vec2((fract(fi * 0.433 + 0.21) * 2.0 - 1.0) * aspect, sy + 0.35 + 0.8 * fract(fi * 0.618 + 0.13));
+    float r = 0.03 + 0.03 * fract(fi * 0.37);
     float dl = length(p - c);
-    float b = smoothstep(r, r * 0.8, dl);
-    float ring = smoothstep(r * 0.7, r * 0.95, dl) * b;
-    air += vec3(1.0, 0.74, 0.46) * (b * 0.07 + ring * 0.06) * (0.6 + 0.8 * fract(fi * 0.71));
+    float b = smoothstep(r, r * 0.86, dl);
+    air += vec3(1.0, 0.78, 0.52) * (b * 0.05 + smoothstep(r * 0.78, r * 0.96, dl) * b * 0.04);
   }
 
-  // ---------- the soda
-  float depth = max(0.0, sy - ndc.y) * 0.55 + uDepth;
-  vec2 w = vec2(fbm(p * 1.6 + vec2(0.0, uTime * 0.13)), fbm(p * 1.6 + vec2(4.1, -uTime * 0.11))) - 0.5;
-  vec2 q = p + w * 0.06;
-  vec3 top = vec3(0.80, 0.38, 0.10);
-  vec3 mid = vec3(0.42, 0.15, 0.04);
-  vec3 deep = vec3(0.075, 0.020, 0.008);
-  vec3 liq = mix(top, mid, smoothstep(0.0, 0.55, depth));
-  liq = mix(liq, deep, smoothstep(0.45, 2.0, depth));
+  // ---------- cola
+  float depth = max(0.0, sy - ndc.y) * 0.6 + uDepth;
+  vec2 w = vec2(fbm(p * 2.2 + vec2(0.0, uTime * 0.09)), fbm(p * 2.2 + vec2(4.1, -uTime * 0.07))) - 0.5;
+  vec2 q = p + w * 0.09;
+  float d = length((q - lightPos) * vec2(0.75, 1.0));
+  float glow = exp(-d * d * 0.9);
+  float core = exp(-d * d * 3.2);
+  vec3 black = vec3(0.022, 0.006, 0.003);
+  vec3 body = vec3(0.24, 0.072, 0.018);
+  vec3 amber = vec3(0.66, 0.28, 0.07);
+  vec3 hot = vec3(1.0, 0.66, 0.30);
+  vec3 liq = mix(black, body, glow);
+  liq = mix(liq, amber, core * 0.5);
+  liq += hot * pow(core, 4.0) * 0.12;
+  // thicker liquid toward the bottom swallows the light
+  liq *= mix(1.0, 0.5, smoothstep(0.3, 2.4, depth));
 
-  // light shafts falling from the surface, swaying with the refraction
-  float slant = q.x + (sy - q.y) * 0.32;
-  float rays = 0.5 + 0.5 * sin(slant * 8.0 + uTime * 0.35 + fbm(vec2(slant * 2.5, uTime * 0.08)) * 5.0);
-  rays *= 0.55 + 0.45 * sin(slant * 21.0 - uTime * 0.27 + w.x * 6.0);
-  rays = rays * rays;
-  liq += vec3(1.0, 0.64, 0.28) * rays * exp(-depth * 1.5) * 0.32;
+  // soft shafts of light hanging down from the surface
+  float slant = q.x + (sy - q.y) * 0.25;
+  float rays = 0.5 + 0.5 * sin(slant * 6.5 + uTime * 0.25 + fbm(vec2(slant * 2.0, uTime * 0.07)) * 5.0);
+  rays *= rays;
+  liq += vec3(0.85, 0.45, 0.16) * rays * exp(-depth * 1.8) * 0.06 * (0.5 + glow);
 
-  // caustic net dancing just under the surface
-  vec2 cq = q * 9.0;
-  float c1 = noise(cq + vec2(uTime * 0.5, uTime * 0.2));
-  float c2 = noise(cq * 1.07 - vec2(uTime * 0.35, -uTime * 0.4) + 3.1);
-  float caus = pow(1.0 - abs(c1 - c2), 14.0);
-  liq += vec3(1.0, 0.82, 0.55) * caus * 0.07 * exp(-depth * 3.2);
+  // millions of tiny bubbles in suspension: brightest where the light comes through
+  float sp = specks(q, 70.0, 0.9, 0.0) * 0.55 + specks(q, 120.0, 0.6, 5.0) * 0.35 + specks(q, 38.0, 1.4, 9.0) * 0.6;
+  liq += vec3(1.0, 0.86, 0.66) * sp * (0.12 + 0.9 * glow) * 0.35 * smoothstep(0.0, 0.02, sy - ndc.y);
 
-  // suspended glints, the tiny specks that catch light in a real drink
-  vec2 gq = q * 60.0 + vec2(0.0, -uTime * 2.0);
-  float gl = step(0.996, hash(floor(gq))) * smoothstep(0.5, 0.0, length(fract(gq) - 0.5));
-  liq += vec3(1.0, 0.8, 0.55) * gl * 0.25 * exp(-depth * 1.2);
-
-  // the underside of the surface mirrors the light back (total internal reflection)
+  // underside of the surface: a bright mirror band, then a darker meniscus
   float below = sy - ndc.y;
-  liq += vec3(1.0, 0.72, 0.42) * exp(-below / 0.05) * 0.55 * step(0.0, below);
-  liq += vec3(0.9, 0.55, 0.25) * exp(-below / 0.18) * 0.12 * step(0.0, below);
+  liq += vec3(1.0, 0.70, 0.40) * exp(-below / 0.022) * 0.55 * step(0.0, below) * (0.35 + glow);
+  liq += vec3(0.7, 0.36, 0.12) * exp(-below / 0.12) * 0.10 * step(0.0, below);
 
-  // the churned white water right where the cube went in
+  // churned white water where the cube went in
   float T = uImpact.y;
   if (T > 0.0) {
-    vec2 ip = vec2(uImpact.x * aspect, sy - 0.12 - T * 0.05);
-    vec2 dd = (p - ip) * vec2(1.0, 1.4);
-    float cloud = exp(-dot(dd, dd) * 9.0) * fbm(p * 9.0 + vec2(0.0, -uTime)) ;
-    liq += vec3(1.0, 0.9, 0.78) * cloud * uImpact.z * 0.9 * exp(-T * 1.1);
+    vec2 ip = vec2(uImpact.x * aspect, sy - 0.14 - T * 0.06);
+    vec2 dd = (p - ip) * vec2(1.0, 1.3);
+    float cloud = exp(-dot(dd, dd) * 7.0) * smoothstep(0.35, 0.8, fbm(p * 14.0 + vec2(0.0, -uTime * 1.5)));
+    liq += vec3(1.0, 0.88, 0.72) * cloud * uImpact.z * 0.8 * exp(-T * 1.6);
   }
 
   // ---------- composite
-  float edge = smoothstep(-px * 1.2, px * 1.2, above);
+  float edge = smoothstep(-px * 1.0, px * 1.0, above);
   vec3 col = mix(liq, air, edge);
-  col += vec3(1.0, 0.9, 0.76) * exp(-abs(above) / (px * 1.3)) * 0.85; // the meniscus line
-  col += vec3(1.0, 0.68, 0.36) * exp(-abs(above) / 0.025) * 0.10;
+  col += vec3(1.0, 0.86, 0.66) * exp(-abs(above) / (px * 1.1)) * 0.45;
+  col += vec3(0.9, 0.55, 0.25) * exp(-max(above, 0.0) / 0.012) * step(0.0, above) * 0.08;
 
-  float vig = smoothstep(1.55, 0.35, length(ndc * vec2(0.85, 1.0)));
-  col *= mix(0.55, 1.0, vig);
-  col += (hash(vUv * uRes + fract(uTime) * 91.0) - 0.5) * 0.02;
+  float vig = smoothstep(1.6, 0.3, length(ndc * vec2(0.8, 1.0)));
+  col *= mix(0.45, 1.0, vig);
+  col += (hash(vUv * uRes + fract(uTime * 7.0) * 91.0) - 0.5) * 0.018;
 
-  gl_FragColor = vec4(toLinear(max(col, 0.0)), 1.0);
+  gl_FragColor = vec4(toLinear(col), 1.0);
   #include <colorspace_fragment>
 }
 `
@@ -313,40 +385,104 @@ uniform float uMaxPoint;
 varying float vAlpha;
 varying float vBlur;
 varying float vFog;
+varying float vPix;
 void main() {
   vec4 mv = modelViewMatrix * vec4(position, 1.0);
   float dist = -mv.z;
   float d = aSize * uPx / dist;
-  vBlur = clamp(abs(dist - ${CAM_Z.toFixed(1)}) / 7.0, 0.0, 0.85);
-  vFog = clamp((dist - ${CAM_Z.toFixed(1)}) / 12.0, 0.0, 1.0);
-  // a blurred bubble spreads its light: grow the sprite, keep its energy
-  float spread = 1.0 + vBlur * 0.9;
-  gl_PointSize = clamp(d * spread, 1.5, uMaxPoint);
-  vAlpha = aAlpha * (d < 3.0 ? d / 3.0 : 1.0) / (spread * 0.8);
+  vBlur = clamp(abs(dist - ${CAM_Z.toFixed(1)}) / 8.0 - 0.08, 0.0, 0.8);
+  vFog = clamp((dist - ${CAM_Z.toFixed(1)}) / 13.0, 0.0, 1.0);
+  float spread = 1.0 + vBlur * 0.8;
+  gl_PointSize = clamp(d * spread, 1.0, uMaxPoint);
+  vPix = d;
+  vAlpha = aAlpha * min(1.0, d / 2.0) / (spread * 0.85);
   gl_Position = projectionMatrix * mv;
 }
 `
 
+// A gas bubble in a backlit liquid is a little diverging lens: light coming
+// straight through the middle makes a bright core, the rim bends light away
+// so it reads as a dark ring, and the front surface carries a tiny glint.
 const BUBBLE_FRAG = /* glsl */ `
 varying float vAlpha;
 varying float vBlur;
 varying float vFog;
+varying float vPix;
 void main() {
   vec2 uv = gl_PointCoord * 2.0 - 1.0;
   uv.y = -uv.y;
   float r = length(uv);
-  float soft = 0.06 + vBlur * 0.55;
+  float soft = 0.08 + vBlur * 0.6 + 1.5 / max(vPix, 1.0);
   float disk = 1.0 - smoothstep(1.0 - soft, 1.0, r);
   if (disk <= 0.0) discard;
-  float rim = smoothstep(0.62, 0.97, r) * disk;
-  vec2 hp = uv - vec2(-0.34, 0.36);
-  float spec = exp(-dot(hp, hp) * 26.0);
-  vec2 bp = (uv - vec2(0.1, -0.5)) * vec2(1.0, 2.3);
-  float cres = exp(-dot(bp, bp) * 7.0);
-  float a = rim * 0.8 + spec * 0.95 * (1.0 - vBlur) + cres * 0.4 + disk * 0.07;
-  a = mix(a, disk * 0.42 + rim * 0.2, vBlur);
-  vec3 col = mix(vec3(1.0, 0.95, 0.86), vec3(0.95, 0.62, 0.32), vFog * 0.75);
-  a *= vAlpha * (1.0 - vFog * 0.55);
+  vec3 coreC = vec3(1.0, 0.84, 0.60);
+  vec3 rimC = vec3(0.03, 0.010, 0.004);
+  float ring = smoothstep(0.30, 0.86, r);
+  vec3 col = mix(coreC * 0.85, rimC, ring);
+  float lip = smoothstep(0.82, 0.93, r) * (1.0 - smoothstep(0.93, 1.0, r));
+  col += vec3(1.0, 0.9, 0.75) * lip * 0.45;
+  vec2 hp = uv - vec2(-0.32, 0.38);
+  col += vec3(1.0) * exp(-dot(hp, hp) * 40.0) * 1.3;
+  vec2 bp = (uv - vec2(0.12, -0.52)) * vec2(1.0, 2.4);
+  col += vec3(1.0, 0.8, 0.5) * exp(-dot(bp, bp) * 9.0) * 0.5;
+  // too small to resolve: just a bright point
+  float tiny = 1.0 - smoothstep(2.5, 7.0, vPix);
+  col = mix(col, vec3(1.0, 0.88, 0.68), tiny);
+  // out of focus: a soft amber disc
+  col = mix(col, vec3(0.75, 0.48, 0.24), vBlur * 0.9);
+  col = mix(col, vec3(0.5, 0.22, 0.07), vFog * 0.7);
+  float a = disk * vAlpha * mix(1.0, 0.45, vBlur) * (1.0 - vFog * 0.5);
+  gl_FragColor = vec4(pow(col, vec3(2.2)) * a, a);
+  #include <colorspace_fragment>
+}
+`
+
+// The crown: the thin sheet of soda thrown up around the cube, flaring out and
+// tearing into fingers at its rim before it breaks into drops.
+const CROWN_VERT = /* glsl */ `
+uniform float uH;
+uniform float uR0;
+uniform float uFlare;
+uniform vec3 uCenter;
+varying float vV;
+varying float vA;
+varying float vFing;
+varying vec3 vN;
+varying vec3 vView;
+void main() {
+  float v = position.y;
+  float a = atan(position.z, position.x);
+  float fing = pow(abs(sin(a * 7.0 + 1.3)), 6.0) * 0.6 + pow(abs(sin(a * 12.0 + 0.4)), 10.0) * 0.4;
+  float h = uH * v * (1.0 + 0.35 * fing * v * v);
+  float r = uR0 + uFlare * v * v + 0.015 * sin(a * 23.0) * v;
+  vec3 wp = vec3(cos(a) * r, h, sin(a) * r) + uCenter;
+  vN = normalize(vec3(cos(a), -uFlare * 2.0 * v / max(uH, 0.05), sin(a)));
+  vec4 world = modelMatrix * vec4(wp, 1.0);
+  vView = cameraPosition - world.xyz;
+  vV = v; vA = a; vFing = fing;
+  gl_Position = projectionMatrix * viewMatrix * world;
+}
+`
+const CROWN_FRAG = /* glsl */ `
+uniform float uFade;
+uniform float uTime;
+varying float vV;
+varying float vA;
+varying float vFing;
+varying vec3 vN;
+varying vec3 vView;
+float hash(float n) { return fract(sin(n) * 43758.5453); }
+void main() {
+  // ragged rim: the sheet only reaches the top where a finger sticks up
+  float top = 0.78 + 0.22 * vFing;
+  if (vV > top) discard;
+  float fres = pow(1.0 - abs(dot(normalize(vN), normalize(vView))), 2.0);
+  float flow = 0.5 + 0.5 * sin(vA * 46.0 + vV * 3.0 + hash(floor(vA * 14.0)) * 6.0);
+  vec3 amber = vec3(0.62, 0.26, 0.07);
+  vec3 col = amber * (0.55 + 0.9 * fres) + vec3(1.0, 0.86, 0.66) * pow(fres, 5.0) * 1.2;
+  col += vec3(1.0, 0.75, 0.45) * flow * 0.08;
+  col += vec3(1.0, 0.85, 0.6) * smoothstep(top - 0.08, top, vV) * 0.5; // the thickened rim catches light
+  float a = (0.28 + 0.6 * fres) * uFade * smoothstep(0.0, 0.08, vV);
   gl_FragColor = vec4(pow(col, vec3(2.2)) * a, a);
   #include <colorspace_fragment>
 }
@@ -364,7 +500,8 @@ export type SodaHandle = {
 export function createSodaScene(canvas: HTMLCanvasElement, opts: { mobile: boolean }): SodaHandle {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: !opts.mobile, alpha: false, powerPreference: 'high-performance' })
   renderer.outputColorSpace = THREE.SRGBColorSpace
-  renderer.toneMapping = THREE.NoToneMapping
+  renderer.toneMapping = THREE.NeutralToneMapping
+  renderer.toneMappingExposure = 1.05
   const maxDpr = opts.mobile ? 1.5 : 1.75
   let dprScale = 1
   const r2 = renderer as unknown as { transmissionResolutionScale?: number }
@@ -378,9 +515,13 @@ export function createSodaScene(canvas: HTMLCanvasElement, opts: { mobile: boole
   const envTex = pmrem.fromScene(new RoomEnvironment(), 0.04).texture
   scene.environment = envTex
 
-  const key = new THREE.DirectionalLight(0xfff1dd, 4)
+  const key = new THREE.DirectionalLight(0xfff1dd, 3)
   key.position.set(-3, 6, 4)
   scene.add(key)
+  // the same light that glows through the drink, from behind and above
+  const back = new THREE.DirectionalLight(0xffd9a8, 5)
+  back.position.set(1.5, 3, -6)
+  scene.add(back)
   const rim = new THREE.PointLight(0xffa860, 14, 12)
   rim.position.set(2.5, -1.5, 2)
   scene.add(rim)
@@ -398,6 +539,7 @@ export function createSodaScene(canvas: HTMLCanvasElement, opts: { mobile: boole
       uImpact: { value: new THREE.Vector3(0, -1, 1) },
       uDepth: { value: 0 },
       uLook: { value: new THREE.Vector2() },
+      uScroll: { value: 0 },
     },
   })
   const sodaQuad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), sodaMat)
@@ -428,10 +570,10 @@ export function createSodaScene(canvas: HTMLCanvasElement, opts: { mobile: boole
     transmission: 1,
     thickness: SIDE * 0.9,
     ior: 1.31,
-    roughness: 0.06,
+    roughness: 0.03,
     roughnessMap: frost.rough,
     normalMap: frost.normal,
-    normalScale: new THREE.Vector2(0.12, 0.12),
+    normalScale: new THREE.Vector2(0.18, 0.18),
     attenuationColor: new THREE.Color(0xdcefff),
     attenuationDistance: 6,
     clearcoat: 0.8,
@@ -450,7 +592,7 @@ export function createSodaScene(canvas: HTMLCanvasElement, opts: { mobile: boole
     new THREE.MeshStandardMaterial({
       map: coreTexture(),
       transparent: true,
-      opacity: 0.32,
+      opacity: 0.09,
       roughness: 0.6,
       depthWrite: false,
       depthTest: false,
@@ -460,36 +602,95 @@ export function createSodaScene(canvas: HTMLCanvasElement, opts: { mobile: boole
   )
   core.renderOrder = 5
   ice.add(core)
+  const crackMats: THREE.MeshBasicMaterial[] = []
+  for (let i = 0; i < 3; i++) {
+    const m = new THREE.MeshBasicMaterial({
+      map: crackTexture(41 + i * 13),
+      transparent: true,
+      opacity: i === 0 ? 0.6 : 0.35,
+      depthWrite: false,
+      depthTest: false,
+      side: THREE.DoubleSide,
+      blending: THREE.AdditiveBlending,
+      color: 0xfff6ea,
+    })
+    crackMats.push(m)
+    const plane = new THREE.Mesh(new THREE.PlaneGeometry(SIDE * 0.8, SIDE * 0.78), m)
+    plane.rotation.set(i === 2 ? Math.PI / 2 : 0, i === 1 ? Math.PI / 2.3 : 0.15 * i, 0.1 * i)
+    plane.renderOrder = 6
+    ice.add(plane)
+  }
   scene.add(ice)
 
   // ---- droplets of the splash (they are soda, so they are amber glass)
   const DROPS = opts.mobile ? 46 : 80
   const dropMat = new THREE.MeshPhysicalMaterial({
-    color: 0xe0903e,
-    emissive: 0x6a2a08,
-    roughness: 0.04,
+    color: 0x9a4a14,
+    emissive: 0x3a1204,
+    roughness: 0.02,
     clearcoat: 1,
-    clearcoatRoughness: 0.02,
-    envMapIntensity: 2.6,
+    clearcoatRoughness: 0.01,
+    envMapIntensity: 3.2,
     transparent: true,
-    opacity: 0.92,
+    opacity: 0.88,
   })
   const drops = new THREE.InstancedMesh(new THREE.SphereGeometry(1, 12, 9), dropMat, DROPS)
   drops.frustumCulled = false
   scene.add(drops)
+  const FINGERS = [7, 12]
   const dropSeeds = Array.from({ length: DROPS }, (_, i) => {
     const r = rng(100 + i)
-    const ang = r() * Math.PI * 2
-    const crown = i < DROPS * 0.7 // most come off the crown ring, a few jet straight up
+    // fingertips sit where the crown's ripple pattern peaks
+    const f = FINGERS[i % 2]
+    const tip = Math.floor(r() * f)
+    const ang = ((tip + 0.5) * Math.PI - (f === 7 ? 1.3 : 0.4)) / f + (r() - 0.5) * 0.08
     return {
       ang,
-      ring: half * (crown ? 1.05 + r() * 0.25 : r() * 0.4),
-      vh: crown ? 1.2 + r() * 1.8 : 0.3 + r() * 0.6,
-      vy: crown ? 2.6 + r() * 2.6 : 4.5 + r() * 2.2,
-      size: 0.014 + Math.pow(r(), 2.4) * (crown ? 0.05 : 0.035),
-      delay: r() * 0.06,
+      release: 0.16 + r() * 0.34, // seconds after impact the drop pinches off
+      vh: 0.5 + r() * 1.3,
+      vy: 0.6 + r() * 1.8,
+      size: 0.012 + Math.pow(r(), 2.6) * 0.045,
     }
   })
+
+  // the crown sheet
+  const crownGeo = new THREE.CylinderGeometry(1, 1, 1, 128, 18, true)
+  crownGeo.translate(0, 0.5, 0)
+  const crownMat = new THREE.ShaderMaterial({
+    vertexShader: CROWN_VERT,
+    fragmentShader: CROWN_FRAG,
+    transparent: true,
+    depthWrite: false,
+    side: THREE.DoubleSide,
+    blending: THREE.CustomBlending,
+    blendSrc: THREE.OneFactor,
+    blendDst: THREE.OneMinusSrcAlphaFactor,
+    uniforms: {
+      uH: { value: 0 },
+      uR0: { value: half },
+      uFlare: { value: 0.2 },
+      uCenter: { value: new THREE.Vector3() },
+      uFade: { value: 0 },
+      uTime: { value: 0 },
+    },
+  })
+  const crown = new THREE.Mesh(crownGeo, crownMat)
+  crown.frustumCulled = false
+  crown.renderOrder = 3
+  scene.add(crown)
+  const crownAt = (T: number) => {
+    const H = SIDE * 0.85 * (T < 0.42 ? Math.sin((clamp01(T / 0.42) * Math.PI) / 2) : 1 - smooth(0.42, 1.0, T))
+    return { H, R0: half * 1.02 + 0.32 * T, flare: 0.12 + 0.55 * T }
+  }
+
+  // the Worthington jet: when the air pocket behind the cube collapses, a
+  // column of soda shoots straight up and pinches off a drop
+  const jet = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.11, 1, 24, 6).translate(0, 0.5, 0), dropMat)
+  jet.frustumCulled = false
+  scene.add(jet)
+  const jetDrop = new THREE.Mesh(new THREE.SphereGeometry(1, 16, 12), dropMat)
+  jetDrop.frustumCulled = false
+  scene.add(jetDrop)
 
   // ---- bubbles: one point cloud, three populations
   const FIZZ = opts.mobile ? 520 : 900
@@ -497,7 +698,8 @@ export function createSodaScene(canvas: HTMLCanvasElement, opts: { mobile: boole
   const PER_STREAM = 26
   const TRAIL = opts.mobile ? 190 : 300
   const SKIN = opts.mobile ? 70 : 110
-  const TOTAL = FIZZ + STREAMS * PER_STREAM + TRAIL + SKIN
+  const CLING = opts.mobile ? 120 : 180
+  const TOTAL = FIZZ + STREAMS * PER_STREAM + TRAIL + SKIN + CLING
   const bPos = new Float32Array(TOTAL * 3)
   const bSize = new Float32Array(TOTAL)
   const bAlpha = new Float32Array(TOTAL)
@@ -524,8 +726,8 @@ export function createSodaScene(canvas: HTMLCanvasElement, opts: { mobile: boole
 
   const fizz = Array.from({ length: FIZZ }, (_, i) => {
     const r = rng(1000 + i)
-    const z = mix(-14, 3.2, Math.pow(r(), 0.8))
-    const size = (0.012 + Math.pow(r(), 3) * 0.05) * (z > 1.5 ? 2.2 : 1)
+    const z = mix(-12, 3.2, Math.pow(r(), 0.65))
+    const size = (0.012 + Math.pow(r(), 2.2) * 0.055) * (z > 1.5 ? 2.0 : 1)
     return { x: (r() * 2 - 1) * (9 + Math.max(0, -z) * 0.5), z, phase: r(), speed: 0.18 + size * 9 + r() * 0.1, size, wob: r() * 6.28, span: 10 + Math.max(0, -z) * 0.6 }
   })
   const streams = Array.from({ length: STREAMS }, (_, i) => {
@@ -559,6 +761,27 @@ export function createSodaScene(canvas: HTMLCanvasElement, opts: { mobile: boole
     ][face]
     return { local, phase: r(), speed: 0.35 + r() * 0.4, size: 0.012 + r() * 0.03, wob: r() * 6.28 }
   })
+  // bubbles that nucleate and cling all over a cube sitting in soda
+  const cling = Array.from({ length: CLING }, (_, i) => {
+    const r = rng(15000 + i)
+    const face = Math.floor(r() * 6)
+    const a = (r() * 2 - 1) * half * 0.9
+    const b = (r() * 2 - 1) * half * 0.9
+    const o = half * 1.01
+    const local = [
+      new THREE.Vector3(o, a, b), new THREE.Vector3(-o, a, b),
+      new THREE.Vector3(a, o * 0.94, b), new THREE.Vector3(a, -o * 0.94, b),
+      new THREE.Vector3(a, b, o), new THREE.Vector3(a, b, -o),
+    ][face]
+    return { local, size: 0.008 + Math.pow(r(), 2) * 0.03 }
+  })
+
+  // ---------------------------------------------------------------- post
+  const composer = new EffectComposer(renderer)
+  composer.addPass(new RenderPass(scene, camera))
+  const bloom = new UnrealBloomPass(new THREE.Vector2(256, 256), 0.5, 0.55, 0.62)
+  composer.addPass(bloom)
+  composer.addPass(new OutputPass())
 
   // ---------------------------------------------------------------- state
   let target = 0
@@ -586,6 +809,9 @@ export function createSodaScene(canvas: HTMLCanvasElement, opts: { mobile: boole
     const dpr = Math.min(window.devicePixelRatio || 1, maxDpr) * dprScale
     renderer.setPixelRatio(dpr)
     renderer.setSize(width, height, false)
+    composer.setPixelRatio(dpr)
+    composer.setSize(width, height)
+    bloom.resolution.set(width * dpr * (opts.mobile ? 0.5 : 0.7), height * dpr * (opts.mobile ? 0.5 : 0.7))
     camera.aspect = width / height
     // keep the cube a sensible size on a tall phone: widen the view a touch
     camera.fov = width / height < 0.7 ? FOV * 1.18 : FOV
@@ -632,41 +858,76 @@ export function createSodaScene(canvas: HTMLCanvasElement, opts: { mobile: boole
     sodaMat.uniforms.uDepth.value = Math.max(0, -cy) * 0.12
     sodaMat.uniforms.uTime.value = time
     sodaMat.uniforms.uLook.value.set(lx, ly)
+    sodaMat.uniforms.uScroll.value = p
 
-    // splash droplets: ballistic, so the arc plays the same forwards and back
+    // crown sheet
+    const impactX = cubePose(P_HIT, half, 0).x
+    if (T > 0 && T < 1.05) {
+      const c = crownAt(T)
+      crownMat.uniforms.uH.value = c.H
+      crownMat.uniforms.uR0.value = c.R0
+      crownMat.uniforms.uFlare.value = c.flare
+      crownMat.uniforms.uCenter.value.set(impactX, -0.01, 0)
+      crownMat.uniforms.uFade.value = smooth(0, 0.05, T) * (1 - smooth(0.75, 1.0, T))
+      crown.visible = true
+    } else crown.visible = false
+    crownMat.uniforms.uTime.value = time
+
+    // splash droplets pinch off the crown's fingertips, then fly ballistic, so
+    // the arc plays the same forwards and back
     const g = 9.8
     for (let i = 0; i < DROPS; i++) {
       const d = dropSeeds[i]
-      const t = T * 0.55 - d.delay
+      const t = T - d.release
       let visible = t > 0
-      let y = 0
       let x = 0
+      let y = 0
       let z = 0
       let vyNow = 0
       if (visible) {
-        const vh = d.vh
-        x = pose.x + Math.cos(d.ang) * (d.ring + vh * t)
-        z = Math.sin(d.ang) * (d.ring + vh * t)
-        y = d.vy * t - 0.5 * g * t * t
+        const c = crownAt(d.release)
+        const rr = c.R0 + c.flare
+        const top = c.H * 1.2
+        x = impactX + Math.cos(d.ang) * (rr + d.vh * t)
+        z = Math.sin(d.ang) * (rr + d.vh * t)
+        y = top + d.vy * t - 0.5 * g * t * t
         vyNow = d.vy - g * t
         visible = y > -0.02
       }
       if (!visible) {
         tmpM.makeScale(0, 0, 0)
       } else {
-        // stretch along the direction of travel, like a real drop in flight
         const speed = Math.hypot(d.vh, vyNow)
-        const stretch = 1 + Math.min(1.4, speed * 0.14)
+        const stretch = 1 + Math.min(1.6, speed * 0.18)
         tmpE.set(0, -d.ang, Math.atan2(vyNow, d.vh) - Math.PI / 2)
         tmpQ.setFromEuler(tmpE)
-        const shrink = 1 - smooth(0.9, 1.3, t)
-        tmpS.set(d.size * shrink, d.size * stretch * shrink, d.size * shrink)
+        tmpS.set(d.size, d.size * stretch, d.size)
         tmpV.set(x, y, z)
         tmpM.compose(tmpV, tmpQ, tmpS)
       }
       drops.setMatrixAt(i, tmpM)
     }
     drops.instanceMatrix.needsUpdate = true
+
+    // jet
+    const jt = T - 0.5
+    if (jt > 0 && jt < 0.85) {
+      const up = Math.sin((clamp01(jt / 0.3) * Math.PI) / 2)
+      const down = 1 - smooth(0.3, 0.7, jt)
+      const h = SIDE * 1.0 * up * down
+      jet.visible = h > 0.01
+      jet.position.set(impactX, -0.02, 0)
+      jet.scale.set(1 - 0.4 * smooth(0.25, 0.5, jt), Math.max(0.001, h), 1 - 0.4 * smooth(0.25, 0.5, jt))
+      // the drop on top breaks free at the peak and keeps rising, then falls
+      const dt0 = jt - 0.28
+      const dy = dt0 > 0 ? SIDE * 1.0 + 2.2 * dt0 - 0.5 * g * dt0 * dt0 : h
+      jetDrop.visible = dy > 0
+      jetDrop.position.set(impactX, dy + 0.05, 0)
+      jetDrop.scale.setScalar(0.07 * smooth(0.05, 0.25, jt))
+    } else {
+      jet.visible = false
+      jetDrop.visible = false
+    }
 
     // bubbles
     let k = 0
@@ -717,6 +978,10 @@ export function createSodaScene(canvas: HTMLCanvasElement, opts: { mobile: boole
       const x = tmpV.x + Math.sin(ph * 25 + b.wob) * 0.02
       put(x, tmpV.y + rise + 0.02, tmpV.z, b.size * (0.6 + ph), skinIn * smooth(0, 0.1, ph))
     }
+    for (const b of cling) {
+      tmpV.copy(b.local).applyMatrix4(ice.matrixWorld)
+      put(tmpV.x, tmpV.y, tmpV.z, b.size, smooth(0.28, 0.4, p))
+    }
     bGeo.attributes.position.needsUpdate = true
     ;(bGeo.attributes.aSize as THREE.BufferAttribute).needsUpdate = true
     ;(bGeo.attributes.aAlpha as THREE.BufferAttribute).needsUpdate = true
@@ -725,13 +990,17 @@ export function createSodaScene(canvas: HTMLCanvasElement, opts: { mobile: boole
     const sub = clamp01(-pose.y / half)
     iceMat.attenuationColor.setRGB(mix(0.86, 0.95, sub), mix(0.94, 0.62, sub), mix(1.0, 0.32, sub))
     iceMat.attenuationDistance = mix(6, 1.6, sub)
-    rim.intensity = mix(6, 16, sub)
-    iceMat.envMapIntensity = mix(2.6, 0.35, sub)
+    rim.intensity = mix(4, 2.5, sub)
+    iceMat.envMapIntensity = mix(0.55, 0.3, sub)
+    back.intensity = mix(5, 0.6, sub)
+    key.intensity = mix(3, 0.9, sub)
     iceMat.specularColor.setRGB(1, mix(1, 0.62, sub), mix(1, 0.32, sub))
-    iceMat.clearcoat = mix(0.8, 0.2, sub)
-    iceMat.sheen = mix(0.5, 0.1, sub)
+    iceMat.clearcoat = mix(0.35, 0, sub)
+    // a submerged face would otherwise mirror the bright surface straight back as a flat white panel
+    iceMat.specularIntensity = mix(1, 0.1, Math.pow(sub, 0.6))
+    iceMat.sheen = mix(0.25, 0, sub)
 
-    renderer.render(scene, camera)
+    composer.render()
 
     // if a phone struggles, render a little softer rather than drop frames
     if (dt > 0) {
@@ -776,6 +1045,12 @@ export function createSodaScene(canvas: HTMLCanvasElement, opts: { mobile: boole
       sodaMat.dispose()
       sodaQuad.geometry.dispose()
       envTex.dispose()
+      crownGeo.dispose()
+      crownMat.dispose()
+      jet.geometry.dispose()
+      jetDrop.geometry.dispose()
+      for (const m of crackMats) { m.map?.dispose(); m.dispose() }
+      composer.dispose()
       pmrem.dispose()
       renderer.dispose()
     },
