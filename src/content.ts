@@ -149,16 +149,6 @@ export const events = {
       blurb: 'Write a small CFR solver with us.',
     },
     {
-      title: 'Alumni Night',
-      date: 'Date TBA', // TODO date
-      blurb: 'Alumni talk about working in quant and research.',
-    },
-    {
-      title: 'Charity Tournament',
-      date: 'Date TBA', // TODO date
-      blurb: 'A club tournament played for charity.',
-    },
-    {
       title: 'Spring Banquet',
       date: 'Date TBA', // TODO date
       blurb: 'End-of-year dinner.',
@@ -411,8 +401,6 @@ export const pages: Record<string, SubPageDef> = {
     sections: [
       { heading: 'Fall Kickoff', alt: 'First meeting', body: 'Our first meeting of the year. Date TBA.' },
       { heading: 'Solver Workshop', alt: 'Hands-on', body: 'Write a small CFR solver with us. Date TBA.' },
-      { heading: 'Alumni Night', alt: 'Q&A', body: 'Alumni talk about working in quant and research. Date TBA.' },
-      { heading: 'Charity Tournament', alt: 'For charity', body: 'A club tournament played for charity. Date TBA.' },
       { heading: 'Spring Banquet', alt: 'Dinner', body: 'End-of-year dinner. Date TBA.' },
     ],
   },

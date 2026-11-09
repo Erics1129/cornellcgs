@@ -1,0 +1,66 @@
+/* Ice in soda: a tall runway with a stage stuck to the screen */
+.section.support-scene.soda-scene {
+  display: block;
+  min-height: 0;
+  height: 340svh;
+  padding: 0;
+  overflow: clip;
+  contain: none;
+  background: #0b0908;
+}
+.soda-scene.is-still { height: 100svh; }
+
+.soda-stage {
+  position: sticky;
+  top: 0;
+  height: 100svh;
+  overflow: hidden;
+  /* what shows before the first frame decodes: the same split of dark room and cola */
+  background:
+    radial-gradient(60% 40% at 52% 78%, #6e1d06 0%, transparent 70%),
+    linear-gradient(180deg, #0d0c0b 0%, #2a2622 46%, #4a1606 48%, #2a0a03 100%);
+}
+.soda-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  opacity: 0;
+  transition: opacity 0.5s ease;
+}
+.soda-scene.is-live .soda-canvas { opacity: 1; }
+
+/* a soft floor of shade so the closing line reads over the bubbles */
+.soda-shade {
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 46%;
+  background: linear-gradient(180deg, transparent, rgb(12 3 1 / 0.55) 70%, rgb(10 2 1 / 0.75));
+  pointer-events: none;
+}
+
+.soda-copy {
+  position: absolute;
+  inset: auto 0 0 0;
+  padding-bottom: clamp(3rem, 12vh, 8rem);
+  color: #fff8ee;
+  opacity: 0;
+  pointer-events: none;
+  will-change: opacity, transform;
+}
+.soda-copy .anyone-title {
+  margin: 0;
+  color: #fff8ee;
+  text-shadow: 0 2px 40px rgb(40 10 2 / 0.55);
+}
+.soda-copy .anyone-invitation {
+  margin-top: 1.2rem;
+  max-width: 26ch;
+  font-size: clamp(1.25rem, 2.4vw, 2rem);
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  color: #fde9d2;
+  text-shadow: 0 1px 24px rgb(40 10 2 / 0.6);
+}
+.soda-scene.is-still .soda-copy { opacity: 1; }

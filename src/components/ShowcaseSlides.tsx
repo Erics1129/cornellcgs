@@ -358,7 +358,7 @@ export function CodeSlide() {
         <div className="code-copy">
           <p data-code-copy className="code-eyebrow">Poker equity</p>
           <h2 id="code-title" data-chapter-type="slide" className="h-section">Read the code</h2>
-          <p data-code-copy className="body-muted support-lead">Our hold’em equity calculator. Press Run and it deals 20,000 hands against a random opponent.</p>
+          <p data-code-copy data-lines className="body-muted support-lead">Our hold’em equity calculator. Press Run and it deals 20,000 hands against a random opponent.</p>
         </div>
         <div className="code-device-stage">
           <div ref={laptop} className="code-laptop code-workspace ide" data-run="idle">

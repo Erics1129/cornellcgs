@@ -1,9 +1,10 @@
 import { useLayoutEffect, useRef, useState } from 'react'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
-import { dealCard, shadowStyle } from '../lib/cardMotion'
+import { dealCard, flipCard, shadowStyle } from '../lib/cardMotion'
 import { chapterType } from '../lib/chapterType'
 import GoGame from './GoGame'
+import '../styles/cards-motion.css'
 import '../styles/showcase-motion.css'
 
 gsap.registerPlugin(ScrollTrigger)
@@ -56,7 +57,7 @@ export function AlphaGoSlide() {
       </div>
       <div className="container-site alpha-copy">
         <h2 id="alphago-title" data-chapter-type="sweep" className="h-section alpha-word">AlphaGo</h2>
-        <p data-alpha-copy className="body-muted support-lead">DeepMind’s Go program beat Lee Sedol in 2016. It’s a big reason we train our agents through self-play.</p>
+        <p data-alpha-copy data-lines className="body-muted support-lead">DeepMind’s Go program beat Lee Sedol in 2016. It’s a big reason we train our agents through self-play.</p>
       </div>
       </div>
       <button type="button" className="alpha-pause" aria-label={paused ? 'Resume Go animation' : 'Pause Go animation'} aria-pressed={paused} onClick={() => setPaused(!paused)}>
@@ -66,11 +67,18 @@ export function AlphaGoSlide() {
   )
 }
 
+const PROJECT_CARDS = [
+  { rank: 'A', suit: '♥', red: true, name: 'Guandan', note: 'in training' },
+  { rank: 'K', suit: '♠', red: false, name: 'Poker', note: 'equity calculator' },
+]
+
 export function ProjectSlide() {
   const root = useRef<HTMLElement>(null)
   useScene(root, (section, desktop) => {
     const cards = Array.from(section.querySelectorAll<HTMLElement>('[data-project-card]'))
+    const turns = Array.from(section.querySelectorAll<HTMLElement>('[data-project-turn]'))
     const shadows = section.querySelectorAll<HTMLElement>('[data-project-shadow]')
+    gsap.set(turns, { rotationY: 0 })
     const copy = section.querySelectorAll('[data-project-copy]')
     gsap.set(copy, { opacity: 0, y: 12 })
     const tl = gsap.timeline({ scrollTrigger: {
@@ -85,6 +93,8 @@ export function ProjectSlide() {
         rotation: side * 11, duration: 0.44, lift: -34, air: 1.04,
         shadow: shadows[i], immediate: true,
       }), 0.06 + i * 0.1)
+      // once both have landed, they turn over to show what is being built
+      tl.add(flipCard(turns[i], true, { fromRotation: 0, duration: 0.42, shadow: shadows[i] }), 0.62 + i * 0.09)
     })
     tl.to(copy, {
       opacity: 1, y: 0, duration: 0.26, stagger: 0.08, ease: 'power2.out',
@@ -96,6 +106,7 @@ export function ProjectSlide() {
       x: 0, y: 0, rotation: (i: number) => i ? 11 : -11, scale: 1, opacity: 1,
     })
     gsap.set(section.querySelectorAll('[data-project-shadow]'), { scale: 1, opacity: 0.48 })
+    gsap.set(section.querySelectorAll('[data-project-turn]'), { rotationY: 180 })
   })
   return (
     <section ref={root} id="project" className="section support-scene project-scene" data-chapter-surface="world" aria-labelledby="project-title">
@@ -109,12 +120,24 @@ export function ProjectSlide() {
         </div>
         <div className="project-table" aria-hidden="true">
           <div className="project-table-light" />
-          {[-1, 1].map((side, i) => (
-            <div key={side} className={`project-card-holder project-card-holder-${i}`}>
-              <div data-project-shadow style={shadowStyle()} />
-              <div data-project-card className="card-back-surface project-card" style={{ transform: `rotate(${side * 11}deg)` }} />
-            </div>
-          ))}
+          {PROJECT_CARDS.map((card, i) => {
+            const side = i ? 1 : -1
+            return (
+              <div key={card.name} className={`project-card-holder project-card-holder-${i}`}>
+                <div data-project-shadow style={shadowStyle()} />
+                <div data-project-card className="project-card" style={{ transform: `rotate(${side * 11}deg)` }}>
+                  <div data-project-turn className="card-turn project-turn">
+                    <div className="card-side card-material card-back-surface project-back"><span>{card.suit}</span></div>
+                    <div className={`card-side card-reverse card-material card-face-surface project-face${card.red ? ' is-red' : ''}`}>
+                      <div className="material-index"><span>{card.rank}</span><span>{card.suit}</span></div>
+                      <div className="project-face-name"><span>{card.name}</span><small>{card.note}</small></div>
+                      <div className="material-index material-index-bottom"><span>{card.rank}</span><span>{card.suit}</span></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )
+          })}
         </div>
       </div>
     </section>
