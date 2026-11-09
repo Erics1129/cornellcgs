@@ -13,6 +13,10 @@
  */
 const MUTE_KEY = 'cgs-soda-sound'
 export const SODA_SOUND_EVENT = 'cgs:soda-sound'
+/** fired once the browser has let the sound start, so the button can stop asking for a tap */
+export const SODA_READY_EVENT = 'cgs:soda-ready'
+let ready = false
+export const sodaReady = () => ready
 
 export function sodaMuted(): boolean {
   try {
@@ -36,18 +40,26 @@ const sstep = (a: number, b: number, x: number) => {
   return t * t * (3 - 2 * t)
 }
 
+// bump when the recordings change, so no phone keeps an old or missing copy cached
+const SFX_VERSION = '2'
 const SFX = `${import.meta.env.BASE_URL}soda/sfx/`
 
 async function load(ctx: BaseAudioContext, name: string): Promise<AudioBuffer | null> {
-  try {
-    const res = await fetch(SFX + name)
-    if (!res.ok) return null
-    const data = await res.arrayBuffer()
-    // Safari still wants the callback form
-    return await new Promise<AudioBuffer>((ok, bad) => ctx.decodeAudioData(data, ok, bad))
-  } catch {
-    return null
+  // a phone on a weak connection can drop the first try, so give it three
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      const res = await fetch(`${SFX}${name}?v=${SFX_VERSION}`)
+      if (res.ok) {
+        const data = await res.arrayBuffer()
+        // Safari still wants the callback form
+        return await new Promise<AudioBuffer>((ok, bad) => ctx.decodeAudioData(data, ok, bad))
+      }
+    } catch {
+      /* try again */
+    }
+    await new Promise((r) => setTimeout(r, 1500 * (attempt + 1)))
   }
+  return null
 }
 
 export type SodaSound = {
@@ -79,6 +91,14 @@ export function createSodaSound(): SodaSound {
 
   const build = () => {
     if (ctx) return ctx
+    // iPhone mutes web audio when the ringer switch is on silent unless the page
+    // says it is media playback, the way a video is (Safari 16.4 and later)
+    try {
+      const session = (navigator as unknown as { audioSession?: { type: string } }).audioSession
+      if (session) session.type = 'playback'
+    } catch {
+      /* older browsers just follow the ringer */
+    }
     ctx = new AC({ latencyHint: 'interactive' })
     master = ctx.createGain()
     master.gain.value = 0
@@ -130,7 +150,7 @@ export function createSodaSound(): SodaSound {
     return ctx
   }
 
-  const level = () => (muted || !unlocked ? 0 : 0.7 * Math.min(1, vis * 1.4))
+  const level = () => (muted || !unlocked ? 0 : 0.95 * Math.min(1, vis * 1.4))
 
   const setMaster = () => {
     if (!ctx || !master) return
@@ -142,9 +162,23 @@ export function createSodaSound(): SodaSound {
   const unlock = () => {
     if (disposed) return
     const c = build()
+    // iOS only opens the audio route once something actually plays inside the
+    // tap itself, so play one silent sample right here, synchronously
+    try {
+      const blip = c.createBufferSource()
+      blip.buffer = c.createBuffer(1, 1, c.sampleRate)
+      blip.connect(c.destination)
+      blip.start(0)
+    } catch {
+      /* nothing to unlock */
+    }
     const done = () => {
       if (c.state !== 'running') return
       unlocked = true
+      if (!ready) {
+        ready = true
+        window.dispatchEvent(new CustomEvent(SODA_READY_EVENT))
+      }
       GESTURES.forEach((g) => window.removeEventListener(g, unlock, true))
       setMaster()
     }
@@ -198,10 +232,11 @@ export function createSodaSound(): SodaSound {
     setMaster()
     const t = ctx.currentTime
     // fizz: quiet at the start, livelier once the cube has stirred the cola
-    fizzGain!.gain.setTargetAtTime(0.32 + 0.4 * sstep(0.22, 0.3, p) - 0.18 * sstep(0.85, 1, p), t, 0.15)
+    fizzGain!.gain.setTargetAtTime(0.6 + 0.4 * sstep(0.22, 0.3, p) - 0.2 * sstep(0.85, 1, p), t, 0.15)
     // under the surface the world goes muffled
     const under = sstep(0.36, 0.55, p)
-    water!.frequency.setTargetAtTime(16000 * Math.pow(1800 / 16000, under), t, 0.1)
+    // (not too far, phone speakers have almost nothing below 1 kHz)
+    water!.frequency.setTargetAtTime(16000 * Math.pow(3500 / 16000, under), t, 0.1)
 
     // the plop, once, the moment the cube meets the surface going forward
     if (p < 0.2) armed = true

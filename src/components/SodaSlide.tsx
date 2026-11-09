@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { prefersReducedMotion } from '../lib/motion'
-import { createSodaSound, setSodaMuted, sodaMuted, SODA_SOUND_EVENT } from '../lib/sodaSound'
+import { createSodaSound, setSodaMuted, sodaMuted, sodaReady, SODA_READY_EVENT, SODA_SOUND_EVENT } from '../lib/sodaSound'
 import '../styles/soda.css'
 
 /**
@@ -24,6 +24,8 @@ export default function SodaSlide() {
   const copy = useRef<HTMLDivElement>(null)
   const [still] = useState(() => typeof window !== 'undefined' && prefersReducedMotion())
   const [muted, setMuted] = useState(() => typeof window !== 'undefined' && sodaMuted())
+  // phones only allow sound after a tap (scrolling doesn't count), so until then the button asks for one
+  const [ready, setReady] = useState(() => typeof window !== 'undefined' && sodaReady())
 
   // fizz, the plop and the trailing air, driven by the same scroll as the film
   useEffect(() => {
@@ -44,13 +46,16 @@ export default function SodaSlide() {
       if (!raf) raf = requestAnimationFrame(feel)
     }
     const onMute = (e: Event) => setMuted(!!(e as CustomEvent<{ muted: boolean }>).detail?.muted)
+    const onReady = () => setReady(true)
     window.addEventListener('scroll', onScroll, { passive: true })
     window.addEventListener(SODA_SOUND_EVENT, onMute)
+    window.addEventListener(SODA_READY_EVENT, onReady)
     feel()
     return () => {
       cancelAnimationFrame(raf)
       window.removeEventListener('scroll', onScroll)
       window.removeEventListener(SODA_SOUND_EVENT, onMute)
+      window.removeEventListener(SODA_READY_EVENT, onReady)
       sound.dispose()
     }
   }, [])
@@ -245,10 +250,14 @@ export default function SodaSlide() {
         <div className="soda-shade" aria-hidden="true" />
         <button
           type="button"
-          className={`soda-sound${muted ? ' is-muted' : ''}`}
-          aria-pressed={!muted}
-          aria-label={muted ? 'Turn the soda sound on' : 'Mute the soda sound'}
-          onClick={() => setSodaMuted(!muted)}
+          className={`soda-sound${muted ? ' is-muted' : ''}${!muted && !ready ? ' is-waiting' : ''}`}
+          aria-pressed={!muted && ready}
+          aria-label={muted ? 'Turn the soda sound on' : ready ? 'Mute the soda sound' : 'Tap to hear the soda sound'}
+          onClick={() => {
+            // the first tap is the one that wakes the sound, it should never mute it
+            if (!ready && !muted) return
+            setSodaMuted(!muted)
+          }}
         >
           <span className="soda-sound__bars" aria-hidden="true">
             <i />
@@ -256,7 +265,7 @@ export default function SodaSlide() {
             <i />
             <i />
           </span>
-          <span className="soda-sound__label">{muted ? 'Sound off' : 'Sound on'}</span>
+          <span className="soda-sound__label">{muted ? 'Sound off' : ready ? 'Sound on' : 'Tap for sound'}</span>
         </button>
         <div ref={copy} className="container-site soda-copy">
           <h2 id="together-title" className="anyone-title">Any major.</h2>

@@ -121,10 +121,26 @@
   animation: none;
   transform: scaleY(0.18);
 }
+/* waiting for the first tap: bars rest and the pill breathes so it gets noticed */
+.soda-sound.is-waiting {
+  color: #fff;
+  border-color: rgba(255, 236, 214, 0.6);
+  background: rgba(60, 20, 8, 0.6);
+  animation: soda-ask 2.2s ease-in-out infinite;
+}
+.soda-sound.is-waiting .soda-sound__bars i {
+  animation: none;
+  transform: scaleY(0.35);
+}
+@keyframes soda-ask {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255, 220, 190, 0.45); }
+  60% { box-shadow: 0 0 0 10px rgba(255, 220, 190, 0); }
+}
 @keyframes soda-bubble {
   0%, 100% { transform: scaleY(0.25); }
   50% { transform: scaleY(1); }
 }
 @media (prefers-reduced-motion: reduce) {
   .soda-sound__bars i { animation: none; transform: scaleY(0.6); }
+  .soda-sound.is-waiting { animation: none; }
 }
