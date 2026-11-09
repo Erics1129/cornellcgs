@@ -1,0 +1,122 @@
+/* The dealt pointer. Both parts are zero sized anchors that the script moves;
+   what you see is drawn around their centre, so changing shape never shifts
+   where the pointer is. */
+html.cgs-cursor,
+html.cgs-cursor * {
+  cursor: none !important;
+}
+html.cgs-cursor :is(input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='button']):not([type='submit']), textarea, [contenteditable='true']) {
+  cursor: text !important;
+}
+
+.cgs-ring,
+.cgs-pip {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 0;
+  height: 0;
+  z-index: 10000;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.25s ease;
+  will-change: transform;
+  mix-blend-mode: difference;
+}
+html.cgs-cursor--on .cgs-ring,
+html.cgs-cursor--on .cgs-pip {
+  opacity: 1;
+}
+
+.cgs-pip::before {
+  content: '';
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  margin: -3px 0 0 -3px;
+  border-radius: 50%;
+  background: #fff;
+  transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.cgs-pip[data-mode='press']::before {
+  transform: scale(0);
+}
+.cgs-pip[data-mode='card']::before,
+.cgs-pip[data-mode='typing']::before {
+  transform: scale(0);
+}
+
+.cgs-ring::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  border: 1.5px solid rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 0);
+  transform: translate(-50%, -50%);
+  transition:
+    width 0.45s cubic-bezier(0.2, 0.9, 0.25, 1.15),
+    height 0.45s cubic-bezier(0.2, 0.9, 0.25, 1.15),
+    border-radius 0.45s cubic-bezier(0.2, 0.8, 0.2, 1),
+    background-color 0.3s ease,
+    border-color 0.3s ease,
+    scale 0.18s ease;
+}
+
+/* over something pressable: the ring opens and fills */
+.cgs-ring[data-mode='press']::before {
+  width: 62px;
+  height: 62px;
+  background: rgba(255, 255, 255, 1);
+  border-color: transparent;
+}
+
+/* over a playing card: a little card of its own */
+.cgs-ring[data-mode='card']::before {
+  width: 34px;
+  height: 48px;
+  border-radius: 5px;
+  border-color: rgba(255, 255, 255, 0.95);
+  background: rgba(255, 255, 255, 0.08);
+}
+.cgs-ring__suit {
+  position: absolute;
+  left: 0;
+  top: 0;
+  font: 600 17px/1 var(--font-body, system-ui);
+  color: #fff;
+  transform: translate(-50%, -50%) scale(0.2);
+  opacity: 0;
+  transition:
+    opacity 0.25s ease,
+    transform 0.45s cubic-bezier(0.2, 0.9, 0.25, 1.3);
+}
+.cgs-ring[data-mode='card'] .cgs-ring__suit {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1);
+}
+/* red suits print red: under the difference blend this cyan reads as red on light cards */
+.cgs-ring[data-red='1'] .cgs-ring__suit {
+  color: #3ff;
+}
+
+/* typing: the system caret takes over */
+.cgs-ring[data-mode='typing']::before {
+  width: 0;
+  height: 0;
+  border-color: transparent;
+}
+
+.cgs-ring.is-down::before {
+  scale: 0.78;
+}
+
+@media (hover: none), (pointer: coarse) {
+  .cgs-ring,
+  .cgs-pip {
+    display: none;
+  }
+}

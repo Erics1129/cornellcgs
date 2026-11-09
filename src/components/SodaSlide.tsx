@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { prefersReducedMotion } from '../lib/motion'
+import { createSodaSound, setSodaMuted, sodaMuted, SODA_SOUND_EVENT } from '../lib/sodaSound'
 import '../styles/soda.css'
 
 /**
@@ -22,6 +23,37 @@ export default function SodaSlide() {
   const canvas = useRef<HTMLCanvasElement>(null)
   const copy = useRef<HTMLDivElement>(null)
   const [still] = useState(() => typeof window !== 'undefined' && prefersReducedMotion())
+  const [muted, setMuted] = useState(() => typeof window !== 'undefined' && sodaMuted())
+
+  // fizz, the plop and the trailing air, driven by the same scroll as the film
+  useEffect(() => {
+    const section = root.current
+    if (!section) return
+    const sound = createSodaSound()
+    let raf = 0
+    const feel = () => {
+      raf = 0
+      const rect = section.getBoundingClientRect()
+      const vh = window.innerHeight
+      const run = section.offsetHeight - vh
+      const p = run > 0 ? Math.min(1, Math.max(0, -rect.top / run)) : 0
+      const vis = Math.max(0, Math.min(rect.bottom, vh) - Math.max(rect.top, 0)) / vh
+      sound.update(p, vis)
+    }
+    const onScroll = () => {
+      if (!raf) raf = requestAnimationFrame(feel)
+    }
+    const onMute = (e: Event) => setMuted(!!(e as CustomEvent<{ muted: boolean }>).detail?.muted)
+    window.addEventListener('scroll', onScroll, { passive: true })
+    window.addEventListener(SODA_SOUND_EVENT, onMute)
+    feel()
+    return () => {
+      cancelAnimationFrame(raf)
+      window.removeEventListener('scroll', onScroll)
+      window.removeEventListener(SODA_SOUND_EVENT, onMute)
+      sound.dispose()
+    }
+  }, [])
 
   useEffect(() => {
     const section = root.current
@@ -211,6 +243,21 @@ export default function SodaSlide() {
       <div className="soda-stage">
         <canvas ref={canvas} className="soda-canvas" aria-hidden="true" />
         <div className="soda-shade" aria-hidden="true" />
+        <button
+          type="button"
+          className={`soda-sound${muted ? ' is-muted' : ''}`}
+          aria-pressed={!muted}
+          aria-label={muted ? 'Turn the soda sound on' : 'Mute the soda sound'}
+          onClick={() => setSodaMuted(!muted)}
+        >
+          <span className="soda-sound__bars" aria-hidden="true">
+            <i />
+            <i />
+            <i />
+            <i />
+          </span>
+          <span className="soda-sound__label">{muted ? 'Sound off' : 'Sound on'}</span>
+        </button>
         <div ref={copy} className="container-site soda-copy">
           <h2 id="together-title" className="anyone-title">Any major.</h2>
           <p className="anyone-invitation">You don’t need experience. You need to be curious why the bot folded.</p>
