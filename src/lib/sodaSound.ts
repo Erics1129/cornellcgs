@@ -109,8 +109,17 @@ export function createSodaSound(): SodaSound {
       const src = c.createBufferSource()
       src.buffer = buf
       src.loop = true
+      // some decoders keep the encoder's few ms of padding at each end, which
+      // would tick at every seam, so loop only between the first and last sound
+      const d = buf.getChannelData(0)
+      let i = 0
+      let j = d.length - 1
+      while (i < j && Math.abs(d[i]) < 1e-4) i++
+      while (j > i && Math.abs(d[j]) < 1e-4) j--
+      src.loopStart = i / buf.sampleRate
+      src.loopEnd = (j + 1) / buf.sampleRate
       // start somewhere random so a revisit doesn't sound like a rerun
-      src.start(0, Math.random() * buf.duration)
+      src.start(0, src.loopStart + Math.random() * (src.loopEnd - src.loopStart))
       src.connect(into)
     }
     load(c, 'fizz.mp3').then((b) => loop(b, fizzGain))
