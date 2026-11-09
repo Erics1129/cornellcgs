@@ -75,7 +75,9 @@ export function createSodaSound(): SodaSound {
 
   let ctx: AudioContext | null = null
   let master: GainNode | null = null
-  let fizzGain: GainNode | null = null
+  /** fizz loudness, about 7 dB under where it was */
+const FIZZ = 0.45
+let fizzGain: GainNode | null = null
   let water: BiquadFilterNode | null = null
   let bubbleGain: GainNode | null = null
   let plop: AudioBuffer | null = null
@@ -231,8 +233,8 @@ export function createSodaSound(): SodaSound {
     }
     setMaster()
     const t = ctx.currentTime
-    // fizz: quiet at the start, livelier once the cube has stirred the cola
-    fizzGain!.gain.setTargetAtTime(0.6 + 0.4 * sstep(0.22, 0.3, p) - 0.2 * sstep(0.85, 1, p), t, 0.15)
+    // fizz: soft under the film (Eric asked for it quieter), a little livelier once the cube has stirred the cola
+    fizzGain!.gain.setTargetAtTime(FIZZ * (0.6 + 0.4 * sstep(0.22, 0.3, p) - 0.2 * sstep(0.85, 1, p)), t, 0.15)
     // under the surface the world goes muffled
     const under = sstep(0.36, 0.55, p)
     // (not too far, phone speakers have almost nothing below 1 kHz)

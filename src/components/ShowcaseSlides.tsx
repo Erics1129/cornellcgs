@@ -12,9 +12,9 @@ gsap.registerPlugin(ScrollTrigger)
 
 /** Current projects, one row each. TODO(club): keep this list up to date. */
 const STATS = [
-  { over: 'In training', big: 'Guandan', under: 'a card game agent that learns by playing against itself' },
-  { over: 'Working', big: 'Poker', under: 'a hold’em equity calculator, running just below' },
-  { over: 'In progress', big: 'Ink Maze', under: 'a puzzle game: roll the ball, color every block' },
+  { over: 'In training', big: 'Guandan', under: 'a card game AI that learns by playing against itself' },
+  { over: 'Working', big: 'Poker', under: 'a hold’em odds calculator, running just below' },
+  { over: 'Play it now', big: 'Ink Maze', under: 'our puzzle game, roll the ball and color every block' },
 ]
 
 /** An unpinned editorial sequence: each figure clears its own baseline. */

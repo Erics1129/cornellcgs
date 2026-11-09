@@ -57,7 +57,7 @@ export function AlphaGoSlide() {
       </div>
       <div className="container-site alpha-copy">
         <h2 id="alphago-title" data-chapter-type="sweep" className="h-section alpha-word">AlphaGo</h2>
-        <p data-alpha-copy data-lines className="body-muted support-lead">DeepMind’s Go program beat Lee Sedol in 2016. It’s a big reason we train our agents through self-play.</p>
+        <p data-alpha-copy data-lines className="body-muted support-lead">Watch the stones land. DeepMind’s AlphaGo beat Lee Sedol in 2016, and it got that strong partly by playing against itself. We train our card game AIs the same way.</p>
       </div>
       </div>
       <button type="button" className="alpha-pause" aria-label={paused ? 'Resume Go animation' : 'Pause Go animation'} aria-pressed={paused} onClick={() => setPaused(!paused)}>
@@ -116,7 +116,7 @@ export function ProjectSlide() {
             <span className="chapter-type-mask" aria-hidden="true"><span data-chapter-glyph>Current</span></span>
             <span className="chapter-type-mask" aria-hidden="true"><span data-chapter-glyph>projects</span></span>
           </h2>
-          <p data-project-copy className="project-description">What members are building this semester.</p>
+          <p data-project-copy className="project-description">Two cards on the table. Watch them flip to see what we’re building.</p>
         </div>
         <div className="project-table" aria-hidden="true">
           <div className="project-table-light" />
@@ -160,11 +160,11 @@ export function AnyoneSlide() {
   return (
     <section ref={root} id="anyone" className="section support-scene anyone-scene" data-chapter-surface="world" aria-labelledby="together-title">
       <div className="container-site anyone-copy">
-        <h2 id="together-title" data-chapter-type="gather" className="anyone-title" aria-label="Any major.">
-          <span aria-hidden="true">{'Any major.'.split('').map((letter, i) => <span key={i} data-chapter-glyph>{letter === ' ' ? '\u00a0' : letter}</span>)}</span>
+        <h2 id="together-title" data-chapter-type="gather" className="anyone-title" aria-label="Drop in.">
+          <span aria-hidden="true">{'Drop in.'.split('').map((letter, i) => <span key={i} data-chapter-glyph>{letter === ' ' ? '\u00a0' : letter}</span>)}</span>
         </h2>
         <div data-anyone-rule className="anyone-rule" aria-hidden="true" />
-        <p data-anyone-copy className="anyone-invitation">You don’t need experience. You need to be curious why the bot folded.</p>
+        <p data-anyone-copy className="anyone-invitation">We’re gonna have fun at meetings! No experience needed, just drop in like the ice.</p>
       </div>
     </section>
   )

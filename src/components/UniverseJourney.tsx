@@ -6,7 +6,8 @@ import '../styles/universe.css'
 
 gsap.registerPlugin(ScrollTrigger)
 const occupiedStages = new Set<Element>()
-const PHASES = ['Bigger boards', 'Hidden cards', 'More players']
+/** Guandan: two decks, four players, and far more possible deals (over 10⁴⁵) than stars in the observable universe (about 10²²–10²⁴) */
+const PHASES = ['Two decks', 'Four players', 'More deals than stars']
 const clamp = (v: number) => Math.max(0, Math.min(1, v))
 const smooth = (a: number, b: number, value: number) => {
   const p = clamp((value-a)/(b-a))
@@ -302,7 +303,7 @@ export default function UniverseJourney() {
   }, [])
 
   return (
-    <section ref={root} id="universe" className="universe-journey" data-renderer="pending" aria-label="How games get harder: bigger boards, hidden cards, more players.">
+    <section ref={root} id="universe" className="universe-journey" data-renderer="pending" aria-label="Guandan: two decks, four players, more deals than stars.">
       <div ref={stage} className="universe-viewport">
         <div className="universe-fallback" aria-hidden="true">
           <div className="universe-fallback-halo" />
@@ -312,9 +313,9 @@ export default function UniverseJourney() {
         <canvas ref={canvas} className="universe-canvas" data-scene="universe" aria-hidden="true" />
         <div className="universe-edges" aria-hidden="true" />
         <div ref={heading} className="universe-heading container-site">
-          <h2 aria-label="Bigger boards. Hidden cards. More players.">
+          <h2 aria-label="Two decks. Four players. More deals than stars.">
             {PHASES.map((label,i) => <span key={i} data-universe-phase className={`universe-phase universe-phase-${i}`} aria-hidden="true">
-              {label.split(' ').map((word,j) => <span key={word} className="universe-phase-mask"><span data-phase-word>{word}{j===0 ? '\u00a0' : ''}</span></span>)}
+              {label.split(' ').map((word,j,all) => <span key={word} className="universe-phase-mask"><span data-phase-word>{word}{j<all.length-1 ? '\u00a0' : ''}</span></span>)}
             </span>)}
           </h2>
         </div>

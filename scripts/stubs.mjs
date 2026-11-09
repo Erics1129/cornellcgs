@@ -38,7 +38,7 @@ const PAGES = {
   },
   'what-we-do': {
     title: 'What We Do — Cornell Computational Game Society',
-    desc: 'Current projects at Cornell CGS, including a Guandan agent and a poker equity calculator, plus study nights, tournaments and talks.',
+    desc: 'Current projects at Cornell CGS, a Guandan AI, a poker equity calculator and our own mini games.',
   },
   'ml-process': {
     title: 'Our Machine Learning Process — Cornell CGS',
