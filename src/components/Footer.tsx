@@ -103,28 +103,30 @@ export default function Footer() {
         {/* Stacked chapter links, Citadel-style. Real hrefs so crawlers can
             walk to every sub-page; a human click stays on the deck. */}
         <nav aria-label="Footer" className="flex flex-col items-start gap-4 md:items-end" data-interactive>
-          {nav.map(({ id, label }) => (
+          {nav.map(({ id, label }, i) => (
             <a
               key={id}
+              data-suit={'♠♥♦♣'[i % 4]}
               href={pagePath(id)}
               data-f-link
               onClick={(e) => {
                 e.preventDefault()
                 scrollToId(id)
               }}
-              className="link-wipe text-[max(1.05rem,1.0625rem)] font-[550] text-[#f7f3ec] transition-colors [transition-timing-function:var(--ease-out)] hover:text-white"
+              className="f-link link-wipe text-[max(1.05rem,1.0625rem)] font-[550] text-[#f7f3ec] transition-colors [transition-timing-function:var(--ease-out)] hover:text-white"
             >
               {label}
             </a>
           ))}
           <a
             href={pagePath('contact')}
+            data-suit="★"
             data-f-link
             onClick={(e) => {
               e.preventDefault()
               scrollToId('contact')
             }}
-            className="link-wipe text-[max(1.05rem,1.0625rem)] font-[550] text-[#f7f3ec] transition-colors [transition-timing-function:var(--ease-out)] hover:text-white"
+            className="f-link link-wipe text-[max(1.05rem,1.0625rem)] font-[550] text-[#f7f3ec] transition-colors [transition-timing-function:var(--ease-out)] hover:text-white"
           >
             Contact
           </a>
@@ -136,7 +138,22 @@ export default function Footer() {
           <p className="mono text-[max(0.8rem,0.75rem)] text-[#bfb4a0]">
             {site.footerLine(new Date().getFullYear())}
           </p>
-          <p className="mono text-[max(0.8rem,0.75rem)] text-[#bfb4a0]">{site.domain}</p>
+          <div className="flex items-center gap-6">
+            <p className="mono text-[max(0.8rem,0.75rem)] text-[#bfb4a0]">{site.domain}</p>
+            {/* Back to the top, the deck gathered and dealt again */}
+            <button
+              type="button"
+              className="f-redeal mono text-[max(0.8rem,0.75rem)]"
+              onClick={() => scrollToId('top')}
+            >
+              <span className="f-redeal__deck" aria-hidden="true">
+                <i />
+                <i />
+                <i />
+              </span>
+              Deal again
+            </button>
+          </div>
         </div>
         <div className="container-site border-t border-[rgba(191,180,160,0.18)] py-4">
           <p className="mono text-[max(0.75rem,0.75rem)] text-[#bfb4a0]">

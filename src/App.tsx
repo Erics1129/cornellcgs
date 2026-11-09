@@ -6,11 +6,13 @@ import { useNeonEdges } from './lib/neon'
 import { BOOTED_EVENT, prefersReducedMotion } from './lib/motion'
 import { dealCard, shadowStyle } from './lib/cardMotion'
 import { initLineReveals } from './lib/lines'
+import { initTransitions } from './lib/transitions'
 import GradientBG from './effects/GradientBG'
 import CodeLayer from './effects/CodeLayer'
 import FutureEye from './components/FutureEye'
 import Nav from './components/Nav'
 import SideRail from './components/SideRail'
+import Cursor from './components/Cursor'
 import Hero from './components/Hero'
 import WhoWeAre from './components/WhoWeAre'
 import WhatWeDo from './components/WhatWeDo'
@@ -143,7 +145,20 @@ function Loader({ done }: { done: boolean }) {
         data-counter
         className="mono absolute bottom-8 left-8 text-[max(0.8rem,0.8125rem)] text-[var(--muted)]"
       >
-        {String(count).padStart(3, '0')}
+        {/* an odometer: each digit rolls on its own drum */}
+        <span className="sr-only">{count}</span>
+        <span className="odo" aria-hidden="true">
+          {String(count)
+            .padStart(3, '0')
+            .split('')
+            .map((d, i) => (
+              <span key={i} className="odo__drum">
+                <span className="odo__strip" style={{ transform: `translateY(${-Number(d) * 10}%)` }}>
+                  0<br />1<br />2<br />3<br />4<br />5<br />6<br />7<br />8<br />9
+                </span>
+              </span>
+            ))}
+        </span>
       </span>
     </div>
   )
@@ -210,7 +225,13 @@ export default function App() {
     let cleanup = () => {}
     let alive = true
     ;(document.fonts?.ready ?? Promise.resolve()).then(() => {
-      if (alive && mainRef.current) cleanup = initLineReveals(mainRef.current)
+      if (!alive || !mainRef.current) return
+      const a = initLineReveals(mainRef.current)
+      const b = initTransitions(document)
+      cleanup = () => {
+        a()
+        b()
+      }
     })
     return () => {
       alive = false
@@ -227,6 +248,7 @@ export default function App() {
           becomes the containing block for position:fixed and breaks it. */}
       <Nav />
       <SideRail />
+      <Cursor />
       {/* Cinematic grain over the whole world; sits under the loader only */}
       <div aria-hidden="true" className="film-grain z-[80]" />
       <div ref={shakeRef} className="relative z-10">
