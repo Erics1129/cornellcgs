@@ -51,14 +51,13 @@ export function classify(w = window.innerWidth, h = window.innerHeight): DeviceC
   const coarse = window.matchMedia('(pointer: coarse)').matches
   const hover = window.matchMedia('(hover: hover)').matches
   const short = Math.min(w, h)
-  const long = Math.max(w, h)
   if (/\b(SmartTV|SMART-TV|Tizen|Web0S|WebOS|NetCast|AppleTV|CrKey|BRAVIA|Roku|Viera|PlayStation|Xbox)\b/i.test(ua)) return 'tv'
   // a phone: touch, no hover, a short side under 600 (any orientation)
   if (coarse && !hover && short < 600) return 'phone'
   // a tablet: touch-first with a bigger short side; iPadOS reports a Mac UA, so touch points decide
   if ((coarse && !hover) || (navigator.maxTouchPoints > 1 && /Macintosh|iPad/.test(ua) && short < 1100)) return 'tablet'
-  // pointer devices split by width: a 4K living-room screen counts as a tv
-  if (long >= 2560 && window.devicePixelRatio <= 1.25) return 'tv'
+  // Pointer devices split by width only. A wide monitor at 1x (2560x1440 is a
+  // common desk screen) is a desktop; a tv is only ever named by its user agent.
   if (w >= 1920) return 'desktop'
   return 'laptop'
 }
@@ -71,6 +70,18 @@ export function designScale(cls: DeviceClass, w = window.innerWidth): number {
 let applied: { cls: DeviceClass; scale: number } | null = null
 /** dev-only override (?device=tablet or __cgsDevice.force) so any class can be checked on one machine */
 let forced: DeviceClass | null = null
+const classListeners = new Set<(cls: DeviceClass) => void>()
+
+/** The class in force right now (the dev override included). lib/tier.ts builds on it. */
+export function deviceClass(): DeviceClass {
+  return applied?.cls ?? forced ?? classify()
+}
+
+/** Fires when a resize or a rotation moves the screen into another class. */
+export function onDeviceChange(fn: (cls: DeviceClass) => void): () => void {
+  classListeners.add(fn)
+  return () => classListeners.delete(fn)
+}
 
 /** Writes the class and scale to the document; returns what was applied. */
 export function applyDevice(): { cls: DeviceClass; scale: number } {
@@ -78,10 +89,12 @@ export function applyDevice(): { cls: DeviceClass; scale: number } {
   const scale = designScale(cls)
   const root = document.documentElement
   if (!applied || applied.cls !== cls || Math.abs(applied.scale - scale) > 0.002) {
+    const changed = !!applied && applied.cls !== cls
     root.dataset.device = cls
     root.style.setProperty('--dscale', scale.toFixed(4))
     root.style.fontSize = `${(16 * scale).toFixed(3)}px`
     applied = { cls, scale }
+    if (changed) for (const fn of classListeners) fn(cls)
   }
   return applied
 }
