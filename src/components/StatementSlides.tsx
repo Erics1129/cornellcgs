@@ -3,6 +3,7 @@ import gsap from 'gsap'
 import { dealCard, flipCard, shadowStyle } from '../lib/cardMotion'
 import { chapterType } from '../lib/chapterType'
 import { drive } from '../lib/deck'
+import { animationOff } from '../lib/motion'
 import { reveal } from '../lib/reveal'
 import GoGame from './GoGame'
 import '../styles/cards-motion.css'
@@ -15,6 +16,7 @@ function useScene(root: React.RefObject<HTMLElement | null>, build: SceneBuilder
   useLayoutEffect(() => {
     const section = root.current
     if (!section) return
+    if (animationOff()) return rest?.(section)
     const media = gsap.matchMedia(section)
     media.add({
       motion: '(prefers-reduced-motion: no-preference)',

@@ -6,7 +6,7 @@ import ScrollWords from './ScrollWords'
 import EarthTravel from './EarthTravel'
 import { EARTH_INTRO, EARTH_PLACES as PLACES, EARTH_REST_GAPS } from '../lib/earthJourney'
 import { chapter, drive, setRestGaps } from '../lib/deck'
-import { RUNWAY_MEDIA } from '../lib/motion'
+import { RUNWAY_MEDIA, animationOff } from '../lib/motion'
 import '../styles/earth-journey.css'
 
 /** A native sticky chapter. Every pose is a function of the chapter's progress
@@ -23,6 +23,7 @@ export default function WorldSection() {
     if (!el) return
     const media = gsap.matchMedia()
     media.add(RUNWAY_MEDIA, () => {
+      if (animationOff()) return
       el.dataset.earthMotion = 'scroll'
       scrolling.current = true
       setRestGaps('world', EARTH_REST_GAPS)

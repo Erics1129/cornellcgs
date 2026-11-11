@@ -5,6 +5,7 @@ import { POT_EQUITY } from '../effects/codeSnippets'
 import { label, margin95, parse, potEquity, type Card, type Checkpoint } from '../solver/equity'
 import { chapterType } from '../lib/chapterType'
 import { drive, onMeasure } from '../lib/deck'
+import { animationOff } from '../lib/motion'
 import { reveal } from '../lib/reveal'
 import '../styles/showcase-motion.css'
 import '../styles/code-ide.css'
@@ -263,6 +264,10 @@ export function CodeSlide() {
       drawOutput(1)
     }
     media.add('(prefers-reduced-motion: reduce)', still)
+    if (animationOff()) {
+      still()
+      return () => media.revert()
+    }
     media.add({
       motion: '(prefers-reduced-motion: no-preference)',
       desktop: '(min-width: 900px) and (min-height: 680px)',

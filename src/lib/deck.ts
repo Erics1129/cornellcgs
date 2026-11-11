@@ -23,6 +23,7 @@
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import type Lenis from 'lenis'
+import { animationOff } from './motion'
 
 gsap.registerPlugin(ScrollTrigger)
 
@@ -179,7 +180,7 @@ let anchor: { id: ChapterId; top: number; height: number; offset: number } | nul
 
 /** Dev kill switch (probe invariant 35): no deck, no reveals, no scenes. Set window.__filmOff = true before boot. */
 export function filmOff(): boolean {
-  return import.meta.env.DEV && typeof window !== 'undefined' && (window as unknown as { __filmOff?: boolean }).__filmOff === true
+  return animationOff()
 }
 
 const reducedMotion = () => typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches

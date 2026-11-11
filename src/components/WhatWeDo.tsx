@@ -3,6 +3,7 @@ import gsap from 'gsap'
 import SectionIndex from './SectionIndex'
 import ScrollWords from './ScrollWords'
 import { whatWeDo } from '../content'
+import { animationOff } from '../lib/motion'
 import { reveal, useSectionReveals } from '../lib/reveal'
 import { dealCard, flipCard, hoverLift, observeCardLayout, shadowStyle } from '../lib/cardMotion'
 
@@ -18,7 +19,7 @@ export default function WhatWeDo() {
     if (!slots.length) return
     const mm = gsap.matchMedia()
     mm.add({ motion: '(prefers-reduced-motion: no-preference)', wide: '(min-width: 1200px) and (min-height: 760px)' }, (context) => {
-      if (!context.conditions?.motion) return
+      if (!context.conditions?.motion || animationOff()) return
       const wide = !!context.conditions?.wide && slots.length <= 5
       const deck = section.querySelector<HTMLElement>('[data-deck-spot]')
       const parts = slots.map((slot) => ({

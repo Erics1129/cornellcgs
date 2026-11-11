@@ -33,6 +33,10 @@ for (const s of stops) {
   await page.waitForTimeout(+opt('wait', 700))
   const a = await page.evaluate(auditFn)
   const film = await page.evaluate(() => { const f = window.__film?.state?.(); if (!f) return null; return { rest: f.frame.rest, idle: f.frame.idle, active: f.frame.active, bg: f.frame.bgVisible, half: f.reveals.filter(r => r.progress > 0.001 && r.progress < 0.999).map(r => r.id), unshown: f.reveals.filter(r => r.inView && r.progress < 0.999).map(r => r.id), ch: f.chapters.filter(c => c.inView).map(c => `${c.id} run ${c.run.toFixed(3)} vrun ${c.vrun.toFixed(3)}`) } })
+  // While a stage is stuck, none of its words may sit outside the screen (they could never be scrolled to).
+  const cut = s.f > 0 && s.f < 1 ? await page.evaluate(id => { const out = []; const root = document.getElementById(id); const stage = root?.querySelector('[data-stage], .scene-stage, .universe-viewport, .soda-stage'); if (!stage || getComputedStyle(stage).position !== 'sticky') return out
+    for (const el of stage.querySelectorAll('h1,h2,h3,p,li,a,button,figcaption')) { if (el.closest('[aria-hidden="true"],[data-phase="off"]') || el.querySelector('h1,h2,h3,p,li')) continue; let o = 1; for (let n = el; n && n !== root; n = n.parentElement) { const c = getComputedStyle(n); o *= +c.opacity; if (c.visibility === 'hidden' || c.display === 'none') o = 0 } if (o < 0.5) continue
+      const r = el.getBoundingClientRect(); if (r.width < 4 || r.height < 4) continue; if (r.bottom > innerHeight + 1 || r.top < -1) out.push(`${el.tagName} "${(el.innerText || '').trim().slice(0, 24)}" ${Math.round(r.top)}..${Math.round(r.bottom)} of ${innerHeight}`) } return out }, s.id) : []
   const name = `${String(n++).padStart(3, '0')}-${s.id}-${String(s.f).replace('.', '_')}.jpg`
   await page.screenshot({ path: `${out}/${name}`, type: 'jpeg', quality: 60 })
   const bad = []
@@ -40,7 +44,7 @@ for (const s of stops) {
   const own = a.chapters.find(c => c.vis >= 0.6)
   const none = own && !own.texts.some(t => t.score >= 0.9) ? ` NO-TEXT(${own.id})` : ''
   rows.push({ ...s, y, a, film })
-  lines.push(`${name}  y=${y}  ${film ? `${film.ch.join(' | ')} rest=${film.rest.toFixed(2)}` : ''}${none}${film?.half.length ? ` HALF[${film.half.join(',')}]` : ''}${film?.unshown.length ? ` UNSHOWN[${film.unshown.join(',')}]` : ''}${bad.length ? `\n      low: ${bad.slice(0, 8).join('  ')}` : ''}`)
+  lines.push(`${name}  y=${y}  ${film ? `${film.ch.join(' | ')} rest=${film.rest.toFixed(2)}` : ''}${none}${film?.half.length ? ` HALF[${film.half.join(',')}]` : ''}${film?.unshown.length ? ` UNSHOWN[${film.unshown.join(',')}]` : ''}${bad.length ? `\n      low: ${bad.slice(0, 8).join('  ')}` : ''}${cut.length ? `\n      OUTSIDE: ${cut.slice(0, 6).join('  ')}` : ''}`)
 }
 lines.push(`errors: ${errors.length}`, ...errors.slice(0, 12).map(e => '  ' + e))
 fs.writeFileSync(`${out}/walk.txt`, lines.join('\n') + '\n'); save(`${out}/walk.json`, rows)

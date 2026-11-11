@@ -289,3 +289,16 @@ html[data-page='deck'] .scroll-film .scroll-film-stills img { opacity: 1; }
 @media (prefers-reduced-motion: reduce) {
   html[data-page='deck'] .scroll-film .scroll-film-stills { transition: none; }
 }
+
+/* World as a plain photo essay (reduced motion, short screens): the strip of words rides along, so no photo is ever without text. */
+html[data-page='deck'] #world:not([data-earth-motion='scroll']) .earth-journey-stage { overflow: clip; }
+html[data-page='deck'] #world:not([data-earth-motion='scroll']) .earth-strip {
+  position: sticky;
+  top: calc(4rem + 0.6rem);
+  height: 3rem;
+  margin-bottom: -3rem;
+}
+
+/* Soda as one still (reduced motion, short screens): one screen, not a runway with nothing to play. */
+html[data-page='deck'] #anyone.is-still { height: 100vh; height: 100svh; }
+html[data-page='deck'] #anyone.is-still .soda-stage { position: relative; }

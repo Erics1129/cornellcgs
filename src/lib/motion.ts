@@ -17,7 +17,12 @@ export function onReducedMotionChange(cb: (reduced: boolean) => void): () => voi
 export const RUNWAY_MEDIA = '(prefers-reduced-motion: no-preference) and (min-height: 480px)'
 
 export function runwayAllowed(): boolean {
-  return window.matchMedia(RUNWAY_MEDIA).matches
+  return window.matchMedia(RUNWAY_MEDIA).matches && !animationOff()
+}
+
+/** Dev kill switch (window.__filmOff, set before boot): the page must be complete with no animation code at all. Always false in production. */
+export function animationOff(): boolean {
+  return import.meta.env.DEV && typeof window !== 'undefined' && (window as unknown as { __filmOff?: boolean }).__filmOff === true
 }
 
 export function isTouchDevice(): boolean {

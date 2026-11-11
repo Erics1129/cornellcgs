@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react'
 import gsap from 'gsap'
 import { mlProcess } from '../content'
 import { drive } from '../lib/deck'
-import { RUNWAY_MEDIA } from '../lib/motion'
+import { RUNWAY_MEDIA, animationOff } from '../lib/motion'
 import { TypedHeading } from './TypedText'
 import ScrollFilm from './ScrollFilm'
 
@@ -19,6 +19,7 @@ export default function MLProcess() {
     const rows = Array.from(el.querySelectorAll<HTMLElement>('[data-ml-step]'))
     const media = gsap.matchMedia(el)
     media.add(RUNWAY_MEDIA, () => {
+      if (animationOff()) return
       // A paused timeline that follows the chapter's run: no trigger, nothing to refresh.
       const tl = gsap.timeline({ paused: true })
       tl.fromTo(track.current, { scaleY: 0 }, { scaleY: 1, duration: 1, ease: 'none' }, 0)

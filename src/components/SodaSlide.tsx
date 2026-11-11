@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { deckFrame, onDeck, onMeasure } from '../lib/deck'
 import { onLook, look as lookVector } from '../lib/look'
-import { RUNWAY_MEDIA } from '../lib/motion'
+import { RUNWAY_MEDIA, runwayAllowed } from '../lib/motion'
 import { reveal } from '../lib/reveal'
 import { registerScene } from '../lib/scenes'
 import { createSequence, type Sequence } from '../lib/seqCache'
@@ -39,14 +39,14 @@ export default function SodaSlide() {
   const canvas = useRef<HTMLCanvasElement>(null)
   const invitation = useRef<HTMLParagraphElement>(null)
   // Without motion, or on a screen too short for a sticky stage, the chapter is one still: the last frame and all its words.
-  const [still, setStill] = useState(() => typeof window !== 'undefined' && !window.matchMedia(RUNWAY_MEDIA).matches)
+  const [still, setStill] = useState(() => typeof window !== 'undefined' && !runwayAllowed())
   const [muted, setMuted] = useState(() => typeof window !== 'undefined' && sodaMuted())
   // phones only allow sound after a tap (scrolling doesn't count), so until then the button asks for one
   const [ready, setReady] = useState(() => typeof window !== 'undefined' && sodaReady())
 
   useEffect(() => {
     const media = window.matchMedia(RUNWAY_MEDIA)
-    const sync = () => setStill(!media.matches)
+    const sync = () => setStill(!runwayAllowed())
     media.addEventListener('change', sync)
     return () => media.removeEventListener('change', sync)
   }, [])

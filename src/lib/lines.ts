@@ -1,4 +1,4 @@
-import { deckFrame, onMeasure } from './deck'
+import { deckFrame, filmOff, onMeasure } from './deck'
 import { prefersReducedMotion } from './motion'
 import { reveal } from './reveal'
 
@@ -79,7 +79,7 @@ function teardown(entry: Entry) {
 }
 
 export function initLineReveals(scope: ParentNode = document): () => void {
-  if (prefersReducedMotion()) return () => {}
+  if (prefersReducedMotion() || filmOff()) return () => {}
   let entries: Entry[] = Array.from(scope.querySelectorAll<HTMLElement>('[data-lines]'))
     .filter((el) => el.children.length === 0 && (el.textContent ?? '').trim().length > 0)
     .map((el) => ({ el, text: el.textContent ?? '', off: null }))
