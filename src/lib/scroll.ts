@@ -45,6 +45,7 @@ export function scrollVelocity(): number {
 const RETURN_KEY = 'cgs-return'
 type Restore = { id: ChapterId; fraction: number } | { y: number }
 let pendingRestore: Restore | null = null
+let firstBoot = true
 
 export function hasPendingRestore(): boolean {
   return pendingRestore !== null
@@ -75,10 +76,13 @@ function applyRestore() {
 /** Boot smooth scrolling. The old name is kept so App.tsx stays untouched. */
 export function initSmoothScroll(): () => void {
   if ('scrollRestoration' in history) history.scrollRestoration = 'manual'
-  // (React's dev double-mount runs this twice: the stash is read once and kept.)
-  const saved = readRestore()
-  if (saved) pendingRestore = saved
-  window.scrollTo(0, pendingRestore && 'y' in pendingRestore ? pendingRestore.y : 0)
+  // Only the first boot of a page load decides where the page opens. (React's dev double-mount runs
+  // this function twice; a second run must neither lose the stash nor send the reader to the top.)
+  if (firstBoot) {
+    firstBoot = false
+    pendingRestore = readRestore()
+    window.scrollTo(0, pendingRestore && 'y' in pendingRestore ? pendingRestore.y : 0)
+  }
 
   const onPageHide = () => {
     try {
@@ -187,12 +191,15 @@ export function initSmoothScroll(): () => void {
   let alive = true
   document.fonts?.ready
     .then(() => {
-      if (!alive) return
-      remeasure()
-      // The reader's place is now tracked by the deck's own anchor.
-      pendingRestore = null
+      if (alive) remeasure()
     })
     .catch(() => {})
+  // Once the reader moves the page themselves, the stash has done its job: their place is the deck's anchor from then on.
+  const dropRestore = () => {
+    pendingRestore = null
+  }
+  const INPUTS = ['wheel', 'touchstart', 'keydown', 'pointerdown'] as const
+  for (const type of INPUTS) window.addEventListener(type, dropRestore, { passive: true, once: true })
   // The first settle the reader can see fires when the curtain lifts.
   const onShown = () => settleNow('boot')
   window.addEventListener(BOOTED_EVENT, onShown)
@@ -221,6 +228,7 @@ export function initSmoothScroll(): () => void {
     window.removeEventListener('pagehide', onPageHide)
     window.removeEventListener('pageshow', onPageShow)
     window.removeEventListener(BOOTED_EVENT, onShown)
+    for (const type of INPUTS) window.removeEventListener(type, dropRestore)
     motion.removeEventListener('change', onMotionChange)
     finePointer.removeEventListener('change', onMotionChange)
     ScrollTrigger.removeEventListener('refreshInit', sort)

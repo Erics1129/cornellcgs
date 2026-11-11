@@ -272,6 +272,8 @@ function scrollImmediate(y: number) {
   } else window.scrollTo(0, y)
   nativeY = y
   force = true
+  // An explicit position replaces whatever place was remembered before it.
+  captureAnchor(y)
 }
 
 /**
@@ -368,13 +370,16 @@ function compute(now: number, y: number, teleported: boolean) {
     direction: y === lastY ? frame.direction : y > lastY ? 1 : -1,
     flying: frame.flying, idle, rest, teleported, bgVisible, active, chapters: states, time: now,
   }
-  if (!geometryDirty && states.length) {
-    const line = y + vh * 0.32
-    for (const s of states) {
-      if (line >= s.top && line < s.top + s.height) {
-        anchor = { id: s.id, top: s.top, height: s.height, offset: line - s.top }
-        break
-      }
+  if (!geometryDirty) captureAnchor(y)
+}
+
+/** Remember the reader's place against the geometry that is cached right now (the two must always belong together). */
+function captureAnchor(y: number) {
+  const line = y + (vhStable || 1) * 0.32
+  for (const s of states) {
+    if (line >= s.top && line < s.top + s.height) {
+      anchor = { id: s.id, top: s.top, height: s.height, offset: line - s.top }
+      return
     }
   }
 }
@@ -589,6 +594,8 @@ export function initDeck(): () => void {
     const main = document.querySelector('main')
     if (main) resizeObserver?.observe(main)
     measure()
+    // The place remembered by the early start was taken against a half-built page: take it again.
+    captureAnchor(nativeY)
   }
   return () => {
     if (!started) return
