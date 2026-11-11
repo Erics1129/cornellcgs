@@ -1,1 +1,335 @@
-/* responsive.css: CONTRACT FILE (see SPEC.md section 9). Stub: intentionally empty. The owning stream replaces it. */
+/*
+ * responsive.css — CONTRACT FILE, owner: stream "interaction".
+ *
+ * Layout that depends on the screen or the input: safe areas, the type floor,
+ * phone portrait, phone landscape, tablet, large and ultrawide. No colour, no
+ * material (film's files) and no sticky, runway or stage-box geometry
+ * (deck.css). Every rule is scoped to html[data-page='deck'] or
+ * html[data-page='sub'] (set in index.html before any style applies), so the
+ * mini-game routes, which share this bundle, are untouched.
+ *
+ * Owns: --safe-top/right/bottom/left, --nav-bar, --nav-h.
+ */
+
+/* ---------------------------------------------------------------------------
+   1. Tokens: safe areas and the nav height
+   --------------------------------------------------------------------------- */
+html:is([data-page='deck'], [data-page='sub']) {
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  /* the bar itself, and the bar plus whatever sits above it (a notch in a home-screen app) */
+  --nav-bar: 4rem;
+  --nav-h: calc(var(--nav-bar) + var(--safe-top));
+}
+/* a phone on its side: the bar gives height back to the page */
+@media (orientation: landscape) and (max-height: 500px) {
+  html:is([data-page='deck'], [data-page='sub']) { --nav-bar: 48px; }
+}
+
+/* ---------------------------------------------------------------------------
+   2. Safe areas on everything that touches an edge
+   --------------------------------------------------------------------------- */
+/* The content column never runs under a notch or a rounded corner. */
+html[data-page='deck'] .container-site {
+  --site-gutter: max(1.5rem, var(--safe-left), var(--safe-right));
+}
+@media (width >= 64rem) {
+  html[data-page='deck'] .container-site {
+    --site-gutter: max(5.25rem, var(--safe-left), var(--safe-right));
+  }
+}
+
+html[data-page='deck'] .cgs-nav-bar { padding-top: var(--safe-top); }
+html[data-page='deck'] .cgs-nav-row { height: var(--nav-bar); }
+html[data-page='deck'] .cgs-nav-panel { max-height: calc(100dvh - var(--nav-h) - 1px); padding-bottom: var(--safe-bottom); }
+html[data-page='deck'] .cgs-side-rail { left: max(0.75rem, var(--safe-left)); }
+
+/* Scene captions, credits and the small controls pinned to a stage edge sit on
+   the same column as the copy above them, and clear the home indicator. */
+html[data-page='deck'] :is(.scene-caption, .earth-place-copy, .earth-photo-credit) {
+  --site-gutter: max(1.5rem, var(--safe-left), var(--safe-right));
+  left: max(var(--site-gutter), calc((100% - 80rem) / 2));
+  right: max(var(--site-gutter), calc((100% - 80rem) / 2));
+}
+@media (width >= 64rem) {
+  html[data-page='deck'] :is(.scene-caption, .earth-place-copy, .earth-photo-credit) {
+    --site-gutter: max(5.25rem, var(--safe-left), var(--safe-right));
+  }
+}
+html[data-page='deck'] .scene-caption { bottom: calc(36px + var(--safe-bottom)); }
+html[data-page='deck'] .earth-photo-credit { bottom: calc(24px + var(--safe-bottom)); }
+html[data-page='deck'] .vision-pause { right: max(7vw, var(--safe-right), 1.5rem); }
+html[data-page='deck'] .soda-sound {
+  right: max(16px, var(--safe-right));
+  bottom: max(18px, calc(var(--safe-bottom) + 8px));
+}
+html[data-page='deck'] .soda-copy { padding-bottom: calc(clamp(3rem, 12vh, 8rem) + var(--safe-bottom)); }
+html[data-page='deck'] .universe-footer { bottom: max(2rem, calc(var(--safe-bottom) + 0.75rem)); }
+html[data-page='deck'] #contact > div:last-child { padding-bottom: var(--safe-bottom); }
+@media (max-width: 1023px), (orientation: portrait) {
+  html[data-page='deck'] .scene-caption { bottom: calc(23px + var(--safe-bottom)); }
+  html[data-page='deck'] .earth-photo-credit { bottom: calc(28px + var(--safe-bottom)); }
+}
+@media (max-width: 767px) {
+  /* the two hero calls to action are the lowest thing on the first screen of a phone */
+  html[data-page='deck'] #top > .container-site { padding-bottom: calc(6rem + var(--safe-bottom)); }
+  html[data-page='deck'] .universe-footer { bottom: max(1.5rem, calc(var(--safe-bottom) + 0.5rem)); }
+}
+
+/* Keyboard and anchor targets clear the fixed bar. */
+html[data-page='deck'] :is(a, button, [tabindex], summary, input, select, textarea) { scroll-margin-top: calc(var(--nav-h) + 1rem); }
+
+/* Sub-pages */
+html[data-page='sub'] .sp-bar { padding-top: var(--safe-top); }
+html[data-page='sub'] .sp-bar__inner { width: min(100% - 2 * max(2.5rem, var(--safe-left), var(--safe-right)), 88rem); }
+html[data-page='sub'] .sp-main { padding-inline: max(2.5rem, var(--safe-left), var(--safe-right)); }
+html[data-page='sub'] .sp-footer { padding-inline: max(2.5rem, var(--safe-left), var(--safe-right)); padding-bottom: calc(2rem + var(--safe-bottom)); }
+html[data-page='sub'] :is(a, button, [tabindex]) { scroll-margin-top: calc(4.5rem + var(--safe-top) + 1rem); }
+@media (max-width: 1100px) {
+  html[data-page='sub'] .sp-bar__inner { width: calc(100% - 2 * max(2rem, var(--safe-left), var(--safe-right))); }
+  html[data-page='sub'] .sp-main { padding-inline: max(2rem, var(--safe-left), var(--safe-right)); }
+}
+@media (max-width: 700px) {
+  html[data-page='sub'] .sp-bar__inner { width: calc(100% - 2 * max(1.25rem, var(--safe-left), var(--safe-right))); }
+  html[data-page='sub'] .sp-main,
+  html[data-page='sub'] .sp-footer { padding-inline: max(1.25rem, var(--safe-left), var(--safe-right)); }
+}
+
+/* ---------------------------------------------------------------------------
+   3. The type floor: nothing a reader is meant to read is under 12 CSS px.
+   Phones and tablets scale the root down, so labels set in small rems fall to
+   8 to 11 px there. max() leaves every larger screen exactly as it was.
+   --------------------------------------------------------------------------- */
+html[data-page='deck'] .cgs-nav-brand { font-size: max(12px, clamp(0.74rem, 2.7vw, 0.94rem)); }
+html[data-page='deck'] .scene-caption { font-size: max(12px, 0.65rem); }
+html[data-page='deck'] .scene-link { font-size: max(12px, 0.875rem); }
+html[data-page='deck'] .ml-step-number { font-size: max(12px, 0.65rem); }
+html[data-page='deck'] .scene-chapter--ml .ml-step p { font-size: max(12px, 0.875rem); }
+html[data-page='deck'] .earth-map-credit { font-size: 12px; }
+html[data-page='deck'] .earth-photo-credit { font-size: 12px; }
+html[data-page='deck'] .universe-cue { font-size: max(12px, 0.75rem); }
+html[data-page='deck'] .universe-itinerary { font-size: max(12px, 0.625rem); }
+html[data-page='deck'] .identity-figure figcaption { font-size: max(12px, 0.7rem); }
+html[data-page='deck'] :is(.alpha-pause, .cgs-sphere-pause, .vision-pause, .identity-figure figcaption button) { font-size: max(12px, 0.7rem); }
+html[data-page='deck'] .poker-controls { font-size: 12px; white-space: nowrap; left: -2rem; right: -2rem; }
+html[data-page='deck'] .people-name p { font-size: max(12px, 0.66rem); }
+html[data-page='deck'] .people-bio-group h4 { font-size: max(12px, 0.6rem); }
+html[data-page='deck'] .event-invitation { font-size: max(12px, 0.7rem); }
+html[data-page='deck'] .showcase-copy-code { font-size: 12px; }
+html[data-page='deck'] .ide .ide-dock .showcase-code-filename { font-size: 12px; }
+html[data-page='deck'] .vision-bottom ul { font-size: max(12px, 0.86rem); }
+html[data-page='deck'] .vision-bottom li > span { font-size: max(12px, 0.65rem); }
+@media (max-width: 1023px), (orientation: portrait) {
+  html[data-page='deck'] .scene-lead { font-size: max(12px, 0.875rem); }
+  html[data-page='deck'] .earth-place-copy p { font-size: max(12px, 0.85rem); }
+  html[data-page='deck'] .scene-link { font-size: max(12px, 0.78rem); }
+  html[data-page='deck'] .scene-chapter--ml .ml-step p { font-size: max(12px, 0.8125rem); }
+  html[data-page='deck'] .vision-bottom ul { font-size: max(12px, 0.8rem); }
+}
+html[data-page='deck'] .join-card-index { font-size: max(12px, 0.8rem); }
+html[data-page='deck'] :is(.agenda-date, .agenda-number) { font-size: max(12px, 0.7rem); }
+html[data-page='deck'] [data-hero-hint] .mono,
+html[data-page='deck'] .showcase-type-line { font-size: max(12px, 0.875rem); }
+html[data-page='deck'] .scene-lead { font-size: max(12px, clamp(1rem, 1.2vw, 1.25rem)); }
+html[data-page='deck'] .earth-place-copy p { font-size: max(12px, clamp(0.85rem, 1.15vw, 1.1rem)); }
+html[data-page='deck'] :is(.people-flip-control, .people-bio-role) { font-size: max(12px, 0.875rem); }
+html[data-page='deck'] #contact p.mono,
+html[data-page='deck'] #contact .f-redeal { font-size: max(12px, 0.8rem); }
+html[data-page='deck'] #contact ul.mono { font-size: max(12px, 0.85rem); }
+/* The editor is drawn at fixed pixel sizes like a real one. On a phone its
+   output, labels and status line come up to the floor too. */
+@media (max-width: 767px), (pointer: coarse) {
+  html[data-page='deck'] .ide :is(.ide-run, .ide-output, .showcase-code-breadcrumb, .showcase-editor-status, .ide-statusbar, .ide-status, .ide-status-left, .ide-status-right),
+  html[data-page='deck'] .ide .ide-dock .showcase-code-source,
+  html[data-page='deck'] .ide .ide-dock .showcase-code-filename::before {
+    font-size: 12px;
+  }
+  html[data-page='deck'] .project-face-name small { font-size: 12px; line-height: 1.15; }
+}
+html[data-page='sub'] .sp-eyebrow { font-size: max(12px, 0.7rem); }
+html[data-page='sub'] .sp-ordinal:not(.sp-program .sp-ordinal) { font-size: max(12px, 0.75rem); }
+html[data-page='sub'] :is(.page-scene__caption, .page-scene__caption button, .page-scene__caption a) { font-size: max(12px, 0.72rem); }
+html[data-page='sub'] .sp-footer__routes a > span:first-child { font-size: max(12px, 0.7rem); }
+html[data-page='sub'] .sp-footer__bottom { font-size: max(12px, 0.75rem); }
+html[data-page='sub'] .page-navigator .page-navigator__eyebrow { font-size: max(12px, 0.67rem); }
+
+/* Touch targets: the small stage controls are 44 px tall on any coarse pointer. */
+@media (pointer: coarse) {
+  html[data-page='deck'] :is(.alpha-pause, .cgs-sphere-pause, .vision-pause, .identity-figure figcaption button, .soda-sound, .scene-link, .agenda-more, .identity-link) { min-height: 44px; }
+}
+
+/* ---------------------------------------------------------------------------
+   4. Phone portrait
+   --------------------------------------------------------------------------- */
+@media (max-width: 599px) and (orientation: portrait) {
+  /* What we do: two cards to a row instead of one to a screen. Five cards take
+     about 1,300 px of scroll instead of 2,400, and still read as a dealt hand. */
+  html[data-page='deck'] .community-board { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.4rem 0.8rem; }
+  html[data-page='deck'] .community-slot { max-width: none; min-height: 0; }
+  html[data-page='deck'] .community-slot:last-child:nth-child(odd) { grid-column: 1 / -1; width: calc(50% - 0.4rem); justify-self: center; }
+  html[data-page='deck'] .community-face { padding: 0.8rem 0.75rem; gap: 0.35rem; }
+  html[data-page='deck'] .community-face h3 { font-size: 1.06rem; line-height: 1.12; margin-bottom: 0.4rem; }
+  html[data-page='deck'] .community-face p { font-size: max(12px, 0.84rem); line-height: 1.32; }
+  html[data-page='deck'] .community-face .material-index { font-size: 1.05rem; }
+  html[data-page='deck'] .community-face .material-index > :last-child { font-size: 0.8rem; margin-top: 0.1rem; }
+  html[data-page='deck'] .community-back { font-size: 2.6rem; }
+  html[data-page='deck'] .card-board-heading { margin-bottom: 1.6rem; }
+}
+
+/* ML on a narrow or upright screen: the film is one picture behind the copy,
+   anchored to the bottom of the stage, and the five steps are one column. */
+@media (max-width: 1023px) and (orientation: portrait), (max-width: 599px) {
+  html[data-page='deck'] .scene-chapter--ml .scroll-film { top: auto; bottom: 0; height: min(60%, 150vw); }
+  html[data-page='deck'] .scene-chapter--ml .scroll-film :is(img, video) {
+    left: 0; top: 0; width: 100%; height: 100%; object-fit: cover; object-position: 50% 50%;
+    -webkit-mask-image: none; mask-image: none;
+  }
+  /* The stage is black and so is the film's sky: its top edge is feathered with
+     an overlay, not a mask on the video (masked video drops hardware decoding on
+     iOS). Paint belongs to the film stream; this is the geometry it needs. */
+  html[data-page='deck'] .scene-chapter--ml .scroll-film::before {
+    content: ''; position: absolute; inset: 0 0 auto 0; height: 34%; z-index: 1; pointer-events: none;
+    background: linear-gradient(#000, transparent);
+  }
+  html[data-page='deck'] .scene-chapter--ml .scene-content { padding-top: calc(var(--nav-h) + 1.75rem); }
+  html[data-page='deck'] .scene-chapter--ml .scene-eyebrow { margin-bottom: 0.9rem; }
+  html[data-page='deck'] .scene-chapter--ml .scene-title--serif { font-size: clamp(2.4rem, 10.5vw, 4.5rem); }
+  html[data-page='deck'] .scene-chapter--ml .ml-sequence { grid-template-columns: minmax(0, 1fr); gap: 0.8rem; margin-top: 1.1rem; max-width: 22rem; }
+  html[data-page='deck'] .scene-chapter--ml .ml-step { grid-template-columns: 1.6rem 1fr; gap: 0.5rem; }
+  html[data-page='deck'] .scene-chapter--ml .ml-step h3 { font-size: max(14px, 0.98rem); line-height: 1.2; }
+  html[data-page='deck'] .scene-chapter--ml .ml-step p { margin-top: 2px; max-width: 34ch; line-height: 1.35; }
+  html[data-page='deck'] .scene-chapter--ml .ml-step-number { padding-top: 3px; }
+}
+/* a short upright screen (a small phone with the browser bars showing): two columns again so all five fit */
+@media (max-width: 599px) and (orientation: portrait) and (max-height: 720px) {
+  html[data-page='deck'] .scene-chapter--ml .scene-content { padding-top: calc(var(--nav-h) + 0.9rem); }
+  html[data-page='deck'] .scene-chapter--ml .scene-title--serif { font-size: clamp(2rem, 8.5vw, 3rem); }
+  html[data-page='deck'] .scene-chapter--ml .ml-sequence { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.6rem 0.9rem; margin-top: 0.8rem; max-width: none; }
+  html[data-page='deck'] .scene-chapter--ml .ml-step { grid-template-columns: 1.3rem 1fr; gap: 0.3rem; }
+  html[data-page='deck'] .scene-chapter--ml .scroll-film { height: 46%; }
+}
+
+@media (max-width: 767px) {
+  /* credits wrap to short lines instead of running at 10 px */
+  html[data-page='deck'] .earth-photo-credit { line-height: 1.45; }
+  html[data-page='deck'] .earth-photo-credit--all a { min-height: 28px; }
+  html[data-page='deck'] .earth-place:has(.earth-photo-credit--all) .earth-place-copy { bottom: calc(232px + var(--safe-bottom)); }
+  html[data-page='deck'] .earth-place-copy { bottom: calc(120px + var(--safe-bottom)); }
+  html[data-page='deck'] .scene-caption span:first-child { max-width: 58%; }
+  html[data-page='deck'] .poker-controls { bottom: -3rem; }
+  /* the menu's close button stays inside the sheet at every width */
+  html[data-page='deck'] .cgs-nav-close { right: 0; }
+}
+
+/* ---------------------------------------------------------------------------
+   5. Phone landscape: a screen about 340 to 430 px tall
+   --------------------------------------------------------------------------- */
+@media (orientation: landscape) and (max-height: 500px) {
+  html[data-page='deck'] .section { padding-block: calc(var(--nav-h) + 3svh) 6svh; }
+  html[data-page='deck'] .card-index { top: calc(var(--nav-h) + 0.5rem); }
+
+  /* Hero: the card is sized from the height, words left and calls to action right */
+  html[data-page='deck'] .poker-location { width: min(20vw, 42svh); top: calc(50% + var(--nav-h) / 2 - 1rem); }
+  html[data-page='deck'] .poker-controls { bottom: -2.4rem; }
+  html[data-page='deck'] #top > .container-site { padding-block: calc(var(--nav-h) + 1rem) 2.6rem; }
+  html[data-page='deck'] .hero-actions { width: 13.5rem; gap: 0.5rem; }
+  html[data-page='deck'] .hero-actions .btn { padding-block: 0.6rem; }
+
+  /* Cards are sized from the height so a whole card fits under the bar */
+  html[data-page='deck'] .community-board { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 0.8rem; }
+  html[data-page='deck'] .community-slot { max-width: none; min-height: 0; }
+  html[data-page='deck'] .community-face { padding: 0.6rem 0.55rem; gap: 0.25rem; }
+  html[data-page='deck'] .community-face h3 { font-size: 0.95rem; line-height: 1.1; margin-bottom: 0.3rem; }
+  html[data-page='deck'] .community-face p { font-size: 12px; line-height: 1.28; }
+  html[data-page='deck'] .community-face .material-index { font-size: 0.95rem; }
+  html[data-page='deck'] .community-face .material-index > :last-child { font-size: 0.75rem; margin-top: 0; }
+  html[data-page='deck'] .community-back { font-size: 2.2rem; }
+  html[data-page='deck'] .card-board-heading { margin-bottom: 1rem; }
+  html[data-page='deck'] .people-slot { width: min(9rem, calc((100svh - var(--nav-h) - 2rem) * 5 / 7)); }
+  html[data-page='deck'] .join-card { aspect-ratio: auto; padding: 1.4rem 1.6rem 1.4rem 2.6rem; }
+  html[data-page='deck'] .join-card-title { font-size: clamp(1.5rem, 6svh + 0.5rem, 2.2rem); }
+
+  /* ML: the steps in two columns on the left 55%, the disc on the right; no step is printed on the disc */
+  html[data-page='deck'] .scene-chapter--ml .scroll-film { top: var(--nav-h); bottom: 0; left: 52%; right: 0; height: auto; }
+  html[data-page='deck'] .scene-chapter--ml .scroll-film :is(img, video) {
+    left: 0; top: 0; width: 100%; height: 100%; object-fit: cover; object-position: 50% 50%;
+    -webkit-mask-image: none; mask-image: none;
+  }
+  html[data-page='deck'] .scene-chapter--ml .scroll-film::before {
+    content: ''; position: absolute; inset: 0 auto 0 0; width: 26%; z-index: 1; pointer-events: none;
+    background: linear-gradient(90deg, #000, transparent);
+  }
+  html[data-page='deck'] .scene-chapter--ml .scene-content { align-items: flex-start; padding-top: calc(var(--nav-h) + 0.7rem); }
+  html[data-page='deck'] .scene-chapter--ml .scene-copy { width: 55%; max-width: 55%; }
+  html[data-page='deck'] .scene-chapter--ml .scene-eyebrow { margin-bottom: 0.4rem; }
+  html[data-page='deck'] .scene-chapter--ml .scene-title--serif { font-size: clamp(1.7rem, 9svh, 2.6rem); min-height: 1.1em; }
+  html[data-page='deck'] .scene-chapter--ml .ml-sequence { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.5rem 1rem; margin-top: 0.6rem; }
+  html[data-page='deck'] .scene-chapter--ml .ml-step { grid-template-columns: 1.4rem 1fr; gap: 0.3rem; }
+  html[data-page='deck'] .scene-chapter--ml .ml-step h3 { font-size: 13px; line-height: 1.2; }
+  html[data-page='deck'] .scene-chapter--ml .ml-step p { margin-top: 1px; line-height: 1.28; font-size: 12px; }
+  html[data-page='deck'] .scene-chapter--ml .scene-caption { display: none; }
+
+  /* scene copy starts under the shorter bar and stays compact */
+  html[data-page='deck'] .scene-content { padding-top: calc(var(--nav-h) + 0.8rem); }
+  html[data-page='deck'] .scene-eyebrow { margin-bottom: 0.5rem; }
+  html[data-page='deck'] .scene-title { font-size: clamp(1.5rem, 9svh, 2.4rem); }
+  html[data-page='deck'] .scene-lead { margin-top: 0.5rem; font-size: max(12px, 0.84rem); line-height: 1.45; max-width: 44ch; }
+  html[data-page='deck'] .scene-copy { max-width: 58%; }
+  html[data-page='deck'] .scene-caption { bottom: calc(10px + var(--safe-bottom)); }
+  html[data-page='deck'] .earth-place-copy { bottom: calc(64px + var(--safe-bottom)); }
+  html[data-page='deck'] .earth-place-copy h3 { font-size: clamp(2rem, 16svh, 3.6rem); margin-bottom: 0.4rem; }
+  html[data-page='deck'] .earth-place:has(.earth-photo-credit--all) .earth-place-copy { bottom: calc(96px + var(--safe-bottom)); }
+  html[data-page='deck'] .earth-photo-credit { bottom: calc(8px + var(--safe-bottom)); line-height: 1.35; }
+  html[data-page='deck'] .earth-photo-credit--all a { min-height: 24px; }
+  html[data-page='deck'] .universe-heading { top: calc(var(--nav-h) + 1rem); }
+  html[data-page='deck'] .universe-heading h2 { font-size: clamp(1.7rem, 11svh, 2.8rem); max-width: 18ch; }
+  html[data-page='deck'] .vision-chapter { padding-top: calc(var(--nav-h) + 1.2rem); }
+  html[data-page='deck'] .soda-copy { padding-bottom: calc(2.4rem + var(--safe-bottom)); }
+  html[data-page='deck'] .soda-copy .anyone-invitation { margin-top: 0.5rem; max-width: 40ch; font-size: clamp(1rem, 5svh, 1.3rem); }
+}
+
+/* ---------------------------------------------------------------------------
+   6. Tablet portrait: the type follows the frame instead of sitting small in it
+   --------------------------------------------------------------------------- */
+@media (min-width: 600px) and (max-width: 1023px) and (orientation: portrait) {
+  html[data-page='deck'] .agenda-layout { grid-template-columns: minmax(0, 1fr); gap: 3.5rem; }
+  html[data-page='deck'] .agenda-heading { position: static; }
+  html[data-page='deck'] .agenda-heading h2 { max-width: 100%; font-size: clamp(3.4rem, 9.5vw, 6rem); }
+  html[data-page='deck'] .agenda-name { font-size: clamp(1.8rem, 4.2vw, 2.8rem); }
+  html[data-page='deck'] .agenda-trigger { padding: 2.2rem 0; }
+  html[data-page='deck'] .agenda-reveal p { font-size: 1.15rem; max-width: 44ch; }
+  html[data-page='deck'] .scene-chapter--ml .ml-sequence { max-width: 30rem; gap: 1.15rem; }
+  html[data-page='deck'] .scene-chapter--ml .ml-step h3 { font-size: 1.25rem; }
+  html[data-page='deck'] .scene-chapter--ml .ml-step p { font-size: max(14px, 1rem); max-width: 40ch; }
+  html[data-page='deck'] .scene-chapter--ml .scroll-film { height: min(56%, 110vw); }
+  html[data-page='deck'] .stat-big { font-size: clamp(4.5rem, 11vw, 7.5rem); }
+  html[data-page='deck'] :is(.stat-over, .stat-under) { font-size: max(16px, 1.2rem); }
+  html[data-page='deck'] .stat-row { grid-template-columns: minmax(9rem, 1fr) 3fr; }
+}
+
+/* ---------------------------------------------------------------------------
+   7. Large and ultrawide
+   --------------------------------------------------------------------------- */
+/* Wider than about 2.1:1 the picture's focal content stays in a centred 16:9
+   area: films and stills are sized from the height, never stretched to the width. */
+@media (min-aspect-ratio: 21/10) and (min-width: 1024px) {
+  html[data-page='deck'] .scene-chapter--ml .scroll-film :is(img, video) {
+    left: auto; right: max(0px, calc(50% - 100svh * 8 / 9)); width: calc(100svh * 16 / 9 * 0.85);
+  }
+  html[data-page='deck'] .scene-canvas--earth .scene-still { inset: 12% auto 12% auto; right: max(3%, calc(50% - 100svh * 8 / 9 + 3%)); height: 76%; aspect-ratio: 1; }
+  html[data-page='deck'] .poker-location { width: min(22vw, 23rem, 43svh); }
+}
+
+/* ---------------------------------------------------------------------------
+   8. The progress line under the bar (small screens; the rail is hidden there)
+   --------------------------------------------------------------------------- */
+html[data-page='deck'] .cgs-nav-progress {
+  position: absolute; left: 0; right: 0; bottom: -1px; height: 2px; z-index: 11;
+  transform: scaleX(0); transform-origin: 0 50%; pointer-events: none;
+  background: var(--neon-mid);
+}
+@media (width >= 64rem) {
+  html[data-page='deck'] .cgs-nav-progress { display: none; }
+}

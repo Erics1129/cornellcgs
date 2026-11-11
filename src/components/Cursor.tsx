@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { prefersReducedMotion } from '../lib/motion'
+import { onSettle } from '../lib/deck'
 import '../styles/cursor.css'
 
 /**
@@ -52,25 +53,32 @@ export default function Cursor() {
       d.dataset.mode = m
     }
 
-    const tick = () => {
+    // A time-based spring (tau 45 ms): the ring trails the pip by the same
+    // distance at 60 and at 120 Hz, and a slow frame cannot make it lurch.
+    let last = 0
+    const tick = (now: number) => {
       raf = 0
-      const k = still ? 1 : 0.2
+      const dt = last ? Math.min(0.05, (now - last) / 1000) : 1 / 60
+      last = now
+      const k = still ? 1 : 1 - Math.exp(-dt / 0.045)
       const nx = rx + (x - rx) * k
       const ny = ry + (y - ry) * k
-      vx = nx - rx
-      vy = ny - ry
+      // px per second
+      vx = (nx - rx) / dt
+      vy = (ny - ry) / dt
       rx = nx
       ry = ny
-      const speed = Math.min(1, Math.hypot(vx, vy) / 40)
+      const speed = Math.min(1, Math.hypot(vx, vy) / 2400)
       const angle = (Math.atan2(vy, vx) * 180) / Math.PI
       const stretch = still || mode === 'card' ? 1 : 1 + speed * 0.45
-      const lean = mode === 'card' && !still ? Math.max(-14, Math.min(14, vx * 0.9)) : 0
+      const lean = mode === 'card' && !still ? Math.max(-14, Math.min(14, vx * 0.015)) : 0
       r.style.transform =
         mode === 'card'
           ? `translate3d(${rx}px, ${ry}px, 0) rotate(${lean}deg)`
           : `translate3d(${rx}px, ${ry}px, 0) rotate(${angle}deg) scale(${stretch}, ${1 / stretch})`
       d.style.transform = `translate3d(${x}px, ${y}px, 0)`
       if (Math.abs(x - rx) + Math.abs(y - ry) > 0.2) raf = requestAnimationFrame(tick)
+      else last = 0
     }
     const kick = () => {
       if (!raf) raf = requestAnimationFrame(tick)
@@ -110,15 +118,11 @@ export default function Cursor() {
       read(e.target instanceof Element ? e.target : null)
       kick()
     }
-    // the page can slide a card under a still pointer, so look again on scroll
-    let scrollRaf = 0
-    const onScroll = () => {
-      if (!shown || scrollRaf) return
-      scrollRaf = requestAnimationFrame(() => {
-        scrollRaf = 0
-        read(document.elementFromPoint(x, y))
-      })
-    }
+    // The page can slide a card under a still pointer. Look again once, when
+    // the page has come to rest, not on every frame of the scroll.
+    const offSettle = onSettle(() => {
+      if (shown) read(document.elementFromPoint(x, y))
+    })
     // buttons fill from the exact point the pointer came in, and drain toward where it leaves
     const edge = (e: PointerEvent) => {
       const t = e.target instanceof Element ? e.target.closest<HTMLElement>('.btn') : null
@@ -137,7 +141,6 @@ export default function Cursor() {
     }
 
     window.addEventListener('pointermove', onMove, { passive: true })
-    window.addEventListener('scroll', onScroll, { passive: true })
     document.addEventListener('pointerover', edge, { passive: true })
     document.addEventListener('pointerout', edge, { passive: true })
     window.addEventListener('pointerdown', onDown, { passive: true })
@@ -146,8 +149,7 @@ export default function Cursor() {
     window.addEventListener('blur', onLeave)
     return () => {
       cancelAnimationFrame(raf)
-      cancelAnimationFrame(scrollRaf)
-      window.removeEventListener('scroll', onScroll)
+      offSettle()
       html.classList.remove('cgs-cursor', 'cgs-cursor--on')
       window.removeEventListener('pointermove', onMove)
       document.removeEventListener('pointerover', edge)

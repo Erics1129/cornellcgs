@@ -1,6 +1,8 @@
 import { useLayoutEffect, useRef, useState } from 'react'
 import gsap from 'gsap'
 import { BOOTED_EVENT } from '../lib/motion'
+import { chapter, onDeck } from '../lib/deck'
+import { look, onLook } from '../lib/look'
 import HeroCardArtwork from './HeroCardArtwork'
 import '../styles/hero-poker.css'
 
@@ -14,12 +16,18 @@ const COLORS = [
   { name: 'carbon', accent: '#2b2a27', second: '#15120d', foil: '#15120d', face: '#ece4d0' },
 ] as const
 
-/** Two-sided vector card. Entrance, float, pointer tilt and flip have separate
- * transform owners. Color belongs to this card, never the page or city. */
+/** Two-sided vector card. Entrance, float, tilt and flip have separate
+ * transform owners. Color belongs to this card, never the page or city.
+ *
+ * The tilt follows the shared look vector: the pointer on a laptop (6 and 9
+ * degrees), and at half that a finger resting on the card, device tilt or the
+ * idle drift on a phone. On touch the card can also be dragged sideways (up to
+ * 14 degrees); letting go past 40 px, or a flick, flips it. A tap still flips. */
 export default function HeroCard({ onPausedChange }: { onPausedChange?: (paused: boolean) => void }) {
   const root = useRef<HTMLDivElement>(null)
   const flipAction = useRef<() => void>(() => {})
   const synchronize = useRef<() => void>(() => {})
+  const swallowClick = useRef(false)
   const pausedRef = useRef(false)
   const [paused, setPaused] = useState(false)
   pausedRef.current = paused
@@ -36,15 +44,14 @@ export default function HeroCard({ onPausedChange }: { onPausedChange?: (paused:
     const back = el.querySelector<HTMLElement>('.poker-surface--back')!
     const glints = el.querySelectorAll<HTMLElement>('.poker-glint')
     const shadow = el.querySelector<HTMLElement>('.poker-floor-shadow')!
-    const section = el.closest('section')!
     const reduce = matchMedia('(prefers-reduced-motion: reduce)')
-    const fine = matchMedia('(hover: hover) and (pointer: fine)')
     let visible = false, shown = !!(window as { __cgsShown?: boolean }).__cgsShown
     let alive = true, flipping = false, index = 0, turns = 0, timer = 0
     let flip: gsap.core.Timeline | null = null, enter: gsap.core.Tween | null = null
     let color: gsap.core.Tween | null = null, idle: gsap.core.Timeline | null = null
-    let moved = false, pointerResetPending = false, menuOpen = false
-    let bounds = section.getBoundingClientRect()
+    let menuOpen = false
+    /** extra turn from a sideways drag, degrees */
+    let dragAngle = 0
     const ctx = gsap.context(() => {
       gsap.set(turn, { rotationY: 0 }); gsap.set(glints, { xPercent: -140 })
       idle = gsap.timeline({ paused: true, repeat: -1, yoyo: true })
@@ -66,11 +73,6 @@ export default function HeroCard({ onPausedChange }: { onPausedChange?: (paused:
     paintFace()
     const rx = gsap.quickTo(tilt, 'rotationX', { duration: .65, ease: 'power3.out' })
     const ry = gsap.quickTo(tilt, 'rotationY', { duration: .65, ease: 'power3.out', onUpdate: paintFace })
-    const centerPointer = () => {
-      if (!moved) return
-      if (!canRun()) { pointerResetPending = true; return }
-      pointerResetPending = false; rx(0); ry(0); moved = false
-    }
     const canRun = () => alive && shown && visible && !document.hidden && !reduce.matches && !pausedRef.current && !menuOpen
     const clearTimer = () => { clearTimeout(timer); timer = 0 }
     const paintColor = (instant = false) => {
@@ -117,10 +119,10 @@ export default function HeroCard({ onPausedChange }: { onPausedChange?: (paused:
         flip?.kill(); flip = null; finish(); color?.progress(1); enter?.progress(1); idle?.pause()
         gsap.set([entrance, float], { opacity: 1, x: 0, y: 0, rotation: 0, scale: 1 })
         rx.tween.pause(); ry.tween.pause(); gsap.set(tilt, { rotationX: 0, rotationY: 0 })
-        moved = false; pointerResetPending = false; clearTimer()
+        dragAngle = 0; clearTimer()
       } else if (playing) {
         enter?.resume(); flip?.resume(); color?.resume(); idle?.resume(); rx.tween.resume(); ry.tween.resume()
-        if (pointerResetPending) centerPointer()
+        aim()
         if (!timer) arm()
       } else {
         clearTimer(); enter?.pause(); flip?.pause(); color?.pause(); idle?.pause(); rx.tween.pause(); ry.tween.pause()
@@ -131,28 +133,75 @@ export default function HeroCard({ onPausedChange }: { onPausedChange?: (paused:
       if (!reduce.matches) enter = gsap.to(entrance, { opacity: 1, y: 0, rotation: 0, scale: 1, duration: 1.25, ease: 'power3.out' })
       sync()
     }
-    const pointer = (event: PointerEvent) => {
-      if (!canRun() || !fine.matches || event.pointerType === 'touch') return
-      moved = true; pointerResetPending = false
-      rx(-Math.max(-1, Math.min(1, ((event.clientY - bounds.top) / bounds.height - .5) * 2)) * 6)
-      ry(Math.max(-1, Math.min(1, ((event.clientX - bounds.left) / bounds.width - .5) * 2)) * 9)
+    // Tilt toward the look vector. A pointer gets the full lean; a finger,
+    // device tilt and the idle drift get half, so the card never swings on a phone.
+    function aim() {
+      if (!canRun()) return
+      const l = look()
+      const amount = l.source === 'pointer' ? 1 : .5
+      rx(-l.y * 6 * amount)
+      ry(l.x * 9 * amount + dragAngle)
     }
-    const measure = () => { bounds = section.getBoundingClientRect() }
-    const io = new IntersectionObserver(([entry]) => { visible = entry.isIntersecting && entry.intersectionRatio >= .55; measure(); sync() }, { threshold: [0, .55, 1] })
-    io.observe(button)
-    const ro = new ResizeObserver(measure); ro.observe(section)
+    const offLook = onLook(aim)
+    // On screen = the hero still covers most of the viewport. Read from the
+    // deck's cached geometry: no observer, no scroll listener, no layout read.
+    const offDeck = onDeck((frame) => {
+      const top = chapter('top')
+      const now = !top || frame.y < top.height * .45
+      if (now === visible) return
+      visible = now; sync()
+    })
+    visible = (() => { const top = chapter('top'); return !top || window.scrollY < top.height * .45 })()
+
+    // Sideways drag on touch: the card turns with the finger and flips on release.
+    // Vertical pans stay with the page (touch-action: pan-y), and a drag never
+    // starts in the 24 px at either screen edge, which belong to the back gesture.
+    let drag: { id: number; x: number; y: number; t: number; on: boolean } | null = null
+    const dragStart = (event: PointerEvent) => {
+      if (event.pointerType === 'mouse' || reduce.matches) return
+      if (event.clientX < 24 || event.clientX > window.innerWidth - 24) return
+      drag = { id: event.pointerId, x: event.clientX, y: event.clientY, t: event.timeStamp, on: false }
+    }
+    const dragMove = (event: PointerEvent) => {
+      if (!drag || event.pointerId !== drag.id) return
+      const dx = event.clientX - drag.x, dy = event.clientY - drag.y
+      if (!drag.on) {
+        if (Math.abs(dy) > 12 && Math.abs(dy) > Math.abs(dx)) { drag = null; return }
+        if (Math.abs(dx) < 8 || Math.abs(dx) < Math.abs(dy)) return
+        drag.on = true
+      }
+      dragAngle = Math.max(-14, Math.min(14, dx / Math.max(1, button.offsetWidth) * 30))
+      aim()
+    }
+    const dragEnd = (event: PointerEvent) => {
+      if (!drag || event.pointerId !== drag.id) return
+      const dx = event.clientX - drag.x
+      const speed = Math.abs(dx) / Math.max(1, event.timeStamp - drag.t)
+      const flipIt = drag.on && event.type === 'pointerup' && (Math.abs(dx) > 40 || (Math.abs(dx) > 16 && speed > .5))
+      const dragged = drag.on
+      drag = null; dragAngle = 0; aim()
+      if (!dragged) return
+      // the browser may still send a click for this touch: it must not flip twice (or at all, for a short drag)
+      swallowClick.current = true
+      window.setTimeout(() => { swallowClick.current = false }, 350)
+      if (flipIt) performFlip()
+    }
+    button.addEventListener('pointerdown', dragStart, { passive: true })
+    button.addEventListener('pointermove', dragMove, { passive: true })
+    button.addEventListener('pointerup', dragEnd, { passive: true })
+    button.addEventListener('pointercancel', dragEnd, { passive: true })
     const nav = document.querySelector('.cgs-nav-panel')
     const menu = new MutationObserver(() => { menuOpen = nav?.getAttribute('data-open') === 'true'; sync() })
     if (nav) { menuOpen = nav.getAttribute('data-open') === 'true'; menu.observe(nav, { attributes: true, attributeFilter: ['data-open'] }) }
-    section.addEventListener('pointermove', pointer, { passive: true }); section.addEventListener('pointerleave', centerPointer)
-    window.addEventListener('scroll', measure, { passive: true }); document.addEventListener('visibilitychange', sync)
+    document.addEventListener('visibilitychange', sync)
     reduce.addEventListener('change', sync)
     if (shown) arrive(); else window.addEventListener(BOOTED_EVENT, arrive, { once: true })
     flipAction.current = performFlip; synchronize.current = sync
     return () => {
-      alive = false; clearTimer(); io.disconnect(); ro.disconnect(); menu.disconnect()
-      section.removeEventListener('pointermove', pointer); section.removeEventListener('pointerleave', centerPointer)
-      window.removeEventListener('scroll', measure); window.removeEventListener(BOOTED_EVENT, arrive)
+      alive = false; clearTimer(); offLook(); offDeck(); menu.disconnect()
+      button.removeEventListener('pointerdown', dragStart); button.removeEventListener('pointermove', dragMove)
+      button.removeEventListener('pointerup', dragEnd); button.removeEventListener('pointercancel', dragEnd)
+      window.removeEventListener(BOOTED_EVENT, arrive)
       document.removeEventListener('visibilitychange', sync); reduce.removeEventListener('change', sync)
       enter?.kill(); flip?.kill(); color?.kill(); rx.tween.kill(); ry.tween.kill(); ctx.revert()
       flipAction.current = () => {}; synchronize.current = () => {}
@@ -173,7 +222,7 @@ export default function HeroCard({ onPausedChange }: { onPausedChange?: (paused:
         </div>
       </div></div>
       {/* The hit area stays still while the visual floats and turns. */}
-      <button className="hero-poker" type="button" aria-label="Flip the poker card" aria-busy="false" onClick={() => flipAction.current()} />
+      <button className="hero-poker" type="button" aria-label="Flip the poker card" aria-busy="false" onClick={() => { if (!swallowClick.current) flipAction.current() }} />
       <div className="poker-controls"><span aria-hidden="true">Flip the card</span><span className="poker-control-divider" aria-hidden="true" />
         <button type="button" className="poker-pause" aria-label={paused ? 'Resume card animation' : 'Pause card animation'} aria-pressed={paused} onClick={() => { setPaused(!paused); onPausedChange?.(!paused) }}>
           {paused ? <svg viewBox="0 0 16 16" aria-hidden="true"><path d="m5 3 7 5-7 5Z" /></svg> : <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M5 3v10M11 3v10" /></svg>}

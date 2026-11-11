@@ -1,9 +1,7 @@
 import type { CSSProperties } from 'react'
 import gsap from 'gsap'
-import { ScrollTrigger } from 'gsap/ScrollTrigger'
+import { deckFrame, onDeck, requestRefresh } from './deck'
 import { prefersReducedMotion } from './motion'
-
-gsap.registerPlugin(ScrollTrigger)
 
 type Distance = number | (() => number)
 const value = (distance: Distance) => typeof distance === 'function' ? distance() : distance
@@ -98,8 +96,30 @@ export function flipCard(card: Element, toFaceUp: boolean, opts: FlipOptions = {
   return tl
 }
 
+/**
+ * Every lifted card listens to the deck through ONE subscription: when the
+ * page moves, each lift lets go and forgets its hit box, so nothing reads
+ * layout while scrolling and no card owns a window scroll listener.
+ */
+const lifts = new Set<() => void>()
+let offLiftDeck: (() => void) | null = null
+let deckWasIdle = true
+function watchLifts(release: () => void): () => void {
+  lifts.add(release)
+  offLiftDeck ??= onDeck((frame) => {
+    // let go once when movement starts, not on every frame of it
+    if (!frame.idle && deckWasIdle) for (const fn of lifts) fn()
+    deckWasIdle = frame.idle
+  })
+  return () => {
+    lifts.delete(release)
+    if (!lifts.size) { offLiftDeck?.(); offLiftDeck = null; deckWasIdle = true }
+  }
+}
+
 /** Keep pointer transforms on a dedicated child of the scroll/deal layer.
- * Cache a stable hit-area rect per frame; quickTo reuses one tween/property. */
+ * The hit box is read once when the pointer comes in (and once more after the
+ * page has moved); quickTo reuses one tween per property. */
 export function hoverLift(card: HTMLElement, opts: {
   maxTilt?: number; lift?: number; shadow?: HTMLElement | null; hitArea?: HTMLElement
 } = {}): () => void {
@@ -110,6 +130,8 @@ export function hoverLift(card: HTMLElement, opts: {
     let writers: ReturnType<typeof gsap.quickTo>[] = []
     let frame = 0
     let pointer: { x: number; y: number } | null = null
+    let rect: DOMRect | null = null
+    let unwatch: (() => void) | null = null
     const ensure = () => {
       if (writers.length) return
       ctx.add(() => {
@@ -121,7 +143,9 @@ export function hoverLift(card: HTMLElement, opts: {
     const flush = () => {
       frame = 0
       if (!pointer) return
-      const rect = hitArea.getBoundingClientRect()
+      // a card sliding under a still pointer does not lift; it lifts when the page has stopped
+      if (!deckFrame().idle) return
+      rect ??= hitArea.getBoundingClientRect()
       if (!rect.width || !rect.height) return
       const x = gsap.utils.clamp(-1, 1, (pointer.x - rect.left) / rect.width * 2 - 1)
       const y = gsap.utils.clamp(-1, 1, (pointer.y - rect.top) / rect.height * 2 - 1)
@@ -135,28 +159,43 @@ export function hoverLift(card: HTMLElement, opts: {
     }
     const move = (event: PointerEvent) => {
       if (event.pointerType === 'touch') return
+      unwatch ??= watchLifts(release)
       pointer = { x: event.clientX, y: event.clientY }
       if (!frame) frame = requestAnimationFrame(flush)
     }
-    const rest = () => {
-      pointer = null
+    const settle = () => {
       cancelAnimationFrame(frame)
       frame = 0
       writers[0]?.(0); writers[1]?.(0); writers[2]?.(0)
       writers[3]?.(1); writers[4]?.(0.48)
       card.style.removeProperty('will-change')
     }
+    /** the page moved: put the card down and measure again on the next move */
+    function release() {
+      rect = null
+      settle()
+    }
+    const rest = () => {
+      pointer = null
+      rect = null
+      settle()
+      unwatch?.()
+      unwatch = null
+    }
+    const enter = (event: PointerEvent) => {
+      if (event.pointerType !== 'touch') rect = null
+    }
+    hitArea.addEventListener('pointerenter', enter, { passive: true })
     hitArea.addEventListener('pointermove', move, { passive: true })
     hitArea.addEventListener('pointerleave', rest)
     hitArea.addEventListener('pointercancel', rest)
-    window.addEventListener('scroll', rest, { passive: true })
     window.addEventListener('blur', rest)
     return () => {
       rest()
+      hitArea.removeEventListener('pointerenter', enter)
       hitArea.removeEventListener('pointermove', move)
       hitArea.removeEventListener('pointerleave', rest)
       hitArea.removeEventListener('pointercancel', rest)
-      window.removeEventListener('scroll', rest)
       window.removeEventListener('blur', rest)
       writers.forEach((writer) => writer.tween.kill())
       ctx.revert()
@@ -165,17 +204,13 @@ export function hoverLift(card: HTMLElement, opts: {
   return () => mm.revert()
 }
 
-/** Refresh only when layout dimensions change, never in the animation loop.
- * Observe stationary slots, not transformed surfaces or pin spacers. */
+/** Ask for a re-measure only when layout dimensions change, never in the
+ * animation loop. Observe stationary slots, not transformed surfaces. The
+ * deck debounces and coalesces the request with everyone else's. */
 export function observeCardLayout(elements: Element[]): () => void {
   let alive = true
-  let timer: ReturnType<typeof setTimeout> | undefined
   const sizes = new WeakMap<Element, { width: number; height: number }>()
-  const refresh = () => {
-    if (!alive) return
-    clearTimeout(timer)
-    timer = setTimeout(() => { if (alive) ScrollTrigger.refresh() }, 120)
-  }
+  const refresh = () => { if (alive) requestRefresh('cards') }
   const observer = new ResizeObserver((entries) => {
     let changed = false
     entries.forEach(({ target, contentRect: { width, height } }) => {
@@ -187,7 +222,7 @@ export function observeCardLayout(elements: Element[]): () => void {
   })
   elements.forEach((element) => observer.observe(element))
   document.fonts?.ready.then(refresh).catch(() => {})
-  return () => { alive = false; clearTimeout(timer); observer.disconnect() }
+  return () => { alive = false; observer.disconnect() }
 }
 
 export function fanLayout(count: number, opts: { step?: number; drop?: number } = {}) {
