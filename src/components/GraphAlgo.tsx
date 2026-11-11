@@ -7,10 +7,11 @@ import './scopedMotion.css'
 
 export type Algo = 'kruskal' | 'prim' | 'dijkstra' | 'astar' | 'bfs' | 'dfs'
 
-const NAVY = '10,30,63'
-const BLUE = '30,94,255'
-const AMBER = '255,158,66'
-const MUTED = '70,88,122'
+// Drawn on the dark study panel (film.css): ivory lines, steel for settled nodes, brass for the live path
+const NAVY = '244,236,220'
+const BLUE = '134,170,206'
+const AMBER = '236,176,112'
+const MUTED = '201,192,172'
 const N = 26
 const STEP_MS = 420
 const HOLD_MS = 1800

@@ -34,6 +34,8 @@ export function buildProgram(gl: GL, vertex: string, fragment: string, attribs: 
   let result: boolean | null = null
   const finish = () => {
     if (result !== null) return result
+    // The owner may have deleted the program already (unmount while it was still linking).
+    if (!gl.isProgram(program)) return (result = false)
     result = !!gl.getProgramParameter(program, gl.LINK_STATUS)
     if (!result && import.meta.env.DEV && !gl.isContextLost()) {
       console.warn('[film] shader failed', gl.getProgramInfoLog(program), gl.getShaderInfoLog(vs), gl.getShaderInfoLog(fs))
@@ -47,7 +49,7 @@ export function buildProgram(gl: GL, vertex: string, fragment: string, attribs: 
     if (!parallel) return resolve(finish())
     const poll = () => {
       if (result !== null) return resolve(result)
-      if (gl.isContextLost() || gl.getProgramParameter(program, COMPLETION_STATUS_KHR)) return resolve(finish())
+      if (gl.isContextLost() || !gl.isProgram(program) || gl.getProgramParameter(program, COMPLETION_STATUS_KHR)) return resolve(finish())
       setTimeout(poll, 8)
     }
     poll()

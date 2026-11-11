@@ -502,3 +502,24 @@ html[data-film-events='tickets'] .cgs-side-rail[data-surface='light'] { --text: 
   opacity: 0.7;
 }
 #join .join-sphere-glow { background: radial-gradient(50% 50% at 50% 55%, color-mix(in srgb, var(--film-warm) 16%, transparent), transparent 72%); }
+
+/* ===========================================================================
+   8. Sub-pages: the same lens (FilmLens page="sub"), the same stock.
+   =========================================================================== */
+/* The algorithm study is a dark screen set into the page, not a white sheet. */
+.subpage .sp-study {
+  background:
+    radial-gradient(ellipse 70% 80% at 22% 0%, color-mix(in srgb, var(--film-warm) 7%, transparent), transparent 70%),
+    var(--film-shadow);
+  color: var(--film-white);
+  border-radius: 6px;
+  box-shadow: inset 0 0 0 1px rgb(244 236 220 / 0.08), 0 24px 60px -30px rgb(0 0 0 / 0.6);
+}
+/* The film window: its edges fall off softly (an overlay, never a mask or filter on the picture itself). */
+.subpage .page-scene__window::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  box-shadow: inset 0 0 56px 6px rgb(7 6 5 / 0.5), inset 0 0 0 1px rgb(244 236 220 / 0.06);
+}
