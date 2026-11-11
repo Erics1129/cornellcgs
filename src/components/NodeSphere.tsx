@@ -79,7 +79,7 @@ export default function NodeSphere({ className = '' }: { className?: string }) {
     let dpr = 1
     let sceneTime = 0
     let rotY = 0.4
-    let rotX = -0.35
+    const rotX = -0.35
     let leanX = 0
     let leanY = 0
     let targetLeanX = 0
@@ -150,10 +150,11 @@ export default function NodeSphere({ className = '' }: { className?: string }) {
           const pa = project(arc.a, cy, sy, cx, sx)
           const pb = project(arc.b, cy, sy, cx, sx)
           const grad = ctx.createLinearGradient(pa.x, pa.y, pb.x, pb.y)
-          grad.addColorStop(0, `rgba(232,87,74,${fade})`)
-          grad.addColorStop(1, `rgba(230,180,90,${fade})`)
+          // A quiet brass thread between two nodes (it used to be a thick red stroke that read as a stray mark under the card)
+          grad.addColorStop(0, `rgba(230,168,106,${fade * 0.16})`)
+          grad.addColorStop(1, `rgba(244,226,190,${fade * 0.5})`)
           ctx.strokeStyle = grad
-          ctx.lineWidth = 2.8
+          ctx.lineWidth = 1.3
           ctx.lineCap = 'round'
           ctx.beginPath()
           const e = 1 - Math.pow(1 - drawn, 3)
@@ -168,14 +169,14 @@ export default function NodeSphere({ className = '' }: { className?: string }) {
           }
           ctx.stroke()
           // Endpoints
-          ctx.fillStyle = `rgba(232,87,74,${fade})`
+          ctx.fillStyle = `rgba(230,168,106,${fade * 0.5})`
           ctx.beginPath()
-          ctx.arc(pa.x, pa.y, 3.2, 0, Math.PI * 2)
+          ctx.arc(pa.x, pa.y, 2.4, 0, Math.PI * 2)
           ctx.fill()
           if (drawn >= 1) {
-            ctx.fillStyle = `rgba(230,180,90,${fade})`
+            ctx.fillStyle = `rgba(244,226,190,${fade * 0.7})`
             ctx.beginPath()
-            ctx.arc(pb.x, pb.y, 3.2, 0, Math.PI * 2)
+            ctx.arc(pb.x, pb.y, 2.4, 0, Math.PI * 2)
             ctx.fill()
           }
         }

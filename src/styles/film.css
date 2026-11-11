@@ -1,1 +1,527 @@
-/* film.css: CONTRACT FILE (see SPEC.md section 9). Stub: intentionally empty. The owning stream replaces it. */
+/* ===========================================================================
+   film.css — the shared look. CONTRACT FILE, owner: stream "film".
+   Paint only: colour, gradients, shadows, materials, the lens, seam paint.
+   Geometry (sticky, runway heights, overflow, seam boxes) is deck.css;
+   screen-size layout is responsive.css. Rules are scoped by chapter id, by
+   .subpage, or under html[data-page] so the mini-game routes never change.
+   =========================================================================== */
+
+/* ---------------------------------------------------------------------------
+   1. Tokens. One stock, one light.
+--------------------------------------------------------------------------- */
+:root {
+  --film-black: #070605;   /* shared black point. Page, seams and scene shadows meet here */
+  --film-shadow: #0f0d0a;  /* lifted shadow for surfaces */
+  --film-table: #17120c;   /* table felt, lit side */
+  --film-white: #f4ecdc;   /* shared white point, ivory stock. No surface is pure white */
+  --film-warm: #e6a86a;    /* key light (brass), from the upper left */
+  --film-cool: #6f93b8;    /* fill and rim (steel) */
+  --film-key-x: -0.42;     /* key direction: the same numbers in CSS and GLSL (effects/GradientBG.tsx) */
+  --film-key-y: -0.78;
+  --grain: 0.05;
+  --vignette: 0.22;
+
+  /* card stock, shared by every DOM card */
+  --stock: #f1e8d6;
+  --stock-lit: #fbf5e7;
+  --stock-shade: #e0d3b8;
+  --stock-edge: #b9ad94;
+  --stock-ink: #15120d;
+  --stock-ink-soft: #4d4434;
+  --stock-red: #a3242b;
+}
+
+/* Overscroll, iOS tile gaps on a hard fling and the status bar are film black. */
+html[data-page] {
+  background-color: var(--film-black);
+}
+
+/* ---------------------------------------------------------------------------
+   2. The lens: vignette + grain, one viewport-sized layer.
+   Sized 100vw x 100lvh from the top (not inset: 0) so a phone's moving URL
+   bar never resizes it.
+--------------------------------------------------------------------------- */
+.film-lens {
+  --lens-vignette: var(--vignette);
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  height: 100lvh;
+  z-index: 30;
+  pointer-events: none;
+  contain: strict;
+  background: radial-gradient(
+    ellipse 78% 78% at 50% 50%,
+    transparent 46%,
+    rgb(0 0 0 / calc(var(--lens-vignette) * 0.28)) 68%,
+    rgb(0 0 0 / calc(var(--lens-vignette) * 0.66)) 86%,
+    rgb(0 0 0 / var(--lens-vignette)) 100%
+  );
+}
+@media (orientation: portrait) {
+  .film-lens { --lens-vignette: calc(var(--vignette) * 0.6); }
+}
+.film-lens__grain {
+  position: absolute;
+  inset: 0;
+  display: block;
+  opacity: var(--grain);
+  background-image: url('/assets/film/grain-256.png');
+  background-size: 256px 256px;
+  image-rendering: pixelated;
+}
+/* On 2x and 3x screens the same tile is drawn at half size, so one speckle is 1 to 1.5 device pixels. */
+@media (min-resolution: 1.5dppx) {
+  .film-lens__grain { background-size: 128px 128px; }
+}
+/* 12 fps, whole-tile jumps. Paused while the page moves: scrolling stays compositor-only. */
+.film-lens[data-grain='live'] .film-lens__grain {
+  animation: lens-grain 0.667s steps(1, end) infinite;
+}
+html[data-scroll='moving'] .film-lens__grain,
+html[data-scroll='flying'] .film-lens__grain {
+  animation-play-state: paused;
+}
+@keyframes lens-grain {
+  0% { background-position: 0 0; }
+  12.5% { background-position: -37px 61px; }
+  25% { background-position: 83px -29px; }
+  37.5% { background-position: -101px -73px; }
+  50% { background-position: 53px 97px; }
+  62.5% { background-position: -19px -113px; }
+  75% { background-position: 109px 41px; }
+  87.5% { background-position: -67px 17px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .film-lens__grain { animation: none !important; }
+}
+/* Type sits under the lens. Light paper would show the dark speckle inside letterforms, so it gets less. */
+.film-lens[data-lens='sub'] { --lens-vignette: calc(var(--vignette) * 0.5); }
+.film-lens[data-lens='sub'] .film-lens__grain { opacity: calc(var(--grain) * 0.7); }
+
+/* ---------------------------------------------------------------------------
+   3. The table: the fixed background every table chapter shares.
+   The canvas (effects/GradientBG.tsx) paints it in linear light; this CSS
+   composition is the same picture without WebGL, and what shows if the
+   context is lost.
+--------------------------------------------------------------------------- */
+.film-bg {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  height: 100lvh;
+  z-index: 0;
+  pointer-events: none;
+  contain: strict;
+  background:
+    radial-gradient(60% 55% at 28% 18%, color-mix(in srgb, var(--film-warm) 9%, transparent), transparent 70%),
+    radial-gradient(120% 55% at 50% 108%, color-mix(in srgb, var(--glow) 50%, transparent), transparent 70%),
+    linear-gradient(to bottom, var(--bg-top) 0%, var(--bg-mid) 60%, var(--bg-bot) 100%);
+}
+.film-bg canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+/* The code rain rides the same fixed box as the table. */
+.film-rain {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  height: 100lvh;
+  z-index: 1;
+  pointer-events: none;
+  contain: strict;
+}
+.film-rain canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* ---------------------------------------------------------------------------
+   4. Which chapter roots are opaque (the final truth; deck.css holds a first
+   list). While opaque chapters cover the viewport the table and the code rain
+   stop drawing (deckFrame().bgVisible). The table set is NOT opaque: it sits
+   on the shared table. The hero's city fades out over its last 160 px, so the
+   hero is not opaque either.
+--------------------------------------------------------------------------- */
+#alphago, #code, #ml-process, #events, #world, #universe, #anyone, #vision { --chapter-opaque: 1; }
+#top, #who-we-are, #what-we-do, #project, #stats, #people, #join, #contact { --chapter-opaque: 0; }
+
+/* ---------------------------------------------------------------------------
+   5. Seams: how two chapters meet. Paint only; the box is deck.css
+   (.seam is a zero-height element between two chapter roots; its two <i>
+   children span --seam-up above the boundary and --seam-down below it, or
+   --seam-reach on both sides).
+
+   A seam never darkens content: a veil reaches only into the neighbouring
+   chapter's own empty padding (at most 9svh), and only where the PICTURE
+   changes (table to film, film to table). Inside the table set there is no
+   veil at all: the shared table is the blend, and the seam is a brass
+   hairline. Where two black films meet, they simply butt. No blend modes.
+--------------------------------------------------------------------------- */
+.seam {
+  --seam-ink: var(--film-black);
+  --seam-tint: var(--film-warm);
+  --veil-up: 0px;
+  --veil-down: 0px;
+  --seam-glow: 0;
+}
+.seam__veil {
+  --u: var(--seam-up, var(--seam-reach, 9svh));
+  --d: var(--seam-down, var(--seam-reach, 9svh));
+  --vu: min(var(--veil-up), var(--u), 9svh);
+  --vd: min(var(--veil-down), var(--d), 9svh);
+  --k0: var(--seam-ink);
+  --k1: color-mix(in srgb, var(--seam-ink) 86%, transparent);
+  --k2: color-mix(in srgb, var(--seam-ink) 58%, transparent);
+  --k3: color-mix(in srgb, var(--seam-ink) 28%, transparent);
+  --k4: color-mix(in srgb, var(--seam-ink) 9%, transparent);
+  background:
+    linear-gradient(to top, var(--k0) 0%, var(--k1) 16%, var(--k2) 36%, var(--k3) 58%, var(--k4) 80%, transparent 100%)
+      0 calc(var(--u) - var(--vu)) / 100% var(--vu) no-repeat,
+    linear-gradient(to bottom, var(--k0) 0%, var(--k1) 16%, var(--k2) 36%, var(--k3) 58%, var(--k4) 80%, transparent 100%)
+      0 var(--u) / 100% var(--vd) no-repeat;
+}
+/* A low, wide leak of the next room's light along the boundary line. */
+.seam__light {
+  --u: var(--seam-up, var(--seam-reach, 9svh));
+  background:
+    radial-gradient(ellipse 50% 50% at 50% 50%, color-mix(in srgb, var(--seam-tint) calc(var(--seam-glow) * 100%), transparent), transparent 100%)
+      50% calc(var(--u) - 1.6svh) / min(120rem, 92%) 3.2svh no-repeat;
+}
+
+/* table -> film: the table falls off into the dark */
+.seam[data-to='alphago'], .seam[data-to='vision'] { --veil-up: 9svh; }
+.seam[data-from='code'][data-to='ml-process'] { --veil-up: 9svh; }
+.seam[data-to='code'] { --veil-up: 9svh; --seam-ink: var(--film-shadow); }
+/* film -> table: the next room's lamp leaks under the door */
+.seam[data-from='alphago'], .seam[data-from='universe'], .seam[data-from='vision'] { --veil-down: 9svh; --seam-glow: 0.09; }
+/* soda: its dark room above, its cola below */
+.seam[data-to='anyone'] { --veil-up: 9svh; --seam-ink: #0b0806; }
+.seam[data-from='anyone'] { --veil-down: 9svh; --seam-ink: #1a0704; --seam-tint: #c8102e; --seam-glow: 0.06; }
+/* the eyelid into Vision: the dark rises in the middle first */
+.seam[data-seam='lid'] .seam__veil {
+  background:
+    radial-gradient(ellipse 62% 100% at 50% 100%, var(--k0) 0%, var(--k1) 22%, var(--k2) 46%, var(--k3) 68%, var(--k4) 86%, transparent 100%)
+      0 calc(var(--u) - var(--vu)) / 100% var(--vu) no-repeat,
+    linear-gradient(to top, var(--k0) 0%, var(--k2) 22%, var(--k4) 52%, transparent 78%)
+      0 calc(var(--u) - var(--vu)) / 100% var(--vu) no-repeat;
+}
+.seam[data-to='vision'] { --seam-tint: var(--film-cool); }
+/* table -> table: no veil, a brass hairline that fades out toward both edges */
+.seam[data-from='what-we-do'][data-to='project'] .seam__light,
+.seam[data-from='project'][data-to='stats'] .seam__light {
+  background:
+    linear-gradient(90deg, transparent, color-mix(in srgb, var(--film-warm) 22%, transparent) 30%, color-mix(in srgb, var(--film-warm) 22%, transparent) 70%, transparent)
+      50% var(--u) / min(80rem, 78%) 1px no-repeat;
+}
+/* Events as an ivory sheet between two black films: the films lie on top of it and cast a short shadow. */
+html[data-film-events='ivory'] .seam[data-to='events'] { --veil-down: 4svh; --seam-ink: rgb(7 6 5 / 0.42); }
+html[data-film-events='ivory'] .seam[data-from='events'] { --veil-up: 4svh; --seam-ink: rgb(7 6 5 / 0.42); }
+/* Events as dark stock: table into film on both sides. */
+html[data-film-events='tickets'] .seam[data-to='events'] { --veil-down: 9svh; --seam-glow: 0.08; }
+html[data-film-events='tickets'] .seam[data-from='events'] { --veil-up: 9svh; }
+
+/* ---------------------------------------------------------------------------
+   6. Entry depth. deck writes --e (0..1, 1 = arrived) on [data-film-enter].
+   Picture layers only (a canvas, a film, the globe, the eye): text wrappers
+   never scale, so type is never rasterised soft and then snapped sharp.
+   Fine pointers only: under native touch scrolling a script-written transform
+   lags the compositor.
+--------------------------------------------------------------------------- */
+@property --e {
+  syntax: '<number>';
+  inherits: false;
+  initial-value: 1;
+}
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  :is(.scroll-film, .earth-globe, .soda-canvas, .vision-eye-stage, .universe-plate)[data-film-enter] {
+    translate: 0 calc((1 - var(--e, 1)) * 3svh);
+    scale: calc(1 + (1 - var(--e, 1)) * 0.03);
+  }
+}
+
+/* ===========================================================================
+   7. Chapters. One black point (--film-black), one white point (--film-white),
+   a warm key from the upper left, a cool fill.
+   =========================================================================== */
+
+/* ---- 00 Hero ------------------------------------------------------------ */
+/* Fixed inks: the buttons sit on the dark city in every colour world. */
+#top .btn-primary {
+  --btn-ink: var(--film-warm);
+  background-color: var(--film-white);
+  border-color: var(--film-white);
+  color: var(--stock-ink);
+}
+#top .btn-primary:hover,
+#top .btn-primary:focus-visible {
+  background-color: var(--film-white);
+  border-color: var(--film-warm);
+  color: var(--stock-ink);
+}
+#top .btn.hero-btn-ghost {
+  background-color: rgb(15 13 10 / 0.55);
+  border-color: rgb(244 236 220 / 0.62);
+  color: var(--film-white);
+}
+#top .btn.hero-btn-ghost:hover,
+#top .btn.hero-btn-ghost:focus-visible {
+  border-color: var(--film-white);
+  color: var(--film-white);
+}
+/* The city and the table under it share one black. */
+#top .code-city { background: var(--film-black); }
+
+/* ---- The table set: Who we are, What we do, Project, Stats, People, Join, footer.
+   No slab of their own: they sit on the fixed table (section 3) and pass
+   through its one lamp. ---------------------------------------------------- */
+#who-we-are.identity-chapter,
+#project.support-scene,
+#stats.support-scene {
+  background: none;
+}
+/* The cube stands on the table: a ground shadow that falls away from the key, a cool bounce on the far side. */
+#who-we-are.identity-chapter::before {
+  background:
+    radial-gradient(ellipse 30% 36% at 76% 58%, color-mix(in srgb, var(--film-cool) 13%, transparent), transparent 70%),
+    radial-gradient(ellipse 46% 52% at 66% 44%, color-mix(in srgb, var(--film-warm) 8%, transparent), transparent 72%);
+}
+#who-we-are .identity-object::before {
+  width: 74%;
+  left: 20%;
+  bottom: 6%;
+  height: 13%;
+  background: radial-gradient(ellipse at 42% 50%, rgb(4 3 2 / 0.86) 0%, rgb(4 3 2 / 0.5) 42%, transparent 72%);
+  filter: none;
+}
+#contact {
+  background: linear-gradient(180deg, var(--film-black) 0%, rgb(7 6 5 / 0.72) 30%, rgb(7 6 5 / 0.3) 100%);
+  color: var(--film-white);
+}
+
+/* ---- Card stock: every DOM card is the same ivory, lit from the upper left. */
+.card-material {
+  border: 1px solid rgb(81 68 43 / 0.22);
+  box-shadow:
+    inset 1px 1px 0 rgb(255 253 246 / 0.9),
+    inset -1px -1px 0 rgb(94 74 40 / 0.24),
+    0 1px 0 var(--stock-edge),
+    1px 2px 2px rgb(0 0 0 / 0.5),
+    10px 22px 44px -14px rgb(0 0 0 / 0.45);
+}
+.card-material.card-face-surface {
+  background:
+    /* the lamp's highlight slides with the light vector (look.ts writes --lx / --ly on the card container) */
+    radial-gradient(95% 72% at calc(26% + var(--lx, 0) * 24%) calc(10% + var(--ly, 0) * 20%), rgb(255 253 245 / 0.95) 0%, rgb(255 253 245 / 0) 62%),
+    repeating-linear-gradient(0deg, rgb(81 62 29 / 0.018) 0 1px, transparent 1px 3px),
+    repeating-linear-gradient(90deg, rgb(255 255 255 / 0.06) 0 1px, transparent 1px 4px),
+    linear-gradient(148deg, var(--stock-lit) 0%, var(--stock) 52%, var(--stock-shade) 100%);
+}
+.card-material.card-back-surface {
+  border-color: rgb(219 211 198 / 0.22);
+  background:
+    radial-gradient(90% 70% at calc(24% + var(--lx, 0) * 24%) calc(8% + var(--ly, 0) * 20%), rgb(120 102 70 / 0.5) 0%, transparent 60%),
+    repeating-linear-gradient(45deg, rgb(216 206 190 / 0.035) 0 1px, transparent 1px 5px),
+    linear-gradient(150deg, #2c2518 0%, #1c170f 60%, #141009 100%);
+  box-shadow:
+    inset 1px 1px 0 rgb(243 237 227 / 0.26),
+    inset -1px -1px 0 rgb(0 0 0 / 0.45),
+    0 1px 0 #8f8a7c,
+    1px 2px 2px rgb(0 0 0 / 0.55),
+    10px 22px 44px -14px rgb(0 0 0 / 0.5);
+}
+#join .join-card {
+  background:
+    radial-gradient(110% 90% at calc(15% + var(--lx, 0) * 20%) calc(0% + var(--ly, 0) * 16%), var(--stock-lit) 0%, transparent 60%),
+    linear-gradient(160deg, var(--stock) 0%, var(--stock-shade) 100%);
+  box-shadow:
+    inset 1px 1px 0 rgb(255 253 246 / 0.9),
+    inset -1px -1px 0 rgb(94 74 40 / 0.24),
+    0 1px 0 var(--stock-edge),
+    2px 3px 3px rgb(0 0 0 / 0.45),
+    18px 34px 60px -18px rgb(0 0 0 / 0.55);
+}
+
+/* ---- 02 AlphaGo ---------------------------------------------------------- */
+#alphago.alpha-scene { background: var(--film-black); }
+/* Board plate: its far edge catches the cool fill; every side falls into the shared black. */
+#alphago .go-study::after {
+  background:
+    radial-gradient(ellipse 60% 26% at 72% 2%, color-mix(in srgb, var(--film-cool) 14%, transparent), transparent 70%),
+    linear-gradient(90deg, var(--film-black) 0%, rgb(7 6 5 / 0.72) 24%, rgb(7 6 5 / 0.08) 66%, transparent 100%),
+    linear-gradient(0deg, var(--film-black) 0%, rgb(7 6 5 / 0.5) 9%, transparent 24%, transparent 78%, rgb(7 6 5 / 0.5) 92%, var(--film-black) 100%);
+}
+#alphago .go-study-shade { background: var(--film-black); }
+/* The words sit on a soft pool of shade: feathered on both axes, no edge to see. */
+#alphago .alpha-copy::before {
+  inset: -5rem -9rem -5rem -6rem;
+  width: auto;
+  background: radial-gradient(ellipse 50% 50% at 44% 50%, rgb(7 6 5 / 0.9) 0%, rgb(7 6 5 / 0.78) 38%, rgb(7 6 5 / 0.4) 68%, rgb(7 6 5 / 0) 100%);
+}
+#alphago .alpha-pause { background: rgb(7 6 5 / 0.9); }
+
+/* ---- 06 Code: an opaque dark desk, the screen's glow on it ---------------- */
+#code.support-scene {
+  background:
+    radial-gradient(ellipse 52% 60% at 69% 52%, color-mix(in srgb, var(--film-cool) 9%, transparent), transparent 72%),
+    radial-gradient(ellipse 40% 44% at 14% 16%, color-mix(in srgb, var(--film-warm) 5%, transparent), transparent 74%),
+    var(--film-shadow);
+}
+#code .code-workspace {
+  box-shadow:
+    0 0 0 1px rgb(0 0 0 / 0.5),
+    0 2px 3px rgb(0 0 0 / 0.5),
+    26px 48px 90px -30px rgb(0 0 0 / 0.85),
+    0 0 110px -20px color-mix(in srgb, var(--film-cool) 16%, transparent),
+    inset 0 1px rgb(251 248 244 / 0.12);
+}
+
+/* ---- 07 ML process -------------------------------------------------------- */
+#ml-process.scene-chapter,
+#world.scene-chapter,
+#vision.vision-chapter { background: var(--film-black); }
+#world .scene-canvas { background: var(--film-black); }
+#ml-process .scene-edge--top, #world .scene-edge--top { background: linear-gradient(var(--film-black), rgb(7 6 5 / 0.55) 34%, transparent); }
+#ml-process .scene-edge--bottom, #world .scene-edge--bottom { background: linear-gradient(to top, var(--film-black), rgb(7 6 5 / 0.55) 34%, transparent); }
+#ml-process .scroll-film { background: var(--film-black); }
+/* The film's edges are feathered by overlays to the shared black (no mask and no filter on the video itself). */
+#ml-process .scroll-film img,
+#ml-process .scroll-film video {
+  -webkit-mask-image: none;
+  mask-image: none;
+}
+#ml-process .scroll-film::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 25%;
+  width: 85%;
+  height: 100%;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 34% 40% at 46% 50%, color-mix(in srgb, var(--film-warm) 7%, transparent), transparent 70%),
+    linear-gradient(90deg, var(--film-black) 0%, rgb(7 6 5 / 0.6) 7%, transparent 17%, transparent 86%, rgb(7 6 5 / 0.6) 95%, var(--film-black) 100%),
+    linear-gradient(180deg, var(--film-black) 0%, rgb(7 6 5 / 0.55) 6%, transparent 15%, transparent 85%, rgb(7 6 5 / 0.55) 94%, var(--film-black) 100%);
+}
+@media (max-width: 1023px), (orientation: portrait) {
+  #ml-process .scroll-film::after { left: -8%; top: 27%; width: 116%; height: 70%; }
+}
+/* Reading surface: a pool of shade behind the copy, feathered on both axes. */
+#ml-process.scene-chapter--ml .scene-content {
+  background: radial-gradient(ellipse 62% 82% at 12% 52%, rgb(7 6 5 / 0.88) 0%, rgb(7 6 5 / 0.7) 36%, rgb(7 6 5 / 0.3) 66%, rgb(7 6 5 / 0) 100%);
+}
+@media (max-width: 1023px), (orientation: portrait) {
+  #ml-process.scene-chapter--ml .scene-content {
+    background: radial-gradient(ellipse 120% 62% at 30% 22%, rgb(7 6 5 / 0.9) 0%, rgb(7 6 5 / 0.72) 42%, rgb(7 6 5 / 0.28) 72%, rgb(7 6 5 / 0) 100%);
+  }
+}
+
+/* ---- 08 Events ------------------------------------------------------------ */
+/* P0: a toned ivory sheet (no pure white), lit by the same lamp, lying under the two films around it. */
+html[data-film-events='ivory'] #events.event-agenda {
+  background:
+    radial-gradient(ellipse 70% 60% at 28% 18%, rgb(255 251 240 / 0.85), transparent 70%),
+    linear-gradient(168deg, #eee6d4 0%, #e7dec9 55%, #ddd2ba 100%);
+}
+/* small print on the sheet: dark enough for AA on the toned ivory (measured 5:1 or better) */
+html[data-film-events='ivory'] #events :is(.agenda-date, .agenda-number) { color: #3f392f; }
+html[data-film-events='ivory'] #events .agenda-eyebrow { color: #4f4739; }
+/* P1 (waiting for approval, see FilmLens.tsx): dark stock. The chapter joins the table and each agenda row is an ivory ticket. */
+html[data-film-events='tickets'] #events.event-agenda {
+  --chapter-opaque: 0;
+  --text: var(--film-white);
+  --muted: #cfc6b4;
+  --neon-mid: #e6d0aa;
+  background: none;
+  color: var(--film-white);
+}
+html[data-film-events='tickets'] #events .agenda-eyebrow { color: #cfc6b4; }
+html[data-film-events='tickets'] #events .agenda-eyebrow::before { color: #e8574a; }
+html[data-film-events='tickets'] #events .agenda-more { border-bottom-color: rgb(244 236 220 / 0.4); }
+html[data-film-events='tickets'] #events .card-index .rank { color: var(--film-white); }
+html[data-film-events='tickets'] #events .agenda-list { border-top: 0; display: grid; gap: 1rem; }
+html[data-film-events='tickets'] #events .agenda-row {
+  --ivory: #2f2a20;
+  position: relative;
+  border: 1px solid rgb(81 68 43 / 0.22);
+  border-radius: 10px;
+  padding-inline: clamp(1rem, 2vw, 1.75rem);
+  color: var(--stock-ink);
+  background:
+    radial-gradient(95% 110% at calc(18% + var(--lx, 0) * 24%) calc(0% + var(--ly, 0) * 30%), rgb(255 253 245 / 0.95) 0%, rgb(255 253 245 / 0) 60%),
+    linear-gradient(150deg, var(--stock-lit) 0%, var(--stock) 55%, var(--stock-shade) 100%);
+  box-shadow:
+    inset 1px 1px 0 rgb(255 253 246 / 0.9),
+    inset -1px -1px 0 rgb(94 74 40 / 0.24),
+    0 1px 0 var(--stock-edge),
+    1px 2px 2px rgb(0 0 0 / 0.5),
+    10px 22px 44px -14px rgb(0 0 0 / 0.45);
+}
+/* a ticket's perforation: a dotted rule before the stub that holds the plus */
+html[data-film-events='tickets'] #events .agenda-row::after {
+  content: '';
+  position: absolute;
+  top: 12px;
+  bottom: 12px;
+  right: clamp(3.4rem, 6vw, 4.6rem);
+  border-left: 2px dotted rgb(81 68 43 / 0.3);
+  pointer-events: none;
+}
+html[data-film-events='tickets'] #events .agenda-trigger { grid-template-columns: 2.5rem 1fr clamp(2.4rem, 4vw, 3rem); }
+html[data-film-events='tickets'] #events .agenda-plus { text-align: center; }
+html[data-film-events='tickets'] #events :is(.agenda-number, .agenda-date) { color: #564f43; }
+html[data-film-events='tickets'] #events .agenda-reveal p { color: var(--stock-ink-soft); }
+html[data-film-events='tickets'] #events .agenda-trigger:focus-visible { outline-color: var(--stock-red); }
+/* the rail keeps its light inks on dark stock */
+html[data-film-events='tickets'] .cgs-side-rail[data-surface='light'] { --text: #f2ecdf; --muted: #bdb29c; --neon-mid: #e8574a; --neon-dim: #3a1712; }
+
+/* ---- 12 Soda --------------------------------------------------------------- */
+#anyone.soda-scene { background: #0b0806; }
+/* The dark room above the glass is pulled down to the shared shadow; the floor of shade under the copy stays. */
+#anyone .soda-shade {
+  inset: 0;
+  height: auto;
+  background:
+    linear-gradient(180deg, rgb(11 8 6 / 0.5) 0%, rgb(11 8 6 / 0.26) 22%, rgb(11 8 6 / 0) 44%),
+    linear-gradient(180deg, transparent 54%, rgb(12 3 1 / 0.5) 86%, rgb(10 2 1 / 0.74) 100%);
+}
+#anyone .soda-sound { -webkit-backdrop-filter: none; backdrop-filter: none; background: rgb(20 8 4 / 0.62); }
+
+/* ---- 13 Join ---------------------------------------------------------------- */
+/* The node sphere is set dressing: it stays behind the card and is thinned out where the aside is read. */
+#join .join-sphere {
+  -webkit-mask-image: radial-gradient(ellipse 50% 50% at 50% 50%, #000 30%, rgb(0 0 0 / 0.55) 62%, transparent 100%);
+  mask-image: radial-gradient(ellipse 50% 50% at 50% 50%, #000 30%, rgb(0 0 0 / 0.55) 62%, transparent 100%);
+  opacity: 0.7;
+}
+#join .join-sphere-glow { background: radial-gradient(50% 50% at 50% 55%, color-mix(in srgb, var(--film-warm) 16%, transparent), transparent 72%); }
+
+/* ===========================================================================
+   8. Sub-pages: the same lens (FilmLens page="sub"), the same stock.
+   =========================================================================== */
+/* The algorithm study is a dark screen set into the page, not a white sheet. */
+.subpage .sp-study {
+  background:
+    radial-gradient(ellipse 70% 80% at 22% 0%, color-mix(in srgb, var(--film-warm) 7%, transparent), transparent 70%),
+    var(--film-shadow);
+  color: var(--film-white);
+  border-radius: 6px;
+  box-shadow: inset 0 0 0 1px rgb(244 236 220 / 0.08), 0 24px 60px -30px rgb(0 0 0 / 0.6);
+}
+/* The film window: its edges fall off softly (an overlay, never a mask or filter on the picture itself). */
+.subpage .page-scene__window::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  box-shadow: inset 0 0 56px 6px rgb(7 6 5 / 0.5), inset 0 0 0 1px rgb(244 236 220 / 0.06);
+}

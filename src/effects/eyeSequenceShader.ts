@@ -1,4 +1,5 @@
 import { EYE_ART } from './eyeGaze'
+import { filmChunk } from './film/glsl'
 
 // Source-image coordinates, measured on the generated 1152 × 768 keyframes.
 // Layer numbers stay stable when an unavailable pose falls back to center.
@@ -24,6 +25,7 @@ uniform vec2 u_pupils[5];
 uniform int u_layers[9];
 uniform int u_compact;
 uniform float u_blink;
+${filmChunk(300)}
 
 vec3 pose(vec2 p, int layer) {
   return texture(u_poses, vec3(clamp(p, 0., 1.), float(u_layers[layer]))).rgb;
@@ -183,6 +185,6 @@ void main() {
   result = mix(pose(q,0),result,movingRegion);
   float edge = smoothstep(0.,.045,v_uv.x)*(1.-smoothstep(.955,1.,v_uv.x))
     * smoothstep(0.,.065,v_uv.y)*(1.-smoothstep(.935,1.,v_uv.y));
-  color = vec4(result*edge,1.);
+  color = vec4(film(srgbToLinear(result*edge)),1.);
 }
 `

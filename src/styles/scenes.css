@@ -79,12 +79,7 @@
  .scene-canvas canvas,.scene-still { transition:none; }
  .vision-pause { display:none; }
 }
-/* Blend full-bleed black into the neighbouring color world over real scroll distance. */
-.scene-chapter::before,.scene-chapter::after,.vision-chapter::before {
- content:''; position:absolute; left:0; right:0; height:12svh; pointer-events:none; z-index:1;
-}
-.scene-chapter::before,.vision-chapter::before { top:-12svh; background:linear-gradient(transparent,#000); }
-.scene-chapter::after { bottom:-12svh; background:linear-gradient(#000,transparent); }
+/* Chapter-to-chapter blends are seams (film.css section 5), not pseudo-element fades. */
 .scene-edge--top { background:linear-gradient(#000,transparent); opacity:1; }
 .scene-edge--bottom { background:linear-gradient(to top,#000,transparent); opacity:1; }
 

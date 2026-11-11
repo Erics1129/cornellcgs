@@ -3,6 +3,8 @@ import { CodeReflection } from '../effects/codeReflection'
 import { blinkClosure } from '../effects/eyeMotion'
 import { EYE_ART, EYE_IDLE_PERIOD, eyeIdleTarget, eyePointerTarget, stepEyeGaze, type EyeGaze } from '../effects/eyeGaze'
 import { EYE_POSES, EYE_PUPILS, EYE_SEQUENCE_FRAGMENT, EYE_SEQUENCE_VERTEX } from '../effects/eyeSequenceShader'
+import { bindFilm, type FilmBinder } from '../effects/film/bind'
+import { SCENE_GRADES } from '../effects/film/grades'
 import '../styles/scenes.css'
 import '../styles/eye-sequence.css'
 
@@ -40,6 +42,7 @@ export default function EyeSequence({ paused = false }: { paused?: boolean }) {
     let raf = 0, last = 0, clock = 0, frames = 0, manual = false
     let gl: WebGL2RenderingContext | null = null
     let program: WebGLProgram | null = null, buffer: WebGLBuffer | null = null
+    let film: FilmBinder | null = null
     let poses: WebGLTexture | null = null, code: WebGLTexture | null = null
     let reflection: CodeReflection | null = null, lastCode = -Infinity, codeCompact = false
     let rect: DOMRect | null = null, pointerInside = false, pointerX = 0, pointerY = 0
@@ -105,6 +108,7 @@ export default function EyeSequence({ paused = false }: { paused?: boolean }) {
       gl.uniform2f(uniforms.u_gaze, next.gaze.x, next.gaze.y)
       gl.uniform1f(uniforms.u_blink, next.blink)
       gl.uniform1i(uniforms.u_compact, compact.matches ? 1 : 0)
+      film?.(SCENE_GRADES.eye, 0)
       gl.drawArrays(gl.TRIANGLES, 0, 3)
       frames++
       if (import.meta.env.DEV) {
@@ -176,6 +180,7 @@ export default function EyeSequence({ paused = false }: { paused?: boolean }) {
         for (const name of ['u_poses','u_code','u_size','u_gaze','u_pupils[0]','u_layers[0]','u_compact','u_blink']) {
           uniforms[name] = context.getUniformLocation(program,name)
         }
+        film = bindFilm(context, program)
         const textureParameters = (target: number) => {
           context.texParameteri(target,context.TEXTURE_MIN_FILTER,context.LINEAR)
           context.texParameteri(target,context.TEXTURE_MAG_FILTER,context.LINEAR)

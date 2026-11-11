@@ -36,6 +36,8 @@ const CarrotPage = React.lazy(() => import('./minigames/carrot/CarrotPage'))
 
 // Device class + design scale first: everything below measures in rem.
 installDevice()
+initTier()
+initLook()
 installNeonClick()
 
 // Legacy hash routes (#p/<id>) now live at real paths — forward old links.

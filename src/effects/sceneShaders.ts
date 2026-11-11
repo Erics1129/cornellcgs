@@ -1,5 +1,6 @@
 import { CINEMATIC_EYE_SHADER } from './cinematicEyeShader'
 import { EARTH_SHADER } from './earthShader'
+import { filmChunk } from './film/glsl'
 
 /** Image-generated material, real-time lighting and input-driven deformation. */
 export const SCENE_VERTEX = `#version 300 es
@@ -23,6 +24,7 @@ uniform float u_blink;
 uniform int u_mode;
 uniform int u_compact;
 const float PI=3.14159265359;
+${filmChunk(300)}
 mat2 rotate(float a){return mat2(cos(a),-sin(a),sin(a),cos(a));}
 
 ${EARTH_SHADER}
@@ -51,6 +53,6 @@ vec3 blackhole(){
 ${CINEMATIC_EYE_SHADER}
 void main(){
   vec3 c=u_mode==0?blackhole():(u_mode==1?earth():eye());
-  color=vec4(c,1.);
+  color=vec4(film(srgbToLinear(c)),1.);
 }
 `

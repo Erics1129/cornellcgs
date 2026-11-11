@@ -2,6 +2,8 @@ import { useEffect, useRef } from 'react'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { EARTH_PLACES, earthFrame, earthPhotoPose, smooth } from '../lib/earthJourney'
 import { TRAVEL_FRAGMENT, TRAVEL_VERTEX } from '../effects/earthTravelShader'
+import { bindFilm, type FilmBinder } from '../effects/film/bind'
+import { SCENE_GRADES } from '../effects/film/grades'
 
 /** A two-photo compositor. The semantic photographs remain underneath for
  * reduced motion, image/network errors and browsers without WebGL. */
@@ -19,6 +21,7 @@ export default function EarthTravel() {
       if (!gl) return
       let alive = true, near = false, frame = 0, last = 0, progress = 0, velocity = 0, loaded = 0
       let program: WebGLProgram | null = null, buffer: WebGLBuffer | null = null
+      let film: FilmBinder | null = null
       const textures: (WebGLTexture | null)[] = [], images: HTMLImageElement[] = []
       const uniforms: Record<string, WebGLUniformLocation | null> = {}
       function compile(type: number, source: string) {
@@ -42,6 +45,7 @@ export default function EarthTravel() {
         for (const key of ['size','fromSize','toSize','fromAnchor','toAnchor','fromTint','toTint','scale','pan','sat','mix','blur','from','to']) {
           uniforms[key] = gl!.getUniformLocation(program, `u_${key}`)
         }
+        film = bindFilm(gl!, program)
         return true
       }
       const valid = init()
@@ -73,7 +77,7 @@ export default function EarthTravel() {
         gl!.uniform2f(uniforms.scale, from.scale, to.scale); gl!.uniform2f(uniforms.pan, from.pan, to.pan)
         gl!.uniform2f(uniforms.sat, a.saturation, b.saturation); gl!.uniform1f(uniforms.mix, scene.mix)
         const blur = Math.min(.35, velocity * .055) * (.14 + scene.envelope * .86)
-        gl!.uniform1f(uniforms.blur, blur); gl!.drawArrays(gl!.TRIANGLES, 0, 6)
+        gl!.uniform1f(uniforms.blur, blur); film?.(SCENE_GRADES.travel, 0); gl!.drawArrays(gl!.TRIANGLES, 0, 6)
         canvas!.style.opacity = String(smooth((progress - .30) / .07))
         section!.dataset.earthRenderer = 'webgl2'
         if (import.meta.env.DEV) { canvas!.dataset.progress = progress.toFixed(5); canvas!.dataset.blur = blur.toFixed(5) }

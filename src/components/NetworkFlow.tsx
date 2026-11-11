@@ -47,7 +47,7 @@ export default function NetworkFlow({ className = '', paused = false }: { classN
       for (const [a, b] of edges) {
         const A = nodes[a], B = nodes[b]
         const t = Math.max(0, Math.min(1, build * LAYERS.length - A.layer))
-        ctx.strokeStyle = 'rgba(51,40,22,.09)'; ctx.lineWidth = .8
+        ctx.strokeStyle = 'rgba(244,236,220,.12)'; ctx.lineWidth = .8
         ctx.beginPath(); ctx.moveTo(A.x, A.y); ctx.lineTo(A.x + (B.x - A.x) * t, A.y + (B.y - A.y) * t); ctx.stroke()
       }
       ctx.globalAlpha = emphasis
@@ -55,29 +55,29 @@ export default function NetworkFlow({ className = '', paused = false }: { classN
         const A = nodes[path[layer]], B = nodes[path[layer + 1]]
         const t = Math.max(0, Math.min(1, (progress - BUILD_MS - layer * SIGNAL_MS) / SIGNAL_MS))
         if (!t) continue
-        ctx.strokeStyle = 'rgba(204,159,81,.85)'; ctx.lineWidth = 2
+        ctx.strokeStyle = 'rgba(236,176,112,.9)'; ctx.lineWidth = 2
         ctx.beginPath(); ctx.moveTo(A.x, A.y); ctx.lineTo(A.x + (B.x - A.x) * t, A.y + (B.y - A.y) * t); ctx.stroke()
         if (t < 1) {
-          ctx.fillStyle = '#cc9f51'; ctx.beginPath(); ctx.arc(A.x + (B.x - A.x) * t, A.y + (B.y - A.y) * t, 3, 0, Math.PI * 2); ctx.fill()
+          ctx.fillStyle = '#ecb070'; ctx.beginPath(); ctx.arc(A.x + (B.x - A.x) * t, A.y + (B.y - A.y) * t, 3, 0, Math.PI * 2); ctx.fill()
         }
       }
       nodes.forEach((point, i) => {
         const reached = path.includes(i) && progress >= BUILD_MS + point.layer * SIGNAL_MS
         ctx.globalAlpha = 1
-        ctx.fillStyle = 'rgba(51,40,22,.65)'
+        ctx.fillStyle = 'rgba(244,236,220,.78)'
         ctx.beginPath(); ctx.arc(point.x, point.y, point.layer === 0 || point.layer === 4 ? 4.5 : 3, 0, Math.PI * 2); ctx.fill()
         if (reached) {
-          ctx.globalAlpha = emphasis; ctx.fillStyle = '#cc9f51'
+          ctx.globalAlpha = emphasis; ctx.fillStyle = '#ecb070'
           ctx.beginPath(); ctx.arc(point.x, point.y, point.layer === 0 || point.layer === 4 ? 4.5 : 3, 0, Math.PI * 2); ctx.fill()
         }
         ctx.globalAlpha = 1
         if (point.layer === 0) {
           const n = layers[0].indexOf(i)
-          ctx.font = '11px ui-monospace, monospace'; ctx.fillStyle = '#6e6452'
+          ctx.font = '11px ui-monospace, monospace'; ctx.fillStyle = '#c9c0ac'
           ctx.fillText(String(n + 1), point.x - 20, point.y + 4)
           if (n === selected) {
             ctx.globalAlpha = emphasis
-            ctx.strokeStyle = '#cc9f51'; ctx.lineWidth = 1
+            ctx.strokeStyle = '#ecb070'; ctx.lineWidth = 1
             ctx.beginPath(); ctx.arc(point.x, point.y, 9, 0, Math.PI * 2); ctx.stroke()
           }
         }
