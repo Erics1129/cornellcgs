@@ -24,7 +24,8 @@
     "account:worker": "node scripts/account-worker-build.mjs",
     "rooms:worker": "node scripts/rooms-worker-build.mjs",
     "rooms:test": "node scripts/test-rooms-backend.mjs && node scripts/rooms-worker-build.mjs",
-    "carrot:net-test": "node scripts/test-carrot-net.mjs && node scripts/test-carrot-session.mjs"
+    "carrot:net-test": "node scripts/test-carrot-net.mjs && node scripts/test-carrot-session.mjs",
+    "cinema:assets": "node scripts/cinema/assets.mjs"
   },
   "dependencies": {
     "@codemirror/autocomplete": "^6.20.3",

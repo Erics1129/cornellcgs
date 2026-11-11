@@ -71,20 +71,8 @@ html[data-page='deck'] .vision-chapter::before,
 html[data-page='deck'] .universe-journey::before,
 html[data-page='deck'] .universe-journey::after { content: none; }
 
-/* Which chapter roots paint an opaque ground (the fixed background layers stop behind them).
-   First list; film.css has the final word for project, stats and who-we-are. */
-html[data-page='deck'] #alphago,
-html[data-page='deck'] #code,
-html[data-page='deck'] #ml-process,
-html[data-page='deck'] #events,
-html[data-page='deck'] #world,
-html[data-page='deck'] #universe,
-html[data-page='deck'] #anyone,
-html[data-page='deck'] #vision,
-html[data-page='deck'] #contact,
-html[data-page='deck'] #project,
-html[data-page='deck'] #stats,
-html[data-page='deck'] #who-we-are { --chapter-opaque: 1; }
+/* Which chapter roots paint an opaque ground (the fixed background layers stop behind them)
+   is film.css section 4 (--chapter-opaque); deck.ts reads it at refresh. */
 
 /* ---- seams: a zero-height box between two chapters, in normal flow ---- */
 html[data-page='deck'] .seam {
@@ -189,6 +177,7 @@ html[data-page='deck'] .stage-safe > * { pointer-events: auto; }
   html[data-page='deck'] #ml-process .scene-stage { height: var(--stage-h); min-height: 0; }
   html[data-page='deck'] #world[data-earth-motion='scroll'] { min-height: var(--run-world); }
   html[data-page='deck'] #world[data-earth-motion='scroll'] .earth-journey-stage { height: var(--stage-h); min-height: 0; }
+  html[data-page='deck'] #world[data-earth-motion='scroll'] :is(.earth-intro, .earth-place) { min-height: 0; }
   html[data-page='deck'] #universe:not([data-renderer='fallback']):not([data-renderer='reduced']) { min-height: var(--run-universe); }
   html[data-page='deck'] #universe:not([data-renderer='fallback']):not([data-renderer='reduced']) .universe-viewport { height: var(--stage-h); }
   html[data-page='deck'] #anyone:not(.is-still) { height: var(--run-soda); }

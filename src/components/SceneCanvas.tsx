@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import gsap from 'gsap'
-import { ScrollTrigger } from 'gsap/ScrollTrigger'
+import { CHAPTER_IDS, drive, type ChapterId } from '../lib/deck'
 import { SCENE_FRAGMENT, SCENE_VERTEX } from '../effects/sceneShaders'
 import { CodeReflection } from '../effects/codeReflection'
 import { blinkClosure } from '../effects/eyeMotion'
@@ -10,7 +9,6 @@ import { NEUTRAL, SCENE_GRADES } from '../effects/film/grades'
 import { tier } from '../lib/tier'
 import '../styles/scenes.css'
 
-gsap.registerPlugin(ScrollTrigger)
 export type SceneKind = 'blackhole' | 'earth' | 'eye'
 /** Phones and tablets take the half-size earth map (tier().textureMax): a quarter of the upload and of the GPU memory. */
 const EARTH_2048 = '/assets/film/earth-nasa-july-2048.webp'
@@ -221,11 +219,10 @@ export default function SceneCanvas({ kind, paused = false }: { kind: SceneKind;
       else { if (kind === 'eye') pointerInside = false; stop() }
     }, { rootMargin: kind === 'eye' ? '0px' : '20% 0px' })
     io.observe(box)
-    const st = ScrollTrigger.create({ trigger: section, start: 'top top', end: 'bottom bottom',
-      onUpdate: self => { target = self.progress; request() },
-      onRefresh: self => { target = self.progress; request() },
-    })
-    target = st.progress
+    // Progress comes from the deck's cached geometry (vrun of the chapter this
+    // canvas sits in), not from a ScrollTrigger of its own.
+    const chapterId = (CHAPTER_IDS as readonly string[]).includes(section.id) ? section.id as ChapterId : null
+    const offDrive = chapterId ? drive(chapterId, v => { target = v; request() }) : () => {}
     const pointerSurface = kind === 'eye' ? box : section
     const onMove = (event: PointerEvent) => {
       if (event.pointerType === 'touch') return
@@ -269,7 +266,7 @@ export default function SceneCanvas({ kind, paused = false }: { kind: SceneKind;
     el.addEventListener('webglcontextrestored', onRestore)
     const ro = new ResizeObserver(resize); ro.observe(box)
     return () => {
-      alive = false; stop(); st.kill(); io.disconnect(); ro.disconnect()
+      alive = false; stop(); offDrive(); io.disconnect(); ro.disconnect()
       image.onload = null
       if (lidImage) lidImage.onload = null
       pointerSurface.removeEventListener('pointermove', onMove); pointerSurface.removeEventListener('pointerleave', onLeave)

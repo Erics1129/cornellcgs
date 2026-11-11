@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import { ScrollTrigger } from 'gsap/ScrollTrigger'
+import { drive } from '../lib/deck'
 import { EARTH_PLACES, earthFrame, earthPhotoPose, smooth } from '../lib/earthJourney'
 import { TRAVEL_FRAGMENT, TRAVEL_VERTEX } from '../effects/earthTravelShader'
 import { bindFilm, type FilmBinder } from '../effects/film/bind'
@@ -78,7 +78,7 @@ export default function EarthTravel() {
         gl!.uniform2f(uniforms.sat, a.saturation, b.saturation); gl!.uniform1f(uniforms.mix, scene.mix)
         const blur = Math.min(.35, velocity * .055) * (.14 + scene.envelope * .86)
         gl!.uniform1f(uniforms.blur, blur); film?.(SCENE_GRADES.travel, 0); gl!.drawArrays(gl!.TRIANGLES, 0, 6)
-        canvas!.style.opacity = String(smooth((progress - .30) / .07))
+        canvas!.style.opacity = String(smooth((progress - EARTH_PLACES[0].start) / (EARTH_PLACES[0].arrival - EARTH_PLACES[0].start)))
         section!.dataset.earthRenderer = 'webgl2'
         if (import.meta.env.DEV) { canvas!.dataset.progress = progress.toFixed(5); canvas!.dataset.blur = blur.toFixed(5) }
         if (velocity > .002) request()
@@ -128,15 +128,14 @@ export default function EarthTravel() {
         if (loaded === EARTH_PLACES.length) section!.dataset.earthRenderer = 'webgl2'
         request()
       }
-      const st = ScrollTrigger.create({ trigger: section, start: 'top top', end: 'bottom bottom',
-        onUpdate(self) {
-          // getVelocity is px/sec: scale by viewport rather than device DPR.
-          velocity = Math.min(7, Math.abs(self.getVelocity()) / Math.max(1, innerHeight))
-          progress = self.progress; request()
-        },
-        onRefresh(self) { progress = self.progress; velocity = 0; request() },
+      // The picture follows the deck's vrun for the World chapter (not its own
+      // ScrollTrigger), so a stop inside a dissolve settles on the same
+      // composition as the DOM layers: never a double exposure at rest.
+      const offDrive = drive('world', (value, _state, f) => {
+        velocity = Math.min(7, Math.abs(f.velocity) / Math.max(1, f.vh))
+        if (f.teleported || f.idle) velocity = 0
+        progress = value; request()
       })
-      progress = st.progress
       const io = new IntersectionObserver(entries => {
         near = entries[0].isIntersecting
         if (near) { load(); resize(); request() } else { stop(); velocity = 0 }
@@ -149,7 +148,7 @@ export default function EarthTravel() {
       canvas.addEventListener('webglcontextlost', onLost); canvas.addEventListener('webglcontextrestored', onRestored)
       document.addEventListener('visibilitychange', onVisibility)
       destroy = () => {
-        alive = false; stop(); st.kill(); io.disconnect(); ro.disconnect()
+        alive = false; stop(); offDrive(); io.disconnect(); ro.disconnect()
         document.removeEventListener('visibilitychange', onVisibility)
         canvas.removeEventListener('webglcontextlost', onLost); canvas.removeEventListener('webglcontextrestored', onRestored)
         cancelAnimationFrame(pumping); pending.length = 0
