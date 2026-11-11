@@ -129,7 +129,9 @@ html[data-page='deck'] .vision-bottom li > span { font-size: max(12px, 0.65rem);
   html[data-page='deck'] .vision-bottom ul { font-size: max(12px, 0.8rem); }
 }
 html[data-page='deck'] .join-card-index { font-size: max(12px, 0.8rem); }
-html[data-page='deck'] :is(.agenda-date, .agenda-number) { font-size: max(12px, 0.72rem); }
+html[data-page='deck'] :is(.agenda-date, .agenda-number) { font-size: max(12px, 0.7rem); }
+html[data-page='deck'] [data-hero-hint] .mono,
+html[data-page='deck'] .showcase-type-line { font-size: max(12px, 0.875rem); }
 html[data-page='deck'] .scene-lead { font-size: max(12px, clamp(1rem, 1.2vw, 1.25rem)); }
 html[data-page='deck'] .earth-place-copy p { font-size: max(12px, clamp(0.85rem, 1.15vw, 1.1rem)); }
 html[data-page='deck'] :is(.people-flip-control, .people-bio-role) { font-size: max(12px, 0.875rem); }
@@ -147,6 +149,8 @@ html[data-page='deck'] #contact ul.mono { font-size: max(12px, 0.85rem); }
   html[data-page='deck'] .project-face-name small { font-size: 12px; line-height: 1.15; }
 }
 html[data-page='sub'] .sp-eyebrow { font-size: max(12px, 0.7rem); }
+html[data-page='sub'] .sp-ordinal:not(.sp-program .sp-ordinal) { font-size: max(12px, 0.75rem); }
+html[data-page='sub'] :is(.page-scene__caption, .page-scene__caption button, .page-scene__caption a) { font-size: max(12px, 0.72rem); }
 html[data-page='sub'] .sp-footer__routes a > span:first-child { font-size: max(12px, 0.7rem); }
 html[data-page='sub'] .sp-footer__bottom { font-size: max(12px, 0.75rem); }
 html[data-page='sub'] .page-navigator .page-navigator__eyebrow { font-size: max(12px, 0.67rem); }
@@ -199,7 +203,7 @@ html[data-page='sub'] .page-navigator .page-navigator__eyebrow { font-size: max(
   html[data-page='deck'] .scene-chapter--ml .ml-step-number { padding-top: 3px; }
 }
 /* a short upright screen (a small phone with the browser bars showing): two columns again so all five fit */
-@media (max-width: 599px) and (orientation: portrait) and (max-height: 640px) {
+@media (max-width: 599px) and (orientation: portrait) and (max-height: 720px) {
   html[data-page='deck'] .scene-chapter--ml .scene-content { padding-top: calc(var(--nav-h) + 0.9rem); }
   html[data-page='deck'] .scene-chapter--ml .scene-title--serif { font-size: clamp(2rem, 8.5vw, 3rem); }
   html[data-page='deck'] .scene-chapter--ml .ml-sequence { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.6rem 0.9rem; margin-top: 0.8rem; max-width: none; }
