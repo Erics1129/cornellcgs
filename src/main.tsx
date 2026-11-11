@@ -20,6 +20,13 @@ import { installNeonClick } from './lib/neonClick'
 import { installDevice } from './lib/device'
 import { isDraftPreview, loadDraft, loadLiveContent, markDraftPreview } from './lib/liveContent'
 import './styles/global.css'
+// Cinema contract files (SPEC.md section 9). Order matters: later files win the cascade.
+import './styles/deck.css'
+import './styles/film.css'
+import './styles/responsive.css'
+import './styles/interaction.css'
+import { initTier } from './lib/tier'
+import { initLook } from './lib/look'
 
 // The mini games are their own routes under /minigames/; their code loads only there
 const MinigamesPage = React.lazy(() => import('./minigames/MinigamesPage'))
@@ -29,6 +36,8 @@ const CarrotPage = React.lazy(() => import('./minigames/carrot/CarrotPage'))
 
 // Device class + design scale first: everything below measures in rem.
 installDevice()
+initTier()
+initLook()
 installNeonClick()
 
 // Legacy hash routes (#p/<id>) now live at real paths — forward old links.

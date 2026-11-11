@@ -8,6 +8,8 @@ import { dealCard, shadowStyle } from './lib/cardMotion'
 import { initLineReveals } from './lib/lines'
 import { initTransitions } from './lib/transitions'
 import GradientBG from './effects/GradientBG'
+import FilmLens from './effects/FilmLens'
+import InputLayer from './components/InputLayer'
 import CodeLayer from './effects/CodeLayer'
 import FutureEye from './components/FutureEye'
 import Nav from './components/Nav'
@@ -249,8 +251,9 @@ export default function App() {
       <Nav />
       <SideRail />
       <Cursor />
-      {/* Cinematic grain over the whole world; sits under the loader only */}
-      <div aria-hidden="true" className="film-grain z-[80]" />
+      <InputLayer page="deck" />
+      {/* The lens every pixel sits under (grain, vignette); under the loader only */}
+      <FilmLens page="deck" />
       <div ref={shakeRef} className="relative z-10">
         <main ref={mainRef}>
           <Hero />
