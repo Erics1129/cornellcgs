@@ -8,6 +8,8 @@ import type { PageSceneId } from '../lib/pageScenes'
 import PageScene from './PageScene'
 import Dice from './Dice'
 import PageNavigator from './PageNavigator'
+import FilmLens from '../effects/FilmLens'
+import InputLayer from './InputLayer'
 import MinigamesCard from '../minigames/MinigamesCard'
 import type { Algo } from './GraphAlgo'
 import '../styles/subpages.css'
@@ -171,6 +173,8 @@ export default function SubPage({ id }: { id: string }) {
   const previous = PAGE_ORDER[(index + PAGE_ORDER.length - 1) % PAGE_ORDER.length]
   return <div ref={root} className={`subpage subpage--${id}`} data-subpage={id} data-paused={paused}>
     <a className="sp-skip" href="#page-content">Skip to content</a>
+    <FilmLens page="sub" />
+    <InputLayer page="sub" />
     <header className="sp-bar"><nav className="sp-bar__inner" aria-label="Page navigation">
       <a className="sp-back" href={back} onClick={goBack}><span aria-hidden="true">←</span> Back</a>
       <a className="sp-brand" href="/"><Dice size={24} paused={paused} /><span>{site.name}</span></a>
