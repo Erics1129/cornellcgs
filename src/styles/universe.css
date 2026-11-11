@@ -25,11 +25,6 @@
 .universe-stop { position:relative; }
 .universe-stop::before { content:''; width:3px; height:3px; border-radius:50%; background:currentColor; position:absolute; top:-17px; left:50%; transform:translateX(-50%); }
 .universe-journey[data-leg='0'] .universe-stop-0,.universe-journey[data-leg='1'] .universe-stop-1,.universe-journey[data-leg='2'] .universe-stop-2 { color:#f1ebe1; }
-/* A separate ownership class avoids racing SceneCanvas's cinema-on registry. */
-html.universe-on #code-layer-canvas { visibility:hidden; }
-.universe-journey::before,.universe-journey::after { content:''; position:absolute; left:0; right:0; height:12svh; pointer-events:none; z-index:2; }
-.universe-journey::before { top:-12svh; background:linear-gradient(transparent,#000); }
-.universe-journey::after { bottom:-12svh; background:linear-gradient(#000,transparent); }
 .universe-journey[data-renderer='fallback'],.universe-journey[data-renderer='reduced'] { min-height:100svh; }
 .universe-journey[data-renderer='fallback'] .universe-viewport,.universe-journey[data-renderer='reduced'] .universe-viewport { position:relative; }
 .universe-journey[data-renderer='fallback'] .universe-itinerary,.universe-journey[data-renderer='reduced'] .universe-itinerary { display:none; }

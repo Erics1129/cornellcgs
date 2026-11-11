@@ -25,7 +25,9 @@
 import { useEffect, useRef } from 'react'
 import { cssVar, onTheme, THEME_LERP_MS, themeLerpEase } from '../lib/theme'
 import { isTouchDevice, onReducedMotionChange, prefersReducedMotion } from '../lib/motion'
-import { isPaging, scrollVelocity } from '../lib/scroll'
+import { isPaging } from '../lib/scroll'
+import { deckFrame, onSettle, type ChapterId } from '../lib/deck'
+import { tier } from '../lib/tier'
 import { CODE_LINES } from './codeSnippets'
 import { Fluid, gridFor } from './fluid'
 
@@ -175,6 +177,9 @@ function tokenize(src: string): Tok[] {
   return toks
 }
 
+/** Table chapters dense with words or cards hush the rain while they hold the screen. */
+const QUIET: ReadonlySet<ChapterId> = new Set<ChapterId>(['who-we-are', 'what-we-do', 'project', 'stats', 'people', 'join', 'contact'])
+
 export default function CodeLayer() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
 
@@ -213,39 +218,14 @@ export default function CodeLayer() {
     let quiet = 0
     let quietTarget = 0
     let dim = 1
-    // Measured as the share of the SCREEN a chapter covers (a tall chapter's
-    // own visible ratio may never pass a fixed mark on a phone); thresholds
-    // every 5% keep the reading fresh while it scrolls.
-    const quietCover = new Map<Element, number>()
-    const quietIO = new IntersectionObserver((entries) => {
-      for (const e of entries) {
-        const screen = e.rootBounds?.height || window.innerHeight
-        quietCover.set(e.target, e.isIntersecting ? e.intersectionRect.height / screen : 0)
-      }
-      quietTarget = [...quietCover.values()].some((c) => c > 0.5) ? 1 : 0
-      if (reduced && quiet !== quietTarget) {
-        // no frame loop runs with reduced motion: settle and redraw the still
-        quiet = quietTarget
-        dim = 1 - 0.55 * quiet
-        drawStatic()
-      }
-    }, { threshold: Array.from({ length: 21 }, (_, i) => i / 20) })
-    document.querySelectorAll('[data-quiet-rain]').forEach((el) => quietIO.observe(el))
-    // The support chapters paint an opaque surface; while one fills the screen
-    // none of the rain shows, so the frame loop skips the fluid and columns
-    // (as it does behind the eye chapter). Readings every 1% stay fresh as a
-    // chapter slides off.
-    const surfaceCover = new Map<Element, number>()
-    let covered = false
-    const surfaceIO = new IntersectionObserver((entries) => {
-      for (const e of entries) {
-        const screen = e.rootBounds?.height || window.innerHeight
-        surfaceCover.set(e.target, e.isIntersecting ? e.intersectionRect.height / screen : 0)
-      }
-      covered = [...surfaceCover.values()].some((c) => c >= 0.999)
-    }, { threshold: Array.from({ length: 101 }, (_, i) => i / 100) })
-    document.querySelectorAll('.support-scene[data-chapter-surface]').forEach((el) => surfaceIO.observe(el))
+    // Read from the deck's cached geometry each frame: no observers, no layout.
+    const readQuiet = () => {
+      let q = 0
+      for (const c of deckFrame().chapters) if (QUIET.has(c.id) && c.cover > 0.5) q = 1
+      quietTarget = q
+    }
     let raf = 0
+    let lastDraw = 0
     let last = performance.now()
     let alive = true
 
@@ -470,7 +450,7 @@ export default function CodeLayer() {
       // The lens shows the lines where the fluid has carried them — the
       // same offsets as the ambient pass, so nothing doubles at the rim
       const total = best.count * LINE_H
-      const eff = best.off + window.scrollY * PARALLAX
+      const eff = best.off + deckFrame().y * PARALLAX
       const ofs = best.ofs
       for (let j = 0; j < best.count; j++) {
         const line = lines[(best.start + j) % lines.length]
@@ -531,10 +511,15 @@ export default function CodeLayer() {
 
     const frame = (now: number) => {
       raf = requestAnimationFrame(frame)
-      // behind the black eye chapter nothing of this shows: skip the work
-      if (covered || document.documentElement.classList.contains('eye-on') || document.documentElement.classList.contains('cinema-on') || document.documentElement.classList.contains('universe-on')) { last = now; return }
+      const deck = deckFrame()
+      const t = tier()
+      // Behind opaque chapters nothing of this shows: skip the work. The tier caps the rate (30 fps on phones).
+      if (!deck.bgVisible || t.bgFps === 0) { last = now; return }
+      if (now - lastDraw < 1000 / t.bgFps - 2) return
+      lastDraw = now
       const dt = Math.min(0.1, (now - last) / 1000)
       last = now
+      readQuiet()
       quiet += (quietTarget - quiet) * Math.min(1, dt * 2.5)
       dim = 1 - 0.55 * quiet
 
@@ -545,7 +530,7 @@ export default function CodeLayer() {
         if (t >= 1) lerpStart = -1
       }
 
-      const scroll = window.scrollY
+      const scroll = deck.y
       // The rain feels the page's momentum: columns run faster while the
       // reader is in motion, easing back as the scroll settles — and the
       // fluid takes the same momentum as a uniform push (page down → code
@@ -553,12 +538,15 @@ export default function CodeLayer() {
       // inertia instead of stopping dead with the scrollbar. The solver
       // sleeps on its own once the field is calm (the rAF is already off
       // while the tab is hidden).
-      const sv = Math.max(-SCROLL_V_MAX, Math.min(SCROLL_V_MAX, scrollVelocity()))
+      // deck velocity is px/s; the constants below were tuned in px per 60 Hz frame
+      const sv = Math.max(-SCROLL_V_MAX, Math.min(SCROLL_V_MAX, deck.velocity / 60))
       const vBoost = 1 + Math.min(Math.abs(sv), 8) * 0.3
       fdt = Math.min(dt, 1 / 30)
       relax = Math.exp(-FLOW_RELAX * fdt)
-      if (Math.abs(sv) > 0.05) fluid.addUniform(0, -sv * SCROLL_K * fdt)
-      fluid.step(fdt)
+      if (t.fluid) {
+        if (Math.abs(sv) > 0.05) fluid.addUniform(0, -sv * SCROLL_K * fdt)
+        fluid.step(fdt)
+      }
       ctx.clearRect(0, 0, w, h)
       for (const col of cols) {
         col.off = mod(col.off + col.speed * vBoost * dt, col.count * LINE_H)
@@ -574,8 +562,12 @@ export default function CodeLayer() {
 
     const resize = () => {
       const nextDpr = Math.min(window.devicePixelRatio || 1, 2)
-      w = window.innerWidth
-      h = window.innerHeight
+      // The layer is 100lvh tall, so a phone's URL bar never resizes (or re-allocates) it.
+      const nw = canvas.clientWidth || window.innerWidth
+      const nh = canvas.clientHeight || window.innerHeight
+      if (nw === w && nh === h && nextDpr === dpr && canvas.width === Math.round(w * nextDpr)) return
+      w = nw
+      h = nh
       canvas.width = w * nextDpr
       canvas.height = h * nextDpr
       ctx.setTransform(nextDpr, 0, 0, nextDpr, 0, 0)
@@ -657,7 +649,16 @@ export default function CodeLayer() {
       }
     }
 
-    window.addEventListener('resize', resize)
+    const sizeRO = new ResizeObserver(resize)
+    sizeRO.observe(canvas)
+    // reduced motion and on-demand tiers: one still per settle keeps the quiet level right
+    const offSettle = onSettle(() => {
+      if (!reduced && tier().bgFps !== 0) return
+      readQuiet()
+      quiet = quietTarget
+      dim = 1 - 0.55 * quiet
+      if (deckFrame().bgVisible) drawStatic()
+    })
     document.addEventListener('visibilitychange', onVis)
     window.addEventListener('pointermove', onPointer, { passive: true })
     document.documentElement.addEventListener('pointerleave', onPointerGone)
@@ -665,9 +666,8 @@ export default function CodeLayer() {
     return () => {
       alive = false
       cancelAnimationFrame(raf)
-      quietIO.disconnect()
-      surfaceIO.disconnect()
-      window.removeEventListener('resize', resize)
+      sizeRO.disconnect()
+      offSettle()
       document.removeEventListener('visibilitychange', onVis)
       window.removeEventListener('pointermove', onPointer)
       document.documentElement.removeEventListener('pointerleave', onPointerGone)
@@ -677,7 +677,7 @@ export default function CodeLayer() {
   }, [])
 
   return (
-    <div aria-hidden="true" className="pointer-events-none fixed inset-0 z-[1]">
+    <div aria-hidden="true" className="film-rain">
       <canvas ref={canvasRef} id="code-layer-canvas" className="h-full w-full" />
     </div>
   )

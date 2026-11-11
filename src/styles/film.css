@@ -1,1 +1,250 @@
-/* film.css: CONTRACT FILE (see SPEC.md section 9). Stub: intentionally empty. The owning stream replaces it. */
+/* ===========================================================================
+   film.css — the shared look. CONTRACT FILE, owner: stream "film".
+   Paint only: colour, gradients, shadows, materials, the lens, seam paint.
+   Geometry (sticky, runway heights, overflow, seam boxes) is deck.css;
+   screen-size layout is responsive.css. Rules are scoped by chapter id, by
+   .subpage, or under html[data-page] so the mini-game routes never change.
+   =========================================================================== */
+
+/* ---------------------------------------------------------------------------
+   1. Tokens. One stock, one light.
+--------------------------------------------------------------------------- */
+:root {
+  --film-black: #070605;   /* shared black point. Page, seams and scene shadows meet here */
+  --film-shadow: #0f0d0a;  /* lifted shadow for surfaces */
+  --film-table: #17120c;   /* table felt, lit side */
+  --film-white: #f4ecdc;   /* shared white point, ivory stock. No surface is pure white */
+  --film-warm: #e6a86a;    /* key light (brass), from the upper left */
+  --film-cool: #6f93b8;    /* fill and rim (steel) */
+  --film-key-x: -0.42;     /* key direction: the same numbers in CSS and GLSL (effects/GradientBG.tsx) */
+  --film-key-y: -0.78;
+  --grain: 0.05;
+  --vignette: 0.22;
+
+  /* card stock, shared by every DOM card */
+  --stock: #f1e8d6;
+  --stock-lit: #fbf5e7;
+  --stock-shade: #e0d3b8;
+  --stock-edge: #b9ad94;
+  --stock-ink: #15120d;
+  --stock-ink-soft: #4d4434;
+  --stock-red: #a3242b;
+}
+
+/* Overscroll, iOS tile gaps on a hard fling and the status bar are film black. */
+html[data-page] {
+  background-color: var(--film-black);
+}
+
+/* ---------------------------------------------------------------------------
+   2. The lens: vignette + grain, one viewport-sized layer.
+   Sized 100vw x 100lvh from the top (not inset: 0) so a phone's moving URL
+   bar never resizes it.
+--------------------------------------------------------------------------- */
+.film-lens {
+  --lens-vignette: var(--vignette);
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  height: 100lvh;
+  z-index: 30;
+  pointer-events: none;
+  contain: strict;
+  background: radial-gradient(
+    ellipse 78% 78% at 50% 50%,
+    transparent 46%,
+    rgb(0 0 0 / calc(var(--lens-vignette) * 0.28)) 68%,
+    rgb(0 0 0 / calc(var(--lens-vignette) * 0.66)) 86%,
+    rgb(0 0 0 / var(--lens-vignette)) 100%
+  );
+}
+@media (orientation: portrait) {
+  .film-lens { --lens-vignette: calc(var(--vignette) * 0.6); }
+}
+.film-lens__grain {
+  position: absolute;
+  inset: 0;
+  display: block;
+  opacity: var(--grain);
+  background-image: url('/assets/film/grain-256.png');
+  background-size: 256px 256px;
+  image-rendering: pixelated;
+}
+/* On 2x and 3x screens the same tile is drawn at half size, so one speckle is 1 to 1.5 device pixels. */
+@media (min-resolution: 1.5dppx) {
+  .film-lens__grain { background-size: 128px 128px; }
+}
+/* 12 fps, whole-tile jumps. Paused while the page moves: scrolling stays compositor-only. */
+.film-lens[data-grain='live'] .film-lens__grain {
+  animation: film-grain 0.667s steps(1, end) infinite;
+}
+html[data-scroll='moving'] .film-lens__grain,
+html[data-scroll='flying'] .film-lens__grain {
+  animation-play-state: paused;
+}
+@keyframes film-grain {
+  0% { background-position: 0 0; }
+  12.5% { background-position: -37px 61px; }
+  25% { background-position: 83px -29px; }
+  37.5% { background-position: -101px -73px; }
+  50% { background-position: 53px 97px; }
+  62.5% { background-position: -19px -113px; }
+  75% { background-position: 109px 41px; }
+  87.5% { background-position: -67px 17px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .film-lens__grain { animation: none !important; }
+}
+/* Type sits under the lens. Light paper would show the dark speckle inside letterforms, so it gets less. */
+.film-lens[data-lens='sub'] { --lens-vignette: calc(var(--vignette) * 0.5); }
+.film-lens[data-lens='sub'] .film-lens__grain { opacity: calc(var(--grain) * 0.7); }
+
+/* ---------------------------------------------------------------------------
+   3. The table: the fixed background every table chapter shares.
+   The canvas (effects/GradientBG.tsx) paints it in linear light; this CSS
+   composition is the same picture without WebGL, and what shows if the
+   context is lost.
+--------------------------------------------------------------------------- */
+.film-bg {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  height: 100lvh;
+  z-index: 0;
+  pointer-events: none;
+  contain: strict;
+  background:
+    radial-gradient(60% 55% at 28% 18%, color-mix(in srgb, var(--film-warm) 9%, transparent), transparent 70%),
+    radial-gradient(120% 55% at 50% 108%, color-mix(in srgb, var(--glow) 50%, transparent), transparent 70%),
+    linear-gradient(to bottom, var(--bg-top) 0%, var(--bg-mid) 60%, var(--bg-bot) 100%);
+}
+.film-bg canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+/* The code rain rides the same fixed box as the table. */
+.film-rain {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  height: 100lvh;
+  z-index: 1;
+  pointer-events: none;
+  contain: strict;
+}
+.film-rain canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* ---------------------------------------------------------------------------
+   4. Which chapter roots are opaque (the final truth; deck.css holds a first
+   list). While opaque chapters cover the viewport the table and the code rain
+   stop drawing (deckFrame().bgVisible). The table set is NOT opaque: it sits
+   on the shared table. The hero's city fades out over its last 160 px, so the
+   hero is not opaque either.
+--------------------------------------------------------------------------- */
+#alphago, #code, #ml-process, #events, #world, #universe, #anyone, #vision { --chapter-opaque: 1; }
+#top, #who-we-are, #what-we-do, #project, #stats, #people, #join, #contact { --chapter-opaque: 0; }
+
+/* ---------------------------------------------------------------------------
+   5. Seams: how two chapters meet. Paint only; the box is deck.css
+   (.seam is a zero-height element between two chapter roots; its two <i>
+   children span --seam-up above the boundary and --seam-down below it, or
+   --seam-reach on both sides).
+
+   A seam never darkens content: a veil reaches only into the neighbouring
+   chapter's own empty padding (at most 9svh), and only where the PICTURE
+   changes (table to film, film to table). Inside the table set there is no
+   veil at all: the shared table is the blend, and the seam is a brass
+   hairline. Where two black films meet, they simply butt. No blend modes.
+--------------------------------------------------------------------------- */
+.seam {
+  --seam-ink: var(--film-black);
+  --seam-tint: var(--film-warm);
+  --veil-up: 0px;
+  --veil-down: 0px;
+  --seam-glow: 0;
+}
+.seam__veil {
+  --u: var(--seam-up, var(--seam-reach, 9svh));
+  --d: var(--seam-down, var(--seam-reach, 9svh));
+  --vu: min(var(--veil-up), var(--u), 9svh);
+  --vd: min(var(--veil-down), var(--d), 9svh);
+  --k0: var(--seam-ink);
+  --k1: color-mix(in srgb, var(--seam-ink) 86%, transparent);
+  --k2: color-mix(in srgb, var(--seam-ink) 58%, transparent);
+  --k3: color-mix(in srgb, var(--seam-ink) 28%, transparent);
+  --k4: color-mix(in srgb, var(--seam-ink) 9%, transparent);
+  background:
+    linear-gradient(to top, var(--k0) 0%, var(--k1) 16%, var(--k2) 36%, var(--k3) 58%, var(--k4) 80%, transparent 100%)
+      0 calc(var(--u) - var(--vu)) / 100% var(--vu) no-repeat,
+    linear-gradient(to bottom, var(--k0) 0%, var(--k1) 16%, var(--k2) 36%, var(--k3) 58%, var(--k4) 80%, transparent 100%)
+      0 var(--u) / 100% var(--vd) no-repeat;
+}
+/* A low, wide leak of the next room's light along the boundary line. */
+.seam__light {
+  --u: var(--seam-up, var(--seam-reach, 9svh));
+  background:
+    radial-gradient(ellipse 50% 50% at 50% 50%, color-mix(in srgb, var(--seam-tint) calc(var(--seam-glow) * 100%), transparent), transparent 100%)
+      50% calc(var(--u) - 1.6svh) / min(120rem, 92%) 3.2svh no-repeat;
+}
+
+/* table -> film: the table falls off into the dark */
+.seam[data-to='alphago'], .seam[data-to='vision'] { --veil-up: 9svh; }
+.seam[data-from='code'][data-to='ml-process'] { --veil-up: 9svh; }
+.seam[data-to='code'] { --veil-up: 9svh; --seam-ink: var(--film-shadow); }
+/* film -> table: the next room's lamp leaks under the door */
+.seam[data-from='alphago'], .seam[data-from='universe'], .seam[data-from='vision'] { --veil-down: 9svh; --seam-glow: 0.09; }
+/* soda: its dark room above, its cola below */
+.seam[data-to='anyone'] { --veil-up: 9svh; --seam-ink: #0b0806; }
+.seam[data-from='anyone'] { --veil-down: 9svh; --seam-ink: #1a0704; --seam-tint: #c8102e; --seam-glow: 0.06; }
+/* the eyelid into Vision: the dark rises in the middle first */
+.seam[data-seam='lid'] .seam__veil {
+  background:
+    radial-gradient(ellipse 62% 100% at 50% 100%, var(--k0) 0%, var(--k1) 22%, var(--k2) 46%, var(--k3) 68%, var(--k4) 86%, transparent 100%)
+      0 calc(var(--u) - var(--vu)) / 100% var(--vu) no-repeat,
+    linear-gradient(to top, var(--k0) 0%, var(--k2) 22%, var(--k4) 52%, transparent 78%)
+      0 calc(var(--u) - var(--vu)) / 100% var(--vu) no-repeat;
+}
+.seam[data-to='vision'] { --seam-tint: var(--film-cool); }
+/* table -> table: no veil, a brass hairline that fades out toward both edges */
+.seam[data-from='what-we-do'][data-to='project'] .seam__light,
+.seam[data-from='project'][data-to='stats'] .seam__light {
+  background:
+    linear-gradient(90deg, transparent, color-mix(in srgb, var(--film-warm) 22%, transparent) 30%, color-mix(in srgb, var(--film-warm) 22%, transparent) 70%, transparent)
+      50% var(--u) / min(80rem, 78%) 1px no-repeat;
+}
+/* Events as an ivory sheet between two black films: the films lie on top of it and cast a short shadow. */
+html[data-film-events='ivory'] .seam[data-to='events'] { --veil-down: 4svh; --seam-ink: rgb(7 6 5 / 0.42); }
+html[data-film-events='ivory'] .seam[data-from='events'] { --veil-up: 4svh; --seam-ink: rgb(7 6 5 / 0.42); }
+/* Events as dark stock: table into film on both sides. */
+html[data-film-events='tickets'] .seam[data-to='events'] { --veil-down: 9svh; --seam-glow: 0.08; }
+html[data-film-events='tickets'] .seam[data-from='events'] { --veil-up: 9svh; }
+
+/* ---------------------------------------------------------------------------
+   6. Entry depth. deck writes --e (0..1, 1 = arrived) on [data-film-enter].
+   Picture layers only (a canvas, a film, the globe, the eye): text wrappers
+   never scale, so type is never rasterised soft and then snapped sharp.
+   Fine pointers only: under native touch scrolling a script-written transform
+   lags the compositor.
+--------------------------------------------------------------------------- */
+@property --e {
+  syntax: '<number>';
+  inherits: false;
+  initial-value: 1;
+}
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  :is(.scroll-film, .earth-globe, .soda-canvas, .vision-eye-stage, .universe-plate)[data-film-enter] {
+    translate: 0 calc((1 - var(--e, 1)) * 3svh);
+    scale: calc(1 + (1 - var(--e, 1)) * 0.03);
+  }
+}

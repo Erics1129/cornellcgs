@@ -680,35 +680,6 @@ a:hover .btn-label > span {
   }
 }
 
-/* ---------------------------------------------------------------------------
-   Atmosphere — film grain. One 8.75rem SVG-noise tile on a fixed layer twice
-   the viewport, jumped between whole-tile offsets with steps() so it always
-   moves by full frames (transform-only, composited, zero per-frame JS).
---------------------------------------------------------------------------- */
-
-.film-grain {
-  position: fixed;
-  inset: -50%;
-  width: 200%;
-  height: 200%;
-  pointer-events: none;
-  opacity: 0.05;
-  mix-blend-mode: overlay;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
-  background-size: 140px 140px;
-  animation: grain-shift 0.7s steps(6) infinite;
-}
-
-@keyframes grain-shift {
-  0% { transform: translate3d(0, 0, 0); }
-  16.6% { transform: translate3d(-5%, -8%, 0); }
-  33.3% { transform: translate3d(3%, 5%, 0); }
-  50% { transform: translate3d(-8%, 3%, 0); }
-  66.6% { transform: translate3d(6%, -4%, 0); }
-  83.3% { transform: translate3d(-3%, 7%, 0); }
-  100% { transform: translate3d(0, 0, 0); }
-}
-
 /* Static grain for the white Citadel sheets (Nav dropdown, sub-pages) —
    subtler, no animation, multiply so it reads as paper, not dirt. */
 .grain-light {
@@ -788,8 +759,7 @@ a:hover .btn-label > span {
 
 @media (prefers-reduced-motion: reduce) {
   .neon::before,
-  .neon::after,
-  .film-grain {
+  .neon::after {
     animation: none;
   }
 
@@ -1225,10 +1195,8 @@ a:hover .btn-label > span {
 .life-float,.life-bob,.life-sway,.life-breathe,.life-glow,.life-shimmer {
   animation:none !important;
 }
-.film-grain { animation:none !important; opacity:.025; }
 .neon-idle::before,.neon-idle::after { animation-play-state:paused; opacity:0; }
 .neon-idle:hover::before,.neon-idle:focus-visible::before { animation-play-state:running; opacity:.65; }
-html.cinema-on #code-layer-canvas,html.universe-on #code-layer-canvas { visibility:hidden; }
 
 /* The surface underneath the words decides their ink. Fixed dark films keep
    light ink while the surrounding live palette can still become sky/lilac. */
