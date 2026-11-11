@@ -8,7 +8,7 @@ const [url, out, kind = 'desktop'] = args.filter(a => !a.startsWith('--'))
 const flag = n => args.includes('--' + n)
 const opt = (n, d) => { const a = args.find(x => x.startsWith(`--${n}=`)); return a ? a.split('=')[1] : d }
 fs.mkdirSync(out, { recursive: true })
-const { browser, page, errors } = await open(kind, url, { reduced: flag('reduced'), w: +opt('w', 1440), h: +opt('h', 900), dpr: +opt('dpr', 1) })
+const { browser, page, errors } = await open(kind, url, { reduced: flag('reduced'), w: +opt('w', 0) || undefined, h: +opt('h', 0) || undefined, dpr: +opt('dpr', 1) })
 const only = opt('only', '').split(',').filter(Boolean)
 const geo = await page.evaluate(() => ({ vh: innerHeight, max: document.documentElement.scrollHeight - innerHeight, w: document.documentElement.scrollWidth, cw: document.documentElement.clientWidth,
   ch: [...document.querySelectorAll('main > section, footer#contact')].map(s => { const r = s.getBoundingClientRect(); return { id: s.id, top: Math.round(r.top + scrollY), h: Math.round(r.height) } }) }))
