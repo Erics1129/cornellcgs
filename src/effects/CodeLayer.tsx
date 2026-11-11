@@ -69,7 +69,7 @@ const WS_RE = /^\s+/
 const STR_RE = /^("(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|`(?:\\.|[^`\\])*`)/
 const WORD_RE = /^[A-Za-z_$][\w$]*/
 const NUM_RE = /^\d[\d._]*(?:e\d+)?/
-const PUNCT_STOP = /[\w$'"`\/\s]/
+const PUNCT_STOP = /[\w$'"`/\s]/
 
 type Kind = 'kw' | 'str' | 'com' | 'plain'
 type RGB = [number, number, number]

@@ -78,13 +78,13 @@ html[data-page] {
 }
 /* 12 fps, whole-tile jumps. Paused while the page moves: scrolling stays compositor-only. */
 .film-lens[data-grain='live'] .film-lens__grain {
-  animation: film-grain 0.667s steps(1, end) infinite;
+  animation: lens-grain 0.667s steps(1, end) infinite;
 }
 html[data-scroll='moving'] .film-lens__grain,
 html[data-scroll='flying'] .film-lens__grain {
   animation-play-state: paused;
 }
-@keyframes film-grain {
+@keyframes lens-grain {
   0% { background-position: 0 0; }
   12.5% { background-position: -37px 61px; }
   25% { background-position: 83px -29px; }
