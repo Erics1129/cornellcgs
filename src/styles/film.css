@@ -432,6 +432,9 @@ html[data-film-events='ivory'] #events.event-agenda {
     radial-gradient(ellipse 70% 60% at 28% 18%, rgb(255 251 240 / 0.85), transparent 70%),
     linear-gradient(168deg, #eee6d4 0%, #e7dec9 55%, #ddd2ba 100%);
 }
+/* small print on the sheet: dark enough for AA on the toned ivory (measured 5:1 or better) */
+html[data-film-events='ivory'] #events :is(.agenda-date, .agenda-number) { color: #3f392f; }
+html[data-film-events='ivory'] #events .agenda-eyebrow { color: #4f4739; }
 /* P1 (waiting for approval, see FilmLens.tsx): dark stock. The chapter joins the table and each agenda row is an ivory ticket. */
 html[data-film-events='tickets'] #events.event-agenda {
   --chapter-opaque: 0;
@@ -475,8 +478,7 @@ html[data-film-events='tickets'] #events .agenda-row::after {
 }
 html[data-film-events='tickets'] #events .agenda-trigger { grid-template-columns: 2.5rem 1fr clamp(2.4rem, 4vw, 3rem); }
 html[data-film-events='tickets'] #events .agenda-plus { text-align: center; }
-html[data-film-events='tickets'] #events .agenda-number { color: #6b5f48; }
-html[data-film-events='tickets'] #events .agenda-date { color: #5e5546; }
+html[data-film-events='tickets'] #events :is(.agenda-number, .agenda-date) { color: #564f43; }
 html[data-film-events='tickets'] #events .agenda-reveal p { color: var(--stock-ink-soft); }
 html[data-film-events='tickets'] #events .agenda-trigger:focus-visible { outline-color: var(--stock-red); }
 /* the rail keeps its light inks on dark stock */
