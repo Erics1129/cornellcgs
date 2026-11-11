@@ -1,3 +1,5 @@
+import { filmChunk } from './film/glsl'
+
 export const TRAVEL_VERTEX = `#version 300 es
 in vec2 a_position;
 out vec2 v_uv;
@@ -12,6 +14,7 @@ uniform vec2 u_size,u_fromSize,u_toSize,u_fromAnchor,u_toAnchor;
 uniform vec3 u_fromTint,u_toTint;
 uniform vec2 u_scale,u_pan,u_sat;
 uniform float u_mix,u_blur;
+${filmChunk(300)}
 
 vec2 cover(vec2 uv,vec2 size,vec2 anchor,float scale,float pan){
   float imageAspect=size.x/size.y, aspect=u_size.x/u_size.y;
@@ -36,5 +39,9 @@ void main(){
   }
   a=grade(a/7.,u_fromTint,u_sat.x);
   b=grade(b/7.,u_toTint,u_sat.y);
-  outColor=vec4(mix(a,b,u_mix),1.);
+  // Six photographs, one stock: the dissolve happens in linear light and ends in the shared film().
+  vec3 c=mix(srgbToLinear(a),srgbToLinear(b),u_mix);
+  // long shadows lean a little cool, as the fill light does everywhere else
+  c+=vec3(-.0012,.0,.0022)*(1.-smoothstep(0.,.08,luma(c)));
+  outColor=vec4(film(c),1.);
 }`

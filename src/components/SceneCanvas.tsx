@@ -5,12 +5,13 @@ import { SCENE_FRAGMENT, SCENE_VERTEX } from '../effects/sceneShaders'
 import { CodeReflection } from '../effects/codeReflection'
 import { blinkClosure } from '../effects/eyeMotion'
 import { eyePointerTarget, stepEyeGaze, type EyeGaze } from '../effects/eyeGaze'
+import { bindFilm, type FilmBinder } from '../effects/film/bind'
+import { NEUTRAL, SCENE_GRADES } from '../effects/film/grades'
 import '../styles/scenes.css'
 
 gsap.registerPlugin(ScrollTrigger)
 export type SceneKind = 'blackhole' | 'earth' | 'eye'
 const ASSETS = { blackhole: '/assets/scenes/black-hole.webp', earth: '/assets/earth-journey/earth-nasa-july-4096.webp', eye: '/assets/scenes/eye-cinema-v4.webp' }
-const opaqueScenes = new Set<Element>()
 
 /** An on-demand renderer: scroll/input is the clock, except the living eye. */
 export default function SceneCanvas({ kind, paused = false }: { kind: SceneKind; paused?: boolean }) {
@@ -36,6 +37,7 @@ export default function SceneCanvas({ kind, paused = false }: { kind: SceneKind;
     let nextLook = 1.2, look = 0, idleX = 0, idleY = 0
     const gazeStops = [[-.38,.13],[.20,-.12],[0,0],[.43,.18],[-.13,-.15],[0,.04]]
     let program: WebGLProgram | null = null
+    let film: FilmBinder | null = null
     const reduce = matchMedia('(prefers-reduced-motion: reduce)')
     let eyeReduced = reduce.matches
     const compact = matchMedia('(max-width:1023px), (orientation: portrait)')
@@ -124,6 +126,7 @@ export default function SceneCanvas({ kind, paused = false }: { kind: SceneKind;
       gl!.uniform1f(uniforms.u_progress, reduce.matches ? (kind === 'earth' ? .12 : .55) : progress)
       gl!.uniform1f(uniforms.u_time, reduce.matches ? 0 : kind === 'eye' ? eyeClock : now / 1000)
       gl!.uniform1f(uniforms.u_blink, Math.max(0, blink))
+      film?.(kind === 'eye' ? SCENE_GRADES.eye : kind === 'earth' ? SCENE_GRADES.globe : NEUTRAL, 0)
       gl!.drawArrays(gl!.TRIANGLES, 0, 6)
       if (import.meta.env.DEV) {
         el!.dataset.progress = progress.toFixed(4)
@@ -160,6 +163,7 @@ export default function SceneCanvas({ kind, paused = false }: { kind: SceneKind;
         const attr = gl!.getAttribLocation(program, 'a_position')
         gl!.enableVertexAttribArray(attr); gl!.vertexAttribPointer(attr, 2, gl!.FLOAT, false, 0, 0)
         for (const name of ['u_size','u_pointer','u_progress','u_time','u_blink','u_mode','u_compact','u_image','u_screen','u_lid']) uniforms[name] = gl!.getUniformLocation(program, name)
+        film = bindFilm(gl!, program)
         const makeTexture = (slot: number) => {
           const tex = gl!.createTexture()
           gl!.activeTexture(slot); gl!.bindTexture(gl!.TEXTURE_2D, tex)
@@ -199,12 +203,6 @@ export default function SceneCanvas({ kind, paused = false }: { kind: SceneKind;
       else { if (kind === 'eye') pointerInside = false; stop() }
     }, { rootMargin: kind === 'eye' ? '0px' : '20% 0px' })
     io.observe(box)
-    const occlusion = new IntersectionObserver(([entry]) => {
-      if (entry.intersectionRatio > .88) opaqueScenes.add(box)
-      else opaqueScenes.delete(box)
-      document.documentElement.classList.toggle('cinema-on', opaqueScenes.size > 0)
-    }, { threshold: [0,.88,1] })
-    occlusion.observe(box)
     const st = ScrollTrigger.create({ trigger: section, start: 'top top', end: 'bottom bottom',
       onUpdate: self => { target = self.progress; request() },
       onRefresh: self => { target = self.progress; request() },
@@ -253,9 +251,7 @@ export default function SceneCanvas({ kind, paused = false }: { kind: SceneKind;
     el.addEventListener('webglcontextrestored', onRestore)
     const ro = new ResizeObserver(resize); ro.observe(box)
     return () => {
-      alive = false; stop(); st.kill(); io.disconnect(); ro.disconnect(); occlusion.disconnect()
-      opaqueScenes.delete(box)
-      document.documentElement.classList.toggle('cinema-on', opaqueScenes.size > 0)
+      alive = false; stop(); st.kill(); io.disconnect(); ro.disconnect()
       image.onload = null
       if (lidImage) lidImage.onload = null
       pointerSurface.removeEventListener('pointermove', onMove); pointerSurface.removeEventListener('pointerleave', onLeave)
