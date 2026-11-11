@@ -73,7 +73,7 @@ void main() {
   vec2 d = uv - vec2(0.5, u_scroll * 0.34 - 0.12);
   d.x *= aspect;
   d.y *= 1.4;
-  col += glo * exp(-dot(d, d) / (r * r)) * 0.5;
+  col += glo * exp(-dot(d, d) / (r * r)) * 0.22;
 
   // Key light: a warm lamp from the upper left, fixed in the room
   vec2 k = uv - u_key;

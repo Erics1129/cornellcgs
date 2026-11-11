@@ -1,321 +1,383 @@
 import { useEffect, useRef } from 'react'
-import gsap from 'gsap'
-import { ScrollTrigger } from 'gsap/ScrollTrigger'
-import { STAR_FRAGMENT, STAR_VERTEX, UNIVERSE_FRAGMENT, UNIVERSE_VERTEX, universeRoute } from '../effects/universeShader'
+import { STAR_FRAGMENT, STAR_VERTEX, UNIVERSE_COMPOSITE, UNIVERSE_VERTEX, universeFragment, universeRoute } from '../effects/universeShader'
+import { registerScene, type SceneHandle } from '../lib/scenes'
+import { deckFrame, drive, onSettle, setRestGaps } from '../lib/deck'
+import { tier, type Tier } from '../lib/tier'
+import { onReducedMotionChange, prefersReducedMotion } from '../lib/motion'
+import { bindFilm, type FilmBinder } from '../effects/film/bind'
+import { buildProgram, type BuiltProgram } from '../effects/film/program'
+import { createBloom, createTarget, freeTarget, hdrSupported, type Bloom, type Target } from '../effects/film/bloom'
+import { SCENE_GRADES } from '../effects/film/grades'
 import '../styles/universe.css'
 
-gsap.registerPlugin(ScrollTrigger)
-const occupiedStages = new Set<Element>()
 /** Guandan: two decks, four players, and far more possible deals (over 10⁴⁵) than stars in the observable universe (about 10²²–10²⁴) */
 const PHASES = ['Two decks', 'Four players', 'More deals than stars']
+/**
+ * One title is always complete at rest. Titles swap inside two short windows
+ * of the run; both windows are rest gaps, so a reader who stops inside one
+ * settles on the nearer finished title (the picture follows the same number).
+ */
+const SWAPS: [number, number][] = [[0.30, 0.36], [0.66, 0.72]]
+const GALAXIES = ['/assets/scenes/galaxy.webp', '/assets/scenes/galaxy-violet.webp']
+const POSTERS = [0, 1, 2].map((leg) => `/assets/film/posters/universe-${leg}.webp`)
+/** This backdrop is the costliest shader in the deck, so it takes a share of the tier's pixel budget. */
+const PIXEL_SHARE = 0.62
+
 const clamp = (v: number) => Math.max(0, Math.min(1, v))
 const smooth = (a: number, b: number, value: number) => {
-  const p = clamp((value-a)/(b-a))
-  return p*p*(3-2*p)
+  const p = clamp((value - a) / (b - a))
+  return p * p * (3 - 2 * p)
 }
+const legOf = (p: number) => (p < 0.33 ? 0 : p < 0.69 ? 1 : 2)
 
-/** Native sticky travel. Two draws per frame; no simulation or idle clock. */
+type Uniforms = Record<string, WebGLUniformLocation | null>
+const locate = (gl: WebGL2RenderingContext, program: WebGLProgram, names: string[]): Uniforms =>
+  Object.fromEntries(names.map((name) => [name, gl.getUniformLocation(program, name)]))
+
+/** Sticky travel through deep space. A scene of the manager: it owns no frame loop, observer or scroll trigger. */
 export default function UniverseJourney() {
   const root = useRef<HTMLElement>(null)
   const stage = useRef<HTMLDivElement>(null)
   const canvas = useRef<HTMLCanvasElement>(null)
-  const destination = useRef<HTMLImageElement>(null)
-  const nextDestination = useRef<HTMLImageElement>(null)
-  const heading = useRef<HTMLDivElement>(null)
   const cue = useRef<HTMLParagraphElement>(null)
   const track = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     const section = root.current!, viewport = stage.current!, surface = canvas.current!
-    const image = destination.current!, secondImage = nextDestination.current!
-    const phaseWords = Array.from(section.querySelectorAll<HTMLElement>('[data-universe-phase]')).map(phase => ({
+    const phases = Array.from(section.querySelectorAll<HTMLElement>('[data-universe-phase]')).map((phase) => ({
       phase, words: Array.from(phase.querySelectorAll<HTMLElement>('[data-phase-word]')),
     }))
-    let alive = true, visible = false
-    let request = () => {}, stop = () => {}
-    const occlusion = new IntersectionObserver(([entry]) => {
-      if (!alive) return
-      visible = entry.isIntersecting
-      if (entry.intersectionRatio > .7) occupiedStages.add(viewport)
-      else occupiedStages.delete(viewport)
-      document.documentElement.classList.toggle('universe-on', occupiedStages.size > 0)
-      if (visible) request(); else stop()
-    }, { threshold: [0,.01,.7,1] })
-    occlusion.observe(viewport)
-    const media = gsap.matchMedia()
-    media.add({ reduced: '(prefers-reduced-motion: reduce)', motion: '(prefers-reduced-motion: no-preference)' }, (context) => {
-      let gl: WebGL2RenderingContext | null = null
-      let disposed = false, raf = 0, last = 0, lastInput = -Infinity
-      let progress = 0, speed = 0, wantedSpeed = 0, direction = 1
-      let frames = 0, renderRatio = 1, hasImage = false, hasSecondImage = false, screenHeight = 1
-      let fullWidth = 1, fullHeight = 1, fullRatio = 1, travelResolution = false
-      let background: WebGLProgram | null = null, stars: WebGLProgram | null = null
-      let quad: WebGLBuffer | null = null, seeds: WebGLBuffer | null = null
-      let backdropVAO: WebGLVertexArrayObject | null = null, starsVAO: WebGLVertexArrayObject | null = null
-      let texture: WebGLTexture | null = null, secondTexture: WebGLTexture | null = null
-      let scroll: ScrollTrigger | null = null
-      let observer: ResizeObserver | null = null
-      const compact = matchMedia('(max-width:767px), (pointer:coarse)').matches
-      const count = compact ? 640 : 1040
-      const uniforms = new Map<WebGLProgram, Record<string, WebGLUniformLocation | null>>()
 
-      const paintCopy = (p: number, still = false) => {
-        phaseWords.forEach(({phase,words},i) => {
-          const starts = [0,.385,.77]
-          const exit = i===0 ? 1-smooth(.19,.28,p) : i===1 ? 1-smooth(.625,.705,p) : 1
-          const shown = still ? Number(i===2) : exit*(i===0 ? 1 : smooth(starts[i],starts[i]+.065,p))
-          phase.style.opacity = String(shown)
-          words.forEach((word,j) => {
-            const reveal = still || i===0 ? 1 : smooth(starts[i]+j*.012,starts[i]+.06+j*.012,p)
-            word.style.transform = `translateY(${(1-reveal)*105}%)`
-          })
+    /* ---- Copy: a pure function of progress, independent of WebGL ---- */
+    const paintCopy = (p: number, still = false) => {
+      phases.forEach(({ phase, words }, i) => {
+        const start = i === 0 ? -1 : SWAPS[i - 1][0] + 0.03
+        const out = i === 2 ? 1 : 1 - smooth(SWAPS[i][0], SWAPS[i][0] + 0.03, p)
+        const shown = still ? Number(i === 2) : out * (i === 0 ? 1 : smooth(start, start + 0.03, p))
+        phase.style.opacity = shown.toFixed(3)
+        if (shown < 0.01) phase.dataset.phase = 'off'
+        else delete phase.dataset.phase
+        const step = 0.003, span = 0.03 - step * (words.length - 1)
+        words.forEach((word, j) => {
+          const reveal = still || i === 0 ? 1 : smooth(start + j * step, start + j * step + span, p)
+          word.style.transform = reveal >= 1 ? '' : `translateY(${((1 - reveal) * 105).toFixed(2)}%)`
         })
-        cue.current!.style.opacity = String(still ? 0 : 1-smooth(.025,.1,p))
-        track.current!.style.transform = `scaleX(${still ? 1 : p})`
-        const leg = p<.36 ? 0 : p<.735 ? 1 : 2
-        section.dataset.leg = String(leg)
-        if (import.meta.env.DEV) { section.dataset.progress = p.toFixed(5); section.dataset.phase = PHASES[leg] }
-      }
-      const still = (mode: 'reduced' | 'fallback') => {
-        section.dataset.renderer = mode
-        section.dataset.motion = 'idle'
-        paintCopy(1,true)
-      }
-      if (context.conditions?.reduced) {
-        still('reduced')
-        request = () => {}; stop = () => {}
-        return
-      }
-      try { gl = surface.getContext('webgl2', { alpha: false, antialias: false, depth: false, stencil: false, powerPreference: 'low-power' }) } catch { /* Still view below. */ }
-      if (!gl) { still('fallback'); return }
-      const gpu = gl
-      section.dataset.renderer = 'loading'
-
-      stop = () => { cancelAnimationFrame(raf); raf = 0; last = 0; speed = 0; wantedSpeed = 0; section.dataset.motion = 'paused' }
-      request = () => {
-        if (alive && !disposed && visible && !document.hidden && background && stars && !gpu.isContextLost() && !raf) raf = requestAnimationFrame(draw)
-      }
-      const release = () => {
-        gpu.deleteVertexArray(backdropVAO); gpu.deleteVertexArray(starsVAO)
-        gpu.deleteBuffer(quad); gpu.deleteBuffer(seeds); gpu.deleteTexture(texture); gpu.deleteTexture(secondTexture)
-        gpu.deleteProgram(background); gpu.deleteProgram(stars)
-        backdropVAO = starsVAO = null; quad = seeds = null; texture = secondTexture = null; background = stars = null
-        uniforms.clear()
-      }
-      const compile = (type: number, source: string) => {
-        const shader = gpu.createShader(type)
-        if (!shader) throw new Error('Shader allocation failed')
-        gpu.shaderSource(shader, source); gpu.compileShader(shader)
-        if (!gpu.getShaderParameter(shader, gpu.COMPILE_STATUS)) {
-          const message = gpu.getShaderInfoLog(shader)
-          gpu.deleteShader(shader); throw new Error(message || 'Shader compilation failed')
-        }
-        return shader
-      }
-      const program = (vertex: string, fragment: string) => {
-        const vs = compile(gpu.VERTEX_SHADER,vertex)
-        let fs: WebGLShader | null = null
-        const result = gpu.createProgram()
-        if (!result) { gpu.deleteShader(vs); throw new Error('Program allocation failed') }
-        try {
-          fs = compile(gpu.FRAGMENT_SHADER,fragment)
-          gpu.attachShader(result,vs); gpu.attachShader(result,fs); gpu.linkProgram(result)
-          if (!gpu.getProgramParameter(result,gpu.LINK_STATUS)) throw new Error(gpu.getProgramInfoLog(result) || 'Shader link failed')
-        } catch (error) { gpu.deleteProgram(result); throw error }
-        finally { gpu.deleteShader(vs); gpu.deleteShader(fs) }
-        const locations: Record<string, WebGLUniformLocation | null> = {}
-        for (const name of ['u_size','u_progress','u_travel','u_speed','u_direction','u_pixelRatio','u_hasImage','u_hasSecondImage','u_imageAspect','u_secondImageAspect','u_image','u_secondImage']) locations[name] = gpu.getUniformLocation(result,name)
-        uniforms.set(result,locations)
-        return result
-      }
-      const uploadImage = (source: HTMLImageElement, target: WebGLTexture | null, second: boolean) => {
-        if (!target || !source.complete || !source.naturalWidth || gpu.isContextLost()) return
-        try {
-          gpu.activeTexture(second ? gpu.TEXTURE1 : gpu.TEXTURE0); gpu.bindTexture(gpu.TEXTURE_2D,target)
-          gpu.pixelStorei(gpu.UNPACK_FLIP_Y_WEBGL,true)
-          gpu.texImage2D(gpu.TEXTURE_2D,0,gpu.RGBA,gpu.RGBA,gpu.UNSIGNED_BYTE,source)
-          if(second) { hasSecondImage = true; section.dataset.secondTexture = 'ready' }
-          else { hasImage = true; section.dataset.texture = 'ready' }
-          request()
-        } catch {
-          if(second) { hasSecondImage = false; section.dataset.secondTexture = 'procedural' }
-          else { hasImage = false; section.dataset.texture = 'procedural' }
-        }
-      }
-      const upload = () => uploadImage(image,texture,false)
-      const uploadSecond = () => uploadImage(secondImage,secondTexture,true)
-      const resize = () => {
-        // All dimensions are read together, never inside the render loop.
-        const width = viewport.clientWidth, height = viewport.clientHeight
-        screenHeight = height
-        const sideCap = compact ? 1280 : 1920
-        const pixelCap = compact ? 1_050_000 : 2_100_000
-        fullRatio = Math.min(devicePixelRatio || 1,1.5,sideCap/Math.max(1,width,height),Math.sqrt(pixelCap/Math.max(1,width*height)))
-        fullWidth = Math.max(1,Math.floor(width*fullRatio))
-        fullHeight = Math.max(1,Math.floor(height*fullRatio))
-        travelResolution = false
-        renderRatio = fullRatio
-        surface.width = fullWidth
-        surface.height = fullHeight
-        request()
-      }
-      const setup = () => {
-        try {
-          release()
-          background = program(UNIVERSE_VERTEX,UNIVERSE_FRAGMENT)
-          stars = program(STAR_VERTEX,STAR_FRAGMENT)
-          quad = gpu.createBuffer(); gpu.bindBuffer(gpu.ARRAY_BUFFER,quad)
-          gpu.bufferData(gpu.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,-1,1,-1,1,1,-1,1,1]),gpu.STATIC_DRAW)
-          const corners = (p: WebGLProgram) => {
-            gpu.bindBuffer(gpu.ARRAY_BUFFER,quad)
-            const at = gpu.getAttribLocation(p,'a_corner')
-            gpu.enableVertexAttribArray(at); gpu.vertexAttribPointer(at,2,gpu.FLOAT,false,0,0)
-          }
-          backdropVAO = gpu.createVertexArray(); gpu.bindVertexArray(backdropVAO); corners(background)
-          starsVAO = gpu.createVertexArray(); gpu.bindVertexArray(starsVAO); corners(stars)
-          const data = new Float32Array(count*4)
-          let seed = 73129
-          for (let i=0;i<data.length;i++) { seed = (Math.imul(seed,1664525)+1013904223)>>>0; data[i] = seed/4294967296 }
-          seeds = gpu.createBuffer(); gpu.bindBuffer(gpu.ARRAY_BUFFER,seeds); gpu.bufferData(gpu.ARRAY_BUFFER,data,gpu.STATIC_DRAW)
-          const at = gpu.getAttribLocation(stars,'a_seed')
-          gpu.enableVertexAttribArray(at); gpu.vertexAttribPointer(at,4,gpu.FLOAT,false,0,0); gpu.vertexAttribDivisor(at,1)
-          const makeTexture = (unit: number) => {
-            const result = gpu.createTexture(); gpu.activeTexture(unit); gpu.bindTexture(gpu.TEXTURE_2D,result)
-            gpu.texParameteri(gpu.TEXTURE_2D,gpu.TEXTURE_MIN_FILTER,gpu.LINEAR)
-            gpu.texParameteri(gpu.TEXTURE_2D,gpu.TEXTURE_MAG_FILTER,gpu.LINEAR)
-            gpu.texParameteri(gpu.TEXTURE_2D,gpu.TEXTURE_WRAP_S,gpu.CLAMP_TO_EDGE)
-            gpu.texParameteri(gpu.TEXTURE_2D,gpu.TEXTURE_WRAP_T,gpu.CLAMP_TO_EDGE)
-            gpu.texImage2D(gpu.TEXTURE_2D,0,gpu.RGBA,1,1,0,gpu.RGBA,gpu.UNSIGNED_BYTE,new Uint8Array([0,0,0,255]))
-            return result
-          }
-          texture = makeTexture(gpu.TEXTURE0); secondTexture = makeTexture(gpu.TEXTURE1)
-          gpu.disable(gpu.DEPTH_TEST)
-          hasImage = hasSecondImage = false; section.dataset.texture = section.dataset.secondTexture = 'procedural'
-          section.dataset.renderer = 'webgl2'
-          upload(); uploadSecond(); resize(); request()
-        } catch (error) {
-          stop(); release(); still('fallback')
-          if (import.meta.env.DEV) console.warn('Universe uses its still fallback:',error)
-        }
-      }
-      function draw(now: number) {
-        raf = 0
-        if (!alive || disposed || !visible || document.hidden || !background || !stars || gpu.isContextLost()) return
-        const began = performance.now()
-        const interval = last ? now-last : 0
-        const dt = Math.min(.05,Math.max(.001,(interval || 16)/1000)); last = now
-        const target = now-lastInput<95 ? wantedSpeed : 0
-        speed += (target-speed)*(1-Math.exp(-dt/.085))
-        if (speed<.001 && target===0) speed = 0
-        // Long streaks tolerate a smaller buffer. Arrival and still views
-        // retain full detail; resize only at flight/idle boundaries.
-        const flying = fullWidth * fullHeight > 850_000 && progress > .08 && progress < .90 && speed > .015
-        if (flying !== travelResolution) {
-          travelResolution = flying
-          const scale = flying ? .76 : 1
-          surface.width = Math.max(1,Math.round(fullWidth * scale))
-          surface.height = Math.max(1,Math.round(fullHeight * scale))
-          renderRatio = fullRatio * scale
-        }
-        const route = universeRoute(progress)
-        const streak = route.envelope * Math.sqrt(speed)
-        gpu.viewport(0,0,surface.width,surface.height)
-        gpu.disable(gpu.BLEND); gpu.useProgram(background); gpu.bindVertexArray(backdropVAO)
-        const bg = uniforms.get(background)!
-        gpu.uniform2f(bg.u_size,surface.width,surface.height)
-        gpu.uniform1f(bg.u_progress,progress)
-        gpu.uniform1f(bg.u_travel,route.travel)
-        gpu.uniform1f(bg.u_hasImage,hasImage ? 1 : 0)
-        gpu.uniform1f(bg.u_hasSecondImage,hasSecondImage ? 1 : 0)
-        gpu.uniform1f(bg.u_imageAspect,image.naturalWidth ? image.naturalWidth/image.naturalHeight : 1.5)
-        gpu.uniform1f(bg.u_secondImageAspect,secondImage.naturalWidth ? secondImage.naturalWidth/secondImage.naturalHeight : 1.5)
-        gpu.uniform1i(bg.u_image,0)
-        gpu.uniform1i(bg.u_secondImage,1)
-        gpu.activeTexture(gpu.TEXTURE0); gpu.bindTexture(gpu.TEXTURE_2D,texture)
-        gpu.activeTexture(gpu.TEXTURE1); gpu.bindTexture(gpu.TEXTURE_2D,secondTexture)
-        gpu.drawArrays(gpu.TRIANGLES,0,6)
-        gpu.enable(gpu.BLEND); gpu.blendFunc(gpu.ONE,gpu.ONE)
-        gpu.useProgram(stars); gpu.bindVertexArray(starsVAO)
-        const star = uniforms.get(stars)!
-        gpu.uniform2f(star.u_size,surface.width,surface.height)
-        gpu.uniform1f(star.u_travel,route.travel)
-        gpu.uniform1f(star.u_speed,streak)
-        gpu.uniform1f(star.u_direction,direction)
-        gpu.uniform1f(star.u_progress,progress)
-        gpu.uniform1f(star.u_pixelRatio,renderRatio)
-        gpu.drawArraysInstanced(gpu.TRIANGLES,0,6,count)
-        section.dataset.motion = speed ? 'flying' : 'idle'
-        if (import.meta.env.DEV) {
-          surface.dataset.frames = String(++frames)
-          surface.dataset.travel = route.travel.toFixed(5)
-          surface.dataset.speed = streak.toFixed(4)
-          surface.dataset.submitMs = (performance.now()-began).toFixed(2)
-          surface.dataset.frameIntervalMs = interval.toFixed(2)
-          surface.dataset.drawCalls = '2'
-          surface.dataset.stars = String(count)
-          surface.dataset.pixels = String(surface.width*surface.height)
-          surface.dataset.resolutionScale = travelResolution ? '.76' : '1'
-        }
-        if (speed || target) request()
-      }
-      const update = (self: ScrollTrigger) => {
-        direction = self.direction || 1
-        progress = clamp(self.progress)
-        wantedSpeed = clamp(Math.abs(self.getVelocity())/Math.max(1,screenHeight*1.6))
-        lastInput = performance.now()
-        paintCopy(progress); request()
-      }
-      const onVisible = () => { if (document.hidden) stop(); else request() }
-      const onLoss = (event: Event) => {
-        event.preventDefault(); stop()
-        section.dataset.renderer = 'lost'
-      }
-      const onRestore = () => { if (!disposed) setup() }
-      const onError = () => { hasImage = false; section.dataset.texture = 'missing'; request() }
-      const onSecondError = () => { hasSecondImage = false; section.dataset.secondTexture = 'missing'; request() }
-      image.addEventListener('load',upload); image.addEventListener('error',onError)
-      secondImage.addEventListener('load',uploadSecond); secondImage.addEventListener('error',onSecondError)
-      surface.addEventListener('webglcontextlost',onLoss); surface.addEventListener('webglcontextrestored',onRestore)
-      document.addEventListener('visibilitychange',onVisible)
-      setup()
-      if (background && stars) {
-        scroll = ScrollTrigger.create({ id: 'universe-journey', trigger: section, start: 'top top', end: 'bottom bottom',
-          onUpdate: update,
-          onRefresh: (self) => { progress = clamp(self.progress); paintCopy(progress); request() },
-        })
-        progress = scroll.progress; paintCopy(progress)
-        observer = new ResizeObserver(resize); observer.observe(viewport)
-      }
-      return () => {
-        disposed = true; stop(); scroll?.kill(); observer?.disconnect()
-        image.removeEventListener('load',upload); image.removeEventListener('error',onError)
-        secondImage.removeEventListener('load',uploadSecond); secondImage.removeEventListener('error',onSecondError)
-        surface.removeEventListener('webglcontextlost',onLoss); surface.removeEventListener('webglcontextrestored',onRestore)
-        document.removeEventListener('visibilitychange',onVisible)
-        release(); request = () => {}; stop = () => {}
-      }
-    })
-    return () => {
-      alive = false; media.revert(); occlusion.disconnect()
-      occupiedStages.delete(viewport)
-      document.documentElement.classList.toggle('universe-on',occupiedStages.size>0)
+      })
+      cue.current!.style.opacity = String(still ? 0 : 1 - smooth(0.025, 0.1, p))
+      track.current!.style.transform = `scaleX(${still ? 1 : p})`
+      const leg = still ? 2 : legOf(p)
+      section.dataset.leg = String(leg)
+      if (import.meta.env.DEV) { section.dataset.progress = p.toFixed(5); section.dataset.phase = PHASES[leg] }
     }
+
+    let unmount = () => {}
+    const mount = (reduced: boolean) => {
+      if (reduced) {
+        section.dataset.renderer = 'reduced'
+        paintCopy(1, true)
+        return () => {}
+      }
+      section.dataset.renderer = 'pending'
+      setRestGaps('universe', SWAPS)
+      const offCopy = drive('universe', (p) => paintCopy(p))
+
+      /* ---- Picture ---- */
+      let gl: WebGL2RenderingContext | null = null
+      let disposed = false, prepared = false, preparing: Promise<void> | null = null, shown = false
+      let progress = 0, speed = 0, direction = 1, frames = 0
+      let background: BuiltProgram | null = null, stars: BuiltProgram | null = null, composite: BuiltProgram | null = null
+      let uBg: Uniforms = {}, uStar: Uniforms = {}, uComp: Uniforms = {}
+      let film: FilmBinder | null = null
+      let quad: WebGLBuffer | null = null, seeds: WebGLBuffer | null = null
+      let quadVAO: WebGLVertexArrayObject | null = null, starsVAO: WebGLVertexArrayObject | null = null
+      const textures: (WebGLTexture | null)[] = [null, null]
+      const loaded = [false, false]
+      const aspects = [1.5, 1.5]
+      let scene: Target | null = null, bloom: Bloom | null = null
+      let direct = true, glow: 'chain' | 'mip' | 'none' = 'none', levels = 0
+      let count = tier().stars, renderRatio = 1, sizeDirty = true
+      let handle: SceneHandle | null = null
+
+      const still = () => {
+        // WebGL2 is not available: the reduced-motion still (poster, final title, no runway)
+        section.dataset.renderer = 'fallback'
+        offCopy()
+        paintCopy(1, true)
+      }
+
+      const freeBuffers = () => {
+        if (!gl) return
+        freeTarget(gl, scene); scene = null
+        bloom?.release()
+      }
+      const freeAll = () => {
+        if (!gl) return
+        freeBuffers()
+        bloom?.dispose(); bloom = null
+        gl.deleteVertexArray(quadVAO); gl.deleteVertexArray(starsVAO)
+        gl.deleteBuffer(quad); gl.deleteBuffer(seeds)
+        textures.forEach((t, i) => { gl!.deleteTexture(t); textures[i] = null; loaded[i] = false })
+        for (const p of [background, stars, composite]) if (p) gl.deleteProgram(p.program)
+        background = stars = composite = null
+        quadVAO = starsVAO = null; quad = seeds = null; film = null
+        prepared = false
+      }
+
+      /** Canvas and targets for the current tier. Only ever called while the page is at rest (or before the first frame). */
+      const allocate = () => {
+        if (!gl) return
+        sizeDirty = false
+        const t = tier()
+        const width = viewport.clientWidth, height = viewport.clientHeight
+        if (!width || !height) return
+        renderRatio = Math.min(window.devicePixelRatio || 1, t.dprCap, Math.sqrt((t.pixelCap * PIXEL_SHARE) / (width * height))) * t.scale
+        const w = Math.max(1, Math.round(width * renderRatio)), h = Math.max(1, Math.round(height * renderRatio))
+        if (surface.width !== w || surface.height !== h) { surface.width = w; surface.height = h }
+        freeBuffers()
+        glow = 'none'; levels = 0
+        if (!direct) {
+          const want = t.bloom
+          scene = createTarget(gl, w, h, want === 'mip')
+          if (scene && want.startsWith('chain') && bloom) {
+            levels = Number(want.slice(5))
+            glow = bloom.resize(w, h, levels) ? 'chain' : 'none'
+          } else if (scene && want === 'mip') glow = 'mip'
+        }
+      }
+
+      const setup = async () => {
+        if (!gl) {
+          try { gl = surface.getContext('webgl2', { alpha: false, antialias: false, depth: false, stencil: false, powerPreference: 'high-performance' }) } catch { /* still view below */ }
+          if (!gl) return still()
+        }
+        const gpu = gl
+        direct = !hdrSupported(gpu) || tier().bloom === 'off'
+        // Compile off the main thread where the driver allows it; nothing below blocks a frame.
+        background = buildProgram(gpu, UNIVERSE_VERTEX, universeFragment(direct), { a_corner: 0 })
+        stars = buildProgram(gpu, STAR_VERTEX, STAR_FRAGMENT, { a_corner: 0, a_seed: 1 })
+        composite = direct ? null : buildProgram(gpu, UNIVERSE_VERTEX, UNIVERSE_COMPOSITE, { a_corner: 0 })
+        bloom = direct ? null : createBloom(gpu)
+        const ok = await Promise.all([background?.ready, stars?.ready, composite ? composite.ready : true])
+        if (disposed || gpu.isContextLost()) return
+        if (!background || !stars || ok.includes(false) || ok.includes(undefined)) {
+          if (import.meta.env.DEV) console.warn('Universe uses its still fallback: shaders failed')
+          return still()
+        }
+        uBg = locate(gpu, background.program, ['u_size', 'u_progress', 'u_travel', 'u_hasImage', 'u_hasSecondImage', 'u_imageAspect', 'u_secondImageAspect', 'u_image', 'u_secondImage'])
+        uStar = locate(gpu, stars.program, ['u_size', 'u_travel', 'u_speed', 'u_direction', 'u_progress', 'u_pixelRatio', 'u_gain'])
+        if (composite) uComp = locate(gpu, composite.program, ['u_scene', 'u_bloom', 'u_glowMode', 'u_glowLevels', 'u_glow'])
+        film = bindFilm(gpu, (composite ?? background).program)
+
+        quad = gpu.createBuffer(); gpu.bindBuffer(gpu.ARRAY_BUFFER, quad)
+        gpu.bufferData(gpu.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, -1, 1, 1, -1, 1, 1]), gpu.STATIC_DRAW)
+        const corners = () => { gpu.bindBuffer(gpu.ARRAY_BUFFER, quad); gpu.enableVertexAttribArray(0); gpu.vertexAttribPointer(0, 2, gpu.FLOAT, false, 0, 0) }
+        quadVAO = gpu.createVertexArray(); gpu.bindVertexArray(quadVAO); corners()
+        starsVAO = gpu.createVertexArray(); gpu.bindVertexArray(starsVAO); corners()
+        count = tier().stars
+        const data = new Float32Array(2000 * 4) // the desktop tier's count; lower tiers draw a prefix
+        let seed = 73129
+        for (let i = 0; i < data.length; i++) { seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0; data[i] = seed / 4294967296 }
+        seeds = gpu.createBuffer(); gpu.bindBuffer(gpu.ARRAY_BUFFER, seeds); gpu.bufferData(gpu.ARRAY_BUFFER, data, gpu.STATIC_DRAW)
+        gpu.enableVertexAttribArray(1); gpu.vertexAttribPointer(1, 4, gpu.FLOAT, false, 0, 0); gpu.vertexAttribDivisor(1, 1)
+        gpu.bindVertexArray(null)
+        gpu.disable(gpu.DEPTH_TEST)
+        allocate()
+        prepared = true
+        section.dataset.renderer = 'webgl2'
+        handle?.invalidate()
+
+        // The two galaxy plates: decoded off the main thread, uploaded one per task, mipmapped (the first one starts tiny).
+        GALAXIES.forEach(async (url, i) => {
+          try {
+            const blob = await (await fetch(url)).blob()
+            const bitmap = await createImageBitmap(blob)
+            if (disposed || gpu.isContextLost() || !prepared) return bitmap.close()
+            const texture = gpu.createTexture()
+            gpu.activeTexture(gpu.TEXTURE0 + i); gpu.bindTexture(gpu.TEXTURE_2D, texture)
+            gpu.pixelStorei(gpu.UNPACK_FLIP_Y_WEBGL, false)
+            gpu.texImage2D(gpu.TEXTURE_2D, 0, gpu.RGBA, gpu.RGBA, gpu.UNSIGNED_BYTE, bitmap)
+            gpu.generateMipmap(gpu.TEXTURE_2D)
+            gpu.texParameteri(gpu.TEXTURE_2D, gpu.TEXTURE_MIN_FILTER, gpu.LINEAR_MIPMAP_LINEAR)
+            gpu.texParameteri(gpu.TEXTURE_2D, gpu.TEXTURE_MAG_FILTER, gpu.LINEAR)
+            gpu.texParameteri(gpu.TEXTURE_2D, gpu.TEXTURE_WRAP_S, gpu.CLAMP_TO_EDGE)
+            gpu.texParameteri(gpu.TEXTURE_2D, gpu.TEXTURE_WRAP_T, gpu.CLAMP_TO_EDGE)
+            aspects[i] = bitmap.width / bitmap.height
+            bitmap.close()
+            textures[i] = texture; loaded[i] = true
+            section.dataset[i ? 'secondTexture' : 'texture'] = 'ready'
+            handle?.invalidate()
+          } catch {
+            section.dataset[i ? 'secondTexture' : 'texture'] = 'procedural' // the shader draws its own spiral
+          }
+        })
+      }
+
+      const render = (p: number, streak: number, seed: number) => {
+        const gpu = gl!
+        const route = universeRoute(p)
+        const w = surface.width, h = surface.height
+        gpu.bindFramebuffer(gpu.FRAMEBUFFER, scene ? scene.fbo : null)
+        gpu.viewport(0, 0, w, h)
+        gpu.disable(gpu.BLEND); gpu.useProgram(background!.program); gpu.bindVertexArray(quadVAO)
+        gpu.uniform2f(uBg.u_size, w, h)
+        gpu.uniform1f(uBg.u_progress, p)
+        gpu.uniform1f(uBg.u_travel, route.travel)
+        gpu.uniform1f(uBg.u_hasImage, loaded[0] ? 1 : 0)
+        gpu.uniform1f(uBg.u_hasSecondImage, loaded[1] ? 1 : 0)
+        gpu.uniform1f(uBg.u_imageAspect, aspects[0])
+        gpu.uniform1f(uBg.u_secondImageAspect, aspects[1])
+        gpu.uniform1i(uBg.u_image, 0)
+        gpu.uniform1i(uBg.u_secondImage, 1)
+        gpu.activeTexture(gpu.TEXTURE0); gpu.bindTexture(gpu.TEXTURE_2D, textures[0])
+        gpu.activeTexture(gpu.TEXTURE1); gpu.bindTexture(gpu.TEXTURE_2D, textures[1])
+        if (!scene) film!(SCENE_GRADES.universe, seed)
+        gpu.drawArrays(gpu.TRIANGLES, 0, 6)
+
+        gpu.enable(gpu.BLEND); gpu.blendFunc(gpu.ONE, gpu.ONE)
+        gpu.useProgram(stars!.program); gpu.bindVertexArray(starsVAO)
+        gpu.uniform2f(uStar.u_size, w, h)
+        gpu.uniform1f(uStar.u_travel, route.travel)
+        gpu.uniform1f(uStar.u_speed, route.envelope * Math.sqrt(streak))
+        gpu.uniform1f(uStar.u_direction, direction)
+        gpu.uniform1f(uStar.u_progress, p)
+        gpu.uniform1f(uStar.u_pixelRatio, renderRatio)
+        // In linear light a star may run hotter than white (it blooms); in the direct path it is display colour.
+        gpu.uniform1f(uStar.u_gain, scene ? 1.5 : 0.7)
+        gpu.drawArraysInstanced(gpu.TRIANGLES, 0, 6, Math.min(count, 2000))
+        gpu.disable(gpu.BLEND)
+
+        if (scene && composite) {
+          gpu.bindVertexArray(quadVAO)
+          let bloomTex: WebGLTexture | null = null
+          if (glow === 'chain' && bloom) bloomTex = bloom.render(scene)
+          gpu.activeTexture(gpu.TEXTURE2); gpu.bindTexture(gpu.TEXTURE_2D, scene.tex)
+          if (glow === 'mip') gpu.generateMipmap(gpu.TEXTURE_2D)
+          gpu.activeTexture(gpu.TEXTURE3); gpu.bindTexture(gpu.TEXTURE_2D, bloomTex ?? scene.tex)
+          gpu.bindFramebuffer(gpu.FRAMEBUFFER, null)
+          gpu.viewport(0, 0, w, h)
+          gpu.useProgram(composite.program)
+          gpu.uniform1i(uComp.u_scene, 2)
+          gpu.uniform1i(uComp.u_bloom, 3)
+          gpu.uniform1f(uComp.u_glowMode, glow === 'chain' ? 1 : glow === 'mip' ? 2 : 0)
+          gpu.uniform1f(uComp.u_glowLevels, Math.max(1, levels))
+          gpu.uniform1f(uComp.u_glow, glow === 'chain' ? 0.3 : 0.1)
+          film!(SCENE_GRADES.universe, seed)
+          gpu.drawArrays(gpu.TRIANGLES, 0, 6)
+          gpu.activeTexture(gpu.TEXTURE0)
+        }
+        gpu.bindVertexArray(null)
+      }
+
+      handle = registerScene({
+        id: 'universe',
+        chapter: 'universe',
+        host: viewport,
+        weight: 'heavy',
+        clock: 'time',
+        prepare() {
+          if (prepared || disposed) return
+          return (preparing ??= setup().finally(() => { preparing = null }))
+        },
+        draw(_now, tick) {
+          if (!prepared || !gl || gl.isContextLost() || !tick.chapter) return false
+          const f = tick.frame
+          progress = clamp(tick.chapter.vrun)
+          direction = f.direction
+          // Star streaks follow how fast the reader travels. A settle draw is the exact still.
+          const target = tick.settle || f.idle ? 0 : clamp(Math.abs(f.velocity) / Math.max(1, f.vh * 1.6))
+          speed = tick.settle ? 0 : speed + (target - speed) * (1 - Math.exp(-Math.max(tick.dt, 0.001) / 0.085))
+          if (speed < 0.001 && target === 0) speed = 0
+          // Resolution only ever changes at rest (buffers are re-allocated).
+          if (sizeDirty && (f.idle || !shown)) allocate()
+          if (!surface.width) return false
+          render(progress, speed, speed ? ++frames % 64 : 0)
+          section.dataset.motion = speed ? 'flying' : 'idle'
+          if (!shown) { shown = true; requestAnimationFrame(() => { if (!disposed && prepared) handle?.ready() }) }
+          if (import.meta.env.DEV) {
+            surface.dataset.frames = String(frames)
+            surface.dataset.pixels = String(surface.width * surface.height)
+            surface.dataset.glow = glow + (levels || '')
+            surface.dataset.stars = String(count)
+          }
+          return speed > 0 || target > 0
+        },
+        release() {
+          // Far away: give back the textures and targets, keep the context and the compiled programs.
+          if (!gl || !prepared) return
+          freeAll()
+          surface.width = surface.height = 0
+          shown = false
+          handle?.lost()
+          section.dataset.renderer = 'pending'
+        },
+        resize(t: Tier) {
+          count = t.stars
+          sizeDirty = true
+          handle?.invalidate()
+        },
+      })
+
+      const observer = new ResizeObserver(() => { sizeDirty = true; handle?.invalidate() })
+      observer.observe(viewport)
+      const offSettle = onSettle(() => { if (sizeDirty) handle?.invalidate() })
+      const onLoss = (event: Event) => {
+        event.preventDefault()
+        prepared = false; shown = false
+        background = stars = composite = null; bloom = null; scene = null; film = null
+        textures.fill(null); loaded.fill(false)
+        section.dataset.renderer = 'lost'
+        handle?.lost()
+      }
+      const onRestore = () => {
+        if (disposed) return
+        preparing = setup().finally(() => { preparing = null })
+      }
+      surface.addEventListener('webglcontextlost', onLoss)
+      surface.addEventListener('webglcontextrestored', onRestore)
+      paintCopy(deckFrame().chapters.find((c) => c.id === 'universe')?.vrun ?? 0)
+
+      if (import.meta.env.DEV) {
+        // scripts/cinema/universe-posters.mjs uses this to export one poster per leg from the real shader.
+        const w = window as unknown as { __filmShots?: Record<string, unknown> }
+        w.__filmShots = { ...w.__filmShots, universe: (p: number, type = 'image/webp', quality = 0.8) => {
+          if (!prepared) return null
+          render(p, 0, 0)
+          return surface.toDataURL(type, quality)
+        }, universeReady: () => prepared && loaded[0] && loaded[1] }
+      }
+
+      return () => {
+        disposed = true
+        offCopy(); offSettle(); observer.disconnect()
+        surface.removeEventListener('webglcontextlost', onLoss)
+        surface.removeEventListener('webglcontextrestored', onRestore)
+        handle?.dispose(); handle = null
+        freeAll()
+        setRestGaps('universe', [])
+      }
+    }
+
+    unmount = mount(prefersReducedMotion())
+    const offReduced = onReducedMotionChange((reduced) => { unmount(); unmount = mount(reduced) })
+    return () => { offReduced(); unmount() }
   }, [])
 
   return (
-    <section ref={root} id="universe" className="universe-journey" data-renderer="pending" aria-label="Guandan: two decks, four players, more deals than stars.">
-      <div ref={stage} className="universe-viewport">
-        <div className="universe-fallback" aria-hidden="true">
+    <section ref={root} id="universe" className="universe-journey" data-renderer="pending" data-leg="0" aria-label="Guandan: two decks, four players, more deals than stars.">
+      <div ref={stage} className="universe-viewport" data-scene-host>
+        {/* The poster: one still per leg, exported from the shader itself, over a CSS sky. Never a bare black stage. */}
+        <div className="universe-fallback" data-poster aria-hidden="true">
           <div className="universe-fallback-halo" />
-          <img ref={destination} className="universe-source-first" src="/assets/scenes/galaxy.webp" alt="" width="1536" height="1024" loading="lazy" decoding="async" />
-          <img ref={nextDestination} src="/assets/scenes/galaxy-violet.webp" alt="" width="1536" height="1024" loading="lazy" decoding="async" onError={(event) => { event.currentTarget.style.visibility = 'hidden' }} onLoad={(event) => { event.currentTarget.style.visibility = '' }} />
+          {POSTERS.map((src, leg) => <img key={src} className={`universe-poster universe-poster-${leg}`} src={src} alt="" width="1280" height="800" loading="lazy" decoding="async" onError={(event) => { event.currentTarget.style.visibility = 'hidden' }} />)}
         </div>
-        <canvas ref={canvas} className="universe-canvas" data-scene="universe" aria-hidden="true" />
+        <div className="universe-plate" data-film-enter>
+          <canvas ref={canvas} className="universe-canvas" data-scene="universe" aria-hidden="true" />
+        </div>
         <div className="universe-edges" aria-hidden="true" />
-        <div ref={heading} className="universe-heading container-site">
+        <div className="universe-heading container-site">
           <h2 aria-label="Two decks. Four players. More deals than stars.">
-            {PHASES.map((label,i) => <span key={i} data-universe-phase className={`universe-phase universe-phase-${i}`} aria-hidden="true">
-              {label.split(' ').map((word,j,all) => <span key={word} className="universe-phase-mask"><span data-phase-word>{word}{j<all.length-1 ? '\u00a0' : ''}</span></span>)}
+            {PHASES.map((label, i) => <span key={i} data-universe-phase className={`universe-phase universe-phase-${i}`} aria-hidden="true">
+              {label.split(' ').map((word, j, all) => <span key={word} className="universe-phase-mask"><span data-phase-word>{word}{j < all.length - 1 ? ' ' : ''}</span></span>)}
             </span>)}
           </h2>
         </div>

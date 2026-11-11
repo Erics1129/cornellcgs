@@ -1,15 +1,19 @@
 /* Native page scroll drives the journey; the viewport itself never moves. */
-.universe-journey { position:relative; min-height:650svh; background:#000; color:#faf7f2; isolation:isolate; }
-.universe-viewport { position:sticky; top:0; height:100svh; width:100%; overflow:clip; contain:paint; isolation:isolate; background:#000; }
-.universe-canvas,.universe-fallback { position:absolute; inset:0; width:100%; height:100%; }
-.universe-canvas { opacity:0; pointer-events:none; }
-.universe-journey[data-renderer='webgl2'] .universe-canvas { opacity:1; }
-.universe-journey[data-renderer='webgl2'] .universe-fallback { visibility:hidden; }
-.universe-fallback { overflow:hidden; background:radial-gradient(1px 1px at 16% 22%,#d9cebc 80%,transparent),radial-gradient(1px 1px at 79% 16%,#d9cebc 80%,transparent),radial-gradient(1px 1px at 86% 72%,#b8a98f 80%,transparent),radial-gradient(1px 1px at 28% 81%,#b8a98f 80%,transparent),radial-gradient(1px 1px at 44% 36%,#b8a98f 80%,transparent),#000; }
-.universe-fallback img { position:absolute; width:115%; height:115%; max-width:none; top:-7.5%; left:-7.5%; object-fit:contain; }
-.universe-fallback .universe-source-first { opacity:0; pointer-events:none; }
-.universe-fallback-halo { position:absolute; inset:14% 6%; background:radial-gradient(ellipse at center,#f0c1c425 0%,#bc7a7e1e 14%,#45292b1a 32%,transparent 62%); transform:rotate(-28deg); }
-.universe-edges { position:absolute; inset:0; pointer-events:none; background:linear-gradient(#000 0%,transparent 17%,transparent 80%,#000 100%); }
+/* Runway height is deck.css's token; the fallback keeps this file complete on its own. */
+.universe-journey { position:relative; min-height:var(--run-universe,520svh); background:var(--film-black); color:#faf7f2; isolation:isolate; }
+.universe-viewport { position:sticky; top:0; height:100svh; width:100%; overflow:clip; contain:paint; isolation:isolate; background:var(--film-black); }
+/* The poster sits under the canvas; the canvas stays transparent until the scene manager marks the first real frame. */
+.universe-canvas,.universe-fallback,.universe-plate { position:absolute; inset:0; width:100%; height:100%; }
+.universe-plate { pointer-events:none; }
+.universe-canvas { display:block; opacity:0; transition:opacity 150ms linear; }
+.universe-viewport[data-scene-state='live'] .universe-canvas { opacity:1; }
+.universe-fallback { overflow:hidden; background:radial-gradient(ellipse 70% 46% at 50% 56%,#1a2a55 0%,#150f2e55 45%,transparent 75%),radial-gradient(1px 1px at 16% 22%,#d9cebc 80%,transparent),radial-gradient(1px 1px at 79% 16%,#d9cebc 80%,transparent),radial-gradient(1px 1px at 86% 72%,#b8a98f 80%,transparent),radial-gradient(1px 1px at 28% 81%,#b8a98f 80%,transparent),radial-gradient(1px 1px at 44% 36%,#b8a98f 80%,transparent),var(--film-black); }
+/* One poster per leg of the journey (exported from the shader); the nearest one shows. */
+.universe-poster { position:absolute; inset:0; width:100%; height:100%; max-width:none; object-fit:cover; opacity:0; }
+.universe-journey[data-leg='0'] .universe-poster-0,.universe-journey[data-leg='1'] .universe-poster-1,.universe-journey[data-leg='2'] .universe-poster-2 { opacity:1; }
+.universe-fallback-halo { position:absolute; inset:10% 4%; background:radial-gradient(ellipse at center,#f0c1c438 0%,#bc7a7e2c 14%,#5a3a6a24 34%,transparent 64%); transform:rotate(-28deg); }
+/* The stage feathers into the shared black at both ends, so it butts cleanly against its neighbours. */
+.universe-edges { position:absolute; inset:0; pointer-events:none; background:linear-gradient(var(--film-black) 0%,rgb(7 6 5 / .62) 5%,rgb(7 6 5 / .2) 11%,transparent 18%,transparent 82%,rgb(7 6 5 / .2) 89%,rgb(7 6 5 / .62) 95%,var(--film-black) 100%); }
 .universe-heading { position:absolute; inset-inline:0; top:max(6.5rem,16svh); pointer-events:none; }
 .universe-heading h2 { display:grid; max-width:16ch; font:450 clamp(2.3rem,4vw,4.5rem)/1.05 var(--font-display); letter-spacing:-.045em; text-wrap:balance; text-shadow:0 2px 18px #000; }
 .universe-phase { grid-area:1/1; opacity:0; }
@@ -30,17 +34,16 @@
 .universe-journey[data-renderer='fallback'] .universe-itinerary,.universe-journey[data-renderer='reduced'] .universe-itinerary { display:none; }
 .universe-journey[data-renderer='fallback'] .universe-cue { display:none; }
 @media(max-width:767px) {
- .universe-journey { min-height:550svh; }
+ .universe-journey { min-height:var(--run-universe,440svh); }
  .universe-heading { top:max(6rem,13svh); }
  .universe-heading h2 { font-size:clamp(2.25rem,9vw,3.5rem); max-width:11ch; }
  .universe-footer { gap:1rem; bottom:max(1.5rem,env(safe-area-inset-bottom)); }
  .universe-cue { font-size:.6875rem; gap:.75rem; }
  .universe-itinerary { width:104px; font-size:.625rem; }
- .universe-fallback img { width:150%; left:-25%; }
 }
 @media(prefers-reduced-motion:reduce) {
  .universe-journey { min-height:100svh; }
  .universe-viewport { position:relative; }
- .universe-canvas,.universe-cue,.universe-itinerary { display:none; }
+ .universe-plate,.universe-cue,.universe-itinerary { display:none; }
  .universe-heading { opacity:1 !important; }
 }
