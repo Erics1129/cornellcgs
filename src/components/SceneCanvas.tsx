@@ -7,10 +7,14 @@ import { blinkClosure } from '../effects/eyeMotion'
 import { eyePointerTarget, stepEyeGaze, type EyeGaze } from '../effects/eyeGaze'
 import { bindFilm, type FilmBinder } from '../effects/film/bind'
 import { NEUTRAL, SCENE_GRADES } from '../effects/film/grades'
+import { tier } from '../lib/tier'
 import '../styles/scenes.css'
 
 gsap.registerPlugin(ScrollTrigger)
 export type SceneKind = 'blackhole' | 'earth' | 'eye'
+/** Phones and tablets take the half-size earth map (tier().textureMax): a quarter of the upload and of the GPU memory. */
+const EARTH_2048 = '/assets/film/earth-nasa-july-2048.webp'
+const sourceFor = (kind: SceneKind) => (kind === 'earth' && tier().textureMax <= 2048 ? EARTH_2048 : ASSETS[kind])
 const ASSETS = { blackhole: '/assets/scenes/black-hole.webp', earth: '/assets/earth-journey/earth-nasa-july-4096.webp', eye: '/assets/scenes/eye-cinema-v4.webp' }
 
 /** An on-demand renderer: scroll/input is the clock, except the living eye. */
@@ -18,6 +22,20 @@ export default function SceneCanvas({ kind, paused = false }: { kind: SceneKind;
   const host = useRef<HTMLDivElement>(null)
   const canvas = useRef<HTMLCanvasElement>(null)
   const [ready, setReady] = useState(false)
+  // The still is the poster (and the whole picture without WebGL). It is fetched when the chapter
+  // comes near, never at first view: the earth map alone is 766 kB.
+  const [still, setStill] = useState<string | null>(null)
+  useEffect(() => {
+    const box = host.current
+    if (!box || typeof IntersectionObserver === 'undefined') { setStill(sourceFor(kind)); return }
+    const io = new IntersectionObserver(([entry]) => {
+      if (!entry.isIntersecting) return
+      setStill(sourceFor(kind))
+      io.disconnect()
+    }, { rootMargin: '150% 0px' })
+    io.observe(box)
+    return () => io.disconnect()
+  }, [kind])
   const pause = useRef(paused)
   pause.current = paused
 
@@ -196,7 +214,7 @@ export default function SceneCanvas({ kind, paused = false }: { kind: SceneKind;
     const io = new IntersectionObserver(([entry]) => {
       near = entry.isIntersecting
       if (near && !image.src) {
-        image.src = ASSETS[kind]
+        image.src = sourceFor(kind)
         if (lidImage) lidImage.src = '/assets/scenes/eye-cinema-closed-v4.webp'
       }
       if (near) { last = 0; if (kind === 'eye') resize(); request() }
@@ -267,7 +285,7 @@ export default function SceneCanvas({ kind, paused = false }: { kind: SceneKind;
   useEffect(() => { host.current?.dispatchEvent(new Event('scene-playback')) }, [paused])
 
   return <div ref={host} className={`scene-canvas scene-canvas--${kind}`} aria-hidden="true">
-    <div className="scene-still" style={{ backgroundImage: kind === 'eye' ? undefined : `url(${ASSETS[kind]})`, opacity: ready ? 0 : 1 }} />
+    <div className="scene-still" style={{ backgroundImage: kind === 'eye' || !still ? undefined : `url(${still})`, opacity: ready ? 0 : 1 }} />
     <canvas ref={canvas} data-scene={kind} style={{ opacity: ready ? 1 : 0 }} />
   </div>
 }
