@@ -40,8 +40,13 @@ export interface Look {
 
 export type TiltState = 'unsupported' | 'off' | 'granted' | 'denied'
 
-/** Card containers that receive --lx/--ly while their chapter is in view. Any element may opt in with [data-look]. */
-export const LOOK_TARGETS = '.community-board, .project-table, .people-grid, .join-stage, .agenda-list, .hero-poker, [data-look]'
+/**
+ * Containers that receive --lx/--ly while their chapter is in view: the six of
+ * the spec, plus the Who-we-are cube and the Stats rows (their chapters are
+ * lit by the same lamp but their markup belongs to another stream, so they
+ * are named here). Any other element may opt in with [data-look].
+ */
+export const LOOK_TARGETS = '.community-board, .project-table, .people-grid, .join-stage, .agenda-list, .hero-poker, .identity-figure, .stats-scene > .container-site, [data-look]'
 /** Stages on which a resting finger steers the vector (it never blocks the scroll). */
 export const LOOK_STAGES = '.poker-location, .vision-eye-stage, .soda-stage, .earth-globe, [data-look-stage]'
 /** Chapters with a picture that keeps moving on its own: the idle drift only runs here. */
