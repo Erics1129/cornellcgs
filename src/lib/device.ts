@@ -62,9 +62,12 @@ export function classify(w = window.innerWidth, h = window.innerHeight): DeviceC
   return 'laptop'
 }
 
-export function designScale(cls: DeviceClass, w = window.innerWidth): number {
+export function designScale(cls: DeviceClass, w = window.innerWidth, h = window.innerHeight): number {
   const [lo, hi] = CLAMP[cls]
-  return Math.min(hi, Math.max(lo, w / REFERENCE[cls])) * ZOOM[cls]
+  // A phone on its side is still the same phone: scale from its short side, or
+  // the type grows by a quarter exactly when the screen is at its lowest.
+  const measure = cls === 'phone' ? Math.min(w, h) : w
+  return Math.min(hi, Math.max(lo, measure / REFERENCE[cls])) * ZOOM[cls]
 }
 
 let applied: { cls: DeviceClass; scale: number } | null = null

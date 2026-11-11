@@ -10,6 +10,7 @@ import Dice from './Dice'
 import PageNavigator from './PageNavigator'
 import FilmLens from '../effects/FilmLens'
 import InputLayer from './InputLayer'
+import { initDeck } from '../lib/deck'
 import MinigamesCard from '../minigames/MinigamesCard'
 import type { Algo } from './GraphAlgo'
 import '../styles/subpages.css'
@@ -113,6 +114,9 @@ export default function SubPage({ id }: { id: string }) {
   const index = SCENE_ALIAS[id] ? -1 : PAGE_ORDER.indexOf(sceneId)
   const root = useRef<HTMLDivElement>(null)
   usePageEntrances(root, id)
+  // The info pages have no chapters, but their films are scenes: the scene
+  // manager ticks off the deck, so the deck boots here too.
+  useEffect(() => initDeck(), [])
   useEffect(() => {
     if (!def || !root.current) return
     const html = document.documentElement

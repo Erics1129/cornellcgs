@@ -1,31 +1,23 @@
 import { useEffect, useState } from 'react'
+import { deckFrame, onDeck, type ChapterId } from './deck'
 
-/** Follow every chapter, including interludes, so the rail never labels the wrong scene. */
+/**
+ * The chapter under the middle of the viewport, straight from the deck: no
+ * scroll listener, no layout reads. Interludes count too, so the rail never
+ * labels the wrong scene. The hero reads as "no chapter".
+ */
 export function useActiveSection(): string {
   const [active, setActive] = useState('')
   useEffect(() => {
-    let frame = 0, alive = true
-    const chapters = Array.from(document.querySelectorAll<HTMLElement>('main section[id]'))
+    let last: ChapterId | '' = ''
     const update = () => {
-      frame = 0
-      if (!alive) return
-      const middle = innerHeight * .5
-      let current = ''
-      for (const section of chapters) {
-        const rect = section.getBoundingClientRect()
-        if (rect.top <= middle && rect.bottom > middle) current = section.id
-      }
-      setActive(current === 'top' ? '' : current)
+      const now = deckFrame().active
+      if (now === last) return
+      last = now
+      setActive(now === 'top' ? '' : now)
     }
-    const schedule = () => { if (!frame && alive) frame = requestAnimationFrame(update) }
-    window.addEventListener('scroll', schedule, { passive: true })
-    window.addEventListener('resize', schedule)
-    document.fonts?.ready.then(schedule).catch(() => {})
-    schedule()
-    return () => {
-      alive = false; cancelAnimationFrame(frame)
-      window.removeEventListener('scroll', schedule); window.removeEventListener('resize', schedule)
-    }
+    update()
+    return onDeck(update)
   }, [])
   return active
 }

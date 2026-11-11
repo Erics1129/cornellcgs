@@ -1,8 +1,7 @@
-import { useEffect, useRef } from 'react'
-import gsap from 'gsap'
+import { useEffect, useRef, useState } from 'react'
 import { nav } from '../content'
 import { scrollToId } from '../lib/scroll'
-import { prefersReducedMotion } from '../lib/motion'
+import { deckFrame, onDeck } from '../lib/deck'
 import { useActiveSection } from '../lib/useActiveSection'
 
 /**
@@ -21,33 +20,39 @@ const railLife = (i: number) => ({
 export default function SideRail() {
   const active = useActiveSection()
   const fillRef = useRef<HTMLDivElement>(null)
+  const [surface, setSurface] = useState<'light' | undefined>(undefined)
 
+  // The fill is the deck's own progress, written as a transform: no scroll
+  // listener, no scrollHeight read, and it composites instead of relayouting.
   useEffect(() => {
     const el = fillRef.current
     if (!el) return
-    // Full-height bar scaled from the top — transform-only, so continuous
-    // Lenis scroll updates composite instead of relayouting the rail.
-    gsap.set(el, { scaleY: 0, transformOrigin: '50% 0%' })
-    const to = gsap.quickTo(el, 'scaleY', {
-      duration: prefersReducedMotion() ? 0 : 0.35,
-      ease: 'power3',
-    })
-    const onScroll = () => {
-      const docH = document.documentElement.scrollHeight - window.innerHeight
-      to(docH > 0 ? window.scrollY / docH : 0)
+    el.style.transformOrigin = '50% 0%'
+    let shown = -1
+    const paint = () => {
+      const p = Math.round(deckFrame().progress * 1000) / 1000
+      if (p === shown) return
+      shown = p
+      el.style.transform = `scaleY(${p})`
     }
-    onScroll()
-    window.addEventListener('scroll', onScroll, { passive: true })
-    return () => {
-      window.removeEventListener('scroll', onScroll)
-      gsap.killTweensOf(el)
-    }
+    paint()
+    return onDeck(paint)
   }, [])
+
+  // The rail prints light ink. Over a chapter that paints a light sheet it
+  // switches to dark ink. The chapter says which it is in CSS
+  // (--rail-surface: light | dark on its root), read once per chapter
+  // change; with nothing declared, Events is the one light sheet, as before.
+  useEffect(() => {
+    const el = active ? document.getElementById(active) : null
+    const declared = el ? getComputedStyle(el).getPropertyValue('--rail-surface').trim() : ''
+    setSurface(declared === 'light' || (declared === '' && active === 'events') ? 'light' : undefined)
+  }, [active])
 
   return (
     <aside
       data-interactive
-      data-surface={active === 'events' ? 'light' : undefined}
+      data-surface={surface}
       aria-label="Chapters"
       className="cgs-side-rail fixed left-3 top-1/2 z-40 hidden -translate-y-1/2 items-stretch gap-3 lg:flex"
     >

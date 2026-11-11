@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
 import gsap from 'gsap'
-import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import SectionIndex from './SectionIndex'
 import TypeLine from './TypeLine'
 import HeroCard from './HeroCard'
@@ -9,6 +8,9 @@ import CodeCity from '../effects/CodeCity'
 import { hero } from '../content'
 import { EASE } from '../lib/eases'
 import { BOOTED_EVENT, prefersReducedMotion } from '../lib/motion'
+import { attachMagnetic } from '../lib/magnetic'
+import { deckFrame, onDeck } from '../lib/deck'
+import { look, onLook } from '../lib/look'
 
 /**
  * Hero (A♠). The card animation floats in the middle of the page and the
@@ -66,14 +68,6 @@ export default function Hero() {
             )
             .to('[data-hero-hint]', { opacity: 1, y: 0, duration: 0.8, ease: EASE.out }, 2.2)
 
-          // The hint retires on first scroll — it did its job.
-          ScrollTrigger.create({
-            start: '40px top',
-            once: true,
-            onEnter: () => context.add(() => {
-              gsap.to('[data-hero-hint]', { opacity: 0, y: 8, duration: 0.35, ease: 'power2.out' })
-            }),
-          })
         })
       }
 
@@ -84,41 +78,69 @@ export default function Hero() {
     return () => media.revert()
   }, [])
 
-  // Counter-parallax: the words drift opposite the card's cursor tilt, so the
-  // hero reads as layered space. Transform-only on two elements.
+  // The scroll hint is a function of where the page is, not of an event that
+  // fired once: it fades over the first 120 px and is back when the reader
+  // returns to the top. The entrance owns the outer element, this the inner.
+  useEffect(() => {
+    const hint = root.current?.querySelector<HTMLElement>('[data-hero-hint-fade]')
+    if (!hint) return
+    let shown = -1
+    const paint = () => {
+      const y = deckFrame().y
+      const o = y <= 20 ? 1 : y >= 120 ? 0 : Math.round((1 - (y - 20) / 100) * 100) / 100
+      if (o === shown) return
+      shown = o
+      hint.style.opacity = String(o)
+      hint.style.visibility = o === 0 ? 'hidden' : 'visible'
+    }
+    paint()
+    return onDeck(paint)
+  }, [])
+
+  // Counter-parallax: the words drift opposite the card's tilt, so the hero
+  // reads as layered space. Fed by the shared look vector (pointer on a
+  // laptop; finger on the card, tilt or the idle drift on a phone), which is
+  // already smoothed, so two transforms are simply set while the hero shows.
   useEffect(() => {
     const el = root.current
     if (!el || effectsPaused) return
-    const left = el.querySelector('[data-hero-left]')
-    const right = el.querySelector('[data-hero-right]')
+    const left = el.querySelector<HTMLElement>('[data-hero-left]')
+    const right = el.querySelector<HTMLElement>('[data-hero-right]')
     if (!left || !right) return
     const media = gsap.matchMedia(root)
-    media.add('(hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference)', () => {
-      const lx = gsap.quickTo(left, 'x', { duration: 1.4, ease: 'power2.out' })
-      const ly = gsap.quickTo(left, 'y', { duration: 1.4, ease: 'power2.out' })
-      const rx = gsap.quickTo(right, 'x', { duration: 1.4, ease: 'power2.out' })
-      const ry = gsap.quickTo(right, 'y', { duration: 1.4, ease: 'power2.out' })
-      const moves = [lx, ly, rx, ry]
-      const onMove = (e: PointerEvent) => {
-        if (document.hidden || e.pointerType === 'touch') return
-        const nx = e.clientX / window.innerWidth - 0.5
-        const ny = e.clientY / window.innerHeight - 0.5
-        lx(nx * -12); ly(ny * -8); rx(nx * -8); ry(ny * -6)
+    media.add('(prefers-reduced-motion: no-preference)', () => {
+      const setLeft = gsap.quickSetter(left, 'css')
+      const setRight = gsap.quickSetter(right, 'css')
+      let lastX = NaN, lastY = NaN
+      const paint = () => {
+        const f = deckFrame()
+        // past the hero the words are off screen: leave them where they are
+        if (f.y > f.vh) return
+        const l = look()
+        const x = Math.round(l.x * 60) / 10, y = Math.round(l.y * 40) / 10
+        if (x === lastX && y === lastY) return
+        lastX = x; lastY = y
+        setLeft({ x: -x, y: -y })
+        setRight({ x: -x * 0.66, y: -y * 0.75 })
       }
-      const center = () => { moves.forEach(move => move(0)) }
-      const visibility = () => { if (document.hidden) moves.forEach(move => move.tween.pause()); else center() }
-      el.addEventListener('pointermove', onMove, { passive: true })
-      el.addEventListener('pointerleave', center)
-      document.addEventListener('visibilitychange', visibility)
+      paint()
+      const off = onLook(paint)
       return () => {
-        el.removeEventListener('pointermove', onMove)
-        el.removeEventListener('pointerleave', center)
-        document.removeEventListener('visibilitychange', visibility)
-        moves.forEach(move => move.tween.kill())
+        off()
+        gsap.set([left, right], { x: 0, y: 0 })
       }
     })
     return () => media.revert()
   }, [effectsPaused])
+
+  // The two calls to action lean toward a fine pointer (5 px at most).
+  useEffect(() => {
+    const el = root.current
+    if (!el) return
+    // the pull moves a wrapper: the button keeps its own hover and press transforms
+    const offs = Array.from(el.querySelectorAll<HTMLElement>('.hero-magnet')).map((wrap) => attachMagnetic(wrap, 5, 0.3))
+    return () => offs.forEach((off) => off())
+  }, [])
 
   return (
     <section
@@ -156,21 +178,25 @@ export default function Hero() {
               style={{ ['--life-dur' as string]: '12s', ['--life-delay' as string]: '-4.1s' }}
             >
               {/* the coffee chat form opens in its own tab; the mini games are a real page */}
-              <a
-                href={hero.ctaPrimary.href}
-                target="_blank"
-                rel="noopener"
-                className="btn btn-primary neon neon-idle justify-center"
-              >
-                <RollLabel text={hero.ctaPrimary.label} />
-              </a>
-              <a
-                href={hero.ctaSecondary.href}
-                className="btn hero-btn-ghost neon neon-idle justify-center"
-                style={{ ['--neon-from' as string]: '180deg' }}
-              >
-                <RollLabel text={hero.ctaSecondary.label} />
-              </a>
+              <span className="hero-magnet grid">
+                <a
+                  href={hero.ctaPrimary.href}
+                  target="_blank"
+                  rel="noopener"
+                  className="btn btn-primary neon neon-idle justify-center"
+                >
+                  <RollLabel text={hero.ctaPrimary.label} />
+                </a>
+              </span>
+              <span className="hero-magnet grid">
+                <a
+                  href={hero.ctaSecondary.href}
+                  className="btn hero-btn-ghost neon neon-idle justify-center"
+                  style={{ ['--neon-from' as string]: '180deg' }}
+                >
+                  <RollLabel text={hero.ctaSecondary.label} />
+                </a>
+              </span>
             </div>
           </div>
         </div>
@@ -183,13 +209,15 @@ export default function Hero() {
         className="absolute bottom-6 left-1/2 z-10 hidden -translate-x-1/2 flex-col items-center gap-2 md:flex [@media(max-height:700px)]:hidden"
       >
         {/* a card outline that tips forward and back: glass, not a black tile */}
-        <div className="hero-hint-card animate-[card-tip_2.6s_ease-in-out_infinite]"><span>♠</span></div>
-        <span
-          className="life-glow mono text-[max(0.75rem,0.75rem)] text-[var(--muted)]"
-          style={{ ['--life-dur' as string]: '4.4s', ['--life-delay' as string]: '-1.6s' }}
-        >
-          {hero.scrollHint}
-        </span>
+        <div data-hero-hint-fade className="flex flex-col items-center gap-2">
+          <div className="hero-hint-card animate-[card-tip_2.6s_ease-in-out_infinite]"><span>♠</span></div>
+          <span
+            className="life-glow mono text-[max(0.75rem,0.75rem)] text-[var(--muted)]"
+            style={{ ['--life-dur' as string]: '4.4s', ['--life-delay' as string]: '-1.6s' }}
+          >
+            {hero.scrollHint}
+          </span>
+        </div>
       </div>
     </section>
   )

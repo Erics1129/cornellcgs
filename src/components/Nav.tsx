@@ -3,6 +3,7 @@ import type { KeyboardEvent } from 'react'
 import gsap from 'gsap'
 import { prefersReducedMotion } from '../lib/motion'
 import { scrollToId } from '../lib/scroll'
+import { deckFrame, onDeck } from '../lib/deck'
 import { pagePath } from '../lib/router'
 import Dice from './Dice'
 import './scopedMotion.css'
@@ -145,10 +146,27 @@ export default function Nav() {
   }
   const goTop = () => { close(); scrollToId('top') }
 
+  // Under the lg breakpoint the chapter rail is hidden, so a 2 px line under
+  // the bar carries the reader's place: the deck's own progress, as a transform.
+  const progressRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    const line = progressRef.current
+    if (!line) return
+    let shown = -1
+    const paint = () => {
+      const p = Math.round(deckFrame().progress * 1000) / 1000
+      if (p === shown) return
+      shown = p
+      line.style.transform = `scaleX(${p})`
+    }
+    paint()
+    return onDeck(paint)
+  }, [])
+
   return (
     <div ref={rootRef} data-interactive className="cgs-nav fixed inset-x-0 top-0 z-50">
-      <div className="relative z-10 border-b border-[color-mix(in_srgb,var(--neon-dim)_55%,transparent)] bg-[color-mix(in_srgb,var(--bg-top)_97%,transparent)]">
-        <div className="container-site flex h-16 items-center justify-between">
+      <div className="cgs-nav-bar relative z-10 border-b border-[color-mix(in_srgb,var(--neon-dim)_55%,transparent)] bg-[color-mix(in_srgb,var(--bg-top)_97%,transparent)]">
+        <div className="container-site cgs-nav-row flex h-16 items-center justify-between">
           <button type="button" onClick={goTop} aria-label="Cornell CGS — back to the top" className="cgs-nav-brand font-display flex min-h-11 items-center gap-3 font-[700] tracking-[0.26em] text-[var(--text)]">
             <Dice size={28} /><span>CORNELL CGS</span>
           </button>
@@ -173,6 +191,7 @@ export default function Nav() {
             Menu<span aria-hidden="true" className="cgs-nav-menu-icon" data-open={open !== null}><i /><i /></span>
           </button>
         </div>
+        <div ref={progressRef} className="cgs-nav-progress" aria-hidden="true" />
       </div>
       <div ref={panelRef} id={panelId} role="region" aria-label="Site navigation" aria-hidden={open === null}
         data-open={open !== null} data-lenis-prevent className="cgs-nav-panel sheet-light neon-light">

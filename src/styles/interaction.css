@@ -1,1 +1,51 @@
-/* interaction.css: CONTRACT FILE (see SPEC.md section 9). Stub: intentionally empty. The owning stream replaces it. */
+/*
+ * interaction.css — CONTRACT FILE, owner: stream "interaction".
+ *
+ * How the page answers a touch or a key: which gestures the browser keeps,
+ * where focus shows. No colour or material beyond the focus ring's fallback
+ * (film's files own those), no sticky or runway geometry (deck.css). Scoped
+ * to the deck and the info pages; the mini-game routes are untouched.
+ *
+ * Press feedback itself (scale to 0.97, spring back) is run by
+ * components/InputLayer.tsx with the Web Animations API on the individual
+ * `scale` property, so it never fights a transform or a transition that a
+ * component already owns.
+ */
+
+/* A tap is a tap: no 300 ms wait and no double-tap zoom on things meant to be pressed.
+   Vertical panning is never taken from the page. */
+html:is([data-page='deck'], [data-page='sub']) :is(
+  a, button, summary, label, [role='button'],
+  .card-shell, .community-slot, .project-card-holder, .event-surface
+) {
+  touch-action: manipulation;
+}
+/* Cards that answer a sideways drag keep the vertical pan for the page and
+   give the horizontal one to the card (hero card: drag to turn, flick to
+   flip; team cards: swipe to flip). */
+html[data-page='deck'] :is(.hero-poker, .people-slot, .people-slot :is(button, a)) {
+  touch-action: pan-y;
+}
+/* the globe can be turned with a finger; scrolling past it still works */
+html[data-page='deck'] .earth-globe { touch-action: pan-y; }
+
+/* No grey flash on tap: the press scale is the feedback. */
+html:is([data-page='deck'], [data-page='sub']) :is(a, button, [role='button']) {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* A pressed card or control sits a little lower than its neighbours while the finger is on it. */
+html:is([data-page='deck'], [data-page='sub']) [data-pressed] { z-index: 1; }
+
+/* Focus: every component with its own ring keeps it (they are more specific).
+   Anything that has none still shows where the keyboard is. */
+:where(html[data-page='deck'], html[data-page='sub']) :where(a, button, summary, [tabindex]:not([tabindex='-1'])):focus-visible {
+  outline: 2px solid var(--gold, #d4ba7f);
+  outline-offset: 3px;
+}
+
+/* The pointer cursor is only drawn where there is a pointer. */
+@media (hover: none), (pointer: coarse) {
+  html[data-page='deck'] .cgs-ring,
+  html[data-page='deck'] .cgs-pip { display: none; }
+}
