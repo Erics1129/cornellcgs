@@ -153,12 +153,14 @@ export async function open(kind, url, opts = {}) {
     : kind === 'phone' ? { ...devices['iPhone 13'] }
     : { ...devices['iPhone 13'], defaultBrowserType: undefined } // 'touch': Chromium with the iPhone 13 metrics, for real touch flings through CDP
   if (opts.reduced) ctxOpts.reducedMotion = 'reduce'
+  if (kind !== 'desktop' && opts.w && opts.h) ctxOpts.viewport = { width: opts.w, height: opts.h }
   const ctx = await browser.newContext(ctxOpts)
   const page = await ctx.newPage()
   const errors = []
   page.on('pageerror', e => errors.push('pageerror: ' + e.message.slice(0, 240)))
   page.on('console', m => { if (m.type() === 'error') errors.push('console: ' + m.text().slice(0, 240)) })
   await page.addInitScript(instrument)
+  if (opts.init) await page.addInitScript(opts.init)
   await page.goto(url, { waitUntil: 'load' })
   await page.waitForTimeout(opts.settle ?? 4500)
   return { browser, ctx, page, errors }

@@ -75,7 +75,9 @@ function applyRestore() {
 /** Boot smooth scrolling. The old name is kept so App.tsx stays untouched. */
 export function initSmoothScroll(): () => void {
   if ('scrollRestoration' in history) history.scrollRestoration = 'manual'
-  pendingRestore = readRestore()
+  // (React's dev double-mount runs this twice: the stash is read once and kept.)
+  const saved = readRestore()
+  if (saved) pendingRestore = saved
   window.scrollTo(0, pendingRestore && 'y' in pendingRestore ? pendingRestore.y : 0)
 
   const onPageHide = () => {

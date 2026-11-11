@@ -102,6 +102,8 @@ interface Internal {
   opaque: boolean
   gaps: Gap[]
   hold: Hold | null
+  /** the ease onto a gap end while the page is at rest */
+  settle: { end: number; from: number; t0: number } | null
   enterEls: HTMLElement[]
   enterShown: string
 }
@@ -115,6 +117,8 @@ interface Driver {
 }
 
 const IDLE_MS = 120
+/** Below this speed (px per second) the page counts as stopped: the last pixels of an inertia tail are not movement. */
+const CALM_SPEED = 30
 const REST_IN_MS = 250
 const REST_OUT_MS = 150
 const VELOCITY_TAU = 60
@@ -156,6 +160,7 @@ let vhLarge = 0
 let vw = 0
 let force = true
 let driversBusy = false
+let gapEasing = false
 let pendingSettle: SettleReason | null = null
 let teleportFollowUp = 0
 let scrollAttr = ''
@@ -217,7 +222,7 @@ function measure() {
     if (!s || s.el !== el) {
       s = { id, el, top: 0, height: 0, stageHeight: 0, enter: 0, run: 0, vrun: 0, through: 0, exit: 0, cover: 0, inView: false, near: false }
       byId.set(id, s)
-      internals.set(id, { opaque: false, gaps: gapTable.get(id) ?? [], hold: null, enterEls: [], enterShown: '' })
+      internals.set(id, { opaque: false, gaps: gapTable.get(id) ?? [], hold: null, settle: null, enterEls: [], enterShown: '' })
       resizeObserver?.observe(el)
     }
     s.top = box.top + scrollY
@@ -294,16 +299,20 @@ export function onMeasure(fn: () => void): () => void {
 
 /* ------------------------------------------------------------------ the frame */
 
-function gapValue(s: ChapterState, meta: Internal, idle: boolean, restGap: number, teleported: boolean): number {
+function gapValue(s: ChapterState, meta: Internal, idle: boolean, now: number, teleported: boolean): number {
   const run = s.run
   let gap: Gap | null = null
   for (const g of meta.gaps) if (run > g[0] && run < g[1]) { gap = g; break }
   if (!gap) {
     meta.hold = null
+    meta.settle = null
     return run
   }
   const [a, b] = gap
-  if (teleported || (meta.hold && (meta.hold.a !== a || meta.hold.b !== b))) meta.hold = null
+  if (teleported || (meta.hold && (meta.hold.a !== a || meta.hold.b !== b))) {
+    meta.hold = null
+    meta.settle = null
+  }
   // While moving, the picture is held on the side it settled on and catches up linearly inside the gap.
   const h = meta.hold
   let base = run
@@ -311,10 +320,18 @@ function gapValue(s: ChapterState, meta: Internal, idle: boolean, restGap: numbe
     if (run >= h.r0) base = h.r0 >= b ? b : h.v0 + ((run - h.r0) / (b - h.r0)) * (b - h.v0)
     else base = h.r0 <= a ? a : h.v0 + ((run - h.r0) / (a - h.r0)) * (a - h.v0)
   }
-  if (!idle) return base
+  if (!idle) {
+    meta.settle = null
+    return base
+  }
   // At rest: the nearer end, by position alone, so the same stop always shows the same picture.
+  // The ease onto it restarts if a slow creep carries the position past the middle of the gap.
   const end = run - a < b - run ? a : b
-  const v = base + (end - base) * restGap
+  if (teleported) meta.settle = { end, from: end, t0: now - REST_IN_MS }
+  else if (!meta.settle || meta.settle.end !== end) meta.settle = { end, from: meta.settle ? s.vrun : base, t0: now }
+  const t = (now - meta.settle.t0) / REST_IN_MS
+  if (t < 1) gapEasing = true
+  const v = meta.settle.from + (end - meta.settle.from) * cubicOut(t)
   meta.hold = { a, b, r0: run, v0: v }
   return v
 }
@@ -323,7 +340,7 @@ function compute(now: number, y: number, teleported: boolean) {
   const vh = vhStable || 1
   const vhL = vhLarge || vh
   const idle = frame.idle
-  const restGap = teleported ? 1 : idle ? cubicOut((now - idleSince) / REST_IN_MS) : 0
+  gapEasing = false
   let active: ChapterId = frame.active
   let bgVisible = states.length === 0
   for (const s of states) {
@@ -338,7 +355,7 @@ function compute(now: number, y: number, teleported: boolean) {
     s.near = y + vhL * 2.5 > top && y - vhL * 1.5 < bottom
     s.cover = clamp((Math.min(y + vhL, bottom) - Math.max(y, top)) / vhL)
     const meta = internals.get(s.id)!
-    s.vrun = meta.gaps.length ? gapValue(s, meta, idle, restGap, teleported) : s.run
+    s.vrun = meta.gaps.length ? gapValue(s, meta, idle, now, teleported) : s.run
     if (y + vhL / 2 >= top && y + vhL / 2 < bottom) active = s.id
     if (!meta.opaque && Math.min(y + vhL, bottom) - Math.max(y, top) > 0.5) bgVisible = true
   }
@@ -464,22 +481,22 @@ function tick() {
     teleportFollowUp = window.setTimeout(() => {
       if (frame.idle) pendingSettle = pendingSettle ?? 'rest'
     }, 90)
-  } else if (moved) {
-    moveY = y
+  } else if (moved && speed >= CALM_SPEED) {
     lastMoveAt = now
     if (frame.idle) frame.idle = false
   } else if (!frame.idle && now - lastMoveAt >= IDLE_MS) {
+    // Stopped, or creeping the last few pixels of an inertia tail: the frame the reader is looking at is finished now.
     frame.idle = true
     idleSince = now
     restAtIdle = 0
-    velocity = 0
     settle = 'rest'
   }
+  if (moved) moveY = y
   if (pendingSettle && !settle) settle = pendingSettle
   pendingSettle = null
 
   const easing = frame.idle ? frame.rest < 1 : frame.rest > 0
-  if (dy !== 0 || moved || easing || force || settle || driversBusy) {
+  if (dy !== 0 || moved || easing || force || settle || driversBusy || gapEasing) {
     force = false
     compute(now, y, teleported)
     if (teleported) flushScrubs()
@@ -685,6 +702,7 @@ export function setRestGaps(id: ChapterId, intervals: [number, number][]): void 
   if (meta) {
     meta.gaps = intervals
     meta.hold = null
+    meta.settle = null
   }
   force = true
 }
