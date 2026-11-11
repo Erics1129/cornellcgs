@@ -302,3 +302,7 @@ html[data-page='deck'] #world:not([data-earth-motion='scroll']) .earth-strip {
 /* Soda as one still (reduced motion, short screens): one screen, not a runway with nothing to play. */
 html[data-page='deck'] #anyone.is-still { height: 100vh; height: 100svh; }
 html[data-page='deck'] #anyone.is-still .soda-stage { position: relative; }
+
+/* World photographs: a blurred 48 px copy under each photo until the photo has arrived (never over the GPU canvas). */
+html[data-page='deck'] #world .earth-place { background-image: var(--lqip, none); background-size: cover; background-position: center; }
+html[data-page='deck'] #world[data-earth-renderer='webgl2'] .earth-place { background-image: none; }

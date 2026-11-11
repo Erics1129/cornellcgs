@@ -119,8 +119,11 @@ export default function ScrollFilm({ src, srcSmall, poster, stills = [] }: {
       weight: 'light',
       clock: 'scroll',
       prepare() {
-        // the stills are cheap and are the poster: ask for them first
-        for (const img of layers) if (!img.src && img.dataset.src) img.src = img.dataset.src
+        // The stills are cheap and are the poster: ask for them first. The designed still is only
+        // fetched where it is shown (no motion, or no ladder): it is not part of the first view's bytes.
+        if (motion.matches && layers.length) {
+          for (const img of layers) if (!img.src && img.dataset.src) img.src = img.dataset.src
+        } else if (!base.src && base.dataset.src) base.src = base.dataset.src
         attach()
       },
       draw(_now, tick) {
@@ -166,7 +169,11 @@ export default function ScrollFilm({ src, srcSmall, poster, stills = [] }: {
       if (!motion.matches) {
         detach()
         setLive(false)
-      } else attach()
+        if (!base.src && base.dataset.src) base.src = base.dataset.src
+      } else {
+        for (const img of layers) if (!img.src && img.dataset.src) img.src = img.dataset.src
+        attach()
+      }
       handle.invalidate()
     }
     film.addEventListener('loadeddata', onLoaded)
@@ -174,7 +181,6 @@ export default function ScrollFilm({ src, srcSmall, poster, stills = [] }: {
     film.addEventListener('error', onError)
     film.addEventListener('playing', stopPlay)
     motion.addEventListener('change', onMotion)
-    base.decode?.().catch(() => {})
     return () => {
       alive = false
       handle.dispose()
@@ -190,7 +196,7 @@ export default function ScrollFilm({ src, srcSmall, poster, stills = [] }: {
   return (
     <div ref={root} className="scroll-film" aria-hidden="true" data-scene-host data-film-enter="picture">
       <div className="scroll-film-stills" data-poster>
-        <img data-still-base src={poster} alt="" decoding="async" />
+        <img data-still-base data-src={poster} alt="" decoding="async" />
         {stills.map((still) => <img key={still} data-still data-src={still} alt="" decoding="async" style={{ opacity: 0 }} />)}
       </div>
       <video ref={video} muted playsInline preload="none" disablePictureInPicture tabIndex={-1} />

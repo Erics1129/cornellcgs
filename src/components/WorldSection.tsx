@@ -4,7 +4,7 @@ import { world } from '../content'
 import SceneCanvas from './SceneCanvas'
 import ScrollWords from './ScrollWords'
 import EarthTravel from './EarthTravel'
-import { EARTH_INTRO, EARTH_PLACES as PLACES, EARTH_REST_GAPS } from '../lib/earthJourney'
+import { EARTH_INTRO, EARTH_LQIP, EARTH_PLACES as PLACES, EARTH_REST_GAPS } from '../lib/earthJourney'
 import { chapter, drive, setRestGaps } from '../lib/deck'
 import { RUNWAY_MEDIA, animationOff } from '../lib/motion'
 import '../styles/earth-journey.css'
@@ -139,6 +139,8 @@ export default function WorldSection() {
       {/* The stops on the way are photos alone. The last stop names the
           destination and carries every photo credit the licenses ask for. */}
       {PLACES.map((place, i) => <figure key={place.id} className={`earth-place earth-place--${place.id}`} data-earth-place={place.id}
+        // a 48 px blurred copy of the photo is the figure's ground until the photo itself has arrived
+        style={{ ['--lqip' as string]: EARTH_LQIP[place.image] ? `url(${EARTH_LQIP[place.image]})` : undefined }}
         onFocusCapture={() => revealFocusedScene(place.stop)}>
         <img className="earth-photo" src={`/assets/earth-journey/${place.image}`} alt={place.alt}
           width={place.width} height={place.height} loading="lazy" decoding="async" draggable={false} />
