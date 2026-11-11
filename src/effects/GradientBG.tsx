@@ -73,13 +73,13 @@ void main() {
   vec2 d = uv - vec2(0.5, u_scroll * 0.34 - 0.12);
   d.x *= aspect;
   d.y *= 1.4;
-  col += glo * exp(-dot(d, d) / (r * r)) * 0.22;
+  col += glo * exp(-dot(d, d) / (r * r)) * 0.19;
 
   // Key light: a warm lamp from the upper left, fixed in the room
   vec2 k = uv - u_key;
   k.x *= aspect;
-  float key = exp(-dot(k, k) / 0.34);
-  col += u_warm * (0.052 * key + 0.03 * key * key);
+  float key = exp(-dot(k, k) / 1.1);
+  col += u_warm * (0.034 * key + 0.022 * key * key * key);
   // Cool fill from the opposite side keeps the far corner from going muddy
   vec2 f = uv - vec2(1.0 - u_key.x, 1.0 - u_key.y);
   f.x *= aspect;

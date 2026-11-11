@@ -1266,18 +1266,8 @@ html[data-theme='sky'], html[data-theme='lilac'] { color-scheme: light; }
    The hero city is the exception. Its native cyan and purple read as stock
    cyberpunk, so it is turned toward amber and red instead of gray.
 --------------------------------------------------------------------------- */
-#who-we-are canvas,
-.alpha-scene canvas,
-[data-scene],
-.universe-canvas,
-.earth-travel,
-#world video,
-#ml-process video,
-#vision video,
-.page-scene__film,
-.scroll-film {
-  filter: sepia(0.14) saturate(0.95) contrast(1.04);
-}
+/* The grade of each film and rendered scene lives in its shader (film(), effects/film/grades.ts)
+   and in film.css. No CSS filter on a large canvas or on video. */
 .code-city__view {
   filter: sepia(0.55) saturate(1.7) hue-rotate(-18deg) contrast(1.06) brightness(0.88);
 }
@@ -1426,9 +1416,8 @@ html[data-theme='sky'], html[data-theme='lilac'] { color-scheme: light; }
   font-family: var(--font-display);
 }
 
-/* The logo cube and the Go board get the same light grade as the films */
-.cgs-voxel-mark,
-.go-study {
+/* The small logo cube keeps a light warm grade so its blue sits with the ivory and brass. */
+.cgs-voxel-mark {
   filter: sepia(0.14) saturate(0.95) contrast(1.04);
 }
 

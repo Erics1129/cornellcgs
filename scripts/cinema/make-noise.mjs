@@ -59,7 +59,8 @@ const trns = Buffer.alloc(16)
 for (let i = 0; i < 16; i++) {
   const white = i >= LEVELS
   plte.fill(white ? 255 : 0, i * 3, i * 3 + 3)
-  trns[i] = Math.round(((i % LEVELS) / (LEVELS - 1)) * 255)
+  // dark speckle is held at 60%: on ivory stock and inside white letterforms the grain stays quiet
+  trns[i] = Math.round(((i % LEVELS) / (LEVELS - 1)) * 255 * (white ? 1 : 0.6))
 }
 const stride = size / 2 + 1
 const raw = Buffer.alloc(stride * size)

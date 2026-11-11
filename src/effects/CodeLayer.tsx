@@ -552,7 +552,8 @@ export default function CodeLayer() {
         col.off = mod(col.off + col.speed * vBoost * dt, col.count * LINE_H)
         drawColumn(col, scroll, true)
       }
-      if (!flash && now >= nextFlash) {
+      // No bright flash line beside the words of a reading chapter
+      if (!flash && now >= nextFlash && quietTarget === 0) {
         pickFlash(now, scroll)
         nextFlash = now + 2400 + Math.random() * 2800
       }

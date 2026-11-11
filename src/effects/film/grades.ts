@@ -32,7 +32,7 @@ export const SCENE_GRADES: Record<SceneGrade, Grade> = {
   // Six photographs through one stock: saturation ceiling, slightly warm whites, cool-neutral blacks.
   travel: grade({ exposure: 0.94, slope: [1.0, 0.99, 0.955], power: [1.03, 1.03, 1.0], sat: 0.88 }),
   // Synthetic deep space in linear light: AgX, slightly rich.
-  universe: grade({ exposure: 1.15, slope: [1.04, 1.0, 0.98], power: [1.06, 1.06, 1.04], sat: 1.14, tone: 0 }),
+  universe: grade({ exposure: 1.15, slope: [1.05, 1.0, 0.94], power: [1.06, 1.06, 1.04], sat: 1.07, tone: 0 }),
   // Rendered eye: warm kicker so the steel blue sits in the house palette.
   eye: grade({ slope: [1.045, 1.0, 0.95], offset: [0.0015, 0.0008, 0], sat: 0.93 }),
   // The lit table (GradientBG): AgX keeps the lamp pool from clipping.
