@@ -1,13 +1,11 @@
 import { useLayoutEffect, useRef, useState } from 'react'
 import gsap from 'gsap'
-import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import SectionIndex from './SectionIndex'
 import ScrollWords from './ScrollWords'
 import { people } from '../content'
 import { dealCard, flipCard, hoverLift, observeCardLayout, shadowStyle } from '../lib/cardMotion'
-import { useSectionReveals } from '../lib/reveal'
+import { reveal, useSectionReveals } from '../lib/reveal'
 
-gsap.registerPlugin(ScrollTrigger)
 const initials = (name: string) => name.split(/\s+/).filter(Boolean).map((word) => word[0]).slice(0, 3).join('')
 type Member = (typeof people.leaders)[number]
 
@@ -26,7 +24,7 @@ function PersonCard({ member, index }: { member: Member; index: number }) {
     if (!slot.current || !lift.current || !turn.current) return
     const off = hoverLift(lift.current, { hitArea: slot.current, maxTilt: 3.5, lift: -6 })
     const mm = gsap.matchMedia()
-    mm.add({ all: 'all', reduce: '(prefers-reduced-motion: reduce)' }, () => {
+    mm.add('(prefers-reduced-motion: reduce)', () => {
       animation.current?.kill()
       gsap.set(turn.current, { rotationY: face.current ? 180 : 0, y: 0, z: 0 })
     })
@@ -91,17 +89,18 @@ export default function People() {
     if (!slots.length) return
     const mm = gsap.matchMedia()
     mm.add('(prefers-reduced-motion: no-preference)', () => {
-      slots.forEach((slot, i) => {
+      // One latched reveal per card: dealt by the scroll, landed by itself when the page stops.
+      const offs = slots.map((slot, i) => {
         const card = slot.querySelector<HTMLElement>('[data-person-deal]')!
         const shadow = slot.querySelector<HTMLElement>('[data-person-shadow]')
-        const tl = gsap.timeline({ scrollTrigger: {
-          trigger: slot, start: 'top 96%', end: 'top 62%', scrub: 0.18, invalidateOnRefresh: true,
-        } })
-        tl.add(dealCard(card, {
-          from: { x: () => Math.min(24, slot.offsetWidth * 0.09) * (i % 2 ? 1 : -1), y: 54, rotation: i % 2 ? 5 : -5 },
-          duration: 0.75, lift: -16, shadow,
-        }), 0)
+        return reveal((tl) => {
+          tl.add(dealCard(card, {
+            from: { x: () => Math.min(24, slot.offsetWidth * 0.09) * (i % 2 ? 1 : -1), y: 54, rotation: i % 2 ? 5 : -5 },
+            duration: 0.75, lift: -16, shadow,
+          }), 0)
+        }, { id: `people-card-${i}`, settle: 0.35, invalidate: true, source: { trigger: slot, start: 'top 96%', end: 'top 62%' } })
       })
+      return () => offs.forEach((off) => off())
     })
     const unobserve = observeCardLayout([container, ...slots])
     return () => { unobserve(); mm.revert() }

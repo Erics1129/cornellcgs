@@ -1,13 +1,11 @@
 import { useLayoutEffect, useRef, useState } from 'react'
 import gsap from 'gsap'
-import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import SectionIndex from './SectionIndex'
 import ScrollWords from './ScrollWords'
 import Dice from './Dice'
 import { whoWeAre } from '../content'
+import { reveal } from '../lib/reveal'
 import '../styles/identity-chapter.css'
-
-gsap.registerPlugin(ScrollTrigger)
 
 /** A sculptural identity chapter with a scroll-led entrance. */
 export default function WhoWeAre() {
@@ -17,18 +15,20 @@ export default function WhoWeAre() {
     const media = gsap.matchMedia(root)
     media.add('(prefers-reduced-motion: no-preference)', () => {
       const section = root.current!
-      const timeline = gsap.timeline({ scrollTrigger: { trigger: section, start: 'top 85%', end: 'center 55%', scrub: .4 } })
-      timeline.fromTo(section.querySelector('.identity-object'), { y: 70, scale: .84, rotation: -8 },
-        { y: 0, scale: 1, rotation: 0, duration: 1, ease: 'power2.out' }, 0)
-        .fromTo(section.querySelectorAll('[data-identity-copy]'), { opacity: 0, y: 25 },
-          { opacity: 1, y: 0, duration: .65, stagger: .12, ease: 'power2.out' }, .12)
+      // A latched reveal: it follows the scroll and completes on its own when the page stops.
+      return reveal((timeline) => {
+        timeline.fromTo(section.querySelector('.identity-object'), { y: 70, scale: .84, rotation: -8 },
+          { y: 0, scale: 1, rotation: 0, duration: 1, ease: 'power2.out' }, 0)
+          .fromTo(section.querySelectorAll('[data-identity-copy]'), { opacity: 0, y: 25 },
+            { opacity: 1, y: 0, duration: .65, stagger: .12, ease: 'power2.out' }, .12)
+      }, { id: 'who-we-are', settle: .35, source: { trigger: section, start: 'top 85%', end: 'center 55%' } })
     })
     return () => media.revert()
   }, [])
   const facts = whoWeAre.counters.filter(counter => counter.value !== null)
   return <section ref={root} id="who-we-are" className="section identity-chapter">
     <SectionIndex rank="K" />
-    <div className="container-site identity-layout">
+    <div className="container-site identity-layout" data-film-enter="copy">
       <div className="identity-copy">
         <p data-identity-copy className="identity-eyebrow">Who we are</p>
         <h2 className="identity-title"><ScrollWords text={whoWeAre.heading} treatment="illuminate" /></h2>

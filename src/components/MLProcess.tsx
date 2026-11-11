@@ -1,11 +1,13 @@
 import { useEffect, useRef } from 'react'
 import gsap from 'gsap'
-import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { mlProcess } from '../content'
+import { drive } from '../lib/deck'
+import { RUNWAY_MEDIA } from '../lib/motion'
 import { TypedHeading } from './TypedText'
 import ScrollFilm from './ScrollFilm'
 
-gsap.registerPlugin(ScrollTrigger)
+/** Nine frames of the film itself, evenly spaced (scripts/cinema/stills.mjs): the picture whenever the video is not exactly there. */
+const ML_STILLS = Array.from({ length: 9 }, (_, i) => `/assets/scenes/blackhole-${String(Math.round(i * 12.5)).padStart(3, '0')}.webp`)
 
 /** One continuous playhead: scrolling evolves the field and illuminates each step. */
 export default function MLProcess() {
@@ -16,18 +18,21 @@ export default function MLProcess() {
     if (!el) return
     const rows = Array.from(el.querySelectorAll<HTMLElement>('[data-ml-step]'))
     const media = gsap.matchMedia(el)
-    media.add('(prefers-reduced-motion: no-preference)', () => {
-      const tl = gsap.timeline({ scrollTrigger: { trigger: el, start: 'top top', end: 'bottom bottom', scrub: true } })
+    media.add(RUNWAY_MEDIA, () => {
+      // A paused timeline that follows the chapter's run: no trigger, nothing to refresh.
+      const tl = gsap.timeline({ paused: true })
       tl.fromTo(track.current, { scaleY: 0 }, { scaleY: 1, duration: 1, ease: 'none' }, 0)
       rows.forEach((row,i) => {
-        tl.fromTo(row, { opacity: .8, x: 10 }, { opacity: 1, x: 0, duration: .12, ease: 'power2.out' }, i / Math.max(1, rows.length) * .8)
+        tl.fromTo(row, { opacity: .9, x: 10 }, { opacity: 1, x: 0, duration: .12, ease: 'power2.out' }, i / Math.max(1, rows.length) * .8)
       })
+      const off = drive('ml-process', (v) => tl.progress(v))
+      return () => { off(); tl.revert() }
     })
     return () => media.revert()
   }, [])
   return <section ref={root} id="ml-process" className="scene-chapter scene-chapter--ml" aria-label={mlProcess.heading}>
     <div className="scene-stage">
-      <ScrollFilm src="/assets/blackhole.mp4" poster="/assets/scenes/black-hole.webp" />
+      <ScrollFilm src="/assets/blackhole-g6.mp4" srcSmall="/assets/blackhole-g6-540.mp4" poster="/assets/scenes/black-hole.webp" stills={ML_STILLS} />
       <div className="scene-edge scene-edge--top" />
       <div className="scene-edge scene-edge--bottom" />
       <div className="container-site scene-content">

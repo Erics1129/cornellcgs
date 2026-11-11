@@ -1,18 +1,20 @@
-import gsap from 'gsap'
-import { ScrollTrigger } from 'gsap/ScrollTrigger'
-
-gsap.registerPlugin(ScrollTrigger)
+import { deckFrame, onMeasure } from './deck'
+import { prefersReducedMotion } from './motion'
+import { reveal } from './reveal'
 
 /**
  * Line by line reveals for body copy, the way product pages read: each
  * rendered line of a paragraph rises out of its own mask and brightens in
- * turn as the paragraph scrolls up, scrubbed, so scrolling back folds it
- * away again. Lines are measured from the real layout, so they match the
- * wrap at every width and are rebuilt on resize. The words stay real text.
+ * turn as the paragraph scrolls up. It is a latched reveal (lib/reveal.ts):
+ * it follows the scroll while the page moves and finishes on its own when the
+ * page stops, so a reader never rests on half-risen lines. Lines are measured
+ * from the real layout, so they match the wrap at every width and are rebuilt
+ * when the width changes. The words stay real text.
  *
- * Opt in with data-lines on a paragraph that holds plain text.
+ * Opt in with data-lines on a paragraph that holds plain text and sits in
+ * normal flow (not inside a sticky stage).
  */
-type Entry = { el: HTMLElement; text: string; tl: gsap.core.Timeline | null }
+type Entry = { el: HTMLElement; text: string; off: (() => void) | null }
 
 function split(entry: Entry) {
   const { el, text } = entry
@@ -58,62 +60,51 @@ function split(entry: Entry) {
 
 function animate(entry: Entry) {
   const inners = split(entry)
-  entry.tl = gsap.timeline({
-    scrollTrigger: {
-      trigger: entry.el,
-      start: 'top 92%',
-      end: () => `top ${Math.max(42, 66 - inners.length * 3)}%`,
-      scrub: 0.6,
-      invalidateOnRefresh: true,
-    },
-  })
-  inners.forEach((inner, i) => {
-    entry.tl!.fromTo(
-      inner,
-      { yPercent: 108, rotation: 0.6, opacity: 0.15 },
-      { yPercent: 0, rotation: 0, opacity: 1, duration: 0.5, ease: 'power3.out' },
-      i * 0.14,
-    )
-  })
+  entry.off = reveal((tl) => {
+    inners.forEach((inner, i) => {
+      tl.fromTo(
+        inner,
+        { yPercent: 108, rotation: 0.6, opacity: 0.15 },
+        { yPercent: 0, rotation: 0, opacity: 1, duration: 0.5, ease: 'power3.out' },
+        i * 0.14,
+      )
+    })
+  }, { source: { trigger: entry.el, start: 'top 92%', end: `top ${Math.max(42, 66 - inners.length * 3)}%` } })
 }
 
 function teardown(entry: Entry) {
-  entry.tl?.scrollTrigger?.kill()
-  entry.tl?.kill()
-  entry.tl = null
+  entry.off?.()
+  entry.off = null
   entry.el.textContent = entry.text
 }
 
 export function initLineReveals(scope: ParentNode = document): () => void {
-  const media = gsap.matchMedia()
-  let entries: Entry[] = []
-  media.add('(prefers-reduced-motion: no-preference)', () => {
-    entries = Array.from(scope.querySelectorAll<HTMLElement>('[data-lines]'))
-      .filter((el) => el.children.length === 0 && (el.textContent ?? '').trim().length > 0)
-      .map((el) => ({ el, text: el.textContent ?? '', tl: null }))
-    entries.forEach(animate)
-    let width = window.innerWidth
-    let timer = 0
-    const onResize = () => {
-      if (Math.abs(window.innerWidth - width) < 2) return
-      width = window.innerWidth
-      window.clearTimeout(timer)
-      timer = window.setTimeout(() => {
-        entries.forEach((e) => {
-          teardown(e)
-          animate(e)
-        })
-        ScrollTrigger.refresh()
-      }, 180)
-    }
-    window.addEventListener('resize', onResize)
-    ScrollTrigger.refresh()
-    return () => {
-      window.removeEventListener('resize', onResize)
-      window.clearTimeout(timer)
-      entries.forEach(teardown)
-      entries = []
-    }
+  if (prefersReducedMotion()) return () => {}
+  let entries: Entry[] = Array.from(scope.querySelectorAll<HTMLElement>('[data-lines]'))
+    .filter((el) => el.children.length === 0 && (el.textContent ?? '').trim().length > 0)
+    .map((el) => ({ el, text: el.textContent ?? '', off: null }))
+  entries.forEach(animate)
+  let width = deckFrame().vw
+  // The deck re-measures on every real layout change; lines only need rebuilding when the width did.
+  const offMeasure = onMeasure(() => {
+    const next = deckFrame().vw
+    if (Math.abs(next - width) < 2) return
+    width = next
+    entries.forEach((e) => {
+      teardown(e)
+      animate(e)
+    })
   })
-  return () => media.revert()
+  const motion = matchMedia('(prefers-reduced-motion: reduce)')
+  const stop = () => {
+    offMeasure()
+    entries.forEach(teardown)
+    entries = []
+  }
+  const onMotion = () => { if (motion.matches) stop() }
+  motion.addEventListener('change', onMotion)
+  return () => {
+    motion.removeEventListener('change', onMotion)
+    stop()
+  }
 }

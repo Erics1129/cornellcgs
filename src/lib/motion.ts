@@ -13,6 +13,13 @@ export function onReducedMotionChange(cb: (reduced: boolean) => void): () => voi
   return () => m.removeEventListener('change', handler)
 }
 
+/** Sticky runways need motion and room: a phone on its side (under 480 px tall) gets the plain, complete layout. Mirrors deck.css. */
+export const RUNWAY_MEDIA = '(prefers-reduced-motion: no-preference) and (min-height: 480px)'
+
+export function runwayAllowed(): boolean {
+  return window.matchMedia(RUNWAY_MEDIA).matches
+}
+
 export function isTouchDevice(): boolean {
   return window.matchMedia('(pointer: coarse)').matches
 }

@@ -1,36 +1,61 @@
 import { useLayoutEffect, useRef } from 'react'
 import gsap from 'gsap'
-import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { world } from '../content'
 import SceneCanvas from './SceneCanvas'
 import ScrollWords from './ScrollWords'
 import EarthTravel from './EarthTravel'
-import { EARTH_PLACES as PLACES } from '../lib/earthJourney'
+import { EARTH_INTRO, EARTH_PLACES as PLACES, EARTH_REST_GAPS } from '../lib/earthJourney'
+import { chapter, drive, setRestGaps } from '../lib/deck'
+import { RUNWAY_MEDIA } from '../lib/motion'
 import '../styles/earth-journey.css'
 
-gsap.registerPlugin(ScrollTrigger)
-
-/** A native sticky chapter. Every pose is a function of the same 0…1 scroll
- * range as SceneCanvas; there are no autoplay clocks or per-frame React renders.
- * Without motion, the same figures become a normal, fully readable photo essay. */
+/** A native sticky chapter. Every pose is a function of the chapter's progress
+ * (the deck's `vrun`: the run, settled out of any dissolve while the page is at
+ * rest); there are no autoplay clocks, no scroll triggers and no per-frame
+ * React renders. A strip of words stays for the whole film. Without motion,
+ * the same figures become a normal, fully readable photo essay. */
 export default function WorldSection() {
   const root = useRef<HTMLElement>(null)
-  const trigger = useRef<ScrollTrigger | null>(null)
+  const scrolling = useRef(false)
 
   useLayoutEffect(() => {
     const el = root.current
     if (!el) return
     const media = gsap.matchMedia()
-    media.add('(prefers-reduced-motion: no-preference)', () => {
+    media.add(RUNWAY_MEDIA, () => {
       el.dataset.earthMotion = 'scroll'
+      scrolling.current = true
+      setRestGaps('world', EARTH_REST_GAPS)
       const globe = el.querySelector('.earth-globe')
-      const intro = el.querySelector('.earth-intro-copy')
-      const orbitCaption = el.querySelector('.earth-orbit-caption')
+      const intro = el.querySelector<HTMLElement>('.earth-intro-copy')
+      const orbitCaption = el.querySelector<HTMLElement>('.earth-orbit-caption')
       const figures = Array.from(el.querySelectorAll<HTMLElement>('.earth-place'))
+      const credits = figures[figures.length - 1]?.querySelector<HTMLElement>('figcaption') ?? null
+      const lastArrival = PLACES[PLACES.length - 1].arrival
       let active = -2
+      let introOn: boolean | null = null
+      let creditsOn: boolean | null = null
+      const phase = (block: HTMLElement | null, on: boolean) => {
+        if (!block) return
+        if (on) { block.removeAttribute('data-phase'); block.removeAttribute('inert') }
+        else { block.setAttribute('data-phase', 'off'); block.setAttribute('inert', '') }
+      }
       const updateAccess = (progress: number) => {
-        const introVisible = String(progress < .30)
-        if (el.dataset.earthIntro !== introVisible) el.dataset.earthIntro = introVisible
+        // The opening words are a phase: once they have faded they are marked off and inert,
+        // so nothing invisible can take focus or be counted as missing.
+        const on = progress < EARTH_INTRO.fadeTo
+        if (on !== introOn) {
+          introOn = on
+          el.dataset.earthIntro = String(on)
+          phase(intro, on)
+          phase(orbitCaption, on)
+        }
+        // The destination's name and the photo credits belong to the last frame only.
+        const last = progress >= lastArrival - .002
+        if (last !== creditsOn) {
+          creditsOn = last
+          phase(credits, last)
+        }
         // Only the foremost photo accepts pointer input. All captions remain
         // in reading/tab order; focusing a credit seeks its corresponding scene.
         let next = -1
@@ -39,13 +64,8 @@ export default function WorldSection() {
         active = next
         figures.forEach((figure, i) => { figure.dataset.active = String(i === active) })
       }
-      const tl = gsap.timeline({ defaults: { ease: 'none' }, scrollTrigger: {
-        id: 'earth-journey', trigger: el, start: 'top top', end: 'bottom bottom', scrub: true,
-        onUpdate: self => updateAccess(self.progress),
-        onRefresh: self => updateAccess(self.progress),
-      } })
-      trigger.current = tl.scrollTrigger ?? null
-      tl.to([intro, orbitCaption], { opacity: 0, duration: .10 }, .20)
+      const tl = gsap.timeline({ paused: true, defaults: { ease: 'none' } })
+      tl.to([intro, orbitCaption], { opacity: 0, duration: EARTH_INTRO.fadeTo - EARTH_INTRO.fadeFrom }, EARTH_INTRO.fadeFrom)
       PLACES.forEach((place, i) => {
         const figure = figures[i]
         const photo = figure.querySelector('img')
@@ -62,14 +82,20 @@ export default function WorldSection() {
       })
       // Normalize the common scroll clock even if the last caption ends early.
       tl.to({}, { duration: .001 }, .999)
-      // Once photographs cover the globe, removing its box also lets the
-      // renderer's IntersectionObserver suspend WebGL. This reverses on scroll.
-      tl.set(globe, { display: 'none' }, .375)
-      updateAccess(tl.scrollTrigger?.progress ?? 0)
+      // Once photographs cover the globe, removing its box lets its renderer rest. This reverses on scroll.
+      tl.set(globe, { display: 'none' }, PLACES[0].arrival + .005)
+      const off = drive('world', (v) => {
+        tl.progress(v)
+        updateAccess(v)
+      })
       return () => {
-        trigger.current = null
+        off()
+        tl.revert()
+        scrolling.current = false
+        setRestGaps('world', [])
         delete el.dataset.earthMotion
         delete el.dataset.earthIntro
+        for (const block of [intro, orbitCaption, credits]) phase(block, true)
         figures.forEach(figure => { delete figure.dataset.active })
       }
     }, el)
@@ -77,26 +103,29 @@ export default function WorldSection() {
   }, [])
 
   const revealFocusedScene = (progress: number) => {
-    const st = trigger.current
-    if (!st || Math.abs(st.progress - progress) < .002) return
+    const s = chapter('world')
+    if (!scrolling.current || !s || Math.abs(s.run - progress) < .002) return
     // A keyboard reader can tab through the credits without encountering an
     // invisible focused link or having to scroll the entire sticky distance.
-    window.scrollTo({ top: st.start + (st.end - st.start) * progress, behavior: 'instant' })
-    ScrollTrigger.update()
+    // A native jump: the deck sees it as a teleport and finishes the frame at once.
+    window.scrollTo({ top: s.top + (s.height - s.stageHeight) * progress, behavior: 'instant' })
   }
 
   return <section ref={root} id="world" className="scene-chapter scene-chapter--world earth-journey" aria-label="Our world">
     <div className="scene-stage earth-journey-stage">
+      {/* The strip: these words stay for the whole film, so no stop is ever without text */}
+      <div className="container-site earth-strip">
+        <p className="scene-eyebrow"><span />Where we’re from</p>
+        <a className="scene-link" href="/world/">More about our members <span aria-hidden="true">↗</span></a>
+      </div>
       <div className="earth-intro">
-        <div className="earth-globe"><SceneCanvas kind="earth" /></div>
+        <div className="earth-globe" data-film-enter="picture"><SceneCanvas kind="earth" /></div>
         <div className="scene-edge scene-edge--top" />
         <div className="scene-edge scene-edge--bottom" />
-        <div className="container-site scene-content earth-intro-copy" onFocusCapture={() => revealFocusedScene(.12)}>
+        <div className="container-site scene-content earth-intro-copy">
           <div className="scene-copy">
-            <p className="scene-eyebrow"><span />Where we’re from</p>
             <h2 className="scene-title"><ScrollWords text={world.heading} treatment="illuminate" /></h2>
-            <p data-lines className="scene-lead">{world.text}</p>
-            <a className="scene-link" href="/world/">More about our members <span aria-hidden="true">↗</span></a>
+            <p className="scene-lead">{world.text}</p>
           </div>
         </div>
         <div className="scene-caption earth-orbit-caption" onFocusCapture={() => revealFocusedScene(.12)}>

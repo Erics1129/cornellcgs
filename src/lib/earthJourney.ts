@@ -13,8 +13,15 @@ const imported = (id: string) => {
 }
 
 /** Only the destination (the last stop) has a name and caption; the stops on
- * the way show the photo alone. Each interval gets shorter; the final tenth is a quiet arrival. These same
- * stops drive captions, keyboard navigation, fallback photos and GPU motion. */
+ * the way show the photo alone. These same stops drive captions, keyboard
+ * navigation, fallback photos and GPU motion.
+ *
+ * Timing is in fractions of the chapter's run, which is 560svh long (a 660svh
+ * runway, --run-world in deck.css). It is set so that a reader can see every
+ * picture: each photograph holds still for at least 30svh of scroll between
+ * its dissolves, and the last frame, with every credit, for 71svh.
+ *   intro (globe and words) 0 → .22, words fade .22 → .30, globe into the first photo .30 → .37
+ *   each photo: start → arrival is its dissolve in, arrival → next start is its hold */
 export const EARTH_PLACES: EarthPlace[] = [
   {
     id: 'bali', name: '', caption: '',
@@ -23,7 +30,7 @@ export const EARTH_PLACES: EarthPlace[] = [
     photographer: 'Jorge Franganillo', license: 'CC BY 2.0',
     source: 'https://commons.wikimedia.org/wiki/File:Bali-_Jatiluwih_rice_terraces_-_50281829296.jpg',
     licenseUrl: 'https://creativecommons.org/licenses/by/2.0/',
-    start: .30, arrival: .37, stop: .43, anchor: [.57, .52], tint: [1.015, 1.025, .965], saturation: 1.07,
+    start: .30, arrival: .37, stop: .40, anchor: [.57, .52], tint: [1.015, 1.025, .965], saturation: 1.07,
   },
   {
     id: 'hawaii', name: '', caption: '',
@@ -32,22 +39,35 @@ export const EARTH_PLACES: EarthPlace[] = [
     photographer: 'Andrew Baerst', license: 'CC BY 2.0',
     source: 'https://commons.wikimedia.org/wiki/File:Na_Pali_Coast_(28915675361).jpg',
     licenseUrl: 'https://creativecommons.org/licenses/by/2.0/',
-    start: .51, arrival: .57, stop: .61, anchor: [.52, .50], tint: [.96, 1.025, 1.04], saturation: 1.06,
+    start: .43, arrival: .475, stop: .505, anchor: [.52, .50], tint: [.96, 1.025, 1.04], saturation: 1.06,
   },
   { ...imported('dolomites'), name: '', caption: '',
-    start: .67, arrival: .714, stop: .744, anchor: [.50, .20], tint: [1.045, 1.005, .965], saturation: 1.03 },
+    start: .533, arrival: .577, stop: .606, anchor: [.50, .20], tint: [1.045, 1.005, .965], saturation: 1.03 },
   { ...imported('iceland'), name: '', caption: '',
-    start: .78, arrival: .810, stop: .828, anchor: [.65, .50], tint: [.95, 1.015, 1.055], saturation: .91 },
+    start: .635, arrival: .677, stop: .706, anchor: [.65, .50], tint: [.95, 1.015, 1.055], saturation: .91 },
   {
     id: 'new-york', name: '', caption: '',
     image: 'liberty-island.webp', width: 1920, height: 1253,
     alt: 'The Statue of Liberty and its stone pedestal rise above Liberty Island, seen across New York Harbor.',
     photographer: 'National Park Service', license: 'Public domain',
     source: 'https://npgallery.nps.gov/AssetDetail/3454fd91-1dd8-b71b-0b21-a93398840c35', licenseUrl: '',
-    start: .85, arrival: .874, stop: .886, anchor: [.48, .45], tint: [1.015, 1.0, .98], saturation: .98,
+    start: .735, arrival: .775, stop: .804, anchor: [.48, .45], tint: [1.015, 1.0, .98], saturation: .98,
   },
   { ...imported('cornell-ithaca'), name: 'Cornell University', caption: 'Ithaca, New York',
-    start: .90, arrival: .922, stop: .964, anchor: [.65, 0], tint: [1.025, 1.01, .985], saturation: 1.02 },
+    start: .833, arrival: .873, stop: .93, anchor: [.65, 0], tint: [1.025, 1.01, .985], saturation: 1.02 },
+]
+
+/** The opening: the title and lead fade out over this slice of the run (the strip of words above them stays). */
+export const EARTH_INTRO = { fadeFrom: .22, fadeTo: .30 } as const
+
+/**
+ * Where the picture is between two compositions. One table, used by the
+ * section (DOM) and by the travel canvas (GPU): at rest inside any of these
+ * the deck settles on the nearer end, so a stop never shows a double exposure.
+ */
+export const EARTH_REST_GAPS: [number, number][] = [
+  [EARTH_INTRO.fadeFrom, EARTH_INTRO.fadeTo],
+  ...EARTH_PLACES.map((place): [number, number] => [place.start, place.arrival]),
 ]
 
 export const unit = (v: number) => Math.max(0, Math.min(1, v))

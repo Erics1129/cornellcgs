@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import gsap from 'gsap'
 import './lib/eases'
 import { initSmoothScroll } from './lib/scroll'
@@ -6,7 +6,6 @@ import { useNeonEdges } from './lib/neon'
 import { BOOTED_EVENT, prefersReducedMotion } from './lib/motion'
 import { dealCard, shadowStyle } from './lib/cardMotion'
 import { initLineReveals } from './lib/lines'
-import { initTransitions } from './lib/transitions'
 import GradientBG from './effects/GradientBG'
 import FilmLens from './effects/FilmLens'
 import InputLayer from './components/InputLayer'
@@ -27,6 +26,7 @@ import Join from './components/Join'
 import Footer from './components/Footer'
 import { AlphaGoSlide, ProjectSlide } from './components/StatementSlides'
 import SodaSlide from './components/SodaSlide'
+import Seam from './components/Seam'
 import { CodeSlide, StatsSlide } from './components/ShowcaseSlides'
 
 /**
@@ -174,11 +174,13 @@ export default function App() {
 
   useNeonEdges(appRef)
 
-  useEffect(() => {
-    const cleanup = initSmoothScroll()
+  // The deck boots before the first paint: geometry is read, a return-to-spot
+  // restore lands, and every reveal already in view is complete in frame one.
+  useLayoutEffect(() => initSmoothScroll(), [])
 
+  useEffect(() => {
     // Lift the curtain when fonts + hero video are truly ready — capped at
-    // 2.4s, floored at 950ms so the riffle always completes its motion.
+    // 2.4s, floored at 350ms so the riffle always completes its motion.
     let lifted = false
     let alive = true
     const timers: number[] = []
@@ -212,34 +214,31 @@ export default function App() {
     ])
     const minShow = new Promise<void>((res) => timers.push(window.setTimeout(() => res(), returning ? 0 : 350)))
     Promise.all([ready, minShow]).then(lift)
+    // The cap is absolute: whatever the promises above do, the curtain is gone at 2.4 s.
+    timers.push(window.setTimeout(lift, 2400))
 
     return () => {
       alive = false
-      cleanup()
       timers.forEach((t) => window.clearTimeout(t))
     }
   }, [])
 
-
-  // Line by line copy reveals, once the fonts have set the real line breaks
+  // Line by line copy reveals. They are built at once (anything already in view is
+  // simply complete) and again once the fonts have set the real line breaks.
   useEffect(() => {
-    if (!loaded || !mainRef.current) return
-    let cleanup = () => {}
+    if (!mainRef.current) return
+    let cleanup = initLineReveals(mainRef.current)
     let alive = true
     ;(document.fonts?.ready ?? Promise.resolve()).then(() => {
       if (!alive || !mainRef.current) return
-      const a = initLineReveals(mainRef.current)
-      const b = initTransitions(document)
-      cleanup = () => {
-        a()
-        b()
-      }
+      cleanup()
+      cleanup = initLineReveals(mainRef.current)
     })
     return () => {
       alive = false
       cleanup()
     }
-  }, [loaded])
+  }, [])
 
   return (
     <div ref={appRef}>
@@ -257,20 +256,35 @@ export default function App() {
       <div ref={shakeRef} className="relative z-10">
         <main ref={mainRef}>
           <Hero />
+          <Seam from="top" to="who-we-are" kind="dip" />
           <WhoWeAre />
+          <Seam from="who-we-are" to="alphago" kind="dip" />
           <AlphaGoSlide />
+          <Seam from="alphago" to="what-we-do" kind="dip" />
           <WhatWeDo />
+          <Seam from="what-we-do" to="project" kind="soft" />
           <ProjectSlide />
+          <Seam from="project" to="stats" kind="soft" />
           <StatsSlide />
+          <Seam from="stats" to="code" kind="soft" />
           <CodeSlide />
+          <Seam from="code" to="ml-process" kind="dip" />
           <MLProcess />
+          <Seam from="ml-process" to="events" kind="dip" />
           <Events />
+          <Seam from="events" to="world" kind="dip" />
           <WorldSection />
+          <Seam from="world" to="universe" kind="cut" />
           <UniverseJourney />
+          <Seam from="universe" to="people" kind="dip" />
           <People />
+          <Seam from="people" to="anyone" kind="level" />
           <SodaSlide />
+          <Seam from="anyone" to="join" kind="soft" />
           <Join />
+          <Seam from="join" to="vision" kind="lid" />
           <FutureEye />
+          <Seam from="vision" to="contact" kind="dip" />
         </main>
         <Footer />
       </div>

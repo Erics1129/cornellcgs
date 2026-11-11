@@ -1,11 +1,10 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import gsap from 'gsap'
-import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import SectionIndex from './SectionIndex'
 import ScrollWords from './ScrollWords'
 import { events } from '../content'
+import { reveal } from '../lib/reveal'
 import '../styles/event-agenda.css'
-gsap.registerPlugin(ScrollTrigger)
 
 export default function Events() {
   const root = useRef<HTMLElement>(null)
@@ -21,22 +20,21 @@ export default function Events() {
     document.addEventListener('keydown', escape)
     return () => document.removeEventListener('keydown', escape)
   }, [open])
-  useLayoutEffect(() => {
-    if (matchMedia('(prefers-reduced-motion: reduce)').matches) ScrollTrigger.refresh()
-  }, [open])
+  // Opening a row changes the chapter's height. Nothing is asked for here: the deck's
+  // ResizeObserver re-reads the geometry in the next frame and refreshes once if a chapter moved.
   useLayoutEffect(() => {
     const media = gsap.matchMedia(root)
     media.add('(prefers-reduced-motion: no-preference)', () => {
-      root.current!.querySelectorAll('.agenda-row').forEach(row => {
-        gsap.fromTo(row, { opacity: 0, y: 22 }, { opacity: 1, y: 0, ease: 'power2.out',
-          scrollTrigger: { trigger: row, start: 'top 96%', end: 'top 78%', scrub: .3 } })
-      })
+      const offs = Array.from(root.current!.querySelectorAll<HTMLElement>('.agenda-row'), (row, i) => reveal((tl) => {
+        tl.fromTo(row, { opacity: 0, y: 22 }, { opacity: 1, y: 0, duration: 1, ease: 'power2.out' })
+      }, { id: `events-row-${i}`, source: { trigger: row, start: 'top 96%', end: 'top 78%' } }))
+      return () => offs.forEach((off) => off())
     })
     return () => media.revert()
   }, [])
   return <section ref={root} id="events" className="section event-agenda">
     <SectionIndex rank="10" />
-    <div className="container-site agenda-layout">
+    <div className="container-site agenda-layout" data-film-enter="copy">
       <header className="agenda-heading">
         <p className="agenda-eyebrow">Events</p>
         <h2><ScrollWords text={events.heading} treatment="spread" /></h2>
@@ -51,8 +49,7 @@ export default function Events() {
             <span className="agenda-name">{item.title}<span className="agenda-date">{item.date}</span></span>
             <span className="agenda-plus" aria-hidden="true">+</span>
           </button></h3>
-          <div id={`agenda-detail-${i}`} className="agenda-reveal" aria-hidden={open !== i}
-            onTransitionEnd={event => { if (event.target === event.currentTarget && event.propertyName === 'grid-template-rows') ScrollTrigger.refresh() }}>
+          <div id={`agenda-detail-${i}`} className="agenda-reveal" aria-hidden={open !== i}>
             <div><p>{item.blurb}</p></div>
           </div>
         </article>)}

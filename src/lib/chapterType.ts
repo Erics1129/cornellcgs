@@ -4,7 +4,7 @@ import '../styles/chapter-type.css'
 export type ChapterTreatment = 'rise' | 'sweep' | 'slide' | 'gather'
 
 /** Add type to its scene's existing clock so seeking and reverse scroll agree.
- * Call inside a motion-enabled gsap.matchMedia context; its revert restores
+ * The timeline is normally a latched reveal's (lib/reveal.ts): reverting it restores
  * the fully visible HTML when reduced motion is enabled or the scene unmounts.
  * Split glyphs remain presentational; the heading owns the accessible name. */
 export function chapterType(
@@ -28,16 +28,14 @@ export function chapterType(
       return timeline.fromTo(heading, { x: 24, opacity: 0 },
         { x: 0, opacity: 1, duration, ease: 'power2.out' }, at)
     case 'gather':
-      // Establish the baseline outside the stagger so reversing before a
-      // delayed letter's start cannot restore its fully visible DOM style.
-      gsap.set(targets, {
+      // fromTo renders every letter's start state at once, so a delayed letter
+      // never shows its finished DOM style before its turn.
+      return timeline.fromTo(targets, {
         x: (i: number) => (i - (targets.length - 1) / 2) * 7,
         yPercent: (i: number) => i % 2 ? 12 : -12,
         opacity: 0,
-      })
-      return timeline.to(targets, { x: 0, yPercent: 0, opacity: 1, duration, stagger, ease: 'power2.out' }, at)
+      }, { x: 0, yPercent: 0, opacity: 1, duration, stagger, ease: 'power2.out' }, at)
     case 'rise':
-      gsap.set(targets, { yPercent: 105 })
-      return timeline.to(targets, { yPercent: 0, duration, stagger, ease: 'power3.out' }, at)
+      return timeline.fromTo(targets, { yPercent: 105 }, { yPercent: 0, duration, stagger, ease: 'power3.out' }, at)
   }
 }

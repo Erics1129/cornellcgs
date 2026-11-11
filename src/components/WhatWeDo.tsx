@@ -1,13 +1,11 @@
 import { useLayoutEffect, useRef } from 'react'
 import gsap from 'gsap'
-import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import SectionIndex from './SectionIndex'
 import ScrollWords from './ScrollWords'
 import { whatWeDo } from '../content'
-import { useSectionReveals } from '../lib/reveal'
+import { reveal, useSectionReveals } from '../lib/reveal'
 import { dealCard, flipCard, hoverLift, observeCardLayout, shadowStyle } from '../lib/cardMotion'
 
-gsap.registerPlugin(ScrollTrigger)
 const REST = [-1.6, 1.1, -0.7, 1.5, -1.2]
 
 export default function WhatWeDo() {
@@ -19,15 +17,16 @@ export default function WhatWeDo() {
     const slots = Array.from(section.querySelectorAll<HTMLElement>('[data-community-slot]'))
     if (!slots.length) return
     const mm = gsap.matchMedia()
-    mm.add({ all: 'all', wide: '(min-width: 1200px) and (min-height: 760px)', reduce: '(prefers-reduced-motion: reduce)' }, (context) => {
-      if (context.conditions?.reduce) return
-      const wide = context.conditions?.wide && slots.length <= 5
+    mm.add({ motion: '(prefers-reduced-motion: no-preference)', wide: '(min-width: 1200px) and (min-height: 760px)' }, (context) => {
+      if (!context.conditions?.motion) return
+      const wide = !!context.conditions?.wide && slots.length <= 5
       const deck = section.querySelector<HTMLElement>('[data-deck-spot]')
       const parts = slots.map((slot) => ({
         slot,
         deal: slot.querySelector<HTMLElement>('[data-community-card]')!,
         turn: slot.querySelector<HTMLElement>('[data-community-turn]')!,
         shadow: slot.querySelector<HTMLElement>('[data-card-shadow]')!,
+        face: slot.querySelector<HTMLElement>('.community-face')!,
       }))
       let origins = parts.map(() => ({ x: 0, y: 64, scale: 1 }))
       const measure = () => {
@@ -41,34 +40,27 @@ export default function WhatWeDo() {
       }
       measure()
       gsap.set(parts.map((part) => part.turn), { rotationY: 0 })
-      const addCard = (tl: gsap.core.Timeline, i: number, at: number) => {
-        const p = parts[i]
+      // Each card is its own latched reveal (deal, then flip). While the page moves it follows
+      // the scroll; when the page stops, every card that has left the deck lands and turns over
+      // by itself, and the ones still in the deck wait. A stop never leaves a card mid-flip.
+      const offs = parts.map((p, i) => reveal((tl) => {
         tl.add(dealCard(p.deal, {
           from: { x: () => origins[i].x, y: () => origins[i].y, rotation: i % 2 ? 10 : -12 },
-          rotation: REST[i % REST.length], duration: 0.65, lift: -18, shadow: p.shadow,
+          // lift 0: the flight stays under the heading (which also sits above it in z)
+          rotation: REST[i % REST.length], duration: 0.65, lift: 0, shadow: p.shadow,
           fromScale: () => origins[i].scale,
-        }), at)
-        tl.add(flipCard(p.turn, true, { fromRotation: 0, duration: 0.56, shadow: p.shadow }), at + 0.69)
-      }
-      if (wide) {
-        const tl = gsap.timeline({ scrollTrigger: {
-          trigger: section, start: 'top top', end: () => `+=${Math.round(window.innerHeight * 1.6)}`,
-          pin: true, scrub: 0.24, invalidateOnRefresh: true,
-          onRefreshInit: measure,
-        } })
-        parts.forEach((_, i) => addCard(tl, i, i * 0.12))
-        tl.to({}, { duration: 0.2 })
-      } else {
-        // Each stationary slot is its own scroll range, including on phones.
-        // A fast down/up gesture seeks the same timeline in either direction.
-        parts.forEach((p, i) => {
-          const tl = gsap.timeline({ scrollTrigger: {
-            trigger: p.slot, start: 'top 94%', end: 'top 38%', scrub: 0.2,
-            invalidateOnRefresh: true, onRefreshInit: measure,
-          } })
-          addCard(tl, i, 0)
-        })
-      }
+        }), 0)
+        tl.add(flipCard(p.turn, true, { fromRotation: 0, duration: 0.56, shadow: p.shadow }), 0.69)
+      }, {
+        id: `what-we-do-card-${i}`, settle: 0.45, invalidate: true, phaseOff: [p.face],
+        onMeasure: i === 0 ? measure : undefined,
+        source: wide
+          // the wide runway: one slice of the run per card, so the board is dealt across the stage's stay
+          ? { chapter: 'what-we-do', key: 'run', from: 0.04 + i * 0.15, to: 0.04 + i * 0.15 + 0.34 }
+          // each stationary slot is its own range, including on phones
+          : { trigger: p.slot, start: 'top 94%', end: 'top 38%' },
+      }))
+      return () => offs.forEach((off) => off())
     })
     const off = slots.map((slot) => hoverLift(slot.querySelector<HTMLElement>('[data-card-lift]')!, { hitArea: slot, maxTilt: 3.5, lift: -5 }))
     const unobserve = observeCardLayout(slots)
@@ -76,7 +68,8 @@ export default function WhatWeDo() {
   }, [whatWeDo.threads.length])
 
   return (
-    <section ref={root} id="what-we-do" className="section card-board-section" data-quiet-rain>
+    <section ref={root} id="what-we-do" className="section card-board-section" data-quiet-rain data-runway={whatWeDo.threads.length <= 5 ? 'true' : 'false'}>
+      <div className="deck-stage" data-stage>
       <SectionIndex rank="Q" />
       <div className="container-site">
         <div className="card-board-heading">
@@ -104,6 +97,7 @@ export default function WhatWeDo() {
             </article>
           ))}
         </div>
+      </div>
       </div>
     </section>
   )

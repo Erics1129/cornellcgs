@@ -1,14 +1,13 @@
 import { useEffect, useRef } from 'react'
 import Dice from './Dice'
 import gsap from 'gsap'
-import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { site, contact, nav } from '../content'
 import { scrollToId } from '../lib/scroll'
 import { pagePath } from '../lib/router'
 import { EASE } from '../lib/eases'
 import { prefersReducedMotion } from '../lib/motion'
-
-gsap.registerPlugin(ScrollTrigger)
+import { drive } from '../lib/deck'
+import { reveal } from '../lib/reveal'
 
 /**
  * Footer — the big Citadel-style bar: a full-bleed deep-navy band with the
@@ -23,51 +22,33 @@ export default function Footer() {
     const footer = root.current
     if (!footer) return
 
-    const ctx = gsap.context(() => {
-      const reduced = prefersReducedMotion()
-      const wordmark = gsap.utils.toArray<HTMLElement>('[data-f-wordmark]', footer)
-      const rows = gsap.utils.toArray<HTMLElement>('[data-f-row]', footer)
-      const links = gsap.utils.toArray<HTMLElement>('[data-f-link]', footer)
-      const trigger = { trigger: footer, start: 'top 85%', once: true, fastScrollEnd: true }
-
-      if (reduced) {
-        gsap.fromTo(
-          [...wordmark, ...rows, ...links],
-          { opacity: 0 },
-          { opacity: 1, duration: 0.6, scrollTrigger: trigger },
-        )
-        return
-      }
-
-      gsap
-        .timeline({ scrollTrigger: trigger })
-        .from(wordmark, { y: 28, autoAlpha: 0, duration: 0.7, ease: EASE.out })
-        .from(rows, { y: 24, autoAlpha: 0, duration: 0.65, ease: EASE.out, stagger: 0.06 }, '-=0.45')
-        .from(links, { y: 24, autoAlpha: 0, duration: 0.65, ease: EASE.out, stagger: 0.06 }, '<0.1')
-
-      // Watermark drift — scrubbed, transform-only.
-      gsap.fromTo(
-        footer.querySelector('[data-f-mark]'),
-        { y: 40 },
-        {
-          y: -40,
-          ease: 'none',
-          scrollTrigger: { trigger: footer, start: 'top bottom', end: 'bottom bottom', scrub: true },
-        },
-      )
-    }, footer)
-
-    return () => ctx.revert()
+    // Under reduced motion the footer is simply there (the CSS default).
+    if (prefersReducedMotion()) return
+    const wordmark = gsap.utils.toArray<HTMLElement>('[data-f-wordmark]', footer)
+    const rows = gsap.utils.toArray<HTMLElement>('[data-f-row]', footer)
+    const links = gsap.utils.toArray<HTMLElement>('[data-f-link]', footer)
+    // A latched reveal: it rises with the scroll, finishes a quarter second after the page
+    // stops, and after End (a teleport) every link is there in the first frame.
+    const offReveal = reveal((tl) => {
+      tl.fromTo(wordmark, { y: 28, opacity: 0 }, { y: 0, opacity: 1, duration: 0.7, ease: EASE.out })
+        .fromTo(rows, { y: 24, opacity: 0 }, { y: 0, opacity: 1, duration: 0.65, ease: EASE.out, stagger: 0.06 }, '-=0.45')
+        .fromTo(links, { y: 24, opacity: 0 }, { y: 0, opacity: 1, duration: 0.65, ease: EASE.out, stagger: 0.06 }, '<0.1')
+    }, { id: 'footer', source: { trigger: footer, start: 'top 96%', end: 'top 55%' } })
+    // Watermark drift: transform only, a pure function of how far the footer has come in.
+    const mark = footer.querySelector<HTMLElement>('[data-f-mark]')
+    const setMark = mark ? gsap.quickSetter(mark, 'y', 'px') : null
+    const offMark = setMark ? drive('contact', (v) => setMark(40 - 80 * v), { key: 'enter', smooth: 0 }) : () => {}
+    return () => {
+      offReveal()
+      offMark()
+      if (mark) gsap.set(mark, { clearProps: 'transform' })
+    }
   }, [])
 
   return (
     <footer ref={root} id="contact" className="relative bg-[#332816] text-[#f7f3ec]">
-      {/* The page melts into the bar — no hard seam */}
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-x-0 -top-40 h-40 bg-[linear-gradient(to_bottom,transparent,#332816)]"
-      />
-      {/* Watermark clips in its own layer so the seam gradient above stays unclipped */}
+      {/* The join with the chapter above is the seam in App.tsx; nothing of the footer reaches up into it */}
+      {/* Watermark clips in its own layer so nothing else is clipped */}
       <div
         aria-hidden="true"
         className="pointer-events-none absolute inset-0 z-0 flex select-none items-center justify-center overflow-hidden"

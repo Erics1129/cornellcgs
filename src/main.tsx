@@ -36,8 +36,6 @@ const CarrotPage = React.lazy(() => import('./minigames/carrot/CarrotPage'))
 
 // Device class + design scale first: everything below measures in rem.
 installDevice()
-initTier()
-initLook()
 installNeonClick()
 
 // Legacy hash routes (#p/<id>) now live at real paths — forward old links.
@@ -51,6 +49,15 @@ const page = currentPage()
 const Game = page === 'minigames' ? MinigamesPage : page === 'ink-maze' ? InkMazePage : page === 'forge-or-fold' ? ForgePage : page === 'carrot-defense' ? CarrotPage : null
 const infoPage = page !== null && !!pages[page]
 const standalone = Game !== null || infoPage
+// Which kind of page this is, before anything renders: the cinema style sheets
+// (deck.css, film.css, responsive.css, interaction.css) are scoped by it, so the
+// mini-game routes are untouched by them.
+document.documentElement.dataset.page = Game !== null ? 'game' : infoPage ? 'sub' : 'deck'
+// Tiers and the input vector belong to the deck and the info pages only.
+if (Game === null) {
+  initTier()
+  initLook()
+}
 
 // The words and portraits the board publishes from /admin/ are written into
 // the content module before the first render; with no API (or a slow one)
@@ -68,8 +75,9 @@ loadLiveContent()
     if (draft) markDraftPreview()
   })
 
-// Deck loads addressed to a chapter (/#events, a sub-page's Back link) glide
-// there once the curtain lifts and the pins have measured — unless the reader
+// Deck loads addressed to a chapter (/#events, a sub-page's Back link) cut
+// there once the curtain lifts (a far target is never a glide across the whole
+// deck: scrollToId decides) — unless the reader
 // is coming back from a sub-page, in which case scroll.ts restores the exact
 // spot they left and the glide must stay out of the way.
 let returningToSpot = false
@@ -81,7 +89,7 @@ try {
 if (!standalone && !returningToSpot) {
   const chapter = location.hash.match(/^#([a-z-]+)$/)?.[1]
   if (chapter) {
-    const go = () => window.setTimeout(() => scrollToId(chapter), 650)
+    const go = () => window.setTimeout(() => scrollToId(chapter), 250)
     if ((window as { __cgsShown?: boolean }).__cgsShown) go()
     else window.addEventListener(BOOTED_EVENT, go, { once: true })
   }

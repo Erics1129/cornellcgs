@@ -25,7 +25,7 @@ export default function Join() {
           ★
         </span>
       </div>
-      <div className="container-site relative z-10 join-layout">
+      <div className="container-site relative z-10 join-layout" data-film-enter="copy">
         <p data-reveal="para" className="join-aside">
           The joker is the card that fits any hand. That’s the whole pitch.
         </p>

@@ -60,13 +60,18 @@ export function ShimmerText({
   )
 }
 
-/** Heading that alternates between `text` and `alt` forever. */
+/**
+ * A chapter heading that types itself in once. The full text is the default
+ * (and the accessible name); it types in within 450 ms when its chapter comes
+ * to cover half the screen, is simply complete whenever the page rests there
+ * (at once after a teleport), and never restarts while the chapter is in view.
+ * `alt` and `hold` are accepted for older call sites; nothing alternates any
+ * more, so a reader who stops never finds a half-typed word.
+ */
 export function TypedHeading({
   text,
-  alt,
   className = '',
   as: Tag = 'h2',
-  hold = 2600,
   caret = 'bg-[#cc9f51]',
 }: {
   text: string
@@ -78,8 +83,8 @@ export function TypedHeading({
   caret?: string
 }) {
   const ref = useRef<HTMLHeadingElement>(null)
-  const score = useMemo(() => createTextChoreography(alt && alt !== text ? [text, alt] : [text], hold), [text, alt, hold])
-  const frame = useEditorPlayback(ref, score)
+  const score = useMemo(() => createTextChoreography([text], 0, false), [text])
+  const frame = useEditorPlayback(ref, score, { once: true, within: 450 })
 
   return (
     <Tag ref={ref} className={className} aria-label={text}>

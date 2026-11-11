@@ -1,13 +1,12 @@
 import { useLayoutEffect, useRef, useState } from 'react'
 import gsap from 'gsap'
-import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { dealCard, flipCard, shadowStyle } from '../lib/cardMotion'
 import { chapterType } from '../lib/chapterType'
+import { drive } from '../lib/deck'
+import { reveal } from '../lib/reveal'
 import GoGame from './GoGame'
 import '../styles/cards-motion.css'
 import '../styles/showcase-motion.css'
-
-gsap.registerPlugin(ScrollTrigger)
 
 type SceneBuilder = (section: HTMLElement, desktop: boolean) => void | (() => void)
 
@@ -18,51 +17,66 @@ function useScene(root: React.RefObject<HTMLElement | null>, build: SceneBuilder
     if (!section) return
     const media = gsap.matchMedia(section)
     media.add({
-      all: 'all',
       motion: '(prefers-reduced-motion: no-preference)',
       desktop: '(min-width: 768px) and (min-height: 620px)',
     }, (context) => {
       if (context.conditions?.motion) return build(section, !!context.conditions.desktop)
-      rest?.(section)
     })
+    if (rest) media.add('(prefers-reduced-motion: reduce)', () => rest(section))
     return () => media.revert()
   }, [])
 }
 
+/**
+ * AlphaGo. On a desktop the chapter is a sticky runway (deck.css): the words
+ * are a latched reveal over the chapter's arrival, so heading and paragraph
+ * are complete by the time the stage sticks and stay for the whole run; the
+ * board's slow drift follows the run. Elsewhere it is plain flow.
+ */
 export function AlphaGoSlide() {
   const root = useRef<HTMLElement>(null)
   const camera = useRef<HTMLDivElement>(null)
   const [paused, setPaused] = useState(false)
   useScene(root, (section, desktop) => {
     const copy = section.querySelectorAll('[data-alpha-copy]')
-    gsap.set(copy, { opacity: 0, y: 12 })
-    const tl = gsap.timeline({ scrollTrigger: {
-      id: 'support-alphago', trigger: section,
-      start: desktop ? 'top top' : 'top 85%',
-      end: desktop ? '+=105%' : 'top 16%',
-      pin: desktop, scrub: 0.35, invalidateOnRefresh: true,
-    } })
-    chapterType(tl, section.querySelector('[data-chapter-type]'), 'sweep', 0, 0.45)
-    tl.fromTo(section.querySelector('[data-go-image]'), { xPercent: 4, yPercent: 5, opacity: 0.72 }, { xPercent: 0, yPercent: 0, opacity: 0.96, duration: 0.85, ease: 'none' }, 0)
-      .fromTo(section.querySelector('[data-go-shade]'), { opacity: 0.36 }, { opacity: 0.18, duration: 0.72, ease: 'none' }, 0)
-      .to(copy, { opacity: 1, y: 0, duration: 0.24, stagger: 0.08, ease: 'power2.out' }, 0.22)
-      .to({}, { duration: 0.13 })
+    const heading = section.querySelector<HTMLElement>('[data-chapter-type]')
+    const image = section.querySelector('[data-go-image]')
+    const shade = section.querySelector('[data-go-shade]')
+    const words = (tl: gsap.core.Timeline) => {
+      chapterType(tl, heading, 'sweep', 0, 0.45)
+      tl.fromTo(copy, { opacity: 0, y: 12 }, { opacity: 1, y: 0, duration: 0.24, stagger: 0.08, ease: 'power2.out' }, 0.22)
+    }
+    const board = (tl: gsap.core.Timeline) => {
+      if (image) tl.fromTo(image, { xPercent: 4, yPercent: 5, opacity: 0.72 }, { xPercent: 0, yPercent: 0, opacity: 0.96, duration: 0.85, ease: 'none' }, 0)
+      if (shade) tl.fromTo(shade, { opacity: 0.36 }, { opacity: 0.18, duration: 0.72, ease: 'none' }, 0)
+    }
+    if (!desktop) {
+      return reveal((tl) => { words(tl); board(tl) }, { id: 'alphago', source: { trigger: section, start: 'top 85%', end: 'top 16%' } })
+    }
+    const offWords = reveal(words, { id: 'alphago-copy', source: { chapter: 'alphago', key: 'enter', from: 0.35, to: 0.85 } })
+    const drift = gsap.timeline({ paused: true })
+    board(drift)
+    drift.to({}, { duration: 0.13 })
+    const offDrift = drive('alphago', (v) => drift.progress(v))
+    return () => { offWords(); offDrift(); drift.revert() }
   })
   return (
     <section ref={root} id="alphago" className="section support-scene alpha-scene" data-chapter-surface="dark" aria-labelledby="alphago-title">
+      <div className="deck-stage" data-stage>
       <div ref={camera} className="alpha-camera">
-      <div className="go-study" aria-hidden="true">
+      <div className="go-study" aria-hidden="true" data-film-enter="picture">
         <GoGame camera={camera} paused={paused} />
         <div data-go-shade className="go-study-shade" />
       </div>
       <div className="container-site alpha-copy">
         <h2 id="alphago-title" data-chapter-type="sweep" className="h-section alpha-word">AlphaGo</h2>
-        <p data-alpha-copy data-lines className="body-muted support-lead">Watch the stones land. DeepMind’s AlphaGo beat Lee Sedol in 2016, and it got that strong partly by playing against itself. We train our card game AIs the same way.</p>
+        <p data-alpha-copy className="body-muted support-lead">Watch the stones land. DeepMind’s AlphaGo beat Lee Sedol in 2016, and it got that strong partly by playing against itself. We train our card game AIs the same way.</p>
       </div>
       </div>
       <button type="button" className="alpha-pause" aria-label={paused ? 'Resume Go animation' : 'Pause Go animation'} aria-pressed={paused} onClick={() => setPaused(!paused)}>
         <span aria-hidden="true">{paused ? '▷' : 'Ⅱ'}</span>{paused ? 'Resume game' : 'Pause game'}
       </button>
+      </div>
     </section>
   )
 }
@@ -78,27 +92,24 @@ export function ProjectSlide() {
     const cards = Array.from(section.querySelectorAll<HTMLElement>('[data-project-card]'))
     const turns = Array.from(section.querySelectorAll<HTMLElement>('[data-project-turn]'))
     const shadows = section.querySelectorAll<HTMLElement>('[data-project-shadow]')
-    gsap.set(turns, { rotationY: 0 })
     const copy = section.querySelectorAll('[data-project-copy]')
-    gsap.set(copy, { opacity: 0, y: 12 })
-    const tl = gsap.timeline({ scrollTrigger: {
-      id: 'support-project', trigger: section, start: 'top 80%', end: 'center 48%',
-      scrub: 0.3, invalidateOnRefresh: true,
-    } })
-    chapterType(tl, section.querySelector('[data-chapter-type]'), 'rise', 0, 0.46)
-    cards.forEach((card, i) => {
-      const side = i ? 1 : -1
-      tl.add(dealCard(card, {
-        from: { x: side * (desktop ? 340 : 170), y: desktop ? -140 : -90, rotation: side * 42 },
-        rotation: side * 11, duration: 0.44, lift: -34, air: 1.04,
-        shadow: shadows[i], immediate: true,
-      }), 0.06 + i * 0.1)
-      // once both have landed, they turn over to show what is being built
-      tl.add(flipCard(turns[i], true, { fromRotation: 0, duration: 0.42, shadow: shadows[i] }), 0.62 + i * 0.09)
-    })
-    tl.to(copy, {
-      opacity: 1, y: 0, duration: 0.26, stagger: 0.08, ease: 'power2.out',
-    }, 0.28)
+    gsap.set(turns, { rotationY: 0 })
+    // One latched reveal: it follows the scroll while the page moves and finishes by itself
+    // when the page stops, so the reader never rests on a card in mid-air or half turned.
+    return reveal((tl) => {
+      chapterType(tl, section.querySelector('[data-chapter-type]'), 'rise', 0, 0.46)
+      cards.forEach((card, i) => {
+        const side = i ? 1 : -1
+        tl.add(dealCard(card, {
+          from: { x: side * (desktop ? 340 : 170), y: desktop ? -140 : -90, rotation: side * 42 },
+          rotation: side * 11, duration: 0.44, lift: -34, air: 1.04,
+          shadow: shadows[i], immediate: true,
+        }), 0.06 + i * 0.1)
+        // once both have landed, they turn over to show what is being built
+        tl.add(flipCard(turns[i], true, { fromRotation: 0, duration: 0.42, shadow: shadows[i] }), 0.62 + i * 0.09)
+      })
+      tl.fromTo(copy, { opacity: 0, y: 12 }, { opacity: 1, y: 0, duration: 0.26, stagger: 0.08, ease: 'power2.out' }, 0.28)
+    }, { id: 'project', settle: 0.45, source: { trigger: section, start: 'top 80%', end: 'center 48%' } })
   }, section => {
     // A refresh can capture a nested deal's airborne state. Always land the
     // cards when motion is disabled, including preference changes mid-scroll.
@@ -118,7 +129,7 @@ export function ProjectSlide() {
           </h2>
           <p data-project-copy className="project-description">Two cards on the table. Watch them flip to see what we’re building.</p>
         </div>
-        <div className="project-table" aria-hidden="true">
+        <div className="project-table" aria-hidden="true" data-film-enter="picture">
           <div className="project-table-light" />
           {PROJECT_CARDS.map((card, i) => {
             const side = i ? 1 : -1
@@ -139,32 +150,6 @@ export function ProjectSlide() {
             )
           })}
         </div>
-      </div>
-    </section>
-  )
-}
-
-export function AnyoneSlide() {
-  const root = useRef<HTMLElement>(null)
-  useScene(root, (section) => {
-    const copy = section.querySelectorAll('[data-anyone-copy]')
-    gsap.set(copy, { opacity: 0, y: 16 })
-    const tl = gsap.timeline({ scrollTrigger: {
-      id: 'support-anyone', trigger: section, start: 'top 82%', end: 'center 48%',
-      scrub: 0.35, invalidateOnRefresh: true,
-    } })
-    chapterType(tl, section.querySelector('[data-chapter-type]'), 'gather', 0, 0.52)
-    tl.fromTo(section.querySelector('[data-anyone-rule]'), { scaleX: 0 }, { scaleX: 1, duration: 0.38, ease: 'power2.out' }, 0.3)
-      .to(copy, { opacity: 1, y: 0, duration: 0.3, stagger: 0.09, ease: 'power2.out' }, 0.5)
-  })
-  return (
-    <section ref={root} id="anyone" className="section support-scene anyone-scene" data-chapter-surface="world" aria-labelledby="together-title">
-      <div className="container-site anyone-copy">
-        <h2 id="together-title" data-chapter-type="gather" className="anyone-title" aria-label="Drop in.">
-          <span aria-hidden="true">{'Drop in.'.split('').map((letter, i) => <span key={i} data-chapter-glyph>{letter === ' ' ? '\u00a0' : letter}</span>)}</span>
-        </h2>
-        <div data-anyone-rule className="anyone-rule" aria-hidden="true" />
-        <p data-anyone-copy className="anyone-invitation">We’re gonna have fun at meetings! No experience needed, just drop in like the ice.</p>
       </div>
     </section>
   )

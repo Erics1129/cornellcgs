@@ -1,14 +1,13 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import gsap from 'gsap'
-import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import CodePanel, { type CodePanelFrame, type CodePanelHandle } from './CodePanel'
 import { POT_EQUITY } from '../effects/codeSnippets'
 import { label, margin95, parse, potEquity, type Card, type Checkpoint } from '../solver/equity'
 import { chapterType } from '../lib/chapterType'
+import { drive, onMeasure } from '../lib/deck'
+import { reveal } from '../lib/reveal'
 import '../styles/showcase-motion.css'
 import '../styles/code-ide.css'
-
-gsap.registerPlugin(ScrollTrigger)
 
 /** Current projects, one row each. TODO(club): keep this list up to date. */
 const STATS = [
@@ -25,20 +24,18 @@ export function StatsSlide() {
     if (!section) return
     const media = gsap.matchMedia(section)
     media.add('(prefers-reduced-motion: no-preference)', () => {
-      section.querySelectorAll<HTMLElement>('[data-stat]').forEach((row, i) => {
+      // One latched reveal per row: it follows the scroll, and finishes when the page stops,
+      // so a row never rests with half-risen letters.
+      const offs = Array.from(section.querySelectorAll<HTMLElement>('[data-stat]'), (row, i) => {
         const glyphs = row.querySelectorAll('[data-stat-glyph]')
         const copy = row.querySelectorAll('[data-stat-copy]')
-        gsap.set(glyphs, { yPercent: 110 })
-        gsap.set(copy, { opacity: 0, y: 8 })
-        const tl = gsap.timeline({ scrollTrigger: {
-          id: `support-stat-${i}`, trigger: row, start: 'top 88%', end: 'center 62%', scrub: 0.3,
-        } })
-        tl.fromTo(row.querySelector('[data-stat-rule]'), { scaleX: 0 }, { scaleX: 1, duration: 0.8, ease: 'power2.out' }, 0)
-          .to(glyphs, {
-            yPercent: 0, duration: 0.6, stagger: 0.035, ease: 'power3.out',
-          }, 0.06)
-          .to(copy, { opacity: 1, y: 0, duration: 0.32, stagger: 0.06, ease: 'none' }, 0.3)
+        return reveal((tl) => {
+          tl.fromTo(row.querySelector('[data-stat-rule]'), { scaleX: 0 }, { scaleX: 1, duration: 0.8, ease: 'power2.out' }, 0)
+            .fromTo(glyphs, { yPercent: 110 }, { yPercent: 0, duration: 0.6, stagger: 0.035, ease: 'power3.out' }, 0.06)
+            .fromTo(copy, { opacity: 0, y: 8 }, { opacity: 1, y: 0, duration: 0.32, stagger: 0.06, ease: 'none' }, 0.3)
+        }, { id: `stat-${i}`, settle: 0.35, source: { trigger: row, start: 'top 88%', end: 'center 62%' } })
       })
+      return () => offs.forEach((off) => off())
     })
     return () => media.revert()
   }, [])
@@ -257,23 +254,23 @@ export function CodeSlide() {
     const device = laptop.current
     if (!section || !device) return
     const media = gsap.matchMedia(section)
+    const still = () => {
+      editor.current?.setProgress(1, false)
+      terminal.current?.setProgress(1, false)
+      editor.current?.rewindViewport()
+      terminal.current?.rewindViewport()
+      scrollOutput.current = 1
+      drawOutput(1)
+    }
+    media.add('(prefers-reduced-motion: reduce)', still)
     media.add({
-      all: 'all',
       motion: '(prefers-reduced-motion: no-preference)',
       desktop: '(min-width: 900px) and (min-height: 680px)',
     }, (context) => {
+      if (!context.conditions?.motion) return
       const desktop = !!context.conditions?.desktop
-      if (!context.conditions?.motion) {
-        editor.current?.setProgress(1, false)
-        terminal.current?.setProgress(1, false)
-        editor.current?.rewindViewport()
-        terminal.current?.rewindViewport()
-        scrollOutput.current = 1
-        drawOutput(1)
-        return
-      }
       const [edit, type, out] = desktop
-        ? [[0.06, 0.56], [0.58, 0.68], [0.7, 0.95]]
+        ? [[0.04, 0.54], [0.57, 0.67], [0.7, 0.95]]
         : [[0, 0.48], [0.5, 0.6], [0.62, 0.94]]
       // The editor holds the finished file. Its lines arrive with transform and
       // opacity only, so scrolling never rewrites text (the old per-keystroke
@@ -293,74 +290,76 @@ export function CodeSlide() {
         previousQ = q
         if (!runs.current.manual) drawOutput(q)
       }
-      const tl = gsap.timeline({
-        onUpdate: draw,
-        scrollTrigger: {
-          id: 'support-code', trigger: desktop ? section : device,
-          start: desktop ? 'top top' : 'top 85%',
-          end: desktop ? '+=190%' : 'bottom 90%',
-          pin: desktop, scrub: 0.6, invalidateOnRefresh: true,
-          onRefresh: draw,
-        },
-      })
       // The sole clock for every pane: seeks and reversals write exact
       // characters rather than starting timers or a second scroll range.
-      tl.to(playhead, { progress: 1, duration: 1, ease: 'none' }, 0)
-      const span = edit[1] - edit[0]
-      const each = 0.1
-      tl.fromTo(rows, { opacity: 0.16, y: 6 }, {
-        opacity: 1, y: 0, duration: each, ease: 'power2.out',
-        stagger: rows.length > 1 ? (span - each) / (rows.length - 1) : 0,
-      }, edit[0])
-      // The view glides down as the lower lines arrive, ending at the return line
-      if (viewport) {
-        tl.fromTo(viewport, { scrollTop: 0 }, {
-          scrollTop: () => Math.max(0, viewport.scrollHeight - viewport.clientHeight),
-          duration: span * 0.55, ease: 'power1.inOut',
-        }, edit[0] + span * 0.4)
+      const typing = (tl: gsap.core.Timeline) => {
+        tl.eventCallback('onUpdate', draw)
+        tl.to(playhead, { progress: 1, duration: 1, ease: 'none' }, 0)
+        const span = edit[1] - edit[0]
+        const each = 0.1
+        tl.fromTo(rows, { opacity: 0.16, y: 6 }, {
+          opacity: 1, y: 0, duration: each, ease: 'power2.out',
+          stagger: rows.length > 1 ? (span - each) / (rows.length - 1) : 0,
+        }, edit[0])
+        // The view glides down as the lower lines arrive, ending at the return line
+        if (viewport) {
+          tl.fromTo(viewport, { scrollTop: 0 }, {
+            scrollTop: () => Math.max(0, viewport.scrollHeight - viewport.clientHeight),
+            duration: span * 0.55, ease: 'power1.inOut',
+          }, edit[0] + span * 0.4)
+        }
       }
+      const offs: (() => void)[] = []
       if (desktop) {
+        // A sticky runway (deck.css). The words and the laptop are one latched reveal over the
+        // chapter's arrival: the stage is fully composed when it sticks. The run itself only types.
         const copy = section.querySelectorAll('[data-code-copy]')
-        gsap.set(copy, { opacity: 0, y: 16 })
-        chapterType(tl, section.querySelector('[data-chapter-type]'), 'slide', 0, 0.26)
-        tl.fromTo(device, { x: 90, y: 28, rotationY: -14, rotationX: 5 }, {
-          x: 0, y: 0, rotationY: 0, rotationX: 0, duration: 0.32, ease: 'power2.out',
-        }, 0)
-          .to(copy, {
-            opacity: 1, y: 0, duration: 0.22, stagger: 0.045, ease: 'power2.out',
+        offs.push(reveal((tl) => {
+          chapterType(tl, section.querySelector('[data-chapter-type]'), 'slide', 0, 0.26)
+          tl.fromTo(device, { x: 90, y: 28, rotationY: -14, rotationX: 5 }, {
+            x: 0, y: 0, rotationY: 0, rotationX: 0, duration: 0.32, ease: 'power2.out',
           }, 0)
-          .fromTo(section.querySelector('[data-screen-reflection]'), { xPercent: -80, opacity: 0.5 }, {
-            xPercent: 125, opacity: 0, duration: 0.4, ease: 'none',
-          }, 0)
-      }
-      // On small screens the copy arrives before the laptop. It needs its own
-      // unpinned entrance; the typing clock still belongs solely to the device.
-      if (!desktop) {
+            .fromTo(copy, { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.22, stagger: 0.045, ease: 'power2.out' }, 0)
+            .fromTo(section.querySelector('[data-screen-reflection]'), { xPercent: -80, opacity: 0.5 }, {
+              xPercent: 125, opacity: 0, duration: 0.4, ease: 'none',
+            }, 0)
+        }, { id: 'code-copy', settle: 0.35, source: { chapter: 'code', key: 'enter', from: 0.35, to: 0.85 } }))
+        const run = gsap.timeline({ paused: true })
+        typing(run)
+        offs.push(drive('code', (v) => run.progress(v)))
+        // The editor's scroll distance depends on the layout: read it again after a re-measure.
+        offs.push(onMeasure(() => {
+          const p = run.progress()
+          run.progress(0).invalidate().progress(p)
+        }))
+        offs.push(() => run.revert())
+      } else {
+        // On small screens the copy arrives before the laptop. Its entrance is a latched
+        // reveal; the typing follows the laptop's own passage through the screen.
         const copy = section.querySelector<HTMLElement>('.code-copy')!
         const captions = copy.querySelectorAll('[data-code-copy]')
-        gsap.set(captions, { opacity: 0, y: 10 })
-        const entrance = gsap.timeline({ scrollTrigger: {
-          id: 'support-code-copy', trigger: copy, start: 'top 90%', end: 'top 62%', scrub: 0.2,
-        } })
-        chapterType(entrance, copy.querySelector('[data-chapter-type]'), 'slide', 0, 0.35)
-        entrance.to(captions, {
-          opacity: 1, y: 0, duration: 0.25, stagger: 0.05, ease: 'power2.out',
-        }, 0.1)
+        offs.push(reveal((tl) => {
+          chapterType(tl, copy.querySelector('[data-chapter-type]'), 'slide', 0, 0.35)
+          tl.fromTo(captions, { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 0.25, stagger: 0.05, ease: 'power2.out' }, 0.1)
+        }, { id: 'code-copy', source: { trigger: copy, start: 'top 90%', end: 'top 62%' } }))
+        offs.push(reveal(typing, { id: 'code-typing', latch: false, invalidate: true, source: { trigger: device, start: 'top 85%', end: 'bottom 90%' } }))
       }
       draw()
+      return () => offs.forEach((off) => off())
     })
     return () => media.revert()
   }, [drawOutput])
 
   return (
     <section ref={root} id="code" className="section support-scene code-scene" data-chapter-surface="world" aria-labelledby="code-title">
+      <div className="deck-stage" data-stage>
       <div className="container-site code-layout">
         <div className="code-copy">
           <p data-code-copy className="code-eyebrow">Poker equity</p>
           <h2 id="code-title" data-chapter-type="slide" className="h-section">Read the code</h2>
-          <p data-code-copy data-lines className="body-muted support-lead">Our hold’em equity calculator. Press Run and it deals 20,000 hands against a random opponent.</p>
+          <p data-code-copy className="body-muted support-lead">Our hold’em equity calculator. Press Run and it deals 20,000 hands against a random opponent.</p>
         </div>
-        <div className="code-device-stage">
+        <div className="code-device-stage" data-film-enter="picture">
           <div ref={laptop} className="code-laptop code-workspace ide" data-run="idle">
             <div className="code-workspace-titlebar ide-titlebar">
               <span className="code-window-lights" aria-hidden="true"><i /><i /><i /></span>
@@ -432,6 +431,7 @@ export function CodeSlide() {
             </div>
           </div>
         </div>
+      </div>
       </div>
     </section>
   )

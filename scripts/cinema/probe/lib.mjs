@@ -86,6 +86,7 @@ export function auditFn() {
     const ch = { id, top: Math.round(box.top), bottom: Math.round(box.bottom), vis: +(vis / vh).toFixed(2), clip: s.style.clipPath ? s.style.clipPath.slice(0, 40) : '', progress: box.height > vh ? +Math.max(0, Math.min(1, -box.top / (box.height - vh))).toFixed(3) : null, texts: [] }
     for (const el of s.querySelectorAll('h1,h2,h3,p,li,a,button,figcaption,dt,dd')) {
       if (el.closest('[aria-hidden="true"]')) continue
+      if (el.closest('[data-phase="off"]')) continue   // an intended, marked phase (SPEC 2.4): not counted as missing
       if (el.querySelector('h1,h2,h3,p,li')) continue
       const r = el.getBoundingClientRect()
       if (r.width < 4 || r.height < 4) continue

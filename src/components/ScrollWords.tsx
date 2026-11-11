@@ -1,12 +1,11 @@
 import { useLayoutEffect, useRef } from 'react'
 import gsap from 'gsap'
-import { ScrollTrigger } from 'gsap/ScrollTrigger'
+import { reveal } from '../lib/reveal'
 import '../styles/scroll-words.css'
 
-gsap.registerPlugin(ScrollTrigger)
 type Treatment = 'mask' | 'cascade' | 'illuminate' | 'spread'
 
-/** Real text with reversible, per-word choreography. No cloned accessibility text. */
+/** Real text with per-word choreography. No cloned accessibility text. */
 export default function ScrollWords({ text, treatment = 'mask' }: { text: string; treatment?: Treatment }) {
   const root = useRef<HTMLSpanElement>(null)
   useLayoutEffect(() => {
@@ -15,22 +14,22 @@ export default function ScrollWords({ text, treatment = 'mask' }: { text: string
     const media = gsap.matchMedia()
     media.add('(prefers-reduced-motion: no-preference)', () => {
       const words = el.querySelectorAll<HTMLElement>('[data-scroll-word]')
-      const timeline = gsap.timeline({ scrollTrigger: {
-        trigger: el.parentElement, start: 'top 94%', end: 'top 48%',
-        scrub: true, invalidateOnRefresh: true,
-      } })
-      words.forEach((word, i) => {
-        const from = treatment === 'mask' ? { yPercent: 112, rotation: 1.3, opacity: 1 }
-          : treatment === 'cascade' ? { x: i % 2 ? 32 : -20, y: 12, opacity: .08 }
-          : treatment === 'spread' ? { x: (i - (words.length - 1) / 2) * 16, y: 8, opacity: .14 }
-          : { y: 0, opacity: .16 }
-        timeline.fromTo(word, from, {
-          x: 0, y: 0, yPercent: 0, rotation: 0, opacity: 1,
-          duration: treatment === 'illuminate' ? .22 : .55,
-          ease: treatment === 'illuminate' ? 'none' : 'power2.out',
-        }, i * (treatment === 'illuminate' ? .12 : .065))
-      })
-      return () => { timeline.scrollTrigger?.kill(); timeline.revert() }
+      // A latched reveal (lib/reveal.ts). In normal flow it follows the heading's passage up the
+      // screen; inside a sticky stage it follows the chapter's arrival instead. Either way it is
+      // complete as soon as the page stops, and after a teleport or a deep reload it simply is.
+      return reveal((timeline) => {
+        words.forEach((word, i) => {
+          const from = treatment === 'mask' ? { yPercent: 112, rotation: 1.3, opacity: 1 }
+            : treatment === 'cascade' ? { x: i % 2 ? 32 : -20, y: 12, opacity: .08 }
+            : treatment === 'spread' ? { x: (i - (words.length - 1) / 2) * 16, y: 8, opacity: .14 }
+            : { y: 0, opacity: .16 }
+          timeline.fromTo(word, from, {
+            x: 0, y: 0, yPercent: 0, rotation: 0, opacity: 1,
+            duration: treatment === 'illuminate' ? .22 : .55,
+            ease: treatment === 'illuminate' ? 'none' : 'power2.out',
+          }, i * (treatment === 'illuminate' ? .12 : .065))
+        })
+      }, { source: { trigger: el.parentElement ?? el, start: 'top 94%', end: 'top 48%' } })
     }, el)
     return () => media.revert()
   }, [text, treatment])

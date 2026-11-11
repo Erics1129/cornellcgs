@@ -1,44 +1,199 @@
 import { useEffect, useRef } from 'react'
-import gsap from 'gsap'
-import { ScrollTrigger } from 'gsap/ScrollTrigger'
+import { RUNWAY_MEDIA } from '../lib/motion'
+import { registerScene } from '../lib/scenes'
+import { tier } from '../lib/tier'
 
-gsap.registerPlugin(ScrollTrigger)
+type FrameVideo = HTMLVideoElement & {
+  requestVideoFrameCallback?: (cb: (now: number, meta: { mediaTime: number }) => void) => number
+  fastSeek?: (time: number) => void
+}
 
-/** Decode real captured/rendered frames. Scroll is the only playback clock. */
-export default function ScrollFilm({src,poster}:{src:string;poster:string}) {
-  const root=useRef<HTMLDivElement>(null),video=useRef<HTMLVideoElement>(null)
-  useEffect(()=>{
-    const host=root.current!,film=video.current!,section=host.closest('section')!
-    host.dataset.ready='false'
-    const media=matchMedia('(prefers-reduced-motion: reduce)')
-    let alive=true,near=false,loaded=false,target=0,raf=0,last=0
-    const seek=()=>{
-      raf=0
-      if(!alive||!near||document.hidden||media.matches||!loaded)return
-      const now=performance.now()
-      if(!film.seeking&&now-last>=30&&Math.abs(film.currentTime-target)>1/60){film.currentTime=target;last=now}
-      if(film.seeking||Math.abs(film.currentTime-target)>1/60)raf=requestAnimationFrame(seek)
+/**
+ * A film whose only clock is the scroll.
+ *
+ * It is a scene (lib/scenes.ts): it draws only while its chapter is on screen
+ * and has no frame loop, observer or scroll trigger of its own.
+ *
+ * Under the video sits a ladder of stills taken from the film itself; the two
+ * nearest the playhead are crossfaded. The stills ARE the picture whenever the
+ * video is not exactly there: before it loads, right after a teleport, while
+ * a seek is in flight, and for the whole visit where a phone refuses to start
+ * a video (Low Power Mode, data saver). The video is shown only while its
+ * frame is within a quarter second of where the scroll says it should be.
+ */
+export default function ScrollFilm({ src, srcSmall, poster, stills = [] }: {
+  src: string
+  /** a lighter encode for phones */
+  srcSmall?: string
+  /** the designed still for reduced motion and the first paint */
+  poster: string
+  /** evenly spaced frames of the film, first to last */
+  stills?: string[]
+}) {
+  const root = useRef<HTMLDivElement>(null)
+  const video = useRef<HTMLVideoElement>(null)
+  useEffect(() => {
+    const host = root.current!
+    const film = video.current as FrameVideo
+    const layers = Array.from(host.querySelectorAll<HTMLImageElement>('[data-still]'))
+    const base = host.querySelector<HTMLImageElement>('[data-still-base]')!
+    const motion = matchMedia(RUNWAY_MEDIA)
+    let alive = true
+    let attached = false
+    let loaded = false
+    let refused = false
+    let live = false
+    let target = 0
+    let lastSeekAt = 0
+    let shownStill = ''
+
+    const duration = () => (Number.isFinite(film.duration) && film.duration > 0 ? film.duration : 8)
+    const setLive = (on: boolean) => {
+      if (on === live) return
+      live = on
+      if (on) handle.ready()
+      else handle.lost()
     }
-    const request=()=>{if(!raf&&alive&&near&&!document.hidden&&!media.matches)raf=requestAnimationFrame(seek)}
-    const trigger=ScrollTrigger.create({trigger:section,start:'top top',end:'bottom bottom',onUpdate:self=>{
-      const duration=Number.isFinite(film.duration)?film.duration:8
-      target=(Math.max(0,duration-.05))*self.progress
-      request()
-    }})
-    const ready=()=>{loaded=true;target=(film.duration-.05)*trigger.progress;host.dataset.ready=String(!media.matches);request()}
-    const error=()=>{loaded=false;host.dataset.ready='false';cancelAnimationFrame(raf);raf=0}
-    const observer=new IntersectionObserver(([entry])=>{
-      near=entry.isIntersecting
-      if(near&&!film.src&&!media.matches){film.src=src;film.load()}
-      if(near)request();else{cancelAnimationFrame(raf);raf=0}
-    },{rootMargin:'30% 0px'})
-    observer.observe(host)
-    const preference=()=>{if(media.matches){cancelAnimationFrame(raf);raf=0;film.pause();host.dataset.ready='false'}else{if(near&&!film.src){film.src=src;film.load()}host.dataset.ready=String(loaded);request()}}
-    const visibility=()=>{if(document.hidden){cancelAnimationFrame(raf);raf=0}else request()}
-    const stopPlay=()=>film.pause()
-    film.addEventListener('loadeddata',ready);film.addEventListener('error',error);film.addEventListener('seeked',request)
-    film.addEventListener('play',stopPlay);media.addEventListener('change',preference);document.addEventListener('visibilitychange',visibility)
-    return()=>{alive=false;host.dataset.ready='false';cancelAnimationFrame(raf);observer.disconnect();trigger.kill();film.removeEventListener('loadeddata',ready);film.removeEventListener('error',error);film.removeEventListener('seeked',request);film.removeEventListener('play',stopPlay);media.removeEventListener('change',preference);document.removeEventListener('visibilitychange',visibility);film.removeAttribute('src');film.load()}
-  },[src])
-  return <div ref={root} className="scroll-film" aria-hidden="true"><img src={poster} alt="" loading="lazy" decoding="async" /><video ref={video} muted playsInline preload="none" disablePictureInPicture tabIndex={-1} /></div>
+    // What is on screen is close enough to the target: show the video. Otherwise the stills.
+    const judge = (time: number) => setLive(loaded && !refused && Math.abs(time - target) <= 0.25)
+
+    const ladder = (p: number) => {
+      if (!layers.length) return
+      const at = p * (layers.length - 1)
+      const lo = Math.floor(at)
+      const hi = Math.min(layers.length - 1, lo + 1)
+      const mix = at - lo
+      const key = `${lo}:${mix.toFixed(2)}`
+      if (key === shownStill) return
+      shownStill = key
+      layers.forEach((img, i) => {
+        // the lower still stays opaque under the upper one, so the pair never dips darker in between
+        const o = i === lo ? '1' : i === hi ? mix.toFixed(3) : '0'
+        if (img.style.opacity !== o) img.style.opacity = o
+      })
+    }
+
+    const seek = (exact: boolean, flying: boolean) => {
+      if (!loaded || refused || film.seeking) return
+      if (Math.abs(film.currentTime - target) <= 1 / 60) return
+      const now = performance.now()
+      // never queue seeks: one at a time, the newest target wins
+      if (!exact && now - lastSeekAt < 30) return
+      lastSeekAt = now
+      if (flying && !exact && film.fastSeek) film.fastSeek(target)
+      else film.currentTime = target
+    }
+
+    const attach = () => {
+      if (attached || refused || !motion.matches) return
+      const t = tier()
+      if (t.saveData) return
+      attached = true
+      film.preload = 'auto'
+      film.src = srcSmall && (t.name === 'phone' || t.name === 'low') ? srcSmall : src
+      film.load()
+      // iOS does not decode a frame until playback has started once: prime it, muted, and pause at once.
+      const primed = film.play()
+      if (primed) {
+        primed.then(() => film.pause()).catch((error: unknown) => {
+          // Playback is not allowed here (Low Power Mode, data saver): the stills are the film for this visit.
+          if ((error as { name?: string })?.name === 'NotAllowedError') {
+            refused = true
+            setLive(false)
+          }
+        })
+      }
+    }
+    const detach = () => {
+      if (!attached) return
+      attached = false
+      loaded = false
+      film.removeAttribute('src')
+      film.load()
+    }
+
+    const handle = registerScene({
+      id: 'ml-film',
+      chapter: 'ml-process',
+      host,
+      weight: 'light',
+      clock: 'scroll',
+      prepare() {
+        // the stills are cheap and are the poster: ask for them first
+        for (const img of layers) if (!img.src && img.dataset.src) img.src = img.dataset.src
+        attach()
+      },
+      draw(_now, tick) {
+        if (!motion.matches) {
+          // no motion: the designed still alone
+          if (shownStill !== 'still') {
+            shownStill = 'still'
+            for (const img of layers) img.style.opacity = '0'
+          }
+          return false
+        }
+        const p = tick.chapter?.vrun ?? 0
+        ladder(p)
+        target = Math.max(0, duration() - 0.05) * p
+        judge(film.currentTime)
+        seek(tick.settle, tick.frame.flying)
+        return false
+      },
+      release() {
+        detach()
+        live = false
+      },
+    })
+
+    const onLoaded = () => {
+      loaded = true
+      handle.invalidate()
+    }
+    const onSeeked = () => {
+      // The decoded frame is presented a moment after `seeked`: ask the compositor when it is really there.
+      if (film.requestVideoFrameCallback) film.requestVideoFrameCallback((_n, meta) => { if (alive) { judge(meta.mediaTime); handle.invalidate() } })
+      else {
+        judge(film.currentTime)
+        handle.invalidate()
+      }
+    }
+    const onError = () => {
+      loaded = false
+      setLive(false)
+    }
+    const stopPlay = () => { if (loaded) film.pause() }
+    const onMotion = () => {
+      if (!motion.matches) {
+        detach()
+        setLive(false)
+      } else attach()
+      handle.invalidate()
+    }
+    film.addEventListener('loadeddata', onLoaded)
+    film.addEventListener('seeked', onSeeked)
+    film.addEventListener('error', onError)
+    film.addEventListener('playing', stopPlay)
+    motion.addEventListener('change', onMotion)
+    base.decode?.().catch(() => {})
+    return () => {
+      alive = false
+      handle.dispose()
+      film.removeEventListener('loadeddata', onLoaded)
+      film.removeEventListener('seeked', onSeeked)
+      film.removeEventListener('error', onError)
+      film.removeEventListener('playing', stopPlay)
+      motion.removeEventListener('change', onMotion)
+      detach()
+    }
+  }, [src, srcSmall])
+
+  return (
+    <div ref={root} className="scroll-film" aria-hidden="true" data-scene-host data-film-enter="picture">
+      <div className="scroll-film-stills" data-poster>
+        <img data-still-base src={poster} alt="" decoding="async" />
+        {stills.map((still) => <img key={still} data-still data-src={still} alt="" decoding="async" style={{ opacity: 0 }} />)}
+      </div>
+      <video ref={video} muted playsInline preload="none" disablePictureInPicture tabIndex={-1} />
+    </div>
+  )
 }

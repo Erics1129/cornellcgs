@@ -1,1 +1,291 @@
-/* deck.css: CONTRACT FILE (see SPEC.md section 9). Stub: intentionally empty. The owning stream replaces it. */
+/* deck.css — geometry of the scrolling deck. CONTRACT FILE, owner: stream "scroll-core".
+ *
+ * Only geometry lives here: sticky stages, runway heights, seam boxes, overflow
+ * and containment of the chapter roots, the poster/canvas swap, the cut overlay.
+ * No colour (film.css) and no screen-size layout (responsive.css).
+ *
+ * Every rule is scoped to html[data-page='deck'] (main.tsx sets it before the
+ * first render), so sub-pages and the mini games are untouched. Geometry rules
+ * are written with chapter ids so they outrank the class rules in the component
+ * style sheets, which still carry the old heights.
+ *
+ * Fallbacks: every svh/lvh length is preceded by a vh one. overflow-x: clip
+ * never gets a `hidden` fallback on html or a runway root: `hidden` would turn
+ * the element into a scroll container and kill position: sticky.
+ */
+
+html[data-page='deck'] {
+  --run-alphago: 205vh;
+  --run-whatwedo: 260vh;
+  --run-code: 290vh;
+  --run-ml: 240vh;
+  /* The world film is timed so that every photograph holds for at least 30svh and the last frame,
+     with every credit, for at least 60svh (see EARTH_TIMING in lib/earthJourney.ts). */
+  --run-world: 660vh;
+  --run-universe: 520vh;
+  --run-soda: 300vh;
+  --seam-reach: 14vh;
+  --stage-h: 100vh;
+  /* How much taller the sticky stage is than the smallest viewport: bottom-anchored copy adds it,
+     so captions and credits stay on screen while a phone's URL bar is showing. */
+  --stage-slack: 0px;
+  overflow-x: clip;
+}
+@supports (height: 1svh) {
+  html[data-page='deck'] {
+    --run-alphago: 205svh;
+    --run-whatwedo: 260svh;
+    --run-code: 290svh;
+    --run-ml: 240svh;
+    --run-world: 660svh;
+    --run-universe: 520svh;
+    --run-soda: 300svh;
+    --seam-reach: 14svh;
+    --stage-h: 100lvh;
+    --stage-slack: calc(100lvh - 100svh);
+  }
+}
+@media (max-width: 1023px), (orientation: portrait) {
+  html[data-page='deck'] { --run-ml: 220vh; }
+  @supports (height: 1svh) { html[data-page='deck'] { --run-ml: 220svh; } }
+}
+@media (max-width: 767px) {
+  html[data-page='deck'] { --run-universe: 440vh; }
+  @supports (height: 1svh) { html[data-page='deck'] { --run-universe: 440svh; } }
+}
+
+/* ---- chapter roots: never clipped, shifted or hidden by script; nothing can widen the page ---- */
+html[data-page='deck'] main > section,
+html[data-page='deck'] footer#contact {
+  overflow-x: clip;
+  isolation: isolate;
+}
+/* Text stays out of the seam band. Low specificity on purpose: chapters with their own padding keep it. */
+:where(html[data-page='deck']) .section { padding-block: max(8vh, 10svh); }
+html[data-page='deck'] #vision { padding-bottom: max(80px, 12vh); padding-bottom: max(80px, 12svh); }
+
+/* The old blend system: black bands hung 12svh outside the film chapters. Seams replace them. */
+html[data-page='deck'] .scene-chapter::before,
+html[data-page='deck'] .scene-chapter::after,
+html[data-page='deck'] .vision-chapter::before,
+html[data-page='deck'] .universe-journey::before,
+html[data-page='deck'] .universe-journey::after { content: none; }
+
+/* Which chapter roots paint an opaque ground (the fixed background layers stop behind them).
+   First list; film.css has the final word for project, stats and who-we-are. */
+html[data-page='deck'] #alphago,
+html[data-page='deck'] #code,
+html[data-page='deck'] #ml-process,
+html[data-page='deck'] #events,
+html[data-page='deck'] #world,
+html[data-page='deck'] #universe,
+html[data-page='deck'] #anyone,
+html[data-page='deck'] #vision,
+html[data-page='deck'] #contact,
+html[data-page='deck'] #project,
+html[data-page='deck'] #stats,
+html[data-page='deck'] #who-we-are { --chapter-opaque: 1; }
+
+/* ---- seams: a zero-height box between two chapters, in normal flow ---- */
+html[data-page='deck'] .seam {
+  --seam-up: var(--seam-reach);
+  --seam-down: var(--seam-reach);
+  position: relative;
+  z-index: 5;
+  height: 0;
+  pointer-events: none;
+}
+html[data-page='deck'] .seam[data-seam='soft'] { --seam-reach: 9vh; }
+@supports (height: 1svh) { html[data-page='deck'] .seam[data-seam='soft'] { --seam-reach: 9svh; } }
+/* A seam never reaches into content: nothing above the hero's floor (its scroll hint and buttons live there). */
+html[data-page='deck'] .seam[data-from='top'] { --seam-up: 0px; }
+html[data-page='deck'] .seam > i {
+  position: absolute;
+  inset-inline: 0;
+  top: calc(var(--seam-up) * -1);
+  height: calc(var(--seam-up) + var(--seam-down));
+  display: block;
+}
+
+/* ---- the stage: a wrapper that is nothing at all until its chapter is a runway ---- */
+html[data-page='deck'] .deck-stage { display: contents; }
+/* Bottom-anchored copy inside a sticky stage sits in a box that is the smallest viewport tall. */
+html[data-page='deck'] .stage-safe {
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 100vh;
+  height: 100svh;
+  pointer-events: none;
+}
+html[data-page='deck'] .stage-safe > * { pointer-events: auto; }
+
+/* Sticky runways need room: on a short screen (a phone on its side) every runway chapter is plain flow. */
+@media (prefers-reduced-motion: no-preference) and (min-height: 480px) {
+  @media (min-width: 768px) and (min-height: 620px) {
+    html[data-page='deck'] #alphago {
+      display: block;
+      height: var(--run-alphago);
+      min-height: 0;
+      padding: 0;
+      overflow: clip;
+      contain: none;
+    }
+    html[data-page='deck'] #alphago > .deck-stage {
+      position: sticky;
+      top: 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      height: var(--stage-h);
+      overflow: clip;
+      contain: layout paint;
+    }
+  }
+  @media (min-width: 1200px) and (min-height: 760px) {
+    html[data-page='deck'] #what-we-do[data-runway='true'] {
+      display: block;
+      height: var(--run-whatwedo);
+      min-height: 0;
+      padding: 0;
+      overflow: clip;
+      contain: none;
+    }
+    html[data-page='deck'] #what-we-do[data-runway='true'] > .deck-stage {
+      position: sticky;
+      top: 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      height: var(--stage-h);
+      padding-block: max(8vh, 10svh);
+      overflow: clip;
+      contain: layout paint;
+    }
+  }
+  @media (min-width: 900px) and (min-height: 680px) {
+    html[data-page='deck'] #code {
+      display: block;
+      height: var(--run-code);
+      min-height: 0;
+      padding: 0;
+      overflow: clip;
+      contain: none;
+    }
+    html[data-page='deck'] #code > .deck-stage {
+      position: sticky;
+      top: 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      height: var(--stage-h);
+      padding-block: max(8vh, 10svh);
+      overflow: clip;
+      contain: layout paint;
+    }
+  }
+
+  /* The films that were sticky already: one height table, stages the full (large) viewport tall. */
+  html[data-page='deck'] #ml-process { min-height: var(--run-ml); }
+  html[data-page='deck'] #ml-process .scene-stage { height: var(--stage-h); min-height: 0; }
+  html[data-page='deck'] #world[data-earth-motion='scroll'] { min-height: var(--run-world); }
+  html[data-page='deck'] #world[data-earth-motion='scroll'] .earth-journey-stage { height: var(--stage-h); min-height: 0; }
+  html[data-page='deck'] #universe:not([data-renderer='fallback']):not([data-renderer='reduced']) { min-height: var(--run-universe); }
+  html[data-page='deck'] #universe:not([data-renderer='fallback']):not([data-renderer='reduced']) .universe-viewport { height: var(--stage-h); }
+  html[data-page='deck'] #anyone:not(.is-still) { height: var(--run-soda); }
+  html[data-page='deck'] #anyone:not(.is-still) .soda-stage { height: var(--stage-h); }
+
+  /* Copy anchored to the bottom of a stage keeps clear of the part a URL bar can cover. */
+  html[data-page='deck'] #ml-process .scene-caption,
+  html[data-page='deck'] #world[data-earth-motion='scroll'] .scene-caption { bottom: calc(36px + var(--stage-slack)); }
+  html[data-page='deck'] #world[data-earth-motion='scroll'] .earth-place figcaption { bottom: var(--stage-slack); }
+  html[data-page='deck'] #universe .universe-footer { bottom: calc(max(2rem, env(safe-area-inset-bottom)) + var(--stage-slack)); }
+  html[data-page='deck'] #anyone:not(.is-still) .soda-copy { bottom: var(--stage-slack); }
+  @media (min-width: 768px) and (min-height: 620px) {
+    html[data-page='deck'] #alphago .alpha-pause { bottom: calc(2rem + var(--stage-slack)); }
+  }
+  html[data-page='deck'] #anyone:not(.is-still) .soda-sound { bottom: calc(max(18px, env(safe-area-inset-bottom)) + var(--stage-slack)); }
+  @media (max-width: 1023px), (orientation: portrait) {
+    html[data-page='deck'] #ml-process .scene-caption,
+    html[data-page='deck'] #world[data-earth-motion='scroll'] .scene-caption { bottom: calc(23px + var(--stage-slack)); }
+  }
+}
+
+/* Short screens: the film chapters are plain, complete, one-screen stills (the same layout reduced motion gets). */
+@media (max-height: 479px) {
+  html[data-page='deck'] #ml-process { min-height: 0; }
+  html[data-page='deck'] #ml-process .scene-stage { position: relative; height: auto; min-height: 100vh; min-height: 100svh; }
+  html[data-page='deck'] #ml-process .scene-content { height: auto; padding-block: 5rem 4rem; }
+}
+
+/* ---- inside the stages ---- */
+/* Dealt cards never cross the heading. */
+html[data-page='deck'] .card-board-heading { position: relative; z-index: 3; }
+
+/* World: one strip of words that stays for the whole film (the eyebrow and the link to the members page). */
+html[data-page='deck'] #world .earth-strip {
+  position: absolute;
+  z-index: 4;
+  top: calc(4rem + clamp(0.6rem, 2.2vh, 1.8rem));
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem 1.5rem;
+  flex-wrap: wrap;
+  pointer-events: none;
+}
+html[data-page='deck'] #world .earth-strip > * { margin: 0; pointer-events: auto; }
+html[data-page='deck'] #world .earth-strip .scene-link { padding-block: 10px; min-height: 44px; }
+
+/* ---- scene hosts: a poster under every canvas or film; the picture fades in over it when it is real ---- */
+html[data-page='deck'] [data-scene-host] > canvas,
+html[data-page='deck'] [data-scene-host] > video,
+html[data-page='sub'] [data-scene-host] > canvas,
+html[data-page='sub'] [data-scene-host] > video {
+  opacity: 0;
+  transition: opacity 150ms linear;
+}
+html[data-page='deck'] [data-scene-host][data-scene-state='live'] > canvas,
+html[data-page='deck'] [data-scene-host][data-scene-state='live'] > video,
+html[data-page='sub'] [data-scene-host][data-scene-state='live'] > canvas,
+html[data-page='sub'] [data-scene-host][data-scene-state='live'] > video { opacity: 1; }
+
+/* ---- the cut: far jumps dip through this instead of gliding through every chapter ---- */
+#deck-dip {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 46;
+  width: 100vw;
+  height: 100vh;
+  height: 100lvh;
+  background: var(--film-black, #070605);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 140ms linear;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #deck-dip { display: none; }
+  html[data-page='deck'] [data-scene-host] > canvas,
+  html[data-page='deck'] [data-scene-host] > video { transition: none; }
+}
+
+/* ---- soda: the words never wait for the frames ---- */
+html[data-page='deck'] #anyone .soda-copy { opacity: 1; will-change: auto; }
+html[data-page='deck'] #anyone .soda-poster { position: absolute; inset: 0; }
+
+/* World on narrow screens: the opening words start under the strip, not behind it. */
+@media (max-width: 1023px), (orientation: portrait) {
+  html[data-page='deck'] #world .earth-intro-copy { padding-top: calc(clamp(82px, 11svh, 118px) + 3.5rem); }
+  html[data-page='deck'] #world .earth-strip { top: calc(4rem + 0.5rem); gap: 0.25rem 1rem; }
+}
+
+/* ---- the ML film: stills under the video; the video shows only while it is exactly on the scroll's frame ---- */
+html[data-page='deck'] .scroll-film .scroll-film-stills { position: absolute; inset: 0; transition: opacity 150ms linear; }
+html[data-page='deck'] .scroll-film[data-scene-state='live'] .scroll-film-stills { opacity: 0; }
+html[data-page='deck'] .scroll-film .scroll-film-stills img { opacity: 1; }
+@media (prefers-reduced-motion: reduce) {
+  html[data-page='deck'] .scroll-film .scroll-film-stills { transition: none; }
+}
