@@ -169,12 +169,12 @@ else {
   else if (firstModule >= 0 && im > firstModule) fail('the import map comes after a module: three would not resolve')
   else {
     const map = JSON.parse(/<script type="importmap">([\s\S]*?)<\/script>/.exec(html)[1])
-    const target = map.imports && map.imports.three
+    const target = map.imports && map.imports.three && String(map.imports.three).replace(/\?v=[a-f0-9]+$/, '')   // (modules carry the build's version: scripts/film-bust.mjs)
     if (target !== '/film/vendor/three.module.min.js') fail(`the import map sends three to ${target}`)
     else ok('dist/index.html is the film page: live host, import map first (three -> /film/vendor/), the main entry')
   }
   const pre = [...html.matchAll(/<link rel="(?:modulepreload|preload)"(?: as="fetch" crossorigin)? href="(\/film\/[^"]+)"/g)].map((m) => m[1])
-  const gone = pre.filter((u) => !fs.existsSync(path.join(DIST, u)))
+  const gone = pre.filter((u) => !fs.existsSync(path.join(DIST, u.replace(/\?v=[a-f0-9]+$/, ''))))
   if (gone.length) fail(`dist/index.html preloads ${gone.length} file(s) dist/ does not have: ${gone.slice(0, 5).join(', ')}`)
   else ok(`dist/index.html preloads ${pre.length} files of the film, all in dist/film/`)
   const gz = zlib.gzipSync(html, { level: 9 }).length
