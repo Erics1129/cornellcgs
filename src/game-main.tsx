@@ -1,0 +1,104 @@
+// The mini games' entry (game-shell.html, and src/main.tsx on a game URL in dev). Until the film site this was
+// src/main.tsx itself; it is kept as it was, so every mini game boots exactly as before: the same device scale,
+// tiers, live content, style sheets and lazy game pages. The deck and info-page branches below no longer run on
+// the live site (those URLs are the film site now, src/film-site.ts); they stay until the old deck is deleted.
+import React from 'react'
+
+// Tell the index.html boot guard we made it, and tidy its recovery param.
+const w = window as unknown as { __cgsBooted?: boolean; __cgsBootTimer?: number }
+w.__cgsBooted = true
+if (w.__cgsBootTimer) window.clearTimeout(w.__cgsBootTimer)
+if (location.search.includes('rl=')) {
+  const u = new URL(location.href)
+  u.searchParams.delete('rl')
+  history.replaceState(null, '', u.toString())
+}
+import ReactDOM from 'react-dom/client'
+import App from './App'
+import SubPage from './components/SubPage'
+import { pages } from './content'
+import { currentPage, pagePath } from './lib/router'
+import { BOOTED_EVENT } from './lib/motion'
+import { scrollToId } from './lib/scroll'
+import { installNeonClick } from './lib/neonClick'
+import { installDevice } from './lib/device'
+import { isDraftPreview, loadDraft, loadLiveContent, markDraftPreview } from './lib/liveContent'
+import './styles/global.css'
+// Cinema contract files (SPEC.md section 9). Order matters: later files win the cascade.
+import './styles/deck.css'
+import './styles/film.css'
+import './styles/responsive.css'
+import './styles/interaction.css'
+import { initTier } from './lib/tier'
+import { initLook } from './lib/look'
+
+// The mini games are their own routes under /minigames/; their code loads only there
+const MinigamesPage = React.lazy(() => import('./minigames/MinigamesPage'))
+const InkMazePage = React.lazy(() => import('./minigames/inkmaze/InkMazePage'))
+const ForgePage = React.lazy(() => import('./minigames/forge/ForgePage'))
+const CarrotPage = React.lazy(() => import('./minigames/carrot/CarrotPage'))
+
+// Device class + design scale first: everything below measures in rem.
+installDevice()
+initTier()
+initLook()
+installNeonClick()
+
+// Legacy hash routes (#p/<id>) now live at real paths — forward old links.
+const legacy = location.hash.match(/^#p\/([a-z-]+)$/)
+if (legacy && pages[legacy[1]]) {
+  location.replace(pagePath(legacy[1]))
+}
+
+// Info pages are REAL pages: render the standalone view, not the deck.
+const page = currentPage()
+const Game = page === 'minigames' ? MinigamesPage : page === 'ink-maze' ? InkMazePage : page === 'forge-or-fold' ? ForgePage : page === 'carrot-defense' ? CarrotPage : null
+// The game shell opened at an address that is no game (game-shell.html itself): the home page is the film site.
+if (Game === null) location.replace('/')
+const infoPage = page !== null && !!pages[page]
+const standalone = Game !== null || infoPage
+// Which kind of page this is, before anything renders: the cinema style sheets
+// (deck.css, film.css, responsive.css, interaction.css) are scoped by it, so the
+// mini-game routes are untouched by them.
+document.documentElement.dataset.page = Game !== null ? 'game' : infoPage ? 'sub' : 'deck'
+// Tiers and the input vector belong to the deck and the info pages only.
+if (Game === null) {
+  initTier()
+  initLook()
+}
+
+// The words and portraits the board publishes from /admin/ are written into
+// the content module before the first render; with no API (or a slow one)
+// the compiled copy renders as is. The loader curtain covers the wait. A
+// draft preview (opened from the admin) layers the unpublished edits on top.
+const draft = isDraftPreview()
+loadLiveContent()
+  .then(() => (draft ? loadDraft() : []))
+  .finally(() => {
+    ReactDOM.createRoot(document.getElementById('root')!).render(
+      <React.StrictMode>{Game
+        ? <React.Suspense fallback={null}><Game /></React.Suspense>
+        : infoPage ? <SubPage id={page} /> : <App />}</React.StrictMode>,
+    )
+    if (draft) markDraftPreview()
+  })
+
+// Deck loads addressed to a chapter (/#events, a sub-page's Back link) cut
+// there once the curtain lifts (a far target is never a glide across the whole
+// deck: scrollToId decides) — unless the reader
+// is coming back from a sub-page, in which case scroll.ts restores the exact
+// spot they left and the glide must stay out of the way.
+let returningToSpot = false
+try {
+  returningToSpot = sessionStorage.getItem('cgs-return') !== null
+} catch {
+  /* private mode */
+}
+if (!standalone && !returningToSpot) {
+  const chapter = location.hash.match(/^#([a-z-]+)$/)?.[1]
+  if (chapter) {
+    const go = () => window.setTimeout(() => scrollToId(chapter), 250)
+    if ((window as { __cgsShown?: boolean }).__cgsShown) go()
+    else window.addEventListener(BOOTED_EVENT, go, { once: true })
+  }
+}
