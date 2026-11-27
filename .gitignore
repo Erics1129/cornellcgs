@@ -46,3 +46,6 @@ unity/CarrotDefense/Assets/Private/CarrotLicensedVFX/
 unity/CarrotDefense/Assets/Private/CarrotLicensedVFX.meta
 unity/CarrotDefense/Assets/Resources/Carrot/LicensedFx/
 unity/CarrotDefense/Assets/Resources/Carrot/LicensedFx.meta
+
+# scripts/film-sync.mjs keeps the three.js package it vendors here (fetched once with npm pack)
+.film-cache/
