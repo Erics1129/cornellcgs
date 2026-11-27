@@ -1,5 +1,5 @@
 {
- "at": "2026-11-27T05:50:34.824Z",
+ "at": "2026-11-27T05:59:40.493Z",
  "from": "/Users/eric/Claude/cgs-redesign/picker",
  "minified": true,
  "three": "0.170.0",
@@ -432,8 +432,8 @@
    "23ac285f1432"
   ],
   "kit/worlds/future/index.js": [
-   15258,
-   "b047aa315b51"
+   15401,
+   "2e9b8da7fbf6"
   ],
   "kit/worlds/future/orbital.js": [
    28836,
@@ -568,8 +568,8 @@
    "1d6026b45023"
   ],
   "kit/worlds/galaxy/index.js": [
-   2214,
-   "fb0b74f09637"
+   2347,
+   "6f8ea95308a3"
   ],
   "kit/worlds/galaxy/nebula.js": [
    11413,
@@ -612,8 +612,8 @@
    "43dce9ddb826"
   ],
   "kit/worlds/machine/index.js": [
-   1744,
-   "8980eb52923b"
+   1887,
+   "66d18528ae0c"
   ],
   "kit/worlds/machine/lightdesk.js": [
    37884,
@@ -684,8 +684,8 @@
    "d959bcaa0c7f"
   ],
   "kit/worlds/ocean/index.js": [
-   33138,
-   "910e9f273289"
+   33271,
+   "9893ea000c1a"
   ],
   "kit/worlds/ocean/kelp.js": [
    24328,
@@ -1576,8 +1576,8 @@
    "c53a4151739d"
   ],
   "site/mount.js": [
-   1965,
-   "b0028744464e"
+   2130,
+   "44d986946edb"
   ],
   "site/og/about.jpg": [
    65178,
@@ -1985,7 +1985,7 @@
   ],
   "preload.json": [
    1947,
-   "17fea5c30f24"
+   "3d8e9a21f310"
   ]
  }
 }
