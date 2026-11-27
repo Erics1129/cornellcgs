@@ -20,7 +20,10 @@ export type FilmStart = {
 }
 
 const ROOT = '/film/'
-const ENTRY = ROOT + 'site/main.js'
+// every module of the film is asked for with the build's version (scripts/film-bust.mjs writes window.__filmV and an
+// import map entry per module), so a new deploy is never mixed with files a cache still holds
+const FILM_V = (globalThis as { __filmV?: string }).__filmV
+const ENTRY = ROOT + 'site/main.js' + (FILM_V ? '?v=' + FILM_V : '')
 
 /** The film site's route for an address: '/ourTeam/' -> '/team', '/contact/' -> '/join' (section 'contact'). */
 export function filmRoute(pathname: string): { route: string; section: string | null } {

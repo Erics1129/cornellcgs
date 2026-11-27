@@ -232,3 +232,6 @@ for (const f of ['404.html', 'robots.txt', 'sitemap.xml']) {
   const src = join(SHELL, 'static', f)
   if (existsSync(src)) { copyFileSync(src, join(dist, f)); console.log(`root: /${f} (from the film site)`) }
 }
+
+// the film's modules carry the build's version (see scripts/film-bust.mjs)
+await import('./film-bust.mjs')
