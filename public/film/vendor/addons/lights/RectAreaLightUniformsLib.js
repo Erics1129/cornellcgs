@@ -1,0 +1,1 @@
+import{UniformsLib as L}from"three";import{RectAreaLightTexturesLib as _}from"./RectAreaLightTexturesLib.js";class A{static init(){_.init();const{LTC_FLOAT_1:i,LTC_FLOAT_2:t,LTC_HALF_1:T,LTC_HALF_2:r}=_;L.LTC_FLOAT_1=i,L.LTC_FLOAT_2=t,L.LTC_HALF_1=T,L.LTC_HALF_2=r}}export{A as RectAreaLightUniformsLib};

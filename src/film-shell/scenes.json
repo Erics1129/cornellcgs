@@ -1,0 +1,1020 @@
+{
+ "generated": "2026-11-27T05:20:46.424Z",
+ "scenes": [
+  {
+   "contexts": 1,
+   "assets": [
+    "sky.jpg",
+    "../../films/spiral/film.mp4"
+   ],
+   "assetBytes": [
+    51594,
+    1962907
+   ],
+   "stillsWebkit": false,
+   "k": 0,
+   "slot": "loader",
+   "title": "Loading",
+   "world": "paper",
+   "id": "loader-b",
+   "dir": "loader-b",
+   "first": true,
+   "held": [],
+   "seconds": 8,
+   "kind": "clock",
+   "clock": true,
+   "seam": "unbroken",
+   "planSeam": "opening",
+   "seamDiff": 0,
+   "seamNote": null,
+   "status": "final",
+   "name": "Puzzle",
+   "poster": "protos/loader-b/poster.jpg",
+   "stills": true,
+   "seamIn": {
+    "at": [
+     0.5,
+     0.5
+    ],
+    "size": null,
+    "tone": "#F6F2EA"
+   },
+   "seamOut": {
+    "at": [
+     0.296,
+     0.335
+    ],
+    "size": 0.124,
+    "tone": "#959ba2"
+   },
+   "modules": [
+    "protos/loader-b/index.js",
+    "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+    "kit/film.js",
+    "kit/actors.js",
+    "kit/track.js",
+    "kit/actors/stage.js",
+    "kit/plate.js",
+    "kit/actors/core.js",
+    "kit/actors/shadows.js",
+    "kit/actors/fx.js",
+    "kit/actors/cube.js",
+    "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/geometries/RoundedBoxGeometry.js",
+    "kit/actors/cube-layout.js",
+    "kit/actors/planes.js",
+    "kit/actors/fold.js",
+    "kit/actors/labels.js",
+    "kit/actors/paths.js",
+    "kit/actors/framing.js",
+    "protos/loader-b/common.js"
+   ]
+  },
+  {
+   "contexts": 1,
+   "assets": [
+    "../../films/spiral/film.mp4",
+    "../name-a/sky.jpg",
+    "../../films/spiral/track.json",
+    "dive.mp4",
+    "dive.json"
+   ],
+   "assetBytes": [
+    1962907,
+    43882,
+    41018,
+    595184,
+    4075
+   ],
+   "stillsWebkit": true,
+   "k": 1,
+   "slot": "name",
+   "title": "Cornell Computational Game Society",
+   "world": "sky",
+   "id": "name-b",
+   "dir": "name-b",
+   "first": true,
+   "held": [],
+   "seconds": 9,
+   "kind": "scroll",
+   "clock": false,
+   "seam": "unbroken",
+   "planSeam": "opening",
+   "seamDiff": 0,
+   "seamNote": null,
+   "status": "final",
+   "name": "Skywriting",
+   "poster": "protos/name-b/poster.jpg",
+   "stills": true,
+   "seamIn": {
+    "at": [
+     0.296,
+     0.335
+    ],
+    "size": 0.124,
+    "tone": "#959ba2"
+   },
+   "seamOut": {
+    "at": [
+     0.5,
+     0.6
+    ],
+    "size": 0.13,
+    "tone": "#eee8de"
+   },
+   "modules": [
+    "protos/name-b/index.js",
+    "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+    "kit/actors.js",
+    "kit/track.js",
+    "kit/actors/stage.js",
+    "kit/plate.js",
+    "kit/actors/core.js",
+    "kit/actors/shadows.js",
+    "kit/actors/fx.js",
+    "kit/actors/cube.js",
+    "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/geometries/RoundedBoxGeometry.js",
+    "kit/actors/cube-layout.js",
+    "kit/actors/planes.js",
+    "kit/actors/fold.js",
+    "kit/actors/labels.js",
+    "kit/actors/paths.js",
+    "kit/actors/framing.js",
+    "kit/film.js",
+    "kit/page.js",
+    "protos/name-a/lib.js",
+    "protos/name-b/seamwhite.js",
+    "kit/seams.js"
+   ]
+  },
+  {
+   "contexts": 1,
+   "assets": [
+    "seam-sky.jpg",
+    "../../films/track/film.mp4",
+    "../../films/track/poster.jpg",
+    "../../films/track/track.json",
+    "../../films/track/depth.json",
+    "../../films/track/depth.png",
+    "../../films/track/height.json"
+   ],
+   "assetBytes": [
+    54696,
+    2686714,
+    115303,
+    39013,
+    865,
+    623542,
+    103568
+   ],
+   "stillsWebkit": false,
+   "k": 2,
+   "slot": "planes",
+   "title": "Our members",
+   "world": "sky",
+   "id": "planes-c",
+   "dir": "planes-c",
+   "first": true,
+   "held": [],
+   "seconds": 12,
+   "kind": "scroll",
+   "clock": false,
+   "seam": "unbroken",
+   "planSeam": "opening",
+   "seamDiff": 0,
+   "seamNote": null,
+   "status": "final",
+   "name": "Launch line",
+   "poster": "protos/planes-c/poster.jpg",
+   "stills": true,
+   "seamIn": {
+    "at": [
+     0.5,
+     0.6
+    ],
+    "size": 0.13,
+    "tone": "#eee8de"
+   },
+   "seamOut": {
+    "at": [
+     0.5,
+     0.5
+    ],
+    "size": 0.66,
+    "tone": "#cdc6bc"
+   }
+  },
+  {
+   "contexts": 1,
+   "assets": [
+    "seam-sky.jpg",
+    "../../films/west/film.mp4",
+    "../../films/west/poster.jpg",
+    "../../films/west/track.json",
+    "../../films/west/height.json",
+    "../../films/west/depth.json",
+    "../../films/west/depth.png",
+    "../../kit/worlds/galaxy/assets/bsc5-all.json",
+    "../../kit/worlds/galaxy/assets/milkyway-1024.jpg",
+    "../../kit/worlds/galaxy/assets/milkyway-4096.jpg",
+    "../../kit/props/stars.json",
+    "../../kit/worlds/galaxy/assets/earth-day-1024.jpg",
+    "../../kit/worlds/galaxy/assets/earth-night-1024.jpg",
+    "../../kit/worlds/galaxy/assets/earth-cloud-1024.jpg",
+    "night-region.png"
+   ],
+   "assetBytes": [
+    54696,
+    1930109,
+    101848,
+    44543,
+    60629,
+    864,
+    222439,
+    260002,
+    130907,
+    3829320,
+    73594,
+    115301,
+    54249,
+    112494,
+    68
+   ],
+   "stillsWebkit": true,
+   "k": 3,
+   "slot": "slope",
+   "title": "The Slope to the sky",
+   "world": "sky",
+   "id": "slope-b",
+   "dir": "slope-b",
+   "first": true,
+   "held": [],
+   "seconds": 12,
+   "kind": "scroll",
+   "clock": false,
+   "seam": "match",
+   "planSeam": "match",
+   "seamDiff": 0,
+   "seamNote": null,
+   "status": "final",
+   "name": "Into the sunset",
+   "poster": "protos/slope-b/poster.jpg",
+   "stills": true,
+   "seamIn": {
+    "at": [
+     0.5,
+     0.5
+    ],
+    "size": 0.66,
+    "tone": "#cdc6bc"
+   },
+   "seamOut": {
+    "at": [
+     0.5,
+     0.62
+    ],
+    "size": 0.178,
+    "tone": "#0c0e17"
+   }
+  },
+  {
+   "contexts": 1,
+   "assets": [
+    "../../kit/worlds/galaxy/assets/bsc5-all.json",
+    "../../kit/worlds/galaxy/assets/milkyway-1024.jpg",
+    "../../kit/worlds/galaxy/assets/milkyway-4096.jpg",
+    "../../kit/props/stars.json",
+    "../../kit/worlds/galaxy/assets/earth-day-1024.jpg",
+    "../../kit/worlds/galaxy/assets/earth-night-1024.jpg",
+    "../../kit/worlds/galaxy/assets/earth-cloud-1024.jpg",
+    "../../kit/worlds/galaxy/assets/earth-day-2048.jpg",
+    "../../kit/worlds/galaxy/assets/earth-night-2048.jpg",
+    "../../kit/worlds/galaxy/assets/earth-cloud-2048.jpg",
+    "../../kit/worlds/galaxy/assets/earth-day-atl.jpg",
+    "../../kit/worlds/galaxy/assets/earth-night-atl.jpg",
+    "../../kit/worlds/galaxy/assets/earth-cloud-atl.jpg"
+   ],
+   "assetBytes": [
+    260002,
+    130907,
+    3829320,
+    73594,
+    115301,
+    54249,
+    112494,
+    429967,
+    189378,
+    863907,
+    1255450,
+    795070,
+    3435020
+   ],
+   "stillsWebkit": false,
+   "k": 4,
+   "slot": "work",
+   "title": "Five things we do",
+   "world": "galaxy",
+   "id": "cut-work",
+   "dir": "cut-work",
+   "first": true,
+   "held": [],
+   "seconds": 10,
+   "kind": "scroll",
+   "clock": false,
+   "seam": "unbroken",
+   "planSeam": "unbroken",
+   "seamDiff": 0,
+   "seamNote": null,
+   "status": "final",
+   "name": "Five things we do",
+   "poster": "protos/cut-work/poster.jpg",
+   "stills": true,
+   "seamIn": {
+    "at": [
+     0.5,
+     0.62
+    ],
+    "size": 0.178,
+    "tone": "#0c0e17"
+   },
+   "seamOut": {
+    "at": [
+     0.5,
+     0.62
+    ],
+    "size": 0.342,
+    "tone": "#3c3f51"
+   }
+  },
+  {
+   "contexts": 1,
+   "assets": [
+    "../../kit/worlds/galaxy/assets/bsc5-all.json",
+    "../../kit/worlds/galaxy/assets/milkyway-1024.jpg",
+    "../../kit/worlds/galaxy/assets/milkyway-4096.jpg",
+    "../../kit/props/stars.json",
+    "../../kit/worlds/galaxy/assets/earth-day-1024.jpg",
+    "../../kit/worlds/galaxy/assets/earth-night-1024.jpg",
+    "../../kit/worlds/galaxy/assets/earth-cloud-1024.jpg",
+    "../../kit/worlds/galaxy/assets/earth-day-2048.jpg",
+    "../../kit/worlds/galaxy/assets/earth-night-2048.jpg",
+    "../../kit/worlds/galaxy/assets/earth-cloud-2048.jpg",
+    "../../kit/worlds/galaxy/assets/earth-day-atl.jpg",
+    "../../kit/worlds/galaxy/assets/earth-night-atl.jpg",
+    "../../kit/worlds/galaxy/assets/earth-cloud-atl.jpg"
+   ],
+   "assetBytes": [
+    260002,
+    130907,
+    3829320,
+    73594,
+    115301,
+    54249,
+    112494,
+    429967,
+    189378,
+    863907,
+    1255450,
+    795070,
+    3435020
+   ],
+   "stillsWebkit": false,
+   "k": 5,
+   "slot": "stars",
+   "title": "More deals than stars",
+   "world": "galaxy",
+   "id": "cut-stars",
+   "dir": "cut-stars",
+   "first": true,
+   "held": [],
+   "seconds": 10,
+   "kind": "scroll",
+   "clock": false,
+   "seam": "match",
+   "planSeam": "match",
+   "seamDiff": 0.2,
+   "seamNote": null,
+   "status": "final",
+   "name": "More deals than stars",
+   "poster": "protos/cut-stars/poster.jpg",
+   "stills": true,
+   "seamIn": {
+    "at": [
+     0.5,
+     0.62
+    ],
+    "size": 0.342,
+    "tone": "#3c3f51"
+   },
+   "seamOut": {
+    "at": [
+     0.5,
+     0.42
+    ],
+    "size": 0.068,
+    "tone": "#06070B"
+   }
+  },
+  {
+   "contexts": 1,
+   "assets": [],
+   "assetBytes": [],
+   "stillsWebkit": false,
+   "k": 6,
+   "slot": "who",
+   "title": "Who we are",
+   "world": "machine",
+   "id": "cut-who",
+   "dir": "cut-who",
+   "first": true,
+   "held": [],
+   "seconds": 10,
+   "kind": "scroll",
+   "clock": false,
+   "seam": "match",
+   "planSeam": "match",
+   "seamDiff": 0.5,
+   "seamNote": null,
+   "status": "final",
+   "name": "Who we are",
+   "poster": "protos/cut-who/poster.jpg",
+   "stills": true,
+   "seamIn": {
+    "at": [
+     0.5,
+     0.42
+    ],
+    "size": 0.034,
+    "tone": "#06070B"
+   },
+   "seamOut": {
+    "at": [
+     0.5,
+     0.46
+    ],
+    "size": 1,
+    "tone": "#F4EFE6"
+   }
+  },
+  {
+   "contexts": 1,
+   "assets": [],
+   "assetBytes": [],
+   "stillsWebkit": false,
+   "k": 7,
+   "slot": "guandan",
+   "title": "The Guandan AI",
+   "world": "machine",
+   "id": "cut-guandan",
+   "dir": "cut-guandan",
+   "first": true,
+   "held": [],
+   "seconds": 10,
+   "kind": "scroll",
+   "clock": false,
+   "seam": "match",
+   "planSeam": "match",
+   "seamDiff": 1.1,
+   "seamNote": null,
+   "status": "final",
+   "name": "The bot’s seat",
+   "poster": "protos/cut-guandan/poster.jpg",
+   "stills": true,
+   "seamIn": {
+    "at": [
+     0.5,
+     0.5
+    ],
+    "size": 1,
+    "tone": "#F4EFE6"
+   },
+   "seamOut": {
+    "at": [
+     0.5,
+     0.45
+    ],
+    "size": 0.05,
+    "tone": "#040806"
+   }
+  },
+  {
+   "contexts": 1,
+   "assets": [],
+   "assetBytes": [],
+   "stillsWebkit": false,
+   "k": 8,
+   "slot": "poker",
+   "title": "The poker odds calculator",
+   "world": "machine",
+   "id": "cut-poker",
+   "dir": "cut-poker",
+   "first": true,
+   "held": [],
+   "seconds": 10,
+   "kind": "scroll",
+   "clock": false,
+   "seam": "match",
+   "planSeam": "match",
+   "seamDiff": 2.9,
+   "seamNote": null,
+   "status": "final",
+   "name": "Forty racks",
+   "poster": "protos/cut-poker/poster.jpg",
+   "stills": true,
+   "seamIn": {
+    "at": [
+     0.5,
+     0.45
+    ],
+    "size": 0.05,
+    "tone": "#040806"
+   },
+   "seamOut": {
+    "at": [
+     0.5,
+     0.333
+    ],
+    "size": 0.43,
+    "tone": "#0a0d16"
+   }
+  },
+  {
+   "contexts": 2,
+   "assets": [
+    "../../kit/old/eye/center.webp",
+    "../../kit/old/eye/left.webp",
+    "../../kit/old/eye/right.webp",
+    "../../kit/old/eye/up.webp",
+    "../../kit/old/eye/down.webp",
+    "../../kit/old/eye/quarter.webp",
+    "../../kit/old/eye/half.webp",
+    "../../kit/old/eye/threequarter.webp",
+    "../../kit/old/eye/closed.webp"
+   ],
+   "assetBytes": [
+    59676,
+    57378,
+    58068,
+    54082,
+    59206,
+    61494,
+    60056,
+    64720,
+    61174
+   ],
+   "stillsWebkit": false,
+   "k": 9,
+   "slot": "code",
+   "title": "Read the code",
+   "world": "machine",
+   "id": "cut-code",
+   "dir": "cut-code",
+   "first": true,
+   "held": [],
+   "seconds": 10,
+   "kind": "scroll",
+   "clock": false,
+   "seam": "match",
+   "planSeam": "match",
+   "seamDiff": 38,
+   "seamNote": null,
+   "status": "final",
+   "name": "Read the code",
+   "poster": "protos/cut-code/poster.jpg",
+   "stills": true,
+   "seamIn": {
+    "at": [
+     0.5,
+     0.34
+    ],
+    "size": 0.43,
+    "tone": "#0a0d16"
+   },
+   "seamOut": {
+    "at": [
+     0.5,
+     0.5
+    ],
+    "size": 0.3,
+    "tone": "#1b2536"
+   }
+  },
+  {
+   "contexts": 1,
+   "assets": [
+    "../../kit/worlds/galaxy/assets/bsc5-all.json",
+    "../../kit/worlds/galaxy/assets/milkyway-1024.jpg",
+    "../../kit/worlds/galaxy/assets/milkyway-4096.jpg",
+    "../../kit/props/stars.json",
+    "../../kit/worlds/galaxy/assets/earth-day-1024.jpg",
+    "../../kit/worlds/galaxy/assets/earth-night-1024.jpg",
+    "../../kit/worlds/galaxy/assets/earth-cloud-1024.jpg",
+    "../../kit/worlds/galaxy/assets/earth-day-2048.jpg",
+    "../../kit/worlds/galaxy/assets/earth-night-2048.jpg",
+    "../../kit/worlds/galaxy/assets/earth-cloud-2048.jpg",
+    "../../kit/worlds/galaxy/assets/earth-day-atl.jpg",
+    "../../kit/worlds/galaxy/assets/earth-night-atl.jpg",
+    "../../kit/worlds/galaxy/assets/earth-cloud-atl.jpg"
+   ],
+   "assetBytes": [
+    260002,
+    130907,
+    3829320,
+    73594,
+    115301,
+    54249,
+    112494,
+    429967,
+    189378,
+    863907,
+    1255450,
+    795070,
+    3435020
+   ],
+   "stillsWebkit": false,
+   "k": 10,
+   "slot": "selfplay",
+   "title": "How our AI learns",
+   "world": "future",
+   "id": "cut-selfplay",
+   "dir": "cut-selfplay",
+   "first": true,
+   "held": [],
+   "seconds": 10,
+   "kind": "scroll",
+   "clock": false,
+   "seam": "match",
+   "planSeam": "match",
+   "seamDiff": 1.3,
+   "seamNote": null,
+   "status": "final",
+   "name": "Plays both sides",
+   "poster": "protos/cut-selfplay/poster.jpg",
+   "stills": true,
+   "seamIn": {
+    "at": [
+     0.5,
+     0.5
+    ],
+    "size": 0.3,
+    "tone": "#1b2438"
+   },
+   "seamOut": {
+    "at": [
+     0.5,
+     0.5
+    ],
+    "size": 1,
+    "tone": "#f2ece8"
+   }
+  },
+  {
+   "contexts": 1,
+   "assets": [],
+   "assetBytes": [],
+   "stillsWebkit": false,
+   "k": 11,
+   "slot": "alphago",
+   "title": "The AlphaGo story",
+   "world": "future",
+   "id": "cut-alphago",
+   "dir": "cut-alphago",
+   "first": true,
+   "held": [],
+   "seconds": 10,
+   "kind": "scroll",
+   "clock": false,
+   "seam": "match",
+   "planSeam": "match",
+   "seamDiff": 1.7,
+   "seamNote": null,
+   "status": "final",
+   "name": "One arm, two hands",
+   "poster": "protos/cut-alphago/poster.jpg",
+   "stills": true,
+   "seamIn": {
+    "at": [
+     0.5,
+     0.5
+    ],
+    "size": 1,
+    "tone": "#f2ece8"
+   },
+   "seamOut": {
+    "at": [
+     0.5,
+     0.45
+    ],
+    "size": 0.11,
+    "tone": "#ecdfd6"
+   }
+  },
+  {
+   "contexts": 1,
+   "assets": [
+    "seam-in-corner.png",
+    "../../kit/worlds/galaxy/assets/cosmic-cliffs-1024.jpg",
+    "../../kit/worlds/galaxy/assets/cosmic-cliffs-4096.jpg"
+   ],
+   "assetBytes": [
+    50110,
+    137180,
+    2069539
+   ],
+   "stillsWebkit": false,
+   "k": 12,
+   "slot": "next",
+   "title": "What comes next",
+   "world": "galaxy",
+   "id": "cut-next",
+   "dir": "cut-next",
+   "first": true,
+   "held": [],
+   "seconds": 10,
+   "kind": "scroll",
+   "clock": false,
+   "seam": "match",
+   "planSeam": "match",
+   "seamDiff": 0.6,
+   "seamNote": null,
+   "status": "final",
+   "name": "Three clay moons",
+   "poster": "protos/cut-next/poster.jpg",
+   "stills": true,
+   "seamIn": {
+    "at": [
+     0.5,
+     0.45
+    ],
+    "size": 0.109,
+    "tone": "#efe2d7"
+   },
+   "seamOut": {
+    "at": [
+     0.5,
+     0.62
+    ],
+    "size": 1,
+    "tone": "#2E9FC2"
+   }
+  },
+  {
+   "contexts": 1,
+   "assets": [
+    "../../films/ocean-deep/poster.jpg",
+    "../../films/ocean-deep/track.json",
+    "../../kit/worlds/ocean/assets/sand_col_256.jpg",
+    "../../kit/worlds/ocean/assets/sand_nor_256.jpg",
+    "../../kit/worlds/ocean/assets/boulder_col_256.jpg",
+    "../../kit/worlds/ocean/assets/boulder_nor_256.jpg",
+    "../../kit/worlds/ocean/assets/sand_col_1k.jpg",
+    "../../kit/worlds/ocean/assets/sand_nor_1k.jpg",
+    "../../kit/worlds/ocean/assets/boulder_col_1k.jpg",
+    "../../kit/worlds/ocean/assets/boulder_nor_1k.jpg"
+   ],
+   "assetBytes": [
+    45690,
+    115113,
+    34020,
+    38051,
+    27349,
+    21177,
+    549373,
+    720360,
+    419914,
+    368146
+   ],
+   "stillsWebkit": false,
+   "k": 13,
+   "slot": "games",
+   "title": "Our mini games",
+   "world": "ocean",
+   "id": "cut-games",
+   "dir": "cut-games",
+   "first": true,
+   "held": [],
+   "seconds": 10,
+   "kind": "scroll",
+   "clock": false,
+   "seam": "unbroken",
+   "planSeam": "unbroken",
+   "seamDiff": 1,
+   "seamNote": null,
+   "status": "final",
+   "name": "Ink on the sand",
+   "poster": "protos/cut-games/poster.jpg",
+   "stills": true,
+   "seamIn": {
+    "at": [
+     0.5,
+     0.62
+    ],
+    "size": 0.0068,
+    "tone": "#2E9FC2"
+   },
+   "seamOut": {
+    "at": [
+     0.5,
+     0.62
+    ],
+    "size": 0.1,
+    "tone": "films/ocean-deep frame 0"
+   }
+  },
+  {
+   "contexts": 1,
+   "assets": [
+    "poster.jpg",
+    "../../films/ocean-deep/poster.jpg",
+    "../../films/ocean-deep/track.json",
+    "../../films/ocean-deep/film.mp4",
+    "../../films/ocean-deep/depth.json",
+    "../../films/ocean-deep/depth.png",
+    "../../films/ocean-deep/glow.mp4"
+   ],
+   "assetBytes": [
+    34844,
+    45690,
+    115113,
+    3915688,
+    958,
+    528680,
+    100962
+   ],
+   "stillsWebkit": false,
+   "k": 14,
+   "slot": "events",
+   "title": "When we meet",
+   "world": "ocean",
+   "id": "cut-events",
+   "dir": "cut-events",
+   "first": true,
+   "held": [],
+   "seconds": 10,
+   "kind": "scroll",
+   "clock": false,
+   "seam": "veil",
+   "planSeam": "match",
+   "seamDiff": 133,
+   "seamNote": null,
+   "status": "final",
+   "name": "Ring the bell",
+   "poster": "protos/cut-events/poster.jpg",
+   "stills": true,
+   "seamIn": {
+    "at": null,
+    "size": null,
+    "tone": null
+   },
+   "seamOut": {
+    "at": null,
+    "size": null,
+    "tone": null
+   }
+  },
+  {
+   "contexts": 1,
+   "assets": [
+    "poster.jpg",
+    "../../kit/worlds/ocean/assets/sand_col_256.jpg",
+    "../../kit/worlds/ocean/assets/sand_nor_256.jpg",
+    "../../kit/worlds/ocean/assets/boulder_col_256.jpg",
+    "../../kit/worlds/ocean/assets/boulder_nor_256.jpg",
+    "../../kit/worlds/ocean/assets/sand_col_1k.jpg",
+    "../../kit/worlds/ocean/assets/sand_nor_1k.jpg",
+    "../../kit/worlds/ocean/assets/boulder_col_1k.jpg",
+    "../../kit/worlds/ocean/assets/boulder_nor_1k.jpg"
+   ],
+   "assetBytes": [
+    123537,
+    34020,
+    38051,
+    27349,
+    21177,
+    549373,
+    720360,
+    419914,
+    368146
+   ],
+   "stillsWebkit": false,
+   "k": 15,
+   "slot": "dropin",
+   "title": "Drop in",
+   "world": "ocean",
+   "id": "dropin-a",
+   "dir": "dropin-a",
+   "first": false,
+   "held": [
+    "cut-dropin"
+   ],
+   "seconds": 9,
+   "kind": "scroll",
+   "clock": false,
+   "seam": "veil",
+   "planSeam": "match",
+   "seamDiff": 106,
+   "seamNote": null,
+   "status": "pick",
+   "name": "Like the ice",
+   "poster": "protos/dropin-a/poster.jpg",
+   "stills": true,
+   "seamIn": null,
+   "seamOut": null
+  },
+  {
+   "contexts": 1,
+   "assets": [
+    "../../kit/worlds/ocean/assets/rocks_col_256.jpg",
+    "../../kit/worlds/ocean/assets/rocks_nor_256.jpg",
+    "../../kit/worlds/ocean/assets/rocks_col_1k.jpg",
+    "../../kit/worlds/ocean/assets/rocks_nor_1k.jpg"
+   ],
+   "assetBytes": [
+    33326,
+    28910,
+    565129,
+    689410
+   ],
+   "stillsWebkit": false,
+   "k": 16,
+   "slot": "join",
+   "title": "Pull up a chair",
+   "world": "ocean",
+   "id": "cut-join",
+   "dir": "cut-join",
+   "first": true,
+   "held": [],
+   "seconds": 10,
+   "kind": "scroll",
+   "clock": false,
+   "seam": "match",
+   "planSeam": "match",
+   "seamDiff": 0.1,
+   "seamNote": null,
+   "status": "final",
+   "name": "The school makes room",
+   "poster": "protos/cut-join/poster.jpg",
+   "stills": true,
+   "seamIn": {
+    "at": [
+     0.63,
+     0.2
+    ],
+    "size": 0.14,
+    "tone": "#521002"
+   },
+   "seamOut": {
+    "at": [
+     0.5,
+     0.45
+    ],
+    "size": 0.3,
+    "tone": "#2d2312"
+   }
+  },
+  {
+   "contexts": 1,
+   "assets": [
+    "stills.jpg"
+   ],
+   "assetBytes": [
+    218528
+   ],
+   "stillsWebkit": false,
+   "k": 17,
+   "slot": "end",
+   "title": "The last frame",
+   "world": "paper",
+   "id": "cut-end",
+   "dir": "cut-end",
+   "first": true,
+   "held": [],
+   "seconds": 9,
+   "kind": "scroll",
+   "clock": false,
+   "seam": null,
+   "planSeam": null,
+   "seamNote": null,
+   "status": "final",
+   "name": "Back into the cube",
+   "poster": "protos/cut-end/poster.jpg",
+   "stills": true,
+   "seamIn": {
+    "at": [
+     0.5,
+     0.45
+    ],
+    "size": 0.3,
+    "tone": "#53301f"
+   },
+   "seamOut": {
+    "at": [
+     0.5,
+     0.377
+    ],
+    "size": 0.523,
+    "tone": "#3f2818"
+   }
+  }
+ ],
+ "skipped": []
+}

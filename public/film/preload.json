@@ -1,0 +1,57 @@
+{
+ "note": "The first screen, in fetch order: site/main.js with its static imports, then the opening scenes (loader-b, name-b) with theirs (modules: modulepreload); the fonts site/main.js loads at boot (styles: preload as style); the opening's first still (fetch: preload as fetch, which kit/host.js blobUrl reuses). Written by scripts/film-sync.mjs, read by scripts/vite-film-shell.mjs.",
+ "scenes": [
+  "loader-b",
+  "name-b"
+ ],
+ "modules": [
+  "/film/site/main.js",
+  "/film/vendor/three.module.min.js",
+  "/film/site/host.js",
+  "/film/site/scenes.js",
+  "/film/site/film.js",
+  "/film/site/router.js",
+  "/film/kit/host.js",
+  "/film/site/chrome/sound.js",
+  "/film/kit/feel-spring.js",
+  "/film/kit/feel-scrub.js",
+  "/film/kit/ease.js",
+  "/film/site/mount.js",
+  "/film/kit/feel-sound.js",
+  "/film/kit/names.js",
+  "/film/protos/loader-b/index.js",
+  "/film/kit/film.js",
+  "/film/kit/actors.js",
+  "/film/protos/loader-b/common.js",
+  "/film/kit/track.js",
+  "/film/kit/actors/stage.js",
+  "/film/kit/actors/cube.js",
+  "/film/kit/actors/planes.js",
+  "/film/kit/actors/paths.js",
+  "/film/kit/actors/labels.js",
+  "/film/kit/actors/core.js",
+  "/film/kit/actors/framing.js",
+  "/film/kit/plate.js",
+  "/film/kit/actors/shadows.js",
+  "/film/kit/actors/fx.js",
+  "/film/vendor/addons/geometries/RoundedBoxGeometry.js",
+  "/film/kit/actors/cube-layout.js",
+  "/film/kit/actors/fold.js",
+  "/film/protos/name-b/index.js",
+  "/film/kit/page.js",
+  "/film/protos/name-a/lib.js",
+  "/film/protos/name-b/seamwhite.js",
+  "/film/kit/seams.js"
+ ],
+ "styles": [
+  "https://fonts.googleapis.com/css2?family=Figtree:wght@400..700&display=swap",
+  "https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400..700&display=swap",
+  "https://fonts.googleapis.com/css2?family=Figtree:wght@500;600&display=swap"
+ ],
+ "fetch": [
+  "/film/site/stills/loader-b/in.jpg",
+  "/film/protos/loader-b/sky.jpg"
+ ],
+ "bytes": 1056349,
+ "gzip": 317418
+}

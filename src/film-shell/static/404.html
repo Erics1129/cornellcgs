@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Page not found · Cornell CGS</title>
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#0B1020">
+<link rel="icon" href="/film/site/icons/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/film/site/icons/icon-32.png" type="image/png" sizes="32x32">
+<link rel="apple-touch-icon" href="/film/site/icons/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400..600&family=Figtree:wght@400..700&display=swap">
+<style>
+:root { --paper: #F6F2EA; --plane: #FBF8F1; --soft: rgb(251 248 241 / .72); --hair: rgb(251 248 241 / .16); --carnelian: #E0604F;
+  --serif: Fraunces, "Iowan Old Style", Georgia, serif; --sans: Figtree, system-ui, -apple-system, "Segoe UI", sans-serif; }
+* { box-sizing: border-box; }
+html { background: #0B1020; color: var(--plane); }
+body { margin: 0; min-height: 100vh; min-height: 100svh; font: 420 17px/1.55 var(--sans); -webkit-font-smoothing: antialiased; display: flex; flex-direction: column;
+  background: radial-gradient(120% 90% at 70% 10%, #1A2140 0%, #0F1428 45%, #0A0D1A 100%); }
+::selection { background: rgb(224 96 79 / .35); }
+a { color: inherit; font-weight: 560; text-decoration: none; background: linear-gradient(var(--u, var(--hair)), var(--u, var(--hair))) 0 calc(100% - .04em) / 100% 1px no-repeat; }
+a:hover { --u: currentColor; }
+a:focus-visible { outline: 2px solid var(--carnelian); outline-offset: 3px; border-radius: 3px; }
+.bar { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 18px clamp(20px, 5vw, 64px); position: relative; z-index: 2; }
+.brand { display: inline-flex; align-items: center; gap: 10px; font: 600 16px/1 var(--sans); background: none; min-height: 44px; }
+.brand svg { width: 26px; height: 26px; }
+.bar nav { display: flex; flex-wrap: wrap; gap: 4px 22px; font-size: 15px; }
+.bar nav a { background: none; color: var(--soft); min-height: 44px; display: inline-flex; align-items: center; }
+.bar nav a:hover { color: var(--plane); }
+.sky { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 0; }
+.tw { animation: tw 4.8s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+.tw:nth-of-type(3n) { animation-duration: 6.2s; animation-delay: -2s; }
+.tw:nth-of-type(3n+1) { animation-duration: 5.4s; animation-delay: -3.7s; }
+@keyframes tw { 0%, 100% { opacity: 1; } 50% { opacity: .72; } }
+.bob { animation: bob 7s ease-in-out infinite; }
+@keyframes bob { 0%, 100% { transform: translate(0, 0) rotate(0deg); } 50% { transform: translate(-6px, 5px) rotate(-2.5deg); } }
+main { position: relative; flex: 1; display: grid; grid-template-columns: minmax(0, 1fr); align-items: end; padding: 0 clamp(20px, 5vw, 64px) clamp(28px, 6vh, 64px); min-height: 560px; }
+.stage { position: absolute; inset: -80px 0 0; overflow: hidden; }
+.words { position: relative; z-index: 1; max-width: 640px; min-width: 0; }
+.eyebrow { font: 650 11.5px/1.3 var(--sans); letter-spacing: .12em; text-transform: uppercase; color: var(--soft); margin: 0; }
+h1 { font: 500 clamp(44px, 28px + 4.6vw, 92px)/.96 var(--serif); font-variation-settings: "opsz" 144; letter-spacing: -.024em; margin: .25em 0 .3em; text-wrap: balance; text-shadow: 0 2px 18px rgb(6 8 18 / .6); }
+.lead { font-size: clamp(18px, 16px + .5vw, 21px); color: var(--soft); max-width: 31em; margin: 0 0 26px; text-wrap: pretty; }
+.home { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(220px, 100%), 1fr)); gap: 0 28px; padding: 0; margin: 0; list-style: none; max-width: 760px; }
+.home li { border-top: 1px solid var(--hair); }
+.home a { display: flex; flex-direction: column; gap: 2px; padding: 11px 0 12px; background: none; min-height: 44px; }
+.home a b { font: 560 19px/1.25 var(--serif); font-variation-settings: "opsz" 36; }
+.home a b::after { content: "→"; display: inline-block; margin-left: .3em; transition: translate .2s cubic-bezier(.2,.8,.2,1); color: var(--soft); }
+.home a:hover b::after { translate: 4px 0; color: var(--plane); }
+.home a span { font-size: 14px; color: var(--soft); font-weight: 420; }
+.home li:first-child a b { color: #FFE7BE; }
+.write { margin: 22px 0 0; font-size: 15px; color: var(--soft); }
+.cap { margin: 10px 0 0; font-size: 12.5px; color: rgb(251 248 241 / .5); max-width: 34em; }
+footer { padding: 16px clamp(20px, 5vw, 64px) 22px; font-size: 13px; color: rgb(251 248 241 / .5); border-top: 1px solid rgb(251 248 241 / .08); position: relative; z-index: 1; }
+@media (max-width: 640px) { .bar nav { display: none; } main { min-height: 620px; } .sky { inset: 0 -40px auto auto; width: 760px; height: 475px; } .words { padding-top: 250px; } }
+@media (prefers-reduced-motion: reduce) { .tw, .bob { animation: none; } }
+</style>
+</head>
+<body>
+<header class="bar">
+  <a class="brand" href="/" aria-label="Cornell CGS, home"><svg viewBox="-16 -16 32 32" aria-hidden="true"><path d="M0 -14 L12.1 -7 L0 0 L-12.1 -7 Z" fill="#2FA6A0"/><path d="M-12.1 -7 L0 0 L0 14 L-12.1 7 Z" fill="#EDB43C"/><path d="M12.1 -7 L0 0 L0 14 L12.1 7 Z" fill="#3F78D0"/><path d="M0 -14 L12.1 -7 L12.1 7 L0 14 L-12.1 7 L-12.1 -7 Z" fill="none" stroke="#3B2E26" stroke-width="1"/></svg>Cornell CGS</a>
+  <nav aria-label="Pages"><a href="/whoWeAre/">About</a><a href="/whatWeDo/">Our Work</a><a href="/ourTeam/">Our team</a><a href="/join/">Join CGS</a></nav>
+</header>
+<main>
+  <div class="stage" aria-hidden="true">
+    <svg class="sky" viewBox="0 0 1600 1000" preserveAspectRatio="xMidYMid slice"><defs><radialGradient id="halo"><stop offset="0" stop-color="#fff" stop-opacity=".22"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient></defs><g stroke="#FBF8F1" stroke-opacity=".13" stroke-width="1.2" stroke-dasharray="2 5" stroke-linecap="round"><line x1="925.3" y1="111.4" x2="1223.1" y2="149.6"/><line x1="925.3" y1="111.4" x2="1065.2" y2="478.9"/><line x1="1223.1" y1="149.6" x2="1152.2" y2="414.7"/><line x1="1152.2" y1="414.7" x2="1110.2" y2="450.1"/><line x1="1110.2" y1="450.1" x2="1065.2" y2="478.9"/><line x1="1065.2" y1="478.9" x2="995.5" y2="781.0"/><line x1="1152.2" y1="414.7" x2="1325.1" y2="730.7"/><line x1="925.3" y1="111.4" x2="1123.6" y2="5.9"/><line x1="1223.1" y1="149.6" x2="1123.6" y2="5.9"/></g><circle cx="925.3" cy="111.4" r="27.2" fill="url(#halo)"/><circle cx="1325.1" cy="730.7" r="29.4" fill="url(#halo)"/><circle cx="1245.4" cy="262.0" r="1.10" fill="#c0d0ff"/><circle cx="331.3" cy="966.1" r="1.10" fill="#ffd8ae"/><circle cx="258.4" cy="572.3" r="1.10" fill="#b9caff"/><circle cx="10.2" cy="14.5" r="1.10" fill="#ffe1c0"/><circle cx="1225.5" cy="329.8" r="1.10" fill="#b9caff"/><circle cx="1064.6" cy="447.1" r="1.10" fill="#b7c9ff"/><circle cx="859.3" cy="816.3" r="1.10" fill="#c4d3ff"/><circle cx="182.8" cy="573.6" r="1.10" fill="#ffe0be"/><circle cx="1049.0" cy="345.2" r="1.10" fill="#ffd9af"/><circle cx="683.8" cy="517.4" r="1.10" fill="#ffc48a"/><circle cx="497.9" cy="963.2" r="1.10" fill="#ffc992"/><circle cx="1461.0" cy="693.8" r="1.10" fill="#bacbff"/><circle cx="1082.5" cy="685.5" r="1.10" fill="#e1e8ff"/><circle cx="1473.9" cy="915.6" r="1.10" fill="#ecefff"/><circle cx="1120.6" cy="638.4" r="1.10" fill="#b1c5ff"/><circle cx="951.5" cy="330.6" r="1.10" fill="#ffce9b"/><circle cx="412.1" cy="81.9" r="1.10" fill="#ffcd99"/><circle cx="1254.8" cy="418.1" r="1.10" fill="#bdceff"/><circle cx="1174.6" cy="446.0" r="1.10" fill="#ffc68c"/><circle cx="817.7" cy="990.0" r="1.10" fill="#dae4ff"/><circle cx="475.2" cy="7.5" r="1.10" fill="#b1c5ff"/><circle cx="1151.0" cy="690.2" r="1.10" fill="#b0c4ff"/><circle cx="598.5" cy="677.3" r="1.10" fill="#c7d6ff"/><circle cx="1204.8" cy="280.3" r="1.10" fill="#b7c9ff"/><circle cx="1117.5" cy="592.7" r="1.10" fill="#bacbff"/><circle cx="1082.0" cy="240.8" r="1.10" fill="#c6d5ff"/><circle cx="876.9" cy="522.3" r="1.10" fill="#ffd6a9"/><circle cx="556.0" cy="113.1" r="1.10" fill="#d6e1ff"/><circle cx="1496.4" cy="333.1" r="1.10" fill="#ffcd99"/><circle cx="408.5" cy="307.6" r="1.10" fill="#ffdcb5"/><circle cx="1342.5" cy="288.2" r="1.10" fill="#ffd8ad"/><circle cx="1346.3" cy="880.6" r="1.10" fill="#c7d6ff"/><circle cx="646.2" cy="223.1" r="1.10" fill="#e5ebff"/><circle cx="1126.7" cy="24.1" r="1.10" fill="#bfcfff"/><circle cx="1552.9" cy="626.5" r="1.10" fill="#ebefff"/><circle cx="1586.7" cy="30.7" r="1.10" fill="#d7e2ff"/><circle cx="1336.4" cy="924.2" r="1.10" fill="#c7d6ff"/><circle cx="1272.2" cy="930.6" r="1.10" fill="#b0c4ff"/><circle cx="1380.1" cy="755.0" r="1.11" fill="#bacbff"/><circle cx="1065.2" cy="478.9" r="1.18" fill="#F4F1EA"/><circle cx="1166.1" cy="166.8" r="1.20" fill="#c1d1ff"/><circle cx="163.8" cy="422.9" r="1.25" fill="#d5e0ff"/><circle cx="1230.3" cy="712.1" r="1.26" fill="#ffe4c5"/><circle cx="854.9" cy="21.6" r="1.29" fill="#e4eaff"/><circle cx="1105.9" cy="32.7" r="1.32" fill="#ffe4c6"/><circle cx="349.8" cy="883.0" r="1.34" fill="#ffcc97"/><circle cx="733.8" cy="646.7" r="1.45" fill="#ffd19f"/><circle cx="1084.9" cy="504.7" r="1.64" fill="#b3c6ff"/><circle cx="1543.0" cy="302.7" r="1.75" fill="#bccdff"/><circle cx="911.4" cy="959.6" r="1.76" fill="#f2f3ff"/><circle cx="1578.1" cy="170.6" r="1.78" fill="#bdceff"/><circle cx="1294.5" cy="675.3" r="1.89" fill="#c6d5ff"/><circle cx="1002.5" cy="987.8" r="1.94" fill="#dfe7ff"/><circle cx="1123.6" cy="5.9" r="1.95" fill="#bccdff"/><circle cx="1226.8" cy="497.7" r="2.16" fill="#bdceff"/><circle cx="1593.9" cy="112.9" r="2.36" fill="#f9f6fa"/><circle cx="-5.7" cy="55.9" r="2.69" fill="#c9d7ff"/><circle cx="1395.2" cy="607.4" r="2.82" fill="#e1e8ff"/><circle cx="1116.8" cy="634.7" r="2.84" fill="#b3c6ff"/><circle cx="1152.2" cy="414.7" r="3.46" fill="#b6c8ff"/><circle cx="995.5" cy="781.0" r="3.66" fill="#bdceff"/><circle cx="1065.3" cy="478.9" r="3.67" fill="#b7c9ff"/><circle cx="1110.2" cy="450.1" r="4.07" fill="#bacbff"/><circle cx="1223.1" cy="149.6" r="4.14" fill="#b6c8ff"/><circle cx="925.3" cy="111.4" r="5.45" fill="#ffbb7b" class="tw"/><circle cx="1325.1" cy="730.7" r="5.89" fill="#d2deff" class="tw"/><g class="heroes" transform="translate(1259 623) rotate(-18) scale(1.25)">
+  <g class="bob">
+    <path d="M-62 4 L60 -2 L-40 22 Z" fill="#B8372C"/>
+    <path d="M-62 4 L60 -2 L-44 14 Z" fill="#8E2A22"/>
+    <path d="M-62 4 L60 -2 L-30 -16 Z" fill="#FBF8F1"/>
+    <path d="M-62 4 L60 -2 L-36 -4 Z" fill="#E7DFD1"/>
+    <path d="M-62 4 L60 -2" stroke="#BDB2A0" stroke-width="1.2" stroke-linecap="round"/>
+    <path d="M-30 -16 L60 -2" stroke="#fff" stroke-opacity=".7" stroke-width=".8"/>
+    <g transform="translate(-16 -20) rotate(12)"><path d="M0 -15 L13.5 -7.5 L0 0 L-13.5 -7.5 Z" fill="#F6F0E5"/><path d="M-13.5 -7.5 L0 0 L0 15.5 L-13.5 8 Z" fill="#DCD4C9"/><path d="M13.5 -7.5 L0 0 L0 15.5 L13.5 8 Z" fill="#BDB5BA"/><path d="M-4.5 -12.5 L9 -5 M-9 -10 L4.5 -2.5 M-4.5 -2.5 L-9 -10 M4.5 -2.5 L0 0 M-13.5 -2.5 L0 5 M-13.5 3 L0 10.5 M-4.5 -2.5 L-4.5 13 M-9 -5 L-9 10.5 M4.5 -2.5 L4.5 13 M9 -5 L9 10.5 M0 5 L13.5 -2.5 M0 10.5 L13.5 3" stroke="#8A857C" stroke-width=".45" stroke-opacity=".7" fill="none"/></g>
+  </g>
+</g></svg>
+  </div>
+  <div class="words">
+    <p class="eyebrow">404 · No page at this address</p>
+    <h1>Lost in the deep&nbsp;sky.</h1>
+    <p class="lead">The plane and the cube flew past Orion looking for this page. It is not out here. The way home:</p>
+    <ul class="home"><li><a href="/"><b>The film</b><span>from the top</span></a></li><li><a href="/whoWeAre/"><b>About</b><span>A Cornell club that builds game AI and has fun doing it.</span></a></li><li><a href="/whatWeDo/"><b>Our Work</b><span>What we are building, and what the club does each week.</span></a></li><li><a href="/ourTeam/"><b>Our team</b><span>Board and members of Cornell CGS.</span></a></li><li><a href="/join/"><b>Join CGS</b><span>We take new members every semester.</span></a></li><li><a href="/minigames/"><b>Mini games</b><span>Strategy, craft, and puzzles. Play on your computer or phone.</span></a></li><li><a href="/events/"><b>Events</b><span>Dates go up here once they are set.</span></a></li></ul>
+    <p class="write">Or write to us: <a href="mailto:recruitment@cornellcgs.org">recruitment@cornellcgs.org</a></p>
+    <p class="cap">The stars are real: Orion and its neighbours, from the Yale Bright Star Catalogue (Hoffleit &amp; Warren, NASA ADC).</p>
+  </div>
+</main>
+<footer>© 2026 Cornell CGS · cornellcgs.org · Cornell University · Registered student organization</footer>
+</body>
+</html>

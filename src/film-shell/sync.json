@@ -1,0 +1,1991 @@
+{
+ "at": "2026-11-27T05:24:28.393Z",
+ "from": "/Users/eric/Claude/cgs-redesign/picker",
+ "minified": true,
+ "three": "0.170.0",
+ "scenes": [
+  "loader-b",
+  "name-b",
+  "planes-c",
+  "slope-b",
+  "cut-work",
+  "cut-stars",
+  "cut-who",
+  "cut-guandan",
+  "cut-poker",
+  "cut-code",
+  "cut-selfplay",
+  "cut-alphago",
+  "cut-next",
+  "cut-games",
+  "cut-events",
+  "dropin-a",
+  "cut-join",
+  "cut-end"
+ ],
+ "pages": [
+  "pg-about",
+  "pg-events",
+  "pg-games",
+  "pg-join",
+  "pg-legal",
+  "pg-team",
+  "pg-work"
+ ],
+ "protos": [
+  "cut-alphago",
+  "cut-code",
+  "cut-end",
+  "cut-events",
+  "cut-games",
+  "cut-guandan",
+  "cut-join",
+  "cut-next",
+  "cut-poker",
+  "cut-selfplay",
+  "cut-stars",
+  "cut-who",
+  "cut-work",
+  "dropin-a",
+  "loader-b",
+  "name-a",
+  "name-b",
+  "pg-about",
+  "pg-events",
+  "pg-games",
+  "pg-join",
+  "pg-legal",
+  "pg-team",
+  "pg-work",
+  "planes-c",
+  "slope-b"
+ ],
+ "films": [
+  "ocean-deep",
+  "spiral",
+  "track",
+  "west"
+ ],
+ "externals": [
+  "three",
+  "three/addons/environments/RoomEnvironment.js",
+  "three/addons/geometries/RoundedBoxGeometry.js",
+  "three/addons/lights/RectAreaLightUniformsLib.js",
+  "three/addons/utils/BufferGeometryUtils.js"
+ ],
+ "expectedMissing": [
+  {
+   "from": "site/main.js",
+   "spec": "site/notes.js"
+  }
+ ],
+ "shell": [
+  "site.html",
+  "head.html",
+  "words.html",
+  "meta.json",
+  "scenes.json",
+  "static/404.html",
+  "static/robots.txt",
+  "static/sitemap.xml"
+ ],
+ "warnings": [],
+ "files": {
+  "films/ocean-deep/depth.json": [
+   767,
+   "974702378c9c"
+  ],
+  "films/ocean-deep/depth.png": [
+   528680,
+   "06dbecac46ee"
+  ],
+  "films/ocean-deep/film.mp4": [
+   3915688,
+   "d771c518b64f"
+  ],
+  "films/ocean-deep/glow.mp4": [
+   100962,
+   "fec764fe594c"
+  ],
+  "films/ocean-deep/live.js": [
+   3457,
+   "4a4590e812be"
+  ],
+  "films/ocean-deep/poster.jpg": [
+   45690,
+   "2358e9a39833"
+  ],
+  "films/ocean-deep/still.jpg": [
+   137738,
+   "ddb2ccec7da1"
+  ],
+  "films/ocean-deep/track.json": [
+   114584,
+   "47b5a0ddee85"
+  ],
+  "films/spiral/depth.json": [
+   682,
+   "dd77deec1a9d"
+  ],
+  "films/spiral/depth.png": [
+   304514,
+   "303c385218a2"
+  ],
+  "films/spiral/film.mp4": [
+   1962907,
+   "e8d0f23396d5"
+  ],
+  "films/spiral/height.bin": [
+   85164,
+   "2d70bc2b3b7f"
+  ],
+  "films/spiral/height.json": [
+   56869,
+   "b9754b078290"
+  ],
+  "films/spiral/poster.jpg": [
+   112925,
+   "7042b7eecbe3"
+  ],
+  "films/spiral/track.json": [
+   40611,
+   "c5969db8022f"
+  ],
+  "films/track/depth.json": [
+   678,
+   "ad08d9af147e"
+  ],
+  "films/track/depth.png": [
+   623542,
+   "c0e998cf1db3"
+  ],
+  "films/track/film.mp4": [
+   2686714,
+   "14b8ab9c9a8a"
+  ],
+  "films/track/height.bin": [
+   155204,
+   "35f8b0dd00cb"
+  ],
+  "films/track/height.json": [
+   103568,
+   "4e926e134061"
+  ],
+  "films/track/poster.jpg": [
+   115303,
+   "127ba879c0d9"
+  ],
+  "films/track/track.json": [
+   38652,
+   "8a410a18d2f6"
+  ],
+  "films/west/depth.json": [
+   673,
+   "4d4b02bc3e9c"
+  ],
+  "films/west/depth.png": [
+   222439,
+   "a9aa601f1963"
+  ],
+  "films/west/film.mp4": [
+   1930109,
+   "38db41525977"
+  ],
+  "films/west/height.bin": [
+   90804,
+   "b8cfb398950e"
+  ],
+  "films/west/height.json": [
+   60629,
+   "be6be56e0143"
+  ],
+  "films/west/poster.jpg": [
+   101848,
+   "ad8a304153b4"
+  ],
+  "films/west/track.json": [
+   44343,
+   "89f83899ddd3"
+  ],
+  "kit/actors.js": [
+   1685,
+   "a93c1a08cdf2"
+  ],
+  "kit/actors/core.js": [
+   8634,
+   "c3281f066d82"
+  ],
+  "kit/actors/cube-layout.js": [
+   5612,
+   "bc44f5b317f1"
+  ],
+  "kit/actors/cube.js": [
+   25897,
+   "1c5038de75f7"
+  ],
+  "kit/actors/fold.js": [
+   8153,
+   "a63cc299de52"
+  ],
+  "kit/actors/framing.js": [
+   724,
+   "589743780cf2"
+  ],
+  "kit/actors/fx.js": [
+   12847,
+   "03ef7346b6f6"
+  ],
+  "kit/actors/labels.js": [
+   5895,
+   "4f3a6799b343"
+  ],
+  "kit/actors/paths.js": [
+   4126,
+   "b9581b2340b7"
+  ],
+  "kit/actors/planes.js": [
+   21613,
+   "a3ea5ae7eb1f"
+  ],
+  "kit/actors/shadows.js": [
+   8093,
+   "0ce800107862"
+  ],
+  "kit/actors/stage.js": [
+   17169,
+   "ac832233487a"
+  ],
+  "kit/camera.js": [
+   36301,
+   "79da9435c6b4"
+  ],
+  "kit/cast/iris.js": [
+   3631,
+   "27efafb1a129"
+  ],
+  "kit/cast/pair.js": [
+   6756,
+   "ea4fe9ac0531"
+  ],
+  "kit/ease.js": [
+   3051,
+   "9dfac2cdc338"
+  ],
+  "kit/feel-controls.js": [
+   29874,
+   "edef35ce13ce"
+  ],
+  "kit/feel-gl.js": [
+   4881,
+   "d265d33247a2"
+  ],
+  "kit/feel-parts.js": [
+   22003,
+   "989c4eb4aec3"
+  ],
+  "kit/feel-scrub.js": [
+   6388,
+   "e07c46d5adb1"
+  ],
+  "kit/feel-sound.js": [
+   14477,
+   "7c9f6ef3dc3b"
+  ],
+  "kit/feel-spring.js": [
+   1915,
+   "76b637a574de"
+  ],
+  "kit/feel.js": [
+   42724,
+   "b9116a3ac9c5"
+  ],
+  "kit/film.js": [
+   4111,
+   "1b63ba085ad5"
+  ],
+  "kit/host.js": [
+   3968,
+   "ababc7e1996e"
+  ],
+  "kit/names.js": [
+   1183,
+   "046afca88719"
+  ],
+  "kit/old/eye-glsl.js": [
+   13090,
+   "a2e28f671497"
+  ],
+  "kit/old/eye.js": [
+   11345,
+   "d8ab9bf86ac7"
+  ],
+  "kit/old/eye/center.webp": [
+   59676,
+   "69ff2ac9b086"
+  ],
+  "kit/old/eye/closed.webp": [
+   61174,
+   "91e083e2af5b"
+  ],
+  "kit/old/eye/down.webp": [
+   59206,
+   "ce3e8da85496"
+  ],
+  "kit/old/eye/half.webp": [
+   60056,
+   "76d6e857bc1a"
+  ],
+  "kit/old/eye/left.webp": [
+   57378,
+   "1cb616fa6edb"
+  ],
+  "kit/old/eye/quarter.webp": [
+   61494,
+   "9266558d8b2d"
+  ],
+  "kit/old/eye/right.webp": [
+   58068,
+   "c2ceb7245a06"
+  ],
+  "kit/old/eye/threequarter.webp": [
+   64720,
+   "b34a28cbf3ec"
+  ],
+  "kit/old/eye/up.webp": [
+   54082,
+   "803ccb34689e"
+  ],
+  "kit/old/globe.js": [
+   6567,
+   "98d9defb2ee9"
+  ],
+  "kit/old/reflection.js": [
+   4688,
+   "4b7a00b5aa35"
+  ],
+  "kit/page.css": [
+   10565,
+   "8489fd81ba7e"
+  ],
+  "kit/page.js": [
+   17004,
+   "344ba3128736"
+  ],
+  "kit/plate.js": [
+   25704,
+   "f7b75f9b1aee"
+  ],
+  "kit/props/blocks.js": [
+   9090,
+   "53e6322b044c"
+  ],
+  "kit/props/cards.js": [
+   21300,
+   "badd82c27806"
+  ],
+  "kit/props/contact.js": [
+   5129,
+   "289031f6c3f1"
+  ],
+  "kit/props/cup.js": [
+   7787,
+   "91f096d1c7cf"
+  ],
+  "kit/props/sheet.js": [
+   29691,
+   "52815d6d66a2"
+  ],
+  "kit/props/stars.js": [
+   7483,
+   "5c25c2688d56"
+  ],
+  "kit/props/stars.json": [
+   71933,
+   "ca5321b07417"
+  ],
+  "kit/props/stones.js": [
+   11302,
+   "dc7e2014b77a"
+  ],
+  "kit/seams.js": [
+   3734,
+   "0a1667f93e34"
+  ],
+  "kit/solver/equity.js": [
+   2977,
+   "a26409f35941"
+  ],
+  "kit/track.js": [
+   3444,
+   "44b8ee454cf0"
+  ],
+  "kit/worlds/filmlook.js": [
+   9217,
+   "979dbffdae29"
+  ],
+  "kit/worlds/future/assets/spiral-86.jpg": [
+   32833,
+   "9b80ede86284"
+  ],
+  "kit/worlds/future/cast.js": [
+   46601,
+   "23ac285f1432"
+  ],
+  "kit/worlds/future/index.js": [
+   15258,
+   "b047aa315b51"
+  ],
+  "kit/worlds/future/orbital.js": [
+   28836,
+   "ee3efd8f6d9d"
+  ],
+  "kit/worlds/future/shots/orbital.js": [
+   2110,
+   "957cdd9920a9"
+  ],
+  "kit/worlds/future/shots/slope2126.js": [
+   10661,
+   "37c0ee5c3eaf"
+  ],
+  "kit/worlds/future/skycity-build.js": [
+   9022,
+   "fb9c47d49ec6"
+  ],
+  "kit/worlds/future/skycity-gen.js": [
+   6371,
+   "3141c9c6dbb9"
+  ],
+  "kit/worlds/future/skycity-glsl.js": [
+   26746,
+   "083353e07e7c"
+  ],
+  "kit/worlds/future/skycity.js": [
+   13594,
+   "0719244a8d47"
+  ],
+  "kit/worlds/future/structures.js": [
+   31621,
+   "01602fecc368"
+  ],
+  "kit/worlds/galaxy/assets/bsc5-all.json": [
+   260002,
+   "3a568e81f968"
+  ],
+  "kit/worlds/galaxy/assets/cosmic-cliffs-1024.jpg": [
+   137180,
+   "9021fa6bd3b7"
+  ],
+  "kit/worlds/galaxy/assets/cosmic-cliffs-4096.jpg": [
+   2069539,
+   "54bfc1510cd9"
+  ],
+  "kit/worlds/galaxy/assets/earth-cloud-1024.jpg": [
+   112494,
+   "df97712c3756"
+  ],
+  "kit/worlds/galaxy/assets/earth-cloud-2048.jpg": [
+   863907,
+   "c0b8b1951daa"
+  ],
+  "kit/worlds/galaxy/assets/earth-cloud-atl.jpg": [
+   3435020,
+   "f178682f2709"
+  ],
+  "kit/worlds/galaxy/assets/earth-clouds-1024.jpg": [
+   188391,
+   "7d182696e316"
+  ],
+  "kit/worlds/galaxy/assets/earth-clouds-2048.jpg": [
+   1114573,
+   "601013d4029b"
+  ],
+  "kit/worlds/galaxy/assets/earth-day-1024.jpg": [
+   115301,
+   "1ab0c347da30"
+  ],
+  "kit/worlds/galaxy/assets/earth-day-2048.jpg": [
+   429967,
+   "d2d9f4d9e173"
+  ],
+  "kit/worlds/galaxy/assets/earth-day-atl.jpg": [
+   1255450,
+   "4747a0c894fd"
+  ],
+  "kit/worlds/galaxy/assets/earth-day-region.jpg": [
+   1366919,
+   "4c57b19c3826"
+  ],
+  "kit/worlds/galaxy/assets/earth-night-1024.jpg": [
+   54249,
+   "315d342dda3c"
+  ],
+  "kit/worlds/galaxy/assets/earth-night-2048.jpg": [
+   189378,
+   "112d626f2c18"
+  ],
+  "kit/worlds/galaxy/assets/earth-night-atl.jpg": [
+   795070,
+   "acf932eeb487"
+  ],
+  "kit/worlds/galaxy/assets/earth-night-region.jpg": [
+   688348,
+   "bc048ac974b2"
+  ],
+  "kit/worlds/galaxy/assets/milkyway-1024.jpg": [
+   130907,
+   "51da11e66025"
+  ],
+  "kit/worlds/galaxy/assets/milkyway-4096.jpg": [
+   3829320,
+   "6ca64dd406f2"
+  ],
+  "kit/worlds/galaxy/assets/moon-albedo-2048.jpg": [
+   1138878,
+   "b827b0e9380a"
+  ],
+  "kit/worlds/galaxy/assets/moon-albedo-512.jpg": [
+   59275,
+   "de1979a80f26"
+  ],
+  "kit/worlds/galaxy/assets/moon-slope-2048.jpg": [
+   744509,
+   "8bb673867fed"
+  ],
+  "kit/worlds/galaxy/assets/moon-slope-512.jpg": [
+   60007,
+   "95d125fac17e"
+  ],
+  "kit/worlds/galaxy/cast.js": [
+   28631,
+   "e1a87e5c85b6"
+  ],
+  "kit/worlds/galaxy/common.js": [
+   2810,
+   "261209d38394"
+  ],
+  "kit/worlds/galaxy/deepsky.js": [
+   13016,
+   "1d6026b45023"
+  ],
+  "kit/worlds/galaxy/index.js": [
+   2214,
+   "fb0b74f09637"
+  ],
+  "kit/worlds/galaxy/nebula.js": [
+   11413,
+   "e37861bb03e9"
+  ],
+  "kit/worlds/galaxy/orbit.js": [
+   27099,
+   "4dd358cade03"
+  ],
+  "kit/worlds/galaxy/shots/deepsky.js": [
+   4566,
+   "f9c6d1d37b6c"
+  ],
+  "kit/worlds/galaxy/shots/nebula.js": [
+   4354,
+   "336c839043ff"
+  ],
+  "kit/worlds/galaxy/shots/orbit.js": [
+   2537,
+   "814927722bcb"
+  ],
+  "kit/worlds/galaxy/sky.js": [
+   10233,
+   "d6c9b1b0e575"
+  ],
+  "kit/worlds/hold.js": [
+   923,
+   "1c8a15fd1557"
+  ],
+  "kit/worlds/machine/board.js": [
+   44350,
+   "6fb23271b179"
+  ],
+  "kit/worlds/machine/cast.js": [
+   40184,
+   "f5d661961251"
+  ],
+  "kit/worlds/machine/hall.js": [
+   34751,
+   "43dce9ddb826"
+  ],
+  "kit/worlds/machine/index.js": [
+   1744,
+   "8980eb52923b"
+  ],
+  "kit/worlds/machine/lightdesk.js": [
+   37884,
+   "204b3251cf9c"
+  ],
+  "kit/worlds/machine/post.js": [
+   12277,
+   "bc1fb35f2ddf"
+  ],
+  "kit/worlds/machine/rig.js": [
+   2085,
+   "14626508efaf"
+  ],
+  "kit/worlds/ocean/assets/boulder_col_1k.jpg": [
+   419914,
+   "c386c019873a"
+  ],
+  "kit/worlds/ocean/assets/boulder_col_256.jpg": [
+   27349,
+   "381a2dd8fdcc"
+  ],
+  "kit/worlds/ocean/assets/boulder_nor_1k.jpg": [
+   368146,
+   "9696dc145ecc"
+  ],
+  "kit/worlds/ocean/assets/boulder_nor_256.jpg": [
+   21177,
+   "6e116d8260f1"
+  ],
+  "kit/worlds/ocean/assets/rocks_col_1k.jpg": [
+   565129,
+   "1f2ace344b32"
+  ],
+  "kit/worlds/ocean/assets/rocks_col_256.jpg": [
+   33326,
+   "0cfa1a544758"
+  ],
+  "kit/worlds/ocean/assets/rocks_nor_1k.jpg": [
+   689410,
+   "c0e39369c51a"
+  ],
+  "kit/worlds/ocean/assets/rocks_nor_256.jpg": [
+   28910,
+   "579ed9ab973d"
+  ],
+  "kit/worlds/ocean/assets/sand_col_1k.jpg": [
+   549373,
+   "f05265857a6c"
+  ],
+  "kit/worlds/ocean/assets/sand_col_256.jpg": [
+   34020,
+   "d3db9e80799f"
+  ],
+  "kit/worlds/ocean/assets/sand_nor_1k.jpg": [
+   720360,
+   "8574b9bde0fc"
+  ],
+  "kit/worlds/ocean/assets/sand_nor_256.jpg": [
+   38051,
+   "9d8ae8b756b7"
+  ],
+  "kit/worlds/ocean/cast.js": [
+   46931,
+   "6a34b61b5cdd"
+  ],
+  "kit/worlds/ocean/glsl.js": [
+   29741,
+   "d959bcaa0c7f"
+  ],
+  "kit/worlds/ocean/index.js": [
+   33138,
+   "910e9f273289"
+  ],
+  "kit/worlds/ocean/kelp.js": [
+   24328,
+   "594a81a3d8fc"
+  ],
+  "kit/worlds/ocean/shots/deep.js": [
+   4042,
+   "99ef5dce992f"
+  ],
+  "protos/cut-alphago/arm.js": [
+   21745,
+   "f1153565f3be"
+  ],
+  "protos/cut-alphago/index.js": [
+   20878,
+   "76ad2a0e908d"
+  ],
+  "protos/cut-alphago/place.js": [
+   5882,
+   "f7869f618630"
+  ],
+  "protos/cut-alphago/poster.jpg": [
+   128229,
+   "4cb06e51d6fa"
+  ],
+  "protos/cut-alphago/shot.js": [
+   6994,
+   "d4d7c8fa977b"
+  ],
+  "protos/cut-alphago/words.js": [
+   4141,
+   "e33092ddd785"
+  ],
+  "protos/cut-code/calc.js": [
+   1373,
+   "1cc4d1241fd1"
+  ],
+  "protos/cut-code/glass.js": [
+   5040,
+   "6fc831a60d11"
+  ],
+  "protos/cut-code/index.js": [
+   15464,
+   "c470cc6b3bcb"
+  ],
+  "protos/cut-code/motes.js": [
+   4134,
+   "cde351f5b537"
+  ],
+  "protos/cut-code/poster.jpg": [
+   113005,
+   "d3f46c3a6668"
+  ],
+  "protos/cut-code/postmarks.js": [
+   3277,
+   "7d2d36a152a5"
+  ],
+  "protos/cut-code/take.js": [
+   4113,
+   "0c3b000d7aa7"
+  ],
+  "protos/cut-code/ui.js": [
+   11682,
+   "24d9e036a243"
+  ],
+  "protos/cut-end/backdrop.js": [
+   7539,
+   "e8c003042f68"
+  ],
+  "protos/cut-end/codeflow.js": [
+   5317,
+   "e475a2fe3c72"
+  ],
+  "protos/cut-end/foot.js": [
+   13164,
+   "2df756145425"
+  ],
+  "protos/cut-end/index.js": [
+   26720,
+   "a04a904ece5b"
+  ],
+  "protos/cut-end/lamp.js": [
+   11138,
+   "f3079c8b7561"
+  ],
+  "protos/cut-end/marks.js": [
+   7964,
+   "2a22e801111b"
+  ],
+  "protos/cut-end/place.js": [
+   1138,
+   "39003a197861"
+  ],
+  "protos/cut-end/poster.jpg": [
+   115223,
+   "3a8cc6661993"
+  ],
+  "protos/cut-end/shot.js": [
+   689,
+   "acbdb1cfcbb8"
+  ],
+  "protos/cut-end/stills.jpg": [
+   218528,
+   "07783ca00a56"
+  ],
+  "protos/cut-end/story.js": [
+   6110,
+   "40a81225a72a"
+  ],
+  "protos/cut-end/words.js": [
+   1648,
+   "c57c6bfe4414"
+  ],
+  "protos/cut-events/bell.js": [
+   12203,
+   "0204f7391652"
+  ],
+  "protos/cut-events/index.js": [
+   19132,
+   "a432289284fe"
+  ],
+  "protos/cut-events/poster.jpg": [
+   34844,
+   "724245738cb9"
+  ],
+  "protos/cut-games/board.js": [
+   14968,
+   "1a210abc8e1b"
+  ],
+  "protos/cut-games/caustics.js": [
+   3446,
+   "84f9ce274f40"
+  ],
+  "protos/cut-games/heroes.js": [
+   1167,
+   "e900abf85914"
+  ],
+  "protos/cut-games/index.js": [
+   24475,
+   "786b5b9f1936"
+  ],
+  "protos/cut-games/ink.js": [
+   12972,
+   "a012b0d1ca31"
+  ],
+  "protos/cut-games/layout.js": [
+   868,
+   "21f28b3d4074"
+  ],
+  "protos/cut-games/lib.js": [
+   5735,
+   "b9a6a3db8fec"
+  ],
+  "protos/cut-games/poster.jpg": [
+   138615,
+   "abeb3447b641"
+  ],
+  "protos/cut-games/seam.js": [
+   14887,
+   "57c0a5ddcc0b"
+  ],
+  "protos/cut-games/shot.js": [
+   4343,
+   "f973b7243698"
+  ],
+  "protos/cut-games/story.js": [
+   6896,
+   "0c9e1c0a5045"
+  ],
+  "protos/cut-games/words.js": [
+   9869,
+   "d38e0478ccd1"
+  ],
+  "protos/cut-guandan/hand.js": [
+   2566,
+   "e89fdcc90857"
+  ],
+  "protos/cut-guandan/index.js": [
+   19593,
+   "4588a77a45c0"
+  ],
+  "protos/cut-guandan/lib.js": [
+   4814,
+   "433ffa3a0142"
+  ],
+  "protos/cut-guandan/poster.jpg": [
+   128291,
+   "9eb9fe1a6f8d"
+  ],
+  "protos/cut-guandan/props.js": [
+   6202,
+   "a63cc50c95d8"
+  ],
+  "protos/cut-guandan/scene.js": [
+   2247,
+   "03e5b2149762"
+  ],
+  "protos/cut-guandan/seamfx.js": [
+   4581,
+   "5eff32609739"
+  ],
+  "protos/cut-guandan/shot.js": [
+   7524,
+   "4987e7c097b3"
+  ],
+  "protos/cut-guandan/words.js": [
+   8043,
+   "1515132c3014"
+  ],
+  "protos/cut-join/fish.js": [
+   6674,
+   "edb39162ef10"
+  ],
+  "protos/cut-join/index.js": [
+   24320,
+   "09af306f69a4"
+  ],
+  "protos/cut-join/marks.js": [
+   7964,
+   "2a22e801111b"
+  ],
+  "protos/cut-join/poster.jpg": [
+   133349,
+   "f3b7ffb60f4d"
+  ],
+  "protos/cut-join/seam.js": [
+   11117,
+   "3fde5188a913"
+  ],
+  "protos/cut-join/shot.js": [
+   7408,
+   "7ef45e942627"
+  ],
+  "protos/cut-join/words.js": [
+   7007,
+   "d3d3c4955528"
+  ],
+  "protos/cut-join/young.js": [
+   9660,
+   "5cd509105139"
+  ],
+  "protos/cut-next/backdrop.js": [
+   8445,
+   "32c6f1957eff"
+  ],
+  "protos/cut-next/index.js": [
+   12074,
+   "71c2a25ae78c"
+  ],
+  "protos/cut-next/marks.js": [
+   7964,
+   "2a22e801111b"
+  ],
+  "protos/cut-next/moons.js": [
+   15729,
+   "d9217f66f317"
+  ],
+  "protos/cut-next/poster.jpg": [
+   128221,
+   "dcb056c7de7c"
+  ],
+  "protos/cut-next/rig.js": [
+   3902,
+   "a3b4702a3867"
+  ],
+  "protos/cut-next/seam-in-corner.png": [
+   50110,
+   "393f944fc05d"
+  ],
+  "protos/cut-next/shell.js": [
+   1058,
+   "b7a9cce900e3"
+  ],
+  "protos/cut-next/shot.js": [
+   6304,
+   "338d60856f38"
+  ],
+  "protos/cut-next/shots.js": [
+   958,
+   "8a27cb796918"
+  ],
+  "protos/cut-next/specks.js": [
+   6072,
+   "af5ef5cad95e"
+  ],
+  "protos/cut-next/sun.js": [
+   2607,
+   "665886f44644"
+  ],
+  "protos/cut-next/ui.js": [
+   9535,
+   "0c2604e7049d"
+  ],
+  "protos/cut-poker/endground.js": [
+   3545,
+   "cb015cc5fdfe"
+  ],
+  "protos/cut-poker/film.js": [
+   7955,
+   "5be6c6011b03"
+  ],
+  "protos/cut-poker/hallmap.js": [
+   1328,
+   "03148aa741a8"
+  ],
+  "protos/cut-poker/index.js": [
+   33826,
+   "7fbd77f5e75a"
+  ],
+  "protos/cut-poker/lib.js": [
+   8934,
+   "8972c07d70ee"
+  ],
+  "protos/cut-poker/poster.jpg": [
+   139457,
+   "56f66e82b7b2"
+  ],
+  "protos/cut-poker/postmarks.js": [
+   3277,
+   "7d2d36a152a5"
+  ],
+  "protos/cut-poker/seamfx.js": [
+   6707,
+   "f6a38559d408"
+  ],
+  "protos/cut-poker/shot.js": [
+   8051,
+   "8f71c0e03ea6"
+  ],
+  "protos/cut-poker/ui.js": [
+   11386,
+   "6c8543fbf091"
+  ],
+  "protos/cut-selfplay/index.js": [
+   27083,
+   "59541aba24a2"
+  ],
+  "protos/cut-selfplay/lib.js": [
+   3636,
+   "e5955c2421ab"
+  ],
+  "protos/cut-selfplay/poster.jpg": [
+   124232,
+   "f8c2a2886726"
+  ],
+  "protos/cut-selfplay/shot.js": [
+   12853,
+   "e69e53026b9b"
+  ],
+  "protos/cut-selfplay/table.js": [
+   15080,
+   "3e83723e57b2"
+  ],
+  "protos/cut-selfplay/words.js": [
+   6176,
+   "ad6ae3758036"
+  ],
+  "protos/cut-stars/deal.js": [
+   3898,
+   "a5c57f5bd8e0"
+  ],
+  "protos/cut-stars/farsky.js": [
+   5293,
+   "46e10c3b8ba4"
+  ],
+  "protos/cut-stars/index.js": [
+   20588,
+   "1dcf3721296d"
+  ],
+  "protos/cut-stars/lib.js": [
+   651,
+   "2f9d60663231"
+  ],
+  "protos/cut-stars/poster.jpg": [
+   127698,
+   "a3e78a004ae0"
+  ],
+  "protos/cut-stars/shot.js": [
+   6637,
+   "d06a3bd4a441"
+  ],
+  "protos/cut-stars/starnames.js": [
+   2895,
+   "11abe83c5083"
+  ],
+  "protos/cut-stars/ui.js": [
+   6420,
+   "8f8b7fff30d1"
+  ],
+  "protos/cut-who/chip.js": [
+   9963,
+   "0a70003c5d94"
+  ],
+  "protos/cut-who/filmplace.js": [
+   5440,
+   "95b93b48aeae"
+  ],
+  "protos/cut-who/index.js": [
+   20545,
+   "15c1c8963d04"
+  ],
+  "protos/cut-who/lib.js": [
+   2506,
+   "b23524b4e24e"
+  ],
+  "protos/cut-who/place.js": [
+   11232,
+   "ce181df0207d"
+  ],
+  "protos/cut-who/poster.jpg": [
+   133897,
+   "74b205942426"
+  ],
+  "protos/cut-who/seamfx.js": [
+   5433,
+   "82897ba4920a"
+  ],
+  "protos/cut-who/shot.js": [
+   1835,
+   "306f3726868f"
+  ],
+  "protos/cut-who/story.js": [
+   5624,
+   "77a85f5e2b0d"
+  ],
+  "protos/cut-who/words.js": [
+   8188,
+   "dac6a4de0c83"
+  ],
+  "protos/cut-work/cardshadow.js": [
+   3600,
+   "b50e400fc4ee"
+  ],
+  "protos/cut-work/crystals.js": [
+   5395,
+   "40d61d69188f"
+  ],
+  "protos/cut-work/cubeshade.js": [
+   2318,
+   "a06adce01bb1"
+  ],
+  "protos/cut-work/index.js": [
+   16123,
+   "58692839c410"
+  ],
+  "protos/cut-work/poster.jpg": [
+   121320,
+   "a590e482ee8b"
+  ],
+  "protos/cut-work/postmark.js": [
+   3006,
+   "51b3285853cc"
+  ],
+  "protos/cut-work/ringdust.js": [
+   5156,
+   "8d9bbc9cc8e6"
+  ],
+  "protos/cut-work/shot.js": [
+   5226,
+   "2d08e2112ad8"
+  ],
+  "protos/cut-work/ui.js": [
+   11377,
+   "f29cdafb3f31"
+  ],
+  "protos/dropin-a/index.js": [
+   10449,
+   "637424df3997"
+  ],
+  "protos/dropin-a/lib.js": [
+   4106,
+   "0de76c51f654"
+  ],
+  "protos/dropin-a/poster.jpg": [
+   123537,
+   "8940d0e57263"
+  ],
+  "protos/dropin-a/shot.js": [
+   10109,
+   "002c7113c22d"
+  ],
+  "protos/dropin-a/surface.js": [
+   17241,
+   "09cc5b5fa78e"
+  ],
+  "protos/loader-b/common.js": [
+   7572,
+   "45bffd94263e"
+  ],
+  "protos/loader-b/index.js": [
+   22073,
+   "582c01bb89ab"
+  ],
+  "protos/loader-b/poster.jpg": [
+   54959,
+   "ee9a3c78abd4"
+  ],
+  "protos/loader-b/sky.jpg": [
+   51594,
+   "0fb58f58fce9"
+  ],
+  "protos/name-a/index.js": [
+   4438,
+   "296811b2bd7a"
+  ],
+  "protos/name-a/lib.js": [
+   4850,
+   "3a10b461325d"
+  ],
+  "protos/name-a/poster.jpg": [
+   89315,
+   "aa165e3824c5"
+  ],
+  "protos/name-a/sky.jpg": [
+   43882,
+   "9eb8aa97acff"
+  ],
+  "protos/name-b/dive.json": [
+   4075,
+   "d2d62695319e"
+  ],
+  "protos/name-b/dive.mp4": [
+   595184,
+   "47b8916d7504"
+  ],
+  "protos/name-b/index.js": [
+   17266,
+   "90bba44c6413"
+  ],
+  "protos/name-b/poster.jpg": [
+   27392,
+   "9551c775586c"
+  ],
+  "protos/name-b/seamwhite.js": [
+   6515,
+   "0529f64ae9d2"
+  ],
+  "protos/pg-about/globe.js": [
+   5353,
+   "b3c5c5b00079"
+  ],
+  "protos/pg-about/index.js": [
+   22472,
+   "dbc8e8ff6ea5"
+  ],
+  "protos/pg-about/lib.js": [
+   2277,
+   "ccca32495bc6"
+  ],
+  "protos/pg-about/poster.jpg": [
+   76127,
+   "ebc1d93bb5fc"
+  ],
+  "protos/pg-about/sparks.js": [
+   5018,
+   "bd059ee44bde"
+  ],
+  "protos/pg-about/take.js": [
+   10162,
+   "b9f047ae66d2"
+  ],
+  "protos/pg-about/words.js": [
+   2196,
+   "e839347d61e9"
+  ],
+  "protos/pg-events/board.js": [
+   19332,
+   "f7e26b4bb8d8"
+  ],
+  "protos/pg-events/floor.js": [
+   2978,
+   "f3e31c078475"
+  ],
+  "protos/pg-events/index.js": [
+   11481,
+   "7f539e06f517"
+  ],
+  "protos/pg-events/measures.js": [
+   341,
+   "d3c6063ac90b"
+  ],
+  "protos/pg-events/poster.jpg": [
+   87842,
+   "fa03864b694b"
+  ],
+  "protos/pg-events/take.js": [
+   4389,
+   "ef2fba73d8c5"
+  ],
+  "protos/pg-events/words.js": [
+   8218,
+   "b937e2838de3"
+  ],
+  "protos/pg-games/index.js": [
+   26067,
+   "7d5bf2da8f19"
+  ],
+  "protos/pg-games/lantern.js": [
+   20980,
+   "d8d12b5941ee"
+  ],
+  "protos/pg-games/poster.jpg": [
+   100463,
+   "5a3f53b969c8"
+  ],
+  "protos/pg-games/shot.js": [
+   5986,
+   "35d610576740"
+  ],
+  "protos/pg-games/toys.js": [
+   15543,
+   "6e13c25b2857"
+  ],
+  "protos/pg-games/whale.js": [
+   9499,
+   "87a4db0a1b3a"
+  ],
+  "protos/pg-join/index.js": [
+   22947,
+   "0078ad7ef7c8"
+  ],
+  "protos/pg-join/lib.js": [
+   6479,
+   "3420acdb05e5"
+  ],
+  "protos/pg-join/poster.jpg": [
+   105141,
+   "3ee6fa211116"
+  ],
+  "protos/pg-join/shot.js": [
+   3165,
+   "67467170b4c8"
+  ],
+  "protos/pg-join/story.js": [
+   9529,
+   "9a1326529292"
+  ],
+  "protos/pg-join/strip.js": [
+   22363,
+   "d1f6dc9f4127"
+  ],
+  "protos/pg-legal/first-privacy.jpg": [
+   95446,
+   "f9115ad4e9c3"
+  ],
+  "protos/pg-legal/first-terms.jpg": [
+   90476,
+   "475f2a92e490"
+  ],
+  "protos/pg-legal/index.js": [
+   19150,
+   "23790b2d2d42"
+  ],
+  "protos/pg-legal/poster.jpg": [
+   125084,
+   "55a97d833b5f"
+  ],
+  "protos/pg-legal/sparks.js": [
+   5274,
+   "587117c55a53"
+  ],
+  "protos/pg-legal/take.js": [
+   1464,
+   "bbdcb01cbb2c"
+  ],
+  "protos/pg-legal/terms/index.js": [
+   363,
+   "fd3a8b4e56d2"
+  ],
+  "protos/pg-legal/words.js": [
+   2887,
+   "d2817360a38f"
+  ],
+  "protos/pg-team/boat.js": [
+   5815,
+   "fc7467b8024c"
+  ],
+  "protos/pg-team/content.js": [
+   1948,
+   "8a13687c2ec1"
+  ],
+  "protos/pg-team/fish.js": [
+   9358,
+   "5f090f875edb"
+  ],
+  "protos/pg-team/index.js": [
+   30537,
+   "097340eb684a"
+  ],
+  "protos/pg-team/poster.jpg": [
+   119774,
+   "5f7138227024"
+  ],
+  "protos/pg-team/school.js": [
+   5532,
+   "616e998ad813"
+  ],
+  "protos/pg-team/shot.js": [
+   1641,
+   "2aae62271b3e"
+  ],
+  "protos/pg-work/film.js": [
+   17797,
+   "ff6094793587"
+  ],
+  "protos/pg-work/index.js": [
+   7282,
+   "a92527a18b7b"
+  ],
+  "protos/pg-work/lib.js": [
+   3179,
+   "01f799a47ebd"
+  ],
+  "protos/pg-work/poster.jpg": [
+   99892,
+   "6f867ed2528b"
+  ],
+  "protos/pg-work/props.js": [
+   6066,
+   "c03358fa7436"
+  ],
+  "protos/pg-work/shot.js": [
+   6381,
+   "f955af579b3e"
+  ],
+  "protos/pg-work/words.js": [
+   14120,
+   "00e30e6ea601"
+  ],
+  "protos/pg-work/world.js": [
+   1625,
+   "e762d15a5cb1"
+  ],
+  "protos/planes-c/index.js": [
+   15890,
+   "b2bb1e19ee15"
+  ],
+  "protos/planes-c/lib.js": [
+   1489,
+   "9f0619ecc985"
+  ],
+  "protos/planes-c/poster.jpg": [
+   41403,
+   "8cae02f7a3ab"
+  ],
+  "protos/planes-c/seam-sky.jpg": [
+   54696,
+   "29fad80b9827"
+  ],
+  "protos/planes-c/seam.js": [
+   3101,
+   "0d143d17e54e"
+  ],
+  "protos/planes-c/seamwhite.js": [
+   6515,
+   "0529f64ae9d2"
+  ],
+  "protos/slope-b/climb.js": [
+   14324,
+   "78344158322d"
+  ],
+  "protos/slope-b/index.js": [
+   16241,
+   "49222498940d"
+  ],
+  "protos/slope-b/night-region.png": [
+   68,
+   "e87f88f927af"
+  ],
+  "protos/slope-b/poster.jpg": [
+   46001,
+   "183fe8a7e52c"
+  ],
+  "protos/slope-b/rig.js": [
+   7489,
+   "ab73b1df077e"
+  ],
+  "protos/slope-b/seam-sky.jpg": [
+   54696,
+   "29fad80b9827"
+  ],
+  "protos/slope-b/seam.js": [
+   12617,
+   "465d82cd09f3"
+  ],
+  "protos/slope-b/work-shot.js": [
+   5226,
+   "2d08e2112ad8"
+  ],
+  "site/bar.js": [
+   2755,
+   "8298ef284303"
+  ],
+  "site/chrome/assembly.css": [
+   1941,
+   "1763fa3a0338"
+  ],
+  "site/chrome/instrument.js": [
+   55274,
+   "36e1607dc8ad"
+  ],
+  "site/chrome/menu-tones.json": [
+   87553,
+   "2206942cb8a9"
+  ],
+  "site/chrome/menu.js": [
+   47167,
+   "257e5e2e1836"
+  ],
+  "site/chrome/passage.js": [
+   2156,
+   "acff205f97ce"
+  ],
+  "site/chrome/proof/kitpatch/feel-sound.js": [
+   13718,
+   "3cfc36ac8c10"
+  ],
+  "site/chrome/proof/kitpatch/feel.js": [
+   42239,
+   "296ba5f563dc"
+  ],
+  "site/chrome/proof/measure.html": [
+   6971,
+   "c2117afccd03"
+  ],
+  "site/chrome/proof/scene.js": [
+   1468,
+   "4250adb6dfd4"
+  ],
+  "site/chrome/proof/seam.html": [
+   4999,
+   "a041fa8985c2"
+  ],
+  "site/chrome/sheet.js": [
+   45237,
+   "fa85524718d3"
+  ],
+  "site/chrome/sound.js": [
+   34513,
+   "f24c3725dcb1"
+  ],
+  "site/film.js": [
+   27558,
+   "e3c39cb9bfe0"
+  ],
+  "site/host.js": [
+   418,
+   "2e0a1f24d112"
+  ],
+  "site/icons/apple-touch-icon.png": [
+   17297,
+   "acb46ae121ac"
+  ],
+  "site/icons/favicon.svg": [
+   12693,
+   "eb70896d0e42"
+  ],
+  "site/icons/icon-192.png": [
+   29921,
+   "f409799096eb"
+  ],
+  "site/icons/icon-32.png": [
+   2542,
+   "fed6af73c4f9"
+  ],
+  "site/icons/icon-512.png": [
+   94631,
+   "3b5239312cc3"
+  ],
+  "site/icons/icon-maskable-512.png": [
+   53286,
+   "a4f142434b3f"
+  ],
+  "site/icons/mark.svg": [
+   12721,
+   "31fdc9d050de"
+  ],
+  "site/icons/site.webmanifest": [
+   560,
+   "0d3f61b263e7"
+  ],
+  "site/main.js": [
+   15633,
+   "419f12221c76"
+  ],
+  "site/meta.json": [
+   9194,
+   "c53a4151739d"
+  ],
+  "site/mount.js": [
+   1886,
+   "a12e4968f5de"
+  ],
+  "site/og/about.jpg": [
+   65178,
+   "3bedfe886395"
+  ],
+  "site/og/events.jpg": [
+   63284,
+   "10836f0c31ca"
+  ],
+  "site/og/games.jpg": [
+   80908,
+   "c655411631a9"
+  ],
+  "site/og/home.jpg": [
+   62184,
+   "8779d74d6986"
+  ],
+  "site/og/join.jpg": [
+   89077,
+   "a13a9772738b"
+  ],
+  "site/og/legal.jpg": [
+   144877,
+   "a81266ec1122"
+  ],
+  "site/og/team.jpg": [
+   98052,
+   "b8db057faa96"
+  ],
+  "site/og/work.jpg": [
+   67188,
+   "55f1e5d2d22c"
+  ],
+  "site/router.js": [
+   4531,
+   "fa252eb858f8"
+  ],
+  "site/scenes.js": [
+   14904,
+   "f533886b57e7"
+  ],
+  "site/site.css": [
+   10297,
+   "5fd979023cc6"
+  ],
+  "site/stills/alphago-b/in.jpg": [
+   157775,
+   "741bb8ffa005"
+  ],
+  "site/stills/alphago-b/out.jpg": [
+   152496,
+   "c5b58bb705aa"
+  ],
+  "site/stills/assets.json": [
+   7608,
+   "ab2bc0312a52"
+  ],
+  "site/stills/code-a/in.jpg": [
+   222699,
+   "a5a9d6f6d6be"
+  ],
+  "site/stills/code-a/out.jpg": [
+   235389,
+   "8b916033592d"
+  ],
+  "site/stills/contexts.json": [
+   463,
+   "259da5cf9674"
+  ],
+  "site/stills/cut-alphago/in.jpg": [
+   17866,
+   "e1eab00ebae2"
+  ],
+  "site/stills/cut-alphago/out.jpg": [
+   120669,
+   "9a356c6033b6"
+  ],
+  "site/stills/cut-code/in.jpg": [
+   34118,
+   "41e02ac6fcf5"
+  ],
+  "site/stills/cut-code/out.jpg": [
+   131253,
+   "592f29103dfe"
+  ],
+  "site/stills/cut-end/in.jpg": [
+   133287,
+   "281f51312f6d"
+  ],
+  "site/stills/cut-end/out.jpg": [
+   228527,
+   "4dd3a842fd1f"
+  ],
+  "site/stills/cut-events/in.jpg": [
+   97664,
+   "1990eba15641"
+  ],
+  "site/stills/cut-events/out.jpg": [
+   163577,
+   "ea6c32b912c4"
+  ],
+  "site/stills/cut-games/in.jpg": [
+   73658,
+   "b5675f8564c8"
+  ],
+  "site/stills/cut-games/out.jpg": [
+   96916,
+   "66fca8998a39"
+  ],
+  "site/stills/cut-guandan/in.jpg": [
+   20326,
+   "c26ba15a8b66"
+  ],
+  "site/stills/cut-guandan/out.jpg": [
+   115995,
+   "99c5051427be"
+  ],
+  "site/stills/cut-join/in.jpg": [
+   112540,
+   "69c7b84001e7"
+  ],
+  "site/stills/cut-join/out.jpg": [
+   133409,
+   "563c2543c879"
+  ],
+  "site/stills/cut-next/in.jpg": [
+   115932,
+   "10fe52f9e965"
+  ],
+  "site/stills/cut-next/out.jpg": [
+   74911,
+   "5c842af2f7c5"
+  ],
+  "site/stills/cut-poker/in.jpg": [
+   21216,
+   "c12b08f328c8"
+  ],
+  "site/stills/cut-poker/out.jpg": [
+   28332,
+   "8dc487c170a6"
+  ],
+  "site/stills/cut-selfplay/in.jpg": [
+   197539,
+   "d0aa30eeef82"
+  ],
+  "site/stills/cut-selfplay/out.jpg": [
+   15740,
+   "ef1a4b70292e"
+  ],
+  "site/stills/cut-stars/in.jpg": [
+   243311,
+   "942c739a623f"
+  ],
+  "site/stills/cut-stars/out.jpg": [
+   130183,
+   "63d00515dd53"
+  ],
+  "site/stills/cut-who/in.jpg": [
+   130234,
+   "f4e7a871489f"
+  ],
+  "site/stills/cut-who/out.jpg": [
+   19304,
+   "2cecf8fc5fc3"
+  ],
+  "site/stills/cut-work/in.jpg": [
+   166582,
+   "a6502d8500ac"
+  ],
+  "site/stills/cut-work/out.jpg": [
+   243284,
+   "7b9bb7f6f826"
+  ],
+  "site/stills/dropin-a/in.jpg": [
+   94762,
+   "a23735a06b49"
+  ],
+  "site/stills/dropin-a/out.jpg": [
+   231468,
+   "c1ce8ca7d6e6"
+  ],
+  "site/stills/end-a/in.jpg": [
+   161422,
+   "be7c027d3173"
+  ],
+  "site/stills/end-a/out.jpg": [
+   141319,
+   "b1a50afee77a"
+  ],
+  "site/stills/events-c/in.jpg": [
+   140742,
+   "86aaee5a142f"
+  ],
+  "site/stills/events-c/out.jpg": [
+   139341,
+   "40d1947f96ba"
+  ],
+  "site/stills/games-a/in.jpg": [
+   239943,
+   "fe497dc1fdb8"
+  ],
+  "site/stills/games-a/out.jpg": [
+   239925,
+   "89c8aed7f89b"
+  ],
+  "site/stills/guandan-a/in.jpg": [
+   166651,
+   "f9ae7b1d3a88"
+  ],
+  "site/stills/guandan-a/out.jpg": [
+   185754,
+   "a9f12df64e8e"
+  ],
+  "site/stills/join-b/in.jpg": [
+   217017,
+   "ed2f9bb83d5b"
+  ],
+  "site/stills/join-b/out.jpg": [
+   238449,
+   "cc8039416192"
+  ],
+  "site/stills/loader-b/in.jpg": [
+   34326,
+   "0e904ba4123d"
+  ],
+  "site/stills/loader-b/out.jpg": [
+   51158,
+   "e2aedf2b35ae"
+  ],
+  "site/stills/name-b/in.jpg": [
+   51147,
+   "0f9e584064bf"
+  ],
+  "site/stills/name-b/in.webkit.jpg": [
+   103496,
+   "d6c48b4d16f7"
+  ],
+  "site/stills/name-b/out.jpg": [
+   21465,
+   "c1461f62dc3c"
+  ],
+  "site/stills/name-b/out.webkit.jpg": [
+   45819,
+   "f73e9e5f4d56"
+  ],
+  "site/stills/next-b/in.jpg": [
+   239608,
+   "7d4020f42ed2"
+  ],
+  "site/stills/next-b/out.jpg": [
+   256482,
+   "9e62dce3c61f"
+  ],
+  "site/stills/pg-about/in.jpg": [
+   135997,
+   "fc336ef8ae8c"
+  ],
+  "site/stills/pg-about/out.jpg": [
+   255513,
+   "58cab5ad1d0d"
+  ],
+  "site/stills/pg-events/in.jpg": [
+   167990,
+   "0b74a4490be1"
+  ],
+  "site/stills/pg-events/out.jpg": [
+   160470,
+   "b4d0fdf6a0d2"
+  ],
+  "site/stills/pg-games/in.jpg": [
+   157126,
+   "9cbb36eef702"
+  ],
+  "site/stills/pg-games/out.jpg": [
+   168814,
+   "d627c98b76ea"
+  ],
+  "site/stills/pg-join/in.jpg": [
+   182335,
+   "a91b03564a9a"
+  ],
+  "site/stills/pg-join/out.jpg": [
+   195048,
+   "9b397d5f2c53"
+  ],
+  "site/stills/pg-legal-terms/in.jpg": [
+   248649,
+   "886b036446bb"
+  ],
+  "site/stills/pg-legal-terms/out.jpg": [
+   244474,
+   "a10028925264"
+  ],
+  "site/stills/pg-legal/in.jpg": [
+   237048,
+   "919256d8f1ec"
+  ],
+  "site/stills/pg-legal/out.jpg": [
+   234545,
+   "213978ada975"
+  ],
+  "site/stills/pg-team/in.jpg": [
+   237466,
+   "191118fe4ab8"
+  ],
+  "site/stills/pg-team/out.jpg": [
+   240799,
+   "d700cab2bfda"
+  ],
+  "site/stills/pg-work/in.jpg": [
+   155913,
+   "f58358f69307"
+  ],
+  "site/stills/pg-work/out.jpg": [
+   147383,
+   "b1ef59640f86"
+  ],
+  "site/stills/planes-c/in.jpg": [
+   21426,
+   "13895d934526"
+  ],
+  "site/stills/planes-c/out.jpg": [
+   52978,
+   "f9faba41292b"
+  ],
+  "site/stills/poker-a/in.jpg": [
+   207569,
+   "492bf379a473"
+  ],
+  "site/stills/poker-a/out.jpg": [
+   241396,
+   "7a3ff7908afd"
+  ],
+  "site/stills/selfplay-c/in.jpg": [
+   229089,
+   "f5dca70f2ec9"
+  ],
+  "site/stills/selfplay-c/out.jpg": [
+   219477,
+   "3630b86ab5de"
+  ],
+  "site/stills/slope-b/in.jpg": [
+   52974,
+   "322c73e40d24"
+  ],
+  "site/stills/slope-b/in.webkit.jpg": [
+   110888,
+   "f46e199fec0e"
+  ],
+  "site/stills/slope-b/out.jpg": [
+   166596,
+   "6219b75ac7c8"
+  ],
+  "site/stills/slope-b/out.webkit.jpg": [
+   244555,
+   "8f135f7db665"
+  ],
+  "site/stills/stars-a/in.jpg": [
+   250996,
+   "6f5f80ae673f"
+  ],
+  "site/stills/stars-a/out.jpg": [
+   250951,
+   "727b464a8da1"
+  ],
+  "site/stills/who-b/in.jpg": [
+   196093,
+   "a91135086a29"
+  ],
+  "site/stills/who-b/out.jpg": [
+   225974,
+   "f5b646e3938b"
+  ],
+  "site/words.html": [
+   64660,
+   "f547361ea19e"
+  ],
+  "vendor/three.module.min.js": [
+   691648,
+   "512c8b83df15"
+  ],
+  "vendor/LICENSE": [
+   1081,
+   "e64e644435ab"
+  ],
+  "vendor/addons/environments/RoomEnvironment.js": [
+   1930,
+   "7ec75218b565"
+  ],
+  "vendor/addons/geometries/RoundedBoxGeometry.js": [
+   1555,
+   "28b5250c2969"
+  ],
+  "vendor/addons/lights/RectAreaLightTexturesLib.js": [
+   247183,
+   "80b87ce8a54d"
+  ],
+  "vendor/addons/lights/RectAreaLightUniformsLib.js": [
+   305,
+   "2c4bbc660652"
+  ],
+  "vendor/addons/utils/BufferGeometryUtils.js": [
+   12912,
+   "f3dd19d464b5"
+  ],
+  "preload.json": [
+   1947,
+   "af96f02a191a"
+  ]
+ }
+}

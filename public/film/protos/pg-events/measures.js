@@ -1,0 +1,1 @@
+const n=4,p=.78,r=.05,t=.8300000000000001,c=4*.78+5*.05,s=[.9,2],x=[.84,.9],A=[2,2.16],S=[2.16,2.186],Y=.07,B={w:.5,h:.7},O=1.1,P=o=>-c/2+.05+.78/2+o*t,e=124,T=[170,e,-558.35];export{T as AT,n as BAYS,p as BAY_W,S as CAP,B as CARD,O as CARD_Y,Y as DEPTH,e as FLOOR,s as GLASS,A as HEAD,c as LEN,t as PITCH,r as POST,x as RAIL_LO,P as bayX};
