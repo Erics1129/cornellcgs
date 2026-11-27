@@ -33,6 +33,22 @@ export function filmRoute(pathname: string): { route: string; section: string | 
   return { route: p, section: null }
 }
 
+/**
+ * Run a module of public/film/ as site.html does, with a <script type="module"> (it is the same module the
+ * modulepreload links fetched). Not import(): Vite would rewrite that address (dev adds ?import and refuses files
+ * of public/), and the film's tree must stay its own module graph, never part of the bundle.
+ */
+function runModule(src: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const s = document.createElement('script')
+    s.type = 'module'
+    s.src = src
+    s.onload = () => resolve()
+    s.onerror = () => reject(new Error('could not load ' + src))
+    document.head.appendChild(s)
+  })
+}
+
 export async function startFilmSite(): Promise<void> {
   // Links from the old deck (/#p/join) went to a page by hash: forward them to its address, as before.
   const legacy = location.hash.match(/^#p\/([a-z-]+)$/)
@@ -53,7 +69,7 @@ export async function startFilmSite(): Promise<void> {
   } satisfies FilmStart)
   try {
     // site/main.js starts the film (or the calm page) as soon as it runs, exactly as it does in site.html
-    await import(/* @vite-ignore */ ENTRY)
+    await runModule(ENTRY)
   } catch (e) {
     // It did not load (a page cached across a deploy, a very old browser): every word is on the page already.
     console.error('[cgs] the film site did not start', e)
