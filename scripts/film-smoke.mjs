@@ -5,7 +5,8 @@
 // and a screenshot. Then every link and asset the pages name is fetched once (nothing may 404).
 // --live      also shoot the same game pages on https://cornellcgs.org and report how much the pictures differ
 // --throttle  the first screen of / on a throttled phone line (Lighthouse's mobile preset: 150 ms, 1.6 Mbps, 4x CPU):
-//             bytes and requests before the first picture, the film's first live frame and the opening scene ready
+//             bytes and requests before fcp (the inline loader's paper and name), boot (the inline loader steps
+//             aside), live (the opening, a clock part, is running), lcp, and ready (the first scroll scene is live)
 // Exit 1 when something failed. Playwright: the repo's, else the Codex runtime's (CGS_PLAYWRIGHT_MODULE to override).
 import fs from 'node:fs'
 import path from 'node:path'
@@ -156,13 +157,17 @@ if (flag('--live')) {
 
 // the first screen on a throttled phone line
 if (flag('--throttle')) {
-  const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 3, isMobile: true, hasTouch: true })
+  // --throttle desktop: the same marks on a desktop (1440x900) with no throttling, for the 'fast line' budget
+  const desktop = opt('--throttle', 'phone') === 'desktop'
+  const ctx = await browser.newContext(desktop ? { viewport: { width: 1440, height: 900 }, deviceScaleFactor: 2 } : { viewport: { width: 390, height: 844 }, deviceScaleFactor: 3, isMobile: true, hasTouch: true })
   const page = await ctx.newPage()
   const cdp = await ctx.newCDPSession(page)
   await cdp.send('Network.enable')
   await cdp.send('Network.setCacheDisabled', { cacheDisabled: true })
-  await cdp.send('Network.emulateNetworkConditions', { offline: false, latency: 150, downloadThroughput: (1.6 * 1024 * 1024) / 8, uploadThroughput: (750 * 1024) / 8 })
-  await cdp.send('Emulation.setCPUThrottlingRate', { rate: 4 })
+  if (!desktop) {
+    await cdp.send('Network.emulateNetworkConditions', { offline: false, latency: 150, downloadThroughput: (1.6 * 1024 * 1024) / 8, uploadThroughput: (750 * 1024) / 8 })
+    await cdp.send('Emulation.setCPUThrottlingRate', { rate: 4 })
+  }
   const net = new Map()
   cdp.on('Network.requestWillBeSent', (e) => net.set(e.requestId, { url: e.request.url, start: e.timestamp, type: e.type }))
   cdp.on('Network.loadingFinished', (e) => { const r = net.get(e.requestId); if (r) { r.end = e.timestamp; r.bytes = e.encodedDataLength } })
@@ -176,7 +181,9 @@ if (flag('--throttle')) {
       if (window.__marks.boot == null && !document.documentElement.classList.contains('boot')) window.__marks.boot = t()
       const film = window.__site && window.__site.film
       if (film && !window.__marks.sub) { window.__marks.sub = t(); film.on('state', (s) => { if (s.ready && window.__marks.ready == null) window.__marks.ready = t() }) }
-      if (window.__marks.ready == null || window.__marks.boot == null) setTimeout(watch, 16)
+      // the opening (the loader, a clock part) is live and running: its p has left 0
+      if (film && window.__marks.live == null && film.position && film.position.k === 0 && film.position.p > 0) window.__marks.live = t()
+      if (window.__marks.ready == null || window.__marks.boot == null || window.__marks.live == null) setTimeout(watch, 16)
     }
     watch()
   })
@@ -189,14 +196,15 @@ if (flag('--throttle')) {
   const t0 = Math.min(...[...net.values()].map((r) => r.start))
   const upTo = (ms) => { const rs = [...net.values()].filter((r) => r.end != null && (r.end - t0) * 1000 <= ms); return { requests: rs.length, bytes: rs.reduce((n, r) => n + (r.bytes || 0), 0), local: rs.filter((r) => sameOrigin(r.url)).length } }
   const at = {}
-  for (const k of ['fcp', 'lcp', 'boot', 'ready']) if (marks[k] != null) at[k] = { ms: Math.round(marks[k]), ...upTo(marks[k]) }
+  for (const k of ['fcp', 'boot', 'live', 'lcp', 'ready']) if (marks[k] != null) at[k] = { ms: Math.round(marks[k]), ...upTo(marks[k]) }
   const all = [...net.values()].filter((r) => r.end != null)
   const byType = {}
   for (const r of all.filter((r) => marks.ready == null || (r.end - t0) * 1000 <= marks.ready)) { const k = sameOrigin(r.url) ? (r.url.includes('/film/') ? r.url.split('/film/')[1].split('/')[0] : 'page') : new URL(r.url).host; byType[k] = (byType[k] || 0) + (r.bytes || 0) }
-  console.log(`throttled (150 ms, 1.6 Mbps, 4x CPU, 390x844 @3x): ${JSON.stringify(at)}`)
+  console.log(`${desktop ? 'desktop, no throttling (1440x900 @2x)' : 'throttled (150 ms, 1.6 Mbps, 4x CPU, 390x844 @3x)'}: ${JSON.stringify(at)}`)
   console.log(`  bytes before the opening scene is ready, by where: ${Object.entries(byType).sort((a, b) => b[1] - a[1]).map(([k, v]) => `${k} ${(v / 1e3).toFixed(0)} kB`).join(', ')}`)
-  report.throttle = { at, byType, wallMs: Date.now() - wall0, navStart }
-  await page.screenshot({ path: path.join(OUT, 'throttled-phone.png') })
+  const timeline = [...net.values()].filter((r) => r.end != null).map((r) => ({ url: r.url.replace(server.url, '/'), type: r.type, start: Math.round((r.start - t0) * 1000), end: Math.round((r.end - t0) * 1000), bytes: r.bytes || 0 })).sort((a, b) => a.start - b.start)
+  report.throttle = { at, byType, wallMs: Date.now() - wall0, navStart, timeline }
+  await page.screenshot({ path: path.join(OUT, desktop ? 'first-screen-desktop.png' : 'throttled-phone.png') })
   await ctx.close()
 }
 
