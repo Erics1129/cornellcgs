@@ -122,6 +122,14 @@ async function prepare(abs) {
   } else if (MINIFY && (ext === '.json' || ext === '.webmanifest')) {
     try { buf = Buffer.from(JSON.stringify(JSON.parse(buf.toString('utf8')))) } catch { /* not plain JSON: as it is */ }
   }
+  // Never publish this Mac's paths (they carry a user name) or the build tree's own folder names: in text files an
+  // absolute path loses its local prefix; in data files (.json) the notes also lose 'cgs-redesign/' and 'picker/'.
+  if (['.js', '.mjs', '.json', '.css', '.html', '.txt', '.svg', '.webmanifest'].includes(ext)) {
+    let t = buf.toString('utf8')
+    if (t.includes('/Users/')) t = t.replace(/\/Users\/[A-Za-z0-9._-]+\/Claude\/(?:cgs-redesign\/)?(?:picker\/)?/g, '').replace(/\/Users\/[A-Za-z0-9._-]+\//g, '')
+    if (ext === '.json') t = t.replace(/\bcgs-redesign\//g, '').replace(/\bpicker\//g, '')
+    buf = Buffer.from(t)
+  }
   built.set(abs, buf)
   return buf
 }
