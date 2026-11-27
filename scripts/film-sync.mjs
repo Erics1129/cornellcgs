@@ -99,8 +99,10 @@ const addFolder = (kind, id) => {
   for (const f of walk(path.join(PICKER, kind, id))) files.add(f)
   return true
 }
+// The picker page's own kit files (its shell, its Play clock) are not the site's: left out unless the site imports them.
+const PICKER_ONLY = new Set(['kit/shell.js', 'kit/shell.css', 'kit/player.js'])
 for (const f of walk(path.join(PICKER, 'site'))) files.add(f)
-for (const f of walk(path.join(PICKER, 'kit'))) files.add(f)
+for (const f of walk(path.join(PICKER, 'kit'))) if (!PICKER_ONLY.has(rel(f))) files.add(f)
 for (const id of [...sceneIds, ...pageIds]) addFolder('protos', id)
 
 // ---------------------------------------------------------------------------------------------------------- minify
@@ -286,10 +288,39 @@ for (const start of [graph.has('site/main.js') ? 'site/main.js' : null, ...first
 if (nodes.includes('three')) { nodes.splice(nodes.indexOf('three'), 1); nodes.splice(1, 0, 'three') }
 const order = nodes.map(servedAs)
 const bytesOf = (as) => rows.find((x) => x.as === as) || { bytes: 0, gz: 0 }
+// Measured on a throttled phone line (scripts/film-smoke.mjs --throttle, 150 ms, 1.6 Mbps, 4x CPU): asked for with the
+// modules instead of when the code reaches them, the opening's first still is the largest paint at 1.0 s instead of
+// 3.0 s, and the opening (which waits for its fonts and its picture) runs about 2 s sooner. kit/host.js's fetch (blobUrl)
+// and loadFont's stylesheet reuse these preloads.
+const fontCss = (spec) => { const family = spec.split(':')[0].replace(/\+/g, ' '); return 'https://fonts.googleapis.com/css2?family=' + family.replace(/ /g, '+') + (spec.includes(':') ? ':' + spec.split(':').slice(1).join(':') : '') + '&display=swap' }
+const mainSrc = fs.existsSync(path.join(PICKER, 'site/main.js')) ? fs.readFileSync(path.join(PICKER, 'site/main.js'), 'utf8') : ''
+const opening = sceneList[0]
+const openDir = opening ? `protos/${opening.dir || opening.id}/` : null
+// the opening's own module closure (its folder and the kit it imports)
+const openClosure = new Set()
+if (openDir) { const q = [openDir + 'index.js']; while (q.length) { const n = q.shift(); if (openClosure.has(n) || n === 'three' || n.startsWith('three/')) continue; openClosure.add(n); q.push(...depsOf(n)) } }
+const textOf = (r) => { const abs = path.join(PICKER, r); return built.has(abs) ? built.get(abs).toString('utf8') : '' }
+// fonts: main.js's loadFont() at boot, and every Google Fonts spec the opening's code names ('Fraunces:opsz,wght@9..144,400..700')
+const specs = [...mainSrc.matchAll(/\bloadFont\(\s*['"]([^'"]+)['"]\s*\)/g)].map((m) => m[1])
+for (const r of openClosure) for (const m of textOf(r).matchAll(/["']([A-Z][A-Za-z0-9 ]*:(?:[a-z]+,)*[a-z]+@[0-9.;,]+)["']/g)) specs.push(m[1])
+const styles = [...new Set(specs.map(fontCss))]
+// files: the opening's first still, then what the opening asks env.asset for by a literal path (relative to its folder),
+// pictures and data only (never a film: a video is read in ranges), up to 300 kB in all
+const firstStill = opening && opening.stills && rows.some((x) => x.as === `site/stills/${opening.id}/in.jpg`) ? [`site/stills/${opening.id}/in.jpg`] : []
+const assets = []
+for (const r of [...openClosure].filter((x) => openDir && x.startsWith(openDir))) for (const m of textOf(r).matchAll(/\.asset\(\s*["']([^"'$`]+)["']\s*\)/g)) {
+  const target = path.posix.normalize(path.posix.join(openDir, m[1]))
+  if (/\.(jpe?g|png|webp|avif|json|bin|svg)$/i.test(target) && rows.some((x) => x.as === target)) assets.push(target)
+}
+let budget = 300e3
+const fetchList = []
+for (const a of [...new Set([...firstStill, ...assets])]) { const b = bytesOf(a).bytes; if (b <= budget) { fetchList.push('/film/' + a); budget -= b } }
 const preload = {
-  note: 'The modules the first screen needs, in fetch order: site/main.js with its static imports, then the opening scenes (' + firstScenes.join(', ') + ') with theirs; written by scripts/film-sync.mjs, read by scripts/vite-film-shell.mjs (modulepreload links in index.html).',
+  note: 'The first screen, in fetch order: site/main.js with its static imports, then the opening scenes (' + firstScenes.join(', ') + ') with theirs (modules: modulepreload); the fonts site/main.js loads at boot (styles: preload as style); the opening\'s first still (fetch: preload as fetch, which kit/host.js blobUrl reuses). Written by scripts/film-sync.mjs, read by scripts/vite-film-shell.mjs.',
   scenes: firstScenes,
   modules: order.map((as) => '/film/' + as),
+  styles,
+  fetch: fetchList,
   bytes: order.reduce((n, as) => n + bytesOf(as).bytes, 0),
   gzip: order.reduce((n, as) => n + bytesOf(as).gz, 0),
 }

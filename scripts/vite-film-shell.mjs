@@ -83,8 +83,13 @@ const tidy = (s) => s.replace(/\n[ \t]*\n(?:[ \t]*\n)+/g, '\n\n').trim()
 
 /** The first-screen modules, as modulepreload links (public/film/preload.json, written by film-sync). */
 function preloadLinks(preload) {
-  const list = (preload && Array.isArray(preload.modules) ? preload.modules : []).filter((u) => typeof u === 'string' && u.startsWith(FILM))
-  return list.map((u) => `<link rel="modulepreload" href="${esc(u)}" />`).join('\n    ')
+  const list = (k, ok) => (preload && Array.isArray(preload[k]) ? preload[k] : []).filter((u) => typeof u === 'string' && ok(u))
+  return [
+    // the opening's first still and the boot fonts first (small), then the modules (three second, the biggest)
+    ...list('fetch', (u) => u.startsWith(FILM)).map((u) => `<link rel="preload" as="fetch" crossorigin href="${esc(u)}" />`),
+    ...list('styles', (u) => u.startsWith('https://fonts.googleapis.com/')).map((u) => `<link rel="preload" as="style" href="${esc(u)}" />`),
+    ...list('modules', (u) => u.startsWith(FILM)).map((u) => `<link rel="modulepreload" href="${esc(u)}" />`),
+  ].join('\n    ')
 }
 
 /**

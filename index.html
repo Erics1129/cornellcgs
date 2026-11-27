@@ -31,8 +31,9 @@
     <!--film:loader-->
     <!-- the import map goes before the first module the page asks for (Vite would move it there anyway) -->
     <!--film:importmap-->
-    <!-- Vite puts the main entry here (assets/main-*.js: tiny; asked for first, so the boot guard above never fires
-         on a slow line), then the first screen's modules are asked for at the top of the body -->
+    <!-- Vite puts the main entry here (src/main.tsx, built tiny; asked for first, so the boot guard above never
+         fires on a slow line), then the first screen's modules are asked for at the top of the body. Never write the
+         built entry's file name in a comment: fast-deploy.sh greps this page for it. -->
   </head>
   <body>
     <!--film:preload-->
