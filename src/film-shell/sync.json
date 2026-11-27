@@ -1,5 +1,5 @@
 {
- "at": "2026-11-27T05:41:11.443Z",
+ "at": "2026-11-27T05:50:34.824Z",
  "from": "/Users/eric/Claude/cgs-redesign/picker",
  "minified": true,
  "three": "0.170.0",
@@ -1528,8 +1528,8 @@
    "f24c3725dcb1"
   ],
   "site/film.js": [
-   27714,
-   "ffb953cb2e8b"
+   27908,
+   "9aff19dadcab"
   ],
   "site/host.js": [
    418,
@@ -1568,16 +1568,16 @@
    "0d3f61b263e7"
   ],
   "site/main.js": [
-   15633,
-   "419f12221c76"
+   15644,
+   "0a45279f4190"
   ],
   "site/meta.json": [
    9194,
    "c53a4151739d"
   ],
   "site/mount.js": [
-   1934,
-   "94aec65d3ade"
+   1965,
+   "b0028744464e"
   ],
   "site/og/about.jpg": [
    65178,
@@ -1620,8 +1620,8 @@
    "f533886b57e7"
   ],
   "site/site.css": [
-   10297,
-   "5fd979023cc6"
+   10351,
+   "dea1337d38d3"
   ],
   "site/stills/alphago-b/in.jpg": [
    157775,
@@ -1985,7 +1985,7 @@
   ],
   "preload.json": [
    1947,
-   "70a2eb3d0726"
+   "17fea5c30f24"
   ]
  }
 }
