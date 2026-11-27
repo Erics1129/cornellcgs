@@ -1,4 +1,10 @@
 @import 'tailwindcss';
+/* The film site's tree and its tools are not this app's source: classes are never read from them, so the mini games'
+   and the admin's CSS stay exactly what their own code asks for (scripts/film-sync.mjs fills these folders). */
+@source not '../../public/film';
+@source not '../film-shell';
+@source not '../../scripts';
+@source not '../../.film-cache';
 
 /* ---------------------------------------------------------------------------
    Design tokens — five page palettes, mirrored in src/lib/theme.ts.

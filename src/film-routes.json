@@ -1,0 +1,36 @@
+{
+  "note": "Which page each URL of cornellcgs.org opens (SITE.md, 'The real repo'). One source for src/main.tsx, src/film-site.ts, scripts/stubs.mjs, scripts/vite-film-shell.mjs and scripts/film-check.mjs. 'games' are the React mini games, built from game-shell.html exactly as before the film site; their slugs mirror src/content.ts pageSlugs. 'film' are the film site's pages: 'path' is a URL that must keep working (a stub at /<path>/), 'route' is the film site's route (picker/site/router.js), 'section' the part of that page the old URL was about. 'canonical' is the path search engines are told to index for that route.",
+  "games": {
+    "minigames": "minigames",
+    "ink-maze": "minigames/inkMaze",
+    "forge-or-fold": "minigames/forgeOrFold",
+    "carrot-defense": "minigames/carrotDefense"
+  },
+  "film": [
+    { "id": "who-we-are", "path": "whoWeAre", "route": "/about" },
+    { "id": "world", "path": "world", "route": "/about", "section": "world" },
+    { "id": "what-we-do", "path": "whatWeDo", "route": "/work" },
+    { "id": "ml-process", "path": "mlProcess", "route": "/work", "section": "mlProcess" },
+    { "id": "people", "path": "ourTeam", "route": "/team" },
+    { "id": "advisors", "path": "advisors", "route": "/team", "section": "advisors" },
+    { "id": "join", "path": "join", "route": "/join" },
+    { "id": "contact", "path": "contact", "route": "/join", "section": "contact" },
+    { "id": "events", "path": "events", "route": "/events" },
+    { "id": "privacy", "path": "privacy", "route": "/privacy" },
+    { "id": "terms", "path": "terms", "route": "/terms" },
+    { "id": "about", "path": "about", "route": "/about" },
+    { "id": "work", "path": "work", "route": "/work" },
+    { "id": "team", "path": "team", "route": "/team" },
+    { "id": "games", "path": "games", "route": "/games" }
+  ],
+  "canonical": {
+    "/about": "whoWeAre",
+    "/work": "whatWeDo",
+    "/team": "ourTeam",
+    "/join": "join",
+    "/events": "events",
+    "/privacy": "privacy",
+    "/terms": "terms",
+    "/games": "games"
+  }
+}

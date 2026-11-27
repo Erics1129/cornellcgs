@@ -1,70 +1,20 @@
 <!doctype html>
-<html lang="en" data-theme="blue">
+<!-- The film site: the home page and every page that is not a mini game (SITE.md, "The real repo"). The film itself is
+     the tree in public/film/ (plain ES modules, copied from the redesign by scripts/film-sync.mjs); src/main.tsx starts
+     it. scripts/vite-film-shell.mjs fills each film:* marker at build time (and in dev) from src/film-shell/:
+     the words builder's head, site.html's inline loader, the import map, the first screen's modulepreload links
+     (public/film/preload.json) and the body with every word of the site. scripts/stubs.mjs writes the other pages
+     from the built copy. The mini games' page is game-shell.html. -->
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <!-- The film's black point (styles/film.css, film-black): status bar, overscroll and any gap a hard fling shows -->
-    <meta name="theme-color" content="#070605" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <!-- site/host.js: the live host (real paths, no Build notes) -->
+    <meta name="cgs-host" content="live" />
+    <!--film:head-->
     <script>
-      // Which kind of page this is, before any style applies: the cinema style
-      // sheets are scoped to the deck and the info pages and leave the mini
-      // games alone. Slugs mirror src/content.ts pageSlugs.
-      ;(function () {
-        var p = location.pathname.replace(/\/+$/, '')
-        var kind = /^\/minigames(\/|$)/.test(p) ? 'game'
-          : /^\/(whoWeAre|whatWeDo|mlProcess|events|world|ourTeam|advisors|join|contact|privacy|terms)$/.test(p) ? 'sub'
-          : 'deck'
-        document.documentElement.setAttribute('data-page', kind)
-      })()
-    </script>
-    <title>Cornell Computational Game Society (Cornell CGS)</title>
-    <meta name="description" content="The Cornell Computational Game Society (Cornell CGS) is a student club at Cornell. We are training a Guandan AI, built a poker odds calculator, and make our own mini games." />
-    <meta property="og:title" content="Cornell Computational Game Society (Cornell CGS)" />
-    <meta property="og:description" content="A Cornell student club that builds game AI and mini games." />
-    <meta property="og:url" content="https://cornellcgs.org/" />
-    <meta property="og:type" content="website" />
-    <meta property="og:site_name" content="Cornell Computational Game Society" />
-    <link rel="canonical" href="https://cornellcgs.org/" />
-    <script type="application/ld+json">
-      {
-        "@context": "https://schema.org",
-        "@graph": [
-          {
-            "@type": "Organization",
-            "@id": "https://cornellcgs.org/#org",
-            "name": "Cornell Computational Game Society",
-            "alternateName": ["Cornell CGS", "CGS", "CGS Cornell", "cornellcgs", "cgscornell", "cornellcgs.org"],
-            "url": "https://cornellcgs.org/",
-            "description": "A Cornell student club that builds game AI and mini games."
-          },
-          {
-            "@type": "WebSite",
-            "@id": "https://cornellcgs.org/#site",
-            "name": "Cornell Computational Game Society",
-            "alternateName": ["Cornell CGS", "cornellcgs"],
-            "url": "https://cornellcgs.org/",
-            "publisher": { "@id": "https://cornellcgs.org/#org" }
-          }
-        ]
-      }
-    </script>
-    <link rel="icon" type="image/webp" href="/assets/brand/voxel-cube-small.webp" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..800&family=Hanken+Grotesk:ital,wght@0,400..800;1,400..700&family=JetBrains+Mono:wght@500;600;700&family=Bricolage+Grotesque:opsz,wght@12..96,800&display=swap"
-      rel="stylesheet"
-    />
-    <script>
-      // dev forensics: keep every early error's full stack (the console truncates them)
-      if (location.hostname === 'localhost') {
-        window.__bootErrors = []
-        window.addEventListener('error', function (e) { window.__bootErrors.push(String((e.error && e.error.stack) || e.message)) })
-      }
-    </script>
-    <script>
-      // If this HTML was cached across a deploy, its bundle URL may be dead
-      // and the app would never boot. Recover with ONE cache-busting reload.
+      // If this HTML was cached across a deploy, its bundle URL may be dead and the site would never start.
+      // Recover with ONE cache-busting reload (src/main.tsx sets __cgsBooted first thing).
       ;(function () {
         try {
           var u = new URL(location.href)
@@ -74,36 +24,19 @@
             location.replace(u.toString())
           }, 4000)
         } catch (e) {
-          /* very old browser — nothing to do */
+          /* very old browser: nothing to do */
         }
       })()
     </script>
-    <link rel="preconnect" href="https://raw.githubusercontent.com" crossorigin />
-    <script>
-      // The published words (edited at /admin/, kept in the public repo
-      // Erics1129/cornellcgs-content) — asked for now so the round trip
-      // overlaps the bundle download; lib/liveContent awaits it. Must match
-      // src/lib/contentRepo.ts.
-      try {
-        window.__cgsContent = fetch(
-          'https://raw.githubusercontent.com/Erics1129/cornellcgs-content/main/content.json?t=' + Math.floor(Date.now() / 60000),
-          { cache: 'no-store' },
-        ).catch(function () { return null })
-      } catch (e) {
-        /* very old browser — the bundle fetches on its own */
-      }
-    </script>
-    <style>
-      /* Paint the world color before any JS or CSS loads — no white flash. */
-      html { background: #070605; }
-      html[data-theme='sky'] { background: #f4efe3; }
-      html[data-theme='lilac'] { background: #f6ece7; }
-      html[data-theme='violet'] { background: #150607; }
-      html[data-theme='black'] { background: #000000; }
-    </style>
+    <!--film:loader-->
+    <!-- the import map goes before the first module the page asks for (Vite would move it there anyway) -->
+    <!--film:importmap-->
+    <!-- Vite puts the main entry here (assets/main-*.js: tiny; asked for first, so the boot guard above never fires
+         on a slow line), then the first screen's modules are asked for at the top of the body -->
   </head>
   <body>
-    <div id="root"></div>
+    <!--film:preload-->
+    <!--film:body-->
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
