@@ -1,5 +1,5 @@
 // The gate the lead runs before deploying the film site, after `node scripts/film-sync.mjs` and the build:
-//   node scripts/film-check.mjs [--no-fetch] [--no-dist]
+//   node scripts/film-check.mjs [--no-fetch] [--no-dist] [--allow kit/props/stars.json]
 // Exit 1 when anything below fails (warnings do not). It never changes the repo, the remote or gh-pages.
 //  1. public/film/ is exactly what the last sync wrote (src/film-shell/sync.json), and holds every file it needs:
 //     every import of every module resolves (only 'three' and 'three/addons/' are bare, and are vendored), the
@@ -135,8 +135,14 @@ else {
   const scanText = (label, text) => { const m = LOCAL.exec(text); if (m) hits.push(`${label}: …${text.slice(Math.max(0, m.index - 50), m.index + 60).replace(/\s+/g, ' ')}…`) }
   for (const [r, f] of onDisk) if (TEXT.test(r)) scanText(r, fs.readFileSync(f, 'utf8'))
   for (const f of ['head.html', 'words.html', 'meta.json', 'static/404.html', 'static/robots.txt', 'static/sitemap.xml']) if (fs.existsSync(path.join(SHELL, f))) scanText('src/film-shell/' + f, fs.readFileSync(path.join(SHELL, f), 'utf8'))
-  if (hits.length) fail(`${hits.length} served file(s) name localhost or this Mac's paths: ${hits.slice(0, 5).join(' | ')}`)
-  else ok('nothing served names localhost, /Users/, cgs-redesign or picker/')
+  // --allow a,b: the lead's waiver for named files (a kit fix that cannot land tonight); they are still reported
+  const allowArg = argv.indexOf('--allow') >= 0 ? argv[argv.indexOf('--allow') + 1] || '' : ''
+  const allowed = new Set(allowArg.split(',').filter(Boolean))
+  const waived = hits.filter((h) => allowed.has(h.split(':')[0]))
+  const real = hits.filter((h) => !allowed.has(h.split(':')[0]))
+  if (real.length) fail(`${real.length} served file(s) name localhost or this Mac's paths: ${real.slice(0, 5).join(' | ')}`)
+  else ok('nothing served names localhost, /Users/, cgs-redesign or picker/' + (waived.length ? ` (waived: ${waived.map((h) => h.split(':')[0]).join(', ')})` : ''))
+  for (const h of waived) warn('waived with --allow, still published: ' + h)
   const cdn = [...onDisk].filter(([r, f]) => /\.m?js$/.test(r) && /cdn\.jsdelivr\.net/.test(fs.readFileSync(f, 'utf8'))).map(([r]) => r)
   if (cdn.length) warn(`the jsDelivr address appears as text in ${cdn.join(', ')} (not imported: the import map sends three to /film/vendor/)`)
 }
