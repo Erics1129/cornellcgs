@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Sound: offline measurement</title>
+<link rel="icon" href="data:,">
+<!--
+  site/chrome/proof/measure.html: the site's sound (site/chrome/sound.js, the kit's voices with it) rendered into an
+  OfflineAudioContext, then measured from the samples: short-term loudness (ITU-R BS.1770-4, K-weighted, 3 s window,
+  0.1 s hop), momentary (0.4 s), sample peak, and clicks (a step in the 2 ms envelope or the second difference at a cut,
+  against the second before it). Driven by r3src/chrome-sound/measure.mjs: window.__run(scenario) -> result.
+-->
+</head>
+<body>
+<script type="module">
+import { createSiteSound, PLACES } from '../sound.js'
+import { SCENES } from '../../scenes.js'
+
+const SR = 48000
+// an OfflineAudioContext that says it is running (so the kit's play() and the site's resume() treat it as live)
+function offlineCtor(seconds) {
+  return function () {
+    const real = new OfflineAudioContext(2, Math.ceil(SR * seconds), SR)
+    return new Proxy(real, {
+      get(t, k) { if (k === 'state') return 'running'; if (k === '__real') return t; if (k === 'close') return () => Promise.resolve(); const v = Reflect.get(t, k, t); return typeof v === 'function' ? v.bind(t) : v },
+      set(t, k, v) { return Reflect.set(t, k, v, t) },
+    })
+  }
+}
+// BS.1770 K-weighting at 48 kHz
+function kweight(x) {
+  const y = new Float64Array(x.length)
+  const s1 = { b: [1.53512485958697, -2.69169618940638, 1.19839281085285], a: [-1.69065929318241, 0.73248077421585] }
+  const s2 = { b: [1, -2, 1], a: [-1.99004745483398, 0.99007225036621] }
+  for (const s of [s1, s2]) {
+    let x1 = 0, x2 = 0, y1 = 0, y2 = 0
+    const src = s === s1 ? x : y
+    for (let i = 0; i < src.length; i++) {
+      const xi = src[i], yi = s.b[0] * xi + s.b[1] * x1 + s.b[2] * x2 - s.a[0] * y1 - s.a[1] * y2
+      x2 = x1; x1 = xi; y2 = y1; y1 = yi; y[i] = yi
+    }
+  }
+  return y
+}
+function analyse(buf, { from = 0, cuts = [] } = {}) {
+  const ch = [buf.getChannelData(0), buf.getChannelData(1)]
+  const kw = ch.map(kweight)
+  const n = buf.length
+  // prefix sums of squared K-weighted samples (both channels)
+  const ps = new Float64Array(n + 1)
+  for (let i = 0; i < n; i++) ps[i + 1] = ps[i] + kw[0][i] * kw[0][i] + kw[1][i] * kw[1][i]
+  const lufs = (a, b) => { const m = (ps[b] - ps[a]) / (b - a); return m > 0 ? -0.691 + 10 * Math.log10(m) : -120 }
+  const st = [], mo = []
+  const w3 = 3 * SR, w04 = 0.4 * SR, hop = 0.1 * SR
+  for (let e = Math.max(w3, Math.floor(from * SR) + w3); e <= n; e += hop) st.push({ t: e / SR, v: lufs(e - w3, e) })
+  if (!st.length) st.push({ t: n / SR, v: lufs(Math.floor(from * SR), n) })
+  for (let e = Math.max(w04, Math.floor(from * SR) + w04); e <= n; e += hop) mo.push({ t: e / SR, v: lufs(e - w04, e) })
+  let peak = 0
+  for (const c of ch) for (let i = Math.floor(from * SR); i < n; i++) { const a = Math.abs(c[i]); if (a > peak) peak = a }
+  const maxST = st.reduce((m, s) => (s.v > m.v ? s : m), st[0])
+  const maxMO = mo.reduce((m, s) => (s.v > m.v ? s : m), mo[0] || { v: -120, t: 0 })
+  const out = { maxST: +maxST.v.toFixed(2), maxSTat: +maxST.t.toFixed(2), maxMO: +maxMO.v.toFixed(2), peakDb: +(20 * Math.log10(peak + 1e-12)).toFixed(2),
+    stLast: +st[st.length - 1].v.toFixed(2), st: st.filter((_, i) => i % 5 === 0).map((s) => [+s.t.toFixed(1), +s.v.toFixed(1)]), mo: mo.map((s) => [+s.t.toFixed(1), +s.v.toFixed(1)]) }
+  // clicks at each cut: the second difference and the 2 ms envelope, against the second before
+  out.cuts = cuts.map((cut) => {
+    const tc = typeof cut === 'number' ? cut : cut.t, after = typeof cut === 'object' && cut.base === 'after'   // an onset: compare with the steady air after it
+    const c0 = Math.floor(tc * SR), b0 = after ? c0 + SR : c0 - SR, b1 = after ? c0 + 2 * SR : c0 - Math.floor(0.02 * SR)
+    const d2max = (a, b) => { let m = 0; for (const c of ch) for (let i = Math.max(2, a); i < Math.min(n, b); i++) { const d = Math.abs(c[i] - 2 * c[i - 1] + c[i - 2]); if (d > m) m = d } return m }
+    const env = (a) => { let s = 0; for (const c of ch) for (let i = a; i < a + 96; i++) s += c[i] * c[i]; return Math.sqrt(s / 192) }
+    // the baseline: the louder of the second before and the steady second after (a new air may be rougher than the old)
+    const a0 = c0 + Math.floor(0.8 * SR), a1 = Math.min(n - 96, c0 + Math.floor(1.8 * SR))
+    const base = after ? d2max(b0, b1) : Math.max(d2max(b0, b1), a1 > a0 ? d2max(a0, a1) : 0), at = d2max(c0 - Math.floor(0.005 * SR), c0 + Math.floor(0.06 * SR))
+    let jumpBase = 0, jumpAt = 0
+    const spans = after ? [[b0, b1]] : [[b0, b1], [a0, a1]]
+    for (const [s0, s1] of spans) for (let i = s0; i < s1; i += 96) { const e0 = env(i), e1 = env(i + 96), r = Math.abs(20 * Math.log10((e1 + 1e-7) / (e0 + 1e-7))); if (Math.max(e0, e1) > 1e-3 && r > jumpBase) jumpBase = r }
+    for (let i = c0 - 0.005 * SR; i < c0 + 0.06 * SR; i += 96) { const e0 = env(i), e1 = env(i + 96), r = Math.abs(20 * Math.log10((e1 + 1e-7) / (e0 + 1e-7))); if (Math.max(e0, e1) > 1e-3 && r > jumpAt) jumpAt = r }   // a step only counts above -60 dBFS (a fade from silence starts far below)
+    const click = at > Math.max(3 * base, 0.004) || jumpAt > Math.max(jumpBase * 1.5, 6)
+    return { t: tc, d2Before: +base.toExponential(2), d2At: +at.toExponential(2), envStepBeforeDb: +jumpBase.toFixed(2), envStepAtDb: +jumpAt.toFixed(2), click }
+  })
+  return out
+}
+
+const row = (id) => SCENES.find((e) => e.id === id || e.slot === id)
+const film = (ids) => ids.map((id, k) => ({ ...row(id), k }))
+
+/** scenario: { seconds, film: [ids], steps: [{ t, pos: { k, p, seam }, play: [name, opts], set: bool, stir, cut }], from, cuts } */
+window.__run = async function (sc) {
+  const seconds = sc.seconds || 8
+  const S = createSiteSound({ fresh: true, anyTime: true, AudioContext: offlineCtor(seconds) })
+  const list = sc.film ? film(sc.film) : SCENES
+  S._setPosition(sc.start || { k: 0, p: 0, seam: null }, list)
+  S.set(true)
+  const ctx = S.context, real = ctx.__real
+  await new Promise((r) => setTimeout(r, 0))        // the engine's resume().then(...) runs: the first mix and the fade in
+  for (const st of sc.steps || []) {
+    real.suspend(st.t).then(() => {
+      if (st.pos) S._setPosition(st.pos, null)
+      if (st.cut) S._mix(true)
+      if (st.play) for (const [name, o] of st.play) S.play(name, o || {})
+      if (st.stir != null) S._stir(st.stir)
+      if (st.set != null) S.set(st.set)
+      if (st.dispose) S.dispose()
+      real.resume()
+    })
+  }
+  const t0 = performance.now()
+  const buf = await real.startRendering()
+  const res = analyse(buf, { from: sc.from || 0, cuts: sc.cuts || [] })
+  res.renderMs = Math.round(performance.now() - t0)
+  res.debug = S.debug ? (({ beds, contexts, plays, refused }) => ({ beds, contexts, plays, refused }))(S.debug()) : null
+  try { S.dispose() } catch (e) {}
+  return res
+}
+window.__places = Object.keys(PLACES)
+window.__ready = true
+</script>
+</body>
+</html>

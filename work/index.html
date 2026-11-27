@@ -1,0 +1,683 @@
+<!doctype html>
+<!-- The film site: the home page and every page that is not a mini game (SITE.md, "The real repo"). The film itself is
+     the tree in public/film/ (plain ES modules, copied from the redesign by scripts/film-sync.mjs); src/main.tsx starts
+     it. scripts/vite-film-shell.mjs fills each film:* marker at build time (and in dev) from src/film-shell/:
+     the words builder's head, site.html's inline loader, the import map, the first screen's modulepreload links
+     (public/film/preload.json) and the body with every word of the site. scripts/stubs.mjs writes the other pages
+     from the built copy. The mini games' page is game-shell.html. -->
+<html lang="en" class="boot">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <!-- site/host.js: the live host (real paths, no Build notes) -->
+    <meta name="cgs-host" content="live" />
+    <!--film:head-->
+<title>Our Work · Cornell CGS</title>
+<meta name="description" content="What we are building, and what the club does each week. How we turn a game’s rules into an agent that plays it." />
+<link rel="canonical" href="https://cornellcgs.org/whatWeDo/" />
+<meta name="theme-color" content="#F6F2EA">
+<meta name="color-scheme" content="light">
+<meta name="format-detection" content="telephone=no">
+<link rel="icon" href="/film/site/icons/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/film/site/icons/icon-32.png" type="image/png" sizes="32x32">
+<link rel="apple-touch-icon" href="/film/site/icons/apple-touch-icon.png">
+<link rel="manifest" href="/film/site/icons/site.webmanifest">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Cornell Computational Game Society">
+<meta property="og:locale" content="en_US">
+<meta property="og:url" content="https://cornellcgs.org/whatWeDo/" />
+<meta property="og:title" content="Our Work · Cornell CGS" />
+<meta property="og:description" content="What we are building, and what the club does each week. How we turn a game’s rules into an agent that plays it." />
+<meta property="og:image" content="https://cornellcgs.org/film/site/og/work.jpg" />
+<meta property="og:image:type" content="image/jpeg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Our Work: a frame of the film" />
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Our Work · Cornell CGS" />
+<meta name="twitter:description" content="What we are building, and what the club does each week. How we turn a game’s rules into an agent that plays it." />
+<meta name="twitter:image" content="https://cornellcgs.org/film/site/og/work.jpg" />
+<meta name="twitter:image:alt" content="Our Work: a frame of the film" />
+<script type="application/ld+json">
+[
+  {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    "name": "Cornell Computational Game Society",
+    "alternateName": "Cornell CGS",
+    "url": "https://cornellcgs.org/",
+    "logo": "https://cornellcgs.org/film/site/icons/icon-512.png",
+    "description": "A Cornell club that builds game AI and has fun doing it.",
+    "email": "recruitment@cornellcgs.org",
+    "parentOrganization": {
+      "@type": "CollegeOrUniversity",
+      "name": "Cornell University"
+    },
+    "location": {
+      "@type": "Place",
+      "name": "Ithaca, New York"
+    },
+    "contactPoint": [
+      {
+        "@type": "ContactPoint",
+        "contactType": "Recruitment",
+        "email": "recruitment@cornellcgs.org"
+      },
+      {
+        "@type": "ContactPoint",
+        "contactType": "Tech",
+        "email": "tech@cornellcgs.org"
+      },
+      {
+        "@type": "ContactPoint",
+        "contactType": "Finance & Sponsors",
+        "email": "finance@cornellcgs.org"
+      },
+      {
+        "@type": "ContactPoint",
+        "contactType": "Marketing",
+        "email": "marketing@cornellcgs.org"
+      },
+      {
+        "@type": "ContactPoint",
+        "contactType": "Social",
+        "email": "social@cornellcgs.org"
+      }
+    ],
+    "member": [
+      {
+        "@type": "OrganizationRole",
+        "roleName": "Faculty Advisor",
+        "member": {
+          "@type": "Person",
+          "name": "Robert D. Kleinberg",
+          "jobTitle": "Professor of Computer Science, Cornell University",
+          "url": "https://www.cs.cornell.edu/~rdk/"
+        }
+      }
+    ]
+  },
+  {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "name": "Cornell Computational Game Society",
+    "alternateName": "Cornell CGS",
+    "url": "https://cornellcgs.org/"
+  }
+]
+</script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<!--/film:head-->
+    <script>
+      // If this HTML was cached across a deploy, its bundle URL may be dead and the site would never start.
+      // Recover with ONE cache-busting reload (src/main.tsx sets __cgsBooted first thing).
+      ;(function () {
+        try {
+          var u = new URL(location.href)
+          window.__cgsBootTimer = setTimeout(function () {
+            if (window.__cgsBooted || u.searchParams.has('rl')) return
+            u.searchParams.set('rl', String(Date.now()))
+            location.replace(u.toString())
+          }, 4000)
+        } catch (e) {
+          /* very old browser: nothing to do */
+        }
+      })()
+    </script>
+    <!--film:loader-->
+<style>
+  /* the inline loader: the paper and the name, on the first paint, before any script */
+  html { background: #F6F2EA; }
+  html.boot body { overflow: hidden; }
+  .boot-loader { position: fixed; inset: 0; z-index: 40; display: grid; place-items: center; pointer-events: none;
+    background: radial-gradient(70% 70% at 50% 46%, #FAF7F1 0%, #F6F2EA 60%, #EFE9DF 100%); transition: opacity .4s ease; }
+  .boot-loader span { position: absolute; left: 0; right: 0; top: 86.5%; transform: translateY(-50%); text-align: center;
+    font: 600 clamp(15px, 2.2vw, 34px)/1 "Fraunces", Georgia, "Times New Roman", serif; color: #5C5850; letter-spacing: -0.005em; }
+  html:not(.boot) .boot-loader { opacity: 0; }
+  html.calm .boot-loader, html.nojs .boot-loader { display: none; }
+</style>
+<link rel="stylesheet" href="/film/site/site.css">
+<link rel="stylesheet" href="/film/site/chrome/assembly.css">
+<noscript><style>.boot-loader { display: none; } html.boot body { overflow: auto; } .words { position: static !important; clip: auto !important; clip-path: none !important; white-space: normal !important; overflow: visible !important; width: auto !important; height: auto !important; }</style></noscript>
+<!--/film:loader-->
+    <!-- the import map goes before the first module the page asks for (Vite would move it there anyway) -->
+    <!--film:importmap-->
+
+<!--/film:importmap-->
+    <!-- Vite puts the main entry here (src/main.tsx, built tiny; asked for first, so the boot guard above never
+         fires on a slow line), then the first screen's modules are asked for at the top of the body. Never write the
+         built entry's file name in a comment: fast-deploy.sh greps this page for it. -->
+<script type="importmap">{"imports":{"three":"/film/vendor/three.module.min.js","three/addons/":"/film/vendor/addons/"}}</script>
+    <script type="module" crossorigin src="/assets/main-DzenrGMA.js"></script>
+    <link rel="modulepreload" crossorigin href="/assets/modulepreload-polyfill-B5Qt9EMX.js">
+    <link rel="modulepreload" crossorigin href="/assets/preload-helper-BXl3LOEh.js">
+  <script>window.__cgsRoute="/work";window.__cgsPage="work"</script>
+</head>
+  <body>
+    <!--film:preload-->
+<link rel="preload" as="fetch" crossorigin href="/film/site/stills/loader-b/in.jpg" />
+    <link rel="preload" as="fetch" crossorigin href="/film/protos/loader-b/sky.jpg" />
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400..700&amp;display=swap" />
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400..700&amp;display=swap" />
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Figtree:wght@500;600&amp;display=swap" />
+    <link rel="modulepreload" href="/film/site/main.js" />
+    <link rel="modulepreload" href="/film/vendor/three.module.min.js" />
+    <link rel="modulepreload" href="/film/site/host.js" />
+    <link rel="modulepreload" href="/film/site/scenes.js" />
+    <link rel="modulepreload" href="/film/site/film.js" />
+    <link rel="modulepreload" href="/film/site/router.js" />
+    <link rel="modulepreload" href="/film/kit/host.js" />
+    <link rel="modulepreload" href="/film/site/chrome/sound.js" />
+    <link rel="modulepreload" href="/film/kit/feel-spring.js" />
+    <link rel="modulepreload" href="/film/kit/feel-scrub.js" />
+    <link rel="modulepreload" href="/film/kit/ease.js" />
+    <link rel="modulepreload" href="/film/site/mount.js" />
+    <link rel="modulepreload" href="/film/kit/feel-sound.js" />
+    <link rel="modulepreload" href="/film/kit/names.js" />
+    <link rel="modulepreload" href="/film/protos/loader-b/index.js" />
+    <link rel="modulepreload" href="/film/kit/film.js" />
+    <link rel="modulepreload" href="/film/kit/actors.js" />
+    <link rel="modulepreload" href="/film/protos/loader-b/common.js" />
+    <link rel="modulepreload" href="/film/kit/track.js" />
+    <link rel="modulepreload" href="/film/kit/actors/stage.js" />
+    <link rel="modulepreload" href="/film/kit/actors/cube.js" />
+    <link rel="modulepreload" href="/film/kit/actors/planes.js" />
+    <link rel="modulepreload" href="/film/kit/actors/paths.js" />
+    <link rel="modulepreload" href="/film/kit/actors/labels.js" />
+    <link rel="modulepreload" href="/film/kit/actors/core.js" />
+    <link rel="modulepreload" href="/film/kit/actors/framing.js" />
+    <link rel="modulepreload" href="/film/kit/plate.js" />
+    <link rel="modulepreload" href="/film/kit/actors/shadows.js" />
+    <link rel="modulepreload" href="/film/kit/actors/fx.js" />
+    <link rel="modulepreload" href="/film/vendor/addons/geometries/RoundedBoxGeometry.js" />
+    <link rel="modulepreload" href="/film/kit/actors/cube-layout.js" />
+    <link rel="modulepreload" href="/film/kit/actors/fold.js" />
+    <link rel="modulepreload" href="/film/protos/name-b/index.js" />
+    <link rel="modulepreload" href="/film/kit/page.js" />
+    <link rel="modulepreload" href="/film/protos/name-a/lib.js" />
+    <link rel="modulepreload" href="/film/protos/name-b/seamwhite.js" />
+    <link rel="modulepreload" href="/film/kit/seams.js" />
+<!--/film:preload-->
+    <!--film:body-->
+<div class="boot-loader" aria-hidden="true"><span>Cornell CGS</span></div>
+<!-- film:first begin (made by dev/sitelist.mjs: the modules that start the page, asked for at once; do not edit by hand) -->
+<link rel="modulepreload" href="/film/site/main.js">
+<link rel="modulepreload" href="/film/site/host.js">
+<link rel="modulepreload" href="/film/site/scenes.js">
+<link rel="modulepreload" href="/film/site/film.js">
+<link rel="modulepreload" href="/film/kit/host.js">
+<link rel="modulepreload" href="/film/kit/feel-spring.js">
+<link rel="modulepreload" href="/film/kit/feel-scrub.js">
+<link rel="modulepreload" href="/film/kit/ease.js">
+<link rel="modulepreload" href="/film/site/mount.js">
+<link rel="modulepreload" href="/film/kit/names.js">
+<link rel="modulepreload" href="/film/site/router.js">
+<link rel="modulepreload" href="/film/site/chrome/sound.js">
+<link rel="modulepreload" href="/film/kit/feel-sound.js">
+<!-- film:first end -->
+
+<div id="film" class="film" aria-label="The film of Cornell CGS. Scroll to move through it; Space plays and pauses."></div>
+
+<!-- words:begin (made by dev/sitewords.mjs from cornellcgs-cinema/src/content.ts; do not edit by hand) -->
+<!--film:words-->
+<main id="words" class="words" lang="en">
+<style id="words-style">
+/* site/words.html: the reading page. Paper, ink, Fraunces and Figtree, the page kit's colours (kit/PAGE.md).
+   Every rule is :where(#words ...) so the calm page's rules in site.css win where they overlap. */
+:where(#words) {
+  --w-paper: #F6F2EA; --w-plane: #FBF8F1; --w-ink: #211F1C; --w-soft: #5C5850; --w-clay: #ECE5D8;
+  --w-hair: rgb(33 31 28 / .13); --w-hair-2: rgb(33 31 28 / .3); --w-carnelian: #B8372C; --w-shade: 58 40 22;
+  --w-serif: Fraunces, "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+  --w-sans: Figtree, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --w-pad: clamp(20px, 5.2vw, 76px);
+  display: block; box-sizing: border-box; max-width: 1200px; margin: 0 auto; padding: clamp(28px, 6vw, 84px) var(--w-pad) 64px;
+  color: var(--w-ink); font: 420 17px/1.6 var(--w-sans); font-kerning: normal; font-variant-numeric: proportional-nums;
+  -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; text-rendering: optimizeLegibility;
+  -webkit-text-size-adjust: 100%; text-size-adjust: 100%;
+}
+:where(#words) *, :where(#words) *::before, :where(#words) *::after { box-sizing: inherit; }
+:where(#words) ::selection { background: rgb(184 55 44 / .2); color: inherit; }
+:where(#words) :is(h1, h2, h3, p, ul, ol, figure) { margin: 0; }
+:where(#words) :is(ul, ol) { padding: 0; list-style: none; }
+:where(#words) :is([id], section) { scroll-margin-top: 24px; }
+
+/* type */
+:where(#words) h1 { font: 500 clamp(44px, 26px + 5.4vw, 104px)/.96 var(--w-serif); letter-spacing: -.024em; font-variation-settings: "opsz" 144; text-wrap: balance; max-width: 11.5em; margin: .28em 0 .32em; }
+:where(#words) h2 { font: 560 clamp(28px, 20px + 1.5vw, 42px)/1.06 var(--w-serif); letter-spacing: -.014em; font-variation-settings: "opsz" 72; text-wrap: balance; margin: .18em 0 .5em; }
+:where(#words) .w-sub { font: 600 clamp(20px, 17px + .5vw, 24px)/1.15 var(--w-serif); letter-spacing: -.006em; font-variation-settings: "opsz" 36; margin: 2em 0 .45em; }
+:where(#words) .w-eyebrow { display: block; font: 650 11.5px/1.25 var(--w-sans); letter-spacing: .12em; text-transform: uppercase; color: var(--w-soft); }
+:where(#words) .w-lead { font-size: clamp(18px, 16px + .45vw, 21px); line-height: 1.45; font-weight: 450; color: var(--w-soft); max-width: 31em; text-wrap: pretty; margin-bottom: 1.1em; }
+:where(#words) .w-lead-top { color: #3E3A34; }
+:where(#words) .w-lead-s { font-size: 17px; margin-bottom: .8em; }
+:where(#words) p { max-width: 36em; text-wrap: pretty; }
+:where(#words) p + p { margin-top: .7em; }
+:where(#words) strong { font-weight: 640; }
+:where(#words) .w-kicker { font: 600 13px/1.4 var(--w-sans); letter-spacing: .1em; text-transform: uppercase; color: var(--w-soft); margin-bottom: .5em; }
+:where(#words) .w-small { font-size: 14px; color: var(--w-soft); }
+:where(#words) .w-sr, :where(#words) .w-skip:not(:focus) { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; border: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+/* links: a hairline drawn underneath (WebKit drops text-decoration under shadows; same as the kit) */
+:where(#words) a { color: inherit; font-weight: 560; text-decoration: none; background: linear-gradient(var(--w-u, var(--w-hair-2)), var(--w-u, var(--w-hair-2))) 0 calc(100% - .04em) / 100% 1px no-repeat; transition: background-color .15s, color .15s; border-radius: 2px; }
+:where(#words) a:hover { --w-u: currentColor; }
+:where(#words) a:focus { outline: none; }
+:where(#words) a:focus-visible, :where(#words) summary:focus-visible { outline: 2px solid var(--w-carnelian); outline-offset: 3px; }
+:where(#words) .w-skip { position: absolute; left: 16px; top: 12px; z-index: 5; padding: 10px 16px; background: var(--w-plane); border-radius: 999px; box-shadow: 0 6px 18px -8px rgb(var(--w-shade) / .5); }
+
+/* buttons: card-stock pills, as the page kit's */
+:where(#words) .w-actions { display: flex; flex-wrap: wrap; gap: 10px; margin: 1.3em 0 0; max-width: none; }
+:where(#words) .w-btn { display: inline-flex; align-items: center; min-height: 44px; padding: 0 1.3em; border-radius: 999px; font: 620 15px/1 var(--w-sans); letter-spacing: .005em; white-space: nowrap; background-image: none; transition: translate .18s cubic-bezier(.2,.8,.2,1), box-shadow .18s cubic-bezier(.2,.8,.2,1), background-color .18s; }
+:where(#words) .w-btn-primary { background-color: var(--w-plane); box-shadow: inset 0 0 0 1px rgb(33 31 28 / .08), 0 1px 2px rgb(var(--w-shade) / .16), 0 8px 18px -8px rgb(var(--w-shade) / .42); }
+:where(#words) .w-btn-primary:hover { background-color: #FFFDF8; translate: 0 -1px; box-shadow: inset 0 0 0 1px rgb(33 31 28 / .08), 0 2px 4px rgb(var(--w-shade) / .16), 0 12px 24px -10px rgb(var(--w-shade) / .46); }
+:where(#words) .w-btn-secondary { box-shadow: inset 0 0 0 1.25px var(--w-hair-2); }
+:where(#words) .w-btn-secondary:hover { background-color: rgb(33 31 28 / .04); box-shadow: inset 0 0 0 1.5px var(--w-ink); }
+:where(#words) .w-btn:active { translate: 0 1px; transition-duration: .06s; }
+
+/* the masthead and the contents */
+:where(#words) .w-brand { display: flex; align-items: center; gap: 14px; max-width: none; }
+:where(#words) .w-mark { width: 46px; height: 46px; flex: none; filter: drop-shadow(0 3px 4px rgb(var(--w-shade) / .18)); }
+:where(#words) .w-top { padding-bottom: clamp(36px, 5vw, 64px); }
+:where(#words) .w-contents { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: 20px 56px; padding: 26px 0 30px; border-top: 1px solid var(--w-ink); border-bottom: 1px solid var(--w-hair); margin-bottom: 8px; }
+:where(#words) .w-contents-h { font: 650 11.5px/1.25 var(--w-sans); letter-spacing: .12em; text-transform: uppercase; color: var(--w-soft); margin: 0 0 12px; }
+:where(#words) .w-toc { columns: 2 13em; column-gap: 32px; }
+:where(#words) .w-toc-pages { columns: 2 9em; }
+:where(#words) .w-toc li { break-inside: avoid; }
+:where(#words) .w-toc a { display: flex; align-items: baseline; gap: 12px; min-height: 34px; padding: 5px 0; font-weight: 520; background-image: none; }
+:where(#words) .w-toc a:hover { color: var(--w-carnelian); }
+:where(#words) .w-n { font: 500 13px/1 var(--w-serif); font-variant-numeric: tabular-nums lining-nums; color: var(--w-soft); min-width: 1.6em; }
+
+/* a scene or a page: a rail (number, world, place) beside the words */
+:where(#words) :is(.w, .w-page) { display: grid; grid-template-columns: minmax(150px, 220px) minmax(0, 1fr); gap: 8px clamp(24px, 4vw, 64px); padding: clamp(36px, 5vw, 60px) 0; border-top: 1px solid var(--w-hair); }
+:where(#words) .w-rail { display: flex; flex-direction: column; gap: 6px; align-self: start; position: sticky; top: 24px; }
+:where(#words) .w-num { font: 400 46px/.9 var(--w-serif); font-variation-settings: "opsz" 144; font-variant-numeric: tabular-nums lining-nums; letter-spacing: -.02em; color: rgb(33 31 28 / .3); margin-bottom: 8px; }
+:where(#words) .w-world { font: 650 11px/1.3 var(--w-sans); letter-spacing: .12em; text-transform: uppercase; color: var(--w-ink); }
+:where(#words) .w-place { font-size: 14px; line-height: 1.35; color: var(--w-soft); }
+:where(#words) .w-path { font-variant-numeric: tabular-nums; }
+:where(#words) .w-also { font-size: 13px; }
+:where(#words) .w-actions + :is(.w-rows, .w-gamecards) { margin-top: 30px; }
+:where(#words) .w-body { min-width: 0; }
+:where(#words) .w-pages { margin-top: 48px; border-top: 1px solid var(--w-ink); }
+:where(#words) .w-pages > .w-page:first-child { border-top: 0; }
+/* the calm page may put the scene's still in the rail: <figure class="w-still"><img ...></figure> */
+:where(#words) .w:has(.w-still) { grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); align-items: center; }
+:where(#words) .w-still { aspect-ratio: 16 / 9; border-radius: 10px; overflow: hidden; background: #E9E3D8; box-shadow: 0 1px 2px rgb(var(--w-shade) / .12), 0 18px 36px -22px rgb(var(--w-shade) / .55); margin-top: 10px; }
+:where(#words) .w-still img { display: block; width: 100%; height: 100%; object-fit: cover; }
+
+/* the lists */
+:where(#words) .w-typing li { font: 500 clamp(19px, 17px + .5vw, 23px)/1.35 var(--w-serif); font-variation-settings: "opsz" 36; padding: 3px 0; }
+:where(#words) .w-flush li, :where(#words) .w-steps li { position: relative; padding: 12px 0 12px 58px; border-top: 1px solid var(--w-hair); max-width: 40em; }
+:where(#words) .w-flush li:first-child, :where(#words) .w-steps li:first-child { border-top: 0; }
+:where(#words) .w-card { position: absolute; left: 0; top: 10px; width: 34px; height: 46px; padding: 4px 0 0 6px; border-radius: 5px; background: var(--w-plane); box-shadow: inset 0 0 0 1px rgb(33 31 28 / .14), 0 4px 8px -5px rgb(var(--w-shade) / .5); font: 400 12px/1 var(--w-serif); color: var(--w-ink); rotate: -3deg; }
+:where(#words) .w-flush li:nth-child(even) .w-card { rotate: 2deg; }
+:where(#words) .w-card b { display: block; font-weight: 640; font-size: 15px; margin-bottom: 2px; }
+:where(#words) .w-steps .w-n { position: absolute; left: 0; top: 15px; font-size: 22px; }
+:where(#words) .w-names, :where(#words) .w-team { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 0 28px; }
+:where(#words) :is(.w-names, .w-team, .w-advisors) li { display: flex; flex-direction: column; padding: 10px 0 11px; border-top: 1px solid var(--w-hair); }
+:where(#words) .w-name { font: 560 20px/1.2 var(--w-serif); font-variation-settings: "opsz" 36; letter-spacing: -.004em; }
+:where(#words) .w-role { font-size: 14px; color: var(--w-soft); line-height: 1.4; margin-top: 2px; }
+:where(#words) .w-advisors p { font-size: 16px; margin-top: .5em; }
+:where(#words) .w-next li, :where(#words) .w-rules li { position: relative; padding: 6px 0 6px 26px; max-width: 36em; }
+:where(#words) .w-next li::before { content: ""; position: absolute; left: 2px; top: .86em; width: 10px; height: 10px; border-radius: 3px; background: var(--w-clay); box-shadow: inset 0 0 0 1px rgb(33 31 28 / .22); }
+:where(#words) .w-rules { counter-reset: rule; }
+:where(#words) .w-rules li { counter-increment: rule; }
+:where(#words) .w-rules li::before { content: counter(rule); position: absolute; left: 0; top: 6px; font: 500 15px/1.6 var(--w-serif); font-variant-numeric: tabular-nums; color: var(--w-soft); }
+:where(#words) .w-games { display: flex; flex-wrap: wrap; gap: 6px 22px; margin-top: .7em; }
+:where(#words) .w-games a { font: 560 19px/1.5 var(--w-serif); }
+:where(#words) .w-tag, :where(#words) .w-tba { display: inline-block; padding: 3px 10px 4px; border-radius: 999px; background: var(--w-clay); font: 620 12.5px/1.3 var(--w-sans); letter-spacing: .02em; color: #4A463F; vertical-align: .1em; }
+:where(#words) .w-events li { padding: 12px 0; border-top: 1px solid var(--w-hair); }
+:where(#words) .w-events li:first-child { border-top: 0; }
+:where(#words) .w-events strong { font: 600 21px/1.3 var(--w-serif); margin-right: 8px; }
+:where(#words) .w-events p { margin-top: .35em; }
+:where(#words) .w-inboxes { max-width: 40em; }
+:where(#words) .w-inboxes li { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 4px 20px; min-height: 44px; padding: 10px 0; border-top: 1px solid var(--w-hair); }
+:where(#words) .w-inboxes li:last-child { border-bottom: 1px solid var(--w-hair); }
+:where(#words) .w-inbox-l { display: flex; gap: 10px; align-items: baseline; font-weight: 600; }
+:where(#words) .w-inboxes a { font-variant-numeric: tabular-nums; }
+:where(#words) .w-rows li { display: grid; grid-template-columns: minmax(130px, 190px) minmax(0, 1fr); gap: 2px 24px; padding: 14px 0; border-top: 1px solid var(--w-hair); max-width: 46em; }
+:where(#words) .w-rows li > :not(.w-row-h, .w-row-alt) { grid-column: 2; }
+:where(#words) .w-row-h { grid-column: 1; grid-row: 1; font: 600 19px/1.3 var(--w-serif); font-variation-settings: "opsz" 36; }
+:where(#words) .w-rows .w-row-alt { grid-column: 1; grid-row: 2; align-self: start; }
+:where(#words) .w-rows li > p:first-of-type { grid-row: 1 / span 2; }
+:where(#words) .w-row-alt { font: 650 10.5px/1.4 var(--w-sans); letter-spacing: .11em; text-transform: uppercase; color: var(--w-soft); }
+:where(#words) .w-more { margin-top: .4em; }
+:where(#words) .w-countries { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; max-width: 40em; }
+:where(#words) .w-countries li { padding: 4px 11px 5px; border-radius: 999px; box-shadow: inset 0 0 0 1px var(--w-hair-2); font-size: 14px; }
+:where(#words) .w-gamecards { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 16px; margin-top: 8px; }
+:where(#words) .w-gamecards li { display: flex; flex-direction: column; padding: 20px 22px 18px; border-radius: 12px; background: var(--w-plane); box-shadow: inset 0 0 0 1px rgb(33 31 28 / .05), 0 1px 2px rgb(var(--w-shade) / .1), 0 14px 30px -18px rgb(var(--w-shade) / .4); }
+:where(#words) .w-gamecards .w-sub { margin: .35em 0 .4em; }
+:where(#words) .w-gamecards p { font-size: 15.5px; line-height: 1.5; }
+:where(#words) .w-gamecards .w-more { margin-top: auto; padding-top: 12px; }
+
+/* the foot */
+:where(#words) .w-foot { margin-top: 56px; padding-top: 32px; border-top: 1px solid var(--w-ink); display: grid; gap: 22px; }
+:where(#words) .w-foot .w-mark { width: 34px; height: 34px; }
+:where(#words) .w-credits { max-width: 52em; font-size: 14px; color: var(--w-soft); }
+:where(#words) .w-credits summary { display: inline-flex; align-items: center; gap: 10px; min-height: 44px; cursor: pointer; font: 600 15px/1 var(--w-sans); color: var(--w-ink); list-style: none; border-radius: 4px; }
+:where(#words) .w-credits summary::-webkit-details-marker { display: none; }
+:where(#words) .w-credits summary::before { content: ""; width: 7px; height: 7px; border-right: 1.5px solid; border-bottom: 1.5px solid; rotate: -45deg; transition: rotate .2s; }
+:where(#words) .w-credits[open] summary::before { rotate: 45deg; }
+:where(#words) .w-credits-h { font: 650 11px/1.3 var(--w-sans); letter-spacing: .12em; text-transform: uppercase; color: var(--w-ink); margin: 18px 0 6px; }
+:where(#words) .w-credits li { padding: 2px 0; }
+
+/* a phone held upright */
+@media (max-width: 720px) {
+  :where(#words) { font-size: 16.5px; }
+  :where(#words) :is(.w, .w-page) { grid-template-columns: minmax(0, 1fr); }
+  :where(#words) .w-rail { position: static; flex-direction: row; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; }
+  :where(#words) .w-num { font-size: 30px; margin: 0; }
+  :where(#words) .w-contents { grid-template-columns: minmax(0, 1fr); }
+  :where(#words) .w-rows li { grid-template-columns: minmax(0, 1fr); }
+  :where(#words) .w-rows li > * { grid-column: 1 !important; grid-row: auto !important; }
+  :where(#words) .w-btn { flex: 1 1 auto; justify-content: center; }
+}
+/* without scripts the film never starts: these words are the page (undo the film's visually-hidden rule) */
+@media (scripting: none) {
+  #words.words { position: static !important; width: auto !important; height: auto !important; overflow: visible !important; clip: auto !important; clip-path: none !important; white-space: normal !important; }
+}
+@media print {
+  :where(#words) { max-width: none; padding: 0; color: #000; font-size: 11pt; }
+  :where(#words) :is(.w-skip, .w-actions, .w-contents) { display: none; }
+  :where(#words) .w-rail { position: static; }
+  :where(#words) :is(.w, .w-page, .w-gamecards li) { break-inside: avoid; box-shadow: none; }
+  :where(#words) a[href^="http"]::after { content: " (" attr(href) ")"; font-weight: 400; font-size: 9pt; color: #555; word-break: break-all; }
+  :where(#words) details > :not(summary) { display: block; }
+}
+</style>
+  <a class="w-skip" href="#w-contents">Skip to the contents</a>
+  <header class="w-top">
+    <p class="w-brand"><svg class="w-mark" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256"><g id="w-cube"><g transform="matrix(106.417 61.44 -106.417 61.44 128 5.12)"><rect width="1" height="1" fill="#5A4D42"/><rect x="0.009" y="0.009" width="0.124" height="0.124" rx="0.027" fill="#58b6b3"/><rect x="0.009" y="0.152" width="0.124" height="0.124" rx="0.027" fill="#58b6b3"/><rect x="0.009" y="0.295" width="0.124" height="0.124" rx="0.027" fill="#58b6b3"/><rect x="0.009" y="0.438" width="0.124" height="0.124" rx="0.027" fill="#58b6b3"/><rect x="0.009" y="0.581" width="0.124" height="0.124" rx="0.027" fill="#58b6b3"/><rect x="0.009" y="0.724" width="0.124" height="0.124" rx="0.027" fill="#58b6b3"/><rect x="0.009" y="0.866" width="0.124" height="0.124" rx="0.027" fill="#58b6b3"/><rect x="0.152" y="0.009" width="0.124" height="0.124" rx="0.027" fill="#6fae81"/><rect x="0.152" y="0.152" width="0.124" height="0.124" rx="0.027" fill="#6fae81"/><rect x="0.152" y="0.295" width="0.124" height="0.124" rx="0.027" fill="#58b6b3"/><rect x="0.152" y="0.438" width="0.124" height="0.124" rx="0.027" fill="#58b6b3"/><rect x="0.152" y="0.581" width="0.124" height="0.124" rx="0.027" fill="#58b6b3"/><rect x="0.152" y="0.724" width="0.124" height="0.124" rx="0.027" fill="#58b6b3"/><rect x="0.152" y="0.866" width="0.124" height="0.124" rx="0.027" fill="#58b6b3"/><rect x="0.295" y="0.009" width="0.124" height="0.124" rx="0.027" fill="#f0c261"/><rect x="0.295" y="0.152" width="0.124" height="0.124" rx="0.027" fill="#6fae81"/><rect x="0.295" y="0.295" width="0.124" height="0.124" rx="0.027" fill="#58b6b3"/><rect x="0.295" y="0.438" width="0.124" height="0.124" rx="0.027" fill="#58b6b3"/><rect x="0.295" y="0.581" width="0.124" height="0.124" rx="0.027" fill="#6fae81"/><rect x="0.295" y="0.724" width="0.124" height="0.124" rx="0.027" fill="#58b6b3"/><rect x="0.295" y="0.866" width="0.124" height="0.124" rx="0.027" fill="#58b6b3"/><rect x="0.438" y="0.009" width="0.124" height="0.124" rx="0.027" fill="#f0c261"/><rect x="0.438" y="0.152" width="0.124" height="0.124" rx="0.027" fill="#6fae81"/><rect x="0.438" y="0.295" width="0.124" height="0.124" rx="0.027" fill="#6fae81"/><rect x="0.438" y="0.438" width="0.124" height="0.124" rx="0.027" fill="#6fae81"/><rect x="0.438" y="0.581" width="0.124" height="0.124" rx="0.027" fill="#58b6b3"/><rect x="0.438" y="0.724" width="0.124" height="0.124" rx="0.027" fill="#58b6b3"/><rect x="0.438" y="0.866" width="0.124" height="0.124" rx="0.027" fill="#58b6b3"/><rect x="0.581" y="0.009" width="0.124" height="0.124" rx="0.027" fill="#f0c261"/><rect x="0.581" y="0.152" width="0.124" height="0.124" rx="0.027" fill="#f0c261"/><rect x="0.581" y="0.295" width="0.124" height="0.124" rx="0.027" fill="#f0c261"/><rect x="0.581" y="0.438" width="0.124" height="0.124" rx="0.027" fill="#f0c261"/><rect x="0.581" y="0.581" width="0.124" height="0.124" rx="0.027" fill="#6fae81"/><rect x="0.581" y="0.724" width="0.124" height="0.124" rx="0.027" fill="#6fae81"/><rect x="0.581" y="0.866" width="0.124" height="0.124" rx="0.027" fill="#58b6b3"/><rect x="0.724" y="0.009" width="0.124" height="0.124" rx="0.027" fill="#f0c261"/><rect x="0.724" y="0.152" width="0.124" height="0.124" rx="0.027" fill="#f0c261"/><rect x="0.724" y="0.295" width="0.124" height="0.124" rx="0.027" fill="#f0c261"/><rect x="0.724" y="0.438" width="0.124" height="0.124" rx="0.027" fill="#f0c261"/><rect x="0.724" y="0.581" width="0.124" height="0.124" rx="0.027" fill="#f0c261"/><rect x="0.724" y="0.724" width="0.124" height="0.124" rx="0.027" fill="#6fae81"/><rect x="0.724" y="0.866" width="0.124" height="0.124" rx="0.027" fill="#6fae81"/><rect x="0.866" y="0.009" width="0.124" height="0.124" rx="0.027" fill="#ec846e"/><rect x="0.866" y="0.152" width="0.124" height="0.124" rx="0.027" fill="#ec846e"/><rect x="0.866" y="0.295" width="0.124" height="0.124" rx="0.027" fill="#f0c261"/><rect x="0.866" y="0.438" width="0.124" height="0.124" rx="0.027" fill="#f0c261"/><rect x="0.866" y="0.581" width="0.124" height="0.124" rx="0.027" fill="#f0c261"/><rect x="0.866" y="0.724" width="0.124" height="0.124" rx="0.027" fill="#f0c261"/><rect x="0.866" y="0.866" width="0.124" height="0.124" rx="0.027" fill="#f0c261"/></g><g transform="matrix(106.417 61.44 0 122.88 21.583 66.56)"><rect width="1" height="1" fill="#4A3F36"/><rect x="0.009" y="0.009" width="0.124" height="0.124" rx="0.027" fill="#2a948c"/><rect x="0.009" y="0.152" width="0.124" height="0.124" rx="0.027" fill="#2a948c"/><rect x="0.009" y="0.295" width="0.124" height="0.124" rx="0.027" fill="#2a948c"/><rect x="0.009" y="0.438" width="0.124" height="0.124" rx="0.027" fill="#2a948c"/><rect x="0.009" y="0.581" width="0.124" height="0.124" rx="0.027" fill="#d5a034"/><rect x="0.009" y="0.724" width="0.124" height="0.124" rx="0.027" fill="#d5a034"/><rect x="0.009" y="0.866" width="0.124" height="0.124" rx="0.027" fill="#d15c42"/><rect x="0.152" y="0.009" width="0.124" height="0.124" rx="0.027" fill="#2a948c"/><rect x="0.152" y="0.152" width="0.124" height="0.124" rx="0.027" fill="#2a948c"/><rect x="0.152" y="0.295" width="0.124" height="0.124" rx="0.027" fill="#448a56"/><rect x="0.152" y="0.438" width="0.124" height="0.124" rx="0.027" fill="#d5a034"/><rect x="0.152" y="0.581" width="0.124" height="0.124" rx="0.027" fill="#d5a034"/><rect x="0.152" y="0.724" width="0.124" height="0.124" rx="0.027" fill="#d15c42"/><rect x="0.152" y="0.866" width="0.124" height="0.124" rx="0.027" fill="#d15c42"/><rect x="0.295" y="0.009" width="0.124" height="0.124" rx="0.027" fill="#2a948c"/><rect x="0.295" y="0.152" width="0.124" height="0.124" rx="0.027" fill="#2a948c"/><rect x="0.295" y="0.295" width="0.124" height="0.124" rx="0.027" fill="#448a56"/><rect x="0.295" y="0.438" width="0.124" height="0.124" rx="0.027" fill="#448a56"/><rect x="0.295" y="0.581" width="0.124" height="0.124" rx="0.027" fill="#d5a034"/><rect x="0.295" y="0.724" width="0.124" height="0.124" rx="0.027" fill="#d15c42"/><rect x="0.295" y="0.866" width="0.124" height="0.124" rx="0.027" fill="#d15c42"/><rect x="0.438" y="0.009" width="0.124" height="0.124" rx="0.027" fill="#2a948c"/><rect x="0.438" y="0.152" width="0.124" height="0.124" rx="0.027" fill="#448a56"/><rect x="0.438" y="0.295" width="0.124" height="0.124" rx="0.027" fill="#448a56"/><rect x="0.438" y="0.438" width="0.124" height="0.124" rx="0.027" fill="#d5a034"/><rect x="0.438" y="0.581" width="0.124" height="0.124" rx="0.027" fill="#d15c42"/><rect x="0.438" y="0.724" width="0.124" height="0.124" rx="0.027" fill="#d15c42"/><rect x="0.438" y="0.866" width="0.124" height="0.124" rx="0.027" fill="#a63126"/><rect x="0.581" y="0.009" width="0.124" height="0.124" rx="0.027" fill="#2a948c"/><rect x="0.581" y="0.152" width="0.124" height="0.124" rx="0.027" fill="#448a56"/><rect x="0.581" y="0.295" width="0.124" height="0.124" rx="0.027" fill="#d5a034"/><rect x="0.581" y="0.438" width="0.124" height="0.124" rx="0.027" fill="#d5a034"/><rect x="0.581" y="0.581" width="0.124" height="0.124" rx="0.027" fill="#d15c42"/><rect x="0.581" y="0.724" width="0.124" height="0.124" rx="0.027" fill="#a63126"/><rect x="0.581" y="0.866" width="0.124" height="0.124" rx="0.027" fill="#6455ae"/><rect x="0.724" y="0.009" width="0.124" height="0.124" rx="0.027" fill="#448a56"/><rect x="0.724" y="0.152" width="0.124" height="0.124" rx="0.027" fill="#448a56"/><rect x="0.724" y="0.295" width="0.124" height="0.124" rx="0.027" fill="#d5a034"/><rect x="0.724" y="0.438" width="0.124" height="0.124" rx="0.027" fill="#d15c42"/><rect x="0.724" y="0.581" width="0.124" height="0.124" rx="0.027" fill="#d15c42"/><rect x="0.724" y="0.724" width="0.124" height="0.124" rx="0.027" fill="#a63126"/><rect x="0.724" y="0.866" width="0.124" height="0.124" rx="0.027" fill="#6455ae"/><rect x="0.866" y="0.009" width="0.124" height="0.124" rx="0.027" fill="#d5a034"/><rect x="0.866" y="0.152" width="0.124" height="0.124" rx="0.027" fill="#d5a034"/><rect x="0.866" y="0.295" width="0.124" height="0.124" rx="0.027" fill="#d5a034"/><rect x="0.866" y="0.438" width="0.124" height="0.124" rx="0.027" fill="#d15c42"/><rect x="0.866" y="0.581" width="0.124" height="0.124" rx="0.027" fill="#a63126"/><rect x="0.866" y="0.724" width="0.124" height="0.124" rx="0.027" fill="#a63126"/><rect x="0.866" y="0.866" width="0.124" height="0.124" rx="0.027" fill="#396bb6"/></g><g transform="matrix(-106.417 61.44 0 122.88 234.417 66.56)"><rect width="1" height="1" fill="#2F2721"/><rect x="0.009" y="0.009" width="0.124" height="0.124" rx="0.027" fill="#783832"/><rect x="0.009" y="0.152" width="0.124" height="0.124" rx="0.027" fill="#5f1e1d"/><rect x="0.009" y="0.295" width="0.124" height="0.124" rx="0.027" fill="#393383"/><rect x="0.009" y="0.438" width="0.124" height="0.124" rx="0.027" fill="#393383"/><rect x="0.009" y="0.581" width="0.124" height="0.124" rx="0.027" fill="#214189"/><rect x="0.009" y="0.724" width="0.124" height="0.124" rx="0.027" fill="#214189"/><rect x="0.009" y="0.866" width="0.124" height="0.124" rx="0.027" fill="#214189"/><rect x="0.152" y="0.009" width="0.124" height="0.124" rx="0.027" fill="#783832"/><rect x="0.152" y="0.152" width="0.124" height="0.124" rx="0.027" fill="#5f1e1d"/><rect x="0.152" y="0.295" width="0.124" height="0.124" rx="0.027" fill="#5f1e1d"/><rect x="0.152" y="0.438" width="0.124" height="0.124" rx="0.027" fill="#214189"/><rect x="0.152" y="0.581" width="0.124" height="0.124" rx="0.027" fill="#214189"/><rect x="0.152" y="0.724" width="0.124" height="0.124" rx="0.027" fill="#214189"/><rect x="0.152" y="0.866" width="0.124" height="0.124" rx="0.027" fill="#214189"/><rect x="0.295" y="0.009" width="0.124" height="0.124" rx="0.027" fill="#7a6128"/><rect x="0.295" y="0.152" width="0.124" height="0.124" rx="0.027" fill="#783832"/><rect x="0.295" y="0.295" width="0.124" height="0.124" rx="0.027" fill="#5f1e1d"/><rect x="0.295" y="0.438" width="0.124" height="0.124" rx="0.027" fill="#393383"/><rect x="0.295" y="0.581" width="0.124" height="0.124" rx="0.027" fill="#214189"/><rect x="0.295" y="0.724" width="0.124" height="0.124" rx="0.027" fill="#214189"/><rect x="0.295" y="0.866" width="0.124" height="0.124" rx="0.027" fill="#214189"/><rect x="0.438" y="0.009" width="0.124" height="0.124" rx="0.027" fill="#7a6128"/><rect x="0.438" y="0.152" width="0.124" height="0.124" rx="0.027" fill="#783832"/><rect x="0.438" y="0.295" width="0.124" height="0.124" rx="0.027" fill="#783832"/><rect x="0.438" y="0.438" width="0.124" height="0.124" rx="0.027" fill="#5f1e1d"/><rect x="0.438" y="0.581" width="0.124" height="0.124" rx="0.027" fill="#393383"/><rect x="0.438" y="0.724" width="0.124" height="0.124" rx="0.027" fill="#214189"/><rect x="0.438" y="0.866" width="0.124" height="0.124" rx="0.027" fill="#214189"/><rect x="0.581" y="0.009" width="0.124" height="0.124" rx="0.027" fill="#7a6128"/><rect x="0.581" y="0.152" width="0.124" height="0.124" rx="0.027" fill="#7a6128"/><rect x="0.581" y="0.295" width="0.124" height="0.124" rx="0.027" fill="#783832"/><rect x="0.581" y="0.438" width="0.124" height="0.124" rx="0.027" fill="#393383"/><rect x="0.581" y="0.581" width="0.124" height="0.124" rx="0.027" fill="#393383"/><rect x="0.581" y="0.724" width="0.124" height="0.124" rx="0.027" fill="#393383"/><rect x="0.581" y="0.866" width="0.124" height="0.124" rx="0.027" fill="#214189"/><rect x="0.724" y="0.009" width="0.124" height="0.124" rx="0.027" fill="#7a6128"/><rect x="0.724" y="0.152" width="0.124" height="0.124" rx="0.027" fill="#7a6128"/><rect x="0.724" y="0.295" width="0.124" height="0.124" rx="0.027" fill="#783832"/><rect x="0.724" y="0.438" width="0.124" height="0.124" rx="0.027" fill="#5f1e1d"/><rect x="0.724" y="0.581" width="0.124" height="0.124" rx="0.027" fill="#5f1e1d"/><rect x="0.724" y="0.724" width="0.124" height="0.124" rx="0.027" fill="#393383"/><rect x="0.724" y="0.866" width="0.124" height="0.124" rx="0.027" fill="#214189"/><rect x="0.866" y="0.009" width="0.124" height="0.124" rx="0.027" fill="#7a6128"/><rect x="0.866" y="0.152" width="0.124" height="0.124" rx="0.027" fill="#7a6128"/><rect x="0.866" y="0.295" width="0.124" height="0.124" rx="0.027" fill="#7a6128"/><rect x="0.866" y="0.438" width="0.124" height="0.124" rx="0.027" fill="#783832"/><rect x="0.866" y="0.581" width="0.124" height="0.124" rx="0.027" fill="#5f1e1d"/><rect x="0.866" y="0.724" width="0.124" height="0.124" rx="0.027" fill="#5f1e1d"/><rect x="0.866" y="0.866" width="0.124" height="0.124" rx="0.027" fill="#214189"/></g><polygon points="128.00,5.12 234.42,66.56 234.42,189.44 128.00,250.88 21.58,189.44 21.58,66.56" fill="none" stroke="#3B2E26" stroke-opacity=".9" stroke-width="2.70" stroke-linejoin="round"/></g></svg><span class="w-eyebrow">Cornell University · Registered student organization</span></p>
+    <h1>Cornell Computational Game&nbsp;Society</h1>
+    <p class="w-lead w-lead-top">A Cornell club that builds game AI and has fun doing it.</p>
+    <p class="w-actions"><a class="w-btn w-btn-primary" href="mailto:recruitment@cornellcgs.org">Apply to CGS</a> <a class="w-btn w-btn-secondary" href="https://docs.google.com/forms/d/e/1FAIpQLSfCJEW9kdTEYV41YZZCt4MQRg8c9KdNSbrw9IGmSgCRF9eglw/viewform">Book a coffee chat</a> <a class="w-btn w-btn-secondary" href="/minigames/" data-route="/games">Play our games</a></p>
+  </header>
+
+  <nav class="w-contents" id="w-contents" aria-label="Contents">
+    <div>
+      <h2 class="w-contents-h">The film</h2>
+      <ol class="w-toc"><li><a href="#film-name" data-route="/film/name"><span class="w-n">01</span>Cornell Computational Game Society</a></li><li><a href="#film-planes" data-route="/film/planes"><span class="w-n">02</span>Our members</a></li><li><a href="#film-slope" data-route="/film/slope"><span class="w-n">03</span>The Slope to the sky</a></li><li><a href="#film-work" data-route="/film/work"><span class="w-n">04</span>Five things we do</a></li><li><a href="#film-stars" data-route="/film/stars"><span class="w-n">05</span>More deals than stars</a></li><li><a href="#film-who" data-route="/film/who"><span class="w-n">06</span>Who we are</a></li><li><a href="#film-guandan" data-route="/film/guandan"><span class="w-n">07</span>The Guandan AI</a></li><li><a href="#film-poker" data-route="/film/poker"><span class="w-n">08</span>The poker odds calculator</a></li><li><a href="#film-code" data-route="/film/code"><span class="w-n">09</span>Read the code</a></li><li><a href="#film-selfplay" data-route="/film/selfplay"><span class="w-n">10</span>How our AI learns</a></li><li><a href="#film-alphago" data-route="/film/alphago"><span class="w-n">11</span>The AlphaGo story</a></li><li><a href="#film-next" data-route="/film/next"><span class="w-n">12</span>What comes next</a></li><li><a href="#film-games" data-route="/film/games"><span class="w-n">13</span>Our mini games</a></li><li><a href="#film-events" data-route="/film/events"><span class="w-n">14</span>When we meet</a></li><li><a href="#film-dropin" data-route="/film/dropin"><span class="w-n">15</span>Drop in</a></li><li><a href="#film-join" data-route="/film/join"><span class="w-n">16</span>Pull up a chair</a></li><li><a href="#film-end" data-route="/film/end"><span class="w-n">17</span>The last frame</a></li></ol>
+    </div>
+    <div>
+      <h2 class="w-contents-h">Pages</h2>
+      <ul class="w-toc w-toc-pages"><li><a href="/whoWeAre/" data-route="/about">About</a></li><li><a href="/whatWeDo/" data-route="/work">Our Work</a></li><li><a href="/ourTeam/" data-route="/team">Our team</a></li><li><a href="/join/" data-route="/join">Join CGS</a></li><li><a href="/minigames/" data-route="/games">Mini games</a></li><li><a href="/events/" data-route="/events">Events</a></li><li><a href="/privacy/" data-route="/privacy">Privacy</a></li><li><a href="/terms/" data-route="/terms">Terms</a></li></ul>
+    </div>
+  </nav>
+
+  <div class="w-part" id="film" aria-label="The film">
+  <section class="w" id="film-name" data-slot="name" data-world="sky" aria-labelledby="film-name-h">
+    <div class="w-rail"><span class="w-num">01</span><span class="w-world">The Slope</span><span class="w-place">Libe Slope, Cornell</span></div>
+    <div class="w-body">
+      <p class="w-eyebrow">Cornell Computational Game Society</p>
+      <h2 id="film-name-h">Cornell Computational Game&nbsp;Society</h2>
+      <ul class="w-typing"><li>We are training a Guandan AI.</li><li>We built a poker equity calculator.</li><li>We make our own mini games.</li><li>Our bots learn by playing themselves.</li><li>We have fun at our meetings.</li><li>Flip the card and deal yourself in.</li></ul>
+      <p class="w-actions"><a class="w-btn w-btn-primary" href="https://docs.google.com/forms/d/e/1FAIpQLSfCJEW9kdTEYV41YZZCt4MQRg8c9KdNSbrw9IGmSgCRF9eglw/viewform">Book a coffee chat</a> <a class="w-btn w-btn-secondary" href="/minigames/" data-route="/games">Play our games</a></p>
+    </div>
+  </section>
+  <section class="w" id="film-planes" data-slot="planes" data-world="sky" aria-labelledby="film-planes-h">
+    <div class="w-rail"><span class="w-num">02</span><span class="w-world">The Slope</span><span class="w-place">Libe Slope, Cornell</span></div>
+    <div class="w-body">
+      <p class="w-eyebrow">Our members</p>
+      <h2 id="film-planes-h">Our&nbsp;members</h2>
+      <ul class="w-names"><li><span class="w-name">Elsie Lu</span><span class="w-role">President</span></li><li><span class="w-name">Evan Jiang</span><span class="w-role">Recruitment Chair</span></li><li><span class="w-name">Yicheng</span></li><li><span class="w-name">Michael</span></li><li><span class="w-name">Henrique</span></li><li><span class="w-name">Eric</span></li><li><span class="w-name">Selina</span></li><li><span class="w-name">Christina</span></li><li><span class="w-name">Daniel</span></li></ul>
+    </div>
+  </section>
+  <section class="w" id="film-slope" data-slot="slope" data-world="sky" aria-labelledby="film-slope-h">
+    <div class="w-rail"><span class="w-num">03</span><span class="w-world">The Slope</span><span class="w-place">Over Cayuga Lake, into the sunset</span></div>
+    <div class="w-body">
+      <p class="w-eyebrow">The Slope to the sky</p>
+      <h2 id="film-slope-h">One table, a lot of&nbsp;hometowns</h2>
+      <p>Our members grew up all over this globe, and every hometown has its own card game. Teach us yours.</p>
+    </div>
+  </section>
+  <section class="w" id="film-work" data-slot="work" data-world="galaxy" aria-labelledby="film-work-h">
+    <div class="w-rail"><span class="w-num">04</span><span class="w-world">The galaxy</span><span class="w-place">Low orbit, at dawn</span></div>
+    <div class="w-body">
+      <p class="w-eyebrow">Five things we do</p>
+      <h2 id="film-work-h">Our royal&nbsp;flush</h2>
+      <ol class="w-flush"><li><span class="w-card" aria-hidden="true"><b>A</b>♠</span><span class="w-sr">A of spades: </span><strong>Guandan AI.</strong> Four bots play Guandan against each other and learn from every hand.</li><li><span class="w-card" aria-hidden="true"><b>K</b>♠</span><span class="w-sr">K of spades: </span><strong>Poker odds.</strong> Our hold’em calculator deals 20,000 hands to find your odds. Try it below.</li><li><span class="w-card" aria-hidden="true"><b>Q</b>♠</span><span class="w-sr">Q of spades: </span><strong>Mini games.</strong> We make our own games. Ink Maze, Forge or Fold, and Carrot Defense 3D.</li><li><span class="w-card" aria-hidden="true"><b>J</b>♠</span><span class="w-sr">J of spades: </span><strong>Game solvers.</strong> Next up is an AI that finds the best path through Ink Maze.</li><li><span class="w-card" aria-hidden="true"><b>10</b>♠</span><span class="w-sr">10 of spades: </span><strong>Meetings.</strong> We have fun at meetings. We play our games, test our bots, and hang out.</li></ol>
+    </div>
+  </section>
+  <section class="w" id="film-stars" data-slot="stars" data-world="galaxy" aria-labelledby="film-stars-h">
+    <div class="w-rail"><span class="w-num">05</span><span class="w-world">The galaxy</span><span class="w-place">The Moon and the Milky Way</span></div>
+    <div class="w-body">
+      <p class="w-eyebrow">More deals than stars</p>
+      <h2 id="film-stars-h">More deals than&nbsp;stars</h2>
+      <p class="w-kicker">Two decks. Four players.</p><p>Guandan has more than 10⁴⁵ possible deals. The observable universe has about 10²² to 10²⁴ stars.</p>
+    </div>
+  </section>
+  <section class="w" id="film-who" data-slot="who" data-world="machine" aria-labelledby="film-who-h">
+    <div class="w-rail"><span class="w-num">06</span><span class="w-world">Inside the machine</span><span class="w-place">A circuit board</span></div>
+    <div class="w-body">
+      <p class="w-eyebrow">Who we are</p>
+      <h2 id="film-who-h">We build game AI, block by&nbsp;block.</h2>
+      <p>We’re a student club at Cornell. Like the blocks in our logo, every project snaps onto the last one. We’ve made mini games and a poker calculator, and now we’re training a Guandan AI.</p>
+    </div>
+  </section>
+  <section class="w" id="film-guandan" data-slot="guandan" data-world="machine" aria-labelledby="film-guandan-h">
+    <div class="w-rail"><span class="w-num">07</span><span class="w-world">Inside the machine</span><span class="w-place">The light table</span></div>
+    <div class="w-body">
+      <p class="w-eyebrow">The Guandan AI</p>
+      <h2 id="film-guandan-h">Guandan&nbsp;AI</h2>
+      <p><span class="w-tag">In training</span></p>
+      <p>Four bots play the card game Guandan against each other and learn from every hand. No results published yet.</p>
+    </div>
+  </section>
+  <section class="w" id="film-poker" data-slot="poker" data-world="machine" aria-labelledby="film-poker-h">
+    <div class="w-rail"><span class="w-num">08</span><span class="w-world">Inside the machine</span><span class="w-place">The server hall</span></div>
+    <div class="w-body">
+      <p class="w-eyebrow">The poker odds calculator</p>
+      <h2 id="film-poker-h">Poker&nbsp;odds</h2>
+      <p>Our hold’em calculator deals 20,000 hands to find your odds. Try it below.</p>
+    </div>
+  </section>
+  <section class="w" id="film-code" data-slot="code" data-world="machine" aria-labelledby="film-code-h">
+    <div class="w-rail"><span class="w-num">09</span><span class="w-world">Inside the machine</span><span class="w-place">The glass eye</span></div>
+    <div class="w-body">
+      <p class="w-eyebrow">Read the code</p>
+      <h2 id="film-code-h">Read the&nbsp;code</h2>
+      <p>A Monte Carlo equity calculator for Texas hold’em. You can run it on our home page.</p>
+    </div>
+  </section>
+  <section class="w" id="film-selfplay" data-slot="selfplay" data-world="future" aria-labelledby="film-selfplay-h">
+    <div class="w-rail"><span class="w-num">10</span><span class="w-world">The future</span><span class="w-place">A ring in orbit</span></div>
+    <div class="w-body">
+      <p class="w-eyebrow">How our AI learns</p>
+      <h2 id="film-selfplay-h">Self-play</h2>
+      <ol class="w-steps"><li><span class="w-n" aria-hidden="true">01</span><strong>Frame.</strong> Turn the rules of the game into code.</li><li><span class="w-n" aria-hidden="true">02</span><strong>Simulate.</strong> Build a fast table where bots can play each other.</li><li><span class="w-n" aria-hidden="true">03</span><strong>Train.</strong> Let them play game after game and learn from every win and loss.</li><li><span class="w-n" aria-hidden="true">04</span><strong>Evaluate.</strong> Put the new bot against the old one to see if it got better.</li><li><span class="w-n" aria-hidden="true">05</span><strong>Ship.</strong> Share it once it holds up.</li></ol>
+    </div>
+  </section>
+  <section class="w" id="film-alphago" data-slot="alphago" data-world="future" aria-labelledby="film-alphago-h">
+    <div class="w-rail"><span class="w-num">11</span><span class="w-world">The future</span><span class="w-place">A terrace above the clouds</span></div>
+    <div class="w-body">
+      <p class="w-eyebrow">AlphaGo</p>
+      <h2 id="film-alphago-h">Watch the stones&nbsp;land.</h2>
+      <p>DeepMind’s AlphaGo beat Lee Sedol in 2016, and it got that strong partly by playing against itself. We train our card game AIs the same way.</p>
+    </div>
+  </section>
+  <section class="w" id="film-next" data-slot="next" data-world="galaxy" aria-labelledby="film-next-h">
+    <div class="w-rail"><span class="w-num">12</span><span class="w-world">The galaxy</span><span class="w-place">Before the Cosmic Cliffs</span></div>
+    <div class="w-body">
+      <p class="w-eyebrow">What comes next</p>
+      <h2 id="film-next-h">Next</h2>
+      <ul class="w-next"><li>Finish training our Guandan AI.</li><li>Build an AI that solves Ink Maze.</li><li>Let anyone play against our bots.</li></ul>
+    </div>
+  </section>
+  <section class="w" id="film-games" data-slot="games" data-world="ocean" aria-labelledby="film-games-h">
+    <div class="w-rail"><span class="w-num">13</span><span class="w-world">Under the ocean</span><span class="w-place">The shallows</span></div>
+    <div class="w-body">
+      <p class="w-eyebrow">Our mini games</p>
+      <h2 id="film-games-h">Mini&nbsp;games</h2>
+      <p>Strategy, craft, and puzzles. Play on your computer or phone.</p><ul class="w-games"><li><a href="/minigames/carrotDefense/">Carrot Defense 3D</a></li><li><a href="/minigames/forgeOrFold/">Forge or Fold</a></li><li><a href="/minigames/inkMaze/">Ink Maze</a></li></ul>
+      <p class="w-actions"><a class="w-btn w-btn-secondary" href="/minigames/" data-route="/games">Play our games</a></p>
+    </div>
+  </section>
+  <section class="w" id="film-events" data-slot="events" data-world="ocean" aria-labelledby="film-events-h">
+    <div class="w-rail"><span class="w-num">14</span><span class="w-world">Under the ocean</span><span class="w-place">The deep</span></div>
+    <div class="w-body">
+      <p class="w-eyebrow">When we meet</p>
+      <h2 id="film-events-h">On the&nbsp;calendar</h2>
+      <ul class="w-events"><li><strong>Club meetings</strong> <span class="w-tag">Time TBA</span><p>We play, build, and have fun. Times go up here once they are set.</p></li></ul>
+    </div>
+  </section>
+  <section class="w" id="film-dropin" data-slot="dropin" data-world="ocean" aria-labelledby="film-dropin-h">
+    <div class="w-rail"><span class="w-num">15</span><span class="w-world">Under the ocean</span><span class="w-place">A glass of cola</span></div>
+    <div class="w-body">
+      <p class="w-eyebrow">Drop in</p>
+      <h2 id="film-dropin-h">Drop&nbsp;in.</h2>
+      <p>We’re gonna have fun at meetings! No experience needed, just drop in like the ice.</p>
+    </div>
+  </section>
+  <section class="w" id="film-join" data-slot="join" data-world="ocean" aria-labelledby="film-join-h">
+    <div class="w-rail"><span class="w-num">16</span><span class="w-world">Under the ocean</span><span class="w-place">The kelp forest</span></div>
+    <div class="w-body">
+      <p class="w-eyebrow">Pull up a chair</p>
+      <h2 id="film-join-h">Pull up a&nbsp;chair</h2>
+      <p>We take new members every semester. Any major, no experience needed.</p><p class="w-actions"><a class="w-btn w-btn-primary" href="mailto:recruitment@cornellcgs.org">Apply to CGS</a> <a class="w-btn w-btn-secondary" href="https://docs.google.com/forms/d/e/1FAIpQLSfCJEW9kdTEYV41YZZCt4MQRg8c9KdNSbrw9IGmSgCRF9eglw/viewform">Book a coffee chat</a></p>
+    </div>
+  </section>
+  <section class="w" id="film-end" data-slot="end" data-world="paper" aria-labelledby="film-end-h">
+    <div class="w-rail"><span class="w-num">17</span><span class="w-world">The last frame</span><span class="w-place">The dotted globe</span></div>
+    <div class="w-body">
+      <p class="w-eyebrow">The last frame</p>
+      <h2 id="film-end-h">Cornell&nbsp;CGS</h2>
+      <ul class="w-inboxes"><li><span class="w-inbox-l">Recruitment</span> <a href="mailto:recruitment@cornellcgs.org">recruitment@cornellcgs.org</a></li><li><span class="w-inbox-l">Tech</span> <a href="mailto:tech@cornellcgs.org">tech@cornellcgs.org</a></li><li><span class="w-inbox-l">Finance &amp; Sponsors</span> <a href="mailto:finance@cornellcgs.org">finance@cornellcgs.org</a></li><li><span class="w-inbox-l">Marketing</span> <a href="mailto:marketing@cornellcgs.org">marketing@cornellcgs.org</a></li><li><span class="w-inbox-l">Social</span> <a href="mailto:social@cornellcgs.org">social@cornellcgs.org</a></li></ul>
+    </div>
+  </section>
+  </div>
+
+  <div class="w-part w-pages" aria-label="Pages">
+  <section class="w-page" id="page-about" data-route="/about" data-path="/whoWeAre/" data-also="/world/" aria-labelledby="page-about-h">
+    <div class="w-rail"><span class="w-world">Page</span><span class="w-place"><a class="w-path" href="/whoWeAre/" data-route="/about">/whoWeAre/</a></span><span class="w-place w-also">and <a class="w-path" href="/world/" data-route="/about">/world/</a></span></div>
+    <div class="w-body">
+      <h2 id="page-about-h">About</h2>
+      <p class="w-lead">A Cornell club that builds game AI and has fun doing it.</p>
+<ul class="w-rows"><li><h3 class="w-row-h">How we work</h3><span class="w-row-alt">Culture</span><p>Beginners are welcome, and we still check each other’s math.</p></li><li><h3 class="w-row-h">Game AI</h3><span class="w-row-alt">Focus</span><p>Solvers, learning agents, and the math behind them.</p></li><li><h3 class="w-row-h">Ithaca</h3><span class="w-row-alt">Home</span><p>We meet at Cornell. Our members come from all over the world.</p></li></ul>
+      <h3 class="w-sub">We build game AI, block by&nbsp;block.</h3>
+      <p>We’re a student club at Cornell. Like the blocks in our logo, every project snaps onto the last one. We’ve made mini games and a poker calculator, and now we’re training a Guandan AI.</p>
+      <h3 class="w-sub">World</h3>
+      <p class="w-lead w-lead-s">Where our members come from.</p>
+      <p>One table, a lot of hometowns. Our members grew up all over this globe, and every hometown has its own card game. Teach us yours.</p>
+<ul class="w-rows"><li><h3 class="w-row-h">Our members</h3><span class="w-row-alt">Hometowns</span><p>Cornell students from around the world.</p></li><li><h3 class="w-row-h">Countries</h3><span class="w-row-alt">How many</span><p>Count TBA.</p></li></ul>
+      <ul class="w-countries" aria-label="Countries"><li>China</li><li>India</li><li>South Korea</li><li>Singapore</li><li>United Kingdom</li><li>Germany</li><li>Nigeria</li><li>Brazil</li><li>Canada</li><li>Mexico</li><li>Japan</li><li>Australia</li><li>Turkey</li><li>Vietnam</li></ul>
+      <h3 class="w-sub">Next</h3>
+      <ul class="w-next"><li>Finish training our Guandan AI.</li><li>Build an AI that solves Ink Maze.</li><li>Let anyone play against our bots.</li></ul>
+    </div>
+  </section>
+  <section class="w-page" id="page-work" data-route="/work" data-path="/whatWeDo/" data-also="/mlProcess/" aria-labelledby="page-work-h">
+    <div class="w-rail"><span class="w-world">Page</span><span class="w-place"><a class="w-path" href="/whatWeDo/" data-route="/work">/whatWeDo/</a></span><span class="w-place w-also">and <a class="w-path" href="/mlProcess/" data-route="/work">/mlProcess/</a></span></div>
+    <div class="w-body">
+      <h2 id="page-work-h">Our&nbsp;Work</h2>
+      <p class="w-lead">What we are building, and what the club does each week.</p>
+<ul class="w-rows"><li><h3 class="w-row-h">Guandan agent</h3><span class="w-row-alt">In training</span><p>Four bots play the card game Guandan against each other and learn from every hand. No results published yet.</p></li><li><h3 class="w-row-h">Poker equity</h3><span class="w-row-alt">Calculator</span><p>A Monte Carlo equity calculator for Texas hold’em. You can run it on our home page.</p></li><li><h3 class="w-row-h">Mini games</h3><span class="w-row-alt">Made by us</span><p>Ink Maze, Forge or Fold, and Carrot Defense 3D. All free to play in your browser.</p></li><li><h3 class="w-row-h">Meetings</h3><span class="w-row-alt">Have fun</span><p>We play our games, test our bots, and hang out.</p></li></ul>
+      <h3 class="w-sub">Machine&nbsp;Learning</h3>
+      <p class="w-lead w-lead-s">How we turn a game’s rules into an agent that plays it.</p>
+<ul class="w-rows"><li><h3 class="w-row-h">Frame</h3><span class="w-row-alt">The rules</span><p>Turn the rules of the game into code.</p></li><li><h3 class="w-row-h">Simulate</h3><span class="w-row-alt">Simulator</span><p>Build a table fast enough for bots to play each other.</p></li><li><h3 class="w-row-h">Train</h3><span class="w-row-alt">Self-play</span><p>Let them play game after game and learn from every win and loss.</p></li><li><h3 class="w-row-h">Evaluate</h3><span class="w-row-alt">Testing</span><p>Put the new bot against the old one to see if it got better.</p></li><li><h3 class="w-row-h">Share</h3><span class="w-row-alt">Release</span><p>We plan to release agents, tools, and write-ups. Nothing is out yet.</p></li></ul>
+    </div>
+  </section>
+  <section class="w-page" id="page-team" data-route="/team" data-path="/ourTeam/" data-also="/advisors/" aria-labelledby="page-team-h">
+    <div class="w-rail"><span class="w-world">Page</span><span class="w-place"><a class="w-path" href="/ourTeam/" data-route="/team">/ourTeam/</a></span><span class="w-place w-also">and <a class="w-path" href="/advisors/" data-route="/team">/advisors/</a></span></div>
+    <div class="w-body">
+      <h2 id="page-team-h">Our&nbsp;team</h2>
+      <p class="w-lead">Board and members of Cornell CGS.</p>
+      <h3 class="w-sub">Board</h3>
+      <ul class="w-team"><li><span class="w-name">Elsie Lu</span><span class="w-role">Statistics</span></li><li><span class="w-name">Evan Jiang</span><span class="w-role">Biometry &amp; Statistics + Information Science</span></li></ul>
+      <h3 class="w-sub">Members</h3>
+      <ul class="w-team"><li><span class="w-name">Yicheng</span></li><li><span class="w-name">Michael</span></li><li><span class="w-name">Henrique</span></li><li><span class="w-name">Eric</span></li><li><span class="w-name">Selina</span></li><li><span class="w-name">Christina</span></li><li><span class="w-name">Daniel</span></li></ul>
+      <h3 class="w-sub">Advisors</h3>
+      <p class="w-lead w-lead-s">Faculty who advise Cornell CGS.</p>
+      <ul class="w-advisors"><li><span class="w-name">Robert D. Kleinberg</span><span class="w-role">Faculty Advisor, Professor of Computer Science, Cornell University</span><p>Algorithms and theoretical computer science: economic aspects of algorithms, online learning and its applications, random processes in networks.</p><p class="w-more"><a href="https://www.cs.cornell.edu/~rdk/">www.cs.cornell.edu/~rdk</a></p></li></ul>
+    </div>
+  </section>
+  <section class="w-page" id="page-join" data-route="/join" data-path="/join/" data-also="/contact/" aria-labelledby="page-join-h">
+    <div class="w-rail"><span class="w-world">Page</span><span class="w-place"><a class="w-path" href="/join/" data-route="/join">/join/</a></span><span class="w-place w-also">and <a class="w-path" href="/contact/" data-route="/join">/contact/</a></span></div>
+    <div class="w-body">
+      <h2 id="page-join-h">Join&nbsp;CGS</h2>
+      <p class="w-lead">We take new members every semester.</p>
+      <p class="w-actions"><a class="w-btn w-btn-primary" href="mailto:recruitment@cornellcgs.org">Apply to CGS</a> <a class="w-btn w-btn-secondary" href="https://docs.google.com/forms/d/e/1FAIpQLSfCJEW9kdTEYV41YZZCt4MQRg8c9KdNSbrw9IGmSgCRF9eglw/viewform">Book a coffee chat</a></p>
+<ul class="w-rows"><li><h3 class="w-row-h">Everyone</h3><span class="w-row-alt">All majors</span><p>Every school, major, and background is welcome to apply.</p></li><li><h3 class="w-row-h">Helpful math</h3><span class="w-row-alt">Recommended</span><p>MATH 1110 or higher, or similar experience. Recommended, not required.</p></li><li><h3 class="w-row-h">Helpful CS</h3><span class="w-row-alt">Recommended</span><p>CS 1110 or 1112, or experience reading and writing code. Recommended, not required.</p></li><li><h3 class="w-row-h">Apply</h3><span class="w-row-alt">Email us</span><p>Email <a href="mailto:recruitment@cornellcgs.org">recruitment@cornellcgs.org</a>.</p></li><li><h3 class="w-row-h">Coffee chat</h3><span class="w-row-alt">Say hello</span><p>A twenty-minute chat with a member. You don’t have to apply afterward.</p><p class="w-more"><a href="https://docs.google.com/forms/d/e/1FAIpQLSfCJEW9kdTEYV41YZZCt4MQRg8c9KdNSbrw9IGmSgCRF9eglw/viewform">Book a coffee chat</a></p></li></ul>
+      <h3 class="w-sub">Contact</h3>
+      <p class="w-lead w-lead-s">Email the team that fits your question.</p>
+      <ul class="w-inboxes"><li><span class="w-inbox-l">Recruitment<span class="w-row-alt">Join CGS</span></span> <a href="mailto:recruitment@cornellcgs.org">recruitment@cornellcgs.org</a></li><li><span class="w-inbox-l">Tech<span class="w-row-alt">Code</span></span> <a href="mailto:tech@cornellcgs.org">tech@cornellcgs.org</a></li><li><span class="w-inbox-l">Finance<span class="w-row-alt">Sponsors</span></span> <a href="mailto:finance@cornellcgs.org">finance@cornellcgs.org</a></li><li><span class="w-inbox-l">Marketing<span class="w-row-alt">Outreach</span></span> <a href="mailto:marketing@cornellcgs.org">marketing@cornellcgs.org</a></li><li><span class="w-inbox-l">Social<span class="w-row-alt">Say hello</span></span> <a href="mailto:social@cornellcgs.org">social@cornellcgs.org</a></li>
+        <li><span class="w-inbox-l">Instagram</span> <span class="w-tba">To be added</span></li>
+        <li><span class="w-inbox-l">WeChat</span> <span class="w-tba">To be added</span></li></ul>
+    </div>
+  </section>
+  <section class="w-page" id="page-games" data-route="/games" data-path="/minigames/" aria-labelledby="page-games-h">
+    <div class="w-rail"><span class="w-world">Page</span><span class="w-place"><a class="w-path" href="/minigames/" data-route="/games">/minigames/</a></span></div>
+    <div class="w-body">
+      <p class="w-eyebrow">Play</p>
+      <h2 id="page-games-h">Mini&nbsp;games</h2>
+      <p class="w-lead">Strategy, craft, and puzzles. Play on your computer or phone.</p>
+      <ul class="w-gamecards"><li><span class="w-eyebrow">3D · Tower defense</span><h3 class="w-sub"><a href="/minigames/carrotDefense/">Carrot Defense 3D</a></h3><p>24 landscapes, 20 plant families, five guardian challenges. Read the wave track, answer every guardian cast and keep a little carrot safe.</p><p class="w-more"><a href="/minigames/carrotDefense/">Enter the garden</a> <span aria-hidden="true">→</span></p></li><li><span class="w-eyebrow">3D · Push your luck</span><h3 class="w-sub"><a href="/minigames/forgeOrFold/">Forge or Fold</a></h3><p>Ten days. A hot blade. One more hit? Build a knife worth keeping in a forge where every strike is a choice.</p><p class="w-more"><a href="/minigames/forgeOrFold/">Enter the forge</a> <span aria-hidden="true">→</span></p></li><li><span class="w-eyebrow">25 levels</span><h3 class="w-sub"><a href="/minigames/inkMaze/">Ink Maze</a></h3><p>Roll a ball to color every floor block before the ink runs out. Boards grow from 4 × 4 on level 1 to 9 × 9, and the last board, level 25, is a small 8 × 8 that takes the most planning. Each level gives you a set amount of ink, and on 12 of them there is none to spare.</p><p class="w-more"><a href="/minigames/inkMaze/">Play Ink Maze</a> <span aria-hidden="true">→</span></p></li></ul>
+      <h3 class="w-sub">Ink&nbsp;Maze</h3>
+      <p class="w-lead w-lead-s">Roll the ball to color every floor block before you run out of ink.</p>
+      <ol class="w-rules"><li>Pick a direction and the ball rolls in a straight line until a wall or the edge of the board stops it.</li><li>Every block the ball rolls onto costs one ink, even if it is already colored.</li><li>If the ink runs out partway through a roll, the ball stops on the block where it ran out.</li><li>Color every floor block to clear the level, even if that takes your last drop of ink.</li><li>If the ink runs out while some blocks are still uncolored, you lose the level. You can still undo or restart.</li></ol>
+    </div>
+  </section>
+  <section class="w-page" id="page-events" data-route="/events" data-path="/events/" aria-labelledby="page-events-h">
+    <div class="w-rail"><span class="w-world">Page</span><span class="w-place"><a class="w-path" href="/events/" data-route="/events">/events/</a></span></div>
+    <div class="w-body">
+      <h2 id="page-events-h">Events</h2>
+      <p class="w-lead">Dates go up here once they are set.</p>
+      <ul class="w-events"><li><strong>Club meetings</strong> <span class="w-tag">Time TBA</span><p>We play, build, and have fun. Times go up here once they are set.</p></li></ul>
+    </div>
+  </section>
+  <section class="w-page" id="page-privacy" data-route="/privacy" data-path="/privacy/" aria-labelledby="page-privacy-h">
+    <div class="w-rail"><span class="w-world">Page</span><span class="w-place"><a class="w-path" href="/privacy/" data-route="/privacy">/privacy/</a></span></div>
+    <div class="w-body">
+      <h2 id="page-privacy-h">Privacy</h2>
+      <p class="w-lead">What the site keeps when you sign in to a game, and how to remove it.</p>
+<ul class="w-rows"><li><h3 class="w-row-h">Signed out</h3><span class="w-row-alt">Default</span><p>Every game works without an account. Progress stays in your browser and nothing is sent anywhere.</p></li><li><h3 class="w-row-h">Signed in</h3><span class="w-row-alt">With Google</span><p>Signing in with Google adds a server copy of that same progress so it follows you to other devices. We store a hash of your Google account id, your display name, your profile picture link, and your game saves. No email address, no password, no token from Google.</p></li><li><h3 class="w-row-h">Signing out</h3><span class="w-row-alt">All devices</span><p>Sign out on any device and every other device is signed out too. Handy on a shared computer.</p></li><li><h3 class="w-row-h">Deleting</h3><span class="w-row-alt">Your call</span><p>Open the sign-in menu in any game and choose Delete account. Your server data is removed at once. What is in your browser stays, and you keep playing signed out.</p></li><li><h3 class="w-row-h">Google</h3><span class="w-row-alt">Their side</span><p>Google records that you used Sign in with Google here. You can review or remove that in your Google account under connections.</p><p class="w-more"><a href="https://myaccount.google.com/connections">Google account connections</a></p></li><li><h3 class="w-row-h">Questions</h3><span class="w-row-alt">Contact</span><p>Write to the club and we will answer or delete on request.</p><p class="w-more"><a href="/contact/" data-route="/join">Contact</a></p></li></ul>
+    </div>
+  </section>
+  <section class="w-page" id="page-terms" data-route="/terms" data-path="/terms/" aria-labelledby="page-terms-h">
+    <div class="w-rail"><span class="w-world">Page</span><span class="w-place"><a class="w-path" href="/terms/" data-route="/terms">/terms/</a></span></div>
+    <div class="w-body">
+      <h2 id="page-terms-h">Terms</h2>
+      <p class="w-lead">The short version of using this site and its games.</p>
+<ul class="w-rows"><li><h3 class="w-row-h">Free to use</h3><span class="w-row-alt">No cost</span><p>The site and the games are free. No purchases, no ads, no paid tiers.</p></li><li><h3 class="w-row-h">Accounts</h3><span class="w-row-alt">Optional</span><p>An account only carries game progress between devices. Keep your Google account secure; we cannot recover a sign-in for you.</p></li><li><h3 class="w-row-h">Fair play</h3><span class="w-row-alt">Scores</span><p>Leaderboards are for play by hand. Scripted or forged scores may be removed without notice.</p></li><li><h3 class="w-row-h">Availability</h3><span class="w-row-alt">Best effort</span><p>A student club runs this site. Games and sign-in can be down or change at any time, and saved progress can be lost. Nothing here is a warranty.</p></li><li><h3 class="w-row-h">Content</h3><span class="w-row-alt">Ownership</span><p>Game code and artwork belong to the club or their listed authors. Third-party assets are used under their own licenses.</p></li><li><h3 class="w-row-h">Changes</h3><span class="w-row-alt">This page</span><p>We may update these terms. The date of the last change is in the site repository history.</p></li></ul>
+    </div>
+  </section>
+  </div>
+
+  <footer class="w-foot">
+    <p class="w-brand"><svg class="w-mark" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256"><use href="#w-cube"/></svg><span class="w-eyebrow">Cornell Computational Game Society</span></p>
+    <ul class="w-inboxes"><li><span class="w-inbox-l">Recruitment</span> <a href="mailto:recruitment@cornellcgs.org">recruitment@cornellcgs.org</a></li><li><span class="w-inbox-l">Tech</span> <a href="mailto:tech@cornellcgs.org">tech@cornellcgs.org</a></li><li><span class="w-inbox-l">Finance &amp; Sponsors</span> <a href="mailto:finance@cornellcgs.org">finance@cornellcgs.org</a></li><li><span class="w-inbox-l">Marketing</span> <a href="mailto:marketing@cornellcgs.org">marketing@cornellcgs.org</a></li><li><span class="w-inbox-l">Social</span> <a href="mailto:social@cornellcgs.org">social@cornellcgs.org</a></li></ul>
+    <details class="w-credits">
+      <summary>Credits</summary>
+      <h3 class="w-credits-h">Data</h3><ul><li>Stars: Yale Bright Star Catalogue (Hoffleit &amp; Warren, NASA ADC), via CDS VizieR.</li></ul>
+      <h3 class="w-credits-h">Textures, models and skies (CC0)</h3><ul><li>Aerial Beach 01 by Rob Tuytel, Poly Haven (CC0)</li><li>Aft Lounge, Poly Haven (CC0)</li><li>American Walnut Veneer by Jenelle van Heerden, Poly Haven (CC0)</li><li>Beige Wall 001 by Dimitrios Savva and Rico Cilliers, Poly Haven (CC0)</li><li>Blue Metal Plate by Rob Tuytel, Poly Haven (CC0)</li><li>Boulder 01 by Rico Cilliers, Poly Haven (CC0)</li><li>Coast Sand 03 by Rob Tuytel, Poly Haven (CC0)</li><li>Coated Pine by Charlotte Baglioni and Rico Cilliers, Poly Haven (CC0)</li><li>Concrete Pavers 02 by Amal Kumar, Poly Haven (CC0)</li><li>Dark Wooden Planks by Amal Kumar, Poly Haven (CC0)</li><li>Fingerprints002 by Lennart Demes, ambientCG (CC0)</li><li>Jacaranda Tree by Rico Cilliers (with Rob Tuytel), Poly Haven (CC0)</li><li>Kloofendal 48d Partly Cloudy (Pure Sky) by Greg Zaal and Jarod Guest, Poly Haven (CC0)</li><li>Low Tide Rocks by Dimitrios Savva, Poly Haven (CC0)</li><li>Namaqualand Boulder 03 by Jenelle van Heerden, Poly Haven (CC0)</li><li>Painted Wooden Chair 02 by Kirill Sannikov, Poly Haven (CC0)</li><li>Potted Plant 02 by Rico Cilliers, Poly Haven (CC0)</li><li>Potted Plant 04 by James Ray Cock, Poly Haven (CC0)</li><li>Rock 07 by Jenelle van Heerden, Poly Haven (CC0)</li><li>Rock 09 by Jenelle van Heerden, Poly Haven (CC0)</li><li>Rock Boulder Dry by Dimitrios Savva and Rico Cilliers, Poly Haven (CC0)</li><li>Rock Moss Set 02 by Kless Gyzen, Poly Haven (CC0)</li><li>Shrub 04 by Rico Cilliers, Poly Haven (CC0)</li><li>Smear008 by Lennart Demes, ambientCG (CC0)</li><li>Stationery Supplies by Mateusz Sadek, Poly Haven (CC0)</li><li>SurfaceImperfections003 by Lennart Demes, ambientCG (CC0)</li></ul>
+      <h3 class="w-credits-h">Space imagery</h3><ul><li>ESO/S. Brunier</li><li>NASA Earth Observatory images by Joshua Stevens, using Suomi NPP VIIRS data from Miguel Román, NASA GSFC</li><li>NASA Earth Observatory, Blue Marble: Next Generation, Reto Stöckli, NASA GSFC</li><li>NASA Worldview / GIBS, Suomi NPP VIIRS Corrected Reflectance, 20 July 2023</li><li>NASA Worldview / GIBS, VIIRS (NOAA-20, Suomi NPP)</li><li>NASA, ESA, CSA, STScI</li><li>NASA/GSFC LRO LOLA and JAXA SELENE/Kaguya TC (SLDEM2015, Barker et al. 2016), via NASA Moon Trek</li><li>NASA/GSFC LRO LOLA, via NASA Moon Trek</li><li>NASA/GSFC/Arizona State University (LROC NAC DEM), via NASA Moon Trek</li></ul>
+      <h3 class="w-credits-h">Type and code</h3><ul><li>Fraunces by Undercase Type, Figtree by Erik Kennedy and Playpen Sans by TypeTogether, under the SIL Open Font License</li><li>three.js, MIT License</li></ul>
+    </details>
+    <p class="w-small">Cornell University · Registered student organization</p>
+    <p class="w-small">© 2026 Cornell CGS · cornellcgs.org. Website developed by Eric Shi.</p>
+  </footer>
+</main>
+<!--/film:words-->
+<!-- words:end -->
+
+<script>
+  // before the modules: no WebGL or reduced motion or save-data means the calm page, at once (no film to wait for)
+  (function () {
+    var d = document.documentElement, calm = false
+    try { calm = matchMedia('(prefers-reduced-motion: reduce)').matches } catch (e) {}
+    try { if (navigator.connection && navigator.connection.saveData) calm = true } catch (e) {}
+    // no WebGL: the calm page. Not only a browser without it: one whose GPU is refused (blocklisted, disabled) still
+    // has the constructors but no context, so a context is asked for once, on a 1 px canvas, and given back at once
+    if (!window.WebGLRenderingContext && !window.WebGL2RenderingContext) calm = true
+    else if (!calm) {
+      try {
+        var c = document.createElement('canvas'); c.width = c.height = 1
+        var g = c.getContext('webgl2') || c.getContext('webgl')
+        if (!g) calm = true
+        else { var x = g.getExtension('WEBGL_lose_context'); if (x) x.loseContext() }
+      } catch (e) { calm = true }
+    }
+    if (/[?&]calm\b/.test(location.search)) calm = true
+    if (calm) { d.classList.add('calm'); d.classList.remove('boot') }
+  })()
+</script>
+<!--/film:body-->
+  </body>
+</html>

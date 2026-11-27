@@ -2,5 +2,6 @@ User-agent: *
 Allow: /
 Disallow: /admin/
 Disallow: /api/
+Disallow: /film/site/words.html
 
 Sitemap: https://cornellcgs.org/sitemap.xml

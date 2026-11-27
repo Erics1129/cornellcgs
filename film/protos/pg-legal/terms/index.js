@@ -1,0 +1,1 @@
+import{mountLegal as s}from"../index.js";const l={id:"pg-legal/terms",part:"page",world:"galaxy",title:"Terms",blurb:"The Terms route of pg-legal (the same module, mounted on Terms).",seconds:24,kind:"scroll",portrait:!1};function m(t,e){const r={...e,base:new URL("../",e.base).href,asset:o=>e.asset("../"+o)};return s(t,r,"terms")}export{l as meta,m as mount};

@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Proof: two scenes hand the air over at a seam</title>
+<link rel="icon" href="data:,">
+<script type="importmap">
+{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js", "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/" } }
+</script>
+<script>
+  // count every AudioContext the page makes (the proof: none before a press, one after, whatever the scenes do)
+  window.__ac = { made: 0 }
+  for (const k of ['AudioContext', 'webkitAudioContext']) { const C = window[k]; if (!C) continue; const W = function (...a) { window.__ac.made++; return new C(...a) }; W.prototype = C.prototype; window[k] = W }
+</script>
+<link rel="stylesheet" href="../../site.css">
+<style>
+  .pf-layer{position:fixed;inset:0;z-index:5;pointer-events:none;opacity:0}
+  .pf-layer.live{pointer-events:auto}
+  .pf-read{position:fixed;right:12px;top:12px;z-index:50;max-width:430px;padding:10px 12px;border-radius:10px;background:rgb(251 248 241 / .94);color:#211F1C;
+    font:12px/1.45 ui-monospace,Menlo,monospace;white-space:pre-wrap;box-shadow:0 6px 18px rgb(58 40 24 / .25)}
+</style>
+<!--
+  site/chrome/proof/seam.html: the PROOF of the kit change in site/chrome/KIT-CHANGES.md ("sound.js").
+  A fake film of two scenes of two worlds (ocean, then machine) joined by a match seam (stub.js), the site's sound
+  (../sound.js, its switch bottom left), and over each scene a small scene that uses the PATCHED feel kit
+  (./kitpatch/feel.js, made from the kit by r3src/chrome-sound/kitpatch.mjs). Shows, live: AudioContexts made, the
+  air's beds and weights, the last sound and the part it was played in, whether each scene's own switch is hidden.
+  Driven by r3src/chrome-sound/proof.mjs. window.__proof = { site, S, scenes, layers, destroyScene(i) }
+-->
+</head>
+<body>
+<div id="film" class="film"></div>
+<pre class="pf-read" aria-live="off"></pre>
+<script type="module">
+import { createStubSite } from '../stub.js'
+import { mount as mountSound } from '../sound.js'
+import { SCENES } from '../../scenes.js'
+import { loadFont, blobUrl } from '../../../kit/host.js'
+import { ROOT } from '../../mount.js'
+import * as proof from './scene.js'
+
+const q = new URLSearchParams(location.search)
+const ids = (q.get('ids') || 'events-c,poker-a').split(',')
+const parts = (q.get('parts') || 'ocean,machine').split(',')
+const rows = ids.map((id, k) => ({ ...SCENES.find((e) => e.id === id), k, seam: k < ids.length - 1 ? 'match' : null }))
+const site = createStubSite({ root: document.getElementById('film'), film: rows, live: false })
+const chromeRoot = document.createElement('div'); document.body.append(chromeRoot)
+const soundChrome = mountSound(chromeRoot, site)
+const S = site.sound
+
+const layers = [], scenes = []
+for (let k = 0; k < rows.length; k++) {
+  const host = document.createElement('div'); host.className = 'pf-layer'; host.dataset.k = k
+  document.body.append(host); layers.push(host)
+  const env = {
+    base: ROOT + 'site/chrome/proof/', reduced: false, dpr: Math.min(2, devicePixelRatio || 1), style: 'soft', names: [], part: parts[k],
+    font: (s) => loadFont(s), asset: (rel) => blobUrl(new URL(rel, ROOT + 'site/chrome/proof/').href),
+    site: { ...site.env.site, sound: S, film: { k, slot: rows[k].slot, count: rows.length, title: rows[k].title } },
+  }
+  const inst = await proof.mount(host, env)
+  inst.resize(innerWidth, innerHeight)
+  scenes.push(inst)
+}
+// each scene's layer shows by the film position: the incoming fades in across the match zone, as film.js does
+const ease = (s) => s * s * (3 - 2 * s)
+function place() {
+  const pos = site.film.position
+  layers.forEach((l, k) => {
+    let a = 0
+    if (pos.seam) a = k === pos.seam.from ? 1 : k === pos.seam.to ? ease(pos.seam.s) : 0
+    else a = k === pos.k ? 1 : 0
+    l.style.opacity = a.toFixed(3); l.classList.toggle('live', a > 0.5)
+  })
+}
+site.film.on('progress', place); site.film.on('scene', place); place()
+const read = document.querySelector('.pf-read')
+setInterval(() => {
+  const d = S.debug()
+  read.textContent = `AudioContexts made: ${window.__ac.made} (${d.state})\nsound: ${d.on ? 'on' : 'off'} · world on screen: ${d.world} · part: ${d.part}\nair: ${d.beds.map((b) => `${b.world} ${b.weight.toFixed(2)}`).join(' · ') || '(none)'}\nlast sound: ${d.lastPlay ? `${d.lastPlay.name} in ${d.lastPlay.part}` : '(none)'}\nscene hints: ${JSON.stringify(d.hints)}\n` +
+    scenes.map((s, k) => `scene ${k} (${parts[k]}): own switch ${s ? (s.sw.el.hidden ? 'hidden' : 'SHOWN') : '(destroyed)'}, feel.sound.on ${s ? s.feel.sound.on : '-'}`).join('\n') +
+    (d.pos ? `\nfilm: k ${d.pos.k} p ${(+d.pos.p).toFixed(2)}${d.pos.seam ? ` seam s ${d.pos.seam.s.toFixed(2)}` : ''}` : '')
+}, 120)
+window.__proof = { site, S, scenes, layers, soundChrome, destroyScene(i) { if (scenes[i]) { scenes[i].destroy(); scenes[i] = null } } }
+</script>
+</body>
+</html>
