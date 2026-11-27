@@ -1,5 +1,5 @@
 {
- "at": "2026-11-27T05:59:40.493Z",
+ "at": "2026-11-27T06:12:02.218Z",
  "from": "/Users/eric/Claude/cgs-redesign/picker",
  "minified": true,
  "three": "0.170.0",
@@ -1528,8 +1528,8 @@
    "f24c3725dcb1"
   ],
   "site/film.js": [
-   27908,
-   "9aff19dadcab"
+   28041,
+   "d035a9ebb337"
   ],
   "site/host.js": [
    418,
@@ -1985,7 +1985,7 @@
   ],
   "preload.json": [
    1947,
-   "3d8e9a21f310"
+   "647042a74b3b"
   ]
  }
 }
